@@ -249,7 +249,7 @@ export default function Calculadora() {
           rede_atendimento: s2.rede_atendimento,
           media_consumo: s2.consumoMensal,
           consumo_previsto: s2.consumoMensal,
-          vendedor: null,
+          vendedor: "Calculadora",
         },
         { forceNew: false }
       );
@@ -275,7 +275,7 @@ export default function Calculadora() {
             rede_atendimento: s2.rede_atendimento,
             media_consumo: s2.consumoMensal,
             consumo_previsto: s2.consumoMensal,
-            vendedor: null,
+            vendedor: "Calculadora",
           },
           { forceNew: true }
         );
