@@ -123,11 +123,11 @@ export default function ConversionMetrics({ leads, statuses }: ConversionMetrics
         
         <Card className="p-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
-              <Percent className="w-4 h-4 text-green-600" />
+            <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+              <Percent className="w-4 h-4 text-success" />
             </div>
             <div>
-              <p className="text-lg font-bold text-green-600">{currentMonthStats.rate}%</p>
+              <p className="text-lg font-bold text-success">{currentMonthStats.rate}%</p>
               <p className="text-xs text-muted-foreground">Conversão</p>
             </div>
           </div>
@@ -135,11 +135,11 @@ export default function ConversionMetrics({ leads, statuses }: ConversionMetrics
         
         <Card className="p-3">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-blue-600" />
+            <div className="w-8 h-8 rounded-full bg-info/10 flex items-center justify-center">
+              <Calendar className="w-4 h-4 text-info" />
             </div>
             <div>
-              <p className="text-lg font-bold text-blue-600">{avgDailyLeads}</p>
+              <p className="text-lg font-bold text-info">{avgDailyLeads}</p>
               <p className="text-xs text-muted-foreground">Média/dia</p>
             </div>
           </div>

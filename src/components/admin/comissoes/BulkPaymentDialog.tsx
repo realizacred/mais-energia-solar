@@ -243,19 +243,19 @@ export function BulkPaymentDialog({
 
                 {/* Show credit/debit info */}
                 {formData.valor_pago && diferenca !== 0 && (
-                  <div className={`p-3 rounded-lg ${diferenca > 0 ? 'bg-green-50 border border-green-200' : 'bg-orange-50 border border-orange-200'}`}>
+                  <div className={`p-3 rounded-lg ${diferenca > 0 ? 'bg-success/10 border border-success/30' : 'bg-warning/10 border border-warning/30'}`}>
                     <div className="flex items-center gap-2">
                       {diferenca > 0 ? (
                         <>
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                          <span className="text-sm text-green-700">
+                          <TrendingUp className="h-4 w-4 text-success" />
+                          <span className="text-sm text-success">
                             <strong>Crédito/Vale:</strong> {formatCurrency(diferenca)} será lançado como antecipação
                           </span>
                         </>
                       ) : (
                         <>
-                          <TrendingDown className="h-4 w-4 text-orange-600" />
-                          <span className="text-sm text-orange-700">
+                          <TrendingDown className="h-4 w-4 text-warning" />
+                          <span className="text-sm text-warning">
                             <strong>Saldo pendente:</strong> {formatCurrency(Math.abs(diferenca))} ficará em aberto
                           </span>
                         </>

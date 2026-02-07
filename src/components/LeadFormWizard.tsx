@@ -672,7 +672,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           animate={{ opacity: 1, y: 0 }}
         />
         <div className="flex items-center justify-center gap-2 mb-1">
-          <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold text-brand-blue">
+          <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold text-secondary">
             Solicite seu Orçamento
           </CardTitle>
         </div>

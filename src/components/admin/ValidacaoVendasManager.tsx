@@ -274,8 +274,8 @@
        <Card>
          <CardContent className="pt-6">
            <div className="flex items-center gap-3">
-             <div className="p-2 rounded-lg bg-amber-500/10">
-               <Clock className="h-5 w-5 text-amber-600" />
+              <div className="p-2 rounded-lg bg-warning/10">
+                <Clock className="h-5 w-5 text-warning" />
              </div>
              <div>
                <p className="text-sm text-muted-foreground">Vendas Aguardando Validação</p>
@@ -363,7 +363,7 @@
                            <Button
                              size="sm"
                              variant="default"
-                            className="bg-emerald-600 hover:bg-emerald-700"
+                             className="bg-success hover:bg-success/90"
                              onClick={() => {
                                setSelectedCliente(cliente);
                                setPercentualComissao("2.0");
@@ -470,13 +470,13 @@
                  />
                </div>
  
-              <div className="p-4 bg-emerald-50 dark:bg-emerald-950 rounded-lg">
-                 <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-2">
-                    <DollarSign className="h-5 w-5 text-emerald-600" />
-                     <span className="font-medium">Valor da Comissão</span>
-                   </div>
-                  <span className="text-xl font-bold text-emerald-600">
+               <div className="p-4 bg-success/10 dark:bg-success/5 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                     <DollarSign className="h-5 w-5 text-success" />
+                      <span className="font-medium">Valor da Comissão</span>
+                    </div>
+                   <span className="text-xl font-bold text-success">
                      {formatCurrency(valorComissaoPreview())}
                    </span>
                  </div>
@@ -490,7 +490,7 @@
              <Button
                onClick={handleApprove}
                disabled={approving === selectedCliente?.id}
-              className="bg-emerald-600 hover:bg-emerald-700"
+              className="bg-success hover:bg-success/90"
              >
                {approving === selectedCliente?.id && (
                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />

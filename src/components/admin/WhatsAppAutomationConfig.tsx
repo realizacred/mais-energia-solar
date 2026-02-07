@@ -441,16 +441,16 @@ export function WhatsAppAutomationConfig() {
                       {connectionStatus && (
                         <div className={`mt-3 p-3 rounded-lg flex items-start gap-2 ${
                           connectionStatus.success 
-                            ? 'bg-green-500/10 border border-green-500/30' 
+                            ? 'bg-success/10 border border-success/30' 
                             : 'bg-destructive/10 border border-destructive/30'
                         }`}>
                           {connectionStatus.success ? (
-                            <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
+                            <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
                           ) : (
                             <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
                           )}
                           <p className={`text-sm ${
-                            connectionStatus.success ? 'text-green-700' : 'text-destructive'
+                            connectionStatus.success ? 'text-success' : 'text-destructive'
                           }`}>
                             {connectionStatus.message}
                           </p>

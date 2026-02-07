@@ -93,11 +93,11 @@ interface NewUserForm {
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  admin: { label: "Administrador", color: "bg-red-100 text-red-800 border-red-200", icon: ShieldAlert },
-  gerente: { label: "Gerente", color: "bg-purple-100 text-purple-800 border-purple-200", icon: ShieldCheck },
-  vendedor: { label: "Vendedor", color: "bg-blue-100 text-blue-800 border-blue-200", icon: Users },
-  instalador: { label: "Instalador", color: "bg-green-100 text-green-800 border-green-200", icon: Users },
-  financeiro: { label: "Financeiro", color: "bg-yellow-100 text-yellow-800 border-yellow-200", icon: Users },
+  admin: { label: "Administrador", color: "bg-destructive/10 text-destructive border-destructive/30", icon: ShieldAlert },
+  gerente: { label: "Gerente", color: "bg-accent text-accent-foreground border-border", icon: ShieldCheck },
+  vendedor: { label: "Vendedor", color: "bg-info/10 text-info border-info/30", icon: Users },
+  instalador: { label: "Instalador", color: "bg-success/10 text-success border-success/30", icon: Users },
+  financeiro: { label: "Financeiro", color: "bg-warning/10 text-warning border-warning/30", icon: Users },
 };
 
 export function UsuariosManager() {
@@ -637,8 +637,8 @@ export function UsuariosManager() {
                         <Badge 
                           variant="outline"
                           className={user.ativo 
-                            ? "bg-green-50 text-green-700 border-green-200" 
-                            : "bg-gray-50 text-gray-500 border-gray-200"
+                            ? "bg-success/10 text-success border-success/30" 
+                            : "bg-muted text-muted-foreground border-border"
                           }
                         >
                           {user.ativo ? "Ativo" : "Inativo"}

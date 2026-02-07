@@ -659,7 +659,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                       <Button
                         size="sm"
                         variant="ghost"
-                        className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                        className="text-success hover:text-success/80 hover:bg-success/10"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenWhatsApp(cliente);

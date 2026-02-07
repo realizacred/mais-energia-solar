@@ -56,13 +56,13 @@ export function VendorBalanceCard({ balances }: VendorBalanceCardProps) {
         {vendorsWithCredits.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <TrendingUp className="h-3 w-3 text-green-600" />
+               <TrendingUp className="h-3 w-3 text-success" />
               Créditos (Vale Antecipado)
             </p>
             {vendorsWithCredits.map((v) => (
-              <div key={v.vendedor_id} className="flex justify-between items-center text-sm py-1 px-2 rounded bg-green-50 dark:bg-green-950/20">
+              <div key={v.vendedor_id} className="flex justify-between items-center text-sm py-1 px-2 rounded bg-success/10">
                 <span>{v.vendedor_nome}</span>
-                <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                <Badge variant="outline" className="bg-success/10 text-success border-success/30">
                   +{formatCurrency(v.saldo)}
                 </Badge>
               </div>
@@ -74,13 +74,13 @@ export function VendorBalanceCard({ balances }: VendorBalanceCardProps) {
         {vendorsWithPending.length > 0 && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-              <TrendingDown className="h-3 w-3 text-orange-600" />
+               <TrendingDown className="h-3 w-3 text-warning" />
               Saldo Pendente
             </p>
             {vendorsWithPending.map((v) => (
-              <div key={v.vendedor_id} className="flex justify-between items-center text-sm py-1 px-2 rounded bg-orange-50 dark:bg-orange-950/20">
+              <div key={v.vendedor_id} className="flex justify-between items-center text-sm py-1 px-2 rounded bg-warning/10">
                 <span>{v.vendedor_nome}</span>
-                <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
                   {formatCurrency(Math.abs(v.saldo))}
                 </Badge>
               </div>

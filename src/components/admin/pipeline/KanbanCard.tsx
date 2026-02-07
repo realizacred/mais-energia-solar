@@ -67,15 +67,15 @@
    const getUrgencyInfo = () => {
      if (!lead.ultimo_contato) {
        const daysSinceCreation = differenceInDays(new Date(), new Date(lead.created_at));
-       if (daysSinceCreation >= 7) return { level: "critical", label: "Crítico", color: "text-red-500" };
-       if (daysSinceCreation >= 3) return { level: "high", label: "Urgente", color: "text-orange-500" };
-       return null;
-     }
-     
-     const daysSinceContact = differenceInDays(new Date(), new Date(lead.ultimo_contato));
-     if (daysSinceContact >= 7) return { level: "critical", label: "Crítico", color: "text-red-500" };
-     if (daysSinceContact >= 3) return { level: "high", label: "Urgente", color: "text-orange-500" };
-     if (daysSinceContact >= 1) return { level: "medium", label: "Pendente", color: "text-yellow-500" };
+        if (daysSinceCreation >= 7) return { level: "critical", label: "Crítico", color: "text-destructive" };
+        if (daysSinceCreation >= 3) return { level: "high", label: "Urgente", color: "text-warning" };
+        return null;
+      }
+      
+      const daysSinceContact = differenceInDays(new Date(), new Date(lead.ultimo_contato));
+      if (daysSinceContact >= 7) return { level: "critical", label: "Crítico", color: "text-destructive" };
+      if (daysSinceContact >= 3) return { level: "high", label: "Urgente", color: "text-warning" };
+      if (daysSinceContact >= 1) return { level: "medium", label: "Pendente", color: "text-warning/70" };
      return null;
    };
  
@@ -203,7 +203,7 @@
          </div>
          <div className="flex items-center justify-between">
            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-             <Zap className="w-3 h-3 flex-shrink-0 text-yellow-500" />
+             <Zap className="w-3 h-3 flex-shrink-0 text-warning" />
              <span className="font-medium">{lead.media_consumo} kWh</span>
            </div>
            {lead.vendedor && (

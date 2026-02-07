@@ -103,13 +103,13 @@ export function OrcamentosTable({
             return (
               <TableRow
                 key={group.lead_id}
-                className={`${orc.visto_admin ? "bg-green-50 dark:bg-green-950/20" : ""} ${isConverted ? "bg-primary/5" : ""}`}
+                className={`${orc.visto_admin ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
               >
                 <TableCell>
                   <Checkbox
                     checked={orc.visto_admin}
                     onCheckedChange={() => onToggleVisto(orc)}
-                    className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                    className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                   />
                 </TableCell>
                 <TableCell>
