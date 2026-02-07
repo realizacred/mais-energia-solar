@@ -32,6 +32,7 @@ import { InstaladorManager } from "@/components/admin/InstaladorManager";
 import { InadimplenciaDashboard } from "@/components/admin/InadimplenciaDashboard";
 import { WhatsAppAutomationConfig } from "@/components/admin/WhatsAppAutomationConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
@@ -71,15 +72,21 @@ export default function Admin() {
       );
 
       if (!userHasAccess) {
-        // Redirect to portal selector instead of showing blocked screen
-        navigate("/portal", { replace: true });
+        // Check if user has vendedor role - redirect appropriately
+        const isVendedor = roles?.some(r => r.role === "vendedor");
+        if (isVendedor) {
+          navigate("/vendedor", { replace: true });
+        } else {
+          // No valid role - show access denied instead of looping
+          setHasAccess(false);
+        }
         return;
       }
 
       setHasAccess(true);
     } catch (error) {
       console.error("Error checking admin access:", error);
-      navigate("/portal", { replace: true });
+      setHasAccess(false);
     } finally {
       setCheckingAccess(false);
     }
@@ -107,8 +114,17 @@ export default function Admin() {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="w-full max-w-md">
+          <CardContent className="flex flex-col items-center gap-4 py-8">
+            <ShieldAlert className="w-12 h-12 text-destructive" />
+            <h2 className="text-xl font-semibold">Acesso Negado</h2>
+            <p className="text-sm text-muted-foreground text-center">
+              Sua conta não possui permissão para acessar o painel administrativo. Contate o administrador.
+            </p>
+            <Button onClick={handleSignOut} variant="outline">Sair</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
