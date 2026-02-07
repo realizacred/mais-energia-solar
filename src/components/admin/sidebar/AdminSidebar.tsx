@@ -81,6 +81,7 @@ const operationsMenuItems = [
 // Seção de Análises
 const analyticsMenuItems = [
   { id: "dashboard", title: "Dashboard", icon: BarChart3 },
+  { id: "auditoria", title: "Auditoria", icon: Shield },
 ];
 
 // APIs e Automações (seção dedicada)

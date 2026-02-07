@@ -32,6 +32,7 @@ import { InstaladorManager } from "@/components/admin/InstaladorManager";
 import { InadimplenciaDashboard } from "@/components/admin/InadimplenciaDashboard";
 import { WhatsAppAutomationConfig } from "@/components/admin/WhatsAppAutomationConfig";
 import { AprovacaoUsuarios } from "@/components/admin/AprovacaoUsuarios";
+import { AuditLogsViewer } from "@/components/admin/AuditLogsViewer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -266,6 +267,8 @@ export default function Admin() {
         );
       case "inadimplencia":
         return <InadimplenciaDashboard />;
+      case "auditoria":
+        return <AuditLogsViewer />;
       default:
         return <LeadsView />;
     }
