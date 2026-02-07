@@ -1,7 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
-import { Phone } from "lucide-react";
+import { Phone, LogIn, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "./MobileNav";
+import { useAuth } from "@/hooks/useAuth";
 import logo from "@/assets/logo.png";
 
 interface HeaderProps {
@@ -25,6 +26,7 @@ export default function Header({
   showAdmin = true,
   children,
 }: HeaderProps) {
+  const { user } = useAuth();
   const location = useLocation();
   const isHomePage = location.pathname === "/";
 
@@ -86,10 +88,36 @@ export default function Header({
 
           {children}
 
+          {showAdmin && !user && (
+            <Link to="/auth">
+              <Button
+                size="sm"
+                variant="outline"
+                className="ml-2 gap-2 font-medium rounded-full transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <LogIn className="w-4 h-4" />
+                Acessar Sistema
+              </Button>
+            </Link>
+          )}
+
+          {user && (
+            <Link to="/portal">
+              <Button
+                size="sm"
+                variant="outline"
+                className="ml-2 gap-2 font-medium rounded-full transition-all duration-300 hover:-translate-y-0.5"
+              >
+                <LayoutDashboard className="w-4 h-4" />
+                Meu Portal
+              </Button>
+            </Link>
+          )}
+
           <Button
             size="sm"
             onClick={scrollToContact}
-            className="ml-3 gap-2 font-bold rounded-full bg-primary hover:bg-primary/90 shadow-primary hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5"
+            className="ml-2 gap-2 font-bold rounded-full bg-primary hover:bg-primary/90 shadow-primary hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5"
           >
             <Phone className="w-4 h-4" />
             Orçamento
