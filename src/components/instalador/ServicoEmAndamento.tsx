@@ -47,6 +47,7 @@ import { PhotoCapture } from "@/components/checklist/PhotoCapture";
  import { cn } from "@/lib/utils";
 import logoWhite from "@/assets/logo-branca.png";
 import logoBlue from "@/assets/logo.png";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
  import { VideoCapture } from "./VideoCapture";
   import { SolarLayoutEditor, type LayoutData } from "@/components/solar-editor";
  
@@ -83,7 +84,9 @@ import logoBlue from "@/assets/logo.png";
  };
  
  export function ServicoEmAndamento({ servico, onClose, onServiceUpdated }: ServicoEmAndamentoProps) {
-   const [currentStep, setCurrentStep] = useState(1);
+  const { settings: brandSettings } = useBrandSettings();
+  const logo = brandSettings?.logo_small_url || brandSettings?.logo_url || logoBlue;
+  const [currentStep, setCurrentStep] = useState(1);
    const [isSubmitting, setIsSubmitting] = useState(false);
    const [isSuccess, setIsSuccess] = useState(false);
    
@@ -435,7 +438,7 @@ import logoBlue from "@/assets/logo.png";
                    <ChevronLeft className="h-4 w-4" />
                    Voltar
                  </Button>
-                <img src={logoBlue} alt="Mais Energia Solar" className="h-8" />
+                <img src={logo} alt="Logo" className="h-8" />
                  <div className="w-20" />
                </div>
              </div>
@@ -566,7 +569,7 @@ import logoBlue from "@/assets/logo.png";
               <X className="h-4 w-4" />
               Fechar
             </Button>
-            <img src={logoBlue} alt="Mais Energia Solar" className="h-8" />
+            <img src={logo} alt="Logo" className="h-8" />
             <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
               <Clock className="h-3 w-3 mr-1" />
               Em andamento
@@ -635,8 +638,8 @@ import logoBlue from "@/assets/logo.png";
                 <CardContent className="space-y-4 pt-4">
                   <ChecklistItemWithPhoto
                     icon={Sun}
-                    iconColor="text-amber-600"
-                    bgColor="bg-amber-500/10"
+                    iconColor="text-warning"
+                    bgColor="bg-warning/10"
                     title="Placas instaladas no local correto"
                     description="Local com boa exposição solar"
                     item={checklistItems.placas_local_aprovado}
@@ -647,8 +650,8 @@ import logoBlue from "@/assets/logo.png";
                   
                   <ChecklistItemWithPhoto
                     icon={Zap}
-                    iconColor="text-blue-600"
-                    bgColor="bg-blue-500/10"
+                    iconColor="text-info"
+                    bgColor="bg-info/10"
                     title="Inversor instalado corretamente"
                     description="Local seguro e protegido"
                     item={checklistItems.inversor_local_aprovado}
@@ -659,8 +662,8 @@ import logoBlue from "@/assets/logo.png";
                   
                   <ChecklistItemWithPhoto
                     icon={FileCheck}
-                    iconColor="text-violet-600"
-                    bgColor="bg-violet-500/10"
+                    iconColor="text-accent-foreground"
+                    bgColor="bg-accent"
                     title="Adesivo do inversor aplicado"
                     description="Identificação visível"
                     item={checklistItems.adesivo_inversor}
@@ -671,8 +674,8 @@ import logoBlue from "@/assets/logo.png";
                   
                   <ChecklistItemWithPhoto
                     icon={Clock}
-                    iconColor="text-emerald-600"
-                    bgColor="bg-emerald-500/10"
+                    iconColor="text-success"
+                    bgColor="bg-success/10"
                     title="Plaquinha do relógio instalada"
                     description="Identificação no medidor"
                     item={checklistItems.plaquinha_relogio}
@@ -683,8 +686,8 @@ import logoBlue from "@/assets/logo.png";
                   
                   <ChecklistItemWithPhoto
                     icon={Wifi}
-                    iconColor="text-cyan-600"
-                    bgColor="bg-cyan-500/10"
+                    iconColor="text-secondary"
+                    bgColor="bg-secondary/10"
                     title="Configuração WiFi do inversor"
                     description="Conectado à rede"
                     item={checklistItems.configuracao_wifi}
@@ -884,14 +887,14 @@ import logoBlue from "@/assets/logo.png";
       </main>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 gradient-blue p-4 pb-6 safe-area-bottom">
+      <div className="fixed bottom-0 left-0 right-0 bg-secondary p-4 pb-6 safe-area-bottom">
         <div className="container mx-auto max-w-lg flex flex-col gap-3">
           <div className="flex gap-3">
           {currentStep > 1 && (
             <Button
               variant="outline"
               onClick={prevStep}
-              className="flex-1 h-11 bg-white/10 border-white/20 text-white hover:bg-white/20"
+              className="flex-1 h-11 bg-secondary-foreground/10 border-secondary-foreground/20 text-secondary-foreground hover:bg-secondary-foreground/20"
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
               Voltar
@@ -901,7 +904,7 @@ import logoBlue from "@/assets/logo.png";
           {currentStep < totalSteps ? (
             <Button
               onClick={nextStep}
-              className="flex-1 h-11 bg-white text-secondary hover:bg-white/90 font-medium"
+              className="flex-1 h-11 bg-background text-secondary hover:bg-background/90 font-medium"
             >
               Próximo
               <ChevronRight className="h-4 w-4 ml-1" />
@@ -946,8 +949,8 @@ import logoBlue from "@/assets/logo.png";
 // Componente auxiliar para item do checklist com foto
 function ChecklistItemWithPhoto({
   icon: Icon,
-  iconColor = "text-orange-600",
-  bgColor = "bg-orange-500/10",
+  iconColor = "text-primary",
+  bgColor = "bg-primary/10",
   title,
   description,
   item,
