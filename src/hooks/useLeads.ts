@@ -3,24 +3,34 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { Lead, LeadStatus } from "@/types/lead";
 
+const PAGE_SIZE = 50;
+
 interface UseLeadsOptions {
   autoFetch?: boolean;
+  pageSize?: number;
 }
 
-export function useLeads({ autoFetch = true }: UseLeadsOptions = {}) {
+export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOptions = {}) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const { toast } = useToast();
 
   const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
       const [leadsRes, statusesRes] = await Promise.all([
         supabase
           .from("leads")
-          .select("*")
-          .order("created_at", { ascending: false }),
+          .select("*", { count: "exact" })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to),
         supabase
           .from("lead_status")
           .select("*")
@@ -29,6 +39,7 @@ export function useLeads({ autoFetch = true }: UseLeadsOptions = {}) {
 
       if (leadsRes.error) throw leadsRes.error;
       setLeads(leadsRes.data || []);
+      setTotalCount(leadsRes.count || 0);
       
       if (statusesRes.data) {
         setStatuses(statusesRes.data);
@@ -43,7 +54,7 @@ export function useLeads({ autoFetch = true }: UseLeadsOptions = {}) {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, page, pageSize]);
 
   const toggleVisto = useCallback(async (lead: Lead) => {
     const newVisto = !lead.visto_admin;
@@ -84,6 +95,7 @@ export function useLeads({ autoFetch = true }: UseLeadsOptions = {}) {
       if (error) throw error;
 
       setLeads((prev) => prev.filter((l) => l.id !== leadId));
+      setTotalCount((prev) => prev - 1);
       toast({
         title: "Lead excluído",
         description: "O lead foi excluído com sucesso.",
@@ -112,6 +124,8 @@ export function useLeads({ autoFetch = true }: UseLeadsOptions = {}) {
   const uniqueVendedores = [...new Set(leads.map((l) => l.vendedor).filter(Boolean))] as string[];
   const estadosList = [...new Set(leads.map((l) => l.estado))].sort();
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return {
     leads,
     statuses,
@@ -119,8 +133,14 @@ export function useLeads({ autoFetch = true }: UseLeadsOptions = {}) {
     fetchLeads,
     toggleVisto,
     deleteLead,
+    // Pagination
+    page,
+    setPage,
+    totalCount,
+    totalPages,
+    pageSize,
     stats: {
-      total: leads.length,
+      total: totalCount,
       totalKwh,
       uniqueEstados,
     },

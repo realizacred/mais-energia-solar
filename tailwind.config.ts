@@ -75,6 +75,12 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+          analytics: "hsl(var(--sidebar-section-analytics))",
+          finance: "hsl(var(--sidebar-section-finance))",
+          sales: "hsl(var(--sidebar-section-sales))",
+          operations: "hsl(var(--sidebar-section-operations))",
+          apis: "hsl(var(--sidebar-section-apis))",
+          config: "hsl(var(--sidebar-section-config))",
         },
         surface: {
           1: "hsl(var(--surface-1))",

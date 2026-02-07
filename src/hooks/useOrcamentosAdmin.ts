@@ -4,19 +4,26 @@ import { useToast } from "@/hooks/use-toast";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
 
+const PAGE_SIZE = 50;
+
 interface UseOrcamentosAdminOptions {
   autoFetch?: boolean;
+  pageSize?: number;
 }
 
-export function useOrcamentosAdmin({ autoFetch = true }: UseOrcamentosAdminOptions = {}) {
+export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: UseOrcamentosAdminOptions = {}) {
   const [orcamentos, setOrcamentos] = useState<OrcamentoDisplayItem[]>([]);
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
   const { toast } = useToast();
 
   const fetchOrcamentos = useCallback(async () => {
     try {
       setLoading(true);
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
       
       // Fetch orcamentos with lead data joined
       const [orcamentosRes, statusesRes] = await Promise.all([
@@ -31,8 +38,10 @@ export function useOrcamentosAdmin({ autoFetch = true }: UseOrcamentosAdminOptio
               telefone,
               telefone_normalized
             )
-          `)
-          .order("created_at", { ascending: false }),
+          `, { count: "exact" })
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(from, to),
         supabase
           .from("lead_status")
           .select("*")
@@ -74,6 +83,7 @@ export function useOrcamentosAdmin({ autoFetch = true }: UseOrcamentosAdminOptio
       }));
 
       setOrcamentos(displayItems);
+      setTotalCount(orcamentosRes.count || 0);
       
       if (statusesRes.data) {
         setStatuses(statusesRes.data);
@@ -88,7 +98,7 @@ export function useOrcamentosAdmin({ autoFetch = true }: UseOrcamentosAdminOptio
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, page, pageSize]);
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoDisplayItem) => {
     const newVisto = !orcamento.visto_admin;
@@ -129,6 +139,7 @@ export function useOrcamentosAdmin({ autoFetch = true }: UseOrcamentosAdminOptio
       if (error) throw error;
 
       setOrcamentos((prev) => prev.filter((o) => o.id !== orcamentoId));
+      setTotalCount((prev) => prev - 1);
       toast({
         title: "Orçamento excluído",
         description: "O orçamento foi excluído com sucesso.",
@@ -183,6 +194,8 @@ export function useOrcamentosAdmin({ autoFetch = true }: UseOrcamentosAdminOptio
   const uniqueVendedores = [...new Set(orcamentos.map((o) => o.vendedor).filter(Boolean))] as string[];
   const estadosList = [...new Set(orcamentos.map((o) => o.estado))].sort();
 
+  const totalPages = Math.ceil(totalCount / pageSize);
+
   return {
     orcamentos,
     statuses,
@@ -190,8 +203,14 @@ export function useOrcamentosAdmin({ autoFetch = true }: UseOrcamentosAdminOptio
     fetchOrcamentos,
     toggleVisto,
     deleteOrcamento,
+    // Pagination
+    page,
+    setPage,
+    totalCount,
+    totalPages,
+    pageSize,
     stats: {
-      total: orcamentos.length,
+      total: totalCount,
       totalKwh,
       uniqueEstados,
     },
