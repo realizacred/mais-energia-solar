@@ -29,6 +29,7 @@ import {
   MessageCircle,
   Cable,
   Workflow,
+  Paintbrush,
 } from "lucide-react";
 import {
   Sidebar,
@@ -144,6 +145,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     hoverClass: "hover:bg-sidebar-config/5",
     labelClass: "text-sidebar-config",
     items: [
+      { id: "brand", title: "Identidade Visual", icon: Paintbrush },
       { id: "aprovacao", title: "Aprovações", icon: UserCheck },
       { id: "vendedores", title: "Vendedores", icon: Users },
       { id: "usuarios", title: "Usuários", icon: Shield },
