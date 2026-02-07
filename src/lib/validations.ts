@@ -88,6 +88,15 @@ export const loginSchema = z.object({
 
 export type LoginData = z.infer<typeof loginSchema>;
 
+export const signupSchema = z.object({
+  nome: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
+  email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  cargo: z.enum(["vendedor", "instalador"], { required_error: "Selecione um cargo" }),
+});
+
+export type SignupData = z.infer<typeof signupSchema>;
+
 // Format functions
 export function formatPhone(value: string): string {
   const v = value.replace(/\D/g, "");

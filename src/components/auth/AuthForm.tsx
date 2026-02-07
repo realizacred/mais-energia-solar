@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock, Loader2, CheckCircle, KeyRound, ArrowRight, Sparkles, ArrowLeft } from "lucide-react";
+import { Mail, Lock, Loader2, CheckCircle, KeyRound, ArrowRight, Sparkles, ArrowLeft, User, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,10 +12,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
-import { loginSchema, LoginData } from "@/lib/validations";
+import { loginSchema, LoginData, signupSchema, SignupData } from "@/lib/validations";
 import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 
@@ -79,6 +81,16 @@ export function AuthForm() {
     defaultValues: {
       email: "",
       password: "",
+    },
+  });
+
+  const signupForm = useForm<SignupData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      nome: "",
+      email: "",
+      password: "",
+      cargo: "vendedor",
     },
   });
 
@@ -228,7 +240,7 @@ export function AuthForm() {
     }
   };
 
-  const handleSignUp = async (data: LoginData) => {
+  const handleSignUp = async (data: SignupData) => {
     setIsLoading(true);
     try {
       const { error } = await signUp(data.email, data.password);
@@ -244,13 +256,25 @@ export function AuthForm() {
           description: message,
           variant: "destructive",
         });
-      } else {
-        toast({
-          title: "Conta criada! 🎉",
-          description: "Verifique seu email para confirmar o cadastro.",
-        });
-        form.reset();
+        return;
       }
+
+      // Create profile with pending status
+      const { data: { user: newUser } } = await supabase.auth.getUser();
+      if (newUser) {
+        await supabase.from("profiles").upsert({
+          user_id: newUser.id,
+          nome: data.nome,
+          status: "pendente",
+          cargo_solicitado: data.cargo,
+        }, { onConflict: "user_id" });
+      }
+
+      toast({
+        title: "Conta criada! 🎉",
+        description: "Verifique seu email para confirmar o cadastro. Após confirmação, um administrador aprovará seu acesso.",
+      });
+      signupForm.reset();
     } finally {
       setIsLoading(false);
     }
@@ -506,10 +530,32 @@ export function AuthForm() {
         </TabsContent>
 
         <TabsContent value="signup" className="animate-fade-in">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSignUp)} className="space-y-4">
+          <Form {...signupForm}>
+            <form onSubmit={signupForm.handleSubmit(handleSignUp)} className="space-y-4">
               <FormField
-                control={form.control}
+                control={signupForm.control}
+                name="nome"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">Nome completo</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Input
+                          type="text"
+                          placeholder="Seu nome completo"
+                          className="pl-10"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={signupForm.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -531,7 +577,7 @@ export function AuthForm() {
               />
 
               <FormField
-                control={form.control}
+                control={signupForm.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
@@ -551,6 +597,46 @@ export function AuthForm() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={signupForm.control}
+                name="cargo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="w-4 h-4" />
+                        Cargo desejado
+                      </div>
+                    </FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        className="grid grid-cols-2 gap-3"
+                      >
+                        <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer hover:border-primary/50 transition-colors">
+                          <RadioGroupItem value="vendedor" id="vendedor" />
+                          <Label htmlFor="vendedor" className="cursor-pointer text-sm">
+                            Vendedor
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer hover:border-primary/50 transition-colors">
+                          <RadioGroupItem value="instalador" id="instalador" />
+                          <Label htmlFor="instalador" className="cursor-pointer text-sm">
+                            Instalador
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <p className="text-xs text-muted-foreground text-center">
+                Após criar a conta, um administrador precisará aprovar seu acesso.
+              </p>
 
               <Button type="submit" className="w-full h-11" disabled={isLoading}>
                 {isLoading ? (
