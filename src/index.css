@@ -87,6 +87,14 @@
     --sidebar-accent-foreground: 222 47% 11%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 25 100% 50%;
+
+    /* Sidebar section accent colors */
+    --sidebar-section-analytics: 262 83% 58%;
+    --sidebar-section-finance: 160 84% 39%;
+    --sidebar-section-sales: 217 91% 60%;
+    --sidebar-section-operations: 25 95% 53%;
+    --sidebar-section-apis: 189 94% 43%;
+    --sidebar-section-config: 38 92% 50%;
   }
 
   .dark {
@@ -150,6 +158,14 @@
     --sidebar-accent-foreground: 210 40% 98%;
     --sidebar-border: 217 33% 18%;
     --sidebar-ring: 25 100% 55%;
+
+    /* Sidebar section accent colors - dark mode */
+    --sidebar-section-analytics: 263 70% 65%;
+    --sidebar-section-finance: 160 60% 50%;
+    --sidebar-section-sales: 217 80% 65%;
+    --sidebar-section-operations: 25 85% 60%;
+    --sidebar-section-apis: 189 80% 55%;
+    --sidebar-section-config: 38 80% 55%;
   }
 }
 
