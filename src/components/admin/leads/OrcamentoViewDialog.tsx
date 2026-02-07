@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { FileText, Image, ExternalLink } from "lucide-react";
+import { FileText, Image, ExternalLink, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -11,16 +12,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { AssignVendorDialog } from "./AssignVendorDialog";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 
 interface OrcamentoViewDialogProps {
   orcamento: OrcamentoDisplayItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRefresh?: () => void;
 }
 
-export function OrcamentoViewDialog({ orcamento, open, onOpenChange }: OrcamentoViewDialogProps) {
+export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }: OrcamentoViewDialogProps) {
   const { toast } = useToast();
+  const [assignOpen, setAssignOpen] = useState(false);
 
   const handleOpenFile = async (filePath: string) => {
     const { data, error } = await supabase.storage
@@ -102,7 +106,24 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange }: Orcamento
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Vendedor</p>
-                <p className="font-medium text-sm">{orcamento.vendedor || "-"}</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  {orcamento.vendedor ? (
+                    <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                      {orcamento.vendedor}
+                    </Badge>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">Sem vendedor</span>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1 text-xs"
+                    onClick={() => setAssignOpen(true)}
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    {orcamento.vendedor ? "Trocar" : "Atribuir"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
@@ -192,6 +213,20 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange }: Orcamento
           )}
         </div>
       </DialogContent>
+
+      {/* Assign Vendor Dialog */}
+      <AssignVendorDialog
+        open={assignOpen}
+        onOpenChange={setAssignOpen}
+        orcamentoId={orcamento.id}
+        leadId={orcamento.lead_id}
+        currentVendedor={orcamento.vendedor}
+        clienteNome={orcamento.nome}
+        onSuccess={() => {
+          onRefresh?.();
+          onOpenChange(false);
+        }}
+      />
     </Dialog>
   );
 }
