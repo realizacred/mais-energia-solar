@@ -181,7 +181,7 @@
  
    const copyLink = useCallback(() => {
      if (!vendedor) return;
-     const link = `${window.location.origin}/v/${vendedor.codigo}`;
+     const link = `${window.location.origin}/?v=${vendedor.codigo}`;
      navigator.clipboard.writeText(link);
      toast({
        title: "Link copiado!",
