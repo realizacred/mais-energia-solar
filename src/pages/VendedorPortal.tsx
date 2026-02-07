@@ -101,6 +101,11 @@ export default function VendedorPortal() {
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6 mt-4">
+            {/* Share Link Card */}
+            {!isAdminMode && vendedor && (
+              <VendedorShareLink codigo={vendedor.codigo} onCopy={copyLink} />
+            )}
+
            {/* Goal Progress Notifications */}
            {goalNotifications.length > 0 && (
              <GoalProgressNotifications
