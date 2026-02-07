@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,6 +19,7 @@ import { FloatingInput } from "@/components/ui/floating-input";
 import { FloatingSelect } from "@/components/ui/floating-select";
 import { CalculadoraResults } from "@/components/calculadora/CalculadoraResults";
 import { StepIndicator } from "@/components/calculadora/StepIndicator";
+import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import FinancingSimulator from "@/components/FinancingSimulator";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -131,6 +132,28 @@ export default function Calculadora() {
   });
 
   const consumoMensal = step2Form.watch("consumoMensal") || 300;
+
+  // ─── City dropdown by state ────────────────────────────────
+  const selectedEstado = step1Form.watch("estado");
+  const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(selectedEstado);
+
+  // Reset cidade when estado changes (except if it was set by CEP)
+  const handleEstadoChange = useCallback((uf: string) => {
+    step1Form.setValue("estado", uf, { shouldValidate: true });
+    step1Form.setValue("cidade", "", { shouldValidate: false });
+  }, [step1Form]);
+
+  // ─── Field validation helpers for green state ──────────────
+  const s1 = step1Form.watch();
+  const s1Errors = step1Form.formState.errors;
+  const s1Touched = step1Form.formState.touchedFields;
+
+  const isFieldValid = useCallback((value: string | undefined, fieldName: keyof typeof s1Errors, touched?: boolean) => {
+    return !!value && value.length > 0 && !s1Errors[fieldName] && touched !== false;
+  }, [s1Errors]);
+
+  const s2 = step2Form.watch();
+  const s2Errors = step2Form.formState.errors;
 
   // ─── Fetch config ─────────────────────────────────────────
   useEffect(() => {
@@ -397,29 +420,31 @@ export default function Calculadora() {
                     <FloatingInput
                       id="nome"
                       label="Seu nome completo"
-                      value={step1Form.watch("nome")}
+                      value={s1.nome}
                       onChange={(e) => step1Form.setValue("nome", e.target.value, { shouldValidate: true })}
                       onBlur={() => step1Form.trigger("nome")}
-                      error={step1Form.formState.errors.nome?.message}
+                      error={s1Errors.nome?.message}
+                      success={!!s1.nome && s1.nome.length >= 3 && !s1Errors.nome}
                     />
 
                     <FloatingInput
                       id="telefone"
                       label="WhatsApp / Telefone"
-                      value={step1Form.watch("telefone")}
+                      value={s1.telefone}
                       onChange={(e) => {
                         const formatted = formatPhone(e.target.value);
                         step1Form.setValue("telefone", formatted, { shouldValidate: true });
                       }}
                       onBlur={() => step1Form.trigger("telefone")}
                       maxLength={15}
-                      error={step1Form.formState.errors.telefone?.message}
+                      error={s1Errors.telefone?.message}
+                      success={!!s1.telefone && /^\(\d{2}\) \d{4,5}-\d{4}$/.test(s1.telefone) && !s1Errors.telefone}
                     />
 
                     <FloatingInput
                       id="cep"
                       label="CEP (opcional)"
-                      value={step1Form.watch("cep") || ""}
+                      value={s1.cep || ""}
                       onChange={(e) => {
                         const formatted = formatCEP(e.target.value);
                         step1Form.setValue("cep", formatted, { shouldValidate: true });
@@ -429,27 +454,35 @@ export default function Calculadora() {
                         handleCEPBlur(e.target.value);
                       }}
                       maxLength={9}
-                      error={step1Form.formState.errors.cep?.message}
+                      error={s1Errors.cep?.message}
+                      success={!!s1.cep && /^\d{5}-\d{3}$/.test(s1.cep) && !s1Errors.cep}
                     />
 
                     <div className="grid grid-cols-2 gap-3">
                       <FloatingSelect
                         label="Estado"
-                        value={step1Form.watch("estado")}
-                        onValueChange={(v) => step1Form.setValue("estado", v, { shouldValidate: true })}
-                        error={step1Form.formState.errors.estado?.message}
+                        value={s1.estado}
+                        onValueChange={handleEstadoChange}
+                        error={s1Errors.estado?.message}
+                        success={!!s1.estado && s1.estado.length === 2 && !s1Errors.estado}
                         options={ESTADOS_BRASIL.map((e) => ({
                           value: e.sigla,
-                          label: e.sigla,
+                          label: `${e.sigla} - ${e.nome}`,
                         }))}
                       />
-                      <FloatingInput
-                        id="cidade"
-                        label="Cidade"
-                        value={step1Form.watch("cidade")}
-                        onChange={(e) => step1Form.setValue("cidade", e.target.value, { shouldValidate: true })}
-                        onBlur={() => step1Form.trigger("cidade")}
-                        error={step1Form.formState.errors.cidade?.message}
+                      <FloatingSelect
+                        label={cidadesLoading ? "Carregando..." : "Cidade"}
+                        value={s1.cidade}
+                        onValueChange={(v) => step1Form.setValue("cidade", v, { shouldValidate: true })}
+                        error={s1Errors.cidade?.message}
+                        success={!!s1.cidade && s1.cidade.length >= 2 && !s1Errors.cidade}
+                        options={
+                          cidades.length > 0
+                            ? cidades.map((c) => ({ value: c, label: c }))
+                            : s1.cidade
+                              ? [{ value: s1.cidade, label: s1.cidade }]
+                              : []
+                        }
                       />
                     </div>
                   </div>
@@ -583,13 +616,14 @@ export default function Calculadora() {
                   <div className="space-y-3">
                     <FloatingSelect
                       label="Tipo de telhado"
-                      value={step2Form.watch("tipo_telhado")}
+                      value={s2.tipo_telhado}
                       onValueChange={(v) =>
                         step2Form.setValue("tipo_telhado", v, {
                           shouldValidate: true,
                         })
                       }
-                      error={step2Form.formState.errors.tipo_telhado?.message}
+                      error={s2Errors.tipo_telhado?.message}
+                      success={!!s2.tipo_telhado && !s2Errors.tipo_telhado}
                       options={TIPOS_TELHADO.map((t) => ({
                         value: t,
                         label: t,
@@ -599,13 +633,14 @@ export default function Calculadora() {
                     <div className="grid grid-cols-2 gap-3">
                       <FloatingSelect
                         label="Rede elétrica"
-                        value={step2Form.watch("rede_atendimento")}
+                        value={s2.rede_atendimento}
                         onValueChange={(v) =>
                           step2Form.setValue("rede_atendimento", v, {
                             shouldValidate: true,
                           })
                         }
-                        error={step2Form.formState.errors.rede_atendimento?.message}
+                        error={s2Errors.rede_atendimento?.message}
+                        success={!!s2.rede_atendimento && !s2Errors.rede_atendimento}
                         options={REDES_ATENDIMENTO.map((r) => ({
                           value: r,
                           label: r,
@@ -613,7 +648,7 @@ export default function Calculadora() {
                       />
                       <FloatingSelect
                         label="Área"
-                        value={step2Form.watch("area") || ""}
+                        value={s2.area || ""}
                         onValueChange={(v) =>
                           step2Form.setValue(
                             "area",
@@ -621,7 +656,8 @@ export default function Calculadora() {
                             { shouldValidate: true }
                           )
                         }
-                        error={step2Form.formState.errors.area?.message}
+                        error={s2Errors.area?.message}
+                        success={!!s2.area && !s2Errors.area}
                         options={[
                           { value: "Urbana", label: "Urbana" },
                           { value: "Rural", label: "Rural" },

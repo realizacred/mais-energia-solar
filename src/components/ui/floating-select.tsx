@@ -35,7 +35,7 @@ const FloatingSelect = React.forwardRef<HTMLButtonElement, FloatingSelectProps>(
                 "absolute left-3 top-1/2 -translate-y-1/2 z-10 transition-colors duration-200",
                 hasValue ? "text-primary" : "text-muted-foreground",
                 error && "text-destructive",
-                success && "text-green-500"
+                success && "text-success"
               )}
             >
               {icon}
@@ -50,13 +50,13 @@ const FloatingSelect = React.forwardRef<HTMLButtonElement, FloatingSelectProps>(
                 icon && "pl-11",
                 !error && !success && "border-muted-foreground/25 focus:border-primary",
                 error && "border-destructive bg-destructive/5",
-                success && "border-green-500 bg-green-500/5",
+                success && "border-success bg-success/5",
                 className
               )}
             >
               <SelectValue placeholder="" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="z-50 bg-popover border border-border shadow-lg max-h-[300px]">
               {options.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
@@ -72,7 +72,7 @@ const FloatingSelect = React.forwardRef<HTMLButtonElement, FloatingSelectProps>(
                 ? "top-2 text-xs font-medium text-primary"
                 : "top-1/2 -translate-y-1/2 text-base text-muted-foreground",
               error && "text-destructive",
-              success && "text-green-500"
+              success && "text-success"
             )}
           >
             {label}
@@ -91,7 +91,7 @@ const FloatingSelect = React.forwardRef<HTMLButtonElement, FloatingSelectProps>(
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute right-10 top-1/2 -translate-y-1/2 text-green-500"
+            className="absolute right-10 top-1/2 -translate-y-1/2 text-success"
           >
             ✓
           </motion.div>

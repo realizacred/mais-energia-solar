@@ -25,7 +25,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                 "absolute left-3 top-1/2 -translate-y-1/2 z-10 transition-colors duration-200",
                 isFocused ? "text-primary" : "text-muted-foreground",
                 error && "text-destructive",
-                success && "text-green-500"
+                success && "text-success"
               )}
               animate={{ scale: isFocused ? 1.1 : 1 }}
               transition={{ duration: 0.2 }}
@@ -44,7 +44,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
               icon && "pl-11",
               !error && !success && "border-muted-foreground/25 focus:border-primary",
               error && "border-destructive bg-destructive/5",
-              success && "border-green-500 bg-green-500/5",
+              success && "border-success bg-success/5",
               className
             )}
             ref={ref}
@@ -67,7 +67,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
                 : "top-1/2 -translate-y-1/2 text-base",
               isFocused ? "text-primary" : "text-muted-foreground",
               error && "text-destructive",
-              success && "text-green-500"
+              success && "text-success"
             )}
             animate={{
               y: isFocused || hasValue ? 0 : "-50%",
@@ -91,7 +91,7 @@ const FloatingInput = React.forwardRef<HTMLInputElement, FloatingInputProps>(
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-success"
           >
             ✓
           </motion.div>
