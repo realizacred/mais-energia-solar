@@ -1738,9 +1738,11 @@ export type Database = {
         Row: {
           ativo: boolean
           avatar_url: string | null
+          cargo_solicitado: string | null
           created_at: string
           id: string
           nome: string
+          status: string
           telefone: string | null
           updated_at: string
           user_id: string
@@ -1748,9 +1750,11 @@ export type Database = {
         Insert: {
           ativo?: boolean
           avatar_url?: string | null
+          cargo_solicitado?: string | null
           created_at?: string
           id?: string
           nome: string
+          status?: string
           telefone?: string | null
           updated_at?: string
           user_id: string
@@ -1758,9 +1762,11 @@ export type Database = {
         Update: {
           ativo?: boolean
           avatar_url?: string | null
+          cargo_solicitado?: string | null
           created_at?: string
           id?: string
           nome?: string
+          status?: string
           telefone?: string | null
           updated_at?: string
           user_id?: string

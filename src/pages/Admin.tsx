@@ -31,6 +31,7 @@ import { ServicosManager } from "@/components/admin/ServicosManager";
 import { InstaladorManager } from "@/components/admin/InstaladorManager";
 import { InadimplenciaDashboard } from "@/components/admin/InadimplenciaDashboard";
 import { WhatsAppAutomationConfig } from "@/components/admin/WhatsAppAutomationConfig";
+import { AprovacaoUsuarios } from "@/components/admin/AprovacaoUsuarios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -131,6 +132,8 @@ export default function Admin() {
 
   const renderContent = () => {
     switch (activeTab) {
+      case "aprovacao":
+        return <AprovacaoUsuarios />;
       case "leads":
         return <LeadsView />;
       case "pipeline":

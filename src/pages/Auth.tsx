@@ -43,6 +43,28 @@ export default function Auth() {
       if (!loading && user && !isRecoveryFlow) {
         setCheckingRole(true);
         try {
+          // Check profile status first
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("status, cargo_solicitado")
+            .eq("user_id", user.id)
+            .single();
+
+          // If profile is pending or rejected, redirect to pending page
+          if (profile?.status === "pendente") {
+            navigate("/aguardando-aprovacao", { replace: true });
+            return;
+          }
+          if (profile?.status === "rejeitado") {
+            toast({
+              title: "Acesso negado",
+              description: "Sua solicitação de acesso foi rejeitada. Contate o administrador.",
+              variant: "destructive",
+            });
+            setCheckingRole(false);
+            return;
+          }
+
           const savedPreference = localStorage.getItem(PORTAL_PREFERENCE_KEY);
           const { data: roles, error: rolesError } = await supabase
             .from("user_roles")
@@ -56,11 +78,16 @@ export default function Auth() {
           // If user has no roles at all, stay on auth and show message
           if (!isVendedor && !isAdmin && !isInstalador) {
             setCheckingRole(false);
-            toast({
-              title: "Acesso não autorizado",
-              description: "Sua conta não possui permissões configuradas. Contate o administrador.",
-              variant: "destructive",
-            });
+            // If they have a profile but no roles, they might be pending
+            if (profile) {
+              navigate("/aguardando-aprovacao", { replace: true });
+            } else {
+              toast({
+                title: "Acesso não autorizado",
+                description: "Sua conta não possui permissões configuradas. Contate o administrador.",
+                variant: "destructive",
+              });
+            }
             return;
           }
 

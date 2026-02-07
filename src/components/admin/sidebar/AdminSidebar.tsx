@@ -93,6 +93,7 @@ const apiMenuItems = [
 
 // Configurações
 const configMenuItems = [
+  { id: "aprovacao", title: "Aprovações", icon: UserCheck },
   { id: "vendedores", title: "Vendedores", icon: Users },
   { id: "usuarios", title: "Usuários", icon: Shield },
   { id: "gamificacao", title: "Gamificação", icon: Trophy },
