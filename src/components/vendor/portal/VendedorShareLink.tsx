@@ -9,7 +9,7 @@
  }
  
  export function VendedorShareLink({ codigo, onCopy }: VendedorShareLinkProps) {
-   const link = `${window.location.origin}/v/${codigo}`;
+   const link = `${window.location.origin}/?v=${codigo}`;
  
    return (
      <Card className="bg-primary/5 border-primary/20">
