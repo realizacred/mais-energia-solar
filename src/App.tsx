@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { BrandSettingsProvider } from "@/components/BrandSettingsProvider";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -27,6 +28,7 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <BrandSettingsProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -51,6 +53,7 @@ const App = () => (
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>
+      </BrandSettingsProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

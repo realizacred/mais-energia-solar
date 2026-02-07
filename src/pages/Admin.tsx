@@ -32,6 +32,7 @@ import { InstaladorManager } from "@/components/admin/InstaladorManager";
 import { InadimplenciaDashboard } from "@/components/admin/InadimplenciaDashboard";
 import { WhatsAppAutomationConfig } from "@/components/admin/WhatsAppAutomationConfig";
 import { AprovacaoUsuarios } from "@/components/admin/AprovacaoUsuarios";
+import { BrandSettingsManager } from "@/components/admin/BrandSettingsManager";
 import { AuditLogsViewer } from "@/components/admin/AuditLogsViewer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -135,6 +136,8 @@ export default function Admin() {
     switch (activeTab) {
       case "aprovacao":
         return <AprovacaoUsuarios />;
+      case "brand":
+        return <BrandSettingsManager />;
       case "leads":
         return <LeadsView />;
       case "pipeline":

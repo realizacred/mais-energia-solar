@@ -56,6 +56,129 @@ export type Database = {
         }
         Relationships: []
       }
+      brand_settings: {
+        Row: {
+          allow_theme_switch: boolean
+          border_radius: string
+          color_accent: string
+          color_accent_foreground: string
+          color_background: string
+          color_border: string
+          color_card: string
+          color_card_foreground: string
+          color_destructive: string
+          color_foreground: string
+          color_info: string
+          color_muted: string
+          color_muted_foreground: string
+          color_primary: string
+          color_primary_foreground: string
+          color_secondary: string
+          color_secondary_foreground: string
+          color_success: string
+          color_warning: string
+          created_at: string
+          dark_color_background: string
+          dark_color_border: string
+          dark_color_card: string
+          dark_color_foreground: string
+          dark_color_muted: string
+          dark_color_muted_foreground: string
+          dark_color_primary: string
+          default_theme: string
+          favicon_url: string | null
+          font_body: string
+          font_heading: string
+          font_size_base: string
+          font_weight_heading: string
+          id: string
+          login_image_url: string | null
+          logo_small_url: string | null
+          logo_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          allow_theme_switch?: boolean
+          border_radius?: string
+          color_accent?: string
+          color_accent_foreground?: string
+          color_background?: string
+          color_border?: string
+          color_card?: string
+          color_card_foreground?: string
+          color_destructive?: string
+          color_foreground?: string
+          color_info?: string
+          color_muted?: string
+          color_muted_foreground?: string
+          color_primary?: string
+          color_primary_foreground?: string
+          color_secondary?: string
+          color_secondary_foreground?: string
+          color_success?: string
+          color_warning?: string
+          created_at?: string
+          dark_color_background?: string
+          dark_color_border?: string
+          dark_color_card?: string
+          dark_color_foreground?: string
+          dark_color_muted?: string
+          dark_color_muted_foreground?: string
+          dark_color_primary?: string
+          default_theme?: string
+          favicon_url?: string | null
+          font_body?: string
+          font_heading?: string
+          font_size_base?: string
+          font_weight_heading?: string
+          id?: string
+          login_image_url?: string | null
+          logo_small_url?: string | null
+          logo_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          allow_theme_switch?: boolean
+          border_radius?: string
+          color_accent?: string
+          color_accent_foreground?: string
+          color_background?: string
+          color_border?: string
+          color_card?: string
+          color_card_foreground?: string
+          color_destructive?: string
+          color_foreground?: string
+          color_info?: string
+          color_muted?: string
+          color_muted_foreground?: string
+          color_primary?: string
+          color_primary_foreground?: string
+          color_secondary?: string
+          color_secondary_foreground?: string
+          color_success?: string
+          color_warning?: string
+          created_at?: string
+          dark_color_background?: string
+          dark_color_border?: string
+          dark_color_card?: string
+          dark_color_foreground?: string
+          dark_color_muted?: string
+          dark_color_muted_foreground?: string
+          dark_color_primary?: string
+          default_theme?: string
+          favicon_url?: string | null
+          font_body?: string
+          font_heading?: string
+          font_size_base?: string
+          font_weight_heading?: string
+          id?: string
+          login_image_url?: string | null
+          logo_small_url?: string | null
+          logo_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       calculadora_config: {
         Row: {
           created_at: string
