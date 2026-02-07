@@ -9,7 +9,7 @@ interface VendedorShareLinkProps {
 }
 
 export function VendedorShareLink({ slug, onCopy }: VendedorShareLinkProps) {
-  const link = `https://maisenergiasolar.lovable.app/v/${slug}`;
+  const link = `${window.location.origin}/v/${slug}`;
  
    return (
      <Card className="bg-primary/5 border-primary/20">

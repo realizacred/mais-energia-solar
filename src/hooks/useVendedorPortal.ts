@@ -183,7 +183,7 @@ const ADMIN_PROFILE: VendedorProfile = {
  
     const copyLink = useCallback(() => {
       if (!vendedor) return;
-      const link = `https://maisenergiasolar.lovable.app/v/${vendedor.slug || vendedor.codigo}`;
+      const link = `${window.location.origin}/v/${vendedor.slug || vendedor.codigo}`;
       navigator.clipboard.writeText(link);
       toast({
         title: "Link copiado!",
