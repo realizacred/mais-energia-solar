@@ -49,13 +49,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: redirectUrl,
       },
     });
+
+    // Supabase returns 200 with empty identities for existing emails (anti-enumeration)
+    if (!error && data?.user && (!data.user.identities || data.user.identities.length === 0)) {
+      return { error: new Error("User already registered") as Error | null };
+    }
+
     return { error: error as Error | null };
   };
 
