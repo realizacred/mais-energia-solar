@@ -32,7 +32,15 @@ interface DashboardStatsProps {
   leads: Lead[];
 }
 
-const COLORS = ["hsl(25, 95%, 53%)", "hsl(220, 70%, 35%)", "hsl(142, 76%, 36%)", "hsl(47, 96%, 53%)", "hsl(262, 83%, 58%)", "hsl(346, 77%, 50%)"];
+// Use CSS variable-based colors for theming consistency
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--secondary))",
+  "hsl(var(--success))",
+  "hsl(var(--warning))",
+  "hsl(var(--sidebar-section-analytics))",
+  "hsl(var(--destructive))",
+];
 
 export default function DashboardStats({ leads }: DashboardStatsProps) {
   // Stats by month (last 6 months)
@@ -116,10 +124,10 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-success">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-              <Zap className="w-5 h-5 text-green-600" />
+            <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+              <Zap className="w-5 h-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{totalKwh.toLocaleString()}</p>
@@ -140,10 +148,10 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-amber-500">
+        <Card className="border-l-4 border-l-warning">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-amber-600" />
+            <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-warning" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">
@@ -190,7 +198,7 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
                 />
                 <Bar 
                   dataKey="leads" 
-                  fill="hsl(25, 95%, 53%)" 
+                  fill="hsl(var(--primary))" 
                   radius={[4, 4, 0, 0]}
                   name="Leads"
                 />
@@ -268,9 +276,9 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
               <Line 
                 type="monotone" 
                 dataKey="leads" 
-                stroke="hsl(220, 70%, 35%)" 
+                stroke="hsl(var(--secondary))" 
                 strokeWidth={2}
-                dot={{ fill: "hsl(220, 70%, 35%)", strokeWidth: 2 }}
+                dot={{ fill: "hsl(var(--secondary))", strokeWidth: 2 }}
                 name="Leads"
               />
             </LineChart>
