@@ -55,16 +55,14 @@ export default function PortalSelector() {
       const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
       const isInstalador = roles?.some(r => r.role === "instalador");
 
-      // Check if user has vendedor record
+      // Check if user has vendedor record (required to access vendor portal)
       let hasVendedorRecord = false;
-      if (isVendedor) {
-        const { data: vendedorData } = await supabase
-          .from("vendedores")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-        hasVendedorRecord = !!vendedorData;
-      }
+      const { data: vendedorData } = await supabase
+        .from("vendedores")
+        .select("id")
+        .eq("user_id", user.id)
+        .single();
+      hasVendedorRecord = !!vendedorData;
 
       setAccess({
         vendedor: isVendedor || false,
@@ -73,37 +71,42 @@ export default function PortalSelector() {
         instalador: isInstalador || false,
       });
 
-      // If only one option available, redirect directly
-      // Admins can access both portals (vendor portal shows all leads for admins)
-      if (isAdmin) {
-        // Admin has access to both - continue to show selector
-        // unless they only have admin role (no vendedor role)
-        if (!isVendedor) {
-          navigate("/admin", { replace: true });
-          return;
+      // Determine available portals
+      const canAccessVendor = hasVendedorRecord; // Must have vendedor record
+      const canAccessAdmin = isAdmin || false;
+      const canAccessInstaller = isInstalador || false;
+
+      // Count available portals
+      const availablePortals = [canAccessVendor, canAccessAdmin, canAccessInstaller].filter(Boolean).length;
+
+      // If no valid access at all
+      if (availablePortals === 0) {
+        if (!isAdmin && !isVendedor && !isInstalador) {
+          await supabase.auth.signOut();
         }
-      } else if (isInstalador && !isVendedor) {
-        // Instalador-only users go directly to installer portal
-        navigate("/instalador", { replace: true });
-        return;
-      } else if (isVendedor && hasVendedorRecord) {
-        // Vendedor-only users go directly to vendor portal
-        navigate("/vendedor", { replace: true });
-        return;
-      } else if (!isAdmin && !isVendedor && !isInstalador) {
-        // No valid role - sign out and redirect to auth to prevent loop
-        await supabase.auth.signOut();
         navigate("/auth", { replace: true });
+        return;
+      }
+
+      // If only one portal available, redirect directly
+      if (availablePortals === 1) {
+        if (canAccessAdmin) {
+          navigate("/admin", { replace: true });
+        } else if (canAccessVendor) {
+          navigate("/vendedor", { replace: true });
+        } else if (canAccessInstaller) {
+          navigate("/instalador", { replace: true });
+        }
         return;
       }
 
       // If saved preference exists and valid, redirect
       if (savedPreference) {
-        if (savedPreference === "vendedor" && isVendedor && hasVendedorRecord) {
+        if (savedPreference === "vendedor" && canAccessVendor) {
           navigate("/vendedor", { replace: true });
           return;
         }
-        if (savedPreference === "admin" && isAdmin) {
+        if (savedPreference === "admin" && canAccessAdmin) {
           navigate("/admin", { replace: true });
           return;
         }
@@ -151,7 +154,7 @@ export default function PortalSelector() {
           {/* Portal Cards */}
           <div className="grid md:grid-cols-2 gap-4">
             {/* Vendedor Portal Card */}
-            {(access.vendedor || access.admin) && (
+            {access.vendedorRecord && (
               <Card 
                 className="cursor-pointer group hover:shadow-lg transition-all duration-300 hover:border-primary/50 hover:scale-[1.02]"
                 onClick={() => handleSelectPortal("vendedor")}
