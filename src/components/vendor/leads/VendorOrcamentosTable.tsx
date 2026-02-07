@@ -214,7 +214,7 @@ export function VendorOrcamentosTable({
               return (
                 <TableRow
                   key={group.lead_id}
-                  className={`${orc.visto ? "bg-green-50/50 dark:bg-green-950/20" : ""} ${isConverted ? "bg-primary/5" : ""}`}
+                  className={`${orc.visto ? "bg-success/5" : ""} ${isConverted ? "bg-primary/5" : ""}`}
                 >
                   <TableCell>
                     <Checkbox
@@ -323,7 +323,7 @@ export function VendorOrcamentosTable({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="text-success hover:text-success hover:bg-success/10"
                               onClick={() => handleWhatsappClick(orc)}
                             >
                               <MessageSquare className="w-4 h-4" />

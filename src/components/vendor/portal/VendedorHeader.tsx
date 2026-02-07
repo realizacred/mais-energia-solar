@@ -1,7 +1,8 @@
  import { Button } from "@/components/ui/button";
  import { LogOut } from "lucide-react";
  import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
- import logo from "@/assets/logo.png";
+ import { useBrandSettings } from "@/hooks/useBrandSettings";
+ import logoFallback from "@/assets/logo.png";
  
 interface VendedorHeaderProps {
   vendedorNome: string;
@@ -11,6 +12,8 @@ interface VendedorHeaderProps {
 }
 
 export function VendedorHeader({ vendedorNome, isAdminMode, isViewingAsVendedor, onSignOut }: VendedorHeaderProps) {
+  const { settings } = useBrandSettings();
+  const logo = settings?.logo_small_url || settings?.logo_url || logoFallback;
   const displayName = isAdminMode && !isViewingAsVendedor ? "Administrador" : vendedorNome;
   
   return (

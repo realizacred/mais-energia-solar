@@ -105,8 +105,8 @@ export function VendorLeadsTable({
             
             // Cores: borda azul = admin viu, fundo verde = vendedor marcou
             const rowClasses = [
-              lead.visto_admin && "border-l-4 border-l-blue-500",
-              lead.visto && "bg-green-50 dark:bg-green-950/20",
+              lead.visto_admin && "border-l-4 border-l-info",
+              lead.visto && "bg-success/5",
               isConverted && "bg-primary/5",
             ].filter(Boolean).join(" ");
             
@@ -119,7 +119,7 @@ export function VendorLeadsTable({
                   <Checkbox
                     checked={lead.visto}
                     onCheckedChange={() => onToggleVisto(lead)}
-                    className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                    className="data-[state=checked]:bg-success data-[state=checked]:border-success"
                   />
                 </TableCell>
               <TableCell>
@@ -179,7 +179,7 @@ export function VendorLeadsTable({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          className="text-success hover:text-success hover:bg-success/10"
                           onClick={() => handleWhatsappClick(lead)}
                         >
                           <MessageSquare className="w-4 h-4" />
@@ -218,7 +218,7 @@ export function VendorLeadsTable({
                     {isConverted && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center justify-center h-8 w-8 text-green-600">
+                          <span className="inline-flex items-center justify-center h-8 w-8 text-success">
                             <UserCheck className="w-4 h-4" />
                           </span>
                         </TooltipTrigger>
