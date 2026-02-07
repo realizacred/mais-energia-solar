@@ -20,7 +20,17 @@ interface DashboardChartsProps {
   leads: Lead[];
 }
 
-const COLORS = ["#F97316", "#0EA5E9", "#22C55E", "#8B5CF6", "#EC4899", "#F59E0B", "#14B8A6", "#6366F1"];
+// Use CSS variable-based colors for theming consistency
+const COLORS = [
+  "hsl(var(--primary))",
+  "hsl(var(--secondary))",
+  "hsl(var(--success))",
+  "hsl(var(--sidebar-section-analytics))",
+  "hsl(var(--warning))",
+  "hsl(var(--destructive))",
+  "hsl(var(--info))",
+  "hsl(var(--sidebar-section-finance))",
+];
 
 export default function DashboardCharts({ leads }: DashboardChartsProps) {
   // Leads por mês (últimos 6 meses)
@@ -117,13 +127,13 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={leadsByMonth}>
-                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
                 <Tooltip 
-                  contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }}
                   formatter={(value) => [value, "Leads"]}
                 />
-                <Bar dataKey="leads" fill="#F97316" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="leads" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -157,7 +167,7 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [value, "Leads"]} />
+                <Tooltip contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }} formatter={(value) => [value, "Leads"]} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -168,7 +178,7 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Users className="w-4 h-4 text-green-600" />
+            <Users className="w-4 h-4 text-success" />
             Performance por Vendedor
           </CardTitle>
         </CardHeader>
@@ -176,14 +186,14 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={vendorPerformance} layout="vertical">
-                <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis type="category" dataKey="name" fontSize={11} tickLine={false} axisLine={false} width={80} />
+                <XAxis type="number" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis type="category" dataKey="name" fontSize={11} tickLine={false} axisLine={false} width={80} tick={{ fill: "hsl(var(--muted-foreground))" }} />
                 <Tooltip 
-                  contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }}
                   formatter={(value, name) => [value, name === "leads" ? "Leads" : "kWh"]}
                 />
                 <Legend />
-                <Bar dataKey="leads" fill="#0EA5E9" radius={[0, 4, 4, 0]} name="Leads" />
+                <Bar dataKey="leads" fill="hsl(var(--secondary))" radius={[0, 4, 4, 0]} name="Leads" />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -202,18 +212,18 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
           <div className="h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={kwhByMonth}>
-                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="name" fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
+                <YAxis fontSize={12} tickLine={false} axisLine={false} tick={{ fill: "hsl(var(--muted-foreground))" }} />
                 <Tooltip 
-                  contentStyle={{ borderRadius: "8px", border: "1px solid #e5e7eb" }}
+                  contentStyle={{ borderRadius: "8px", border: "1px solid hsl(var(--border))", backgroundColor: "hsl(var(--card))", color: "hsl(var(--foreground))" }}
                   formatter={(value) => [`${Number(value).toLocaleString()} kWh`, "Total"]}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="kwh" 
-                  stroke="#22C55E" 
+                  stroke="hsl(var(--success))" 
                   strokeWidth={2}
-                  dot={{ fill: "#22C55E", strokeWidth: 2 }}
+                  dot={{ fill: "hsl(var(--success))", strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>

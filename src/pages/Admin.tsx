@@ -40,6 +40,36 @@ import Footer from "@/components/layout/Footer";
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
+const TAB_TITLES: Record<string, string> = {
+  leads: "Leads",
+  pipeline: "Pipeline de Vendas",
+  followup: "Follow-up",
+  validacao: "Validação de Vendas",
+  clientes: "Gestão de Clientes",
+  recebimentos: "Controle de Recebimentos",
+  dashboard: "Dashboard Analítico",
+  vendedores: "Vendedores",
+  usuarios: "Usuários",
+  equipamentos: "Equipamentos",
+  concessionarias: "Concessionárias",
+  gamificacao: "Gamificação",
+  comissoes: "Gestão de Comissões",
+  checklists: "Registros de Serviço",
+  avaliacoes: "Avaliações",
+  servicos: "Agendamento de Serviços",
+  instaladores: "Instaladores",
+  config: "Calculadora Solar",
+  financiamento: "Bancos & Financiamento",
+  instagram: "Instagram API",
+  whatsapp: "WhatsApp Automação",
+  webhooks: "Webhooks",
+  n8n: "n8n Automações",
+  inadimplencia: "Inadimplência",
+  auditoria: "Auditoria",
+  aprovacao: "Aprovações de Acesso",
+  brand: "Identidade Visual",
+};
+
 export default function Admin() {
   const [activeTab, setActiveTab] = useState("leads");
   const { user, signOut, loading: authLoading } = useAuth();
@@ -288,11 +318,15 @@ export default function Admin() {
         />
         
         <SidebarInset className="flex-1 min-w-0">
-          <header className="flex h-12 sm:h-14 items-center gap-3 sm:gap-4 border-b bg-background px-3 sm:px-4 md:px-6 sticky top-0 z-40">
+          <header className="flex h-14 items-center gap-3 border-b bg-card/80 backdrop-blur-sm px-3 sm:px-4 md:px-6 sticky top-0 z-40">
             <SidebarTrigger className="-ml-1 sm:-ml-2 h-9 w-9 sm:h-10 sm:w-10">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
-            <h1 className="text-sm sm:text-base md:text-lg font-semibold capitalize truncate">{activeTab}</h1>
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-sm sm:text-base font-semibold text-foreground truncate">
+                {TAB_TITLES[activeTab] || activeTab}
+              </h1>
+            </div>
           </header>
 
           <main className="flex-1 p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden">

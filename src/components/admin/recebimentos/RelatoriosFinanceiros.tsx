@@ -32,7 +32,15 @@
    value: number;
  }
  
- const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884d8", "#82ca9d", "#ffc658"];
+ const COLORS = [
+   "hsl(var(--primary))",
+   "hsl(var(--success))",
+   "hsl(var(--warning))",
+   "hsl(var(--secondary))",
+   "hsl(var(--sidebar-section-analytics))",
+   "hsl(var(--info))",
+   "hsl(var(--sidebar-section-finance))",
+ ];
  
  const FORMAS_PAGAMENTO: Record<string, string> = {
    pix: "PIX",
@@ -194,7 +202,7 @@
              </CardTitle>
            </CardHeader>
            <CardContent>
-             <p className="text-2xl font-bold text-green-600">{formatCurrency(totais.recebido)}</p>
+             <p className="text-2xl font-bold text-success">{formatCurrency(totais.recebido)}</p>
            </CardContent>
          </Card>
          <Card>
@@ -204,7 +212,7 @@
              </CardTitle>
            </CardHeader>
            <CardContent>
-             <p className="text-2xl font-bold text-yellow-600">{formatCurrency(totais.pendente)}</p>
+             <p className="text-2xl font-bold text-warning">{formatCurrency(totais.pendente)}</p>
            </CardContent>
          </Card>
          <Card>
@@ -214,7 +222,7 @@
              </CardTitle>
            </CardHeader>
            <CardContent>
-             <p className="text-2xl font-bold text-red-600">{formatCurrency(totais.atrasado)}</p>
+             <p className="text-2xl font-bold text-destructive">{formatCurrency(totais.atrasado)}</p>
            </CardContent>
          </Card>
        </div>
@@ -262,7 +270,7 @@
                      cy="50%"
                      labelLine={false}
                      outerRadius={80}
-                     fill="#8884d8"
+                     fill="hsl(var(--primary))"
                      dataKey="value"
                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                    >
