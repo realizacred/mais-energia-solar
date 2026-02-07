@@ -21,6 +21,7 @@ interface Vendedor {
   telefone: string;
   email: string | null;
   codigo: string;
+  slug: string | null;
   ativo: boolean;
   user_id: string | null;
   created_at: string;
@@ -355,9 +356,9 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
   };
 
   const copyLink = async (vendedor: Vendedor) => {
-    // Always use the published URL for vendor links
+    // Always use the published URL for vendor links with slug
     const baseUrl = "https://maisenergiasolar.lovable.app";
-    const link = `${baseUrl}/?v=${vendedor.codigo}`;
+    const link = `${baseUrl}/v/${vendedor.slug || vendedor.codigo}`;
     
     try {
       await navigator.clipboard.writeText(link);

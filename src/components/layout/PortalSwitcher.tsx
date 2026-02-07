@@ -36,6 +36,7 @@ interface Vendedor {
   id: string;
   nome: string;
   codigo: string;
+  slug: string;
 }
 
 interface Instalador {
@@ -100,7 +101,7 @@ export function PortalSwitcher() {
         const [vendedoresRes, instaladoresRes] = await Promise.all([
           supabase
             .from("vendedores")
-            .select("id, nome, codigo")
+            .select("id, nome, codigo, slug")
             .eq("ativo", true)
             .order("nome"),
           supabase
@@ -221,7 +222,7 @@ export function PortalSwitcher() {
                         className="justify-between"
                       >
                         <span className="truncate font-medium">{v.nome}</span>
-                        <span className="ml-2 text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{v.codigo}</span>
+                        <span className="ml-2 text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{v.slug || v.codigo}</span>
                       </DropdownMenuItem>
                     ))}
                   </ScrollArea>
@@ -323,7 +324,7 @@ export function PortalSwitcher() {
                   onClick={() => handleSelectVendedor(v.codigo)}
                 >
                   <span className="truncate font-medium">{v.nome}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{v.codigo}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{v.slug || v.codigo}</span>
                 </Button>
               ))}
             </div>

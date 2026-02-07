@@ -8,22 +8,24 @@
  import { useAdvancedMetrics } from "@/hooks/useAdvancedMetrics";
  import type { Lead } from "@/types/lead";
  
- export interface VendedorProfile {
-   id: string;
-   nome: string;
-   codigo: string;
-   telefone: string;
-   email: string | null;
- }
+export interface VendedorProfile {
+  id: string;
+  nome: string;
+  codigo: string;
+  slug: string;
+  telefone: string;
+  email: string | null;
+}
  
  // Special admin profile when admin accesses without vendedor record
- const ADMIN_PROFILE: VendedorProfile = {
-   id: "admin",
-   nome: "Administrador",
-   codigo: "admin",
-   telefone: "",
-   email: null,
- };
+const ADMIN_PROFILE: VendedorProfile = {
+  id: "admin",
+  nome: "Administrador",
+  codigo: "admin",
+  slug: "admin",
+  telefone: "",
+  email: null,
+};
  
  // Convert orcamento to Lead format
  export const orcamentoToLead = (orc: OrcamentoVendedor): Lead => ({
@@ -179,14 +181,14 @@
      navigate("/auth");
    };
  
-   const copyLink = useCallback(() => {
-     if (!vendedor) return;
-     const link = `${window.location.origin}/?v=${vendedor.codigo}`;
-     navigator.clipboard.writeText(link);
-     toast({
-       title: "Link copiado!",
-       description: "Seu link de vendedor foi copiado para a área de transferência.",
-     });
+    const copyLink = useCallback(() => {
+      if (!vendedor) return;
+      const link = `https://maisenergiasolar.lovable.app/v/${vendedor.slug || vendedor.codigo}`;
+      navigator.clipboard.writeText(link);
+      toast({
+        title: "Link copiado!",
+        description: "Seu link de vendedor foi copiado para a área de transferência.",
+      });
    }, [vendedor]);
  
    const handleClearFilters = useCallback(() => {

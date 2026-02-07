@@ -2377,6 +2377,7 @@ export type Database = {
           email: string | null
           id: string
           nome: string
+          slug: string | null
           telefone: string
           updated_at: string
           user_id: string | null
@@ -2388,6 +2389,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome: string
+          slug?: string | null
           telefone: string
           updated_at?: string
           user_id?: string | null
@@ -2399,6 +2401,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome?: string
+          slug?: string | null
           telefone?: string
           updated_at?: string
           user_id?: string | null
@@ -2710,6 +2713,7 @@ export type Database = {
     }
     Functions: {
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
+      generate_vendedor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
         Args: never
         Returns: {
