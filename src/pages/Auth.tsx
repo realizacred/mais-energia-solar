@@ -53,6 +53,17 @@ export default function Auth() {
           const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
           const isInstalador = roles?.some(r => r.role === "instalador");
 
+          // If user has no roles at all, stay on auth and show message
+          if (!isVendedor && !isAdmin && !isInstalador) {
+            setCheckingRole(false);
+            toast({
+              title: "Acesso não autorizado",
+              description: "Sua conta não possui permissões configuradas. Contate o administrador.",
+              variant: "destructive",
+            });
+            return;
+          }
+
           let hasVendedorRecord = false;
           if (isVendedor) {
             const { data: vendedorData } = await supabase
@@ -79,7 +90,7 @@ export default function Auth() {
             navigate("/instalador", { replace: true });
           } else if (isVendedor && !isAdmin && hasVendedorRecord) {
             navigate("/vendedor", { replace: true });
-          } else {
+          } else if (isAdmin) {
             navigate("/admin", { replace: true });
           }
         } catch (error) {

@@ -90,8 +90,9 @@ export default function PortalSelector() {
         // Vendedor-only users go directly to vendor portal
         navigate("/vendedor", { replace: true });
         return;
-      } else {
-        // No valid role, redirect to auth
+      } else if (!isAdmin && !isVendedor && !isInstalador) {
+        // No valid role - sign out and redirect to auth to prevent loop
+        await supabase.auth.signOut();
         navigate("/auth", { replace: true });
         return;
       }
