@@ -46,7 +46,9 @@ export function LeadsView() {
       filtered = filtered.filter((orc) => !orc.visto_admin);
     }
 
-    if (filterVendedor !== "todos") {
+    if (filterVendedor === "sem_vendedor") {
+      filtered = filtered.filter((orc) => !orc.vendedor);
+    } else if (filterVendedor !== "todos") {
       filtered = filtered.filter((orc) => orc.vendedor === filterVendedor);
     }
 
@@ -153,6 +155,7 @@ export function LeadsView() {
               setIsDeleteOpen(true);
             }}
             onConvert={handleConvertOrcamento}
+            onRefresh={fetchOrcamentos}
           />
         </CardContent>
       </Card>
@@ -190,6 +193,7 @@ export function LeadsView() {
         orcamento={selectedOrcamento}
         open={isViewOpen}
         onOpenChange={setIsViewOpen}
+        onRefresh={fetchOrcamentos}
       />
 
       <OrcamentoDeleteDialog

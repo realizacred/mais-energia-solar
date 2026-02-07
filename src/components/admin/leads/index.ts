@@ -6,3 +6,4 @@ export { LeadDeleteDialog } from './LeadDeleteDialog';
 export { OrcamentoViewDialog } from './OrcamentoViewDialog';
 export { OrcamentoDeleteDialog } from './OrcamentoDeleteDialog';
 export { OrcamentoHistoryDialog } from './OrcamentoHistoryDialog';
+export { AssignVendorDialog } from './AssignVendorDialog';
