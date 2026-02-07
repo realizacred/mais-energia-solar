@@ -38,10 +38,10 @@ export default function VendorPage() {
         }
 
         // RPC returns array, get first result
-        const vendedor = Array.isArray(data) ? data[0] : data;
+        const vendedor = data && Array.isArray(data) ? data[0] : data;
 
-        if (vendedor) {
-          setVendedorNome(vendedor.nome);
+        if (vendedor && typeof vendedor === 'object' && 'nome' in vendedor) {
+          setVendedorNome((vendedor as { nome: string }).nome);
           setValidationState("valid");
         } else {
           setValidationState("invalid");
