@@ -31,7 +31,7 @@ export function VendorOrcamentoCard({
   onConvert,
 }: VendorOrcamentoCardProps) {
   const cardBg = orcamento.visto 
-    ? "bg-green-50/50 dark:bg-green-950/10 border-green-200/50" 
+    ? "bg-success/5 border-success/20" 
     : isConverted 
       ? "bg-primary/5 border-primary/20" 
       : "";
@@ -45,7 +45,7 @@ export function VendorOrcamentoCard({
             <Checkbox
               checked={orcamento.visto}
               onCheckedChange={onToggleVisto}
-              className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 shrink-0"
+              className="data-[state=checked]:bg-success data-[state=checked]:border-success shrink-0"
             />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2 flex-wrap">
@@ -56,7 +56,7 @@ export function VendorOrcamentoCard({
                   </Badge>
                 )}
                 {isConverted && (
-                  <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs shrink-0">
+                  <Badge variant="secondary" className="bg-success/10 text-success text-xs shrink-0">
                     <UserCheck className="w-3 h-3 mr-1" />
                     Cliente
                   </Badge>

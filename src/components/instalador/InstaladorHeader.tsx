@@ -3,7 +3,8 @@
  import { Badge } from "@/components/ui/badge";
  import { LogOut, Eye } from "lucide-react";
  import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
- import logo from "@/assets/logo.png";
+ import { useBrandSettings } from "@/hooks/useBrandSettings";
+ import logoFallback from "@/assets/logo.png";
  
  interface InstaladorHeaderProps {
    userName?: string;
@@ -12,6 +13,8 @@
  }
  
  export function InstaladorHeader({ userName, onSignOut, isAdminMode = false }: InstaladorHeaderProps) {
+   const { settings } = useBrandSettings();
+   const logo = settings?.logo_small_url || settings?.logo_url || logoFallback;
    return (
      <header className="sticky top-0 z-50 border-b bg-background">
        <div className="container mx-auto px-4">
@@ -25,7 +28,7 @@
 
            <div className="flex items-center gap-2">
              {isAdminMode && (
-               <Badge variant="outline" className="gap-1 text-xs border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-950/30">
+               <Badge variant="outline" className="gap-1 text-xs border-warning/50 text-warning bg-warning/10">
                  <Eye className="h-3 w-3" />
                  Visualizando
                </Badge>
