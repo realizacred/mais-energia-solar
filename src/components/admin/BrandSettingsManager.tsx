@@ -19,6 +19,7 @@ import {
   Paintbrush,
   CheckCircle2,
 } from "lucide-react";
+import { BrandLogoUpload } from "./BrandLogoUpload";
 import { useBrandSettings, type BrandSettings } from "@/hooks/useBrandSettings";
 import { toast } from "@/hooks/use-toast";
 
@@ -537,51 +538,46 @@ export function BrandSettingsManager() {
               <CardHeader className="pb-4">
                 <CardTitle className="text-base">Logos</CardTitle>
                 <CardDescription>
-                  URLs das imagens. Use o Storage do Supabase para hospedar.
+                  Faça upload das imagens ou cole uma URL externa
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Logo Principal (sidebar, header)</Label>
-                  <Input
-                    value={draft.logo_url || ""}
-                    onChange={(e) => handleChange("logo_url", e.target.value || null)}
-                    placeholder="https://..."
-                  />
-                  {draft.logo_url && (
-                    <img src={draft.logo_url} alt="Logo" className="h-10 mt-2 rounded bg-muted p-1" />
-                  )}
-                </div>
+              <CardContent className="space-y-6">
+                <BrandLogoUpload
+                  label="Logo Principal (sidebar, header)"
+                  description="Recomendado: PNG ou SVG com fundo transparente, pelo menos 200px de largura"
+                  value={draft.logo_url || null}
+                  onChange={(url) => handleChange("logo_url", url)}
+                  folder="logo"
+                  previewHeight="h-12"
+                />
 
-                <div className="space-y-2">
-                  <Label>Logo Reduzida (ícone)</Label>
-                  <Input
-                    value={draft.logo_small_url || ""}
-                    onChange={(e) => handleChange("logo_small_url", e.target.value || null)}
-                    placeholder="https://..."
-                  />
-                  {draft.logo_small_url && (
-                    <img src={draft.logo_small_url} alt="Logo small" className="h-8 mt-2 rounded bg-muted p-1" />
-                  )}
-                </div>
+                <BrandLogoUpload
+                  label="Logo Reduzida (ícone)"
+                  description="Versão compacta para sidebar colapsada. Quadrada, pelo menos 48px"
+                  value={draft.logo_small_url || null}
+                  onChange={(url) => handleChange("logo_small_url", url)}
+                  folder="logo-small"
+                  previewHeight="h-10"
+                />
 
-                <div className="space-y-2">
-                  <Label>Favicon</Label>
-                  <Input
-                    value={draft.favicon_url || ""}
-                    onChange={(e) => handleChange("favicon_url", e.target.value || null)}
-                    placeholder="https://..."
-                  />
-                </div>
+                <BrandLogoUpload
+                  label="Favicon"
+                  description="Ícone do navegador. PNG ou ICO, 32x32 ou 64x64"
+                  value={draft.favicon_url || null}
+                  onChange={(url) => handleChange("favicon_url", url)}
+                  folder="favicon"
+                  accept="image/png,image/x-icon,image/svg+xml"
+                  previewHeight="h-8"
+                />
 
-                <div className="space-y-2">
-                  <Label>Imagem da tela de Login</Label>
-                  <Input
-                    value={draft.login_image_url || ""}
-                    onChange={(e) => handleChange("login_image_url", e.target.value || null)}
-                    placeholder="https://..."
-                  />
-                </div>
+                <BrandLogoUpload
+                  label="Imagem da tela de Login"
+                  description="Imagem decorativa exibida ao lado do formulário de login"
+                  value={draft.login_image_url || null}
+                  onChange={(url) => handleChange("login_image_url", url)}
+                  folder="login"
+                  previewHeight="h-16"
+                />
               </CardContent>
             </Card>
 
@@ -609,6 +605,10 @@ export function BrandSettingsManager() {
                   <li className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                     Portal do Vendedor
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    Portal do Instalador
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
