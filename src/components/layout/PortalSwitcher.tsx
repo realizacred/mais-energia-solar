@@ -218,9 +218,10 @@ export function PortalSwitcher() {
                       <DropdownMenuItem 
                         key={v.id}
                         onClick={() => handleSelectVendedor(v.codigo)}
+                        className="justify-between"
                       >
-                        <span className="truncate">{v.nome}</span>
-                        <span className="ml-auto text-xs text-muted-foreground">{v.codigo}</span>
+                        <span className="truncate font-medium">{v.nome}</span>
+                        <span className="ml-2 text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{v.codigo}</span>
                       </DropdownMenuItem>
                     ))}
                   </ScrollArea>
@@ -321,8 +322,8 @@ export function PortalSwitcher() {
                   className="w-full justify-between"
                   onClick={() => handleSelectVendedor(v.codigo)}
                 >
-                  <span className="truncate">{v.nome}</span>
-                  <span className="text-xs text-muted-foreground">{v.codigo}</span>
+                  <span className="truncate font-medium">{v.nome}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{v.codigo}</span>
                 </Button>
               ))}
             </div>

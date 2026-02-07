@@ -102,7 +102,7 @@ export default function VendedorPortal() {
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6 mt-4">
             {/* Share Link Card */}
-            {!isAdminMode && vendedor && (
+            {(!isAdminMode || isViewingAsVendedor) && vendedor && (
               <VendedorShareLink codigo={vendedor.codigo} onCopy={copyLink} />
             )}
 
@@ -221,8 +221,8 @@ export default function VendedorPortal() {
             {/* Offline Conversions Manager */}
             <OfflineConversionsManager />
 
-            {/* Share Link Card - only show for actual vendedores, not admin mode */}
-             {!isAdminMode && vendedor && (
+            {/* Share Link Card */}
+             {(!isAdminMode || isViewingAsVendedor) && vendedor && (
                <VendedorShareLink codigo={vendedor.codigo} onCopy={copyLink} />
             )}
 
