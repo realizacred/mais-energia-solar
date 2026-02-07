@@ -22,11 +22,11 @@ interface PendingUser {
 }
 
 const CARGO_LABELS: Record<string, { label: string; color: string }> = {
-  vendedor: { label: "Vendedor", color: "bg-blue-100 text-blue-800" },
-  instalador: { label: "Instalador", color: "bg-green-100 text-green-800" },
-  admin: { label: "Admin", color: "bg-red-100 text-red-800" },
-  gerente: { label: "Gerente", color: "bg-purple-100 text-purple-800" },
-  financeiro: { label: "Financeiro", color: "bg-amber-100 text-amber-800" },
+  vendedor: { label: "Vendedor", color: "bg-info/10 text-info" },
+  instalador: { label: "Instalador", color: "bg-success/10 text-success" },
+  admin: { label: "Admin", color: "bg-destructive/10 text-destructive" },
+  gerente: { label: "Gerente", color: "bg-accent text-accent-foreground" },
+  financeiro: { label: "Financeiro", color: "bg-warning/10 text-warning" },
 };
 
 export function AprovacaoUsuarios() {
@@ -189,8 +189,8 @@ export function AprovacaoUsuarios() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/10">
-              <UserCheck className="w-5 h-5 text-amber-600" />
+            <div className="p-2 rounded-lg bg-warning/10">
+              <UserCheck className="w-5 h-5 text-warning" />
             </div>
             <div>
               <CardTitle>Aprovação de Usuários</CardTitle>

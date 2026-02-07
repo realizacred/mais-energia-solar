@@ -68,14 +68,14 @@ export function ComissoesStats({
       ))}
       
       {comissoesAtrasadas > 0 && (
-        <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950/20 col-span-2 md:col-span-4">
+        <Card className="border-warning/30 bg-warning/5 col-span-2 md:col-span-4">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-orange-500/20">
-                <AlertTriangle className="h-5 w-5 text-orange-600" />
+              <div className="p-2 rounded-lg bg-warning/20">
+                <AlertTriangle className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-sm font-medium text-orange-700 dark:text-orange-400">
+                <p className="text-sm font-medium text-warning">
                   {comissoesAtrasadas} comissão(ões) pendente(s) há mais de 30 dias
                 </p>
                 <p className="text-xs text-orange-600/80">

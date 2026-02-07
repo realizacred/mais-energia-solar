@@ -302,7 +302,7 @@ export function EquipamentosManager() {
                             checked={d.ativo}
                             onCheckedChange={() => handleToggleDisjuntorAtivo(d)}
                           />
-                          <span className={`text-sm ${d.ativo ? "text-green-600" : "text-muted-foreground"}`}>
+                          <span className={`text-sm ${d.ativo ? "text-success" : "text-muted-foreground"}`}>
                             {d.ativo ? "Ativo" : "Inativo"}
                           </span>
                         </div>
@@ -369,7 +369,7 @@ export function EquipamentosManager() {
                             checked={t.ativo}
                             onCheckedChange={() => handleToggleTransformadorAtivo(t)}
                           />
-                          <span className={`text-sm ${t.ativo ? "text-green-600" : "text-muted-foreground"}`}>
+                          <span className={`text-sm ${t.ativo ? "text-success" : "text-muted-foreground"}`}>
                             {t.ativo ? "Ativo" : "Inativo"}
                           </span>
                         </div>

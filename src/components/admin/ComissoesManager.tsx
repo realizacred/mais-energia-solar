@@ -635,8 +635,8 @@ export function ComissoesManager() {
                             <TableCell className="text-right font-medium">
                               {formatCurrency(comissao.valor_comissao)}
                             </TableCell>
-                            <TableCell className="text-right text-green-600">{formatCurrency(valorPago)}</TableCell>
-                            <TableCell className="text-right font-medium text-orange-600">
+                            <TableCell className="text-right text-success">{formatCurrency(valorPago)}</TableCell>
+                            <TableCell className="text-right font-medium text-warning">
                               {saldoRestante > 0 ? formatCurrency(saldoRestante) : "-"}
                             </TableCell>
                             <TableCell className="text-center">{getStatusBadge(comissao.status)}</TableCell>

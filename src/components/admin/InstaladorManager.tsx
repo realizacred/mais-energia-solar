@@ -323,8 +323,8 @@ export function InstaladorManager() {
 
                     {performance[0] && (
                       <div className="flex flex-col items-center">
-                        <Crown className="h-6 w-6 text-yellow-500 mb-1" />
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                        <Crown className="h-6 w-6 text-warning mb-1" />
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-warning to-primary flex items-center justify-center text-white font-bold text-2xl shadow-lg">
                           1
                         </div>
                         <div className="mt-2 text-center">

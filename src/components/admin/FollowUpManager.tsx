@@ -199,18 +199,18 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
     const lastContact = item.ultimo_contato ? parseISO(item.ultimo_contato) : parseISO(item.created_at);
     const days = differenceInDays(new Date(), lastContact);
     if (days >= diasAlerta * 2) return <Badge variant="destructive" className="gap-1"><AlertTriangle className="w-3 h-3" />{days}d</Badge>;
-    if (days >= diasAlerta) return <Badge variant="outline" className="gap-1 border-yellow-500 text-yellow-600 bg-yellow-50"><Clock className="w-3 h-3" />{days}d</Badge>;
-    return <Badge variant="outline" className="gap-1 border-green-500 text-green-600 bg-green-50"><CheckCircle className="w-3 h-3" />Em dia</Badge>;
+    if (days >= diasAlerta) return <Badge variant="outline" className="gap-1 border-warning/50 text-warning bg-warning/10"><Clock className="w-3 h-3" />{days}d</Badge>;
+    return <Badge variant="outline" className="gap-1 border-success/50 text-success bg-success/10"><CheckCircle className="w-3 h-3" />Em dia</Badge>;
   };
 
   const renderItemsTable = (items: FollowUpItem[], variant: 'urgent' | 'pending') => {
     if (items.length === 0) return null;
     const isUrgent = variant === 'urgent';
-    const bgClass = isUrgent ? "bg-destructive/5" : "bg-yellow-50/50";
-    const borderClass = isUrgent ? "border-destructive/50" : "border-yellow-500/50";
+    const bgClass = isUrgent ? "bg-destructive/5" : "bg-warning/5";
+    const borderClass = isUrgent ? "border-destructive/50" : "border-warning/50";
     const Icon = isUrgent ? Bell : Clock;
-    const iconClass = isUrgent ? "text-destructive" : "text-yellow-600";
-    const titleClass = isUrgent ? "text-destructive" : "text-yellow-700";
+    const iconClass = isUrgent ? "text-destructive" : "text-warning";
+    const titleClass = isUrgent ? "text-destructive" : "text-warning";
     const title = isUrgent ? "Urgentes" : "Pendentes";
     const description = isUrgent ? `Há mais de ${diasAlerta * 2} dias sem contato.` : `Entre ${diasAlerta} e ${diasAlerta * 2} dias sem contato.`;
 
@@ -285,10 +285,10 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
           </div>
         </CardContent>
       </Card>
-      <Card className="border-l-4 border-l-yellow-500">
+      <Card className="border-l-4 border-l-warning">
         <CardContent className="flex items-center gap-4 pt-6">
-          <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-            <Clock className="w-6 h-6 text-yellow-600" />
+          <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
+            <Clock className="w-6 h-6 text-warning" />
           </div>
           <div>
             <p className="text-2xl font-bold">{categories.pendingLeads.length}</p>
@@ -296,10 +296,10 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
           </div>
         </CardContent>
       </Card>
-      <Card className="border-l-4 border-l-green-500">
+      <Card className="border-l-4 border-l-success">
         <CardContent className="flex items-center gap-4 pt-6">
-          <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-            <CheckCircle className="w-6 h-6 text-green-600" />
+          <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
+            <CheckCircle className="w-6 h-6 text-success" />
           </div>
           <div>
             <p className="text-2xl font-bold">{categories.upToDateLeads.length}</p>

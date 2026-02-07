@@ -212,7 +212,7 @@
                              variant="ghost"
                              onClick={() => marcarComoPaga(parcela.id)}
                            >
-                             <CheckCircle className="h-4 w-4 text-green-600" />
+                             <CheckCircle className="h-4 w-4 text-success" />
                            </Button>
                          )}
                        </TableCell>

@@ -66,12 +66,12 @@
      return differenceInDays(new Date(), new Date(dataVencimento));
    };
  
-   const getPrioridadeColor = (dias: number) => {
-     if (dias > 30) return "bg-red-600";
-     if (dias > 14) return "bg-red-500";
-     if (dias > 7) return "bg-orange-500";
-     return "bg-yellow-500";
-   };
+    const getPrioridadeColor = (dias: number) => {
+      if (dias > 30) return "bg-destructive";
+      if (dias > 14) return "bg-destructive/80";
+      if (dias > 7) return "bg-warning";
+      return "bg-warning/70";
+    };
  
    const totalAtrasado = parcelas.reduce((acc, p) => acc + p.valor, 0);
  
@@ -80,7 +80,7 @@
        <Card>
          <CardHeader className="pb-2">
            <CardTitle className="text-sm flex items-center gap-2">
-             <AlertTriangle className="h-4 w-4 text-red-500" />
+              <AlertTriangle className="h-4 w-4 text-destructive" />
              Parcelas em Atraso
            </CardTitle>
          </CardHeader>
@@ -96,7 +96,7 @@
        <CardHeader className="pb-2">
          <CardTitle className="text-sm flex items-center justify-between">
            <span className="flex items-center gap-2">
-             <AlertTriangle className="h-4 w-4 text-red-500" />
+             <AlertTriangle className="h-4 w-4 text-destructive" />
              Parcelas em Atraso
            </span>
            {parcelas.length > 0 && (
@@ -111,8 +111,8 @@
            </p>
          ) : (
            <div className="space-y-3">
-             <div className="flex items-center gap-2 p-2 bg-red-50 dark:bg-red-950/30 rounded-lg">
-               <DollarSign className="h-4 w-4 text-red-500" />
+              <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded-lg">
+                <DollarSign className="h-4 w-4 text-destructive" />
                <span className="text-sm font-medium">
                  Total em atraso: {formatCurrency(totalAtrasado)}
                </span>
