@@ -2723,6 +2723,14 @@ export type Database = {
           vida_util_sistema: number
         }[]
       }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_admin: { Args: { _user_id: string }; Returns: boolean }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       validate_vendedor_code: {
         Args: { _codigo: string }
