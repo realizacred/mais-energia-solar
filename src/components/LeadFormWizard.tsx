@@ -355,7 +355,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       consumo_previsto: data.consumo_previsto,
       observacoes: data.observacoes?.trim() || null,
       arquivos_urls: uploadedFiles,
-      vendedor: vendedorNome,
+      vendedor: vendedorNome || "Site",
     };
 
     // Helper to save offline (only used when truly offline)
@@ -496,7 +496,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       consumo_previsto: data.consumo_previsto,
       observacoes: data.observacoes?.trim() || null,
       arquivos_urls: uploadedFiles,
-      vendedor: vendedorNome,
+      vendedor: vendedorNome || "Site",
     };
 
     const result = await confirmUseExistingLead(orcamentoData, lead);
