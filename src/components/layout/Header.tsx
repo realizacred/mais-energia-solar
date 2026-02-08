@@ -55,8 +55,8 @@ export default function Header({
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
-      {/* Glass container with subtle border */}
-      <div className="bg-card/70 backdrop-blur-2xl border-b border-border/15 shadow-xs">
+      {/* Solid container on mobile, glass on desktop */}
+      <div className="bg-card backdrop-blur-none lg:bg-card/70 lg:backdrop-blur-2xl border-b border-border shadow-xs">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <Link
             to="/"
