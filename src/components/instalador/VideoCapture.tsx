@@ -60,10 +60,11 @@
      }
    };
  
-   const uploadVideo = async (blob: Blob) => {
-     setIsUploading(true);
-     try {
-       const fileName = `${servicoId}/video_${Date.now()}.webm`;
+    const uploadVideo = async (blob: Blob) => {
+      setIsUploading(true);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const fileName = `${user?.id || 'unknown'}/${servicoId}/video_${Date.now()}.webm`;
        
        const { error } = await supabase.storage
          .from('checklist-assets')

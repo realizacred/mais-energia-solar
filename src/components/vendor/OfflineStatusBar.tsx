@@ -1,6 +1,7 @@
 import { WifiOff, Wifi, RefreshCw, Loader2, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOfflineLeadSync } from "@/hooks/useOfflineLeadSync";
+import { cn } from "@/lib/utils";
 
 interface OfflineStatusBarProps {
   vendedorNome?: string | null;
@@ -11,73 +12,90 @@ export function OfflineStatusBar({ vendedorNome }: OfflineStatusBarProps = {}) {
 
   return (
     <div 
-      className={`py-2 px-4 ${
+      className={cn(
+        "py-2.5 px-4 border-b transition-colors duration-300",
         isOnline 
-          ? "bg-emerald-50 border-b border-emerald-200" 
-          : "bg-amber-50 border-b border-amber-200"
-      }`}
+          ? "bg-success/10 border-success/20" 
+          : "bg-warning/10 border-warning/20"
+      )}
     >
       <div className="container mx-auto flex flex-wrap items-center justify-between gap-3">
         {/* Status de Conexão */}
         <div className="flex items-center gap-4">
-          {/* Ícone de Antena + Status */}
+          {/* Ícone + Status */}
           <div className="flex items-center gap-2">
-            <Radio 
-              className={`w-5 h-5 ${isOnline ? "text-emerald-600" : "text-amber-600"}`} 
-            />
-            <span className={`text-sm font-semibold ${isOnline ? "text-emerald-700" : "text-amber-700"}`}>
-              {isOnline ? "Online" : "Offline"}
+            {isOnline ? (
+              <Wifi className="w-4 h-4 text-success" />
+            ) : (
+              <WifiOff className="w-4 h-4 text-warning animate-pulse-soft" />
+            )}
+            <span className={cn(
+              "text-sm font-semibold",
+              isOnline ? "text-success" : "text-warning"
+            )}>
+              {isOnline ? "Online" : "Sem Internet"}
             </span>
           </div>
 
           {/* Separador */}
-          <div className="w-px h-5 bg-gray-300" />
+          <div className="w-px h-4 bg-border" />
 
           {/* Contador de Leads Pendentes */}
           <div className="flex items-center gap-2">
-            <span className={`text-sm ${isOnline ? "text-emerald-700" : "text-amber-700"}`}>
-              Leads a sincronizar:
+            <span className="text-sm text-muted-foreground">
+              Pendentes:
             </span>
             <span 
-              className={`inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-sm font-bold ${
+              className={cn(
+                "inline-flex items-center justify-center min-w-[22px] h-5 px-1.5 rounded-full text-xs font-bold",
                 pendingCount > 0 
-                  ? "bg-amber-500 text-white" 
-                  : "bg-emerald-500 text-white"
-              }`}
+                  ? "bg-warning text-warning-foreground" 
+                  : "bg-success text-success-foreground"
+              )}
             >
               {pendingCount}
             </span>
           </div>
         </div>
 
-        {/* Botão de Sincronização Manual */}
-        {pendingCount > 0 && isOnline && (
-          <Button 
-            size="sm" 
-            onClick={() => retrySync()}
-            disabled={isSyncing}
-            className="gap-2 bg-primary hover:bg-primary/90"
-          >
-            {isSyncing ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Sincronizando...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="w-4 h-4" />
-                Sincronizar
-              </>
-            )}
-          </Button>
-        )}
+        {/* Ações */}
+        <div className="flex items-center gap-2">
+          {/* Botão de Sincronização Manual */}
+          {pendingCount > 0 && isOnline && (
+            <Button 
+              size="sm" 
+              onClick={() => retrySync()}
+              disabled={isSyncing}
+              className="gap-1.5 h-7 text-xs bg-primary hover:bg-primary/90"
+            >
+              {isSyncing ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Sincronizando...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-3 h-3" />
+                  Sincronizar
+                </>
+              )}
+            </Button>
+          )}
 
-        {/* Mensagem quando offline com pendentes */}
-        {!isOnline && pendingCount > 0 && (
-          <span className="text-xs text-amber-600">
-            Será enviado quando a conexão voltar
-          </span>
-        )}
+          {/* Mensagem quando offline com pendentes */}
+          {!isOnline && pendingCount > 0 && (
+            <span className="text-xs text-warning">
+              Será enviado quando a conexão voltar
+            </span>
+          )}
+
+          {/* Mensagem quando offline sem pendentes */}
+          {!isOnline && pendingCount === 0 && (
+            <span className="text-xs text-muted-foreground">
+              Você pode cadastrar leads offline
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );
