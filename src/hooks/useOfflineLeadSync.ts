@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { LeadSimplified } from "@/types/orcamento";
+import { type OfflineFile, uploadOfflineFiles } from "@/components/FileUploadOffline";
 
 interface LeadData {
   id?: string;
@@ -23,6 +24,7 @@ interface LeadData {
   arquivos_urls?: string[];
   vendedor?: string | null;
   synced?: boolean;
+  offlineFiles?: OfflineFile[];
 }
 
 interface SyncResult {
@@ -167,6 +169,19 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
     try {
       console.log("[syncLead] Attempting to sync lead:", lead.nome);
       
+      // Upload offline files first if they exist
+      let fileUrls = lead.arquivos_urls || [];
+      if (lead.offlineFiles && lead.offlineFiles.length > 0) {
+        try {
+          console.log("[syncLead] Uploading", lead.offlineFiles.length, "offline files...");
+          const uploadedUrls = await uploadOfflineFiles(lead.offlineFiles);
+          fileUrls = [...fileUrls, ...uploadedUrls];
+          console.log("[syncLead] Files uploaded successfully:", uploadedUrls.length);
+        } catch (uploadError) {
+          console.warn("[syncLead] File upload failed, continuing without files:", uploadError);
+        }
+      }
+      
       const { data, error } = await supabase.from("leads").insert({
         nome: lead.nome,
         telefone: lead.telefone,
@@ -183,7 +198,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
         media_consumo: lead.media_consumo,
         consumo_previsto: lead.consumo_previsto,
         observacoes: lead.observacoes || null,
-        arquivos_urls: lead.arquivos_urls || [],
+        arquivos_urls: fileUrls,
         vendedor: lead.vendedor || null,
       }).select();
 
