@@ -20,7 +20,6 @@ function jsonRes(body: unknown, status = 200) {
 function normalizePhone(raw: string | null | undefined): string {
   if (!raw) return "";
   let digits = raw.replace(/\D/g, "");
-  // Remove country code 55 prefix if present
   if (digits.length >= 12 && digits.startsWith("55")) {
     digits = digits.slice(2);
   }
@@ -32,7 +31,7 @@ function genRequestId(): string {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SolarMarketService — Auth + Request Wrapper
+// SolarMarketService — Auth + Request Wrapper + DB Logging
 // ══════════════════════════════════════════════════════════════
 
 interface SmConfig {
@@ -69,16 +68,10 @@ class SolarMarketService {
     }
   }
 
-  // Get the raw API token from DB config or Supabase secret
   private getRawApiToken(): string {
-    // Priority: DB config > Supabase secret
-    if (this.config.api_token) {
-      return this.config.api_token;
-    }
+    if (this.config.api_token) return this.config.api_token;
     const secretToken = Deno.env.get("SOLARMARKET_TOKEN");
-    if (secretToken) {
-      return secretToken;
-    }
+    if (secretToken) return secretToken;
     throw new Error("Token da API SolarMarket não configurado. Configure na aba Config ou nos Secrets do Supabase.");
   }
 
@@ -96,16 +89,16 @@ class SolarMarketService {
     try {
       const res = await fetch(`${this.config.base_url}/auth/signin`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "application/json",
-        },
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
         body: JSON.stringify({ token: rawToken }),
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
       const duration = Date.now() - start;
+
+      // Log signin request to DB
+      this.logRequest(reqId, "POST", "/auth/signin", {}, res.status, duration, res.ok ? null : `HTTP ${res.status}`);
 
       if (!res.ok) {
         const text = await res.text();
@@ -115,44 +108,32 @@ class SolarMarketService {
 
       const data = await res.json();
       const token = data.access_token || data.accessToken || data.token;
-      if (!token) {
-        throw new Error("SolarMarket não retornou access_token na resposta de signin");
-      }
+      if (!token) throw new Error("SolarMarket não retornou access_token na resposta de signin");
 
-      // Cache token for 5h55min (margin from 6h TTL)
       const expiresAt = Date.now() + (5 * 60 + 55) * 60_000;
       this.accessToken = token;
       this.tokenExpiresAt = expiresAt;
 
-      // Persist cache in DB
       await this.supabaseAdmin
         .from("solar_market_config")
-        .update({
-          last_token: token,
-          last_token_expires_at: new Date(expiresAt).toISOString(),
-        })
+        .update({ last_token: token, last_token_expires_at: new Date(expiresAt).toISOString() })
         .eq("id", this.config.id);
 
       console.log(`[SM] [${reqId}] signin OK ${duration}ms [token cached 5h55min]`);
       return token;
     } catch (err: any) {
       clearTimeout(timeoutId);
-      if (err.name === "AbortError") {
-        throw new Error("Timeout ao conectar com SolarMarket (15s)");
-      }
+      if (err.name === "AbortError") throw new Error("Timeout ao conectar com SolarMarket (15s)");
       throw err;
     }
   }
 
-  // Get valid JWT, refreshing if expired
   async getAccessToken(): Promise<string> {
     if (this.accessToken && this.tokenExpiresAt > Date.now() + 60_000) {
       return this.accessToken;
     }
 
-    // Simple mutex to avoid concurrent signins
     if (this.signingIn) {
-      // Wait up to 20s for concurrent signin
       for (let i = 0; i < 40; i++) {
         await new Promise((r) => setTimeout(r, 500));
         if (!this.signingIn && this.accessToken) return this.accessToken;
@@ -162,33 +143,56 @@ class SolarMarketService {
 
     this.signingIn = true;
     try {
-      const token = await this.signin();
-      return token;
+      return await this.signin();
     } finally {
       this.signingIn = false;
     }
   }
 
-  // Generic request with auth, retry, backoff
+  // ── DB Request Logging (fire-and-forget) ──
+  private logRequest(
+    requestId: string, method: string, path: string,
+    params: Record<string, unknown>, statusCode: number | null,
+    durationMs: number, error: string | null
+  ) {
+    this.supabaseAdmin.from("solar_market_integration_requests").insert({
+      tenant_id: this.config.tenant_id,
+      request_id: requestId,
+      method,
+      path,
+      params: params || {},
+      status_code: statusCode,
+      duration_ms: durationMs,
+      error,
+    }).then(({ error: dbErr }) => {
+      if (dbErr) console.warn(`[SM] Failed to log request ${requestId}: ${dbErr.message}`);
+    });
+  }
+
+  // Generic request with auth, retry, backoff, DB logging
   async request(
-    method: string,
-    path: string,
+    method: string, path: string,
     opts?: { params?: Record<string, string | number | undefined>; body?: unknown }
   ): Promise<any> {
     const reqId = genRequestId();
     const maxRetries = 3;
 
+    // Clean params for logging
+    const cleanParams: Record<string, unknown> = {};
+    if (opts?.params) {
+      for (const [k, v] of Object.entries(opts.params)) {
+        if (v !== undefined && v !== null && v !== "") cleanParams[k] = v;
+      }
+    }
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       const token = await this.getAccessToken();
 
-      // Build URL with query params
       let url = `${this.config.base_url}${path}`;
       if (opts?.params) {
         const searchParams = new URLSearchParams();
         for (const [k, v] of Object.entries(opts.params)) {
-          if (v !== undefined && v !== null && v !== "") {
-            searchParams.set(k, String(v));
-          }
+          if (v !== undefined && v !== null && v !== "") searchParams.set(k, String(v));
         }
         const qs = searchParams.toString();
         if (qs) url += `?${qs}`;
@@ -203,7 +207,7 @@ class SolarMarketService {
       }
 
       const start = Date.now();
-      console.log(`[SM] [${reqId}] ${method} ${url} (attempt ${attempt + 1})`);
+      console.log(`[SM] [${reqId}] ${method} ${path} (attempt ${attempt + 1})`);
 
       try {
         const controller = new AbortController();
@@ -223,6 +227,7 @@ class SolarMarketService {
         if (res.status === 429) {
           const wait = Math.pow(2, attempt) * 1000;
           console.warn(`[SM] [${reqId}] 429 Rate limited, waiting ${wait}ms...`);
+          this.logRequest(reqId, method, path, cleanParams, 429, duration, "Rate limited");
           await new Promise((r) => setTimeout(r, wait));
           continue;
         }
@@ -230,6 +235,7 @@ class SolarMarketService {
         // Auth failed — refresh token once
         if ((res.status === 401 || res.status === 403) && attempt === 0) {
           console.warn(`[SM] [${reqId}] ${res.status} → refreshing token...`);
+          this.logRequest(reqId, method, path, cleanParams, res.status, duration, "Auth failed, refreshing");
           this.accessToken = null;
           this.tokenExpiresAt = 0;
           continue;
@@ -239,6 +245,7 @@ class SolarMarketService {
         if (res.status >= 500 && attempt < maxRetries) {
           const wait = Math.pow(2, attempt) * 1000;
           console.warn(`[SM] [${reqId}] ${res.status} Server error, retrying in ${wait}ms...`);
+          this.logRequest(reqId, method, path, cleanParams, res.status, duration, `Server error, retry ${attempt + 1}`);
           await new Promise((r) => setTimeout(r, wait));
           continue;
         }
@@ -246,26 +253,31 @@ class SolarMarketService {
         if (!res.ok) {
           const text = await res.text();
           console.error(`[SM] [${reqId}] ${method} ${path} → ${res.status} ${duration}ms: ${text.slice(0, 300)}`);
+          this.logRequest(reqId, method, path, cleanParams, res.status, duration, text.slice(0, 500));
           throw new Error(`SM API ${res.status}: ${text.slice(0, 200)}`);
         }
 
-        // Handle 204 No Content
         if (res.status === 204) {
           console.log(`[SM] [${reqId}] ${method} ${path} → 204 ${duration}ms`);
+          this.logRequest(reqId, method, path, cleanParams, 204, duration, null);
           return null;
         }
 
         const data = await res.json();
         console.log(`[SM] [${reqId}] ${method} ${path} → ${res.status} ${duration}ms`);
+        this.logRequest(reqId, method, path, cleanParams, res.status, duration, null);
         return data;
       } catch (err: any) {
         if (err.name === "AbortError") {
+          this.logRequest(reqId, method, path, cleanParams, null, Date.now() - start, "Timeout");
           if (attempt < maxRetries) {
             console.warn(`[SM] [${reqId}] Timeout, retrying...`);
             continue;
           }
           throw new Error(`SM API timeout after ${maxRetries + 1} attempts`);
         }
+        if (err.message?.startsWith("SM API")) throw err;
+        this.logRequest(reqId, method, path, cleanParams, null, Date.now() - start, err.message);
         throw err;
       }
     }
@@ -302,13 +314,26 @@ class SolarMarketClient {
     });
   }
 
+  async listUsersAll(filters: { name?: string; email?: string } = {}): Promise<any[]> {
+    const all: any[] = [];
+    let page = 1;
+    while (true) {
+      const data = await this.listUsers({ ...filters, limit: 100, page });
+      const items = Array.isArray(data) ? data : data?.data || data?.users || [];
+      all.push(...items);
+      if (items.length < 100) break;
+      page++;
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    return all;
+  }
+
   // ── Clients ──
   async listClients(filters: {
     limit?: string; page?: string; id?: number; email?: string;
     cnpjCpf?: string; name?: string; phone?: string;
     createdBefore?: string; createdAfter?: string;
   } = {}) {
-    // Normalize phone: remove non-digits, remove 55 prefix
     let phone = filters.phone;
     if (phone) {
       phone = phone.replace(/\D/g, "");
@@ -339,13 +364,12 @@ class SolarMarketClient {
       all.push(...items);
       if (items.length < 100) break;
       page++;
-      await new Promise((r) => setTimeout(r, 300)); // throttle
+      await new Promise((r) => setTimeout(r, 300));
     }
     return all;
   }
 
   async createClient(payload: Record<string, unknown>) {
-    // Normalize fields
     if (payload.cnpjCpf) payload.cnpjCpf = String(payload.cnpjCpf).replace(/\D/g, "");
     if (payload.primaryPhone) payload.primaryPhone = String(payload.primaryPhone).replace(/\D/g, "");
     if (payload.secondaryPhone) payload.secondaryPhone = String(payload.secondaryPhone).replace(/\D/g, "");
@@ -394,10 +418,7 @@ class SolarMarketClient {
   }
 
   async createProject(payload: Record<string, unknown>) {
-    // Enforce: clientId XOR client
-    if (payload.clientId && payload.client) {
-      delete payload.client;
-    }
+    if (payload.clientId && payload.client) delete payload.client;
     return this.svc.request("POST", "/projects", { body: payload });
   }
 
@@ -484,10 +505,66 @@ function newCounts(): SyncCounts {
   };
 }
 
+// ── Log failed item to DB ──
+async function logFailedItem(
+  db: ReturnType<typeof createClient>, tenantId: string, syncLogId: string | null,
+  entityType: string, entityId: string | number | null, errorMessage: string, payload?: unknown
+) {
+  if (!syncLogId) return;
+  await db.from("solar_market_sync_items_failed").insert({
+    tenant_id: tenantId,
+    sync_log_id: syncLogId,
+    entity_type: entityType,
+    entity_id: entityId != null ? String(entityId) : null,
+    error_message: errorMessage,
+    payload: payload || {},
+  }).then(({ error }) => {
+    if (error) console.warn(`[SM] Failed to log sync item failure: ${error.message}`);
+  });
+}
+
+// ── Sync Users ──
+async function syncUsers(
+  db: ReturnType<typeof createClient>, client: SolarMarketClient,
+  config: SmConfig, counts: SyncCounts, syncLogId: string | null
+) {
+  try {
+    console.log("[SM] Syncing users...");
+    const users = await client.listUsersAll();
+    console.log(`[SM] Fetched ${users.length} users from SM`);
+
+    for (const u of users) {
+      const smId = u.id || u.userId;
+      if (!smId) continue;
+
+      const { error } = await db
+        .from("solar_market_users")
+        .upsert({
+          tenant_id: config.tenant_id,
+          sm_user_id: smId,
+          name: u.name || u.nome || "",
+          email: u.email || "",
+          role: u.role || u.profile || null,
+          payload: u,
+        }, { onConflict: "tenant_id,sm_user_id" });
+
+      if (error) {
+        counts.errors.push(`user ${smId}: ${error.message}`);
+        await logFailedItem(db, config.tenant_id, syncLogId, "user", smId, error.message, u);
+      } else {
+        counts.users_synced++;
+      }
+    }
+  } catch (err: any) {
+    console.error("[SM] Sync users error:", err.message);
+    counts.errors.push(`users: ${err.message}`);
+  }
+}
+
 // ── Sync Clients ──
 async function syncClients(
   db: ReturnType<typeof createClient>, client: SolarMarketClient,
-  config: SmConfig, counts: SyncCounts, createdAfter?: string
+  config: SmConfig, counts: SyncCounts, syncLogId: string | null, createdAfter?: string
 ): Promise<any[]> {
   try {
     console.log(`[SM] Syncing clients${createdAfter ? ` (after ${createdAfter})` : " (full)"}...`);
@@ -516,11 +593,12 @@ async function syncClients(
           city: c.city || c.cidade || null,
           state: c.state ? String(c.state).slice(0, 2).toUpperCase() : null,
           payload: c,
-          deleted_at: null, // un-soft-delete if reappeared
+          deleted_at: null,
         }, { onConflict: "tenant_id,sm_client_id" });
 
       if (error) {
         counts.errors.push(`client ${smId}: ${error.message}`);
+        await logFailedItem(db, config.tenant_id, syncLogId, "client", smId, error.message, c);
       } else {
         counts.clients_synced++;
       }
@@ -536,7 +614,7 @@ async function syncClients(
 // ── Sync Projects for a Client ──
 async function syncProjectsForClient(
   db: ReturnType<typeof createClient>, client: SolarMarketClient,
-  config: SmConfig, smClientId: number, counts: SyncCounts
+  config: SmConfig, smClientId: number, counts: SyncCounts, syncLogId: string | null
 ) {
   try {
     const data = await client.listProjects({ clientId: smClientId });
@@ -559,12 +637,12 @@ async function syncProjectsForClient(
 
       if (error) {
         counts.errors.push(`project ${smProjId}: ${error.message}`);
+        await logFailedItem(db, config.tenant_id, syncLogId, "project", smProjId, error.message, p);
       } else {
         counts.projects_synced++;
       }
 
-      // Sync sub-resources for each project
-      await syncProjectSubResources(db, client, config, smProjId, smClientId, counts);
+      await syncProjectSubResources(db, client, config, smProjId, smClientId, counts, syncLogId);
     }
   } catch (err: any) {
     counts.errors.push(`projects client ${smClientId}: ${err.message}`);
@@ -574,7 +652,8 @@ async function syncProjectsForClient(
 // ── Sync project sub-resources: custom fields, funnels, proposals ──
 async function syncProjectSubResources(
   db: ReturnType<typeof createClient>, client: SolarMarketClient,
-  config: SmConfig, smProjectId: number, smClientId: number, counts: SyncCounts
+  config: SmConfig, smProjectId: number, smClientId: number,
+  counts: SyncCounts, syncLogId: string | null
 ) {
   // Custom Fields
   try {
@@ -599,12 +678,12 @@ async function syncProjectSubResources(
 
       if (error) {
         counts.errors.push(`cf ${cfId} proj ${smProjectId}: ${error.message}`);
+        await logFailedItem(db, config.tenant_id, syncLogId, "custom_field", cfId, error.message, f);
       } else {
         counts.custom_fields_synced++;
       }
     }
   } catch (err: any) {
-    // Custom fields endpoint may not exist for all projects
     console.warn(`[SM] Custom fields skipped for project ${smProjectId}: ${err.message}`);
   }
 
@@ -621,6 +700,7 @@ async function syncProjectSubResources(
 
     if (error) {
       counts.errors.push(`funnel proj ${smProjectId}: ${error.message}`);
+      await logFailedItem(db, config.tenant_id, syncLogId, "funnel", smProjectId, error.message);
     } else {
       counts.funnels_synced++;
     }
@@ -657,6 +737,7 @@ async function syncProjectSubResources(
 
         if (error) {
           counts.errors.push(`proposal ${propId}: ${error.message}`);
+          await logFailedItem(db, config.tenant_id, syncLogId, "proposal", propId, error.message, prop);
         } else {
           counts.proposals_synced++;
         }
@@ -749,7 +830,6 @@ async function linkLeads(
   }
 
   for (const smClient of smClients) {
-    // Check if already linked
     const { data: existing } = await db
       .from("lead_links")
       .select("id")
@@ -760,7 +840,6 @@ async function linkLeads(
 
     if (existing) continue;
 
-    // Find matching lead by phone
     const { data: lead } = await db
       .from("leads")
       .select("id")
@@ -771,7 +850,6 @@ async function linkLeads(
 
     if (!lead) continue;
 
-    // Get first project for this client
     const { data: firstProject } = await db
       .from("solar_market_projects")
       .select("sm_project_id")
@@ -802,19 +880,22 @@ async function linkLeads(
 // ── Full Sync ──
 async function runFullSync(
   db: ReturnType<typeof createClient>, smClient: SolarMarketClient,
-  config: SmConfig, counts: SyncCounts
+  config: SmConfig, counts: SyncCounts, syncLogId: string | null
 ) {
   console.log("[SM] === FULL SYNC START ===");
 
+  // 0. Sync users
+  await syncUsers(db, smClient, config, counts, syncLogId);
+
   // 1. Sync all clients
-  const clients = await syncClients(db, smClient, config, counts);
+  const clients = await syncClients(db, smClient, config, counts, syncLogId);
 
   // 2. For each client: sync projects + sub-resources
   for (const c of clients) {
     const smClientId = c.id || c.clientId;
     if (!smClientId) continue;
-    await syncProjectsForClient(db, smClient, config, smClientId, counts);
-    await new Promise((r) => setTimeout(r, 200)); // throttle
+    await syncProjectsForClient(db, smClient, config, smClientId, counts, syncLogId);
+    await new Promise((r) => setTimeout(r, 200));
   }
 
   // 3. Sync catalogs
@@ -835,7 +916,7 @@ async function runFullSync(
 // ── Incremental Sync ──
 async function runIncrementalSync(
   db: ReturnType<typeof createClient>, smClient: SolarMarketClient,
-  config: SmConfig, counts: SyncCounts
+  config: SmConfig, counts: SyncCounts, syncLogId: string | null
 ) {
   console.log("[SM] === INCREMENTAL SYNC START ===");
 
@@ -848,15 +929,18 @@ async function runIncrementalSync(
 
   // If never synced, do full
   if (!clientsAfter && !projectsAfter) {
-    return runFullSync(db, smClient, config, counts);
+    return runFullSync(db, smClient, config, counts, syncLogId);
   }
 
+  // Sync users (always full, lightweight)
+  await syncUsers(db, smClient, config, counts, syncLogId);
+
   // Sync new clients
-  const newClients = await syncClients(db, smClient, config, counts, clientsAfter);
+  const newClients = await syncClients(db, smClient, config, counts, syncLogId, clientsAfter);
   for (const c of newClients) {
     const smClientId = c.id || c.clientId;
     if (!smClientId) continue;
-    await syncProjectsForClient(db, smClient, config, smClientId, counts);
+    await syncProjectsForClient(db, smClient, config, smClientId, counts, syncLogId);
     await new Promise((r) => setTimeout(r, 200));
   }
 
@@ -878,7 +962,7 @@ async function runIncrementalSync(
       }, { onConflict: "tenant_id,sm_project_id" });
       counts.projects_synced++;
 
-      await syncProjectSubResources(db, smClient, config, smProjId, smCliId || 0, counts);
+      await syncProjectSubResources(db, smClient, config, smProjId, smCliId || 0, counts, syncLogId);
       await new Promise((r) => setTimeout(r, 200));
     }
   } catch (err: any) {
@@ -898,12 +982,11 @@ async function runIncrementalSync(
 // ── Delta Sync (single entity) ──
 async function runDeltaSync(
   db: ReturnType<typeof createClient>, smClient: SolarMarketClient,
-  config: SmConfig, counts: SyncCounts, delta: any
+  config: SmConfig, counts: SyncCounts, delta: any, syncLogId: string | null
 ) {
   console.log("[SM] === DELTA SYNC START ===", JSON.stringify(delta));
 
   if (delta.type === "client" && delta.sm_client_id) {
-    // Sync single client
     try {
       const clients = await smClient.listClients({ id: delta.sm_client_id });
       const clientList = Array.isArray(clients) ? clients : clients?.data || [];
@@ -929,14 +1012,13 @@ async function runDeltaSync(
       }
     } catch (err: any) {
       counts.errors.push(`delta client ${delta.sm_client_id}: ${err.message}`);
+      await logFailedItem(db, config.tenant_id, syncLogId, "client", delta.sm_client_id, err.message);
     }
 
-    // Also sync projects for this client
-    await syncProjectsForClient(db, smClient, config, delta.sm_client_id, counts);
+    await syncProjectsForClient(db, smClient, config, delta.sm_client_id, counts, syncLogId);
   }
 
   if (delta.type === "project" && delta.sm_project_id) {
-    // Sync single project
     try {
       const projects = await smClient.listProjects({ id: delta.sm_project_id });
       const projList = Array.isArray(projects) ? projects : projects?.data || [];
@@ -953,10 +1035,11 @@ async function runDeltaSync(
         }, { onConflict: "tenant_id,sm_project_id" });
         counts.projects_synced++;
 
-        await syncProjectSubResources(db, smClient, config, delta.sm_project_id, smCliId, counts);
+        await syncProjectSubResources(db, smClient, config, delta.sm_project_id, smCliId, counts, syncLogId);
       }
     } catch (err: any) {
       counts.errors.push(`delta project ${delta.sm_project_id}: ${err.message}`);
+      await logFailedItem(db, config.tenant_id, syncLogId, "project", delta.sm_project_id, err.message);
     }
   }
 
@@ -990,6 +1073,7 @@ async function runDeltaSync(
         }
       } catch (err: any) {
         counts.errors.push(`delta proposal proj ${projId}: ${err.message}`);
+        await logFailedItem(db, config.tenant_id, syncLogId, "proposal", projId, err.message);
       }
     }
   }
@@ -1022,7 +1106,6 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Parse request
   let mode = "full";
   let source = "manual";
   let triggeredBy: string | null = null;
@@ -1096,7 +1179,6 @@ Deno.serve(async (req) => {
     try {
       const svc = new SolarMarketService(supabaseAdmin, config);
       await svc.signin();
-      // Quick connectivity test
       const smClient = new SolarMarketClient(svc);
       await smClient.listClients({ limit: "1" });
       return jsonRes({ status: "ok", message: "Conexão com SolarMarket bem-sucedida" });
@@ -1118,6 +1200,7 @@ Deno.serve(async (req) => {
     .select("id")
     .single();
 
+  const syncLogId = syncLog?.id || null;
   const counts = newCounts();
 
   try {
@@ -1125,37 +1208,37 @@ Deno.serve(async (req) => {
     const smClient = new SolarMarketClient(svc);
 
     if (mode === "delta" && deltaPayload) {
-      await runDeltaSync(supabaseAdmin, smClient, config, counts, deltaPayload);
+      await runDeltaSync(supabaseAdmin, smClient, config, counts, deltaPayload, syncLogId);
     } else if (mode === "incremental") {
-      await runIncrementalSync(supabaseAdmin, smClient, config, counts);
+      await runIncrementalSync(supabaseAdmin, smClient, config, counts, syncLogId);
     } else {
-      await runFullSync(supabaseAdmin, smClient, config, counts);
+      await runFullSync(supabaseAdmin, smClient, config, counts, syncLogId);
     }
 
     const finalStatus = counts.errors.length > 0 ? "partial" : "success";
 
-    if (syncLog?.id) {
+    if (syncLogId) {
       await supabaseAdmin.from("solar_market_sync_logs").update({
         finished_at: new Date().toISOString(),
         status: finalStatus,
         counts,
         error: counts.errors.length > 0 ? counts.errors.join("; ") : null,
-      }).eq("id", syncLog.id);
+      }).eq("id", syncLogId);
     }
 
     console.log(`[SM] Sync finished: ${finalStatus}`, JSON.stringify(counts));
 
-    return jsonRes({ status: finalStatus, counts, sync_log_id: syncLog?.id });
+    return jsonRes({ status: finalStatus, counts, sync_log_id: syncLogId });
   } catch (err: any) {
     console.error("[SM] Sync fatal error:", err.message);
 
-    if (syncLog?.id) {
+    if (syncLogId) {
       await supabaseAdmin.from("solar_market_sync_logs").update({
         finished_at: new Date().toISOString(),
         status: "fail",
         error: err.message,
         counts,
-      }).eq("id", syncLog.id);
+      }).eq("id", syncLogId);
     }
 
     return jsonRes({ error: err.message, counts }, 500);

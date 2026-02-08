@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   RefreshCw, Settings, Plug, Zap, Clock, CheckCircle2, XCircle,
   AlertTriangle, Loader2, Play, ExternalLink, Copy, Shield,
-  FolderOpen, Link2,
+  FolderOpen, Link2, Activity,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -45,10 +45,23 @@ interface SyncLog {
   triggered_by: string | null;
 }
 
+interface IntegrationRequest {
+  id: string;
+  request_id: string;
+  method: string;
+  path: string;
+  params: any;
+  status_code: number | null;
+  duration_ms: number | null;
+  error: string | null;
+  created_at: string;
+}
+
 export function SolarMarketManager() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<SmConfig | null>(null);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
+  const [integrationRequests, setIntegrationRequests] = useState<IntegrationRequest[]>([]);
   const [syncing, setSyncing] = useState(false);
   const [testing, setTesting] = useState(false);
   const [logsFilter, setLogsFilter] = useState("all");
@@ -117,10 +130,25 @@ export function SolarMarketManager() {
     }
   }, [logsFilter]);
 
+  const fetchIntegrationRequests = useCallback(async () => {
+    try {
+      const { data, error } = await supabase
+        .from("solar_market_integration_requests")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      setIntegrationRequests((data as IntegrationRequest[]) || []);
+    } catch (err: any) {
+      console.error("Error fetching SM integration requests:", err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchConfig();
     fetchLogs();
-  }, [fetchConfig, fetchLogs]);
+    fetchIntegrationRequests();
+  }, [fetchConfig, fetchLogs, fetchIntegrationRequests]);
 
   const saveConfig = async () => {
     setSaving(true);
@@ -295,7 +323,7 @@ export function SolarMarketManager() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="config" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
+        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7">
           <TabsTrigger value="config" className="gap-1.5">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Config</span>
@@ -319,6 +347,10 @@ export function SolarMarketManager() {
           <TabsTrigger value="logs" className="gap-1.5">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Logs</span>
+          </TabsTrigger>
+          <TabsTrigger value="requests" className="gap-1.5">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Requests</span>
           </TabsTrigger>
         </TabsList>
 
@@ -738,6 +770,84 @@ Content-Type: application/json
                           </TableRow>
                         );
                       })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Requests Tab ────────────────────────── */}
+        <TabsContent value="requests" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    <Activity className="h-5 w-5 text-primary" />
+                    Requisições à API SolarMarket
+                  </CardTitle>
+                  <CardDescription>Últimas 100 requisições HTTP registradas (retenção: 30 dias)</CardDescription>
+                </div>
+                <Button variant="outline" size="icon" onClick={fetchIntegrationRequests}>
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {integrationRequests.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Nenhuma requisição registrada ainda. Execute uma sincronização para gerar logs.
+                </div>
+              ) : (
+                <div className="rounded-md border overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Método</TableHead>
+                        <TableHead>Path</TableHead>
+                        <TableHead>Duração</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Erro</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {integrationRequests.map((req) => (
+                        <TableRow key={req.id}>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                !req.status_code ? "outline" :
+                                req.status_code < 300 ? "default" :
+                                req.status_code < 400 ? "secondary" :
+                                "destructive"
+                              }
+                              className="font-mono text-xs"
+                            >
+                              {req.status_code || "—"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="font-mono text-xs">
+                              {req.method}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-xs font-mono max-w-[200px] truncate" title={req.path}>
+                            {req.path}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {req.duration_ms != null ? `${req.duration_ms}ms` : "—"}
+                          </TableCell>
+                          <TableCell className="text-xs">
+                            {format(new Date(req.created_at), "dd/MM HH:mm:ss", { locale: ptBR })}
+                          </TableCell>
+                          <TableCell className="text-xs max-w-[200px] truncate text-destructive" title={req.error || ""}>
+                            {req.error || "—"}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
                 </div>
