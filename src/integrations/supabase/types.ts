@@ -3177,6 +3177,50 @@ export type Database = {
           },
         ]
       }
+      site_servicos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string
+          id: string
+          imagem_url: string | null
+          ordem: number
+          tenant_id: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao: string
+          id?: string
+          imagem_url?: string | null
+          ordem?: number
+          tenant_id?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string
+          id?: string
+          imagem_url?: string | null
+          ordem?: number
+          tenant_id?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "site_servicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       site_settings: {
         Row: {
           bairro: string | null

@@ -36,6 +36,7 @@ import { AuditLogsViewer } from "@/components/admin/AuditLogsViewer";
 import { ReleaseChecklist } from "@/components/admin/ReleaseChecklist";
 import { ObrasManager } from "@/components/admin/ObrasManager";
 import { SiteSettingsUnified } from "@/components/admin/SiteSettingsUnified";
+import { SiteServicosManager } from "@/components/admin/SiteServicosManager";
 import { IntelligenceDashboard } from "@/components/admin/intelligence";
 import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
 import { CommercialDirectorDashboard } from "@/components/admin/director";
@@ -83,6 +84,7 @@ const TAB_TITLES: Record<string, string> = {
   release: "Release Checklist",
   obras: "Obras / Portfólio",
   "site-config": "Configurações do Site",
+  "site-servicos": "Nossos Serviços",
 };
 
 export default function Admin() {
@@ -268,6 +270,8 @@ export default function Admin() {
         return <ReleaseChecklist />;
       case "obras":
         return <ObrasManager />;
+      case "site-servicos":
+        return <SiteServicosManager />;
       default:
         return <LeadsView />;
     }
