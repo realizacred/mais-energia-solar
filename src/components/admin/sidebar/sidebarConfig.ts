@@ -244,6 +244,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "instagram", title: "Instagram", icon: Instagram },
       { id: "webhooks", title: "Webhooks", icon: Webhook },
       { id: "n8n", title: "Automações", icon: Workflow },
+      { id: "solarmarket", title: "SolarMarket", icon: Sun },
       // ── Sistema ──
       {
         id: "release",
