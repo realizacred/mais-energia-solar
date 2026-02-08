@@ -20,8 +20,8 @@ const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
 
   return (
     <footer ref={ref} className="relative bg-secondary text-secondary-foreground overflow-hidden">
-      {/* Top accent line */}
-      <div className="h-0.5 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+      {/* Top accent line — laranja vibrante */}
+      <div className="h-1 bg-gradient-to-r from-primary via-primary/80 to-primary/20" />
 
       <div className="container mx-auto px-4 py-5 relative z-10">
         {/* Single row layout — compact */}

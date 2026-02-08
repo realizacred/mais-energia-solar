@@ -22,7 +22,7 @@ export function CTASection() {
         alt="Painéis solares"
         className="absolute inset-0 w-full h-full object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-br from-secondary/90 via-secondary/85 to-secondary/75" />
+      <div className="absolute inset-0 bg-gradient-to-br from-secondary/85 via-secondary/70 to-primary/50" />
       
       {/* Decorative */}
       <div className="absolute top-10 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
@@ -58,7 +58,7 @@ export function CTASection() {
               size="lg"
               variant="outline"
               onClick={scrollToContact}
-              className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 font-semibold px-8 py-6 text-base rounded-full backdrop-blur-sm transition-all duration-300"
+              className="border-white/50 bg-white/15 text-white hover:bg-white/25 hover:border-white/70 font-semibold px-8 py-6 text-base rounded-full backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5"
             >
               Preencher Formulário
             </Button>

@@ -84,7 +84,7 @@ export function AboutSection() {
             transition={{ duration: 0.6, delay: 0.7 }}
             className="relative rounded-3xl overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary to-secondary/90" />
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary/90 to-primary/30" />
             <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
 
             <div className="relative z-10 p-8 sm:p-12 md:flex md:items-center md:gap-12">

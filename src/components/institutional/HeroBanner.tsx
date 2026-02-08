@@ -62,9 +62,9 @@ export function HeroBanner() {
         animate={{ scale: 1 }}
         transition={{ duration: 1.5, ease: "easeOut" }}
       />
-      {/* Multi-layer overlay for depth */}
-      <div className="absolute inset-0 bg-gradient-to-br from-secondary/90 via-secondary/75 to-secondary/50" />
-      <div className="absolute inset-0 bg-gradient-to-t from-secondary/60 via-transparent to-secondary/20" />
+      {/* Multi-layer overlay — azul + laranja */}
+      <div className="absolute inset-0 bg-gradient-to-br from-secondary/90 via-secondary/70 to-primary/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-secondary/50 via-transparent to-transparent" />
 
       {/* Animated decorative orbs */}
       <motion.div 
@@ -135,7 +135,7 @@ export function HeroBanner() {
               size="lg"
               variant="outline"
               asChild
-              className="border-white/20 text-white hover:bg-white/10 hover:border-white/40 font-semibold px-8 py-6 text-base rounded-full backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5"
+              className="border-white/50 bg-white/15 text-white hover:bg-white/25 hover:border-white/70 font-semibold px-8 py-6 text-base rounded-full backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5"
             >
               <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
                 {get("hero_cta_whatsapp_texto")}
