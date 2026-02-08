@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LayoutDashboard, FileText, ClipboardCheck } from "lucide-react";
+import { Loader2, LayoutDashboard, FileText, ClipboardCheck, MessageCircle } from "lucide-react";
 import { LeadAlerts } from "@/components/vendor/LeadAlerts";
 import { FollowUpStatsCards } from "@/components/vendor/FollowUpStatsCards";
  import { VendorPersonalDashboard } from "@/components/vendor/VendorPersonalDashboard";
@@ -16,6 +16,7 @@ import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateRe
 import NotificationSettings from "@/components/vendor/NotificationSettings";
 import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
 import { VendorTaskAgenda } from "@/components/vendor/VendorTaskAgenda";
+import { WhatsAppInbox } from "@/components/admin/inbox";
 import { VendedorHeader, VendedorShareLink } from "@/components/vendor/portal";
 import { useVendedorPortal, orcamentoToLead } from "@/hooks/useVendedorPortal";
 
@@ -89,18 +90,22 @@ export default function VendedorPortal() {
 
       <main className="container mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
+          <TabsList className="grid w-full max-w-2xl grid-cols-4">
             <TabsTrigger value="dashboard" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
-              Dashboard
+              <span className="hidden sm:inline">Dashboard</span>
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="gap-2">
+              <MessageCircle className="h-4 w-4" />
+              <span className="hidden sm:inline">WhatsApp</span>
             </TabsTrigger>
             <TabsTrigger value="agenda" className="gap-2">
               <ClipboardCheck className="h-4 w-4" />
-              Agenda
+              <span className="hidden sm:inline">Agenda</span>
             </TabsTrigger>
             <TabsTrigger value="orcamentos" className="gap-2">
               <FileText className="h-4 w-4" />
-              Orçamentos
+              <span className="hidden sm:inline">Orçamentos</span>
             </TabsTrigger>
           </TabsList>
 
@@ -190,6 +195,11 @@ export default function VendedorPortal() {
                 if (orc) setSelectedOrcamento(orc);
               }}
             />
+          </TabsContent>
+
+          {/* WhatsApp Tab */}
+          <TabsContent value="whatsapp" className="space-y-4 sm:space-y-6 mt-4">
+            <WhatsAppInbox vendorMode />
           </TabsContent>
 
           {/* Agenda Tab */}
