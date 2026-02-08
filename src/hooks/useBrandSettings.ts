@@ -37,6 +37,7 @@ export interface BrandSettings {
   // Logos
   logo_url: string | null;
   logo_small_url: string | null;
+  logo_white_url: string | null;
   favicon_url: string | null;
   login_image_url: string | null;
   // Theme

@@ -95,6 +95,7 @@ export type Database = {
           login_image_url: string | null
           logo_small_url: string | null
           logo_url: string | null
+          logo_white_url: string | null
           updated_at: string
         }
         Insert: {
@@ -135,6 +136,7 @@ export type Database = {
           login_image_url?: string | null
           logo_small_url?: string | null
           logo_url?: string | null
+          logo_white_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -175,6 +177,7 @@ export type Database = {
           login_image_url?: string | null
           logo_small_url?: string | null
           logo_url?: string | null
+          logo_white_url?: string | null
           updated_at?: string
         }
         Relationships: []

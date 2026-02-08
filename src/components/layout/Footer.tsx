@@ -1,8 +1,11 @@
 import { forwardRef } from "react";
 import { Phone, Mail, MapPin, Instagram, ArrowUpRight } from "lucide-react";
-import logoBranca from "@/assets/logo-branca.png";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
+import logoBrancaFallback from "@/assets/logo-branca.png";
 
 const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
+  const { settings } = useBrandSettings();
+  const logoBranca = settings?.logo_white_url || settings?.logo_url || logoBrancaFallback;
   return (
     <footer ref={ref} className="relative bg-secondary text-secondary-foreground overflow-hidden">
       {/* Top accent line */}

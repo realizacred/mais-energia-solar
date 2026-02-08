@@ -561,6 +561,15 @@ export function BrandSettingsManager() {
                 />
 
                 <BrandLogoUpload
+                  label="Logo Branca (para fundos escuros)"
+                  description="Versão branca/clara da logo para usar no footer e áreas com fundo escuro"
+                  value={draft.logo_white_url || null}
+                  onChange={(url) => handleChange("logo_white_url", url)}
+                  folder="logo-white"
+                  previewHeight="h-12"
+                />
+
+                <BrandLogoUpload
                   label="Favicon"
                   description="Ícone do navegador. PNG ou ICO, 32x32 ou 64x64"
                   value={draft.favicon_url || null}
@@ -597,6 +606,10 @@ export function BrandSettingsManager() {
                   <li className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                     Header do site institucional
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    Footer (usa a logo branca)
                   </li>
                   <li className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
