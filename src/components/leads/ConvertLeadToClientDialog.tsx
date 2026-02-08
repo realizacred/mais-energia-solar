@@ -538,35 +538,63 @@ export function ConvertLeadToClientDialog({
       const comprovanteUrls = await uploadDocumentFiles(comprovanteFiles, "comprovante", supabase);
       const beneficiariaUrls = await uploadDocumentFiles(beneficiariaFiles, "beneficiaria", supabase);
 
-      // Create client with selected simulation
-      const { data: cliente, error: clienteError } = await supabase
-        .from("clientes")
-        .insert({
-          nome: data.nome,
-          telefone: data.telefone,
-          email: data.email || null,
-          cpf_cnpj: data.cpf_cnpj || null,
-          cep: data.cep || null,
-          estado: data.estado,
-          cidade: data.cidade,
-          bairro: data.bairro || null,
-          rua: data.rua || null,
-          numero: data.numero || null,
-          complemento: data.complemento || null,
-          lead_id: lead.id,
-          disjuntor_id: data.disjuntor_id || null,
-          transformador_id: data.transformador_id || null,
-          localizacao: data.localizacao || null,
-          observacoes: data.observacoes || null,
-          identidade_urls: identidadeUrls.length > 0 ? identidadeUrls : null,
-          comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
-          comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
-          simulacao_aceita_id: data.simulacao_aceita_id || null,
-        })
-        .select()
-        .single();
+      const clientePayload = {
+        nome: data.nome,
+        telefone: data.telefone,
+        email: data.email || null,
+        cpf_cnpj: data.cpf_cnpj || null,
+        cep: data.cep || null,
+        estado: data.estado,
+        cidade: data.cidade,
+        bairro: data.bairro || null,
+        rua: data.rua || null,
+        numero: data.numero || null,
+        complemento: data.complemento || null,
+        disjuntor_id: data.disjuntor_id || null,
+        transformador_id: data.transformador_id || null,
+        localizacao: data.localizacao || null,
+        observacoes: data.observacoes || null,
+        identidade_urls: identidadeUrls.length > 0 ? identidadeUrls : null,
+        comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
+        comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
+        simulacao_aceita_id: data.simulacao_aceita_id || null,
+      };
 
-      if (clienteError) throw clienteError;
+      // Check if a client already exists for this lead (CLI- deduplication)
+      const { data: existingCliente } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("lead_id", lead.id)
+        .maybeSingle();
+
+      let cliente: { id: string } | null = null;
+
+      if (existingCliente) {
+        // Update existing client instead of creating duplicate
+        const { data: updated, error: updateError } = await supabase
+          .from("clientes")
+          .update({ ...clientePayload, updated_at: new Date().toISOString() })
+          .eq("id", existingCliente.id)
+          .select("id")
+          .single();
+
+        if (updateError) throw updateError;
+        cliente = updated;
+        console.log("[ConvertLead] Updated existing client:", existingCliente.id);
+      } else {
+        // Create new client
+        const { data: created, error: insertError } = await supabase
+          .from("clientes")
+          .insert({ ...clientePayload, lead_id: lead.id })
+          .select("id")
+          .single();
+
+        if (insertError) throw insertError;
+        cliente = created;
+        console.log("[ConvertLead] Created new client:", created?.id);
+      }
+
+      if (!cliente) throw new Error("Falha ao criar/atualizar cliente.");
 
       // Update lead status to "Aguardando Validação" (admin needs to approve)
       const { data: convertidoStatus } = await supabase
@@ -598,9 +626,10 @@ export function ConvertLeadToClientDialog({
       const storageKey = `lead_conversion_${lead.id}`;
       localStorage.removeItem(storageKey);
 
+      const action = existingCliente ? "atualizado" : "cadastrado";
       toast({
         title: "Venda enviada para validação!",
-        description: `${data.nome} foi cadastrado. Aguardando aprovação do administrador para gerar comissão.`,
+        description: `${data.nome} foi ${action}. Aguardando aprovação do administrador para gerar comissão.`,
       });
 
       onOpenChange(false);

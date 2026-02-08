@@ -70,35 +70,61 @@ export function useOfflineConversionSync() {
       const comprovanteUrls = await uploadDocumentFiles(conversion.comprovanteFiles, "comprovante", supabase);
       const beneficiariaUrls = await uploadDocumentFiles(conversion.beneficiariaFiles, "beneficiaria", supabase);
 
-      // Create client
-      const { data: cliente, error: clienteError } = await supabase
-        .from("clientes")
-        .insert({
-          nome: conversion.formData.nome,
-          telefone: conversion.formData.telefone,
-          email: conversion.formData.email || null,
-          cpf_cnpj: conversion.formData.cpf_cnpj || null,
-          cep: conversion.formData.cep || null,
-          estado: conversion.formData.estado,
-          cidade: conversion.formData.cidade,
-          bairro: conversion.formData.bairro || null,
-          rua: conversion.formData.rua || null,
-          numero: conversion.formData.numero || null,
-          complemento: conversion.formData.complemento || null,
-          lead_id: conversion.leadId,
-          disjuntor_id: conversion.formData.disjuntor_id || null,
-          transformador_id: conversion.formData.transformador_id || null,
-          localizacao: conversion.formData.localizacao || null,
-          observacoes: conversion.formData.observacoes || null,
-          identidade_urls: identidadeUrls.length > 0 ? identidadeUrls : null,
-          comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
-          comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
-          simulacao_aceita_id: conversion.formData.simulacao_aceita_id || null,
-        })
-        .select()
-        .single();
+      const clientePayload = {
+        nome: conversion.formData.nome,
+        telefone: conversion.formData.telefone,
+        email: conversion.formData.email || null,
+        cpf_cnpj: conversion.formData.cpf_cnpj || null,
+        cep: conversion.formData.cep || null,
+        estado: conversion.formData.estado,
+        cidade: conversion.formData.cidade,
+        bairro: conversion.formData.bairro || null,
+        rua: conversion.formData.rua || null,
+        numero: conversion.formData.numero || null,
+        complemento: conversion.formData.complemento || null,
+        disjuntor_id: conversion.formData.disjuntor_id || null,
+        transformador_id: conversion.formData.transformador_id || null,
+        localizacao: conversion.formData.localizacao || null,
+        observacoes: conversion.formData.observacoes || null,
+        identidade_urls: identidadeUrls.length > 0 ? identidadeUrls : null,
+        comprovante_endereco_urls: comprovanteUrls.length > 0 ? comprovanteUrls : null,
+        comprovante_beneficiaria_urls: beneficiariaUrls.length > 0 ? beneficiariaUrls : null,
+        simulacao_aceita_id: conversion.formData.simulacao_aceita_id || null,
+      };
 
-      if (clienteError) throw clienteError;
+      // Check for existing client (CLI- deduplication)
+      const { data: existingCliente } = await supabase
+        .from("clientes")
+        .select("id")
+        .eq("lead_id", conversion.leadId)
+        .maybeSingle();
+
+      let cliente: { id: string } | null = null;
+
+      if (existingCliente) {
+        // Update existing client instead of duplicating
+        const { data: updated, error: updateError } = await supabase
+          .from("clientes")
+          .update({ ...clientePayload, updated_at: new Date().toISOString() })
+          .eq("id", existingCliente.id)
+          .select("id")
+          .single();
+
+        if (updateError) throw updateError;
+        cliente = updated;
+      } else {
+        // Create new client
+        const { data: created, error: insertError } = await supabase
+          .from("clientes")
+          .insert({ ...clientePayload, lead_id: conversion.leadId })
+          .select("id")
+          .single();
+
+        if (insertError) throw insertError;
+        cliente = created;
+      }
+
+      if (!cliente) throw new Error("Falha ao criar/atualizar cliente.");
 
       // Update lead status to "Aguardando Validação" (admin needs to approve)
       const { data: convertidoStatus } = await supabase
