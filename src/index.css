@@ -86,13 +86,14 @@
     --sidebar-border: 220 10% 90%;
     --sidebar-ring: 24 50% 46%;
 
-    /* Section colors — ultra-restrained (30-40% sat) */
-    --sidebar-section-analytics: 260 28% 50%;
-    --sidebar-section-finance: 158 26% 40%;
-    --sidebar-section-sales: 218 30% 48%;
-    --sidebar-section-operations: 24 42% 48%;
-    --sidebar-section-apis: 195 30% 42%;
-    --sidebar-section-config: 35 32% 44%;
+    /* Section colors — brand-aligned orange & blue palette */
+    --sidebar-section-intelligence: 218 42% 48%;
+    --sidebar-section-commercial: 24 65% 48%;
+    --sidebar-section-clients: 210 35% 50%;
+    --sidebar-section-operations: 28 42% 46%;
+    --sidebar-section-finance: 218 45% 28%;
+    --sidebar-section-marketing: 24 52% 50%;
+    --sidebar-section-settings: 220 12% 44%;
   }
 
   .dark {
@@ -158,13 +159,14 @@
     --sidebar-border: 224 14% 15%;
     --sidebar-ring: 24 55% 52%;
 
-    /* Section colors — lifted for dark */
-    --sidebar-section-analytics: 260 24% 55%;
-    --sidebar-section-finance: 158 22% 46%;
-    --sidebar-section-sales: 218 26% 52%;
-    --sidebar-section-operations: 24 38% 52%;
-    --sidebar-section-apis: 195 26% 48%;
-    --sidebar-section-config: 35 28% 48%;
+    /* Section colors — brand-aligned, lifted for dark */
+    --sidebar-section-intelligence: 218 38% 56%;
+    --sidebar-section-commercial: 24 58% 56%;
+    --sidebar-section-clients: 210 30% 58%;
+    --sidebar-section-operations: 28 36% 54%;
+    --sidebar-section-finance: 218 40% 46%;
+    --sidebar-section-marketing: 24 48% 56%;
+    --sidebar-section-settings: 220 10% 54%;
   }
 }
 

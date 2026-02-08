@@ -1,39 +1,6 @@
+import React from "react";
 import { Link } from "react-router-dom";
-import {
-  Brain,
-  Users,
-  Kanban,
-  Bell,
-  UserCheck,
-  DollarSign,
-  BarChart3,
-  Calculator,
-  Building2,
-  Webhook,
-  LogOut,
-  Sun,
-  Instagram,
-  Shield,
-  Plug,
-  Lightbulb,
-  Trophy,
-  Wallet,
-  ClipboardCheck,
-  TrendingUp,
-  Settings,
-  Coins,
-  ClipboardList,
-  Star,
-  CalendarClock,
-  Wrench,
-  AlertTriangle,
-  MessageCircle,
-  Cable,
-  Workflow,
-  Rocket,
-  Inbox,
-  ChevronRight,
-} from "lucide-react";
+import { LogOut, Sun, ChevronDown, ChevronRight } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -47,6 +14,11 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
@@ -59,10 +31,11 @@ interface AdminSidebarProps {
   onTabChange: (tab: string) => void;
   userEmail?: string;
   onSignOut: () => void;
-  /** Map of menu item id -> badge count (shown as notification dot/count) */
+  /** Map of menu item id -> badge count */
   badgeCounts?: Record<string, number>;
 }
 
+/* ─── Section group with collapsible support ─── */
 function SidebarSectionGroup({
   section,
   activeTab,
@@ -77,89 +50,114 @@ function SidebarSectionGroup({
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const LabelIcon = section.labelIcon;
+  const hasActiveItem = section.items.some((item) => item.id === activeTab);
+
+  // Auto-expand if contains active item, otherwise use defaultOpen
+  const shouldBeOpen = hasActiveItem || section.defaultOpen !== false;
 
   return (
-    <SidebarGroup className="mb-0 px-2 py-0.5">
-      <SidebarGroupLabel
-        className={`
-          text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2
-          flex items-center gap-2 opacity-90
-          ${section.labelClass}
-        `}
-      >
-        <div
-          className={`
-            w-5 h-5 rounded-md flex items-center justify-center shrink-0
-            ${section.indicatorBg}
-          `}
-        >
-          <LabelIcon className="h-3 w-3 text-white" />
-        </div>
-        {!collapsed && section.label}
-      </SidebarGroupLabel>
-      <SidebarGroupContent>
-        <SidebarMenu className="gap-px">
-          {section.items.map((item) => {
-            const isActive = activeTab === item.id;
-            const badgeCount = badgeCounts?.[item.id] || 0;
-            return (
-              <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton
-                  onClick={() => onTabChange(item.id)}
-                  isActive={isActive}
-                  tooltip={
-                    item.description
-                      ? `${item.title} — ${item.description}`
-                      : item.title
-                  }
-                  className={`
-                    transition-all duration-200 rounded-lg mx-1 my-px group/btn
-                    ${
-                      isActive
-                        ? `${section.activeClass} shadow-sm`
-                        : `text-sidebar-foreground/60 ${section.hoverClass} hover:text-sidebar-foreground`
-                    }
-                  `}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {item.description ? (
-                    <div className="flex flex-col items-start min-w-0 flex-1">
-                      <span className="text-[13px] truncate leading-tight">
-                        {item.title}
-                      </span>
-                      <span className="text-[10px] opacity-40 font-normal truncate leading-tight">
-                        {item.description}
-                      </span>
-                    </div>
-                  ) : (
-                    <span className="text-[13px] truncate flex-1">
-                      {item.title}
-                    </span>
-                  )}
-                  {badgeCount > 0 && !collapsed && (
-                    <Badge
-                      variant="secondary"
-                      className="h-5 min-w-5 px-1.5 text-[10px] font-bold bg-warning/15 text-warning border-0 shrink-0"
-                    >
-                      {badgeCount}
-                    </Badge>
-                  )}
-                  {badgeCount > 0 && collapsed && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-warning" />
-                  )}
-                  {isActive && !collapsed && badgeCount === 0 && (
-                    <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
-                  )}
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            );
-          })}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <Collapsible defaultOpen={shouldBeOpen} className="group/collapsible">
+      <SidebarGroup className="mb-0 px-2 py-1">
+        <CollapsibleTrigger asChild>
+          <SidebarGroupLabel
+            className={`
+              text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2.5
+              flex items-center gap-2 cursor-pointer select-none
+              transition-all duration-200
+              hover:bg-accent/50 rounded-md
+              ${section.labelClass}
+            `}
+          >
+            <div
+              className={`
+                w-5 h-5 rounded-md flex items-center justify-center shrink-0
+                ${section.indicatorBg}
+              `}
+            >
+              <LabelIcon className="h-3 w-3 text-white" />
+            </div>
+            {!collapsed && (
+              <>
+                <span className="flex-1 opacity-80">{section.label}</span>
+                <ChevronDown className="h-3 w-3 opacity-40 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+              </>
+            )}
+          </SidebarGroupLabel>
+        </CollapsibleTrigger>
+
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-px mt-0.5">
+              {section.items.map((item) => {
+                const isActive = activeTab === item.id;
+                const badgeCount = badgeCounts?.[item.id] || 0;
+
+                return (
+                  <React.Fragment key={item.id}>
+                    {item.separator && (
+                      <div className="mx-4 my-1.5 h-px bg-border/30" />
+                    )}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton
+                        onClick={() => onTabChange(item.id)}
+                        isActive={isActive}
+                        tooltip={
+                          item.description
+                            ? `${item.title} — ${item.description}`
+                            : item.title
+                        }
+                        className={`
+                          transition-all duration-200 rounded-lg mx-1 my-px group/btn
+                          ${
+                            isActive
+                              ? `${section.activeClass} shadow-sm`
+                              : `text-sidebar-foreground/60 ${section.hoverClass} hover:text-sidebar-foreground`
+                          }
+                        `}
+                      >
+                        <item.icon className="h-4 w-4 shrink-0" />
+                        {item.description ? (
+                          <div className="flex flex-col items-start min-w-0 flex-1">
+                            <span className="text-[13px] truncate leading-tight">
+                              {item.title}
+                            </span>
+                            <span className="text-[10px] opacity-40 font-normal truncate leading-tight">
+                              {item.description}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-[13px] truncate flex-1">
+                            {item.title}
+                          </span>
+                        )}
+                        {badgeCount > 0 && !collapsed && (
+                          <Badge
+                            variant="secondary"
+                            className="h-5 min-w-5 px-1.5 text-[10px] font-bold bg-warning/15 text-warning border-0 shrink-0"
+                          >
+                            {badgeCount}
+                          </Badge>
+                        )}
+                        {badgeCount > 0 && collapsed && (
+                          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-warning" />
+                        )}
+                        {isActive && !collapsed && badgeCount === 0 && (
+                          <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
+                        )}
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </React.Fragment>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
   );
 }
 
+/* ─── Main Sidebar ─── */
 export function AdminSidebar({
   activeTab,
   onTabChange,
@@ -173,10 +171,7 @@ export function AdminSidebar({
   const logo = settings?.logo_url || logoFallback;
 
   return (
-    <Sidebar
-      collapsible="icon"
-      className="border-r border-border/20"
-    >
+    <Sidebar collapsible="icon" className="border-r border-border/20">
       {/* Header with logo */}
       <SidebarHeader className="border-b border-border/20 p-3">
         <Link
@@ -189,11 +184,7 @@ export function AdminSidebar({
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <img
-                src={logo}
-                alt="Logo"
-                className="h-8 w-auto"
-              />
+              <img src={logo} alt="Logo" className="h-8 w-auto" />
               <div className="flex flex-col">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
                   Admin
@@ -205,7 +196,7 @@ export function AdminSidebar({
       </SidebarHeader>
 
       {/* Scrollable sections */}
-      <SidebarContent className="scrollbar-thin py-2">
+      <SidebarContent className="scrollbar-thin py-1.5 space-y-0.5">
         {SIDEBAR_SECTIONS.map((section) => (
           <SidebarSectionGroup
             key={section.label}
