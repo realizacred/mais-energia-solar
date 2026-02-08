@@ -80,6 +80,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     hoverClass: "hover:bg-sidebar-analytics/5",
     labelClass: "text-sidebar-analytics",
     items: [
+      { id: "diretor", title: "Diretor Comercial", icon: Brain, description: "IA Copilot" },
       { id: "inteligencia", title: "Inteligência Comercial", icon: Brain, description: "Scoring & Previsão" },
       { id: "dashboard", title: "Dashboard", icon: BarChart3 },
       { id: "auditoria", title: "Auditoria", icon: Shield },

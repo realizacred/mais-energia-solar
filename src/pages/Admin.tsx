@@ -38,6 +38,7 @@ import { ObrasManager } from "@/components/admin/ObrasManager";
 import { SiteSettingsUnified } from "@/components/admin/SiteSettingsUnified";
 import { IntelligenceDashboard } from "@/components/admin/intelligence";
 import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
+import { CommercialDirectorDashboard } from "@/components/admin/director";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -45,6 +46,7 @@ import Footer from "@/components/layout/Footer";
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
 const TAB_TITLES: Record<string, string> = {
+  diretor: "Diretor Comercial IA",
   inteligencia: "Inteligência Comercial",
   leads: "Leads",
   pipeline: "Pipeline de Vendas",
@@ -180,6 +182,8 @@ export default function Admin() {
     switch (activeTab) {
       case "aprovacao":
         return <AprovacaoUsuarios />;
+      case "diretor":
+        return <CommercialDirectorDashboard />;
       case "inteligencia":
         return <IntelligenceDashboard />;
       case "brand":

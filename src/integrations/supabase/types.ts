@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_insights: {
+        Row: {
+          created_at: string
+          filters: Json | null
+          generated_by_user_id: string | null
+          id: string
+          insight_type: string
+          payload: Json
+          period_end: string | null
+          period_start: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json | null
+          generated_by_user_id?: string | null
+          id?: string
+          insight_type: string
+          payload?: Json
+          period_end?: string | null
+          period_start?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          filters?: Json | null
+          generated_by_user_id?: string | null
+          id?: string
+          insight_type?: string
+          payload?: Json
+          period_end?: string | null
+          period_start?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           acao: string
