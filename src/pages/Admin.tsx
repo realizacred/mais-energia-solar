@@ -38,6 +38,7 @@ import { ReleaseChecklist } from "@/components/admin/ReleaseChecklist";
 import { ObrasManager } from "@/components/admin/ObrasManager";
 import { SiteConfigManager } from "@/components/admin/SiteConfigManager";
 import { SiteBannersManager } from "@/components/admin/SiteBannersManager";
+import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -62,6 +63,7 @@ const TAB_TITLES: Record<string, string> = {
   avaliacoes: "Avaliações",
   servicos: "Agendamento de Serviços",
   instaladores: "Instaladores",
+  engenharia: "Engenharia Financeira",
   config: "Calculadora Solar",
   financiamento: "Bancos & Financiamento",
   instagram: "Instagram API",
@@ -215,6 +217,8 @@ export default function Admin() {
         return <ServicosManager />;
       case "instaladores":
         return <InstaladorManager />;
+      case "engenharia":
+        return <EngenhariaFinanceiraConfig />;
       case "config":
         return <CalculadoraConfig />;
       case "financiamento":

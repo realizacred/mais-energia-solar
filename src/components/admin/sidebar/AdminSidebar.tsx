@@ -163,6 +163,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "gamificacao", title: "Gamificação", icon: Trophy },
       { id: "equipamentos", title: "Equipamentos", icon: Plug },
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb },
+      { id: "engenharia", title: "Engenharia Financeira", icon: Calculator, description: "Fio B / ICMS / Payback" },
       { id: "config", title: "Calculadora", icon: Calculator },
       { id: "financiamento", title: "Bancos", icon: Building2 },
     ],

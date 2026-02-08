@@ -1137,30 +1137,45 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          custo_disponibilidade_bifasico: number | null
+          custo_disponibilidade_monofasico: number | null
+          custo_disponibilidade_trifasico: number | null
           estado: string | null
           id: string
           nome: string
           sigla: string | null
+          tarifa_energia: number | null
+          tarifa_fio_b: number | null
           tenant_id: string | null
           updated_at: string
         }
         Insert: {
           ativo?: boolean
           created_at?: string
+          custo_disponibilidade_bifasico?: number | null
+          custo_disponibilidade_monofasico?: number | null
+          custo_disponibilidade_trifasico?: number | null
           estado?: string | null
           id?: string
           nome: string
           sigla?: string | null
+          tarifa_energia?: number | null
+          tarifa_fio_b?: number | null
           tenant_id?: string | null
           updated_at?: string
         }
         Update: {
           ativo?: boolean
           created_at?: string
+          custo_disponibilidade_bifasico?: number | null
+          custo_disponibilidade_monofasico?: number | null
+          custo_disponibilidade_trifasico?: number | null
           estado?: string | null
           id?: string
           nome?: string
           sigla?: string | null
+          tarifa_energia?: number | null
+          tarifa_fio_b?: number | null
           tenant_id?: string | null
           updated_at?: string
         }
@@ -1173,6 +1188,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      config_tributaria_estado: {
+        Row: {
+          aliquota_icms: number
+          created_at: string
+          estado: string
+          id: string
+          observacoes: string | null
+          percentual_isencao: number
+          possui_isencao_scee: boolean
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          aliquota_icms?: number
+          created_at?: string
+          estado: string
+          id?: string
+          observacoes?: string | null
+          percentual_isencao?: number
+          possui_isencao_scee?: boolean
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          aliquota_icms?: number
+          created_at?: string
+          estado?: string
+          id?: string
+          observacoes?: string | null
+          percentual_isencao?: number
+          possui_isencao_scee?: boolean
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       disjuntores: {
         Row: {
@@ -1311,6 +1362,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      fio_b_escalonamento: {
+        Row: {
+          ano: number
+          created_at: string
+          id: string
+          percentual_nao_compensado: number
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ano: number
+          created_at?: string
+          id?: string
+          percentual_nao_compensado?: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ano?: number
+          created_at?: string
+          id?: string
+          percentual_nao_compensado?: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       gamification_config: {
         Row: {
@@ -2051,6 +2129,7 @@ export type Database = {
           cep: string | null
           cidade: string
           complemento: string | null
+          concessionaria_id: string | null
           consumo_previsto: number
           created_at: string
           data_proxima_acao: string | null
@@ -2063,9 +2142,11 @@ export type Database = {
           orc_code: string | null
           proxima_acao: string | null
           rede_atendimento: string
+          regime_compensacao: string | null
           rua: string | null
           status_id: string | null
           tenant_id: string | null
+          tipo_ligacao: string | null
           tipo_telhado: string
           ultimo_contato: string | null
           updated_at: string
@@ -2080,6 +2161,7 @@ export type Database = {
           cep?: string | null
           cidade: string
           complemento?: string | null
+          concessionaria_id?: string | null
           consumo_previsto: number
           created_at?: string
           data_proxima_acao?: string | null
@@ -2092,9 +2174,11 @@ export type Database = {
           orc_code?: string | null
           proxima_acao?: string | null
           rede_atendimento: string
+          regime_compensacao?: string | null
           rua?: string | null
           status_id?: string | null
           tenant_id?: string | null
+          tipo_ligacao?: string | null
           tipo_telhado: string
           ultimo_contato?: string | null
           updated_at?: string
@@ -2109,6 +2193,7 @@ export type Database = {
           cep?: string | null
           cidade?: string
           complemento?: string | null
+          concessionaria_id?: string | null
           consumo_previsto?: number
           created_at?: string
           data_proxima_acao?: string | null
@@ -2121,9 +2206,11 @@ export type Database = {
           orc_code?: string | null
           proxima_acao?: string | null
           rede_atendimento?: string
+          regime_compensacao?: string | null
           rua?: string | null
           status_id?: string | null
           tenant_id?: string | null
+          tipo_ligacao?: string | null
           tipo_telhado?: string
           ultimo_contato?: string | null
           updated_at?: string
@@ -2132,6 +2219,13 @@ export type Database = {
           visto_admin?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "orcamentos_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orcamentos_lead_id_fkey"
             columns: ["lead_id"]
@@ -2317,6 +2411,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payback_config: {
+        Row: {
+          created_at: string
+          custo_disponibilidade_bifasico: number
+          custo_disponibilidade_monofasico: number
+          custo_disponibilidade_trifasico: number
+          degradacao_anual_painel: number
+          id: string
+          reajuste_anual_tarifa: number
+          tarifa_fio_b_padrao: number
+          taxas_fixas_mensais: number
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_disponibilidade_bifasico?: number
+          custo_disponibilidade_monofasico?: number
+          custo_disponibilidade_trifasico?: number
+          degradacao_anual_painel?: number
+          id?: string
+          reajuste_anual_tarifa?: number
+          tarifa_fio_b_padrao?: number
+          taxas_fixas_mensais?: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_disponibilidade_bifasico?: number
+          custo_disponibilidade_monofasico?: number
+          custo_disponibilidade_trifasico?: number
+          degradacao_anual_painel?: number
+          id?: string
+          reajuste_anual_tarifa?: number
+          tarifa_fio_b_padrao?: number
+          taxas_fixas_mensais?: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -3786,6 +3922,15 @@ export type Database = {
           vida_util_sistema: number
         }[]
       }
+      get_config_tributaria: {
+        Args: { _estado: string }
+        Returns: {
+          aliquota_icms: number
+          observacoes: string
+          percentual_isencao: number
+          possui_isencao_scee: boolean
+        }[]
+      }
       get_dashboard_financeiro: {
         Args: never
         Returns: {
@@ -3836,6 +3981,25 @@ export type Database = {
           total_kwh: number
           total_leads: number
           vendedor: string
+        }[]
+      }
+      get_fio_b_atual: {
+        Args: never
+        Returns: {
+          ano: number
+          percentual_nao_compensado: number
+        }[]
+      }
+      get_payback_config: {
+        Args: never
+        Returns: {
+          custo_disponibilidade_bifasico: number
+          custo_disponibilidade_monofasico: number
+          custo_disponibilidade_trifasico: number
+          degradacao_anual_painel: number
+          reajuste_anual_tarifa: number
+          tarifa_fio_b_padrao: number
+          taxas_fixas_mensais: number
         }[]
       }
       get_user_tenant_id: { Args: { _user_id?: string }; Returns: string }
