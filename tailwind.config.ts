@@ -82,6 +82,10 @@ export default {
           finance: "hsl(var(--sidebar-section-finance))",
           marketing: "hsl(var(--sidebar-section-marketing))",
           settings: "hsl(var(--sidebar-section-settings))",
+          atendimento: "hsl(var(--sidebar-section-atendimento))",
+          cadastros: "hsl(var(--sidebar-section-cadastros))",
+          ai: "hsl(var(--sidebar-section-ai))",
+          integrations: "hsl(var(--sidebar-section-integrations))",
         },
         surface: {
           1: "hsl(var(--surface-1))",
