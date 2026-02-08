@@ -171,16 +171,16 @@ export function SolarMarketManager() {
   const testConnection = async () => {
     setTesting(true);
     try {
-      const { data, error } = await supabase.functions.invoke("solar-market-sync", {
-        body: { mode: "test", source: "manual" },
-      });
+      const { data, error } = await supabase.functions.invoke("solar-market-auth");
 
       if (error) throw error;
 
       if (data?.error) {
         toast.error(`Falha na conexão: ${data.error}`);
+      } else if (data?.access_token) {
+        toast.success("Conexão com SolarMarket bem-sucedida! ✅ Token obtido com sucesso.");
       } else {
-        toast.success("Conexão com SolarMarket bem-sucedida! ✅");
+        toast.success(data?.message || "Conexão com SolarMarket bem-sucedida! ✅");
       }
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);
