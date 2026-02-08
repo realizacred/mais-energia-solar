@@ -93,53 +93,74 @@ function extractDominantColors(imageData: ImageData, k = 5): RGB[] {
 }
 
 export async function extractColorsFromImage(imageUrl: string): Promise<ExtractedPalette> {
+  // Use fetch+blob to avoid CORS issues with canvas taint
+  const blob = await fetch(imageUrl, { mode: "cors" })
+    .then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.blob();
+    })
+    .catch(async () => {
+      // Fallback: try without cors mode (same-origin or opaque)
+      const r = await fetch(imageUrl);
+      if (!r.ok) throw new Error("Failed to fetch image");
+      return r.blob();
+    });
+
+  const blobUrl = URL.createObjectURL(blob);
+
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
 
     img.onload = () => {
-      const canvas = document.createElement("canvas");
-      const size = 100; // Small canvas for speed
-      canvas.width = size;
-      canvas.height = size;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { reject(new Error("Canvas not supported")); return; }
+      try {
+        const canvas = document.createElement("canvas");
+        const size = 100;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("Canvas not supported")); return; }
 
-      ctx.drawImage(img, 0, 0, size, size);
-      const imageData = ctx.getImageData(0, 0, size, size);
-      const colors = extractDominantColors(imageData, 5);
+        ctx.drawImage(img, 0, 0, size, size);
+        const imageData = ctx.getImageData(0, 0, size, size);
+        const colors = extractDominantColors(imageData, 5);
 
-      const [h1, s1, l1] = rgbToHsl(colors[0].r, colors[0].g, colors[0].b);
-      const primary = hslString(h1, Math.max(s1, 60), Math.min(Math.max(l1, 40), 60));
-      
-      // Secondary: complementary or second dominant
-      let secondary: string;
-      if (colors.length > 1) {
-        const [h2, s2, l2] = rgbToHsl(colors[1].r, colors[1].g, colors[1].b);
-        secondary = hslString(h2, Math.max(s2, 50), Math.min(Math.max(l2, 35), 55));
-      } else {
-        secondary = hslString((h1 + 180) % 360, Math.max(s1, 50), 40);
+        const [h1, s1, l1] = rgbToHsl(colors[0].r, colors[0].g, colors[0].b);
+        const primary = hslString(h1, Math.max(s1, 60), Math.min(Math.max(l1, 40), 60));
+
+        let secondary: string;
+        if (colors.length > 1) {
+          const [h2, s2, l2] = rgbToHsl(colors[1].r, colors[1].g, colors[1].b);
+          secondary = hslString(h2, Math.max(s2, 50), Math.min(Math.max(l2, 35), 55));
+        } else {
+          secondary = hslString((h1 + 180) % 360, Math.max(s1, 50), 40);
+        }
+
+        let accent: string;
+        if (colors.length > 2) {
+          const [h3, s3, l3] = rgbToHsl(colors[2].r, colors[2].g, colors[2].b);
+          accent = hslString(h3, Math.min(s3, 20), Math.max(l3, 93));
+        } else {
+          accent = hslString(h1, 14, 93);
+        }
+
+        resolve({
+          primary,
+          primaryForeground: getContrastForeground(Math.min(Math.max(l1, 40), 60)),
+          secondary,
+          secondaryForeground: getContrastForeground(Math.min(Math.max(l1, 35), 55)),
+          accent,
+        });
+      } catch (err) {
+        reject(err);
+      } finally {
+        URL.revokeObjectURL(blobUrl);
       }
-
-      // Accent: third dominant or lighter variant of primary
-      let accent: string;
-      if (colors.length > 2) {
-        const [h3, s3, l3] = rgbToHsl(colors[2].r, colors[2].g, colors[2].b);
-        accent = hslString(h3, Math.min(s3, 20), Math.max(l3, 93));
-      } else {
-        accent = hslString(h1, 14, 93);
-      }
-
-      resolve({
-        primary,
-        primaryForeground: getContrastForeground(Math.min(Math.max(l1, 40), 60)),
-        secondary,
-        secondaryForeground: getContrastForeground(Math.min(Math.max(l1, 35), 55)),
-        accent,
-      });
     };
 
-    img.onerror = () => reject(new Error("Failed to load image"));
-    img.src = imageUrl;
+    img.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      reject(new Error("Failed to load image from blob"));
+    };
+    img.src = blobUrl;
   });
 }

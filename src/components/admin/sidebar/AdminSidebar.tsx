@@ -29,7 +29,6 @@ import {
   MessageCircle,
   Cable,
   Workflow,
-  Paintbrush,
   Rocket,
 } from "lucide-react";
 import {
@@ -92,8 +91,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     hoverClass: "hover:bg-sidebar-operations/5",
     labelClass: "text-sidebar-operations",
     items: [
-      { id: "site-config", title: "Configurações do Site", icon: Settings },
-      { id: "site-banners", title: "Banners", icon: Sun },
+      { id: "site-config", title: "Configurações do Site", icon: Settings, description: "Conteúdo, visual e banners" },
       { id: "obras", title: "Obras / Portfólio", icon: Sun },
     ],
   },
@@ -156,7 +154,6 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     hoverClass: "hover:bg-sidebar-config/5",
     labelClass: "text-sidebar-config",
     items: [
-      { id: "brand", title: "Identidade Visual", icon: Paintbrush },
       { id: "aprovacao", title: "Aprovações", icon: UserCheck },
       { id: "vendedores", title: "Vendedores", icon: Users },
       { id: "usuarios", title: "Usuários", icon: Shield },

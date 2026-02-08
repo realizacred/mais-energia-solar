@@ -1,13 +1,63 @@
-import { useState } from "react";
-import { Plus, Trash2, GripVertical, Eye, EyeOff, Loader2, Save, ImageIcon } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Trash2, GripVertical, Eye, EyeOff, Loader2, Save, ImageIcon, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { useSiteBannersAdmin, type SiteBanner } from "@/hooks/useSiteBanners";
+
+function BannerImageUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 5MB.", variant: "destructive" });
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const fileName = `banners/${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("brand-assets")
+        .upload(fileName, file, { cacheControl: "3600", upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("brand-assets").getPublicUrl(fileName);
+      onChange(urlData.publicUrl);
+      toast({ title: "Imagem enviada!" });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <Label>Imagem do Banner *</Label>
+      {value && (
+        <div className="rounded-lg border bg-muted/30 overflow-hidden">
+          <img src={value} alt="Preview" className="w-full h-32 object-cover" />
+        </div>
+      )}
+      <div className="flex gap-2">
+        <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
+        <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading} className="gap-1.5">
+          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          {uploading ? "Enviando..." : "Upload"}
+        </Button>
+      </div>
+      <Input value={value} onChange={(e) => onChange(e.target.value)} placeholder="Ou cole a URL da imagem..." className="text-xs" />
+    </div>
+  );
+}
 
 export function SiteBannersManager() {
   const { banners, loading, addBanner, updateBanner, deleteBanner } = useSiteBannersAdmin();
@@ -24,7 +74,7 @@ export function SiteBannersManager() {
 
   const handleAdd = async () => {
     if (!newBanner.imagem_url) {
-      toast({ title: "URL da imagem é obrigatória", variant: "destructive" });
+      toast({ title: "Imagem é obrigatória", variant: "destructive" });
       return;
     }
     setSaving("new");
@@ -64,22 +114,19 @@ export function SiteBannersManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex items-center justify-center py-12">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold">Banners do Site</h3>
-          <p className="text-sm text-muted-foreground">Gerencie os banners rotativos do site</p>
-        </div>
+        <p className="text-sm text-muted-foreground">Banners rotativos exibidos no topo do site</p>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button size="sm" className="gap-2">
               <Plus className="w-4 h-4" /> Novo Banner
             </Button>
           </DialogTrigger>
@@ -88,10 +135,10 @@ export function SiteBannersManager() {
               <DialogTitle>Novo Banner</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>URL da Imagem *</Label>
-                <Input value={newBanner.imagem_url} onChange={(e) => setNewBanner({ ...newBanner, imagem_url: e.target.value })} placeholder="https://..." />
-              </div>
+              <BannerImageUpload
+                value={newBanner.imagem_url}
+                onChange={(url) => setNewBanner({ ...newBanner, imagem_url: url })}
+              />
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Título</Label>
