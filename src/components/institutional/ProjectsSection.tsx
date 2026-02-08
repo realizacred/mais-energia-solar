@@ -6,10 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import obra1 from "@/assets/obra-1.jpg";
-import obra2 from "@/assets/obra-2.jpg";
-import obra3 from "@/assets/obra-3.jpg";
-import obra4 from "@/assets/obra-4.jpg";
+import obra1 from "@/assets/obra-exemplo-1.jpg";
+import obra2 from "@/assets/obra-exemplo-2.jpg";
+import obra3 from "@/assets/obra-exemplo-3.jpg";
+import obra4 from "@/assets/obra-exemplo-4.jpg";
+import obra5 from "@/assets/obra-exemplo-5.jpg";
+import obra6 from "@/assets/obra-exemplo-6.jpg";
 
 interface ObraPublic {
   id: string;
@@ -27,10 +29,12 @@ interface ObraPublic {
 
 // Fallback static projects when DB has no data
 const FALLBACK_PROJECTS: ObraPublic[] = [
-  { id: "1", titulo: "Projeto Fotovoltaico de 3.89 kWp", cidade: "Cataguases", estado: "MG", potencia_kwp: 3.89, economia_mensal: null, tipo_projeto: "residencial", imagens_urls: [obra1], video_url: null, descricao: null, numero_modulos: null },
-  { id: "2", titulo: "Projeto Fotovoltaico de 3,35 kWp", cidade: "Argirita", estado: "MG", potencia_kwp: 3.35, economia_mensal: null, tipo_projeto: "residencial", imagens_urls: [obra2], video_url: null, descricao: null, numero_modulos: null },
-  { id: "3", titulo: "Projeto Fotovoltaico de 3,27 kWp", cidade: "Cataguases", estado: "MG", potencia_kwp: 3.27, economia_mensal: null, tipo_projeto: "residencial", imagens_urls: [obra3], video_url: null, descricao: null, numero_modulos: null },
-  { id: "4", titulo: "Projeto Fotovoltaico de 7,22 kWp", cidade: "Cataguases", estado: "MG", potencia_kwp: 7.22, economia_mensal: null, tipo_projeto: "residencial", imagens_urls: [obra4], video_url: null, descricao: null, numero_modulos: null },
+  { id: "1", titulo: "Residência Família Silva", cidade: "Cataguases", estado: "MG", potencia_kwp: 3.89, economia_mensal: 380, tipo_projeto: "residencial", imagens_urls: [obra1], video_url: null, descricao: "Sistema fotovoltaico residencial com painéis de alta eficiência.", numero_modulos: 7 },
+  { id: "2", titulo: "Residência em Argirita", cidade: "Argirita", estado: "MG", potencia_kwp: 3.35, economia_mensal: 320, tipo_projeto: "residencial", imagens_urls: [obra2], video_url: null, descricao: "Instalação completa em telhado cerâmico com orientação ideal.", numero_modulos: 6 },
+  { id: "3", titulo: "Projeto Residencial Cataguases", cidade: "Cataguases", estado: "MG", potencia_kwp: 3.27, economia_mensal: 310, tipo_projeto: "residencial", imagens_urls: [obra3], video_url: null, descricao: "Sistema compacto de alta performance para residência urbana.", numero_modulos: 6 },
+  { id: "4", titulo: "Sistema 7.22 kWp - Cataguases", cidade: "Cataguases", estado: "MG", potencia_kwp: 7.22, economia_mensal: 690, tipo_projeto: "residencial", imagens_urls: [obra4], video_url: null, descricao: "Projeto de maior porte para residência com alto consumo.", numero_modulos: 13 },
+  { id: "5", titulo: "Comércio Centro - Leopoldina", cidade: "Leopoldina", estado: "MG", potencia_kwp: 12.50, economia_mensal: 1200, tipo_projeto: "comercial", imagens_urls: [obra5], video_url: null, descricao: "Sistema comercial reduzindo custos operacionais.", numero_modulos: 22 },
+  { id: "6", titulo: "Fazenda Solar - Miraí", cidade: "Miraí", estado: "MG", potencia_kwp: 18.70, economia_mensal: 1800, tipo_projeto: "rural", imagens_urls: [obra6], video_url: null, descricao: "Projeto rural de grande porte para propriedade agrícola.", numero_modulos: 34 },
 ];
 
 export function ProjectsSection() {
