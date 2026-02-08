@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
  import { motion, AnimatePresence } from "framer-motion";
  import { Button } from "@/components/ui/button";
  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -90,6 +90,14 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [hasStarted, setHasStarted] = useState(servico.status === "em_andamento");
+    const [userId, setUserId] = useState<string | null>(null);
+
+  // Get user ID for storage paths
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id || null);
+    });
+  }, []);
    
   // Checklist items with checkbox and multiple photos
   const [checklistItems, setChecklistItems] = useState<{
@@ -156,7 +164,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
 
   const uploadAudio = async (blob: Blob) => {
     try {
-      const fileName = `${servico.id}/audio_${Date.now()}.webm`;
+      const fileName = `${userId || 'unknown'}/${servico.id}/audio_${Date.now()}.webm`;
       
       const { error } = await supabase.storage
         .from('checklist-assets')
@@ -233,7 +241,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
       
       for (const file of files) {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${servico.id}/${itemKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const fileName = `${userId || 'unknown'}/${servico.id}/${itemKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
         
         const { error } = await supabase.storage
           .from('checklist-assets')
