@@ -142,47 +142,77 @@ async function syncClients(
   token: string,
   counts: SyncCounts
 ) {
+  const allClients: any[] = [];
+  const PAGE_SIZE = 99;
+
   try {
-    const data = (await smFetch(config.base_url, "/clients", token)) as any;
-    const clients = Array.isArray(data) ? data : data?.data || data?.clients || [];
+    let page = 1;
+    let hasMore = true;
 
-    console.log(`[SM] Got ${clients.length} clients`);
+    while (hasMore) {
+      console.log(`[SM] Fetching clients page ${page} (limit=${PAGE_SIZE})...`);
+      const data = (await smFetch(
+        config.base_url,
+        `/clients?limit=${PAGE_SIZE}&page=${page}`,
+        token
+      )) as any;
 
-    for (const client of clients) {
-      const smClientId = client.id || client.clientId;
-      if (!smClientId) continue;
+      const clients = Array.isArray(data) ? data : data?.data || data?.clients || [];
+      console.log(`[SM] Page ${page}: got ${clients.length} clients`);
 
-      const phone = client.phone || client.telefone || "";
-      const phoneNorm = normalizePhone(phone);
+      if (clients.length === 0) {
+        hasMore = false;
+        break;
+      }
 
-      const { error } = await supabaseAdmin
-        .from("solar_market_clients")
-        .upsert(
-          {
-            tenant_id: config.tenant_id,
-            sm_client_id: smClientId,
-            name: client.name || client.nome || "",
-            email: client.email || "",
-            phone: phone,
-            phone_normalized: phoneNorm,
-            payload: client,
-          },
-          { onConflict: "tenant_id,sm_client_id" }
-        );
+      for (const client of clients) {
+        const smClientId = client.id || client.clientId;
+        if (!smClientId) continue;
 
-      if (error) {
-        console.error(`[SM] Client upsert error for ${smClientId}:`, error.message);
-        counts.errors.push(`client ${smClientId}: ${error.message}`);
+        const phone = client.phone || client.telefone || "";
+        const phoneNorm = normalizePhone(phone);
+
+        const { error } = await supabaseAdmin
+          .from("solar_market_clients")
+          .upsert(
+            {
+              tenant_id: config.tenant_id,
+              sm_client_id: smClientId,
+              name: client.name || client.nome || "",
+              email: client.email || "",
+              phone: phone,
+              phone_normalized: phoneNorm,
+              payload: client,
+            },
+            { onConflict: "tenant_id,sm_client_id" }
+          );
+
+        if (error) {
+          console.error(`[SM] Client upsert error for ${smClientId}:`, error.message);
+          counts.errors.push(`client ${smClientId}: ${error.message}`);
+        } else {
+          counts.clients_synced++;
+        }
+
+        allClients.push(client);
+      }
+
+      // If we got less than PAGE_SIZE, no more pages
+      if (clients.length < PAGE_SIZE) {
+        hasMore = false;
       } else {
-        counts.clients_synced++;
+        page++;
+        // Small delay between pages to avoid rate limits
+        await new Promise((r) => setTimeout(r, 300));
       }
     }
 
-    return clients;
+    console.log(`[SM] Total clients fetched: ${allClients.length}`);
+    return allClients;
   } catch (err: any) {
     console.error("[SM] Sync clients error:", err.message);
     counts.errors.push(`clients: ${err.message}`);
-    return [];
+    return allClients;
   }
 }
 

@@ -3510,6 +3510,7 @@ export type Database = {
           id: string
           last_token: string | null
           last_token_expires_at: string | null
+          site_url: string | null
           tenant_id: string | null
           updated_at: string
           webhook_secret: string | null
@@ -3525,6 +3526,7 @@ export type Database = {
           id?: string
           last_token?: string | null
           last_token_expires_at?: string | null
+          site_url?: string | null
           tenant_id?: string | null
           updated_at?: string
           webhook_secret?: string | null
@@ -3540,6 +3542,7 @@ export type Database = {
           id?: string
           last_token?: string | null
           last_token_expires_at?: string | null
+          site_url?: string | null
           tenant_id?: string | null
           updated_at?: string
           webhook_secret?: string | null
