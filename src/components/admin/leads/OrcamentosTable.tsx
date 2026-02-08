@@ -242,12 +242,21 @@ export function OrcamentosTable({
                               variant="ghost"
                               size="icon"
                               className="text-primary hover:text-primary hover:bg-primary/10"
-                              onClick={() => onConvert(orc)}
+                              onClick={() => {
+                                if (hasHistory) {
+                                  // Multiple orcamentos: open history to let admin pick which one
+                                  handleOpenHistory(group);
+                                } else {
+                                  onConvert(orc);
+                                }
+                              }}
                             >
                               <ShoppingCart className="w-4 h-4" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Converter em Venda</TooltipContent>
+                          <TooltipContent>
+                            {hasHistory ? "Selecionar orçamento para venda" : "Converter em Venda"}
+                          </TooltipContent>
                         </Tooltip>
                       )}
                       {isConverted && (
