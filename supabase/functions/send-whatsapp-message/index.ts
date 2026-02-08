@@ -20,6 +20,20 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ===== STAGING GUARD =====
+    const isStaging = Deno.env.get("IS_STAGING") === "true";
+    if (isStaging) {
+      console.warn("[STAGING] WhatsApp send BLOCKED — ambiente de staging");
+      return new Response(JSON.stringify({
+        success: true,
+        staging: true,
+        message: "[STAGING] Mensagem NÃO enviada — ambiente de staging",
+        results: [{ method: "staging-mock", success: true }],
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {

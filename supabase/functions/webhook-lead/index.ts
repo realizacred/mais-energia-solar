@@ -20,6 +20,19 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // ===== STAGING GUARD =====
+    const isStaging = Deno.env.get("IS_STAGING") === "true";
+    if (isStaging) {
+      console.warn("[STAGING] Webhook forwarding BLOCKED — ambiente de staging");
+      return new Response(JSON.stringify({
+        success: true,
+        staging: true,
+        message: "[STAGING] Webhooks NÃO encaminhados — ambiente de staging",
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const payload: WebhookPayload = await req.json();
     console.log("Webhook received:", JSON.stringify(payload, null, 2));
 

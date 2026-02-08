@@ -33,6 +33,20 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ===== STAGING GUARD =====
+    const isStaging = Deno.env.get("IS_STAGING") === "true";
+    if (isStaging) {
+      console.warn("[STAGING] Automações WhatsApp BLOCKED — ambiente de staging");
+      return new Response(JSON.stringify({
+        success: true,
+        staging: true,
+        message: "[STAGING] Automações NÃO processadas — ambiente de staging",
+        results: [],
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
