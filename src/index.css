@@ -94,6 +94,10 @@
     --sidebar-section-finance: 225 70% 35%;
     --sidebar-section-marketing: 28 80% 52%;
     --sidebar-section-settings: 220 14% 44%;
+    --sidebar-section-atendimento: 262 50% 50%;
+    --sidebar-section-cadastros: 180 40% 40%;
+    --sidebar-section-ai: 270 60% 52%;
+    --sidebar-section-integrations: 340 55% 48%;
   }
 
   .dark {
@@ -167,6 +171,10 @@
     --sidebar-section-finance: 225 55% 48%;
     --sidebar-section-marketing: 28 65% 56%;
     --sidebar-section-settings: 220 12% 54%;
+    --sidebar-section-atendimento: 262 45% 62%;
+    --sidebar-section-cadastros: 180 35% 52%;
+    --sidebar-section-ai: 270 52% 62%;
+    --sidebar-section-integrations: 340 48% 58%;
   }
 }
 

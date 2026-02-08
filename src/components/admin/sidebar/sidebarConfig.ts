@@ -30,6 +30,10 @@ import {
   Rocket,
   TrendingUp,
   FileText,
+  Headphones,
+  Database,
+  Bot,
+  Cable,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -59,7 +63,7 @@ export interface SidebarSection {
 
 /**
  * Sidebar architecture follows the natural business journey:
- * ANALISAR → VENDER → ATENDER → EXECUTAR → RECEBER → ESCALAR
+ * ANALISAR → VENDER → ATENDER → GERENCIAR → EXECUTAR → RECEBER → ESCALAR
  *
  * Each section maps to a stage in the lifecycle, reducing
  * cognitive load and telling the story of the business.
@@ -78,18 +82,10 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "dashboard", title: "Dashboard", icon: BarChart3 },
       {
-        id: "inteligencia",
-        title: "Inteligência Comercial",
-        icon: Brain,
-        description: "Scoring & Previsão",
+        id: "release",
+        title: "Release Notes",
+        icon: Rocket,
       },
-      {
-        id: "diretor",
-        title: "Copilot IA",
-        icon: Sparkles,
-        description: "Análise inteligente",
-      },
-      { id: "auditoria", title: "Auditoria", icon: Shield },
     ],
   },
 
@@ -106,20 +102,47 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "leads", title: "Leads", icon: Users },
       { id: "pipeline", title: "Pipeline", icon: Kanban },
-      {
-        id: "inbox",
-        title: "Atendimento",
-        icon: MessageCircle,
-        description: "Central WhatsApp",
-      },
       { id: "followup", title: "Follow-ups", icon: Bell },
-      { id: "validacao", title: "Validação", icon: ClipboardCheck },
       {
         id: "propostas",
         title: "Propostas",
         icon: FileText,
         description: "Propostas comerciais",
       },
+      { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck },
+      {
+        id: "lead-status",
+        title: "Status de Leads",
+        icon: Kanban,
+        separator: true,
+      },
+      {
+        id: "inteligencia",
+        title: "Inteligência Comercial",
+        icon: Brain,
+        description: "Scoring & Previsão",
+      },
+    ],
+  },
+
+  // ─── 3. ATENDIMENTO — Support & validation ────────────────
+  {
+    label: "Atendimento",
+    labelIcon: Headphones,
+    indicatorBg: "bg-sidebar-atendimento",
+    activeClass:
+      "bg-sidebar-atendimento/12 text-sidebar-atendimento font-semibold border-l-2 border-sidebar-atendimento",
+    hoverClass: "hover:bg-sidebar-atendimento/6",
+    labelClass: "text-sidebar-atendimento",
+    defaultOpen: true,
+    items: [
+      {
+        id: "inbox",
+        title: "Central WhatsApp",
+        icon: MessageCircle,
+        description: "Inbox de atendimento",
+      },
+      { id: "validacao", title: "Validação", icon: ClipboardCheck },
       {
         id: "tarefas",
         title: "Tarefas & SLA",
@@ -128,7 +151,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 3. CLIENTES — Post-sale relationship ──────────────────
+  // ─── 4. CLIENTES — Post-sale relationship ──────────────────
   {
     label: "Clientes",
     labelIcon: UserCheck,
@@ -146,21 +169,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         icon: ClipboardList,
       },
       { id: "avaliacoes", title: "Avaliações", icon: Star },
-    ],
-  },
-
-  // ─── 4. OPERAÇÕES — Field execution ────────────────────────
-  {
-    label: "Operações",
-    labelIcon: Wrench,
-    indicatorBg: "bg-sidebar-operations",
-    activeClass:
-      "bg-sidebar-operations/12 text-sidebar-operations font-semibold border-l-2 border-sidebar-operations",
-    hoverClass: "hover:bg-sidebar-operations/6",
-    labelClass: "text-sidebar-operations",
-    defaultOpen: true,
-    items: [
-      { id: "instaladores", title: "Instaladores", icon: Wrench },
       {
         id: "servicos",
         title: "Agenda Técnica",
@@ -169,7 +177,22 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 5. FINANCEIRO — Revenue & trust ───────────────────────
+  // ─── 5. OPERAÇÕES — Field execution ────────────────────────
+  {
+    label: "Operações",
+    labelIcon: Wrench,
+    indicatorBg: "bg-sidebar-operations",
+    activeClass:
+      "bg-sidebar-operations/12 text-sidebar-operations font-semibold border-l-2 border-sidebar-operations",
+    hoverClass: "hover:bg-sidebar-operations/6",
+    labelClass: "text-sidebar-operations",
+    defaultOpen: false,
+    items: [
+      { id: "instaladores", title: "Instaladores", icon: Wrench },
+    ],
+  },
+
+  // ─── 6. FINANCEIRO — Revenue & trust ───────────────────────
   {
     label: "Financeiro",
     labelIcon: Wallet,
@@ -178,7 +201,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       "bg-sidebar-finance/12 text-sidebar-finance font-semibold border-l-2 border-sidebar-finance",
     hoverClass: "hover:bg-sidebar-finance/6",
     labelClass: "text-sidebar-finance",
-    defaultOpen: true,
+    defaultOpen: false,
     items: [
       { id: "recebimentos", title: "Recebimentos", icon: DollarSign },
       { id: "inadimplencia", title: "Inadimplência", icon: AlertTriangle },
@@ -193,9 +216,73 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 6. SITE & MARKETING — White-label ready ──────────────
+  // ─── 7. CADASTROS — Master data & team ────────────────────
   {
-    label: "Site & Marketing",
+    label: "Cadastros",
+    labelIcon: Database,
+    indicatorBg: "bg-sidebar-cadastros",
+    activeClass:
+      "bg-sidebar-cadastros/12 text-sidebar-cadastros font-semibold border-l-2 border-sidebar-cadastros",
+    hoverClass: "hover:bg-sidebar-cadastros/6",
+    labelClass: "text-sidebar-cadastros",
+    defaultOpen: false,
+    items: [
+      { id: "vendedores", title: "Vendedores", icon: Users },
+      { id: "usuarios", title: "Usuários & Permissões", icon: Shield },
+      { id: "equipamentos", title: "Equipamentos", icon: Plug },
+      { id: "concessionarias", title: "Concessionárias", icon: Lightbulb },
+      {
+        id: "config",
+        title: "Calculadora Solar",
+        icon: Calculator,
+        separator: true,
+      },
+      { id: "gamificacao", title: "Gamificação", icon: Trophy },
+    ],
+  },
+
+  // ─── 8. IA — Artificial Intelligence tools ────────────────
+  {
+    label: "IA",
+    labelIcon: Bot,
+    indicatorBg: "bg-sidebar-ai",
+    activeClass:
+      "bg-sidebar-ai/12 text-sidebar-ai font-semibold border-l-2 border-sidebar-ai",
+    hoverClass: "hover:bg-sidebar-ai/6",
+    labelClass: "text-sidebar-ai",
+    defaultOpen: false,
+    items: [
+      {
+        id: "diretor",
+        title: "Copilot IA",
+        icon: Sparkles,
+        description: "Análise inteligente",
+      },
+    ],
+  },
+
+  // ─── 9. INTEGRAÇÕES & AUTOMAÇÃO — External connections ────
+  {
+    label: "Integrações & Automação",
+    labelIcon: Cable,
+    indicatorBg: "bg-sidebar-integrations",
+    activeClass:
+      "bg-sidebar-integrations/12 text-sidebar-integrations font-semibold border-l-2 border-sidebar-integrations",
+    hoverClass: "hover:bg-sidebar-integrations/6",
+    labelClass: "text-sidebar-integrations",
+    defaultOpen: false,
+    items: [
+      { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle },
+      { id: "instagram", title: "Instagram", icon: Instagram },
+      { id: "solarmarket", title: "SolarMarket", icon: Sun },
+      { id: "webhooks", title: "Webhooks", icon: Webhook },
+      { id: "n8n", title: "Automações", icon: Workflow },
+    ],
+  },
+
+  // ─── 10. SITE INSTITUCIONAL — White-label ready ───────────
+  {
+    label: "Site Institucional",
     labelIcon: Globe,
     indicatorBg: "bg-sidebar-marketing",
     activeClass:
@@ -206,19 +293,18 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       {
         id: "site-config",
-        title: "Site Institucional",
+        title: "Conteúdo & Visual",
         icon: Settings,
-        description: "Conteúdo & Visual",
       },
       { id: "site-servicos", title: "Serviços", icon: Wrench },
       { id: "obras", title: "Portfólio", icon: Sun },
     ],
   },
 
-  // ─── 7. CONFIGURAÇÕES — System super-menu ─────────────────
+  // ─── 11. ADMINISTRAÇÃO — System & logs ────────────────────
   {
-    label: "Configurações",
-    labelIcon: Settings,
+    label: "Administração",
+    labelIcon: Shield,
     indicatorBg: "bg-sidebar-settings",
     activeClass:
       "bg-sidebar-settings/12 text-sidebar-settings font-semibold border-l-2 border-sidebar-settings",
@@ -226,39 +312,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-settings",
     defaultOpen: false,
     items: [
-      // ── Equipe ──
-      { id: "aprovacao", title: "Aprovações", icon: UserCheck },
-      { id: "vendedores", title: "Vendedores", icon: Users },
-      { id: "usuarios", title: "Usuários & Permissões", icon: Shield },
-      { id: "gamificacao", title: "Gamificação", icon: Trophy },
-      // ── Operacional ──
-      {
-        id: "lead-status",
-        title: "Status de Leads",
-        icon: Kanban,
-        separator: true,
-      },
-      { id: "equipamentos", title: "Equipamentos", icon: Plug },
-      { id: "concessionarias", title: "Concessionárias", icon: Lightbulb },
-      { id: "config", title: "Calculadora Solar", icon: Calculator },
-      // ── Integrações ──
-      {
-        id: "whatsapp",
-        title: "WhatsApp API",
-        icon: MessageCircle,
-        separator: true,
-      },
-      { id: "instagram", title: "Instagram", icon: Instagram },
-      { id: "webhooks", title: "Webhooks", icon: Webhook },
-      { id: "n8n", title: "Automações", icon: Workflow },
-      { id: "solarmarket", title: "SolarMarket", icon: Sun },
-      // ── Sistema ──
-      {
-        id: "release",
-        title: "Release Notes",
-        icon: Rocket,
-        separator: true,
-      },
+      { id: "auditoria", title: "Auditoria (Logs)", icon: Shield },
     ],
   },
 ];
