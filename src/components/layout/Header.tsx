@@ -3,7 +3,8 @@ import { Phone, LogIn, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MobileNav } from "./MobileNav";
 import { useAuth } from "@/hooks/useAuth";
-import logo from "@/assets/logo.png";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
+import logoFallback from "@/assets/logo.png";
 
 interface HeaderProps {
   showCalculadora?: boolean;
@@ -27,6 +28,8 @@ export default function Header({
   children,
 }: HeaderProps) {
   const { user } = useAuth();
+  const { settings } = useBrandSettings();
+  const logo = settings?.logo_url || logoFallback;
   const location = useLocation();
   const isHomePage = location.pathname === "/";
 
