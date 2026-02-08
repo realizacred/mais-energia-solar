@@ -2837,6 +2837,240 @@ export type Database = {
           },
         ]
       }
+      proposta_itens: {
+        Row: {
+          category: string | null
+          created_at: string
+          custo_total: number
+          custo_unitario: number
+          id: string
+          item: string
+          proposta_id: string
+          quantidade: number
+          tenant_id: string | null
+          valor_venda: number
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          custo_total?: number
+          custo_unitario?: number
+          id?: string
+          item: string
+          proposta_id: string
+          quantidade?: number
+          tenant_id?: string | null
+          valor_venda?: number
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          custo_total?: number
+          custo_unitario?: number
+          id?: string
+          item?: string
+          proposta_id?: string
+          quantidade?: number
+          tenant_id?: string | null
+          valor_venda?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_itens_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_variaveis: {
+        Row: {
+          created_at: string
+          formatted_value: string | null
+          id: string
+          item: string | null
+          key: string
+          proposta_id: string
+          tenant_id: string | null
+          topic: string | null
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          formatted_value?: string | null
+          id?: string
+          item?: string | null
+          key: string
+          proposta_id: string
+          tenant_id?: string | null
+          topic?: string | null
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          formatted_value?: string | null
+          id?: string
+          item?: string | null
+          key?: string
+          proposta_id?: string
+          tenant_id?: string | null
+          topic?: string | null
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_variaveis_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_variaveis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      propostas: {
+        Row: {
+          area_necessaria: number | null
+          cliente_celular: string | null
+          cliente_cep: string | null
+          cliente_cidade: string | null
+          cliente_email: string | null
+          cliente_endereco: string | null
+          cliente_estado: string | null
+          cliente_nome: string | null
+          created_at: string
+          created_at_sm: string | null
+          distribuidora: string | null
+          economia_mensal: number | null
+          expiration_date: string | null
+          generated_at: string | null
+          geracao_mensal_kwh: number | null
+          id: string
+          link_pdf: string | null
+          modelo_inversor: string | null
+          modelo_modulo: string | null
+          nome: string
+          numero_modulos: number | null
+          payback_anos: number | null
+          potencia_kwp: number | null
+          preco_total: number | null
+          raw_payload: Json | null
+          serie_consumo_mensal: number[] | null
+          serie_economia_anual: number[] | null
+          serie_geracao_mensal: number[] | null
+          sm_id: string | null
+          sm_project_id: string | null
+          sm_project_name: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          vendedor_id: string | null
+        }
+        Insert: {
+          area_necessaria?: number | null
+          cliente_celular?: string | null
+          cliente_cep?: string | null
+          cliente_cidade?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_estado?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          created_at_sm?: string | null
+          distribuidora?: string | null
+          economia_mensal?: number | null
+          expiration_date?: string | null
+          generated_at?: string | null
+          geracao_mensal_kwh?: number | null
+          id?: string
+          link_pdf?: string | null
+          modelo_inversor?: string | null
+          modelo_modulo?: string | null
+          nome: string
+          numero_modulos?: number | null
+          payback_anos?: number | null
+          potencia_kwp?: number | null
+          preco_total?: number | null
+          raw_payload?: Json | null
+          serie_consumo_mensal?: number[] | null
+          serie_economia_anual?: number[] | null
+          serie_geracao_mensal?: number[] | null
+          sm_id?: string | null
+          sm_project_id?: string | null
+          sm_project_name?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          vendedor_id?: string | null
+        }
+        Update: {
+          area_necessaria?: number | null
+          cliente_celular?: string | null
+          cliente_cep?: string | null
+          cliente_cidade?: string | null
+          cliente_email?: string | null
+          cliente_endereco?: string | null
+          cliente_estado?: string | null
+          cliente_nome?: string | null
+          created_at?: string
+          created_at_sm?: string | null
+          distribuidora?: string | null
+          economia_mensal?: number | null
+          expiration_date?: string | null
+          generated_at?: string | null
+          geracao_mensal_kwh?: number | null
+          id?: string
+          link_pdf?: string | null
+          modelo_inversor?: string | null
+          modelo_modulo?: string | null
+          nome?: string
+          numero_modulos?: number | null
+          payback_anos?: number | null
+          potencia_kwp?: number | null
+          preco_total?: number | null
+          raw_payload?: Json | null
+          serie_consumo_mensal?: number[] | null
+          serie_economia_anual?: number[] | null
+          serie_geracao_mensal?: number[] | null
+          sm_id?: string | null
+          sm_project_id?: string | null
+          sm_project_name?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recebimentos: {
         Row: {
           cliente_id: string
