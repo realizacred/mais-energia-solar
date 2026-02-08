@@ -213,6 +213,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "vendedores", title: "Vendedores", icon: Users },
       { id: "usuarios", title: "Usuários", icon: Shield },
       { id: "gamificacao", title: "Gamificação", icon: Trophy },
+      { id: "lead-status", title: "Status de Leads", icon: Kanban },
       { id: "equipamentos", title: "Equipamentos", icon: Plug },
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb },
       {
