@@ -354,12 +354,19 @@ export function SolarMarketManager() {
                   <Input
                     id="sm-token"
                     type="password"
-                    placeholder={config?.api_token ? "••••••••••••••••" : "Cole o token aqui (ex: 12648:NSf5SJ...)"}
+                    placeholder={config?.api_token ? "Token configurado ✓ (deixe vazio para manter)" : "Cole o token aqui (ex: 12648:NSf5SJcvu...)"}
                     value={formApiToken}
                     onChange={(e) => setFormApiToken(e.target.value)}
                   />
-                  {config?.api_token && (
-                    <p className="text-xs text-muted-foreground">Deixe em branco para manter o token atual</p>
+                  {config?.api_token ? (
+                    <p className="text-xs text-success flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Token salvo. Deixe em branco para manter o atual.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Cole o token do usuário SolarMarket (formato: ID:TOKEN). Não cole URLs.
+                    </p>
                   )}
                 </div>
               ) : (

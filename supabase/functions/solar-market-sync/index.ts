@@ -435,13 +435,19 @@ Deno.serve(async (req) => {
       return jsonRes({ error: "Unauthorized" }, 401);
     }
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAdmin.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const supabaseAuth = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: userData, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !userData?.user) {
+      console.error("[SM] Auth error:", userError?.message);
       return jsonRes({ error: "Unauthorized" }, 401);
     }
 
-    triggeredBy = claimsData.claims.sub as string;
+    triggeredBy = userData.user.id;
 
     // Verify admin role
     const { data: roles } = await supabaseAdmin
@@ -471,6 +477,20 @@ Deno.serve(async (req) => {
 
   if (!config.enabled) {
     return jsonRes({ error: "Integração SolarMarket desabilitada" }, 400);
+  }
+
+  // ── Test mode: just verify we can authenticate ──
+  if (mode === "test") {
+    try {
+      const smToken = await getSmToken(supabaseAdmin, config as SmConfig);
+      // Try a simple API call to verify connectivity
+      const testData = await smFetch(config.base_url, "/clients?limit=1", smToken, 0);
+      console.log("[SM] Test connection successful");
+      return jsonRes({ status: "ok", message: "Conexão com SolarMarket bem-sucedida" });
+    } catch (err: any) {
+      console.error("[SM] Test connection failed:", err.message);
+      return jsonRes({ error: err.message }, 400);
+    }
   }
 
   // Create sync log
