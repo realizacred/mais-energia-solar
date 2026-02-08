@@ -62,7 +62,7 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
           <span className="sr-only">Abrir menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0">
+      <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0 !bg-background border-l border-border shadow-xl">
         <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
         <div className="flex flex-col h-full">
           {/* Header */}
