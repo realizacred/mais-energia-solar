@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt } from "lucide-react";
+import { Loader2, ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
@@ -718,11 +719,14 @@ export function ConvertLeadToClientDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
             {/* Dados Pessoais */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                Dados Pessoais
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Dados Pessoais
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="nome"
@@ -775,15 +779,18 @@ export function ConvertLeadToClientDialog({
                     </FormItem>
                   )}
                 />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Endereço */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                Endereço
-              </h3>
-              <div className="grid grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <MapPin className="h-4 w-4" />
+                  Endereço
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="cep"
@@ -823,8 +830,6 @@ export function ConvertLeadToClientDialog({
                     </FormItem>
                   )}
                 />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="bairro"
@@ -838,21 +843,21 @@ export function ConvertLeadToClientDialog({
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="rua"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Rua</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="rua"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Rua</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
                   name="numero"
@@ -879,16 +884,18 @@ export function ConvertLeadToClientDialog({
                     </FormItem>
                   )}
                 />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Documentos */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2 flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Documentos
-              </h3>
-              <div className="space-y-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Documentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <DocumentUpload
                   label="Identidade (RG/CNH)"
                   description="Tire uma foto ou selecione arquivos (frente e verso)"
@@ -909,149 +916,158 @@ export function ConvertLeadToClientDialog({
                   files={beneficiariaFiles}
                   onFilesChange={setBeneficiariaFiles}
                 />
-              </div>
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Proposta Aceita */}
             {simulacoes.length > 0 && (
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-muted-foreground border-b pb-2 flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  Proposta Aceita
-                </h3>
-                <FormField
-                  control={form.control}
-                  name="simulacao_aceita_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Selecione a simulação/proposta aceita pelo cliente</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione a proposta aceita" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {simulacoes.map((s) => {
-                            const dataFormatada = new Date(s.created_at).toLocaleDateString("pt-BR");
-                            const potencia = s.potencia_recomendada_kwp ? `${s.potencia_recomendada_kwp.toFixed(2)} kWp` : "N/A";
-                            const investimento = s.investimento_estimado 
-                              ? `R$ ${s.investimento_estimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-                              : "N/A";
-                            const economia = s.economia_mensal 
-                              ? `R$ ${s.economia_mensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`
-                              : "";
-                            
-                            return (
-                              <SelectItem key={s.id} value={s.id}>
-                                {dataFormatada} - {potencia} - {investimento} {economia && `(${economia})`}
-                              </SelectItem>
-                            );
-                          })}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Receipt className="h-4 w-4" />
+                    Proposta Aceita
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="simulacao_aceita_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Selecione a simulação/proposta aceita pelo cliente</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a proposta aceita" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {simulacoes.map((s) => {
+                              const dataFormatada = new Date(s.created_at).toLocaleDateString("pt-BR");
+                              const potencia = s.potencia_recomendada_kwp ? `${s.potencia_recomendada_kwp.toFixed(2)} kWp` : "N/A";
+                              const investimento = s.investimento_estimado 
+                                ? `R$ ${s.investimento_estimado.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+                                : "N/A";
+                              const economia = s.economia_mensal 
+                                ? `R$ ${s.economia_mensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}/mês`
+                                : "";
+                              
+                              return (
+                                <SelectItem key={s.id} value={s.id}>
+                                  {dataFormatada} - {potencia} - {investimento} {economia && `(${economia})`}
+                                </SelectItem>
+                              );
+                            })}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
             )}
 
             {/* Dados Técnicos */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground border-b pb-2">
-                Dados Técnicos
-              </h3>
-              <div className="grid grid-cols-2 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Wrench className="h-4 w-4" />
+                  Dados Técnicos
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="disjuntor_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Disjuntor *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o disjuntor" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {disjuntores.map((d) => (
+                              <SelectItem key={d.id} value={d.id}>
+                                {d.amperagem}A {d.descricao ? `- ${d.descricao}` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="transformador_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Transformador *</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o transformador" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {transformadores.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.potencia_kva} kVA {t.descricao ? `- ${t.descricao}` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <FormField
                   control={form.control}
-                  name="disjuntor_id"
+                  name="localizacao"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Disjuntor *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4" />
+                        Localização (Coordenadas/Link do Mapa)
+                      </FormLabel>
+                      <div className="flex gap-2">
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o disjuntor" />
-                          </SelectTrigger>
+                          <Input 
+                            {...field} 
+                            value={localizacaoValue ?? ""}
+                            placeholder="Ex: -23.5505, -46.6333 ou link do Google Maps"
+                            className="flex-1"
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {disjuntores.map((d) => (
-                            <SelectItem key={d.id} value={d.id}>
-                              {d.amperagem}A {d.descricao ? `- ${d.descricao}` : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={getCurrentLocation}
+                          disabled={gettingLocation}
+                          className="shrink-0"
+                        >
+                          {gettingLocation ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Navigation className="h-4 w-4" />
+                          )}
+                          <span className="ml-2 hidden sm:inline">
+                            {gettingLocation ? "Obtendo..." : "Minha Localização"}
+                          </span>
+                        </Button>
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="transformador_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Transformador *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o transformador" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {transformadores.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.potencia_kva} kVA {t.descricao ? `- ${t.descricao}` : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="localizacao"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4" />
-                      Localização (Coordenadas/Link do Mapa)
-                    </FormLabel>
-                    <div className="flex gap-2">
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          value={localizacaoValue ?? ""}
-                          placeholder="Ex: -23.5505, -46.6333 ou link do Google Maps"
-                          className="flex-1"
-                        />
-                      </FormControl>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={getCurrentLocation}
-                        disabled={gettingLocation}
-                        className="shrink-0"
-                      >
-                        {gettingLocation ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Navigation className="h-4 w-4" />
-                        )}
-                        <span className="ml-2 hidden sm:inline">
-                          {gettingLocation ? "Obtendo..." : "Minha Localização"}
-                        </span>
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+              </CardContent>
+            </Card>
 
             {/* Observações */}
             <FormField
