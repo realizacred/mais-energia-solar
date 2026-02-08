@@ -39,6 +39,7 @@ import { SiteSettingsUnified } from "@/components/admin/SiteSettingsUnified";
 import { IntelligenceDashboard } from "@/components/admin/intelligence";
 import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
 import { CommercialDirectorDashboard } from "@/components/admin/director";
+import { TasksSlaDashboard } from "@/components/admin/tasks";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -52,6 +53,7 @@ const TAB_TITLES: Record<string, string> = {
   pipeline: "Pipeline de Vendas",
   followup: "Follow-up",
   validacao: "Validação de Vendas",
+  tarefas: "Tarefas & SLA",
   clientes: "Gestão de Clientes",
   recebimentos: "Controle de Recebimentos",
   dashboard: "Dashboard Analítico",
@@ -197,6 +199,8 @@ export default function Admin() {
         return <FollowUpManager diasAlerta={3} />;
       case "validacao":
         return <ValidacaoVendasManager />;
+      case "tarefas":
+        return <TasksSlaDashboard />;
       case "clientes":
         return <ClientesManager />;
       case "recebimentos":

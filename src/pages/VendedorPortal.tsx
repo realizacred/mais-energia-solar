@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LayoutDashboard, FileText } from "lucide-react";
+import { Loader2, LayoutDashboard, FileText, ClipboardCheck } from "lucide-react";
 import { LeadAlerts } from "@/components/vendor/LeadAlerts";
 import { FollowUpStatsCards } from "@/components/vendor/FollowUpStatsCards";
  import { VendorPersonalDashboard } from "@/components/vendor/VendorPersonalDashboard";
@@ -15,6 +15,7 @@ import { OfflineConversionsManager } from "@/components/leads/OfflineConversions
 import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateResolver";
 import NotificationSettings from "@/components/vendor/NotificationSettings";
 import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
+import { VendorTaskAgenda } from "@/components/vendor/VendorTaskAgenda";
 import { VendedorHeader, VendedorShareLink } from "@/components/vendor/portal";
 import { useVendedorPortal, orcamentoToLead } from "@/hooks/useVendedorPortal";
 
@@ -88,14 +89,18 @@ export default function VendedorPortal() {
 
       <main className="container mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="dashboard" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
-              Dashboard Pessoal
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="agenda" className="gap-2">
+              <ClipboardCheck className="h-4 w-4" />
+              Agenda
             </TabsTrigger>
             <TabsTrigger value="orcamentos" className="gap-2">
               <FileText className="h-4 w-4" />
-              Meus Orçamentos
+              Orçamentos
             </TabsTrigger>
           </TabsList>
 
@@ -185,6 +190,11 @@ export default function VendedorPortal() {
                 if (orc) setSelectedOrcamento(orc);
               }}
             />
+          </TabsContent>
+
+          {/* Agenda Tab */}
+          <TabsContent value="agenda" className="space-y-4 sm:space-y-6 mt-4">
+            <VendorTaskAgenda />
           </TabsContent>
 
           {/* Orçamentos Tab */}

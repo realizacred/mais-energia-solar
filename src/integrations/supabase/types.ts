@@ -3317,6 +3317,146 @@ export type Database = {
           },
         ]
       }
+      sla_rules: {
+        Row: {
+          applies_to: string | null
+          ativo: boolean | null
+          auto_create_task: boolean | null
+          created_at: string
+          escalation_enabled: boolean | null
+          id: string
+          max_minutes_to_first_contact: number | null
+          max_minutes_to_next_followup: number | null
+          rule_name: string
+          task_priority: string | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          applies_to?: string | null
+          ativo?: boolean | null
+          auto_create_task?: boolean | null
+          created_at?: string
+          escalation_enabled?: boolean | null
+          id?: string
+          max_minutes_to_first_contact?: number | null
+          max_minutes_to_next_followup?: number | null
+          rule_name: string
+          task_priority?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          applies_to?: string | null
+          ativo?: boolean | null
+          auto_create_task?: boolean | null
+          created_at?: string
+          escalation_enabled?: boolean | null
+          id?: string
+          max_minutes_to_first_contact?: number | null
+          max_minutes_to_next_followup?: number | null
+          rule_name?: string
+          task_priority?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      task_events: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          payload: Json | null
+          task_id: string
+          tenant_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          task_id: string
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          payload?: Json | null
+          task_id?: string
+          tenant_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_events_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_at: string | null
+          id: string
+          priority: string
+          related_id: string | null
+          related_type: string | null
+          sla_rule_id: string | null
+          source: string | null
+          status: string
+          tenant_id: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          priority?: string
+          related_id?: string | null
+          related_type?: string | null
+          sla_rule_id?: string | null
+          source?: string | null
+          status?: string
+          tenant_id?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_at?: string | null
+          id?: string
+          priority?: string
+          related_id?: string | null
+          related_type?: string | null
+          sla_rule_id?: string | null
+          source?: string | null
+          status?: string
+          tenant_id?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tenants: {
         Row: {
           ativo: boolean

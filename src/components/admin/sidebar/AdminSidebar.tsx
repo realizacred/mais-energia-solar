@@ -122,6 +122,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "pipeline", title: "Pipeline", icon: Kanban },
       { id: "followup", title: "Follow-up", icon: Bell },
       { id: "validacao", title: "Validar Vendas", icon: ClipboardCheck },
+      { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList, description: "Gestão operacional" },
     ],
   },
   {
