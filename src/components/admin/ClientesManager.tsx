@@ -41,9 +41,12 @@ import {
   DollarSign,
   Sun,
   MessageSquare,
+  Eye,
+  FileText,
 } from "lucide-react";
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
+import { ClienteViewDialog } from "./ClienteViewDialog";
 
 interface Cliente {
   id: string;
@@ -66,8 +69,14 @@ interface Cliente {
   modelo_inversor: string | null;
   observacoes: string | null;
   lead_id: string | null;
+  localizacao: string | null;
   ativo: boolean;
   created_at: string;
+  identidade_urls: string[] | null;
+  comprovante_endereco_urls: string[] | null;
+  comprovante_beneficiaria_urls: string[] | null;
+  disjuntor_id: string | null;
+  transformador_id: string | null;
 }
 
 interface Lead {
@@ -91,6 +100,8 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   const [saving, setSaving] = useState(false);
   const [whatsappOpen, setWhatsappOpen] = useState(false);
   const [selectedClienteForWhatsApp, setSelectedClienteForWhatsApp] = useState<Cliente | null>(null);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
 
   const handleOpenWhatsApp = (cliente: Cliente) => {
     setSelectedClienteForWhatsApp(cliente);
@@ -605,6 +616,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                 <TableHead>Cliente</TableHead>
                 <TableHead>Contato</TableHead>
                 <TableHead>Projeto</TableHead>
+                <TableHead>Docs</TableHead>
                 <TableHead>Lead</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -648,6 +660,21 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                     )}
                   </TableCell>
                   <TableCell>
+                    {(() => {
+                      const docCount = (cliente.identidade_urls?.length || 0) +
+                        (cliente.comprovante_endereco_urls?.length || 0) +
+                        (cliente.comprovante_beneficiaria_urls?.length || 0);
+                      return docCount > 0 ? (
+                        <Badge variant="outline" className="gap-1 text-primary border-primary/30">
+                          <FileText className="h-3 w-3" />
+                          {docCount}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">0</span>
+                      );
+                    })()}
+                  </TableCell>
+                  <TableCell>
                     {cliente.lead_id ? (
                       <Badge variant="outline" className="gap-1">
                         <LinkIcon className="h-3 w-3" />
@@ -659,6 +686,18 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-secondary hover:text-secondary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCliente(cliente);
+                          setViewOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       <Button
                         size="sm"
                         variant="ghost"
@@ -721,6 +760,14 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
           tipo="cliente"
         />
       )}
+
+      {/* View Dialog */}
+      <ClienteViewDialog
+        cliente={selectedCliente}
+        open={viewOpen}
+        onOpenChange={setViewOpen}
+        onRefresh={fetchClientes}
+      />
     </div>
   );
 }
