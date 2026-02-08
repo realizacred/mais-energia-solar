@@ -125,29 +125,33 @@ export async function extractColorsFromImage(imageUrl: string): Promise<Extracte
         const colors = extractDominantColors(imageData, 5);
 
         const [h1, s1, l1] = rgbToHsl(colors[0].r, colors[0].g, colors[0].b);
-        const primary = hslString(h1, Math.max(s1, 60), Math.min(Math.max(l1, 40), 60));
+        // Enterprise palette: cap saturation at 80%, keep lightness 42-52%
+        const primary = hslString(h1, Math.min(Math.max(s1, 55), 80), Math.min(Math.max(l1, 42), 52));
 
         let secondary: string;
         if (colors.length > 1) {
           const [h2, s2, l2] = rgbToHsl(colors[1].r, colors[1].g, colors[1].b);
-          secondary = hslString(h2, Math.max(s2, 50), Math.min(Math.max(l2, 35), 55));
+          // Secondary: deeper, less saturated — authoritative
+          secondary = hslString(h2, Math.min(Math.max(s2, 35), 50), Math.min(Math.max(l2, 20), 30));
         } else {
-          secondary = hslString((h1 + 180) % 360, Math.max(s1, 50), 40);
+          // Complementary deep navy if no second color
+          secondary = hslString((h1 + 190) % 360, 42, 22);
         }
 
         let accent: string;
         if (colors.length > 2) {
-          const [h3, s3, l3] = rgbToHsl(colors[2].r, colors[2].g, colors[2].b);
-          accent = hslString(h3, Math.min(s3, 20), Math.max(l3, 93));
+          const [h3, , l3] = rgbToHsl(colors[2].r, colors[2].g, colors[2].b);
+          accent = hslString(h3, 14, Math.max(l3, 93));
         } else {
           accent = hslString(h1, 14, 93);
         }
 
+        const primaryL = Math.min(Math.max(l1, 42), 52);
         resolve({
           primary,
-          primaryForeground: getContrastForeground(Math.min(Math.max(l1, 40), 60)),
+          primaryForeground: getContrastForeground(primaryL),
           secondary,
-          secondaryForeground: getContrastForeground(Math.min(Math.max(l1, 35), 55)),
+          secondaryForeground: "0 0% 100%",
           accent,
         });
       } catch (err) {

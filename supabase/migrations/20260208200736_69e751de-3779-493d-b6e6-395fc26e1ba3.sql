@@ -1,0 +1,28 @@
+-- Update brand_settings defaults to match new enterprise palette
+UPDATE brand_settings SET
+  color_primary = '24 78% 48%',
+  color_primary_foreground = '0 0% 100%',
+  color_secondary = '215 42% 22%',
+  color_secondary_foreground = '0 0% 100%',
+  color_accent = '220 14% 93%',
+  color_accent_foreground = '222 25% 10%',
+  color_background = '220 18% 97%',
+  color_foreground = '222 25% 10%',
+  color_card = '0 0% 100%',
+  color_card_foreground = '222 25% 10%',
+  color_border = '220 14% 90%',
+  color_destructive = '4 58% 46%',
+  color_success = '152 48% 38%',
+  color_warning = '40 72% 50%',
+  color_info = '205 62% 48%',
+  color_muted = '220 16% 95%',
+  color_muted_foreground = '220 10% 46%',
+  dark_color_primary = '24 80% 52%',
+  dark_color_background = '222 28% 7%',
+  dark_color_foreground = '220 15% 93%',
+  dark_color_card = '222 25% 9%',
+  dark_color_border = '222 18% 15%',
+  dark_color_muted = '222 20% 14%',
+  dark_color_muted_foreground = '220 12% 58%',
+  updated_at = now()
+WHERE true;
