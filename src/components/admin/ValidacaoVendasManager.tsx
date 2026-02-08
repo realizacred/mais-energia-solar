@@ -39,6 +39,8 @@ export function ValidacaoVendasManager() {
   const [rejecting, setRejecting] = useState(false);
   const [motivoRejeicao, setMotivoRejeicao] = useState("");
   const [percentualComissao, setPercentualComissao] = useState("2.0");
+  const [valorVenda, setValorVenda] = useState("");
+  const [loadingVendedor, setLoadingVendedor] = useState(false);
   const [activeTab, setActiveTab] = useState("pendentes");
 
   // Filters
@@ -77,6 +79,40 @@ export function ValidacaoVendasManager() {
     return { count: pendingItems.length, totalValue, totalComissao, totalPotencia };
   }, [pendingItems]);
 
+  // Open approval dialog — fetch vendedor's default commission percentage
+  const openApprovalDialog = async (cliente: PendingValidation) => {
+    setSelectedCliente(cliente);
+    const valor = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
+    setValorVenda(valor > 0 ? valor.toString() : "");
+
+    // Fetch vendedor's default commission percentage
+    const vendedorNome = cliente.leads?.vendedor;
+    if (vendedorNome) {
+      setLoadingVendedor(true);
+      try {
+        const { data } = await supabase
+          .from("vendedores")
+          .select("percentual_comissao")
+          .eq("nome", vendedorNome)
+          .eq("ativo", true)
+          .single();
+        if (data?.percentual_comissao != null) {
+          setPercentualComissao(data.percentual_comissao.toString());
+        } else {
+          setPercentualComissao("2.0");
+        }
+      } catch {
+        setPercentualComissao("2.0");
+      } finally {
+        setLoadingVendedor(false);
+      }
+    } else {
+      setPercentualComissao("2.0");
+    }
+
+    setApprovalDialogOpen(true);
+  };
+
   const handleApprove = async () => {
     if (!selectedCliente) return;
     setApproving(selectedCliente.id);
@@ -90,7 +126,13 @@ export function ValidacaoVendasManager() {
         await supabase.from("orcamentos").update({ status_id: convertidoStatus.id }).eq("lead_id", selectedCliente.lead_id);
       }
 
-      const valorBase = selectedCliente.simulacoes?.investimento_estimado || selectedCliente.valor_projeto || 0;
+      const valorBase = parseFloat(valorVenda) || 0;
+
+      // Update client valor_projeto if it was changed/entered
+      if (valorBase > 0) {
+        await supabase.from("clientes").update({ valor_projeto: valorBase }).eq("id", selectedCliente.id);
+      }
+
       const vendedorNome = selectedCliente.leads?.vendedor;
       if (valorBase > 0 && vendedorNome) {
         const { data: vendedorData } = await supabase
@@ -157,8 +199,8 @@ export function ValidacaoVendasManager() {
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
 
   const valorComissaoPreview = () => {
-    const valorBase = selectedCliente?.simulacoes?.investimento_estimado || selectedCliente?.valor_projeto || 0;
-    return (valorBase * (parseFloat(percentualComissao) || 0)) / 100;
+    const base = parseFloat(valorVenda) || 0;
+    return (base * (parseFloat(percentualComissao) || 0)) / 100;
   };
 
   const handleTabChange = (tab: string) => {
@@ -345,7 +387,7 @@ export function ValidacaoVendasManager() {
                                   size="sm"
                                   variant="default"
                                   className="bg-success hover:bg-success/90 text-success-foreground"
-                                  onClick={() => { setSelectedCliente(cliente); setPercentualComissao("2.0"); setApprovalDialogOpen(true); }}
+                                  onClick={() => openApprovalDialog(cliente)}
                                 >
                                   <CheckCircle className="h-4 w-4 mr-1" />
                                   Aprovar
@@ -505,17 +547,55 @@ export function ValidacaoVendasManager() {
                   <span className="text-muted-foreground">Vendedor</span>
                   <span className="font-medium">{selectedCliente.leads?.vendedor || "-"}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Valor da Venda</span>
-                  <span className="font-medium">
-                    {formatCurrency(selectedCliente.simulacoes?.investimento_estimado || selectedCliente.valor_projeto || 0)}
-                  </span>
-                </div>
+                {selectedCliente.simulacoes?.investimento_estimado ? (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Valor da Proposta</span>
+                    <span className="font-medium text-info">
+                      {formatCurrency(selectedCliente.simulacoes.investimento_estimado)}
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-xs text-warning">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span>Nenhuma proposta vinculada — informe o valor manualmente</span>
+                  </div>
+                )}
               </div>
+
               <div className="space-y-2">
-                <Label htmlFor="percentual">Percentual de Comissão (%)</Label>
-                <Input id="percentual" type="number" step="0.1" value={percentualComissao} onChange={(e) => setPercentualComissao(e.target.value)} />
+                <Label htmlFor="valor-venda">Valor da Venda (R$)</Label>
+                <Input
+                  id="valor-venda"
+                  type="number"
+                  step="0.01"
+                  placeholder="Ex: 35000.00"
+                  value={valorVenda}
+                  onChange={(e) => setValorVenda(e.target.value)}
+                />
+                {!valorVenda && (
+                  <p className="text-xs text-destructive">Informe o valor para gerar a comissão</p>
+                )}
               </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="percentual">
+                  Percentual de Comissão (%)
+                  {loadingVendedor && (
+                    <Loader2 className="h-3 w-3 ml-1.5 animate-spin inline" />
+                  )}
+                </Label>
+                <Input
+                  id="percentual"
+                  type="number"
+                  step="0.1"
+                  value={percentualComissao}
+                  onChange={(e) => setPercentualComissao(e.target.value)}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Pré-preenchido do cadastro do vendedor. Altere se necessário.
+                </p>
+              </div>
+
               <div className="p-4 bg-success/10 rounded-lg">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -529,7 +609,7 @@ export function ValidacaoVendasManager() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setApprovalDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleApprove} disabled={approving === selectedCliente?.id} className="bg-success hover:bg-success/90 text-success-foreground">
+            <Button onClick={handleApprove} disabled={approving === selectedCliente?.id || !parseFloat(valorVenda)} className="bg-success hover:bg-success/90 text-success-foreground">
               {approving === selectedCliente?.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Confirmar Aprovação
             </Button>

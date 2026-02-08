@@ -3861,6 +3861,7 @@ export type Database = {
           email: string | null
           id: string
           nome: string
+          percentual_comissao: number
           slug: string | null
           telefone: string
           tenant_id: string | null
@@ -3874,6 +3875,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome: string
+          percentual_comissao?: number
           slug?: string | null
           telefone: string
           tenant_id?: string | null
@@ -3887,6 +3889,7 @@ export type Database = {
           email?: string | null
           id?: string
           nome?: string
+          percentual_comissao?: number
           slug?: string | null
           telefone?: string
           tenant_id?: string | null
