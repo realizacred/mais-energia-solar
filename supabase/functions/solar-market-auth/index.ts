@@ -21,12 +21,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // ── Auth check: only admins can call this ──
+    // ── Auth check: only admins ──
     const authHeader = req.headers.get("Authorization");
-    console.log("[SM-Auth] Auth header present:", !!authHeader);
-
     if (!authHeader?.startsWith("Bearer ")) {
-      console.error("[SM-Auth] Missing or invalid Authorization header");
       return jsonRes({ error: "Token de autenticação não encontrado. Faça login novamente." }, 401);
     }
 
@@ -49,44 +46,53 @@ Deno.serve(async (req) => {
 
     console.log("[SM-Auth] User authenticated:", userData.user.id);
 
-    // Verify admin role
     const { data: roles } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", userData.user.id);
-
-    console.log("[SM-Auth] User roles:", JSON.stringify(roles));
 
     const isAdmin = roles?.some((r: any) =>
       ["admin", "gerente", "financeiro"].includes(r.role)
     );
 
     if (!isAdmin) {
-      console.error("[SM-Auth] User is not admin");
       return jsonRes({ error: "Apenas administradores podem testar a conexão" }, 403);
     }
 
-    // ── Read the secret token ──
-    const solarMarketToken = Deno.env.get("SOLARMARKET_TOKEN");
-    if (!solarMarketToken) {
-      console.error("[SM-Auth] SOLARMARKET_TOKEN secret not configured");
-      return jsonRes(
-        { error: "Secret SOLARMARKET_TOKEN não configurada. Vá em Supabase Dashboard → Settings → Edge Functions → Secrets." },
-        400
-      );
+    // ── Get API token: DB config first, then Supabase secret as fallback ──
+    const { data: config } = await supabaseAdmin
+      .from("solar_market_config")
+      .select("id, api_token, base_url")
+      .limit(1)
+      .maybeSingle();
+
+    let apiToken = config?.api_token || null;
+    if (!apiToken) {
+      apiToken = Deno.env.get("SOLARMARKET_TOKEN") || null;
     }
 
+    if (!apiToken) {
+      console.error("[SM-Auth] No API token configured");
+      return jsonRes({
+        error: "Token da API SolarMarket não configurado. Salve o token na aba Config ou configure o Secret SOLARMARKET_TOKEN."
+      }, 400);
+    }
+
+    const baseUrl = config?.base_url || "https://business.solarmarket.com.br/api/v2";
+
     // ── Authenticate with SolarMarket API ──
-    const BASE_URL = "https://business.solarmarket.com.br/api/v2";
     console.log("[SM-Auth] Authenticating with SolarMarket...");
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15_000);
 
-    const res = await fetch(`${BASE_URL}/auth/signin`, {
+    const res = await fetch(`${baseUrl}/auth/signin`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token: solarMarketToken }),
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({ token: apiToken }),
       signal: controller.signal,
     });
 
@@ -95,13 +101,10 @@ Deno.serve(async (req) => {
     if (!res.ok) {
       const errorText = await res.text();
       console.error(`[SM-Auth] SolarMarket auth failed (${res.status}): ${errorText}`);
-      return jsonRes(
-        {
-          error: `Falha na autenticação SolarMarket (${res.status})`,
-          details: errorText,
-        },
-        res.status >= 500 ? 502 : 400
-      );
+      return jsonRes({
+        error: `Falha na autenticação SolarMarket (${res.status})`,
+        details: errorText,
+      }, res.status >= 500 ? 502 : 400);
     }
 
     const data = await res.json();
@@ -109,10 +112,16 @@ Deno.serve(async (req) => {
 
     if (!accessToken) {
       console.error("[SM-Auth] No access_token in response:", JSON.stringify(data));
-      return jsonRes(
-        { error: "SolarMarket não retornou access_token na resposta" },
-        502
-      );
+      return jsonRes({ error: "SolarMarket não retornou access_token na resposta" }, 502);
+    }
+
+    // Cache the token in config for the sync function
+    if (config?.id) {
+      const expiresAt = new Date(Date.now() + (5 * 60 + 55) * 60_000).toISOString();
+      await supabaseAdmin.from("solar_market_config").update({
+        last_token: accessToken,
+        last_token_expires_at: expiresAt,
+      }).eq("id", config.id);
     }
 
     console.log("[SM-Auth] Authentication successful");
@@ -124,10 +133,8 @@ Deno.serve(async (req) => {
     });
   } catch (err: any) {
     if (err.name === "AbortError") {
-      console.error("[SM-Auth] Request timed out");
       return jsonRes({ error: "Timeout ao conectar com SolarMarket (15s)" }, 504);
     }
-
     console.error("[SM-Auth] Unexpected error:", err.message);
     return jsonRes({ error: `Erro inesperado: ${err.message}` }, 500);
   }

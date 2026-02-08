@@ -13,6 +13,133 @@ function jsonRes(body: unknown, status = 200) {
   });
 }
 
+// ── Event type → delta sync mapping ──
+
+interface DeltaPayload {
+  type: string;
+  sm_client_id?: number;
+  sm_project_id?: number;
+  sm_proposal_id?: number;
+}
+
+function extractDeltaPayload(body: any): DeltaPayload | null {
+  const eventType = (body.event || body.type || body.eventType || "").toLowerCase();
+  const clientId = body.clientId || body.client_id || body.data?.clientId || body.data?.client?.id;
+  const projectId = body.projectId || body.project_id || body.data?.projectId || body.data?.project?.id;
+  const proposalId = body.proposalId || body.proposal_id || body.data?.proposalId || body.data?.proposal?.id;
+
+  // Client events
+  if (eventType.includes("client") || eventType.includes("cliente")) {
+    if (eventType.includes("delet") || eventType.includes("exclu")) {
+      return clientId ? { type: "client_deleted", sm_client_id: Number(clientId) } : null;
+    }
+    return clientId ? { type: "client", sm_client_id: Number(clientId) } : null;
+  }
+
+  // Project events
+  if (eventType.includes("project") || eventType.includes("projeto")) {
+    if (eventType.includes("delet") || eventType.includes("exclu")) {
+      return projectId ? { type: "project_deleted", sm_project_id: Number(projectId) } : null;
+    }
+    return projectId
+      ? { type: "project", sm_project_id: Number(projectId), sm_client_id: clientId ? Number(clientId) : undefined }
+      : null;
+  }
+
+  // Proposal events
+  if (eventType.includes("propos") || eventType.includes("proposta")) {
+    return projectId || proposalId
+      ? { type: "proposal", sm_project_id: projectId ? Number(projectId) : undefined, sm_proposal_id: proposalId ? Number(proposalId) : undefined }
+      : null;
+  }
+
+  // Custom field events
+  if (eventType.includes("custom") || eventType.includes("campo")) {
+    return projectId
+      ? { type: "project", sm_project_id: Number(projectId) }
+      : null;
+  }
+
+  // Funnel/stage events
+  if (eventType.includes("funnel") || eventType.includes("funil") || eventType.includes("stage") || eventType.includes("etapa")) {
+    return projectId
+      ? { type: "project", sm_project_id: Number(projectId) }
+      : null;
+  }
+
+  // Fallback: try to infer from IDs present
+  if (clientId) return { type: "client", sm_client_id: Number(clientId) };
+  if (projectId) return { type: "project", sm_project_id: Number(projectId) };
+  if (proposalId) return { type: "proposal", sm_proposal_id: Number(proposalId) };
+
+  return null;
+}
+
+function extractEntityInfo(body: any, delta: DeltaPayload | null): { entity_type: string | null; entity_id: number | null } {
+  if (!delta) return { entity_type: null, entity_id: null };
+
+  if (delta.sm_client_id) return { entity_type: "client", entity_id: delta.sm_client_id };
+  if (delta.sm_project_id) return { entity_type: "project", entity_id: delta.sm_project_id };
+  if (delta.sm_proposal_id) return { entity_type: "proposal", entity_id: delta.sm_proposal_id };
+
+  return { entity_type: null, entity_id: null };
+}
+
+// ── Background processor ──
+
+async function processWebhookEvent(
+  supabaseAdmin: ReturnType<typeof createClient>,
+  eventId: string,
+  delta: DeltaPayload
+) {
+  try {
+    // Mark as processing
+    await supabaseAdmin.from("solar_market_webhook_events")
+      .update({ status: "processing" })
+      .eq("id", eventId);
+
+    console.log(`[SM Webhook] Processing event ${eventId}: ${JSON.stringify(delta)}`);
+
+    // Call the sync function for delta processing
+    const { error: syncError } = await supabaseAdmin.functions.invoke("solar-market-sync", {
+      body: {
+        mode: "delta",
+        source: "webhook",
+        delta,
+      },
+    });
+
+    if (syncError) {
+      console.error(`[SM Webhook] Sync failed for event ${eventId}:`, syncError.message);
+      await supabaseAdmin.from("solar_market_webhook_events").update({
+        status: "error",
+        error: syncError.message,
+        retries: 1,
+        processed_at: new Date().toISOString(),
+      }).eq("id", eventId);
+      return;
+    }
+
+    // Mark as done
+    await supabaseAdmin.from("solar_market_webhook_events").update({
+      status: "done",
+      processed_at: new Date().toISOString(),
+    }).eq("id", eventId);
+
+    console.log(`[SM Webhook] Event ${eventId} processed successfully`);
+  } catch (err: any) {
+    console.error(`[SM Webhook] Processing error for event ${eventId}:`, err.message);
+    await supabaseAdmin.from("solar_market_webhook_events").update({
+      status: "error",
+      error: err.message,
+      retries: 1,
+      processed_at: new Date().toISOString(),
+    }).eq("id", eventId);
+  }
+}
+
+// ── Main Handler ──
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -29,27 +156,13 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    console.log("[SM Webhook] Received event:", JSON.stringify(body).slice(0, 500));
+    const eventType = body.event || body.type || body.eventType || "unknown";
+    console.log(`[SM Webhook] Received event: ${eventType}`, JSON.stringify(body).slice(0, 500));
 
-    // Optional: verify webhook secret
-    const webhookSecret = req.headers.get("x-webhook-secret");
-    if (webhookSecret) {
-      const { data: config } = await supabaseAdmin
-        .from("solar_market_config")
-        .select("webhook_secret, tenant_id")
-        .limit(1)
-        .maybeSingle();
-
-      if (config?.webhook_secret && config.webhook_secret !== webhookSecret) {
-        console.error("[SM Webhook] Invalid webhook secret");
-        return jsonRes({ error: "Invalid webhook secret" }, 401);
-      }
-    }
-
-    // Get tenant_id from config
+    // ── Get config ──
     const { data: config } = await supabaseAdmin
       .from("solar_market_config")
-      .select("tenant_id, enabled")
+      .select("tenant_id, enabled, webhook_secret")
       .limit(1)
       .maybeSingle();
 
@@ -57,14 +170,29 @@ Deno.serve(async (req) => {
       return jsonRes({ error: "Integration disabled" }, 400);
     }
 
-    // Store the webhook event
-    const eventType = body.event || body.type || body.eventType || "unknown";
+    // ── Validate webhook secret ──
+    const receivedSecret = req.headers.get("x-webhook-secret") || req.headers.get("X-Webhook-Secret");
+    if (config.webhook_secret) {
+      if (!receivedSecret || receivedSecret !== config.webhook_secret) {
+        console.error("[SM Webhook] Invalid or missing webhook secret");
+        return jsonRes({ error: "Invalid webhook secret" }, 401);
+      }
+    }
+
+    // ── Extract delta info ──
+    const delta = extractDeltaPayload(body);
+    const { entity_type, entity_id } = extractEntityInfo(body, delta);
+
+    // ── Persist event in queue ──
     const { data: event, error: insertErr } = await supabaseAdmin
       .from("solar_market_webhook_events")
       .insert({
         tenant_id: config.tenant_id,
         event_type: eventType,
+        entity_type,
+        entity_id,
         payload: body,
+        status: delta ? "pending" : "logged",
       })
       .select("id")
       .single();
@@ -74,58 +202,28 @@ Deno.serve(async (req) => {
       return jsonRes({ error: "Failed to store event" }, 500);
     }
 
-    console.log(`[SM Webhook] Event stored: ${event.id}`);
+    console.log(`[SM Webhook] Event stored: ${event.id} (${eventType})`);
 
-    // Try to trigger delta sync based on event content
-    const deltaPayload = extractDeltaPayload(body);
-    if (deltaPayload) {
-      console.log("[SM Webhook] Triggering delta sync:", deltaPayload);
-
-      // Call the sync function internally
-      const syncRes = await supabaseAdmin.functions.invoke("solar-market-sync", {
-        body: {
-          mode: "delta",
-          source: "webhook",
-          delta: deltaPayload,
-        },
-      });
-
-      // Mark event as processed
-      await supabaseAdmin
-        .from("solar_market_webhook_events")
-        .update({ processed: true })
-        .eq("id", event.id);
-
-      if (syncRes.error) {
-        await supabaseAdmin
-          .from("solar_market_webhook_events")
-          .update({ error: syncRes.error.message })
-          .eq("id", event.id);
+    // ── Process in background if actionable ──
+    if (delta && event?.id) {
+      // @ts-ignore - EdgeRuntime.waitUntil is available in Supabase edge functions
+      if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
+        EdgeRuntime.waitUntil(processWebhookEvent(supabaseAdmin, event.id, delta));
+      } else {
+        // Fallback: process inline (will block response slightly)
+        await processWebhookEvent(supabaseAdmin, event.id, delta);
       }
     }
 
-    return jsonRes({ success: true, event_id: event.id });
+    // Return 200 immediately
+    return jsonRes({
+      success: true,
+      event_id: event.id,
+      event_type: eventType,
+      action: delta ? "processing" : "logged",
+    });
   } catch (err: any) {
     console.error("[SM Webhook] Error:", err.message);
     return jsonRes({ error: err.message }, 500);
   }
 });
-
-function extractDeltaPayload(body: any): any {
-  // Try to extract relevant IDs from webhook payload
-  const clientId = body.clientId || body.client_id || body.data?.clientId;
-  const projectId = body.projectId || body.project_id || body.data?.projectId;
-  const proposalId = body.proposalId || body.proposal_id || body.data?.proposalId;
-
-  if (clientId) {
-    return { type: "client", sm_client_id: Number(clientId), sm_project_id: projectId ? Number(projectId) : undefined };
-  }
-  if (projectId) {
-    return { type: "project", sm_project_id: Number(projectId), sm_client_id: clientId ? Number(clientId) : undefined };
-  }
-  if (proposalId) {
-    return { type: "proposal", sm_proposal_id: Number(proposalId) };
-  }
-
-  return null;
-}

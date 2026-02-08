@@ -3453,38 +3453,56 @@ export type Database = {
       }
       solar_market_clients: {
         Row: {
+          city: string | null
+          cnpj_cpf: string | null
           created_at: string
+          deleted_at: string | null
           email: string | null
           id: string
           name: string | null
           payload: Json
           phone: string | null
           phone_normalized: string | null
+          primary_phone: string | null
+          secondary_phone: string | null
           sm_client_id: number
+          state: string | null
           tenant_id: string | null
           updated_at: string
         }
         Insert: {
+          city?: string | null
+          cnpj_cpf?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           id?: string
           name?: string | null
           payload?: Json
           phone?: string | null
           phone_normalized?: string | null
+          primary_phone?: string | null
+          secondary_phone?: string | null
           sm_client_id: number
+          state?: string | null
           tenant_id?: string | null
           updated_at?: string
         }
         Update: {
+          city?: string | null
+          cnpj_cpf?: string | null
           created_at?: string
+          deleted_at?: string | null
           email?: string | null
           id?: string
           name?: string | null
           payload?: Json
           phone?: string | null
           phone_normalized?: string | null
+          primary_phone?: string | null
+          secondary_phone?: string | null
           sm_client_id?: number
+          state?: string | null
           tenant_id?: string | null
           updated_at?: string
         }
@@ -3508,6 +3526,8 @@ export type Database = {
           created_at: string
           enabled: boolean
           id: string
+          last_sync_clients_at: string | null
+          last_sync_projects_at: string | null
           last_token: string | null
           last_token_expires_at: string | null
           site_url: string | null
@@ -3524,6 +3544,8 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           id?: string
+          last_sync_clients_at?: string | null
+          last_sync_projects_at?: string | null
           last_token?: string | null
           last_token_expires_at?: string | null
           site_url?: string | null
@@ -3540,6 +3562,8 @@ export type Database = {
           created_at?: string
           enabled?: boolean
           id?: string
+          last_sync_clients_at?: string | null
+          last_sync_projects_at?: string | null
           last_token?: string | null
           last_token_expires_at?: string | null
           site_url?: string | null
@@ -3550,6 +3574,100 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "solar_market_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solar_market_custom_fields: {
+        Row: {
+          created_at: string
+          field_key: string | null
+          field_type: string | null
+          id: string
+          payload: Json
+          sm_custom_field_id: number
+          sm_project_id: number
+          tenant_id: string | null
+          updated_at: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          field_key?: string | null
+          field_type?: string | null
+          id?: string
+          payload?: Json
+          sm_custom_field_id: number
+          sm_project_id: number
+          tenant_id?: string | null
+          updated_at?: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          field_key?: string | null
+          field_type?: string | null
+          id?: string
+          payload?: Json
+          sm_custom_field_id?: number
+          sm_project_id?: number
+          tenant_id?: string | null
+          updated_at?: string
+          value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_market_custom_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solar_market_custom_fields_catalog: {
+        Row: {
+          created_at: string
+          field_key: string | null
+          field_type: string | null
+          id: string
+          label: string | null
+          options: Json | null
+          payload: Json
+          sm_custom_field_id: number
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          field_key?: string | null
+          field_type?: string | null
+          id?: string
+          label?: string | null
+          options?: Json | null
+          payload?: Json
+          sm_custom_field_id: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          field_key?: string | null
+          field_type?: string | null
+          id?: string
+          label?: string | null
+          options?: Json | null
+          payload?: Json
+          sm_custom_field_id?: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_market_custom_fields_catalog_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3592,9 +3710,51 @@ export type Database = {
           },
         ]
       }
+      solar_market_funnels_catalog: {
+        Row: {
+          created_at: string
+          id: string
+          name: string | null
+          payload: Json
+          sm_funnel_id: number
+          stages: Json
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          payload?: Json
+          sm_funnel_id: number
+          stages?: Json
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string | null
+          payload?: Json
+          sm_funnel_id?: number
+          stages?: Json
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_market_funnels_catalog_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solar_market_projects: {
         Row: {
           created_at: string
+          deleted_at: string | null
           id: string
           payload: Json
           sm_client_id: number
@@ -3605,6 +3765,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           payload?: Json
           sm_client_id: number
@@ -3615,6 +3776,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deleted_at?: string | null
           id?: string
           payload?: Json
           sm_client_id?: number
@@ -3642,6 +3804,7 @@ export type Database = {
           id: string
           link_pdf: string | null
           payload: Json
+          pricing_table: Json | null
           rejection_date: string | null
           sm_client_id: number
           sm_project_id: number
@@ -3649,6 +3812,7 @@ export type Database = {
           status: string | null
           tenant_id: string | null
           updated_at: string
+          variables: Json | null
         }
         Insert: {
           acceptance_date?: string | null
@@ -3658,6 +3822,7 @@ export type Database = {
           id?: string
           link_pdf?: string | null
           payload?: Json
+          pricing_table?: Json | null
           rejection_date?: string | null
           sm_client_id: number
           sm_project_id: number
@@ -3665,6 +3830,7 @@ export type Database = {
           status?: string | null
           tenant_id?: string | null
           updated_at?: string
+          variables?: Json | null
         }
         Update: {
           acceptance_date?: string | null
@@ -3674,6 +3840,7 @@ export type Database = {
           id?: string
           link_pdf?: string | null
           payload?: Json
+          pricing_table?: Json | null
           rejection_date?: string | null
           sm_client_id?: number
           sm_project_id?: number
@@ -3681,6 +3848,7 @@ export type Database = {
           status?: string | null
           tenant_id?: string | null
           updated_at?: string
+          variables?: Json | null
         }
         Relationships: [
           {
@@ -3742,35 +3910,91 @@ export type Database = {
           },
         ]
       }
+      solar_market_users: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          payload: Json
+          sm_user_id: number
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          payload?: Json
+          sm_user_id: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          payload?: Json
+          sm_user_id?: number
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_market_users_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solar_market_webhook_events: {
         Row: {
           created_at: string
+          entity_id: number | null
+          entity_type: string | null
           error: string | null
           event_type: string | null
           id: string
           payload: Json
           processed: boolean
+          processed_at: string | null
           received_at: string
+          retries: number
+          status: string
           tenant_id: string | null
         }
         Insert: {
           created_at?: string
+          entity_id?: number | null
+          entity_type?: string | null
           error?: string | null
           event_type?: string | null
           id?: string
           payload?: Json
           processed?: boolean
+          processed_at?: string | null
           received_at?: string
+          retries?: number
+          status?: string
           tenant_id?: string | null
         }
         Update: {
           created_at?: string
+          entity_id?: number | null
+          entity_type?: string | null
           error?: string | null
           event_type?: string | null
           id?: string
           payload?: Json
           processed?: boolean
+          processed_at?: string | null
           received_at?: string
+          retries?: number
+          status?: string
           tenant_id?: string | null
         }
         Relationships: [
