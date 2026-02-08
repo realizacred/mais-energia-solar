@@ -37,6 +37,7 @@ export interface PaybackInput {
   tipoLigacao: TipoLigacao;
   tarifaFioB?: number; // override from concessionaria
   custoDisponibilidade?: number; // override from concessionaria
+  concessionariaId?: string; // when set, loads ICMS from concessionaria first
 }
 
 export interface PaybackScenario {
@@ -147,7 +148,48 @@ export function usePaybackEngine() {
     }
   };
 
-  const loadTributaria = async (estado: string): Promise<ConfigTributaria> => {
+  // Load tributária config from concessionária (if available) or state fallback
+  const loadTributaria = async (estado: string, concessionariaId?: string): Promise<ConfigTributaria> => {
+    const cacheKey = concessionariaId ? `conc_${concessionariaId}` : estado;
+    if (tributariaCache[cacheKey]) return tributariaCache[cacheKey];
+
+    try {
+      // 1) Try concessionária-specific ICMS if provided
+      if (concessionariaId) {
+        const { data: concData } = await supabase
+          .from("concessionarias")
+          .select("aliquota_icms, possui_isencao_scee, percentual_isencao, estado")
+          .eq("id", concessionariaId)
+          .limit(1)
+          .single();
+
+        if (concData) {
+          // If concessionária has its own ICMS values, use them
+          const hasOwnIcms = concData.aliquota_icms != null || concData.possui_isencao_scee != null;
+          if (hasOwnIcms) {
+            // Load state defaults for any NULL fields
+            const stateConfig = await loadStateTributaria(concData.estado || estado);
+            const config: ConfigTributaria = {
+              aliquota_icms: concData.aliquota_icms != null ? Number(concData.aliquota_icms) : stateConfig.aliquota_icms,
+              possui_isencao_scee: concData.possui_isencao_scee != null ? concData.possui_isencao_scee : stateConfig.possui_isencao_scee,
+              percentual_isencao: concData.percentual_isencao != null ? Number(concData.percentual_isencao) : stateConfig.percentual_isencao,
+              observacoes: `Concessionária com ICMS próprio`,
+            };
+            setTributariaCache(prev => ({ ...prev, [cacheKey]: config }));
+            return config;
+          }
+        }
+      }
+
+      // 2) Fallback to state config
+      return await loadStateTributaria(estado);
+    } catch {
+      return DEFAULT_TRIBUTARIA;
+    }
+  };
+
+  // Load state-level tributária config
+  const loadStateTributaria = async (estado: string): Promise<ConfigTributaria> => {
     if (tributariaCache[estado]) return tributariaCache[estado];
 
     try {
@@ -197,7 +239,7 @@ export function usePaybackEngine() {
 
   // ─── Core Calculation ─────────────────────────────────────────
   const calcularPayback = async (input: PaybackInput): Promise<PaybackResult> => {
-    const tributaria = await loadTributaria(input.estado);
+    const tributaria = await loadTributaria(input.estado, input.concessionariaId);
     const anoAtual = new Date().getFullYear();
     const percentualFioB = input.regime === "gd1" ? 0 : getFioBPercentual(anoAtual);
     const tarifaFioB = input.tarifaFioB && input.tarifaFioB > 0

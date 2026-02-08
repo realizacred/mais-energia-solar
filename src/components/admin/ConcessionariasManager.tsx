@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter } from "lucide-react";
+import { Plus, Trash2, Pencil, Building, Search, Filter, Landmark, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -40,6 +40,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
 
 interface Concessionaria {
   id: string;
@@ -47,7 +54,29 @@ interface Concessionaria {
   sigla: string | null;
   estado: string | null;
   ativo: boolean;
+  tarifa_energia: number | null;
+  tarifa_fio_b: number | null;
+  custo_disponibilidade_monofasico: number | null;
+  custo_disponibilidade_bifasico: number | null;
+  custo_disponibilidade_trifasico: number | null;
+  aliquota_icms: number | null;
+  possui_isencao_scee: boolean | null;
+  percentual_isencao: number | null;
   created_at: string;
+}
+
+interface ConcessionariaForm {
+  nome: string;
+  sigla: string;
+  estado: string;
+  tarifa_energia: string;
+  tarifa_fio_b: string;
+  custo_disponibilidade_monofasico: string;
+  custo_disponibilidade_bifasico: string;
+  custo_disponibilidade_trifasico: string;
+  aliquota_icms: string;
+  possui_isencao_scee: boolean | null;
+  percentual_isencao: string;
 }
 
 const ESTADOS_BRASIL = [
@@ -56,6 +85,20 @@ const ESTADOS_BRASIL = [
   "RS", "RO", "RR", "SC", "SP", "SE", "TO"
 ];
 
+const EMPTY_FORM: ConcessionariaForm = {
+  nome: "",
+  sigla: "",
+  estado: "",
+  tarifa_energia: "",
+  tarifa_fio_b: "",
+  custo_disponibilidade_monofasico: "",
+  custo_disponibilidade_bifasico: "",
+  custo_disponibilidade_trifasico: "",
+  aliquota_icms: "",
+  possui_isencao_scee: null,
+  percentual_isencao: "",
+};
+
 export function ConcessionariasManager() {
   const { toast } = useToast();
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
@@ -63,7 +106,7 @@ export function ConcessionariasManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Concessionaria | null>(null);
   const [deleting, setDeleting] = useState<Concessionaria | null>(null);
-  const [form, setForm] = useState({ nome: "", sigla: "", estado: "" });
+  const [form, setForm] = useState<ConcessionariaForm>(EMPTY_FORM);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -101,10 +144,18 @@ export function ConcessionariasManager() {
         nome: concessionaria.nome,
         sigla: concessionaria.sigla || "",
         estado: concessionaria.estado || "",
+        tarifa_energia: concessionaria.tarifa_energia?.toString() || "",
+        tarifa_fio_b: concessionaria.tarifa_fio_b?.toString() || "",
+        custo_disponibilidade_monofasico: concessionaria.custo_disponibilidade_monofasico?.toString() || "",
+        custo_disponibilidade_bifasico: concessionaria.custo_disponibilidade_bifasico?.toString() || "",
+        custo_disponibilidade_trifasico: concessionaria.custo_disponibilidade_trifasico?.toString() || "",
+        aliquota_icms: concessionaria.aliquota_icms?.toString() || "",
+        possui_isencao_scee: concessionaria.possui_isencao_scee,
+        percentual_isencao: concessionaria.percentual_isencao?.toString() || "",
       });
     } else {
       setEditing(null);
-      setForm({ nome: "", sigla: "", estado: "" });
+      setForm(EMPTY_FORM);
     }
     setDialogOpen(true);
   };
@@ -116,10 +167,20 @@ export function ConcessionariasManager() {
     }
 
     try {
+      const parseNum = (v: string) => v.trim() ? parseFloat(v) : null;
+
       const payload = {
         nome: form.nome.trim(),
         sigla: form.sigla.trim() || null,
         estado: form.estado || null,
+        tarifa_energia: parseNum(form.tarifa_energia),
+        tarifa_fio_b: parseNum(form.tarifa_fio_b),
+        custo_disponibilidade_monofasico: parseNum(form.custo_disponibilidade_monofasico),
+        custo_disponibilidade_bifasico: parseNum(form.custo_disponibilidade_bifasico),
+        custo_disponibilidade_trifasico: parseNum(form.custo_disponibilidade_trifasico),
+        aliquota_icms: parseNum(form.aliquota_icms),
+        possui_isencao_scee: form.possui_isencao_scee,
+        percentual_isencao: parseNum(form.percentual_isencao),
       };
 
       if (editing) {
@@ -191,6 +252,10 @@ export function ConcessionariasManager() {
     setFilterStatus("all");
   };
 
+  const updateForm = (field: keyof ConcessionariaForm, value: any) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
   if (loading) {
     return <div className="flex justify-center p-8">Carregando...</div>;
   }
@@ -198,16 +263,31 @@ export function ConcessionariasManager() {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
-          <Building className="w-5 h-5" />
-          Concessionárias de Energia
-        </CardTitle>
+        <div>
+          <CardTitle className="flex items-center gap-2">
+            <Building className="w-5 h-5" />
+            Concessionárias de Energia
+          </CardTitle>
+          <CardDescription className="mt-1">
+            Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos.
+          </CardDescription>
+        </div>
         <Button onClick={() => openDialog()} className="gap-2">
           <Plus className="w-4 h-4" />
           Nova Concessionária
         </Button>
       </CardHeader>
       <CardContent>
+        {/* Info banner */}
+        <div className="p-3 rounded-lg bg-info/5 border border-info/20 flex items-start gap-2 mb-4">
+          <Info className="w-4 h-4 text-info mt-0.5 shrink-0" />
+          <p className="text-xs text-muted-foreground">
+            Cada concessionária pode ter sua própria configuração de ICMS e isenção SCEE. Quando não
+            definido, o sistema usa o padrão do estado (aba ICMS/Tributação). Exemplo: RJ tem Light e
+            Enel, cada uma pode ter regras diferentes.
+          </p>
+        </div>
+
         <div className="flex flex-col gap-4 mb-4">
           <div className="relative w-full md:w-80">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -265,108 +345,290 @@ export function ConcessionariasManager() {
           </div>
         </div>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Sigla</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredConcessionarias.length === 0 ? (
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  Nenhuma concessionária encontrada
-                </TableCell>
+                <TableHead>Nome</TableHead>
+                <TableHead>Sigla</TableHead>
+                <TableHead>UF</TableHead>
+                <TableHead>Tarifa</TableHead>
+                <TableHead>Fio B</TableHead>
+                <TableHead>ICMS</TableHead>
+                <TableHead>Isenção</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            ) : (
-              filteredConcessionarias.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">{c.nome}</TableCell>
-                  <TableCell>{c.sigla || "-"}</TableCell>
-                  <TableCell>
-                    {c.estado ? (
-                      <Badge variant="outline">{c.estado}</Badge>
-                    ) : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={c.ativo}
-                        onCheckedChange={() => handleToggleAtivo(c)}
-                      />
-                      <span className={`text-sm ${c.ativo ? "text-green-600" : "text-muted-foreground"}`}>
-                        {c.ativo ? "Ativo" : "Inativo"}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openDialog(c)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => setDeleting(c)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {filteredConcessionarias.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    Nenhuma concessionária encontrada
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ) : (
+                filteredConcessionarias.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{c.nome}</TableCell>
+                    <TableCell>{c.sigla || "-"}</TableCell>
+                    <TableCell>
+                      {c.estado ? (
+                        <Badge variant="outline" className="font-mono">{c.estado}</Badge>
+                      ) : "-"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {c.tarifa_energia != null ? `R$ ${Number(c.tarifa_energia).toFixed(2)}` : (
+                        <span className="text-muted-foreground">padrão</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {c.tarifa_fio_b != null && Number(c.tarifa_fio_b) > 0 ? `R$ ${Number(c.tarifa_fio_b).toFixed(2)}` : (
+                        <span className="text-muted-foreground">padrão</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {c.aliquota_icms != null ? `${Number(c.aliquota_icms).toFixed(1)}%` : (
+                        <span className="text-muted-foreground">estado</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {c.possui_isencao_scee != null ? (
+                        <Badge variant={c.possui_isencao_scee ? "default" : "secondary"} className="text-xs">
+                          {c.possui_isencao_scee ? "Sim" : "Não"}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">estado</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={c.ativo}
+                          onCheckedChange={() => handleToggleAtivo(c)}
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => openDialog(c)}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeleting(c)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
 
         {/* Add/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Building className="w-5 h-5" />
                 {editing ? "Editar Concessionária" : "Nova Concessionária"}
               </DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="nome">Nome *</Label>
-                <Input
-                  id="nome"
-                  placeholder="Ex: Energisa Minas Gerais"
-                  value={form.nome}
-                  onChange={(e) => setForm({ ...form, nome: e.target.value })}
-                />
+            <div className="space-y-5">
+              {/* Dados Básicos */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-muted-foreground">Dados Básicos</h4>
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome *</Label>
+                  <Input
+                    id="nome"
+                    placeholder="Ex: Light Serviços de Eletricidade"
+                    value={form.nome}
+                    onChange={(e) => updateForm("nome", e.target.value)}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="sigla">Sigla</Label>
+                    <Input
+                      id="sigla"
+                      placeholder="Ex: LIGHT"
+                      value={form.sigla}
+                      onChange={(e) => updateForm("sigla", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="estado">Estado</Label>
+                    <Select value={form.estado} onValueChange={(v) => updateForm("estado", v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="UF" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ESTADOS_BRASIL.map((uf) => (
+                          <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="sigla">Sigla</Label>
-                <Input
-                  id="sigla"
-                  placeholder="Ex: Energisa-MG"
-                  value={form.sigla}
-                  onChange={(e) => setForm({ ...form, sigla: e.target.value })}
-                />
+
+              <Separator />
+
+              {/* Tarifas */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-muted-foreground">Tarifas (R$/kWh)</h4>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Tarifa Energia</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 0.85"
+                      value={form.tarifa_energia}
+                      onChange={(e) => updateForm("tarifa_energia", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Tarifa Fio B</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="Ex: 0.40"
+                      value={form.tarifa_fio_b}
+                      onChange={(e) => updateForm("tarifa_fio_b", e.target.value)}
+                    />
+                  </div>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="estado">Estado</Label>
-                <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o estado" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {ESTADOS_BRASIL.map((uf) => (
-                      <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              <Separator />
+
+              {/* Custo Disponibilidade */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-muted-foreground">Custo Disponibilidade (R$)</h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Monofásico</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      placeholder="30"
+                      value={form.custo_disponibilidade_monofasico}
+                      onChange={(e) => updateForm("custo_disponibilidade_monofasico", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Bifásico</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      placeholder="50"
+                      value={form.custo_disponibilidade_bifasico}
+                      onChange={(e) => updateForm("custo_disponibilidade_bifasico", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Trifásico</Label>
+                    <Input
+                      type="number"
+                      step="1"
+                      placeholder="100"
+                      value={form.custo_disponibilidade_trifasico}
+                      onChange={(e) => updateForm("custo_disponibilidade_trifasico", e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* ICMS / Tributação */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+                  <Landmark className="w-4 h-4" />
+                  Tributação ICMS
+                </h4>
+                <p className="text-[11px] text-muted-foreground">
+                  Deixe vazio para usar o padrão do estado. Configure aqui se esta concessionária tem regras
+                  de ICMS ou isenção SCEE diferentes do padrão estadual.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Alíquota ICMS (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.1"
+                      min={0}
+                      max={40}
+                      placeholder="Usar do estado"
+                      value={form.aliquota_icms}
+                      onChange={(e) => updateForm("aliquota_icms", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">% Isenção SCEE</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      placeholder="Usar do estado"
+                      value={form.percentual_isencao}
+                      onChange={(e) => updateForm("percentual_isencao", e.target.value)}
+                      disabled={form.possui_isencao_scee === false}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Label className="text-xs">Isenção SCEE:</Label>
+                  <div className="flex items-center gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant={form.possui_isencao_scee === null ? "default" : "outline"}
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => updateForm("possui_isencao_scee", null)}
+                          >
+                            Padrão UF
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Usar configuração do estado</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <Button
+                      type="button"
+                      variant={form.possui_isencao_scee === true ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => updateForm("possui_isencao_scee", true)}
+                    >
+                      Sim
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={form.possui_isencao_scee === false ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-xs"
+                      onClick={() => updateForm("possui_isencao_scee", false)}
+                    >
+                      Não
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
             <DialogFooter>
