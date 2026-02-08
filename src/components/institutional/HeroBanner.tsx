@@ -62,23 +62,23 @@ export function HeroBanner() {
         animate={{ scale: 1 }}
         transition={{ duration: 1.5, ease: "easeOut" }}
       />
-      {/* Stronger overlay — laranja dominante */}
-      <div className="absolute inset-0 bg-gradient-to-br from-secondary/95 via-primary/60 to-primary/80" />
-      <div className="absolute inset-0 bg-gradient-to-t from-secondary/70 via-transparent to-secondary/30" />
+      {/* Overlay — azul marinho dominante, laranja como acento quente */}
+      <div className="absolute inset-0 bg-gradient-to-br from-secondary/95 via-secondary/80 to-primary/50" />
+      <div className="absolute inset-0 bg-gradient-to-t from-secondary/80 via-transparent to-secondary/40" />
 
-      {/* Animated decorative orbs — bigger & brighter */}
+      {/* Animated decorative orbs — orange accents over navy */}
       <motion.div 
-        className="absolute top-10 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-3xl"
-        animate={{ scale: [1, 1.3, 1], opacity: [0.4, 0.7, 0.4] }}
+        className="absolute top-10 right-0 w-[500px] h-[500px] bg-primary/15 rounded-full blur-3xl"
+        animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div 
-        className="absolute -bottom-20 -left-20 w-[600px] h-[600px] bg-primary/15 rounded-full blur-3xl"
-        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+        className="absolute -bottom-20 -left-20 w-[600px] h-[600px] bg-primary/10 rounded-full blur-3xl"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
       <motion.div
-        className="absolute top-1/2 left-1/3 w-80 h-80 bg-secondary-glow/15 rounded-full blur-3xl"
+        className="absolute top-1/2 left-1/3 w-80 h-80 bg-primary/10 rounded-full blur-3xl"
         animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut", delay: 1 }}
       />
