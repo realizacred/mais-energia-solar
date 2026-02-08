@@ -74,6 +74,11 @@
     50% { background-position: 100% 50%; }
   }
 
+  @keyframes reveal-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
   /* ===== ANIMATION CLASSES ===== */
   .animate-fade-in {
     animation: fade-in 0.3s ease-out forwards;
@@ -134,6 +139,10 @@
     animation: gradient-x 3s ease infinite;
   }
 
+  .animate-reveal-up {
+    animation: reveal-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
   /* ===== STAGGERED ANIMATION DELAYS ===== */
   .delay-75 { animation-delay: 75ms; }
   .delay-100 { animation-delay: 100ms; }
@@ -142,6 +151,11 @@
   .delay-300 { animation-delay: 300ms; }
   .delay-400 { animation-delay: 400ms; }
   .delay-500 { animation-delay: 500ms; }
+
+  /* ===== PAGE TRANSITION ===== */
+  .page-enter {
+    animation: fade-in 0.25s ease-out;
+  }
 
   /* ===== MOTION REDUCE ===== */
   @media (prefers-reduced-motion: reduce) {
@@ -158,13 +172,19 @@
     .animate-bounce-soft,
     .animate-spin-slow,
     .animate-float,
-    .animate-gradient-x {
+    .animate-gradient-x,
+    .animate-reveal-up,
+    .page-enter {
       animation: none;
     }
 
     .hover-lift:hover,
     .interactive:active {
       transform: none;
+    }
+
+    * {
+      transition-duration: 0.01ms !important;
     }
   }
 }

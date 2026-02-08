@@ -77,7 +77,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Análises",
     labelIcon: BarChart3,
-    activeClass: "bg-sidebar-analytics/10 text-sidebar-analytics font-medium shadow-xs",
+    activeClass: "bg-sidebar-analytics/12 text-sidebar-analytics font-medium border-l-2 border-sidebar-analytics",
     hoverClass: "hover:bg-sidebar-analytics/5",
     labelClass: "text-sidebar-analytics",
     items: [
@@ -91,7 +91,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Site",
     labelIcon: Sun,
-    activeClass: "bg-sidebar-operations/10 text-sidebar-operations font-medium shadow-xs",
+    activeClass: "bg-sidebar-operations/12 text-sidebar-operations font-medium border-l-2 border-sidebar-operations",
     hoverClass: "hover:bg-sidebar-operations/5",
     labelClass: "text-sidebar-operations",
     items: [
@@ -102,7 +102,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Financeiro",
     labelIcon: Coins,
-    activeClass: "bg-sidebar-finance/10 text-sidebar-finance font-medium shadow-xs",
+    activeClass: "bg-sidebar-finance/12 text-sidebar-finance font-medium border-l-2 border-sidebar-finance",
     hoverClass: "hover:bg-sidebar-finance/5",
     labelClass: "text-sidebar-finance",
     items: [
@@ -115,7 +115,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Vendas",
     labelIcon: TrendingUp,
-    activeClass: "bg-sidebar-sales/10 text-sidebar-sales font-medium shadow-xs",
+    activeClass: "bg-sidebar-sales/12 text-sidebar-sales font-medium border-l-2 border-sidebar-sales",
     hoverClass: "hover:bg-sidebar-sales/5",
     labelClass: "text-sidebar-sales",
     items: [
@@ -130,7 +130,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Operações",
     labelIcon: ClipboardList,
-    activeClass: "bg-sidebar-operations/10 text-sidebar-operations font-medium shadow-xs",
+    activeClass: "bg-sidebar-operations/12 text-sidebar-operations font-medium border-l-2 border-sidebar-operations",
     hoverClass: "hover:bg-sidebar-operations/5",
     labelClass: "text-sidebar-operations",
     items: [
@@ -143,7 +143,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "APIs",
     labelIcon: Cable,
-    activeClass: "bg-sidebar-apis/10 text-sidebar-apis font-medium shadow-xs",
+    activeClass: "bg-sidebar-apis/12 text-sidebar-apis font-medium border-l-2 border-sidebar-apis",
     hoverClass: "hover:bg-sidebar-apis/5",
     labelClass: "text-sidebar-apis",
     items: [
@@ -156,7 +156,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Configurações",
     labelIcon: Settings,
-    activeClass: "bg-sidebar-config/10 text-sidebar-config font-medium shadow-xs",
+    activeClass: "bg-sidebar-config/12 text-sidebar-config font-medium border-l-2 border-sidebar-config",
     hoverClass: "hover:bg-sidebar-config/5",
     labelClass: "text-sidebar-config",
     items: [
@@ -182,11 +182,9 @@ export function AdminSidebar({
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  let itemOffset = 0;
-
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/40">
-      <SidebarHeader className="border-b border-border/40 p-4">
+    <Sidebar collapsible="icon" className="border-r border-border/30">
+      <SidebarHeader className="border-b border-border/30 p-4">
         <Link
           to="/"
           className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
@@ -205,63 +203,50 @@ export function AdminSidebar({
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="scrollbar-thin px-2 py-2">
-        {SIDEBAR_SECTIONS.map((section) => {
-          const sectionOffset = itemOffset;
-          itemOffset += section.items.length;
-          const isApiSection = section.label === "APIs";
-
-          return (
-            <SidebarGroup key={section.label} className="mb-1">
-              <SidebarGroupLabel className={`text-[11px] font-bold uppercase tracking-widest ${section.labelClass} px-3 py-2 flex items-center gap-1.5`}>
-                <section.labelIcon className="h-3 w-3" />
-                {section.label}
-              </SidebarGroupLabel>
-              <SidebarGroupContent>
-                <SidebarMenu className={isApiSection ? "space-y-0.5" : undefined}>
-                  {section.items.map((item, index) => (
-                    <div key={item.id}>
-                      <SidebarMenuItem>
-                        <SidebarMenuButton
-                          onClick={() => onTabChange(item.id)}
-                          isActive={activeTab === item.id}
-                          tooltip={item.description ? `${item.title} - ${item.description}` : item.title}
-                          className={`
-                            transition-all duration-200 rounded-xl mx-1
-                            ${isApiSection ? "py-2.5" : ""}
-                            ${activeTab === item.id
-                              ? section.activeClass
-                              : `text-sidebar-foreground/70 ${section.hoverClass} hover:text-sidebar-foreground`
-                            }
-                          `}
-                          style={{ animationDelay: `${(sectionOffset + index) * 50}ms` }}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          {item.description ? (
-                            <div className="flex flex-col items-start">
-                              <span className="text-sm">{item.title}</span>
-                              <span className="text-[10px] opacity-50 font-normal">{item.description}</span>
-                            </div>
-                          ) : (
-                            <span className="text-[13px]">{item.title}</span>
-                          )}
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                      {isApiSection && index < section.items.length - 1 && (
-                        <div className="mx-5 my-1 border-b border-border/30" />
+      <SidebarContent className="scrollbar-thin px-2 py-3">
+        {SIDEBAR_SECTIONS.map((section) => (
+          <SidebarGroup key={section.label} className="mb-0.5">
+            <SidebarGroupLabel className={`text-[10px] font-bold uppercase tracking-[0.12em] ${section.labelClass} px-3 py-2.5 flex items-center gap-1.5 opacity-80`}>
+              <section.labelIcon className="h-3 w-3" />
+              {section.label}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {section.items.map((item) => (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      onClick={() => onTabChange(item.id)}
+                      isActive={activeTab === item.id}
+                      tooltip={item.description ? `${item.title} - ${item.description}` : item.title}
+                      className={`
+                        transition-all duration-200 rounded-lg mx-1 my-px
+                        ${activeTab === item.id
+                          ? section.activeClass
+                          : `text-sidebar-foreground/65 ${section.hoverClass} hover:text-sidebar-foreground`
+                        }
+                      `}
+                    >
+                      <item.icon className="h-4 w-4 shrink-0" />
+                      {item.description ? (
+                        <div className="flex flex-col items-start min-w-0">
+                          <span className="text-[13px] truncate">{item.title}</span>
+                          <span className="text-[10px] opacity-45 font-normal truncate">{item.description}</span>
+                        </div>
+                      ) : (
+                        <span className="text-[13px] truncate">{item.title}</span>
                       )}
-                    </div>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          );
-        })}
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/40 p-3 space-y-2.5">
+      <SidebarFooter className="border-t border-border/30 p-3 space-y-2">
         {!collapsed && userEmail && (
-          <div className="px-3 py-2 rounded-xl bg-muted/50 border border-border/30">
+          <div className="px-3 py-2 rounded-lg bg-muted/40 border border-border/20">
             <p className="text-[11px] text-muted-foreground truncate font-medium">{userEmail}</p>
           </div>
         )}
@@ -270,7 +255,7 @@ export function AdminSidebar({
           variant="outline"
           size={collapsed ? "icon" : "default"}
           onClick={onSignOut}
-          className="w-full gap-2 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5 rounded-xl transition-all duration-200"
+          className="w-full gap-2 text-muted-foreground hover:text-destructive hover:border-destructive/30 hover:bg-destructive/5 rounded-lg transition-all duration-200"
         >
           <LogOut className="h-4 w-4" />
           {!collapsed && <span className="text-sm">Sair</span>}

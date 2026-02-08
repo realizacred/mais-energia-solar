@@ -163,19 +163,20 @@
   }
 
   .interactive:hover {
-    @apply brightness-95;
+    @apply brightness-[0.97];
   }
 
   .interactive:active {
-    @apply scale-[0.98] brightness-90;
+    @apply scale-[0.98] brightness-95;
   }
 
   .hover-lift {
-    @apply transition-all duration-200 ease-out;
+    @apply transition-all duration-300 ease-out;
   }
 
   .hover-lift:hover {
-    @apply -translate-y-0.5 shadow-lg;
+    @apply -translate-y-1;
+    box-shadow: var(--shadow-lg);
   }
 
   .hover-glow-primary {
@@ -216,12 +217,12 @@
   /* ===== SCROLLBAR STYLING ===== */
   .scrollbar-thin {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
   }
 
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
@@ -229,26 +230,28 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--muted-foreground) / 0.3);
+    background-color: hsl(var(--muted-foreground) / 0.2);
     border-radius: 3px;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--muted-foreground) / 0.5);
+    background-color: hsl(var(--muted-foreground) / 0.4);
   }
 
   /* ===== MODERN CARD VARIANTS ===== */
   .card-interactive {
-    @apply rounded-xl border bg-card shadow-sm transition-all duration-200 ease-out;
+    @apply rounded-xl border bg-card transition-all duration-300 ease-out;
+    box-shadow: var(--shadow-sm);
   }
 
   .card-interactive:hover {
-    @apply shadow-md border-border/80 -translate-y-0.5;
+    @apply border-border/80 -translate-y-0.5;
+    box-shadow: var(--shadow-md);
   }
 
   .card-highlight {
-    @apply rounded-xl border-2 border-primary/20 bg-card shadow-sm;
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.05) inset;
+    @apply rounded-xl border-2 border-primary/20 bg-card;
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.05) inset, var(--shadow-sm);
   }
 
   /* ===== BADGE GLOW ===== */
@@ -282,5 +285,33 @@
 
   .empty-state-description {
     @apply text-sm text-muted-foreground max-w-sm;
+  }
+
+  /* ===== PREMIUM TABLE STYLING ===== */
+  .premium-table th {
+    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted/30 first:rounded-tl-lg last:rounded-tr-lg;
+  }
+
+  .premium-table td {
+    @apply text-sm py-3.5;
+  }
+
+  .premium-table tr {
+    @apply transition-colors duration-150;
+  }
+
+  .premium-table tbody tr:hover {
+    @apply bg-muted/30;
+  }
+
+  /* ===== DIVIDER ===== */
+  .divider-gradient {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
+  }
+
+  /* ===== CONTAINER QUERY HELPERS ===== */
+  .admin-content {
+    @apply p-4 sm:p-6 space-y-6;
   }
 }

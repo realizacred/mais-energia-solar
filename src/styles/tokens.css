@@ -4,7 +4,7 @@
 @layer base {
   :root {
     /* ===== MAIS ENERGIA SOLAR - DESIGN SYSTEM ===== */
-    /* Linear/Raycast inspired with brand colors */
+    /* Premium SaaS aesthetic with brand colors */
     
     /* Base colors - Light mode */
     --background: 0 0% 99%;
@@ -64,19 +64,20 @@
     --surface-2: 220 14% 98%;
     --surface-3: 220 14% 96%;
 
-    /* Shadows - CSS values */
+    /* Shadows - Refined for premium feel */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
-    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.06), 0 4px 6px -4px rgb(0 0 0 / 0.06);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.08), 0 8px 10px -6px rgb(0 0 0 / 0.08);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.04);
+    --shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.06), 0 4px 8px -4px rgb(0 0 0 / 0.04);
+    --shadow-xl: 0 20px 30px -6px rgb(0 0 0 / 0.08), 0 8px 12px -6px rgb(0 0 0 / 0.06);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.12);
     
     /* Glow shadows */
     --shadow-primary: 0 4px 14px 0 hsl(25 100% 50% / 0.25);
     --shadow-secondary: 0 4px 14px 0 hsl(210 100% 40% / 0.25);
 
     /* Sidebar */
-    --sidebar-background: 220 14% 98%;
+    --sidebar-background: 222 20% 97%;
     --sidebar-foreground: 222 47% 11%;
     --sidebar-primary: 25 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -139,10 +140,11 @@
 
     /* Dark mode shadows */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
-    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.25);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.35), 0 4px 6px -4px rgb(0 0 0 / 0.35);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.4), 0 8px 10px -6px rgb(0 0 0 / 0.4);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.2);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.25);
+    --shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.35), 0 4px 8px -4px rgb(0 0 0 / 0.3);
+    --shadow-xl: 0 20px 30px -6px rgb(0 0 0 / 0.4), 0 8px 12px -6px rgb(0 0 0 / 0.35);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.5);
     
     --shadow-primary: 0 4px 14px 0 hsl(25 100% 55% / 0.3);
     --shadow-secondary: 0 4px 14px 0 hsl(210 100% 55% / 0.3);

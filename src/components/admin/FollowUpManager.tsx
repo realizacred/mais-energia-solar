@@ -366,13 +366,13 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
                     </div>
                     <div className="h-2 rounded-full bg-muted flex overflow-hidden">
                       <div className="bg-destructive h-full" style={{ width: `${urgentPercent}%` }} />
-                      <div className="bg-yellow-500 h-full" style={{ width: `${pendingPercent}%` }} />
-                      <div className="bg-green-500 h-full" style={{ width: `${okPercent}%` }} />
+                      <div className="bg-warning h-full" style={{ width: `${pendingPercent}%` }} />
+                      <div className="bg-success h-full" style={{ width: `${okPercent}%` }} />
                     </div>
                     <div className="flex justify-between mt-2 text-xs">
                       <span className="text-destructive">{vendedor.urgentes} urgentes</span>
-                      <span className="text-yellow-600">{vendedor.pendentes} pendentes</span>
-                      <span className="text-green-600">{vendedor.emDia} em dia</span>
+                      <span className="text-warning">{vendedor.pendentes} pendentes</span>
+                      <span className="text-success">{vendedor.emDia} em dia</span>
                     </div>
                   </div>
                 );
@@ -406,7 +406,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
           {orcamentosCategories.urgentLeads.length === 0 && orcamentosCategories.pendingLeads.length === 0 && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
+                <CheckCircle className="w-12 h-12 text-success mb-3" />
                 <p className="text-lg font-medium">Todos os orçamentos estão em dia!</p>
               </CardContent>
             </Card>
@@ -420,7 +420,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
           {leadsCategories.urgentLeads.length === 0 && leadsCategories.pendingLeads.length === 0 && (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-                <CheckCircle className="w-12 h-12 text-green-500 mb-3" />
+                <CheckCircle className="w-12 h-12 text-success mb-3" />
                 <p className="text-lg font-medium">Todos os leads estão em dia!</p>
               </CardContent>
             </Card>
