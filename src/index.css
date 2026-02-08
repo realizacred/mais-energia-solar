@@ -26,40 +26,40 @@
     --popover: 0 0% 100%;
     --popover-foreground: 224 20% 12%;
 
-    /* --- Brand Colors (restrained, intentional) --- */
-    --primary: 24 58% 46%;              /* Muted amber — confident, not loud */
+    /* --- Brand Colors (vivid, true to logo) --- */
+    --primary: 24 88% 50%;              /* Vivid brand orange */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 24 52% 54%;         /* Soft lift for gradients */
-    --secondary: 218 32% 20%;           /* Slate navy — quiet authority */
+    --primary-glow: 26 82% 58%;         /* Warm lift for gradients */
+    --secondary: 218 62% 24%;           /* Rich navy blue */
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 218 30% 30%;
+    --secondary-glow: 218 55% 34%;
 
-    /* --- Neutral Tones (Stripe-grade grays) --- */
+    /* --- Neutral Tones (clean grays) --- */
     --muted: 220 10% 94%;
     --muted-foreground: 220 8% 46%;
     --accent: 220 10% 92%;
     --accent-foreground: 224 20% 12%;
 
-    /* --- Semantic (muted, sophisticated) --- */
-    --destructive: 4 42% 44%;
+    /* --- Semantic (clear, readable) --- */
+    --destructive: 4 62% 46%;
     --destructive-foreground: 0 0% 100%;
-    --success: 158 32% 38%;
+    --success: 158 50% 38%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 48% 48%;
+    --warning: 38 72% 48%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 40% 48%;
+    --info: 210 58% 48%;
     --info-foreground: 0 0% 100%;
 
-    /* --- Edges (barely-there borders) --- */
+    /* --- Edges --- */
     --border: 220 10% 90%;
     --input: 220 10% 90%;
-    --ring: 24 50% 46%;
+    --ring: 24 80% 50%;
     --radius: 0.5rem;
 
     /* --- Brand Aliases --- */
-    --brand-orange: 24 58% 46%;
-    --brand-blue: 218 32% 20%;
-    --brand-blue-light: 218 30% 30%;
+    --brand-orange: 24 88% 50%;
+    --brand-blue: 218 62% 24%;
+    --brand-blue-light: 218 55% 34%;
 
     /* --- Elevation Surfaces --- */
     --surface-1: 0 0% 100%;
@@ -73,27 +73,27 @@
     --shadow-lg: 0 10px 28px -8px rgb(0 0 0 / 0.06), 0 4px 10px -4px rgb(0 0 0 / 0.02);
     --shadow-xl: 0 20px 44px -10px rgb(0 0 0 / 0.08), 0 8px 18px -8px rgb(0 0 0 / 0.03);
     --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 4px 20px 0 hsl(24 58% 46% / 0.1);
-    --shadow-secondary: 0 4px 20px 0 hsl(218 32% 20% / 0.08);
+    --shadow-primary: 0 4px 20px 0 hsl(24 88% 50% / 0.15);
+    --shadow-secondary: 0 4px 20px 0 hsl(218 62% 24% / 0.1);
 
     /* --- Sidebar --- */
     --sidebar-background: 220 12% 96%;
     --sidebar-foreground: 224 20% 12%;
-    --sidebar-primary: 24 58% 46%;
+    --sidebar-primary: 24 88% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 10% 92%;
     --sidebar-accent-foreground: 224 20% 12%;
     --sidebar-border: 220 10% 90%;
-    --sidebar-ring: 24 50% 46%;
+    --sidebar-ring: 24 80% 50%;
 
-    /* Section colors — brand-aligned orange & blue palette */
-    --sidebar-section-intelligence: 218 42% 48%;
-    --sidebar-section-commercial: 24 65% 48%;
-    --sidebar-section-clients: 210 35% 50%;
-    --sidebar-section-operations: 28 42% 46%;
-    --sidebar-section-finance: 218 45% 28%;
-    --sidebar-section-marketing: 24 52% 50%;
-    --sidebar-section-settings: 220 12% 44%;
+    /* Section colors — vivid brand orange & blue */
+    --sidebar-section-intelligence: 218 58% 48%;
+    --sidebar-section-commercial: 24 82% 50%;
+    --sidebar-section-clients: 210 50% 48%;
+    --sidebar-section-operations: 28 65% 48%;
+    --sidebar-section-finance: 218 60% 30%;
+    --sidebar-section-marketing: 24 72% 50%;
+    --sidebar-section-settings: 220 14% 44%;
   }
 
   .dark {
@@ -105,13 +105,13 @@
     --popover: 224 20% 9%;
     --popover-foreground: 220 12% 92%;
 
-    /* --- Brand (lifted for contrast) --- */
-    --primary: 24 55% 52%;
+    /* --- Brand (vivid, lifted for dark contrast) --- */
+    --primary: 24 82% 54%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 24 50% 58%;
-    --secondary: 218 35% 42%;
+    --primary-glow: 26 76% 60%;
+    --secondary: 218 55% 46%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 218 32% 52%;
+    --secondary-glow: 218 50% 54%;
 
     /* --- Neutrals --- */
     --muted: 224 16% 14%;
@@ -120,19 +120,19 @@
     --accent-foreground: 220 12% 92%;
 
     /* --- Semantic --- */
-    --destructive: 4 38% 42%;
+    --destructive: 4 58% 46%;
     --destructive-foreground: 0 0% 100%;
-    --success: 158 28% 40%;
+    --success: 158 45% 42%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 42% 48%;
+    --warning: 38 65% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 35% 48%;
+    --info: 210 52% 52%;
     --info-foreground: 0 0% 100%;
 
     /* --- Edges --- */
     --border: 224 14% 15%;
     --input: 224 14% 15%;
-    --ring: 24 55% 52%;
+    --ring: 24 76% 54%;
 
     /* --- Elevation --- */
     --surface-1: 224 20% 9%;
@@ -146,27 +146,27 @@
     --shadow-lg: 0 10px 28px -8px rgb(0 0 0 / 0.25), 0 4px 10px -4px rgb(0 0 0 / 0.2);
     --shadow-xl: 0 20px 44px -10px rgb(0 0 0 / 0.3), 0 8px 18px -8px rgb(0 0 0 / 0.25);
     --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.4);
-    --shadow-primary: 0 4px 20px 0 hsl(24 55% 52% / 0.15);
-    --shadow-secondary: 0 4px 20px 0 hsl(218 35% 42% / 0.15);
+    --shadow-primary: 0 4px 20px 0 hsl(24 82% 54% / 0.2);
+    --shadow-secondary: 0 4px 20px 0 hsl(218 55% 46% / 0.18);
 
     /* --- Sidebar --- */
     --sidebar-background: 224 22% 6%;
     --sidebar-foreground: 220 12% 92%;
-    --sidebar-primary: 24 55% 52%;
+    --sidebar-primary: 24 82% 54%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 224 16% 14%;
     --sidebar-accent-foreground: 220 12% 92%;
     --sidebar-border: 224 14% 15%;
-    --sidebar-ring: 24 55% 52%;
+    --sidebar-ring: 24 76% 54%;
 
-    /* Section colors — brand-aligned, lifted for dark */
-    --sidebar-section-intelligence: 218 38% 56%;
-    --sidebar-section-commercial: 24 58% 56%;
-    --sidebar-section-clients: 210 30% 58%;
-    --sidebar-section-operations: 28 36% 54%;
-    --sidebar-section-finance: 218 40% 46%;
-    --sidebar-section-marketing: 24 48% 56%;
-    --sidebar-section-settings: 220 10% 54%;
+    /* Section colors — vivid, lifted for dark */
+    --sidebar-section-intelligence: 218 52% 56%;
+    --sidebar-section-commercial: 24 76% 56%;
+    --sidebar-section-clients: 210 45% 56%;
+    --sidebar-section-operations: 28 58% 54%;
+    --sidebar-section-finance: 218 55% 48%;
+    --sidebar-section-marketing: 24 65% 56%;
+    --sidebar-section-settings: 220 12% 54%;
   }
 }
 
