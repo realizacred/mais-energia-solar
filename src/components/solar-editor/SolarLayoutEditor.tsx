@@ -126,6 +126,8 @@ export function SolarLayoutEditor({
     setIsSaving(true);
     
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const layoutData: LayoutData = {
         ...layout,
         canvas: {
@@ -148,6 +150,8 @@ export function SolarLayoutEditor({
         servico_id: string | null;
         updated_at: string;
         created_at?: string;
+        created_by?: string | null;
+        updated_by?: string | null;
       } = {
         nome: layoutName,
         layout_data: JSON.parse(JSON.stringify(layoutData)),
@@ -157,6 +161,7 @@ export function SolarLayoutEditor({
         cliente_id: clienteId || null,
         servico_id: servicoId || null,
         updated_at: new Date().toISOString(),
+        updated_by: user?.id || null,
       };
 
       let savedId = layoutId;
@@ -169,6 +174,7 @@ export function SolarLayoutEditor({
         if (error) throw error;
       } else {
         payload.created_at = new Date().toISOString();
+        payload.created_by = user?.id || null;
         const { data, error } = await supabase
           .from('layouts_solares')
           .insert(payload as Record<string, unknown>)
@@ -177,7 +183,6 @@ export function SolarLayoutEditor({
         if (error) throw error;
         savedId = data.id;
       }
-
       toast({ title: "Layout salvo", description: `${layout.modules.length} módulo(s) no layout.` });
 
       if (onSave && savedId) {

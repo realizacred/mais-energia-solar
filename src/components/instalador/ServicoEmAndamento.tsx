@@ -86,9 +86,10 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
  export function ServicoEmAndamento({ servico, onClose, onServiceUpdated }: ServicoEmAndamentoProps) {
   const { settings: brandSettings } = useBrandSettings();
   const logo = brandSettings?.logo_small_url || brandSettings?.logo_url || logoBlue;
-  const [currentStep, setCurrentStep] = useState(1);
-   const [isSubmitting, setIsSubmitting] = useState(false);
-   const [isSuccess, setIsSuccess] = useState(false);
+   const [currentStep, setCurrentStep] = useState(1);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
+    const [hasStarted, setHasStarted] = useState(servico.status === "em_andamento");
    
   // Checklist items with checkbox and multiple photos
   const [checklistItems, setChecklistItems] = useState<{
@@ -206,12 +207,13 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
  
        if (error) throw error;
  
-       toast({
-         title: "Serviço iniciado!",
-         description: `Início registrado às ${format(new Date(), "HH:mm", { locale: ptBR })}`,
-       });
-       
-       onServiceUpdated();
+        toast({
+          title: "Serviço iniciado!",
+          description: `Início registrado às ${format(new Date(), "HH:mm", { locale: ptBR })}`,
+        });
+        
+        setHasStarted(true);
+        onServiceUpdated();
      } catch (error) {
        console.error("Error starting service:", error);
        toast({
@@ -421,7 +423,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
     };
  
    // Tela de início (para serviços agendados)
-   if (servico.status === "agendado") {
+   if (servico.status === "agendado" && !hasStarted) {
      return (
       <div className="fixed inset-0 z-50 bg-background overflow-auto">
          <div className="min-h-screen flex flex-col">
