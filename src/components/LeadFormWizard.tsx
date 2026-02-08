@@ -693,6 +693,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     pendingFormDataRef.current = null;
   };
 
+  // After sync completes, update the success screen from "offline" to "sent"
+  const hasSynced = savedOffline && pendingCount === 0 && isOnline;
+  const showOfflineState = savedOffline && !hasSynced;
+
   if (isSuccess) {
     return (
       <Card className="max-w-2xl mx-auto border-0 shadow-2xl overflow-hidden">
@@ -702,10 +706,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 200, damping: 15 }}
             className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mb-4 sm:mb-6 ${
-              savedOffline ? "bg-secondary/20" : "bg-primary/20"
+              showOfflineState ? "bg-secondary/20" : "bg-primary/20"
             }`}
           >
-            {savedOffline ? (
+            {showOfflineState ? (
               <WifiOff className="w-10 h-10 sm:w-12 sm:h-12 text-secondary" />
             ) : (
               <CheckCircle className="w-10 h-10 sm:w-12 sm:h-12 text-primary" />
@@ -717,7 +721,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             transition={{ delay: 0.2 }}
             className="text-xl sm:text-2xl font-bold text-foreground mb-2 text-center"
           >
-            {savedOffline ? "Salvo Localmente!" : "Cadastro Enviado!"}
+            {showOfflineState 
+              ? "Salvo Localmente!" 
+              : hasSynced 
+                ? "Cadastro Sincronizado!" 
+                : "Cadastro Enviado!"}
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
@@ -725,9 +733,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             transition={{ delay: 0.4 }}
             className="text-sm sm:text-base text-muted-foreground text-center mb-4 sm:mb-6"
           >
-            {savedOffline 
+            {showOfflineState 
               ? "Seu cadastro foi salvo e será enviado automaticamente quando a conexão for restabelecida."
-              : "Obrigado pelo interesse! Nossa equipe entrará em contato em breve."
+              : hasSynced
+                ? "Seu cadastro offline foi sincronizado com sucesso! Nossa equipe entrará em contato em breve."
+                : "Obrigado pelo interesse! Nossa equipe entrará em contato em breve."
             }
           </motion.p>
           <motion.div
@@ -739,7 +749,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             <Button onClick={resetForm} variant="outline" className="w-full sm:w-auto">
               Fazer novo cadastro
             </Button>
-            {savedOffline && pendingCount > 0 && isOnline && (
+            {showOfflineState && pendingCount > 0 && isOnline && (
               <Button 
                 onClick={retrySync} 
                 disabled={isSyncing}
