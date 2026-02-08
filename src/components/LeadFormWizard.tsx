@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { FloatingSelect } from "@/components/ui/floating-select";
 import ConsumptionChart from "./ConsumptionChart";
-import FileUpload from "./FileUpload";
+import FileUploadOffline, { type OfflineFile, uploadOfflineFiles } from "./FileUploadOffline";
 import { useOfflineLeadSync } from "@/hooks/useOfflineLeadSync";
 import { useLeadOrcamento } from "@/hooks/useLeadOrcamento";
 import { useFormAutoSave } from "@/hooks/useFormAutoSave";
@@ -86,7 +86,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [savedOffline, setSavedOffline] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [uploadedFiles, setUploadedFiles] = useState<OfflineFile[]>([]);
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const [vendedorCodigo, setVendedorCodigo] = useState<string | null>(null);
   const [vendedorNome, setVendedorNome] = useState<string | null>(null);
@@ -340,7 +340,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     // Store form data for potential duplicate handling
     pendingFormDataRef.current = data;
     
-    const orcamentoData = {
+    // Upload files if online, otherwise store as base64 for later
+    let fileUrls: string[] = [];
+    const hasFiles = uploadedFiles.length > 0;
+    
+    const buildOrcamentoData = (urls: string[]) => ({
       cep: data.cep?.trim() || null,
       estado: data.estado,
       cidade: data.cidade.trim(),
@@ -354,9 +358,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       media_consumo: data.media_consumo,
       consumo_previsto: data.consumo_previsto,
       observacoes: data.observacoes?.trim() || null,
-      arquivos_urls: uploadedFiles,
+      arquivos_urls: urls,
       vendedor: vendedorNome || "Site",
-    };
+    });
 
     // Helper to save offline (only used when truly offline)
     const saveOfflineFallback = async (): Promise<boolean> => {
@@ -369,7 +373,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       const leadData = {
         nome: data.nome.trim(),
         telefone: data.telefone.trim(),
-        ...orcamentoData,
+        ...buildOrcamentoData([]),
+        // Store base64 files for upload during sync
+        offlineFiles: hasFiles ? uploadedFiles : undefined,
       };
 
       console.log("[LeadFormWizard] Device offline, using saveLead for local storage");
@@ -383,7 +389,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         
         toast({
           title: "Cadastro salvo localmente! 📴",
-          description: "Será sincronizado automaticamente quando a conexão voltar.",
+          description: hasFiles 
+            ? "Cadastro e arquivos serão enviados quando a conexão voltar."
+            : "Será sincronizado automaticamente quando a conexão voltar.",
         });
         
         setIsSubmitting(false);
@@ -409,6 +417,17 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         }
         return;
       }
+
+      // Online: upload files first, then submit
+      if (hasFiles) {
+        try {
+          fileUrls = await uploadOfflineFiles(uploadedFiles);
+        } catch (err) {
+          console.warn("[LeadFormWizard] File upload failed, continuing without files");
+        }
+      }
+
+      const orcamentoData = buildOrcamentoData(fileUrls);
 
       // Online: use new Lead/Orcamento system
       const result = await submitOrcamento(
@@ -481,6 +500,16 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     const data = pendingFormDataRef.current;
     setIsSubmitting(true);
     
+    // Upload files if needed (these handlers are always online)
+    let fileUrls: string[] = [];
+    if (uploadedFiles.length > 0) {
+      try {
+        fileUrls = await uploadOfflineFiles(uploadedFiles);
+      } catch (err) {
+        console.warn("[handleUseExistingLead] File upload failed");
+      }
+    }
+
     const orcamentoData = {
       cep: data.cep?.trim() || null,
       estado: data.estado,
@@ -495,7 +524,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       media_consumo: data.media_consumo,
       consumo_previsto: data.consumo_previsto,
       observacoes: data.observacoes?.trim() || null,
-      arquivos_urls: uploadedFiles,
+      arquivos_urls: fileUrls,
       vendedor: vendedorNome || "Site",
     };
 
@@ -531,6 +560,16 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     const data = pendingFormDataRef.current;
     setIsSubmitting(true);
     
+    // Upload files if needed
+    let fileUrls: string[] = [];
+    if (uploadedFiles.length > 0) {
+      try {
+        fileUrls = await uploadOfflineFiles(uploadedFiles);
+      } catch (err) {
+        console.warn("[handleCreateNewLead] File upload failed");
+      }
+    }
+
     const orcamentoData = {
       cep: data.cep?.trim() || null,
       estado: data.estado,
@@ -545,7 +584,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       media_consumo: data.media_consumo,
       consumo_previsto: data.consumo_previsto,
       observacoes: data.observacoes?.trim() || null,
-      arquivos_urls: uploadedFiles,
+      arquivos_urls: fileUrls,
       vendedor: vendedorNome,
     };
 
@@ -930,7 +969,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                     <label className="flex items-center gap-2 text-sm font-medium mb-2">
                       <FileText className="w-4 h-4 text-secondary" /> Contas de Luz (opcional)
                     </label>
-                    <FileUpload
+                    <FileUploadOffline
                       onFilesChange={setUploadedFiles}
                       maxFiles={10}
                       maxSizeMB={10}

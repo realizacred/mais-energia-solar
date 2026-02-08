@@ -1,4 +1,4 @@
-import { WifiOff, Wifi, RefreshCw, Loader2, Radio } from "lucide-react";
+import { WifiOff, Wifi, RefreshCw, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOfflineLeadSync } from "@/hooks/useOfflineLeadSync";
 import { cn } from "@/lib/utils";
@@ -13,21 +13,21 @@ export function OfflineStatusBar({ vendedorNome }: OfflineStatusBarProps = {}) {
   return (
     <div 
       className={cn(
-        "py-2.5 px-4 border-b transition-colors duration-300",
+        "sticky top-14 sm:top-16 z-30 py-2 px-4 border-b transition-colors duration-300 shadow-sm",
         isOnline 
           ? "bg-success/10 border-success/20" 
           : "bg-warning/10 border-warning/20"
       )}
     >
-      <div className="container mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div className="container mx-auto flex flex-wrap items-center justify-between gap-2">
         {/* Status de Conexão */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Ícone + Status */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {isOnline ? (
               <Wifi className="w-4 h-4 text-success" />
             ) : (
-              <WifiOff className="w-4 h-4 text-warning animate-pulse-soft" />
+              <WifiOff className="w-4 h-4 text-warning animate-pulse" />
             )}
             <span className={cn(
               "text-sm font-semibold",
@@ -41,7 +41,7 @@ export function OfflineStatusBar({ vendedorNome }: OfflineStatusBarProps = {}) {
           <div className="w-px h-4 bg-border" />
 
           {/* Contador de Leads Pendentes */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-sm text-muted-foreground">
               Pendentes:
             </span>
@@ -84,7 +84,7 @@ export function OfflineStatusBar({ vendedorNome }: OfflineStatusBarProps = {}) {
 
           {/* Mensagem quando offline com pendentes */}
           {!isOnline && pendingCount > 0 && (
-            <span className="text-xs text-warning">
+            <span className="text-xs text-warning font-medium">
               Será enviado quando a conexão voltar
             </span>
           )}
