@@ -173,7 +173,13 @@ export function SolarMarketManager() {
     try {
       const { data, error } = await supabase.functions.invoke("solar-market-auth");
 
-      if (error) throw error;
+      if (error) {
+        // Try to extract real error message from FunctionsHttpError
+        const { parseInvokeError } = await import("@/lib/supabaseFunctionError");
+        const parsed = await parseInvokeError(error);
+        toast.error(`Falha na conexão: ${parsed.message}`);
+        return;
+      }
 
       if (data?.error) {
         toast.error(`Falha na conexão: ${data.error}`);
