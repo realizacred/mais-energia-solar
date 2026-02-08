@@ -4,14 +4,14 @@ import logoBranca from "@/assets/logo-branca.png";
 
 const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
   return (
-    <footer ref={ref} className="relative py-12 bg-secondary text-secondary-foreground overflow-hidden">
+    <footer ref={ref} className="relative py-6 bg-secondary text-secondary-foreground overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute top-0 right-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/3 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {/* Brand */}
           <div className="sm:col-span-2 lg:col-span-1">
             <img
@@ -106,7 +106,7 @@ const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
         </div>
 
         {/* Bottom bar */}
-        <div className="pt-8 border-t border-secondary-foreground/8 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="pt-4 border-t border-secondary-foreground/8 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-secondary-foreground/30">
             © {new Date().getFullYear()} Mais Energia Solar. Todos os direitos reservados.
           </p>
