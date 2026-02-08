@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { handleSupabaseError } from "@/lib/errorHandler";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -133,9 +134,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       if (error) throw error;
       setClientes(data || []);
     } catch (error) {
-      console.error("Error fetching clientes:", error);
+      const appError = handleSupabaseError(error, "fetch_clientes");
       toast({
         title: "Erro ao carregar clientes",
+        description: appError.userMessage,
         variant: "destructive",
       });
     } finally {
@@ -203,9 +205,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       resetForm();
       fetchClientes();
     } catch (error) {
-      console.error("Error saving cliente:", error);
+      const appError = handleSupabaseError(error, editingCliente ? "update_cliente" : "create_cliente");
       toast({
         title: "Erro ao salvar cliente",
+        description: appError.userMessage,
         variant: "destructive",
       });
     } finally {
@@ -248,10 +251,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       toast({ title: "Cliente excluído!" });
       fetchClientes();
     } catch (error) {
-      console.error("Error deleting cliente:", error);
+      const appError = handleSupabaseError(error, "delete_cliente", { entityId: id });
       toast({
         title: "Erro ao excluir cliente",
-        description: "Verifique se não há recebimentos vinculados",
+        description: appError.userMessage,
         variant: "destructive",
       });
     }

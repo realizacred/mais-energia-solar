@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleSupabaseError } from "@/lib/errorHandler";
 import type { Lead, LeadStatus } from "@/types/lead";
 
 const PAGE_SIZE = 50;
@@ -45,10 +46,10 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
         setStatuses(statusesRes.data);
       }
     } catch (error) {
-      console.error("Erro ao buscar leads:", error);
+      const appError = handleSupabaseError(error, "fetch_leads");
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os leads.",
+        description: appError.userMessage,
         variant: "destructive",
       });
     } finally {
@@ -72,14 +73,14 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
         
       if (error) throw error;
     } catch (error) {
-      console.error("Erro ao atualizar visto:", error);
+      const appError = handleSupabaseError(error, "toggle_visto_lead", { entityId: lead.id });
       // Revert on error
       setLeads((prev) =>
         prev.map((l) => (l.id === lead.id ? { ...l, visto_admin: lead.visto_admin } : l))
       );
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o status.",
+        description: appError.userMessage,
         variant: "destructive",
       });
     }
@@ -102,10 +103,10 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       });
       return true;
     } catch (error) {
-      console.error("Erro ao excluir lead:", error);
+      const appError = handleSupabaseError(error, "delete_lead", { entityId: leadId });
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o lead.",
+        description: appError.userMessage,
         variant: "destructive",
       });
       return false;
