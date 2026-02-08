@@ -166,6 +166,16 @@ export function ObrasManager() {
     setPendingImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const setAsCover = (index: number) => {
+    if (index === 0) return;
+    setPendingImages((prev) => {
+      const newArr = [...prev];
+      const [img] = newArr.splice(index, 1);
+      newArr.unshift(img);
+      return newArr;
+    });
+  };
+
   const handleSave = async () => {
     if (!form.titulo.trim() || !form.cidade.trim()) {
       toast({ title: "Preencha título e cidade", variant: "destructive" });
@@ -561,8 +571,9 @@ export function ObrasManager() {
               {pendingImages.length > 0 && (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
                   {pendingImages.map((url, idx) => (
-                    <div key={idx} className="relative group rounded-lg overflow-hidden aspect-square border border-border">
+                    <div key={idx} className={`relative group rounded-lg overflow-hidden aspect-square border-2 ${idx === 0 ? "border-primary" : "border-border"}`}>
                       <img src={url} alt={`Imagem ${idx + 1}`} className="w-full h-full object-cover" />
+                      {/* Remove button */}
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
@@ -570,9 +581,19 @@ export function ObrasManager() {
                       >
                         <X className="w-3 h-3" />
                       </button>
+                      {/* Set as cover button */}
+                      {idx !== 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setAsCover(idx)}
+                          className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-foreground/70 text-background text-[9px] rounded font-medium opacity-0 group-hover:opacity-100 transition-opacity hover:bg-foreground/90"
+                        >
+                          Definir capa
+                        </button>
+                      )}
                       {idx === 0 && (
                         <Badge className="absolute bottom-1 left-1 bg-primary text-primary-foreground text-[9px]">
-                          Capa
+                          ★ Capa
                         </Badge>
                       )}
                     </div>
