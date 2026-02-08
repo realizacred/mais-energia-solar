@@ -27,12 +27,12 @@
     --popover-foreground: 224 20% 12%;
 
     /* --- Brand Colors (vivid, true to logo) --- */
-    --primary: 28 92% 52%;              /* Vivid brand orange from logo */
+    --primary: 28 95% 53%;              /* Bright brand orange from logo */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 30 85% 58%;         /* Warm lift for gradients */
-    --secondary: 225 72% 22%;           /* Deep navy blue from logo */
+    --primary-glow: 32 90% 60%;         /* Warm lift for gradients */
+    --secondary: 225 78% 30%;           /* Vivid navy blue from logo */
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 225 60% 32%;
+    --secondary-glow: 225 65% 40%;
 
     /* --- Neutral Tones (clean grays) --- */
     --muted: 220 10% 94%;
@@ -53,13 +53,13 @@
     /* --- Edges --- */
     --border: 220 10% 90%;
     --input: 220 10% 90%;
-    --ring: 28 85% 52%;
+    --ring: 28 90% 53%;
     --radius: 0.5rem;
 
     /* --- Brand Aliases --- */
-    --brand-orange: 28 92% 52%;
-    --brand-blue: 225 72% 22%;
-    --brand-blue-light: 225 60% 32%;
+    --brand-orange: 28 95% 53%;
+    --brand-blue: 225 78% 30%;
+    --brand-blue-light: 225 65% 40%;
 
     /* --- Elevation Surfaces --- */
     --surface-1: 0 0% 100%;
@@ -73,26 +73,26 @@
     --shadow-lg: 0 10px 28px -8px rgb(0 0 0 / 0.06), 0 4px 10px -4px rgb(0 0 0 / 0.02);
     --shadow-xl: 0 20px 44px -10px rgb(0 0 0 / 0.08), 0 8px 18px -8px rgb(0 0 0 / 0.03);
     --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 4px 20px 0 hsl(28 92% 52% / 0.15);
-    --shadow-secondary: 0 4px 20px 0 hsl(225 72% 22% / 0.1);
+    --shadow-primary: 0 4px 20px 0 hsl(28 95% 53% / 0.2);
+    --shadow-secondary: 0 4px 20px 0 hsl(225 78% 30% / 0.15);
 
     /* --- Sidebar --- */
     --sidebar-background: 220 12% 96%;
     --sidebar-foreground: 224 20% 12%;
-    --sidebar-primary: 28 92% 52%;
+    --sidebar-primary: 28 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 10% 92%;
     --sidebar-accent-foreground: 224 20% 12%;
     --sidebar-border: 220 10% 90%;
-    --sidebar-ring: 28 85% 52%;
+    --sidebar-ring: 28 90% 53%;
 
     /* Section colors — vivid brand orange & blue */
-    --sidebar-section-intelligence: 225 58% 48%;
-    --sidebar-section-commercial: 28 85% 50%;
-    --sidebar-section-clients: 210 50% 48%;
-    --sidebar-section-operations: 28 65% 48%;
-    --sidebar-section-finance: 225 60% 30%;
-    --sidebar-section-marketing: 28 72% 50%;
+    --sidebar-section-intelligence: 225 65% 45%;
+    --sidebar-section-commercial: 28 90% 52%;
+    --sidebar-section-clients: 210 55% 48%;
+    --sidebar-section-operations: 30 70% 50%;
+    --sidebar-section-finance: 225 70% 35%;
+    --sidebar-section-marketing: 28 80% 52%;
     --sidebar-section-settings: 220 14% 44%;
   }
 

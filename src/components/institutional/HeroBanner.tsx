@@ -62,9 +62,9 @@ export function HeroBanner() {
         animate={{ scale: 1 }}
         transition={{ duration: 1.5, ease: "easeOut" }}
       />
-      {/* Overlay — azul marinho dominante, laranja como acento quente */}
-      <div className="absolute inset-0 bg-gradient-to-br from-secondary/95 via-secondary/80 to-primary/50" />
-      <div className="absolute inset-0 bg-gradient-to-t from-secondary/80 via-transparent to-secondary/40" />
+      {/* Overlay — azul vibrante com acento laranja, mais translúcido */}
+      <div className="absolute inset-0 bg-gradient-to-br from-secondary/85 via-secondary/60 to-primary/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-secondary/50 via-transparent to-transparent" />
 
       {/* Animated decorative orbs — orange accents over navy */}
       <motion.div 
