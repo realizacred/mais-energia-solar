@@ -1625,6 +1625,72 @@ export type Database = {
           },
         ]
       }
+      obras: {
+        Row: {
+          ativo: boolean
+          cidade: string
+          cliente_nome: string | null
+          created_at: string
+          data_conclusao: string | null
+          descricao: string | null
+          destaque: boolean
+          economia_mensal: number | null
+          estado: string
+          id: string
+          imagens_urls: string[]
+          modelo_inversor: string | null
+          numero_modulos: number | null
+          ordem: number
+          potencia_kwp: number | null
+          tipo_projeto: string
+          titulo: string
+          updated_at: string
+          video_url: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          cidade: string
+          cliente_nome?: string | null
+          created_at?: string
+          data_conclusao?: string | null
+          descricao?: string | null
+          destaque?: boolean
+          economia_mensal?: number | null
+          estado?: string
+          id?: string
+          imagens_urls?: string[]
+          modelo_inversor?: string | null
+          numero_modulos?: number | null
+          ordem?: number
+          potencia_kwp?: number | null
+          tipo_projeto?: string
+          titulo: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          cidade?: string
+          cliente_nome?: string | null
+          created_at?: string
+          data_conclusao?: string | null
+          descricao?: string | null
+          destaque?: boolean
+          economia_mensal?: number | null
+          estado?: string
+          id?: string
+          imagens_urls?: string[]
+          modelo_inversor?: string | null
+          numero_modulos?: number | null
+          ordem?: number
+          potencia_kwp?: number | null
+          tipo_projeto?: string
+          titulo?: string
+          updated_at?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
       orcamentos: {
         Row: {
           area: string

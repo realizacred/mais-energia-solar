@@ -35,6 +35,7 @@ import { AprovacaoUsuarios } from "@/components/admin/AprovacaoUsuarios";
 import { BrandSettingsManager } from "@/components/admin/BrandSettingsManager";
 import { AuditLogsViewer } from "@/components/admin/AuditLogsViewer";
 import { ReleaseChecklist } from "@/components/admin/ReleaseChecklist";
+import { ObrasManager } from "@/components/admin/ObrasManager";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -70,6 +71,7 @@ const TAB_TITLES: Record<string, string> = {
   aprovacao: "Aprovações de Acesso",
   brand: "Identidade Visual",
   release: "Release Checklist",
+  obras: "Obras / Portfólio",
 };
 
 export default function Admin() {
@@ -242,6 +244,8 @@ export default function Admin() {
         return <AuditLogsViewer />;
       case "release":
         return <ReleaseChecklist />;
+      case "obras":
+        return <ObrasManager />;
       default:
         return <LeadsView />;
     }

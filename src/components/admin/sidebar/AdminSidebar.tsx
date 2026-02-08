@@ -86,6 +86,16 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
   {
+    label: "Site",
+    labelIcon: Sun,
+    activeClass: "bg-sidebar-operations/10 text-sidebar-operations font-medium shadow-xs",
+    hoverClass: "hover:bg-sidebar-operations/5",
+    labelClass: "text-sidebar-operations",
+    items: [
+      { id: "obras", title: "Obras / Portfólio", icon: Sun },
+    ],
+  },
+  {
     label: "Financeiro",
     labelIcon: Coins,
     activeClass: "bg-sidebar-finance/10 text-sidebar-finance font-medium shadow-xs",
