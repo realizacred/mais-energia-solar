@@ -92,7 +92,7 @@ export function CalculadoraResults({
                 <p className="text-white/80 text-sm font-medium">
                   Sua Economia Mensal Estimada
                 </p>
-                <p className="text-4xl md:text-5xl font-bold mt-1 tracking-tight">
+                <p className="text-3xl sm:text-4xl md:text-5xl font-bold mt-1 tracking-tight">
                   {fmt(economiaMensal)}
                 </p>
                 <div className="flex items-center gap-2 mt-3 text-white/90">
@@ -115,7 +115,7 @@ export function CalculadoraResults({
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="grid grid-cols-2 gap-3"
+        className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-3"
       >
         <Card className="border-destructive/20 bg-destructive/5">
           <CardContent className="p-4 text-center">
@@ -138,7 +138,7 @@ export function CalculadoraResults({
       </motion.div>
 
       {/* Stats grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-3">
         {stats.slice(1).map((stat, i) => (
           <motion.div
             key={stat.label}
