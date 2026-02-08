@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleSupabaseError } from "@/lib/errorHandler";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
 
@@ -89,10 +90,10 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
         setStatuses(statusesRes.data);
       }
     } catch (error) {
-      console.error("Erro ao buscar orçamentos:", error);
+      const appError = handleSupabaseError(error, "fetch_orcamentos");
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os orçamentos.",
+        description: appError.userMessage,
         variant: "destructive",
       });
     } finally {
@@ -116,14 +117,14 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
         
       if (error) throw error;
     } catch (error) {
-      console.error("Erro ao atualizar visto:", error);
+      const appError = handleSupabaseError(error, "toggle_visto_orcamento", { entityId: orcamento.id });
       // Revert on error
       setOrcamentos((prev) =>
         prev.map((o) => (o.id === orcamento.id ? { ...o, visto_admin: orcamento.visto_admin } : o))
       );
       toast({
         title: "Erro",
-        description: "Não foi possível atualizar o status.",
+        description: appError.userMessage,
         variant: "destructive",
       });
     }
@@ -146,10 +147,10 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       });
       return true;
     } catch (error) {
-      console.error("Erro ao excluir orçamento:", error);
+      const appError = handleSupabaseError(error, "delete_orcamento", { entityId: orcamentoId });
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o orçamento.",
+        description: appError.userMessage,
         variant: "destructive",
       });
       return false;

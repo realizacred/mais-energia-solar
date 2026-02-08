@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { handleSupabaseError } from "@/lib/errorHandler";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -141,9 +142,10 @@ export function ServicosManager() {
       setClientes(clientesRes.data || []);
       setInstaladores(filteredInstaladores);
     } catch (error) {
-      console.error("Error fetching data:", error);
+      const appError = handleSupabaseError(error, "fetch_servicos");
       toast({
         title: "Erro ao carregar dados",
+        description: appError.userMessage,
         variant: "destructive",
       });
     } finally {
@@ -205,9 +207,10 @@ export function ServicosManager() {
       });
       fetchData();
     } catch (error) {
-      console.error("Error saving:", error);
+      const appError = handleSupabaseError(error, "create_servico");
       toast({
         title: "Erro ao agendar serviço",
+        description: appError.userMessage,
         variant: "destructive",
       });
     } finally {
