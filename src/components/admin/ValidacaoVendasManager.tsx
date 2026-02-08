@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,12 @@ interface LeadSimulacao {
   created_at: string;
 }
 
+interface Vendedor {
+  id: string;
+  nome: string;
+  percentual_comissao: number | null;
+}
+
 export function ValidacaoVendasManager() {
   const {
     pendingItems, historyItems, loading, historyLoading,
@@ -54,12 +60,29 @@ export function ValidacaoVendasManager() {
   const [leadSimulacoes, setLeadSimulacoes] = useState<LeadSimulacao[]>([]);
   const [selectedSimulacaoId, setSelectedSimulacaoId] = useState<string>("");
 
+  // Vendedor selector state
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [selectedVendedorId, setSelectedVendedorId] = useState<string>("");
+
   // Filters
   const [filterVendedor, setFilterVendedor] = useState("all");
   const [filterPeriodo, setFilterPeriodo] = useState("all");
 
-  // Derived: unique vendors
-  const vendedores = useMemo(() => {
+  // Fetch vendedores on mount
+  useEffect(() => {
+    const fetchVendedores = async () => {
+      const { data } = await supabase
+        .from("vendedores")
+        .select("id, nome, percentual_comissao")
+        .eq("ativo", true)
+        .order("nome");
+      if (data) setVendedores(data);
+    };
+    fetchVendedores();
+  }, []);
+
+  // Derived: unique vendors from pending items
+  const vendedorNames = useMemo(() => {
     const names = new Set(pendingItems.map((c) => c.leads?.vendedor).filter(Boolean) as string[]);
     return Array.from(names).sort();
   }, [pendingItems]);
@@ -90,7 +113,7 @@ export function ValidacaoVendasManager() {
     return { count: pendingItems.length, totalValue, totalComissao, totalPotencia };
   }, [pendingItems]);
 
-  // Open approval dialog — fetch vendedor's commission + all simulações do lead
+  // Open approval dialog — fetch simulações and pre-select vendedor
   const openApprovalDialog = async (cliente: PendingValidation) => {
     setSelectedCliente(cliente);
     setLeadSimulacoes([]);
@@ -99,30 +122,29 @@ export function ValidacaoVendasManager() {
     const valor = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
     setValorVenda(valor > 0 ? valor.toString() : "");
 
-    // Fetch vendedor's default commission percentage + all simulações in parallel
-    const vendedorNome = cliente.leads?.vendedor;
     setLoadingVendedor(true);
 
     try {
       const promises: Promise<void>[] = [];
 
-      // 1) Vendedor commission
+      // 1) Try to match vendedor by name and set default commission
+      const vendedorNome = cliente.leads?.vendedor;
       if (vendedorNome) {
-        const vendedorPromise = async () => {
-          const { data } = await supabase
-            .from("vendedores")
-            .select("percentual_comissao")
-            .eq("nome", vendedorNome)
-            .eq("ativo", true)
-            .single();
-          if (data?.percentual_comissao != null) {
-            setPercentualComissao(data.percentual_comissao.toString());
-          } else {
-            setPercentualComissao("2.0");
-          }
-        };
-        promises.push(vendedorPromise());
+        const matchedVendedor = vendedores.find(
+          (v) => v.nome.toLowerCase() === vendedorNome.toLowerCase()
+        );
+        if (matchedVendedor) {
+          setSelectedVendedorId(matchedVendedor.id);
+          setPercentualComissao(
+            matchedVendedor.percentual_comissao?.toString() || "2.0"
+          );
+        } else {
+          // Vendedor name from lead doesn't match any registered vendedor
+          setSelectedVendedorId("");
+          setPercentualComissao("2.0");
+        }
       } else {
+        setSelectedVendedorId("");
         setPercentualComissao("2.0");
       }
 
@@ -136,12 +158,10 @@ export function ValidacaoVendasManager() {
             .order("created_at", { ascending: false });
           const sims = (data as LeadSimulacao[]) || [];
           setLeadSimulacoes(sims);
-          // Pre-select the accepted simulation or the first one
           if (cliente.simulacao_aceita_id) {
             setSelectedSimulacaoId(cliente.simulacao_aceita_id);
           } else if (sims.length > 0) {
             setSelectedSimulacaoId(sims[0].id);
-            // Auto-fill value from the first simulation
             if (sims[0].investimento_estimado && sims[0].investimento_estimado > 0) {
               setValorVenda(sims[0].investimento_estimado.toString());
             }
@@ -160,6 +180,17 @@ export function ValidacaoVendasManager() {
     setApprovalDialogOpen(true);
   };
 
+  // When vendedor selection changes, update commission percentage
+  const handleVendedorChange = (vendedorId: string) => {
+    setSelectedVendedorId(vendedorId);
+    const vendedor = vendedores.find((v) => v.id === vendedorId);
+    if (vendedor?.percentual_comissao != null) {
+      setPercentualComissao(vendedor.percentual_comissao.toString());
+    } else {
+      setPercentualComissao("2.0");
+    }
+  };
+
   // Handle simulação selection change
   const handleSimulacaoChange = (simId: string) => {
     setSelectedSimulacaoId(simId);
@@ -175,6 +206,27 @@ export function ValidacaoVendasManager() {
 
   const handleApprove = async () => {
     if (!selectedCliente) return;
+
+    // Validate required fields
+    if (!selectedVendedorId) {
+      toast({
+        title: "Vendedor obrigatório",
+        description: "Selecione o vendedor para gerar a comissão.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const valorBase = parseFloat(valorVenda) || 0;
+    if (valorBase <= 0) {
+      toast({
+        title: "Valor obrigatório",
+        description: "Informe o valor da venda para gerar a comissão.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setApproving(selectedCliente.id);
     try {
       const { data: convertidoStatus } = await supabase
@@ -186,35 +238,38 @@ export function ValidacaoVendasManager() {
         await supabase.from("orcamentos").update({ status_id: convertidoStatus.id }).eq("lead_id", selectedCliente.lead_id);
       }
 
-      const valorBase = parseFloat(valorVenda) || 0;
-
-      // Update client valor_projeto if it was changed/entered
+      // Update client valor_projeto
       if (valorBase > 0) {
         await supabase.from("clientes").update({ valor_projeto: valorBase }).eq("id", selectedCliente.id);
       }
 
-      const vendedorNome = selectedCliente.leads?.vendedor;
-      if (valorBase > 0 && vendedorNome) {
-        const { data: vendedorData } = await supabase
-          .from("vendedores").select("id").eq("nome", vendedorNome).eq("ativo", true).single();
-        if (vendedorData) {
-          const now = new Date();
-          const percentual = parseFloat(percentualComissao);
-          await supabase.from("comissoes").insert({
-            vendedor_id: vendedorData.id,
-            cliente_id: selectedCliente.id,
-            descricao: `Venda - ${selectedCliente.nome} (${selectedCliente.simulacoes?.potencia_recomendada_kwp || selectedCliente.potencia_kwp || 0}kWp)`,
-            valor_base: valorBase,
-            percentual_comissao: percentual,
-            valor_comissao: (valorBase * percentual) / 100,
-            mes_referencia: now.getMonth() + 1,
-            ano_referencia: now.getFullYear(),
-            status: "pendente",
-          });
-        }
+      // Create commission using the selected vendedor ID directly
+      const now = new Date();
+      const percentual = parseFloat(percentualComissao);
+      const selectedVendedor = vendedores.find((v) => v.id === selectedVendedorId);
+      const vendedorNome = selectedVendedor?.nome || "Vendedor";
+
+      const { error: comissaoError } = await supabase.from("comissoes").insert({
+        vendedor_id: selectedVendedorId,
+        cliente_id: selectedCliente.id,
+        descricao: `Venda - ${selectedCliente.nome} (${selectedCliente.simulacoes?.potencia_recomendada_kwp || selectedCliente.potencia_kwp || 0}kWp)`,
+        valor_base: valorBase,
+        percentual_comissao: percentual,
+        valor_comissao: (valorBase * percentual) / 100,
+        mes_referencia: now.getMonth() + 1,
+        ano_referencia: now.getFullYear(),
+        status: "pendente",
+      });
+
+      if (comissaoError) {
+        console.error("Erro ao criar comissão:", comissaoError);
+        throw new Error(`Venda aprovada, mas erro ao criar comissão: ${comissaoError.message}`);
       }
 
-      toast({ title: "Venda validada!", description: `Venda de ${selectedCliente.nome} foi aprovada e comissão gerada.` });
+      toast({
+        title: "Venda validada!",
+        description: `Venda de ${selectedCliente.nome} aprovada. Comissão de ${vendedorNome} gerada com sucesso na Gestão de Comissões.`,
+      });
       setApprovalDialogOpen(false);
       setSelectedCliente(null);
       refetchPending();
@@ -269,6 +324,9 @@ export function ValidacaoVendasManager() {
       fetchHistory();
     }
   };
+
+  // Check if approval form is valid
+  const isApprovalValid = selectedVendedorId && parseFloat(valorVenda) > 0;
 
   if (loading) {
     return (
@@ -357,7 +415,7 @@ export function ValidacaoVendasManager() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os vendedores</SelectItem>
-                {vendedores.map((v) => (
+                {vendedorNames.map((v) => (
                   <SelectItem key={v} value={v}>{v}</SelectItem>
                 ))}
               </SelectContent>
@@ -407,8 +465,13 @@ export function ValidacaoVendasManager() {
                     </TableHeader>
                     <TableBody>
                       {filteredItems.map((cliente) => {
-                        const valorVenda = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
+                        const clienteValorVenda = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
                         const potencia = cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
+                        const vendedorNome = cliente.leads?.vendedor;
+                        const vendedorFound = vendedorNome
+                          ? vendedores.some((v) => v.nome.toLowerCase() === vendedorNome.toLowerCase())
+                          : false;
+
                         return (
                           <TableRow key={cliente.id}>
                             <TableCell>
@@ -420,7 +483,13 @@ export function ValidacaoVendasManager() {
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <User className="h-3.5 w-3.5 text-muted-foreground" />
-                                <span className="text-sm">{cliente.leads?.vendedor || "-"}</span>
+                                <span className="text-sm">{vendedorNome || "-"}</span>
+                                {vendedorNome && !vendedorFound && (
+                                  <Badge variant="outline" className="text-[10px] text-warning border-warning/30 h-4 px-1">
+                                    <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />
+                                    Não cadastrado
+                                  </Badge>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
@@ -433,7 +502,7 @@ export function ValidacaoVendasManager() {
                               {potencia > 0 ? `${potencia} kWp` : "-"}
                             </TableCell>
                             <TableCell className="text-right font-medium">
-                              {valorVenda > 0 ? formatCurrency(valorVenda) : "-"}
+                              {clienteValorVenda > 0 ? formatCurrency(clienteValorVenda) : "-"}
                             </TableCell>
                             <TableCell className="text-sm text-muted-foreground">
                               {format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
@@ -604,13 +673,56 @@ export function ValidacaoVendasManager() {
             <div className="space-y-4">
               <div className="p-4 bg-muted rounded-lg space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vendedor</span>
-                  <span className="font-medium">{selectedCliente.leads?.vendedor || "-"}</span>
+                  <span className="text-muted-foreground">Cliente</span>
+                  <span className="font-medium">{selectedCliente.nome}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Lead</span>
                   <span className="font-medium">{selectedCliente.leads?.lead_code || "-"}</span>
                 </div>
+                {selectedCliente.leads?.vendedor && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Vendedor (lead)</span>
+                    <span className="font-medium">{selectedCliente.leads.vendedor}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Vendedor selector - REQUIRED */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  Vendedor Responsável *
+                </Label>
+                <Select value={selectedVendedorId} onValueChange={handleVendedorChange}>
+                  <SelectTrigger className={!selectedVendedorId ? "border-destructive" : ""}>
+                    <SelectValue placeholder="Selecione o vendedor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendedores.map((v) => (
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.nome}
+                        {v.percentual_comissao != null && (
+                          <span className="text-muted-foreground ml-1">({v.percentual_comissao}%)</span>
+                        )}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!selectedVendedorId && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    Selecione o vendedor para gerar a comissão
+                  </p>
+                )}
+                {selectedCliente.leads?.vendedor && !vendedores.some(
+                  (v) => v.nome.toLowerCase() === selectedCliente.leads!.vendedor!.toLowerCase()
+                ) && (
+                  <p className="text-xs text-warning flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" />
+                    O vendedor "{selectedCliente.leads.vendedor}" do lead não está cadastrado na tabela de vendedores
+                  </p>
+                )}
               </div>
 
               {/* Simulação selector */}
@@ -630,7 +742,7 @@ export function ValidacaoVendasManager() {
                       <SelectValue placeholder="Selecione uma proposta" />
                     </SelectTrigger>
                     <SelectContent>
-                      {leadSimulacoes.map((sim, idx) => (
+                      {leadSimulacoes.map((sim) => (
                         <SelectItem key={sim.id} value={sim.id}>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">
@@ -665,7 +777,7 @@ export function ValidacaoVendasManager() {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="valor-venda">Valor da Venda (R$)</Label>
+                <Label htmlFor="valor-venda">Valor da Venda (R$) *</Label>
                 <Input
                   id="valor-venda"
                   type="number"
@@ -711,7 +823,11 @@ export function ValidacaoVendasManager() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setApprovalDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleApprove} disabled={approving === selectedCliente?.id || !parseFloat(valorVenda)} className="bg-success hover:bg-success/90 text-success-foreground">
+            <Button
+              onClick={handleApprove}
+              disabled={approving === selectedCliente?.id || !isApprovalValid}
+              className="bg-success hover:bg-success/90 text-success-foreground"
+            >
               {approving === selectedCliente?.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Confirmar Aprovação
             </Button>
