@@ -1,59 +1,236 @@
-import React from "react";
+import React, { useRef, useState, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { LogOut, Sun, ChevronDown, ChevronRight } from "lucide-react";
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
-  useSidebar,
+  LogOut, Sun, ChevronDown, ChevronRight, Star, GripVertical,
+} from "lucide-react";
+import {
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
+  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
+  SidebarHeader, SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
+  Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useSidebarPreferences } from "@/hooks/useSidebarPreferences";
 import logoFallback from "@/assets/logo.png";
-import { SIDEBAR_SECTIONS, type SidebarSection } from "./sidebarConfig";
+import {
+  SIDEBAR_SECTIONS,
+  type SidebarSection,
+  type MenuItem,
+} from "./sidebarConfig";
 
 interface AdminSidebarProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   userEmail?: string;
   onSignOut: () => void;
-  /** Map of menu item id -> badge count */
   badgeCounts?: Record<string, number>;
 }
 
-/* ─── Section group with collapsible support ─── */
+/* ─── Build a flat lookup: item id → { item, section } ─── */
+const ITEM_MAP = new Map<string, { item: MenuItem; section: SidebarSection }>();
+SIDEBAR_SECTIONS.forEach((section) =>
+  section.items.forEach((item) => ITEM_MAP.set(item.id, { item, section }))
+);
+
+/* ─── Reusable menu item renderer ─── */
+function SidebarItemButton({
+  item,
+  section,
+  isActive,
+  collapsed,
+  badgeCount,
+  isFav,
+  onTabChange,
+  onToggleFav,
+  draggable,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+}: {
+  item: MenuItem;
+  section: SidebarSection;
+  isActive: boolean;
+  collapsed: boolean;
+  badgeCount: number;
+  isFav: boolean;
+  onTabChange: (id: string) => void;
+  onToggleFav: (id: string) => void;
+  draggable?: boolean;
+  onDragStart?: (e: React.DragEvent, id: string) => void;
+  onDragOver?: (e: React.DragEvent, id: string) => void;
+  onDrop?: (e: React.DragEvent, id: string) => void;
+  onDragEnd?: () => void;
+}) {
+  return (
+    <SidebarMenuItem
+      draggable={draggable}
+      onDragStart={draggable ? (e) => onDragStart?.(e as any, item.id) : undefined}
+      onDragOver={draggable ? (e) => onDragOver?.(e as any, item.id) : undefined}
+      onDrop={draggable ? (e) => onDrop?.(e as any, item.id) : undefined}
+      onDragEnd={draggable ? onDragEnd : undefined}
+      className="group/item"
+    >
+      <SidebarMenuButton
+        onClick={() => onTabChange(item.id)}
+        isActive={isActive}
+        tooltip={
+          item.description
+            ? `${item.title} — ${item.description}`
+            : item.title
+        }
+        className={`
+          transition-all duration-200 rounded-lg mx-1 my-px group/btn relative
+          ${
+            isActive
+              ? `${section.activeClass} shadow-sm`
+              : `text-sidebar-foreground/60 ${section.hoverClass} hover:text-sidebar-foreground`
+          }
+        `}
+      >
+        {/* Drag handle */}
+        {draggable && !collapsed && (
+          <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover/item:opacity-30 cursor-grab active:cursor-grabbing transition-opacity -ml-0.5 mr-px" />
+        )}
+        <item.icon className="h-4 w-4 shrink-0" />
+        {item.description ? (
+          <div className="flex flex-col items-start min-w-0 flex-1">
+            <span className="text-[13px] truncate leading-tight">
+              {item.title}
+            </span>
+            <span className="text-[10px] opacity-40 font-normal truncate leading-tight">
+              {item.description}
+            </span>
+          </div>
+        ) : (
+          <span className="text-[13px] truncate flex-1">{item.title}</span>
+        )}
+
+        {/* Star button — visible on hover */}
+        {!collapsed && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleFav(item.id);
+            }}
+            className={`
+              shrink-0 p-0.5 rounded transition-all duration-150
+              ${
+                isFav
+                  ? "opacity-100 text-warning"
+                  : "opacity-0 group-hover/item:opacity-40 hover:!opacity-100 text-muted-foreground hover:text-warning"
+              }
+            `}
+            title={isFav ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+          >
+            <Star
+              className="h-3 w-3"
+              fill={isFav ? "currentColor" : "none"}
+            />
+          </button>
+        )}
+
+        {badgeCount > 0 && !collapsed && (
+          <Badge
+            variant="secondary"
+            className="h-5 min-w-5 px-1.5 text-[10px] font-bold bg-warning/15 text-warning border-0 shrink-0"
+          >
+            {badgeCount}
+          </Badge>
+        )}
+        {badgeCount > 0 && collapsed && (
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-warning" />
+        )}
+        {isActive && !collapsed && badgeCount === 0 && (
+          <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
+        )}
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
+}
+
+/* ─── Section group with collapsible + drag-reorder ─── */
 function SidebarSectionGroup({
   section,
   activeTab,
   onTabChange,
   badgeCounts,
+  isFavorite,
+  onToggleFav,
+  orderedItems,
+  onReorder,
 }: {
   section: SidebarSection;
   activeTab: string;
   onTabChange: (tab: string) => void;
   badgeCounts?: Record<string, number>;
+  isFavorite: (id: string) => boolean;
+  onToggleFav: (id: string) => void;
+  orderedItems: MenuItem[];
+  onReorder: (sectionLabel: string, newOrder: string[]) => void;
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const LabelIcon = section.labelIcon;
   const hasActiveItem = section.items.some((item) => item.id === activeTab);
-
-  // Auto-expand if contains active item, otherwise use defaultOpen
   const shouldBeOpen = hasActiveItem || section.defaultOpen !== false;
+
+  // Drag state
+  const [dragId, setDragId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, id: string) => {
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", id);
+      setDragId(id);
+    },
+    []
+  );
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, id: string) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      setOverId(id);
+    },
+    []
+  );
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+      const sourceId = e.dataTransfer.getData("text/plain");
+      if (!sourceId || sourceId === targetId) {
+        setDragId(null);
+        setOverId(null);
+        return;
+      }
+      const ids = orderedItems.map((i) => i.id);
+      const srcIdx = ids.indexOf(sourceId);
+      const tgtIdx = ids.indexOf(targetId);
+      if (srcIdx === -1 || tgtIdx === -1) return;
+
+      const newIds = [...ids];
+      newIds.splice(srcIdx, 1);
+      newIds.splice(tgtIdx, 0, sourceId);
+      onReorder(section.label, newIds);
+      setDragId(null);
+      setOverId(null);
+    },
+    [orderedItems, onReorder, section.label]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDragId(null);
+    setOverId(null);
+  }, []);
 
   return (
     <Collapsible defaultOpen={shouldBeOpen} className="group/collapsible">
@@ -88,67 +265,117 @@ function SidebarSectionGroup({
         <CollapsibleContent>
           <SidebarGroupContent>
             <SidebarMenu className="gap-px mt-0.5">
-              {section.items.map((item) => {
+              {orderedItems.map((item) => {
                 const isActive = activeTab === item.id;
                 const badgeCount = badgeCounts?.[item.id] || 0;
+                const isDragging = dragId === item.id;
+                const isOver = overId === item.id && dragId !== item.id;
 
                 return (
                   <React.Fragment key={item.id}>
-                    {item.separator && (
+                    {item.separator && !dragId && (
                       <div className="mx-4 my-1.5 h-px bg-border/30" />
                     )}
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        onClick={() => onTabChange(item.id)}
+                    <div
+                      className={`transition-all duration-150 ${
+                        isDragging ? "opacity-40" : ""
+                      } ${
+                        isOver
+                          ? "border-t-2 border-primary/40 rounded-t"
+                          : ""
+                      }`}
+                    >
+                      <SidebarItemButton
+                        item={item}
+                        section={section}
                         isActive={isActive}
-                        tooltip={
-                          item.description
-                            ? `${item.title} — ${item.description}`
-                            : item.title
-                        }
-                        className={`
-                          transition-all duration-200 rounded-lg mx-1 my-px group/btn
-                          ${
-                            isActive
-                              ? `${section.activeClass} shadow-sm`
-                              : `text-sidebar-foreground/60 ${section.hoverClass} hover:text-sidebar-foreground`
-                          }
-                        `}
-                      >
-                        <item.icon className="h-4 w-4 shrink-0" />
-                        {item.description ? (
-                          <div className="flex flex-col items-start min-w-0 flex-1">
-                            <span className="text-[13px] truncate leading-tight">
-                              {item.title}
-                            </span>
-                            <span className="text-[10px] opacity-40 font-normal truncate leading-tight">
-                              {item.description}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-[13px] truncate flex-1">
-                            {item.title}
-                          </span>
-                        )}
-                        {badgeCount > 0 && !collapsed && (
-                          <Badge
-                            variant="secondary"
-                            className="h-5 min-w-5 px-1.5 text-[10px] font-bold bg-warning/15 text-warning border-0 shrink-0"
-                          >
-                            {badgeCount}
-                          </Badge>
-                        )}
-                        {badgeCount > 0 && collapsed && (
-                          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-warning" />
-                        )}
-                        {isActive && !collapsed && badgeCount === 0 && (
-                          <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
-                        )}
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
+                        collapsed={collapsed}
+                        badgeCount={badgeCount}
+                        isFav={isFavorite(item.id)}
+                        onTabChange={onTabChange}
+                        onToggleFav={onToggleFav}
+                        draggable={!collapsed}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDrop={handleDrop}
+                        onDragEnd={handleDragEnd}
+                      />
+                    </div>
                   </React.Fragment>
                 );
               })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </CollapsibleContent>
+      </SidebarGroup>
+    </Collapsible>
+  );
+}
+
+/* ─── Favorites section ─── */
+function FavoritesSection({
+  favoriteIds,
+  activeTab,
+  onTabChange,
+  badgeCounts,
+  onToggleFav,
+}: {
+  favoriteIds: string[];
+  activeTab: string;
+  onTabChange: (tab: string) => void;
+  badgeCounts?: Record<string, number>;
+  onToggleFav: (id: string) => void;
+}) {
+  const { state } = useSidebar();
+  const collapsed = state === "collapsed";
+
+  // Resolve items from the map
+  const resolvedItems = favoriteIds
+    .map((id) => ITEM_MAP.get(id))
+    .filter(Boolean) as { item: MenuItem; section: SidebarSection }[];
+
+  if (resolvedItems.length === 0) return null;
+
+  return (
+    <Collapsible defaultOpen className="group/collapsible">
+      <SidebarGroup className="mb-0 px-2 py-1">
+        <CollapsibleTrigger asChild>
+          <SidebarGroupLabel
+            className={`
+              text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2.5
+              flex items-center gap-2 cursor-pointer select-none
+              transition-all duration-200
+              hover:bg-accent/50 rounded-md
+              text-warning
+            `}
+          >
+            <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 bg-warning">
+              <Star className="h-3 w-3 text-white" fill="white" />
+            </div>
+            {!collapsed && (
+              <>
+                <span className="flex-1 opacity-80">Favoritos</span>
+                <ChevronDown className="h-3 w-3 opacity-40 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+              </>
+            )}
+          </SidebarGroupLabel>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarGroupContent>
+            <SidebarMenu className="gap-px mt-0.5">
+              {resolvedItems.map(({ item, section }) => (
+                <SidebarItemButton
+                  key={item.id}
+                  item={item}
+                  section={section}
+                  isActive={activeTab === item.id}
+                  collapsed={collapsed}
+                  badgeCount={badgeCounts?.[item.id] || 0}
+                  isFav
+                  onTabChange={onTabChange}
+                  onToggleFav={onToggleFav}
+                />
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </CollapsibleContent>
@@ -169,6 +396,39 @@ export function AdminSidebar({
   const collapsed = state === "collapsed";
   const { settings } = useBrandSettings();
   const logo = settings?.logo_url || logoFallback;
+
+  const {
+    favorites,
+    toggleFavorite,
+    isFavorite,
+    setSectionOrder,
+    getSectionOrder,
+  } = useSidebarPreferences();
+
+  // Compute ordered items for each section
+  const getOrderedItems = useCallback(
+    (section: SidebarSection): MenuItem[] => {
+      const customOrder = getSectionOrder(section.label);
+      if (!customOrder || customOrder.length === 0) return section.items;
+
+      // Build ordered list: items in customOrder first, then any new items
+      const itemMap = new Map(section.items.map((i) => [i.id, i]));
+      const ordered: MenuItem[] = [];
+      for (const id of customOrder) {
+        const item = itemMap.get(id);
+        if (item) {
+          ordered.push(item);
+          itemMap.delete(id);
+        }
+      }
+      // Append items not in custom order (newly added items)
+      for (const item of itemMap.values()) {
+        ordered.push(item);
+      }
+      return ordered;
+    },
+    [getSectionOrder]
+  );
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/20">
@@ -197,6 +457,20 @@ export function AdminSidebar({
 
       {/* Scrollable sections */}
       <SidebarContent className="scrollbar-thin py-1.5 space-y-0.5">
+        {/* Favorites pinned at the top */}
+        {favorites.length > 0 && (
+          <>
+            <FavoritesSection
+              favoriteIds={favorites}
+              activeTab={activeTab}
+              onTabChange={onTabChange}
+              badgeCounts={badgeCounts}
+              onToggleFav={toggleFavorite}
+            />
+            <div className="mx-4 my-1 h-px bg-border/30" />
+          </>
+        )}
+
         {SIDEBAR_SECTIONS.map((section) => (
           <SidebarSectionGroup
             key={section.label}
@@ -204,6 +478,10 @@ export function AdminSidebar({
             activeTab={activeTab}
             onTabChange={onTabChange}
             badgeCounts={badgeCounts}
+            isFavorite={isFavorite}
+            onToggleFav={toggleFavorite}
+            orderedItems={getOrderedItems(section)}
+            onReorder={setSectionOrder}
           />
         ))}
       </SidebarContent>
