@@ -1629,19 +1629,26 @@ export type Database = {
         Row: {
           ativo: boolean
           cidade: string
+          cliente_id: string | null
           cliente_nome: string | null
           created_at: string
           data_conclusao: string | null
+          depoimento_cliente: string | null
           descricao: string | null
           destaque: boolean
           economia_mensal: number | null
           estado: string
           id: string
           imagens_urls: string[]
+          marca_paineis: string | null
           modelo_inversor: string | null
           numero_modulos: number | null
           ordem: number
+          payback_meses: number | null
           potencia_kwp: number | null
+          projeto_id: string | null
+          tags: string[]
+          tempo_instalacao_dias: number | null
           tipo_projeto: string
           titulo: string
           updated_at: string
@@ -1650,19 +1657,26 @@ export type Database = {
         Insert: {
           ativo?: boolean
           cidade: string
+          cliente_id?: string | null
           cliente_nome?: string | null
           created_at?: string
           data_conclusao?: string | null
+          depoimento_cliente?: string | null
           descricao?: string | null
           destaque?: boolean
           economia_mensal?: number | null
           estado?: string
           id?: string
           imagens_urls?: string[]
+          marca_paineis?: string | null
           modelo_inversor?: string | null
           numero_modulos?: number | null
           ordem?: number
+          payback_meses?: number | null
           potencia_kwp?: number | null
+          projeto_id?: string | null
+          tags?: string[]
+          tempo_instalacao_dias?: number | null
           tipo_projeto?: string
           titulo: string
           updated_at?: string
@@ -1671,25 +1685,47 @@ export type Database = {
         Update: {
           ativo?: boolean
           cidade?: string
+          cliente_id?: string | null
           cliente_nome?: string | null
           created_at?: string
           data_conclusao?: string | null
+          depoimento_cliente?: string | null
           descricao?: string | null
           destaque?: boolean
           economia_mensal?: number | null
           estado?: string
           id?: string
           imagens_urls?: string[]
+          marca_paineis?: string | null
           modelo_inversor?: string | null
           numero_modulos?: number | null
           ordem?: number
+          payback_meses?: number | null
           potencia_kwp?: number | null
+          projeto_id?: string | null
+          tags?: string[]
+          tempo_instalacao_dias?: number | null
           tipo_projeto?: string
           titulo?: string
           updated_at?: string
           video_url?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "obras_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "obras_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orcamentos: {
         Row: {

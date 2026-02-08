@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MapPin, Zap, ChevronLeft, ChevronRight, Video } from "lucide-react";
+import { MapPin, Zap, ChevronLeft, ChevronRight, Video, Clock, TrendingUp, MessageSquareQuote, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,16 +25,21 @@ interface ObraPublic {
   imagens_urls: string[];
   video_url: string | null;
   numero_modulos: number | null;
+  marca_paineis: string | null;
+  tempo_instalacao_dias: number | null;
+  depoimento_cliente: string | null;
+  payback_meses: number | null;
+  tags: string[];
 }
 
 // Fallback static projects when DB has no data
 const FALLBACK_PROJECTS: ObraPublic[] = [
-  { id: "1", titulo: "Residência Família Silva", cidade: "Cataguases", estado: "MG", potencia_kwp: 3.89, economia_mensal: 380, tipo_projeto: "residencial", imagens_urls: [obra1], video_url: null, descricao: "Sistema fotovoltaico residencial com painéis de alta eficiência.", numero_modulos: 7 },
-  { id: "2", titulo: "Residência em Argirita", cidade: "Argirita", estado: "MG", potencia_kwp: 3.35, economia_mensal: 320, tipo_projeto: "residencial", imagens_urls: [obra2], video_url: null, descricao: "Instalação completa em telhado cerâmico com orientação ideal.", numero_modulos: 6 },
-  { id: "3", titulo: "Projeto Residencial Cataguases", cidade: "Cataguases", estado: "MG", potencia_kwp: 3.27, economia_mensal: 310, tipo_projeto: "residencial", imagens_urls: [obra3], video_url: null, descricao: "Sistema compacto de alta performance para residência urbana.", numero_modulos: 6 },
-  { id: "4", titulo: "Sistema 7.22 kWp - Cataguases", cidade: "Cataguases", estado: "MG", potencia_kwp: 7.22, economia_mensal: 690, tipo_projeto: "residencial", imagens_urls: [obra4], video_url: null, descricao: "Projeto de maior porte para residência com alto consumo.", numero_modulos: 13 },
-  { id: "5", titulo: "Comércio Centro - Leopoldina", cidade: "Leopoldina", estado: "MG", potencia_kwp: 12.50, economia_mensal: 1200, tipo_projeto: "comercial", imagens_urls: [obra5], video_url: null, descricao: "Sistema comercial reduzindo custos operacionais.", numero_modulos: 22 },
-  { id: "6", titulo: "Fazenda Solar - Miraí", cidade: "Miraí", estado: "MG", potencia_kwp: 18.70, economia_mensal: 1800, tipo_projeto: "rural", imagens_urls: [obra6], video_url: null, descricao: "Projeto rural de grande porte para propriedade agrícola.", numero_modulos: 34 },
+  { id: "1", titulo: "Residência Família Silva", cidade: "Cataguases", estado: "MG", potencia_kwp: 3.89, economia_mensal: 380, tipo_projeto: "residencial", imagens_urls: [obra1], video_url: null, descricao: "Sistema fotovoltaico residencial com painéis de alta eficiência.", numero_modulos: 7, marca_paineis: "Canadian Solar", tempo_instalacao_dias: 1, depoimento_cliente: null, payback_meses: 42, tags: ["residencial", "telhado-ceramico"] },
+  { id: "2", titulo: "Residência em Argirita", cidade: "Argirita", estado: "MG", potencia_kwp: 3.35, economia_mensal: 320, tipo_projeto: "residencial", imagens_urls: [obra2], video_url: null, descricao: "Instalação completa em telhado cerâmico com orientação ideal.", numero_modulos: 6, marca_paineis: null, tempo_instalacao_dias: 1, depoimento_cliente: null, payback_meses: null, tags: [] },
+  { id: "3", titulo: "Projeto Residencial Cataguases", cidade: "Cataguases", estado: "MG", potencia_kwp: 3.27, economia_mensal: 310, tipo_projeto: "residencial", imagens_urls: [obra3], video_url: null, descricao: "Sistema compacto de alta performance para residência urbana.", numero_modulos: 6, marca_paineis: null, tempo_instalacao_dias: null, depoimento_cliente: null, payback_meses: null, tags: [] },
+  { id: "4", titulo: "Sistema 7.22 kWp - Cataguases", cidade: "Cataguases", estado: "MG", potencia_kwp: 7.22, economia_mensal: 690, tipo_projeto: "residencial", imagens_urls: [obra4], video_url: null, descricao: "Projeto de maior porte para residência com alto consumo.", numero_modulos: 13, marca_paineis: "Trina Solar", tempo_instalacao_dias: 2, depoimento_cliente: "Excelente trabalho! A conta de luz caiu mais de 90%.", payback_meses: 36, tags: ["residencial", "monocristalino"] },
+  { id: "5", titulo: "Comércio Centro - Leopoldina", cidade: "Leopoldina", estado: "MG", potencia_kwp: 12.50, economia_mensal: 1200, tipo_projeto: "comercial", imagens_urls: [obra5], video_url: null, descricao: "Sistema comercial reduzindo custos operacionais.", numero_modulos: 22, marca_paineis: "JA Solar", tempo_instalacao_dias: 3, depoimento_cliente: null, payback_meses: 30, tags: ["comercial", "telhado-metalico"] },
+  { id: "6", titulo: "Fazenda Solar - Miraí", cidade: "Miraí", estado: "MG", potencia_kwp: 18.70, economia_mensal: 1800, tipo_projeto: "rural", imagens_urls: [obra6], video_url: null, descricao: "Projeto rural de grande porte para propriedade agrícola.", numero_modulos: 34, marca_paineis: "LONGi", tempo_instalacao_dias: 5, depoimento_cliente: null, payback_meses: 28, tags: ["rural", "solo", "on-grid"] },
 ];
 
 export function ProjectsSection() {
@@ -48,7 +53,7 @@ export function ProjectsSection() {
     const loadObras = async () => {
       const { data, error } = await supabase
         .from("obras")
-        .select("id, titulo, descricao, cidade, estado, potencia_kwp, economia_mensal, tipo_projeto, imagens_urls, video_url, numero_modulos")
+        .select("id, titulo, descricao, cidade, estado, potencia_kwp, economia_mensal, tipo_projeto, imagens_urls, video_url, numero_modulos, marca_paineis, tempo_instalacao_dias, depoimento_cliente, payback_meses, tags")
         .eq("ativo", true)
         .order("ordem", { ascending: true })
         .order("created_at", { ascending: false });
@@ -223,7 +228,7 @@ export function ProjectsSection() {
                 {selectedProject.descricao && (
                   <p className="text-sm text-white/80 mb-2 line-clamp-2">{selectedProject.descricao}</p>
                 )}
-                <div className="flex items-center gap-4 text-sm flex-wrap">
+                <div className="flex items-center gap-3 text-sm flex-wrap">
                   <span className="flex items-center gap-1">
                     <MapPin className="w-4 h-4 text-primary" />
                     {selectedProject.cidade} - {selectedProject.estado}
@@ -239,7 +244,46 @@ export function ProjectsSection() {
                       Economia: R$ {selectedProject.economia_mensal}/mês
                     </Badge>
                   )}
+                  {selectedProject.marca_paineis && (
+                    <span className="flex items-center gap-1">
+                      <Tag className="w-3.5 h-3.5 text-primary" />
+                      {selectedProject.marca_paineis}
+                    </span>
+                  )}
+                  {selectedProject.tempo_instalacao_dias && (
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-primary" />
+                      {selectedProject.tempo_instalacao_dias} dia{selectedProject.tempo_instalacao_dias > 1 ? "s" : ""}
+                    </span>
+                  )}
+                  {selectedProject.payback_meses && (
+                    <span className="flex items-center gap-1">
+                      <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                      Payback: {selectedProject.payback_meses} meses
+                    </span>
+                  )}
                 </div>
+
+                {/* Tags */}
+                {selectedProject.tags?.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {selectedProject.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary" className="bg-white/20 text-white/90 text-[10px] border-0">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+
+                {/* Depoimento */}
+                {selectedProject.depoimento_cliente && (
+                  <div className="flex items-start gap-2 mt-3 bg-white/10 rounded-lg p-3">
+                    <MessageSquareQuote className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                    <p className="text-sm text-white/90 italic line-clamp-3">
+                      {selectedProject.depoimento_cliente}
+                    </p>
+                  </div>
+                )}
 
                 {/* Video link */}
                 {selectedProject.video_url && (
