@@ -29,6 +29,7 @@ interface SmConfig {
   auth_email: string | null;
   auth_password_encrypted: string | null;
   webhook_secret: string | null;
+  site_url: string | null;
   last_token_expires_at: string | null;
 }
 
@@ -58,6 +59,7 @@ export function SolarMarketManager() {
   const [formEmail, setFormEmail] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formBaseUrl, setFormBaseUrl] = useState("https://business.solarmarket.com.br/api/v2");
+  const [formSiteUrl, setFormSiteUrl] = useState("");
   const [formWebhookSecret, setFormWebhookSecret] = useState("");
   const [formEnabled, setFormEnabled] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -84,6 +86,7 @@ export function SolarMarketManager() {
         setFormEmail(data.auth_email || "");
         setFormPassword(""); // never show password
         setFormBaseUrl(data.base_url || "https://business.solarmarket.com.br/api/v2");
+        setFormSiteUrl(data.site_url || "");
         setFormWebhookSecret(data.webhook_secret || "");
         setFormEnabled(data.enabled);
       }
@@ -126,6 +129,7 @@ export function SolarMarketManager() {
         enabled: formEnabled,
         base_url: formBaseUrl,
         auth_mode: formAuthMode,
+        site_url: formSiteUrl || null,
         webhook_secret: formWebhookSecret || null,
       };
 
@@ -407,6 +411,19 @@ export function SolarMarketManager() {
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="sm-site-url">URL do Site (para n8n / integrações)</Label>
+                <Input
+                  id="sm-site-url"
+                  placeholder="https://meusite.com.br"
+                  value={formSiteUrl}
+                  onChange={(e) => setFormSiteUrl(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  URL usada para configurar webhooks, n8n e integrações externas.
+                </p>
+              </div>
+
               <Separator />
 
               <div className="space-y-2">
@@ -516,6 +533,48 @@ export function SolarMarketManager() {
               {!config?.enabled && (
                 <p className="text-sm text-destructive">Ative a integração na aba Configuração para sincronizar.</p>
               )}
+
+              <Separator />
+
+              <div className="space-y-3">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Sync Programado (Cron / n8n)
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Configure no n8n ou cron para rodar a sincronização completa automaticamente (recomendado: 1x por dia). 
+                  Use a URL abaixo como HTTP Request no n8n:
+                </p>
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">URL para Full Sync (POST)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      readOnly
+                      value={`https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/solar-market-sync`}
+                      className="font-mono text-xs"
+                    />
+                    <Button variant="outline" size="icon" onClick={() => {
+                      navigator.clipboard.writeText(`https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/solar-market-sync`);
+                      toast.success("URL copiada!");
+                    }}>
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <pre className="p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
+{`POST /functions/v1/solar-market-sync
+Content-Type: application/json
+
+{
+  "mode": "full",
+  "source": "cron"
+}`}
+                </pre>
+                <p className="text-xs text-muted-foreground">
+                  💡 No campo <strong>source</strong> use "cron" ou "n8n" para pular a verificação de autenticação de usuário. 
+                  O endpoint é protegido por <code>apikey</code> do Supabase no header.
+                </p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
