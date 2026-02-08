@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const estados = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
@@ -14,29 +15,9 @@ const estados = [
   "SP", "SE", "TO",
 ];
 
-const contactInfo = [
-  {
-    icon: Phone,
-    label: "Telefone",
-    value: "(32) 99843-7675",
-    href: "tel:+5532998437675",
-  },
-  {
-    icon: Mail,
-    label: "E-mail",
-    value: "contato@maisenergiasolar.com.br",
-    href: "mailto:contato@maisenergiasolar.com.br",
-  },
-  {
-    icon: MapPin,
-    label: "Localização",
-    value: "Cataguases - MG",
-    href: null,
-  },
-];
-
 export function ContactSection() {
   const { ref, isVisible } = useScrollReveal();
+  const { get } = useSiteSettings();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nome: "",
@@ -46,6 +27,30 @@ export function ContactSection() {
     estado: "",
     observacoes: "",
   });
+
+  const whatsapp = get("whatsapp");
+  const nomeEmpresa = get("nome_empresa");
+
+  const contactInfo = [
+    {
+      icon: Phone,
+      label: "Telefone",
+      value: get("telefone"),
+      href: `tel:+${whatsapp}`,
+    },
+    {
+      icon: Mail,
+      label: "E-mail",
+      value: get("email"),
+      href: `mailto:${get("email")}`,
+    },
+    {
+      icon: MapPin,
+      label: "Localização",
+      value: `${get("cidade")} - ${get("estado")}`,
+      href: null as string | null,
+    },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,7 +70,7 @@ export function ContactSection() {
       const message = encodeURIComponent(
         `Olá! Gostaria de solicitar um orçamento.\n\nNome: ${formData.nome}\nTelefone: ${formData.telefone}\nCidade: ${formData.cidade} - ${formData.estado}\n${formData.observacoes ? `Observações: ${formData.observacoes}` : ""}`
       );
-      window.open(`https://wa.me/5532998437675?text=${message}`, "_blank");
+      window.open(`https://wa.me/${whatsapp}?text=${message}`, "_blank");
 
       toast({
         title: "Redirecionado para WhatsApp!",
@@ -138,7 +143,7 @@ export function ContactSection() {
 
             {/* WhatsApp CTA */}
             <a
-              href="https://wa.me/5532998437675"
+              href={`https://wa.me/${whatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-success text-success-foreground font-semibold text-sm hover:opacity-90 transition-opacity"

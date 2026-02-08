@@ -2,13 +2,8 @@ import { useEffect, useState } from "react";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import heroImage from "@/assets/hero-solar.jpg";
-
-const stats = [
-  { value: 15, suffix: "+", label: "Anos de experiência" },
-  { value: 500, suffix: "+", label: "Projetos realizados" },
-  { value: 90, suffix: "%", label: "Economia na conta" },
-];
 
 function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
   const [count, setCount] = useState(0);
@@ -39,6 +34,15 @@ function AnimatedCounter({ value, suffix }: { value: number; suffix: string }) {
 }
 
 export function HeroBanner() {
+  const { get } = useSiteSettings();
+
+  const whatsapp = get("whatsapp");
+  const stats = [
+    { value: get("stat_anos_experiencia") || 15, suffix: "+", label: "Anos de experiência" },
+    { value: get("stat_projetos_realizados") || 500, suffix: "+", label: "Projetos realizados" },
+    { value: get("stat_economia_percentual") || 90, suffix: "%", label: "Economia na conta" },
+  ];
+
   const scrollToContact = () => {
     document.getElementById("contato")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -90,7 +94,7 @@ export function HeroBanner() {
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/15 text-white text-sm font-semibold mb-8 backdrop-blur-md"
           >
             <Sparkles className="w-4 h-4 text-primary" />
-            Economia de até 90% na conta de luz
+            {get("hero_badge_texto")}
           </motion.span>
 
           {/* Title */}
@@ -100,20 +104,7 @@ export function HeroBanner() {
             transition={{ duration: 0.7, delay: 0.4 }}
             className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] mb-6 tracking-tight"
           >
-            O futuro da{" "}
-            <span className="relative inline-block">
-              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary-glow to-primary">
-                energia
-              </span>
-              <motion.span 
-                className="absolute -bottom-1.5 left-0 right-0 h-3 bg-primary/25 rounded-full -z-0"
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.8, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}
-                style={{ transformOrigin: "left" }}
-              />
-            </span>{" "}
-            é agora!
+            {get("hero_titulo")}
           </motion.h1>
 
           {/* Description */}
@@ -123,8 +114,7 @@ export function HeroBanner() {
             transition={{ duration: 0.6, delay: 0.6 }}
             className="text-lg sm:text-xl text-white/70 mb-10 max-w-xl leading-relaxed"
           >
-            Soluções em energia solar fotovoltaica para residências, comércios,
-            indústrias e propriedades rurais. Projetos personalizados com a melhor tecnologia.
+            {get("hero_subtitulo")}
           </motion.p>
 
           {/* CTA Buttons */}
@@ -139,7 +129,7 @@ export function HeroBanner() {
               onClick={scrollToContact}
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full shadow-primary hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-1"
             >
-              Solicitar Orçamento Grátis
+              {get("hero_cta_texto")}
             </Button>
             <Button
               size="lg"
@@ -147,8 +137,8 @@ export function HeroBanner() {
               asChild
               className="border-white/20 text-white hover:bg-white/10 hover:border-white/40 font-semibold px-8 py-6 text-base rounded-full backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5"
             >
-              <a href="https://wa.me/5532998437675" target="_blank" rel="noopener noreferrer">
-                Fale no WhatsApp
+              <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
+                {get("hero_cta_whatsapp_texto")}
               </a>
             </Button>
           </motion.div>

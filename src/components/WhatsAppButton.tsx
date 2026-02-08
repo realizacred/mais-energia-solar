@@ -2,9 +2,10 @@ import { useState, forwardRef } from "react";
 import { MessageCircle, X, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 interface WhatsAppButtonProps {
-  phoneNumber: string;
+  phoneNumber?: string;
   message?: string;
 }
 
@@ -13,14 +14,17 @@ const WhatsAppButton = forwardRef<HTMLDivElement, WhatsAppButtonProps>(function 
   message = "Olá! Gostaria de saber mais sobre energia solar." 
 }, ref) {
   const [isOpen, setIsOpen] = useState(false);
+  const { get } = useSiteSettings();
+
+  const nomeEmpresa = get("nome_empresa");
+  const whatsapp = phoneNumber || get("whatsapp") || "5532998437675";
 
   const formatPhoneForWhatsApp = (phone: string) => {
-    // Remove all non-numeric characters
     return phone.replace(/\D/g, "");
   };
 
   const openWhatsApp = () => {
-    const formattedPhone = formatPhoneForWhatsApp(phoneNumber);
+    const formattedPhone = formatPhoneForWhatsApp(whatsapp);
     const encodedMessage = encodeURIComponent(message);
     const url = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
     window.open(url, "_blank", "noopener,noreferrer");
@@ -41,7 +45,7 @@ const WhatsAppButton = forwardRef<HTMLDivElement, WhatsAppButtonProps>(function 
                 <MessageCircle className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="font-semibold text-sm">Mais Energia Solar</p>
+                <p className="font-semibold text-sm">{nomeEmpresa}</p>
                 <p className="text-xs text-green-600">Online agora</p>
               </div>
             </div>

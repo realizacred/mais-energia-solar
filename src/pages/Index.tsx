@@ -15,9 +15,6 @@ import {
 } from "@/components/institutional";
 import { VendorLandingPage } from "@/components/vendor/VendorLandingPage";
 
-// WhatsApp da Mais Energia Solar
-const WHATSAPP_NUMBER = "5532998437675";
-
 export default function Index() {
   const [searchParams] = useSearchParams();
 
@@ -43,7 +40,7 @@ export default function Index() {
       <TestimonialsSection />
       <ContactSection />
       <Footer />
-      <WhatsAppButton phoneNumber={WHATSAPP_NUMBER} />
+      <WhatsAppButton />
     </div>
   );
 }
