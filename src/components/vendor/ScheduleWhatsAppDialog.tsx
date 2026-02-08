@@ -122,7 +122,11 @@ export function ScheduleWhatsAppDialog({
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const { parseInvokeError } = await import("@/lib/supabaseFunctionError");
+        const parsed = await parseInvokeError(error);
+        throw new Error(parsed.message);
+      }
 
       if (data?.success) {
         toast({

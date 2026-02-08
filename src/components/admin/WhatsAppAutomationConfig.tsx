@@ -74,7 +74,7 @@ export function WhatsAppAutomationConfig() {
       const { data: configData } = await supabase
         .from("whatsapp_automation_config")
         .select("*")
-        .single();
+        .maybeSingle();
 
       if (configData) {
         setConfig(configData);

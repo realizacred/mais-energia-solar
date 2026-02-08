@@ -61,15 +61,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Busca config (RLS)
+    // Busca config (RLS) — usa maybeSingle para não quebrar quando sem registro
     const { data: config, error: configError } = await supabase
       .from("whatsapp_automation_config")
       .select("ativo, modo_envio, webhook_url, api_token, evolution_api_url, evolution_api_key, evolution_instance")
-      .single();
+      .maybeSingle();
 
-    if (configError || !config) {
+    if (configError) {
       console.error("Error fetching WhatsApp config:", configError);
-      return new Response(JSON.stringify({ success: false, error: "Configuração de WhatsApp não encontrada" }), {
+      return new Response(JSON.stringify({ success: false, error: "Erro ao buscar configuração de WhatsApp" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!config) {
+      console.warn("WhatsApp config not found — no row in whatsapp_automation_config");
+      return new Response(JSON.stringify({ success: false, error: "Configuração de WhatsApp não encontrada. Acesse Configurações > WhatsApp no painel admin para configurar." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

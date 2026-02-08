@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -64,7 +65,10 @@ export function WhatsAppSendDialog({
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        const parsed = await parseInvokeError(error);
+        throw new Error(parsed.message);
+      }
 
       if (data?.success) {
         toast({

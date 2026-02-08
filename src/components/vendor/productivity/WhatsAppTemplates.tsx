@@ -182,7 +182,9 @@ export function WhatsAppTemplates({ vendedorNome = "Vendedor", onSendToLead }: W
       });
 
       if (response.error) {
-        throw new Error(response.error.message || "Erro ao enviar mensagem");
+        const { parseInvokeError } = await import("@/lib/supabaseFunctionError");
+        const parsed = await parseInvokeError(response.error);
+        throw new Error(parsed.message);
       }
 
       const result = response.data;
