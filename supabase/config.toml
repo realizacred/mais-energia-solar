@@ -6,6 +6,9 @@ verify_jwt = false
 [functions.delete-user]
 verify_jwt = false
 
+[functions.generate-ai-insights]
+verify_jwt = false
+
 [functions.instagram-sync]
 verify_jwt = false
 
