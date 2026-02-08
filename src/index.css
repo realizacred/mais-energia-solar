@@ -11,118 +11,160 @@
 /* ===== TOKENS ===== */
 @layer base {
   :root {
-    /* ===== MAIS ENERGIA SOLAR - DESIGN SYSTEM ===== */
-    --background: 0 0% 99%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    /* =============================================
+       MAIS ENERGIA SOLAR — ENTERPRISE DESIGN SYSTEM
+       Derived from brand logo orange (hue ≈ 24)
+       Philosophy: Controlled saturation, warm neutrals,
+       clear hierarchy, premium SaaS feel.
+       ============================================= */
+
+    /* --- Surfaces --- */
+    --background: 220 18% 97%;          /* Warm off-white — never pure white */
+    --foreground: 222 25% 10%;          /* Rich charcoal */
+    --card: 0 0% 100%;                  /* Pure white for elevation */
+    --card-foreground: 222 25% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 25 100% 50%;
+    --popover-foreground: 222 25% 10%;
+
+    /* --- Brand Colors --- */
+    --primary: 24 78% 48%;              /* Rich amber-orange — desaturated for pro look */
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 25 100% 60%;
-    --secondary: 210 100% 40%;
+    --primary-glow: 24 82% 56%;         /* Lighter variant for gradients */
+    --secondary: 215 42% 22%;           /* Deep navy — authority & trust */
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 210 100% 55%;
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --secondary-glow: 215 45% 32%;      /* Lighter navy for gradients */
+
+    /* --- Neutral Tones --- */
+    --muted: 220 16% 95%;
+    --muted-foreground: 220 10% 46%;
     --accent: 220 14% 93%;
-    --accent-foreground: 222 47% 11%;
-    --destructive: 0 72% 51%;
+    --accent-foreground: 222 25% 10%;
+
+    /* --- Semantic (Status) Colors --- */
+    --destructive: 4 58% 46%;           /* Rich crimson — not neon red */
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 45%;
+    --success: 152 48% 38%;             /* Teal-green — professional */
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 40 72% 50%;              /* Golden amber */
     --warning-foreground: 0 0% 100%;
-    --info: 199 89% 48%;
+    --info: 205 62% 48%;                /* Steel blue */
     --info-foreground: 0 0% 100%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 25 100% 50%;
+
+    /* --- Edges --- */
+    --border: 220 14% 90%;
+    --input: 220 14% 90%;
+    --ring: 24 78% 48%;
     --radius: 0.625rem;
-    --brand-orange: 25 100% 50%;
-    --brand-blue: 210 100% 40%;
-    --brand-blue-light: 210 90% 55%;
+
+    /* --- Brand Aliases (legacy compat) --- */
+    --brand-orange: 24 78% 48%;
+    --brand-blue: 215 42% 22%;
+    --brand-blue-light: 215 45% 32%;
+
+    /* --- Elevation Surfaces --- */
     --surface-1: 0 0% 100%;
-    --surface-2: 220 14% 98%;
-    --surface-3: 220 14% 96%;
+    --surface-2: 220 16% 98%;
+    --surface-3: 220 16% 95%;
+
+    /* --- Shadows (soft & diffuse) --- */
     --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.03);
-    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.03);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.04);
-    --shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.06), 0 4px 8px -4px rgb(0 0 0 / 0.04);
-    --shadow-xl: 0 20px 30px -6px rgb(0 0 0 / 0.08), 0 8px 12px -6px rgb(0 0 0 / 0.06);
-    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.12);
-    --shadow-primary: 0 4px 14px 0 hsl(25 100% 50% / 0.25);
-    --shadow-secondary: 0 4px 14px 0 hsl(210 100% 40% / 0.25);
-    --sidebar-background: 222 20% 97%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 25 100% 50%;
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.02);
+    --shadow-md: 0 4px 8px -2px rgb(0 0 0 / 0.06), 0 2px 4px -2px rgb(0 0 0 / 0.03);
+    --shadow-lg: 0 10px 24px -6px rgb(0 0 0 / 0.08), 0 4px 8px -4px rgb(0 0 0 / 0.03);
+    --shadow-xl: 0 20px 40px -8px rgb(0 0 0 / 0.1), 0 8px 16px -8px rgb(0 0 0 / 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.14);
+    --shadow-primary: 0 4px 16px 0 hsl(24 78% 48% / 0.15);
+    --shadow-secondary: 0 4px 16px 0 hsl(215 42% 22% / 0.12);
+
+    /* --- Sidebar --- */
+    --sidebar-background: 222 22% 97%;
+    --sidebar-foreground: 222 25% 10%;
+    --sidebar-primary: 24 78% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 14% 93%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 25 100% 50%;
-    --sidebar-section-analytics: 262 83% 58%;
-    --sidebar-section-finance: 160 84% 39%;
-    --sidebar-section-sales: 217 91% 60%;
-    --sidebar-section-operations: 25 95% 53%;
-    --sidebar-section-apis: 189 94% 43%;
-    --sidebar-section-config: 38 92% 50%;
+    --sidebar-accent-foreground: 222 25% 10%;
+    --sidebar-border: 220 14% 90%;
+    --sidebar-ring: 24 78% 48%;
+
+    /* Section colors — controlled saturation (45-55%) */
+    --sidebar-section-analytics: 260 45% 52%;
+    --sidebar-section-finance: 155 42% 38%;
+    --sidebar-section-sales: 215 48% 50%;
+    --sidebar-section-operations: 24 65% 50%;
+    --sidebar-section-apis: 195 50% 42%;
+    --sidebar-section-config: 35 55% 46%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 25 100% 55%;
+    /* --- Surfaces (deep blue-charcoal, not pure black) --- */
+    --background: 222 28% 7%;
+    --foreground: 220 15% 93%;
+    --card: 222 25% 9%;
+    --card-foreground: 220 15% 93%;
+    --popover: 222 25% 9%;
+    --popover-foreground: 220 15% 93%;
+
+    /* --- Brand Colors (slightly lifted for dark bg contrast) --- */
+    --primary: 24 80% 52%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 25 100% 65%;
-    --secondary: 210 100% 55%;
+    --primary-glow: 24 82% 60%;
+    --secondary: 215 48% 45%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 210 100% 65%;
-    --muted: 217 33% 15%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 18%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62% 45%;
+    --secondary-glow: 215 50% 55%;
+
+    /* --- Neutrals --- */
+    --muted: 222 20% 14%;
+    --muted-foreground: 220 12% 58%;
+    --accent: 222 18% 16%;
+    --accent-foreground: 220 15% 93%;
+
+    /* --- Semantic (Status) Colors --- */
+    --destructive: 4 52% 42%;
     --destructive-foreground: 0 0% 100%;
-    --success: 142 71% 40%;
+    --success: 152 42% 38%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 45%;
+    --warning: 40 65% 48%;
     --warning-foreground: 0 0% 100%;
-    --info: 199 89% 45%;
+    --info: 205 55% 48%;
     --info-foreground: 0 0% 100%;
-    --border: 217 33% 18%;
-    --input: 217 33% 18%;
-    --ring: 25 100% 55%;
-    --surface-1: 222 47% 8%;
-    --surface-2: 222 47% 10%;
-    --surface-3: 222 47% 12%;
-    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
-    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.25), 0 1px 2px -1px rgb(0 0 0 / 0.2);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.25);
-    --shadow-lg: 0 10px 20px -4px rgb(0 0 0 / 0.35), 0 4px 8px -4px rgb(0 0 0 / 0.3);
-    --shadow-xl: 0 20px 30px -6px rgb(0 0 0 / 0.4), 0 8px 12px -6px rgb(0 0 0 / 0.35);
-    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.5);
-    --shadow-primary: 0 4px 14px 0 hsl(25 100% 55% / 0.3);
-    --shadow-secondary: 0 4px 14px 0 hsl(210 100% 55% / 0.3);
-    --sidebar-background: 222 47% 7%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 25 100% 55%;
+
+    /* --- Edges --- */
+    --border: 222 18% 15%;
+    --input: 222 18% 15%;
+    --ring: 24 80% 52%;
+
+    /* --- Elevation --- */
+    --surface-1: 222 25% 9%;
+    --surface-2: 222 25% 11%;
+    --surface-3: 222 25% 13%;
+
+    /* --- Shadows (darker, more defined) --- */
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.2), 0 1px 2px -1px rgb(0 0 0 / 0.15);
+    --shadow-md: 0 4px 8px -2px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 10px 24px -6px rgb(0 0 0 / 0.3), 0 4px 8px -4px rgb(0 0 0 / 0.25);
+    --shadow-xl: 0 20px 40px -8px rgb(0 0 0 / 0.35), 0 8px 16px -8px rgb(0 0 0 / 0.3);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.45);
+    --shadow-primary: 0 4px 16px 0 hsl(24 80% 52% / 0.2);
+    --shadow-secondary: 0 4px 16px 0 hsl(215 48% 45% / 0.2);
+
+    /* --- Sidebar --- */
+    --sidebar-background: 222 28% 6%;
+    --sidebar-foreground: 220 15% 93%;
+    --sidebar-primary: 24 80% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 217 33% 15%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217 33% 18%;
-    --sidebar-ring: 25 100% 55%;
-    --sidebar-section-analytics: 263 70% 65%;
-    --sidebar-section-finance: 160 60% 50%;
-    --sidebar-section-sales: 217 80% 65%;
-    --sidebar-section-operations: 25 85% 60%;
-    --sidebar-section-apis: 189 80% 55%;
-    --sidebar-section-config: 38 80% 55%;
+    --sidebar-accent: 222 20% 14%;
+    --sidebar-accent-foreground: 220 15% 93%;
+    --sidebar-border: 222 18% 15%;
+    --sidebar-ring: 24 80% 52%;
+
+    /* Section colors — slightly lifted for dark */
+    --sidebar-section-analytics: 260 40% 58%;
+    --sidebar-section-finance: 155 38% 46%;
+    --sidebar-section-sales: 215 42% 56%;
+    --sidebar-section-operations: 24 58% 55%;
+    --sidebar-section-apis: 195 45% 48%;
+    --sidebar-section-config: 35 48% 50%;
   }
 }
 
