@@ -40,6 +40,7 @@ import { IntelligenceDashboard } from "@/components/admin/intelligence";
 import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
 import { CommercialDirectorDashboard } from "@/components/admin/director";
 import { TasksSlaDashboard } from "@/components/admin/tasks";
+import { WhatsAppInbox } from "@/components/admin/inbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -71,6 +72,7 @@ const TAB_TITLES: Record<string, string> = {
   config: "Calculadora Solar",
   financiamento: "Bancos & Financiamento",
   instagram: "Instagram API",
+  inbox: "Central WhatsApp",
   whatsapp: "WhatsApp Automação",
   webhooks: "Webhooks",
   n8n: "n8n Automações",
@@ -235,6 +237,8 @@ export default function Admin() {
         return <FinanciamentoConfig />;
       case "instagram":
         return <InstagramConfig />;
+      case "inbox":
+        return <WhatsAppInbox />;
       case "whatsapp":
         return <WhatsAppAutomationConfig />;
       case "webhooks":
