@@ -29,6 +29,7 @@ import {
   Workflow,
   Rocket,
   TrendingUp,
+  FileText,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -113,6 +114,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       },
       { id: "followup", title: "Follow-ups", icon: Bell },
       { id: "validacao", title: "Validação", icon: ClipboardCheck },
+      {
+        id: "propostas",
+        title: "Propostas",
+        icon: FileText,
+        description: "Propostas comerciais",
+      },
       {
         id: "tarefas",
         title: "Tarefas & SLA",
