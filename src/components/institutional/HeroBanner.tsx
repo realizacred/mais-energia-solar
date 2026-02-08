@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import heroImage from "@/assets/hero-solar.jpg";
@@ -58,13 +58,26 @@ export function HeroBanner() {
         animate={{ scale: 1 }}
         transition={{ duration: 1.5, ease: "easeOut" }}
       />
-      {/* Multi-layer overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-secondary/90 via-secondary/75 to-secondary/60" />
-      <div className="absolute inset-0 bg-gradient-to-t from-secondary/50 via-transparent to-transparent" />
+      {/* Multi-layer overlay for depth */}
+      <div className="absolute inset-0 bg-gradient-to-br from-secondary/90 via-secondary/75 to-secondary/50" />
+      <div className="absolute inset-0 bg-gradient-to-t from-secondary/60 via-transparent to-secondary/20" />
 
-      {/* Decorative elements */}
-      <div className="absolute top-20 right-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 left-10 w-96 h-96 bg-secondary-glow/10 rounded-full blur-3xl" />
+      {/* Animated decorative orbs */}
+      <motion.div 
+        className="absolute top-20 right-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl"
+        animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div 
+        className="absolute bottom-20 left-10 w-96 h-96 bg-secondary-glow/10 rounded-full blur-3xl"
+        animate={{ scale: [1, 1.15, 1], opacity: [0.2, 0.4, 0.2] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+
+      {/* Subtle noise texture */}
+      <div className="absolute inset-0 opacity-[0.015]" style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
+      }} />
 
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 py-24">
@@ -74,9 +87,9 @@ export function HeroBanner() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary/20 border border-primary/30 text-primary-foreground text-sm font-semibold mb-8 backdrop-blur-sm"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/10 border border-white/15 text-white text-sm font-semibold mb-8 backdrop-blur-md"
           >
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse-soft" />
+            <Sparkles className="w-4 h-4 text-primary" />
             Economia de até 90% na conta de luz
           </motion.span>
 
@@ -85,14 +98,20 @@ export function HeroBanner() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.1] mb-6 tracking-tight"
+            className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold text-white leading-[1.08] mb-6 tracking-tight"
           >
             O futuro da{" "}
             <span className="relative inline-block">
-              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary-glow">
+              <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-primary via-primary-glow to-primary">
                 energia
               </span>
-              <span className="absolute -bottom-1 left-0 right-0 h-3 bg-primary/20 rounded-full -z-0" />
+              <motion.span 
+                className="absolute -bottom-1.5 left-0 right-0 h-3 bg-primary/25 rounded-full -z-0"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: 1 }}
+                transition={{ duration: 0.8, delay: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                style={{ transformOrigin: "left" }}
+              />
             </span>{" "}
             é agora!
           </motion.h1>
@@ -102,7 +121,7 @@ export function HeroBanner() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="text-lg sm:text-xl text-white/75 mb-10 max-w-xl leading-relaxed"
+            className="text-lg sm:text-xl text-white/70 mb-10 max-w-xl leading-relaxed"
           >
             Soluções em energia solar fotovoltaica para residências, comércios,
             indústrias e propriedades rurais. Projetos personalizados com a melhor tecnologia.
@@ -118,7 +137,7 @@ export function HeroBanner() {
             <Button
               size="xl"
               onClick={scrollToContact}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full shadow-primary hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full shadow-primary hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-1"
             >
               Solicitar Orçamento Grátis
             </Button>
@@ -126,7 +145,7 @@ export function HeroBanner() {
               size="lg"
               variant="outline"
               asChild
-              className="border-white/30 text-white hover:bg-white/10 hover:border-white/50 font-semibold px-8 py-6 text-base rounded-full backdrop-blur-sm transition-all duration-300"
+              className="border-white/20 text-white hover:bg-white/10 hover:border-white/40 font-semibold px-8 py-6 text-base rounded-full backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5"
             >
               <a href="https://wa.me/5532998437675" target="_blank" rel="noopener noreferrer">
                 Fale no WhatsApp
@@ -144,12 +163,12 @@ export function HeroBanner() {
             {stats.map((stat, i) => (
               <div key={stat.label} className="relative">
                 {i > 0 && (
-                  <div className="absolute -left-4 sm:-left-7 top-1/2 -translate-y-1/2 w-px h-10 bg-white/20" />
+                  <div className="absolute -left-4 sm:-left-7 top-1/2 -translate-y-1/2 w-px h-10 bg-white/15" />
                 )}
-                <p className="font-display text-3xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70">
+                <p className="font-display text-3xl sm:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-white/60">
                   <AnimatedCounter value={stat.value} suffix={stat.suffix} />
                 </p>
-                <p className="text-sm text-white/50 mt-1">{stat.label}</p>
+                <p className="text-sm text-white/45 mt-1 font-medium">{stat.label}</p>
               </div>
             ))}
           </motion.div>
@@ -162,7 +181,7 @@ export function HeroBanner() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.5 }}
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/40 hover:text-white transition-colors"
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/30 hover:text-white/60 transition-colors duration-300"
         aria-label="Rolar para baixo"
       >
         <motion.div

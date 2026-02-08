@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Menu, ShieldAlert } from "lucide-react";
+import { Loader2, Menu, ShieldAlert, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLeads } from "@/hooks/useLeads";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,12 +105,10 @@ export default function Admin() {
       );
 
       if (!userHasAccess) {
-        // Check if user has vendedor role - redirect appropriately
         const isVendedor = roles?.some(r => r.role === "vendedor");
         if (isVendedor) {
           navigate("/vendedor", { replace: true });
         } else {
-          // No valid role - show access denied instead of looping
           setHasAccess(false);
         }
         return;
@@ -139,23 +137,30 @@ export default function Admin() {
 
   if (authLoading || loading || checkingAccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background gradient-mesh">
+        <div className="flex flex-col items-center gap-4 animate-pulse-soft">
+          <div className="p-4 rounded-2xl bg-primary/10">
+            <Sun className="w-8 h-8 text-primary animate-spin-slow" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">Carregando painel...</p>
+        </div>
       </div>
     );
   }
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen flex items-center justify-center bg-background gradient-mesh">
+        <Card className="w-full max-w-md border-destructive/20">
           <CardContent className="flex flex-col items-center gap-4 py-8">
-            <ShieldAlert className="w-12 h-12 text-destructive" />
+            <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center">
+              <ShieldAlert className="w-7 h-7 text-destructive" />
+            </div>
             <h2 className="text-xl font-semibold">Acesso Negado</h2>
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-sm text-muted-foreground text-center max-w-xs">
               Sua conta não possui permissão para acessar o painel administrativo. Contate o administrador.
             </p>
-            <Button onClick={handleSignOut} variant="outline">Sair</Button>
+            <Button onClick={handleSignOut} variant="outline" className="mt-2">Sair</Button>
           </CardContent>
         </Card>
       </div>
@@ -175,38 +180,11 @@ export default function Admin() {
       case "followup":
         return <FollowUpManager diasAlerta={3} />;
       case "validacao":
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Validação de Vendas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ValidacaoVendasManager />
-            </CardContent>
-          </Card>
-        );
+        return <ValidacaoVendasManager />;
       case "clientes":
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestão de Clientes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ClientesManager />
-            </CardContent>
-          </Card>
-        );
+        return <ClientesManager />;
       case "recebimentos":
-        return (
-          <Card>
-            <CardHeader>
-              <CardTitle>Controle de Recebimentos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RecebimentosManager />
-            </CardContent>
-          </Card>
-        );
+        return <RecebimentosManager />;
       case "dashboard":
         return <AnalyticsDashboard leads={leads} statuses={statuses} />;
       case "vendedores":
@@ -219,61 +197,16 @@ export default function Admin() {
         return <ConcessionariasManager />;
       case "gamificacao":
         return <GamificacaoConfig />;
-       case "comissoes":
-         return (
-           <Card>
-             <CardHeader>
-               <CardTitle>Gestão de Comissões</CardTitle>
-             </CardHeader>
-             <CardContent>
-               <ComissoesManager />
-             </CardContent>
-           </Card>
-         );
-       case "checklists":
-         return (
-           <Card>
-             <CardHeader>
-               <CardTitle>Registros de Serviço</CardTitle>
-             </CardHeader>
-             <CardContent>
-               <ChecklistsManager />
-             </CardContent>
-           </Card>
-         );
-       case "avaliacoes":
-         return (
-           <Card>
-             <CardHeader>
-               <CardTitle>Avaliações dos Clientes</CardTitle>
-             </CardHeader>
-             <CardContent>
-               <AvaliacoesManager />
-             </CardContent>
-           </Card>
-         );
-       case "servicos":
-         return (
-           <Card>
-             <CardHeader>
-               <CardTitle>Agendamento de Serviços</CardTitle>
-             </CardHeader>
-             <CardContent>
-               <ServicosManager />
-             </CardContent>
-           </Card>
-         );
-       case "instaladores":
-         return (
-           <Card>
-             <CardHeader>
-               <CardTitle>Gestão de Instaladores</CardTitle>
-             </CardHeader>
-             <CardContent>
-               <InstaladorManager />
-             </CardContent>
-           </Card>
-         );
+      case "comissoes":
+        return <ComissoesManager />;
+      case "checklists":
+        return <ChecklistsManager />;
+      case "avaliacoes":
+        return <AvaliacoesManager />;
+      case "servicos":
+        return <ServicosManager />;
+      case "instaladores":
+        return <InstaladorManager />;
       case "config":
         return <CalculadoraConfig />;
       case "financiamento":
@@ -286,17 +219,20 @@ export default function Admin() {
         return <WebhookManager />;
       case "n8n":
         return (
-          <Card>
-            <CardHeader>
-              <CardTitle>n8n - Automações</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8 text-muted-foreground">
-                <p>Integração com n8n em desenvolvimento.</p>
-                <p className="text-sm mt-2">Configure workflows de automação via MCP.</p>
+          <div className="content-section">
+            <div className="content-section-header">
+              <h3 className="text-base font-semibold">n8n - Automações</h3>
+            </div>
+            <div className="content-section-body">
+              <div className="empty-state">
+                <div className="empty-state-icon">
+                  <span className="text-2xl">🔧</span>
+                </div>
+                <p className="empty-state-title">Em desenvolvimento</p>
+                <p className="empty-state-description">Configure workflows de automação via MCP.</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         );
       case "inadimplencia":
         return <InadimplenciaDashboard />;
@@ -318,18 +254,20 @@ export default function Admin() {
         />
         
         <SidebarInset className="flex-1 min-w-0">
-          <header className="flex h-14 items-center gap-3 border-b bg-card/80 backdrop-blur-sm px-3 sm:px-4 md:px-6 sticky top-0 z-40">
+          {/* Premium Admin Header */}
+          <header className="page-header">
             <SidebarTrigger className="-ml-1 sm:-ml-2 h-9 w-9 sm:h-10 sm:w-10">
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
-            <div className="flex items-center gap-2 min-w-0">
-              <h1 className="text-sm sm:text-base font-semibold text-foreground truncate">
+            <div className="h-5 w-px bg-border/50 hidden sm:block" />
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h1 className="page-header-title">
                 {TAB_TITLES[activeTab] || activeTab}
               </h1>
             </div>
           </header>
 
-          <main className="flex-1 p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 md:space-y-6 overflow-x-hidden">
+          <main className="flex-1 p-4 md:p-6 space-y-5 overflow-x-hidden animate-fade-in">
             {activeTab === "leads" && (
               <StatsCards
                 totalLeads={stats.total}

@@ -66,11 +66,8 @@ interface SidebarSection {
   label: string;
   labelIcon: React.ComponentType<{ className?: string }>;
   items: MenuItem[];
-  /** CSS classes for active state */
   activeClass: string;
-  /** CSS classes for hover state */
   hoverClass: string;
-  /** CSS classes for label color */
   labelClass: string;
 }
 
@@ -170,14 +167,14 @@ export function AdminSidebar({
   let itemOffset = 0;
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/50">
-      <SidebarHeader className="border-b border-border/50 p-4">
+    <Sidebar collapsible="icon" className="border-r border-border/40">
+      <SidebarHeader className="border-b border-border/40 p-4">
         <Link
           to="/"
-          className="flex items-center gap-3 transition-opacity duration-200 hover:opacity-80"
+          className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
         >
           {collapsed ? (
-            <div className="p-1.5 rounded-lg bg-primary/10">
+            <div className="p-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors">
               <Sun className="h-6 w-6 text-primary" />
             </div>
           ) : (
@@ -190,15 +187,15 @@ export function AdminSidebar({
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="scrollbar-thin">
+      <SidebarContent className="scrollbar-thin px-2 py-2">
         {SIDEBAR_SECTIONS.map((section) => {
           const sectionOffset = itemOffset;
           itemOffset += section.items.length;
           const isApiSection = section.label === "APIs";
 
           return (
-            <SidebarGroup key={section.label}>
-              <SidebarGroupLabel className={`text-xs font-semibold uppercase tracking-wider ${section.labelClass} px-3 py-2 flex items-center gap-1.5`}>
+            <SidebarGroup key={section.label} className="mb-1">
+              <SidebarGroupLabel className={`text-[11px] font-bold uppercase tracking-widest ${section.labelClass} px-3 py-2 flex items-center gap-1.5`}>
                 <section.labelIcon className="h-3 w-3" />
                 {section.label}
               </SidebarGroupLabel>
@@ -212,11 +209,11 @@ export function AdminSidebar({
                           isActive={activeTab === item.id}
                           tooltip={item.description ? `${item.title} - ${item.description}` : item.title}
                           className={`
-                            transition-all duration-200 rounded-lg mx-2
+                            transition-all duration-200 rounded-xl mx-1
                             ${isApiSection ? "py-2.5" : ""}
                             ${activeTab === item.id
                               ? section.activeClass
-                              : section.hoverClass
+                              : `text-sidebar-foreground/70 ${section.hoverClass} hover:text-sidebar-foreground`
                             }
                           `}
                           style={{ animationDelay: `${(sectionOffset + index) * 50}ms` }}
@@ -225,15 +222,15 @@ export function AdminSidebar({
                           {item.description ? (
                             <div className="flex flex-col items-start">
                               <span className="text-sm">{item.title}</span>
-                              <span className="text-[10px] opacity-60">{item.description}</span>
+                              <span className="text-[10px] opacity-50 font-normal">{item.description}</span>
                             </div>
                           ) : (
-                            <span>{item.title}</span>
+                            <span className="text-[13px]">{item.title}</span>
                           )}
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                       {isApiSection && index < section.items.length - 1 && (
-                        <div className="mx-4 my-1.5 border-b border-border/40" />
+                        <div className="mx-5 my-1 border-b border-border/30" />
                       )}
                     </div>
                   ))}
@@ -244,10 +241,10 @@ export function AdminSidebar({
         })}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/50 p-4 space-y-3">
+      <SidebarFooter className="border-t border-border/40 p-3 space-y-2.5">
         {!collapsed && userEmail && (
-          <div className="px-2 py-1.5 rounded-lg bg-muted/50">
-            <p className="text-xs text-muted-foreground truncate">{userEmail}</p>
+          <div className="px-3 py-2 rounded-xl bg-muted/50 border border-border/30">
+            <p className="text-[11px] text-muted-foreground truncate font-medium">{userEmail}</p>
           </div>
         )}
         {!collapsed && <PortalSwitcher />}
@@ -255,10 +252,10 @@ export function AdminSidebar({
           variant="outline"
           size={collapsed ? "icon" : "default"}
           onClick={onSignOut}
-          className="w-full gap-2 text-muted-foreground hover:text-destructive hover:border-destructive/50 hover:bg-destructive/5"
+          className="w-full gap-2 text-muted-foreground hover:text-destructive hover:border-destructive/40 hover:bg-destructive/5 rounded-xl transition-all duration-200"
         >
           <LogOut className="h-4 w-4" />
-          {!collapsed && <span>Sair</span>}
+          {!collapsed && <span className="text-sm">Sair</span>}
         </Button>
       </SidebarFooter>
     </Sidebar>
