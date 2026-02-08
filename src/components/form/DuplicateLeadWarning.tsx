@@ -12,7 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { User, Phone, Plus, Link2, Check } from "lucide-react";
+import { User, Phone, Plus, Link2, Check, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { LeadSimplified } from "@/types/orcamento";
@@ -38,16 +38,54 @@ export function DuplicateLeadWarning({
   onCancel,
   isSubmitting = false,
 }: DuplicateLeadWarningProps) {
-  if (!matchingLeads.length) return null;
-
-  const firstLead = matchingLeads[0];
+  const hasLeads = matchingLeads.length > 0;
+  const firstLead = hasLeads ? matchingLeads[0] : null;
   const hasMultiple = matchingLeads.length > 1;
 
   const handleUseSelected = () => {
-    const leadToUse = selectedLead || firstLead;
+    if (!hasLeads) return;
+    const leadToUse = selectedLead || firstLead!;
     onUseExisting(leadToUse);
   };
 
+  // Anonymous user case: phone exists but no lead details available
+  if (!hasLeads) {
+    return (
+      <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
+        <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Telefone já cadastrado
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm">
+              Já existe um cadastro com este número de telefone. Deseja continuar e criar um novo cadastro mesmo assim?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <AlertDialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:gap-2 mt-2">
+            <AlertDialogCancel
+              disabled={isSubmitting}
+              onClick={onCancel}
+              className="w-full sm:w-auto mt-0"
+            >
+              Voltar e Corrigir
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={onCreateNew}
+              disabled={isSubmitting}
+              className="gap-1.5 w-full sm:w-auto text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Criar Novo Cadastro
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    );
+  }
+
+  // Authenticated user case: show lead selection list
   return (
     <AlertDialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
       <AlertDialogContent className="max-w-[90vw] sm:max-w-md">
@@ -68,7 +106,7 @@ export function DuplicateLeadWarning({
         <ScrollArea className={hasMultiple ? "max-h-48 sm:max-h-60" : ""}>
           <div className="space-y-2 my-2">
             {matchingLeads.map((lead) => {
-              const isSelected = selectedLead?.id === lead.id || (!selectedLead && lead.id === firstLead.id);
+              const isSelected = selectedLead?.id === lead.id || (!selectedLead && lead.id === firstLead?.id);
               const createdDate = format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR });
 
               return (

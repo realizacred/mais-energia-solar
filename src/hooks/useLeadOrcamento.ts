@@ -79,7 +79,8 @@ export function useLeadOrcamento() {
         // For anonymous users, we just signal duplicate without exposing lead details
         if (hasDuplicate) {
           return {
-            leads: [], // Empty array signals duplicate exists but no details for anon users
+            leads: [],
+            hasDuplicate: true,
           };
         }
 
@@ -116,6 +117,7 @@ export function useLeadOrcamento() {
 
         return {
           leads: uniqueLeads as LeadSimplified[],
+          hasDuplicate: true,
         };
       }
 
@@ -223,7 +225,7 @@ export function useLeadOrcamento() {
       if (!options?.forceNew && !options?.useExistingLeadId) {
         const existing = await checkExistingLeads(leadData.telefone);
         
-        if (existing && existing.leads.length > 0) {
+        if (existing && existing.hasDuplicate) {
           // Found existing leads - show warning dialog with list
           setMatchingLeads(existing.leads);
           setSelectedLead(null);
@@ -328,6 +330,15 @@ export function useLeadOrcamento() {
     setSelectedLead(null);
   };
 
+  /**
+   * Abre o aviso de duplicata manualmente (usado na checagem antecipada do step 1)
+   */
+  const triggerDuplicateWarning = (leads: LeadSimplified[]) => {
+    setMatchingLeads(leads);
+    setSelectedLead(null);
+    setShowDuplicateWarning(true);
+  };
+
   return {
     isSubmitting,
     matchingLeads,
@@ -339,5 +350,6 @@ export function useLeadOrcamento() {
     confirmUseExistingLead,
     forceCreateNewLead,
     cancelDuplicateWarning,
+    triggerDuplicateWarning,
   };
 }

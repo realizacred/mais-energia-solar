@@ -90,6 +90,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const [vendedorCodigo, setVendedorCodigo] = useState<string | null>(null);
   const [vendedorNome, setVendedorNome] = useState<string | null>(null);
+  const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  // Store the user's duplicate decision so final submit skips re-check
+  const [duplicateDecision, setDuplicateDecision] = useState<
+    { type: "use_existing"; leadId: string } | { type: "create_new" } | null
+  >(null);
   const { toast } = useToast();
   
   const { 
@@ -112,6 +117,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     confirmUseExistingLead,
     forceCreateNewLead,
     cancelDuplicateWarning,
+    checkExistingLeads,
+    triggerDuplicateWarning,
   } = useLeadOrcamento();
 
   // Store form data for duplicate handling
@@ -260,6 +267,27 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       });
       return;
     }
+
+    // Check for duplicate phone on step 1 → 2 transition
+    if (currentStep === 1) {
+      const telefone = form.getValues("telefone");
+      if (telefone && navigator.onLine) {
+        setIsCheckingDuplicate(true);
+        try {
+          const existing = await checkExistingLeads(telefone);
+          if (existing && existing.hasDuplicate) {
+            // Store form data for after the user decides
+            pendingFormDataRef.current = form.getValues();
+            triggerDuplicateWarning(existing.leads);
+            setIsCheckingDuplicate(false);
+            return; // Don't advance — wait for user decision
+          }
+        } catch (err) {
+          console.warn("[nextStep] Duplicate check failed, continuing:", err);
+        }
+        setIsCheckingDuplicate(false);
+      }
+    }
     
     if (currentStep < STEPS.length) {
       setDirection(1);
@@ -308,12 +336,30 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   // Auto-save draft
   const { clearDraft, hasDraft } = useFormAutoSave(form, { key: "lead_wizard" });
 
+  // Helper to build orcamento payload from form data
+  const buildOrcamentoData = (data: LeadFormData, urls: string[]) => ({
+    cep: data.cep?.trim() || null,
+    estado: data.estado,
+    cidade: data.cidade.trim(),
+    rua: data.rua?.trim() || null,
+    numero: data.numero?.trim() || null,
+    bairro: data.bairro?.trim() || null,
+    complemento: data.complemento?.trim() || null,
+    area: data.area,
+    tipo_telhado: data.tipo_telhado,
+    rede_atendimento: data.rede_atendimento,
+    media_consumo: data.media_consumo,
+    consumo_previsto: data.consumo_previsto,
+    observacoes: data.observacoes?.trim() || null,
+    arquivos_urls: urls,
+    vendedor: vendedorNome || "Site",
+  });
+
   const onSubmit = async (data: LeadFormData) => {
     // Check for bots
     const honeypotCheck = validateHoneypot();
     if (honeypotCheck.isBot) {
       console.warn("[Security] Bot detected:", honeypotCheck.reason);
-      // Silently fail for bots
       toast({
         title: "Cadastro enviado! ☀️",
         description: "Entraremos em contato em breve.",
@@ -339,28 +385,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     
     // Store form data for potential duplicate handling
     pendingFormDataRef.current = data;
-    
+
     // Upload files if online, otherwise store as base64 for later
     let fileUrls: string[] = [];
     const hasFiles = uploadedFiles.length > 0;
-    
-    const buildOrcamentoData = (urls: string[]) => ({
-      cep: data.cep?.trim() || null,
-      estado: data.estado,
-      cidade: data.cidade.trim(),
-      rua: data.rua?.trim() || null,
-      numero: data.numero?.trim() || null,
-      bairro: data.bairro?.trim() || null,
-      complemento: data.complemento?.trim() || null,
-      area: data.area,
-      tipo_telhado: data.tipo_telhado,
-      rede_atendimento: data.rede_atendimento,
-      media_consumo: data.media_consumo,
-      consumo_previsto: data.consumo_previsto,
-      observacoes: data.observacoes?.trim() || null,
-      arquivos_urls: urls,
-      vendedor: vendedorNome || "Site",
-    });
 
     // Helper to save offline (only used when truly offline)
     const saveOfflineFallback = async (): Promise<boolean> => {
@@ -373,8 +401,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       const leadData = {
         nome: data.nome.trim(),
         telefone: data.telefone.trim(),
-        ...buildOrcamentoData([]),
-        // Store base64 files for upload during sync
+        ...buildOrcamentoData(data, []),
         offlineFiles: hasFiles ? uploadedFiles : undefined,
       };
 
@@ -403,7 +430,6 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
     try {
       // If truly offline, use local save
-      // NOTE: `isOnline` state can be stale/incorrect on first load in some browsers.
       const trulyOffline = !navigator.onLine;
       if (trulyOffline) {
         const success = await saveOfflineFallback();
@@ -427,9 +453,53 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         }
       }
 
-      const orcamentoData = buildOrcamentoData(fileUrls);
+      const orcamentoData = buildOrcamentoData(data, fileUrls);
 
-      // Online: use new Lead/Orcamento system
+      // If user already made a duplicate decision on step 1, use it
+      if (duplicateDecision) {
+        const opts = duplicateDecision.type === "use_existing"
+          ? { useExistingLeadId: duplicateDecision.leadId }
+          : { forceNew: true };
+
+        const result = await submitOrcamento(
+          { nome: data.nome.trim(), telefone: data.telefone.trim() },
+          orcamentoData,
+          opts
+        );
+
+        if (result.success) {
+          clearDraft();
+          resetHoneypot();
+          resetRateLimit();
+          setSavedOffline(false);
+          triggerConfetti();
+
+          toast({
+            title: duplicateDecision.type === "use_existing"
+              ? "Novo orçamento vinculado! ☀️"
+              : "Cadastro enviado com sucesso! ☀️",
+            description: duplicateDecision.type === "use_existing"
+              ? "Orçamento adicionado ao cliente existente."
+              : "Entraremos em contato em breve.",
+          });
+
+          setIsSubmitting(false);
+          setIsSuccess(true);
+          setDuplicateDecision(null);
+          return;
+        } else {
+          toast({
+            title: "Erro ao enviar cadastro",
+            description: result.error || "Ocorreu um erro. Tente novamente.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          setDuplicateDecision(null);
+          return;
+        }
+      }
+
+      // No prior decision — normal flow (will check for duplicates)
       const result = await submitOrcamento(
         { nome: data.nome.trim(), telefone: data.telefone.trim() },
         orcamentoData
@@ -495,12 +565,23 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   // Handle duplicate confirmation - use selected existing lead
   const handleUseExistingLead = async (lead: import("@/types/orcamento").LeadSimplified) => {
+    // If we're still on step 1 (early check), store decision and advance
+    if (currentStep === 1) {
+      setDuplicateDecision({ type: "use_existing", leadId: lead.id });
+      cancelDuplicateWarning();
+      pendingFormDataRef.current = null;
+      setDirection(1);
+      setCurrentStep(2);
+      scrollToTop();
+      return;
+    }
+
+    // Otherwise, we're on final submit — execute immediately
     if (!pendingFormDataRef.current) return;
     
     const data = pendingFormDataRef.current;
     setIsSubmitting(true);
     
-    // Upload files if needed (these handlers are always online)
     let fileUrls: string[] = [];
     if (uploadedFiles.length > 0) {
       try {
@@ -510,24 +591,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       }
     }
 
-    const orcamentoData = {
-      cep: data.cep?.trim() || null,
-      estado: data.estado,
-      cidade: data.cidade.trim(),
-      rua: data.rua?.trim() || null,
-      numero: data.numero?.trim() || null,
-      bairro: data.bairro?.trim() || null,
-      complemento: data.complemento?.trim() || null,
-      area: data.area,
-      tipo_telhado: data.tipo_telhado,
-      rede_atendimento: data.rede_atendimento,
-      media_consumo: data.media_consumo,
-      consumo_previsto: data.consumo_previsto,
-      observacoes: data.observacoes?.trim() || null,
-      arquivos_urls: fileUrls,
-      vendedor: vendedorNome || "Site",
-    };
-
+    const orcamentoData = buildOrcamentoData(data, fileUrls);
     const result = await confirmUseExistingLead(orcamentoData, lead);
     
     if (result.success) {
@@ -555,12 +619,23 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   // Handle duplicate - force create new lead
   const handleCreateNewLead = async () => {
+    // If we're still on step 1 (early check), store decision and advance
+    if (currentStep === 1) {
+      setDuplicateDecision({ type: "create_new" });
+      cancelDuplicateWarning();
+      pendingFormDataRef.current = null;
+      setDirection(1);
+      setCurrentStep(2);
+      scrollToTop();
+      return;
+    }
+
+    // Otherwise, we're on final submit — execute immediately
     if (!pendingFormDataRef.current) return;
     
     const data = pendingFormDataRef.current;
     setIsSubmitting(true);
     
-    // Upload files if needed
     let fileUrls: string[] = [];
     if (uploadedFiles.length > 0) {
       try {
@@ -570,24 +645,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       }
     }
 
-    const orcamentoData = {
-      cep: data.cep?.trim() || null,
-      estado: data.estado,
-      cidade: data.cidade.trim(),
-      rua: data.rua?.trim() || null,
-      numero: data.numero?.trim() || null,
-      bairro: data.bairro?.trim() || null,
-      complemento: data.complemento?.trim() || null,
-      area: data.area,
-      tipo_telhado: data.tipo_telhado,
-      rede_atendimento: data.rede_atendimento,
-      media_consumo: data.media_consumo,
-      consumo_previsto: data.consumo_previsto,
-      observacoes: data.observacoes?.trim() || null,
-      arquivos_urls: fileUrls,
-      vendedor: vendedorNome,
-    };
-
+    const orcamentoData = buildOrcamentoData(data, fileUrls);
     const result = await forceCreateNewLead(
       { nome: data.nome.trim(), telefone: data.telefone.trim() },
       orcamentoData
@@ -628,6 +686,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     setSavedOffline(false);
     setUploadedFiles([]);
     setTouchedFields(new Set());
+    setDuplicateDecision(null);
     clearDraft();
     resetHoneypot();
     refreshPendingCount();
@@ -1010,10 +1069,20 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
               <Button
                 type="button"
                 onClick={nextStep}
+                disabled={isCheckingDuplicate}
                 className="gap-2 gradient-solar hover:opacity-90"
               >
-                Próximo
-                <ArrowRight className="w-4 h-4" />
+                {isCheckingDuplicate ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    Próximo
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </Button>
             ) : (
               <Button

@@ -97,4 +97,6 @@ export interface ExistingLeadMatch {
 // List of matching leads for duplicate selection
 export interface DuplicateLeadsResult {
   leads: LeadSimplified[];
+  /** True when a duplicate was found — even if leads array is empty (anonymous users) */
+  hasDuplicate: boolean;
 }
