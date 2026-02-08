@@ -31,6 +31,7 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
+      {/* Extra top padding to account for header + banner carousel */}
       <HeroBanner />
       <AboutSection />
       <ServicesSection />

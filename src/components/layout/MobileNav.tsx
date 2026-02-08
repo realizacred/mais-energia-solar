@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, Calculator, LogIn, Phone, Home, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, Calculator, LogIn, Phone, Home, LogOut, LayoutDashboard, Sun, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
-import logo from "@/assets/logo.png";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
+import logoFallback from "@/assets/logo.png";
 
 interface MobileNavProps {
   showCalculadora?: boolean;
@@ -14,16 +15,18 @@ interface MobileNavProps {
 const WHATSAPP_NUMBER = "5532998437675";
 
 const navLinks = [
-  { label: "Home", href: "#" },
-  { label: "Quem Somos", href: "#quem-somos" },
-  { label: "Serviços", href: "#servicos" },
-  { label: "Obras Realizadas", href: "#obras" },
-  { label: "Contato", href: "#contato" },
+  { label: "Home", href: "#", icon: Home },
+  { label: "Quem Somos", href: "#quem-somos", icon: Sun },
+  { label: "Serviços", href: "#servicos", icon: Sun },
+  { label: "Obras Realizadas", href: "#obras", icon: Sun },
+  { label: "Contato", href: "#contato", icon: Phone },
 ];
 
 export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { settings } = useBrandSettings();
+  const logo = settings?.logo_url || logoFallback;
   const navigate = useNavigate();
 
   const handleWhatsApp = () => {
@@ -57,84 +60,99 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="lg:hidden">
+        <Button variant="ghost" size="icon" className="lg:hidden relative">
           <Menu className="h-5 w-5" />
           <span className="sr-only">Abrir menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0 !bg-background border-l border-border/40 shadow-2xl">
+      <SheetContent side="right" className="w-[300px] sm:w-[340px] p-0 !bg-background border-l border-border/30 shadow-2xl">
         <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
+          {/* Header with logo */}
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
             <Link to="/" onClick={() => setOpen(false)}>
-              <img src={logo} alt="Mais Energia Solar" className="h-8" />
+              <img src={logo} alt="Logo" className="h-8" />
             </Link>
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 px-3 py-4 space-y-0.5">
+          <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
             {isHomePage && navLinks.map((link) => (
               <button
                 key={link.label}
                 onClick={() => handleNavClick(link.href)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors w-full text-left"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent/60 active:bg-accent transition-all w-full text-left group"
               >
-                <span className="font-medium text-sm">{link.label}</span>
+                <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
+                  <link.icon className="h-4 w-4 text-primary" />
+                </div>
+                <span className="font-medium text-sm text-foreground">{link.label}</span>
               </button>
             ))}
 
             {!isHomePage && (
-              <Link 
-                to="/" 
+              <Link
+                to="/"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent/60 transition-all"
               >
-                <Home className="h-4.5 w-4.5 text-primary" />
+                <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center">
+                  <Home className="h-4 w-4 text-primary" />
+                </div>
                 <span className="font-medium text-sm">Início</span>
               </Link>
             )}
 
             {showCalculadora && (
-              <Link 
-                to="/calculadora" 
+              <Link
+                to="/calculadora"
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent/60 transition-all"
               >
-                <Calculator className="h-4.5 w-4.5 text-primary" />
+                <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center">
+                  <Calculator className="h-4 w-4 text-primary" />
+                </div>
                 <span className="font-medium text-sm">Simulador</span>
               </Link>
             )}
 
+            <div className="py-2 px-4">
+              <div className="h-px bg-border/40" />
+            </div>
+
             <button
               onClick={handleWhatsApp}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors w-full text-left"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent/60 transition-all w-full text-left group"
             >
-              <Phone className="h-4.5 w-4.5 text-primary" />
+              <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center group-hover:bg-success/20 transition-colors">
+                <Phone className="h-4 w-4 text-success" />
+              </div>
               <span className="font-medium text-sm">WhatsApp</span>
             </button>
 
             {user && (
               <button
                 onClick={handlePortal}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors w-full text-left"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-accent/60 transition-all w-full text-left group"
               >
-                <LayoutDashboard className="h-4.5 w-4.5 text-primary" />
+                <div className="w-8 h-8 rounded-lg bg-secondary/10 flex items-center justify-center group-hover:bg-secondary/20 transition-colors">
+                  <LayoutDashboard className="h-4 w-4 text-secondary" />
+                </div>
                 <span className="font-medium text-sm">Meu Portal</span>
               </button>
             )}
           </nav>
 
           {/* Footer */}
-          <div className="px-4 py-4 border-t border-border/40 space-y-3">
+          <div className="px-4 py-4 border-t border-border/30 space-y-3">
             {user ? (
               <>
                 <p className="text-xs text-muted-foreground truncate px-1">
                   {user.email}
                 </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/5 rounded-lg"
+                <Button
+                  variant="outline"
+                  className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/5 rounded-xl"
                   onClick={handleSignOut}
                 >
                   <LogOut className="h-4 w-4" />
@@ -144,14 +162,14 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
             ) : (
               showAdmin && (
                 <Link to="/auth" onClick={() => setOpen(false)}>
-                  <Button className="w-full gap-2 rounded-lg">
+                  <Button className="w-full gap-2 rounded-xl font-bold">
                     <LogIn className="h-4 w-4" />
                     Acessar Sistema
                   </Button>
                 </Link>
               )
             )}
-            <p className="text-[11px] text-center text-muted-foreground/60">
+            <p className="text-[11px] text-center text-muted-foreground/50">
               © {new Date().getFullYear()} Mais Energia Solar
             </p>
           </div>
