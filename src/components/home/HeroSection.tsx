@@ -56,7 +56,7 @@ export function HeroSection() {
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className="flex items-center gap-3 bg-white rounded-xl p-4 shadow-sm border border-border"
+              className="flex items-center gap-3 bg-card rounded-xl p-4 shadow-sm border border-border hover:border-primary/30 hover:shadow-md transition-all duration-300"
             >
               <div
                 className={`w-10 h-10 rounded-full ${benefit.bgColor} flex items-center justify-center`}
