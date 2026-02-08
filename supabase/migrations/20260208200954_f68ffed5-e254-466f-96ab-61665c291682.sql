@@ -1,0 +1,28 @@
+-- Align brand_settings with Stripe-tier desaturated palette
+UPDATE brand_settings SET
+  color_primary = '24 58% 46%',
+  color_primary_foreground = '0 0% 100%',
+  color_secondary = '218 32% 20%',
+  color_secondary_foreground = '0 0% 100%',
+  color_accent = '220 10% 92%',
+  color_accent_foreground = '224 20% 12%',
+  color_background = '220 14% 96%',
+  color_foreground = '224 20% 12%',
+  color_card = '0 0% 100%',
+  color_card_foreground = '224 20% 12%',
+  color_border = '220 10% 90%',
+  color_destructive = '4 42% 44%',
+  color_success = '158 32% 38%',
+  color_warning = '38 48% 48%',
+  color_info = '210 40% 48%',
+  color_muted = '220 10% 94%',
+  color_muted_foreground = '220 8% 46%',
+  dark_color_primary = '24 55% 52%',
+  dark_color_background = '224 22% 7%',
+  dark_color_foreground = '220 12% 92%',
+  dark_color_card = '224 20% 9%',
+  dark_color_border = '224 14% 15%',
+  dark_color_muted = '224 16% 14%',
+  dark_color_muted_foreground = '220 8% 55%',
+  updated_at = now()
+WHERE true;
