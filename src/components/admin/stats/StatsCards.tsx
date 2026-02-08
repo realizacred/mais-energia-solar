@@ -1,5 +1,5 @@
-import { Users, Zap, MapPin } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Users, Zap, MapPin, TrendingUp, ArrowUpRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface StatsCardsProps {
   totalLeads: number;
@@ -7,46 +7,80 @@ interface StatsCardsProps {
   uniqueEstados: number;
 }
 
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
+  }),
+};
+
 export function StatsCards({ totalLeads, totalKwh, uniqueEstados }: StatsCardsProps) {
+  const stats = [
+    {
+      label: "Total de Leads",
+      value: totalLeads.toLocaleString(),
+      icon: Users,
+      accentFrom: "from-primary",
+      accentTo: "to-primary-glow",
+      iconBg: "bg-primary/10",
+      iconColor: "text-primary",
+      borderColor: "border-primary/20",
+    },
+    {
+      label: "kWh Total",
+      value: totalKwh.toLocaleString(),
+      icon: Zap,
+      accentFrom: "from-success",
+      accentTo: "to-success/70",
+      iconBg: "bg-success/10",
+      iconColor: "text-success",
+      borderColor: "border-success/20",
+    },
+    {
+      label: "Estados",
+      value: uniqueEstados.toString(),
+      icon: MapPin,
+      accentFrom: "from-secondary",
+      accentTo: "to-secondary-glow",
+      iconBg: "bg-secondary/10",
+      iconColor: "text-secondary",
+      borderColor: "border-secondary/20",
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-      <Card className="border-l-4 border-l-primary">
-        <CardContent className="flex items-center gap-3 sm:gap-4 p-4 sm:pt-6">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {stats.map((stat, i) => (
+        <motion.div
+          key={stat.label}
+          custom={i}
+          initial="hidden"
+          animate="visible"
+          variants={cardVariants}
+          className={`group relative overflow-hidden rounded-2xl border bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${stat.borderColor}`}
+        >
+          {/* Top accent bar */}
+          <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.accentFrom} ${stat.accentTo} rounded-t-2xl`} />
+
+          {/* Decorative glow */}
+          <div className={`absolute -top-8 -right-8 w-24 h-24 ${stat.iconBg} rounded-full blur-2xl opacity-0 group-hover:opacity-60 transition-opacity duration-500`} />
+
+          <div className="relative flex items-center gap-4">
+            <div className={`stat-card-icon ${stat.iconBg}`}>
+              <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+                {stat.value}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
+            </div>
+            <ArrowUpRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
           </div>
-          <div className="min-w-0">
-            <p className="text-xl sm:text-2xl font-bold text-foreground">{totalLeads}</p>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">Total de Leads</p>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="border-l-4 border-l-success">
-        <CardContent className="flex items-center gap-3 sm:gap-4 p-4 sm:pt-6">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-success/10 flex items-center justify-center shrink-0">
-            <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-success" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl sm:text-2xl font-bold text-foreground">
-              {totalKwh.toLocaleString()}
-            </p>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">kWh Total</p>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="border-l-4 border-l-secondary sm:col-span-2 lg:col-span-1">
-        <CardContent className="flex items-center gap-3 sm:gap-4 p-4 sm:pt-6">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-secondary/10 flex items-center justify-center shrink-0">
-            <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-secondary" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xl sm:text-2xl font-bold text-foreground">{uniqueEstados}</p>
-            <p className="text-xs sm:text-sm text-muted-foreground truncate">Estados</p>
-          </div>
-        </CardContent>
-      </Card>
+        </motion.div>
+      ))}
     </div>
   );
 }
