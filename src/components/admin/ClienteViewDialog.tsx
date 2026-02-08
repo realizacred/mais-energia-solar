@@ -1,7 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,7 +20,6 @@ import {
   Calendar,
   FileText,
   Image,
-  Upload,
   ExternalLink,
   Loader2,
   Eye,
@@ -67,45 +64,34 @@ interface ClienteViewDialogProps {
   cliente: ClienteData | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onRefresh?: () => void;
 }
 
-type DocCategory = "identidade" | "comprovante_endereco" | "comprovante_beneficiaria";
+type DocCategory = { label: string; field: keyof ClienteData };
 
-const DOC_CATEGORIES: { key: DocCategory; label: string; field: keyof ClienteData; bucket: string }[] = [
-  { key: "identidade", label: "Identidade (RG/CNH)", field: "identidade_urls", bucket: "documentos-clientes" },
-  { key: "comprovante_endereco", label: "Comprovante de Endereço", field: "comprovante_endereco_urls", bucket: "documentos-clientes" },
-  { key: "comprovante_beneficiaria", label: "Comprovante Beneficiária", field: "comprovante_beneficiaria_urls", bucket: "documentos-clientes" },
+const DOC_CATEGORIES: DocCategory[] = [
+  { label: "Identidade (RG/CNH)", field: "identidade_urls" },
+  { label: "Comprovante de Endereço", field: "comprovante_endereco_urls" },
+  { label: "Comprovante Beneficiária", field: "comprovante_beneficiaria_urls" },
 ];
 
-function getPublicUrl(bucket: string, path: string): string {
-  const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-  return data.publicUrl;
-}
-
-function getSignedUrl(bucket: string, path: string): Promise<string | null> {
+function getSignedUrl(path: string): Promise<string | null> {
   return supabase.storage
-    .from(bucket)
+    .from("documentos-clientes")
     .createSignedUrl(path, 3600)
     .then(({ data }) => data?.signedUrl || null);
 }
 
-function DocumentThumbnail({ path, bucket, onClick }: { path: string; bucket: string; onClick: () => void }) {
+function DocumentThumbnail({ path, onClick }: { path: string; onClick: () => void }) {
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-
   const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(path);
 
   useEffect(() => {
-    getSignedUrl(bucket, path).then((signedUrl) => {
-      setUrl(signedUrl);
-      setLoading(false);
-    }).catch(() => {
-      setError(true);
-      setLoading(false);
-    });
-  }, [path, bucket]);
+    getSignedUrl(path)
+      .then((signedUrl) => { setUrl(signedUrl); setLoading(false); })
+      .catch(() => { setError(true); setLoading(false); });
+  }, [path]);
 
   if (loading) {
     return (
@@ -146,69 +132,29 @@ function DocumentThumbnail({ path, bucket, onClick }: { path: string; bucket: st
   );
 }
 
-function DocumentSection({
-  label,
-  paths,
-  bucket,
-  clienteId,
-  field,
-  onUpload,
-  uploading,
-}: {
-  label: string;
-  paths: string[];
-  bucket: string;
-  clienteId: string;
-  field: string;
-  onUpload: (field: string, files: FileList) => void;
-  uploading: boolean;
-}) {
+function ReadOnlyDocumentSection({ label, paths }: { label: string; paths: string[] }) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   const handlePreview = async (path: string) => {
-    const url = await getSignedUrl(bucket, path);
-    if (url) {
-      setPreviewUrl(url);
-      setPreviewOpen(true);
-    }
+    const url = await getSignedUrl(path);
+    if (url) { setPreviewUrl(url); setPreviewOpen(true); }
   };
 
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-muted-foreground">{label}</h4>
-        <label className="cursor-pointer">
-          <input
-            type="file"
-            accept="image/*,.pdf"
-            multiple
-            className="sr-only"
-            onChange={(e) => {
-              if (e.target.files && e.target.files.length > 0) {
-                onUpload(field, e.target.files);
-              }
-              e.target.value = "";
-            }}
-          />
-          <Button type="button" variant="outline" size="sm" className="gap-1.5 pointer-events-none" disabled={uploading}>
-            {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-            Anexar
-          </Button>
-        </label>
-      </div>
+      <h4 className="text-sm font-medium text-muted-foreground">{label}</h4>
 
       {paths.length > 0 ? (
         <div className="flex flex-wrap gap-2">
           {paths.map((path, idx) => (
-            <DocumentThumbnail key={idx} path={path} bucket={bucket} onClick={() => handlePreview(path)} />
+            <DocumentThumbnail key={idx} path={path} onClick={() => handlePreview(path)} />
           ))}
         </div>
       ) : (
         <p className="text-xs text-muted-foreground italic">Nenhum documento anexado</p>
       )}
 
-      {/* Full-screen preview */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0">
           <DialogHeader className="p-4 border-b">
@@ -240,81 +186,16 @@ function InfoRow({ icon: Icon, label, value }: { icon: any; label: string; value
   );
 }
 
-export function ClienteViewDialog({ cliente, open, onOpenChange, onRefresh }: ClienteViewDialogProps) {
-  const { toast } = useToast();
-  const [uploadingField, setUploadingField] = useState<string | null>(null);
-  const [localCliente, setLocalCliente] = useState<ClienteData | null>(null);
-
-  useEffect(() => {
-    if (cliente) setLocalCliente(cliente);
-  }, [cliente]);
-
-  const handleUpload = useCallback(async (field: string, files: FileList) => {
-    if (!localCliente) return;
-    setUploadingField(field);
-
-    try {
-      const uploadedPaths: string[] = [];
-
-      for (const file of Array.from(files)) {
-        if (file.size > 10 * 1024 * 1024) {
-          toast({ title: "Arquivo muito grande", description: `${file.name} excede 10MB`, variant: "destructive" });
-          continue;
-        }
-
-        const ext = file.name.split(".").pop();
-        const fileName = `${localCliente.id}/${field}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
-
-        const { error } = await supabase.storage
-          .from("documentos-clientes")
-          .upload(fileName, file, { contentType: file.type });
-
-        if (error) {
-          console.error("Upload error:", error);
-          toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
-          continue;
-        }
-
-        uploadedPaths.push(fileName);
-      }
-
-      if (uploadedPaths.length > 0) {
-        const existingUrls = (localCliente as any)[field] || [];
-        const newUrls = [...existingUrls, ...uploadedPaths];
-
-        const { error: updateError } = await supabase
-          .from("clientes")
-          .update({ [field]: newUrls })
-          .eq("id", localCliente.id);
-
-        if (updateError) throw updateError;
-
-        setLocalCliente((prev) => prev ? { ...prev, [field]: newUrls } : prev);
-
-        toast({
-          title: "Documento(s) anexado(s)!",
-          description: `${uploadedPaths.length} arquivo(s) enviado(s) com sucesso.`,
-        });
-
-        onRefresh?.();
-      }
-    } catch (error: any) {
-      console.error("Upload failed:", error);
-      toast({ title: "Erro", description: error.message || "Falha no upload", variant: "destructive" });
-    } finally {
-      setUploadingField(null);
-    }
-  }, [localCliente, toast, onRefresh]);
-
-  if (!localCliente) return null;
+export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDialogProps) {
+  if (!cliente) return null;
 
   const formatCurrency = (val: number | null) =>
     val ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(val) : null;
 
-  const endereco = [localCliente.rua, localCliente.numero, localCliente.complemento, localCliente.bairro]
+  const endereco = [cliente.rua, cliente.numero, cliente.complemento, cliente.bairro]
     .filter(Boolean)
     .join(", ");
-  const cidadeEstado = [localCliente.cidade, localCliente.estado].filter(Boolean).join(" - ");
+  const cidadeEstado = [cliente.cidade, cliente.estado].filter(Boolean).join(" - ");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -323,21 +204,21 @@ export function ClienteViewDialog({ cliente, open, onOpenChange, onRefresh }: Cl
           <div className="flex items-center justify-between">
             <DialogTitle className="flex items-center gap-2 text-lg">
               <User className="h-5 w-5 text-primary" />
-              {localCliente.nome}
+              {cliente.nome}
             </DialogTitle>
-            <Badge variant={localCliente.ativo ? "default" : "secondary"} className={localCliente.ativo ? "bg-success" : ""}>
-              {localCliente.ativo ? "Ativo" : "Inativo"}
+            <Badge variant={cliente.ativo ? "default" : "secondary"} className={cliente.ativo ? "bg-success" : ""}>
+              {cliente.ativo ? "Ativo" : "Inativo"}
             </Badge>
           </div>
           <DialogDescription className="flex items-center gap-4 pt-1">
             <span className="flex items-center gap-1">
               <Phone className="h-3.5 w-3.5" />
-              {localCliente.telefone}
+              {cliente.telefone}
             </span>
-            {localCliente.email && (
+            {cliente.email && (
               <span className="flex items-center gap-1">
                 <Mail className="h-3.5 w-3.5" />
-                {localCliente.email}
+                {cliente.email}
               </span>
             )}
           </DialogDescription>
@@ -352,16 +233,16 @@ export function ClienteViewDialog({ cliente, open, onOpenChange, onRefresh }: Cl
                 Dados Pessoais
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-6">
-                <InfoRow icon={CreditCard} label="CPF/CNPJ" value={localCliente.cpf_cnpj} />
+                <InfoRow icon={CreditCard} label="CPF/CNPJ" value={cliente.cpf_cnpj} />
                 <InfoRow
                   icon={Calendar}
                   label="Nascimento"
-                  value={localCliente.data_nascimento ? format(new Date(localCliente.data_nascimento + "T12:00:00"), "dd/MM/yyyy") : null}
+                  value={cliente.data_nascimento ? format(new Date(cliente.data_nascimento + "T12:00:00"), "dd/MM/yyyy") : null}
                 />
                 <InfoRow
                   icon={Calendar}
                   label="Cliente desde"
-                  value={format(new Date(localCliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                  value={format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 />
               </div>
             </section>
@@ -377,12 +258,12 @@ export function ClienteViewDialog({ cliente, open, onOpenChange, onRefresh }: Cl
               <div className="pl-6 space-y-2">
                 {endereco && <InfoRow icon={MapPin} label="Endereço" value={endereco} />}
                 {cidadeEstado && <InfoRow icon={MapPin} label="Cidade" value={cidadeEstado} />}
-                <InfoRow icon={MapPin} label="CEP" value={localCliente.cep} />
-                {localCliente.localizacao && (
+                <InfoRow icon={MapPin} label="CEP" value={cliente.cep} />
+                {cliente.localizacao && (
                   <div className="flex items-center gap-2 text-sm">
                     <Navigation className="h-4 w-4 text-muted-foreground shrink-0" />
                     <a
-                      href={localCliente.localizacao}
+                      href={cliente.localizacao}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-primary hover:underline flex items-center gap-1"
@@ -404,20 +285,20 @@ export function ClienteViewDialog({ cliente, open, onOpenChange, onRefresh }: Cl
                 Projeto Solar
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-6">
-                <InfoRow icon={Sun} label="Potência" value={localCliente.potencia_kwp ? `${localCliente.potencia_kwp} kWp` : null} />
-                <InfoRow icon={DollarSign} label="Valor" value={formatCurrency(localCliente.valor_projeto)} />
-                <InfoRow icon={Sun} label="Placas" value={localCliente.numero_placas?.toString()} />
-                <InfoRow icon={Sun} label="Inversor" value={localCliente.modelo_inversor} />
+                <InfoRow icon={Sun} label="Potência" value={cliente.potencia_kwp ? `${cliente.potencia_kwp} kWp` : null} />
+                <InfoRow icon={DollarSign} label="Valor" value={formatCurrency(cliente.valor_projeto)} />
+                <InfoRow icon={Sun} label="Placas" value={cliente.numero_placas?.toString()} />
+                <InfoRow icon={Sun} label="Inversor" value={cliente.modelo_inversor} />
                 <InfoRow
                   icon={Calendar}
                   label="Instalação"
-                  value={localCliente.data_instalacao ? format(new Date(localCliente.data_instalacao + "T12:00:00"), "dd/MM/yyyy") : null}
+                  value={cliente.data_instalacao ? format(new Date(cliente.data_instalacao + "T12:00:00"), "dd/MM/yyyy") : null}
                 />
               </div>
             </section>
 
             {/* Observações */}
-            {localCliente.observacoes && (
+            {cliente.observacoes && (
               <>
                 <Separator />
                 <section className="space-y-2">
@@ -425,14 +306,14 @@ export function ClienteViewDialog({ cliente, open, onOpenChange, onRefresh }: Cl
                     <FileText className="h-4 w-4" />
                     Observações
                   </h3>
-                  <p className="text-sm pl-6 whitespace-pre-wrap text-muted-foreground">{localCliente.observacoes}</p>
+                  <p className="text-sm pl-6 whitespace-pre-wrap text-muted-foreground">{cliente.observacoes}</p>
                 </section>
               </>
             )}
 
             <Separator />
 
-            {/* Documentos */}
+            {/* Documentos (somente leitura) */}
             <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 <Image className="h-4 w-4" />
@@ -440,15 +321,10 @@ export function ClienteViewDialog({ cliente, open, onOpenChange, onRefresh }: Cl
               </h3>
               <div className="pl-6 space-y-4">
                 {DOC_CATEGORIES.map((cat) => (
-                  <DocumentSection
-                    key={cat.key}
+                  <ReadOnlyDocumentSection
+                    key={cat.field}
                     label={cat.label}
-                    paths={(localCliente as any)[cat.field] || []}
-                    bucket={cat.bucket}
-                    clienteId={localCliente.id}
-                    field={cat.field as string}
-                    onUpload={handleUpload}
-                    uploading={uploadingField === cat.field}
+                    paths={(cliente as any)[cat.field] || []}
                   />
                 ))}
               </div>

@@ -47,6 +47,7 @@ import {
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
+import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
 
 interface Cliente {
   id: string;
@@ -102,6 +103,11 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   const [selectedClienteForWhatsApp, setSelectedClienteForWhatsApp] = useState<Cliente | null>(null);
   const [viewOpen, setViewOpen] = useState(false);
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null);
+  const [editDocuments, setEditDocuments] = useState<{
+    identidade_urls: string[];
+    comprovante_endereco_urls: string[];
+    comprovante_beneficiaria_urls: string[];
+  }>({ identidade_urls: [], comprovante_endereco_urls: [], comprovante_beneficiaria_urls: [] });
 
   const handleOpenWhatsApp = (cliente: Cliente) => {
     setSelectedClienteForWhatsApp(cliente);
@@ -249,6 +255,11 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       modelo_inversor: cliente.modelo_inversor || "",
       observacoes: cliente.observacoes || "",
       lead_id: cliente.lead_id || "",
+    });
+    setEditDocuments({
+      identidade_urls: cliente.identidade_urls || [],
+      comprovante_endereco_urls: cliente.comprovante_endereco_urls || [],
+      comprovante_beneficiaria_urls: cliente.comprovante_beneficiaria_urls || [],
     });
     setDialogOpen(true);
   };
@@ -583,6 +594,28 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                 />
               </div>
 
+              {/* Documentos (somente no modo edição) */}
+              {editingCliente && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Documentos
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ClienteDocumentUpload
+                      clienteId={editingCliente.id}
+                      documents={editDocuments}
+                      onDocumentsChange={(updated) => {
+                        setEditDocuments(updated);
+                        fetchClientes();
+                      }}
+                    />
+                  </CardContent>
+                </Card>
+              )}
+
               <div className="flex justify-end gap-3">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
@@ -766,7 +799,6 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         cliente={selectedCliente}
         open={viewOpen}
         onOpenChange={setViewOpen}
-        onRefresh={fetchClientes}
       />
     </div>
   );
