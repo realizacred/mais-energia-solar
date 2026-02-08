@@ -35,6 +35,8 @@ export function VendorLandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex flex-col">
       <Header />
+      {/* Spacer for fixed header */}
+      <div className="h-14 sm:h-16" />
       <InstallAppBanner vendedorNome={vendedorNome} />
       <OfflineStatusBar vendedorNome={vendedorNome} />
 
