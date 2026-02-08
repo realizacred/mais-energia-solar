@@ -3751,6 +3751,53 @@ export type Database = {
           },
         ]
       }
+      solar_market_integration_requests: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error: string | null
+          id: string
+          method: string
+          params: Json | null
+          path: string
+          request_id: string
+          status_code: number | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          method: string
+          params?: Json | null
+          path: string
+          request_id: string
+          status_code?: number | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error?: string | null
+          id?: string
+          method?: string
+          params?: Json | null
+          path?: string
+          request_id?: string
+          status_code?: number | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_market_integration_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       solar_market_projects: {
         Row: {
           created_at: string
@@ -3853,6 +3900,54 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "solar_market_proposals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solar_market_sync_items_failed: {
+        Row: {
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          error_message: string
+          id: string
+          payload: Json | null
+          sync_log_id: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          error_message: string
+          id?: string
+          payload?: Json | null
+          sync_log_id?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          error_message?: string
+          id?: string
+          payload?: Json | null
+          sync_log_id?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_market_sync_items_failed_sync_log_id_fkey"
+            columns: ["sync_log_id"]
+            isOneToOne: false
+            referencedRelation: "solar_market_sync_logs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solar_market_sync_items_failed_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -5076,6 +5171,7 @@ export type Database = {
     }
     Functions: {
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
+      cleanup_sm_integration_requests: { Args: never; Returns: undefined }
       generate_vendedor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
         Args: never

@@ -13,7 +13,9 @@ function jsonRes(body: unknown, status = 200) {
   });
 }
 
-// ── Event type → delta sync mapping ──
+// ══════════════════════════════════════════════════════════════
+// Event type → delta sync mapping (expanded for all SM events)
+// ══════════════════════════════════════════════════════════════
 
 interface DeltaPayload {
   type: string;
@@ -28,46 +30,89 @@ function extractDeltaPayload(body: any): DeltaPayload | null {
   const projectId = body.projectId || body.project_id || body.data?.projectId || body.data?.project?.id;
   const proposalId = body.proposalId || body.proposal_id || body.data?.proposalId || body.data?.proposal?.id;
 
-  // Client events
+  // ── Client events ──
+  // criado, atualizado, reincluído, excluído
   if (eventType.includes("client") || eventType.includes("cliente")) {
     if (eventType.includes("delet") || eventType.includes("exclu")) {
       return clientId ? { type: "client_deleted", sm_client_id: Number(clientId) } : null;
     }
+    // criado, atualizado, reincluído → full client sync
     return clientId ? { type: "client", sm_client_id: Number(clientId) } : null;
   }
 
-  // Project events
+  // ── Project events ──
+  // criado, excluído, ganho, perdido, movido etapa, removido funil, reaberto, reincluído
   if (eventType.includes("project") || eventType.includes("projeto")) {
     if (eventType.includes("delet") || eventType.includes("exclu")) {
       return projectId ? { type: "project_deleted", sm_project_id: Number(projectId) } : null;
     }
+    // ganho, perdido, movido, removido funil, reaberto, reincluído, criado → full project sync
     return projectId
       ? { type: "project", sm_project_id: Number(projectId), sm_client_id: clientId ? Number(clientId) : undefined }
       : null;
   }
 
-  // Proposal events
+  // ── Proposal events ──
+  // gerada, aceita, rejeitada, reaberta, excluída
   if (eventType.includes("propos") || eventType.includes("proposta")) {
+    if (eventType.includes("delet") || eventType.includes("exclu")) {
+      // Proposal deleted → resync active proposal for project
+      return projectId
+        ? { type: "proposal", sm_project_id: Number(projectId), sm_proposal_id: proposalId ? Number(proposalId) : undefined }
+        : null;
+    }
+    // gerada, aceita, rejeitada, reaberta → sync proposal
     return projectId || proposalId
       ? { type: "proposal", sm_project_id: projectId ? Number(projectId) : undefined, sm_proposal_id: proposalId ? Number(proposalId) : undefined }
       : null;
   }
 
-  // Custom field events
+  // ── Custom field events ──
+  // atualizado
   if (eventType.includes("custom") || eventType.includes("campo")) {
     return projectId
       ? { type: "project", sm_project_id: Number(projectId) }
       : null;
   }
 
-  // Funnel/stage events
+  // ── Funnel/stage events ──
+  // movido etapa, removido funil
   if (eventType.includes("funnel") || eventType.includes("funil") || eventType.includes("stage") || eventType.includes("etapa")) {
     return projectId
       ? { type: "project", sm_project_id: Number(projectId) }
       : null;
   }
 
-  // Fallback: try to infer from IDs present
+  // ── Activity events ──
+  // criada, excluída, concluída, reaberta
+  // Activities are logged but mapped to project sync if project context exists
+  if (eventType.includes("activit") || eventType.includes("atividade") || eventType.includes("task") || eventType.includes("tarefa")) {
+    if (projectId) {
+      return { type: "project", sm_project_id: Number(projectId), sm_client_id: clientId ? Number(clientId) : undefined };
+    }
+    if (clientId) {
+      return { type: "client", sm_client_id: Number(clientId) };
+    }
+    // Activity without context — just log, no delta
+    return null;
+  }
+
+  // ── Won/Lost events (may come as standalone) ──
+  if (eventType.includes("won") || eventType.includes("ganh") || eventType.includes("lost") || eventType.includes("perd")) {
+    if (projectId) {
+      return { type: "project", sm_project_id: Number(projectId), sm_client_id: clientId ? Number(clientId) : undefined };
+    }
+    return null;
+  }
+
+  // ── Reopen events ──
+  if (eventType.includes("reopen") || eventType.includes("reabert") || eventType.includes("reinclu")) {
+    if (projectId) return { type: "project", sm_project_id: Number(projectId) };
+    if (clientId) return { type: "client", sm_client_id: Number(clientId) };
+    return null;
+  }
+
+  // ── Fallback: infer from IDs present ──
   if (clientId) return { type: "client", sm_client_id: Number(clientId) };
   if (projectId) return { type: "project", sm_project_id: Number(projectId) };
   if (proposalId) return { type: "proposal", sm_proposal_id: Number(proposalId) };
@@ -76,7 +121,15 @@ function extractDeltaPayload(body: any): DeltaPayload | null {
 }
 
 function extractEntityInfo(body: any, delta: DeltaPayload | null): { entity_type: string | null; entity_id: number | null } {
-  if (!delta) return { entity_type: null, entity_id: null };
+  if (!delta) {
+    // Try to extract from raw body for logging purposes
+    const eventType = (body.event || body.type || body.eventType || "").toLowerCase();
+    if (eventType.includes("activit") || eventType.includes("atividade")) {
+      const actId = body.activityId || body.activity_id || body.data?.activityId || body.data?.activity?.id;
+      return { entity_type: "activity", entity_id: actId ? Number(actId) : null };
+    }
+    return { entity_type: null, entity_id: null };
+  }
 
   if (delta.sm_client_id) return { entity_type: "client", entity_id: delta.sm_client_id };
   if (delta.sm_project_id) return { entity_type: "project", entity_id: delta.sm_project_id };
@@ -85,7 +138,9 @@ function extractEntityInfo(body: any, delta: DeltaPayload | null): { entity_type
   return { entity_type: null, entity_id: null };
 }
 
-// ── Background processor ──
+// ══════════════════════════════════════════════════════════════
+// Background processor
+// ══════════════════════════════════════════════════════════════
 
 async function processWebhookEvent(
   supabaseAdmin: ReturnType<typeof createClient>,
@@ -93,14 +148,12 @@ async function processWebhookEvent(
   delta: DeltaPayload
 ) {
   try {
-    // Mark as processing
     await supabaseAdmin.from("solar_market_webhook_events")
       .update({ status: "processing" })
       .eq("id", eventId);
 
     console.log(`[SM Webhook] Processing event ${eventId}: ${JSON.stringify(delta)}`);
 
-    // Call the sync function for delta processing
     const { error: syncError } = await supabaseAdmin.functions.invoke("solar-market-sync", {
       body: {
         mode: "delta",
@@ -120,7 +173,6 @@ async function processWebhookEvent(
       return;
     }
 
-    // Mark as done
     await supabaseAdmin.from("solar_market_webhook_events").update({
       status: "done",
       processed_at: new Date().toISOString(),
@@ -138,7 +190,9 @@ async function processWebhookEvent(
   }
 }
 
-// ── Main Handler ──
+// ══════════════════════════════════════════════════════════════
+// Main Handler
+// ══════════════════════════════════════════════════════════════
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -202,7 +256,7 @@ Deno.serve(async (req) => {
       return jsonRes({ error: "Failed to store event" }, 500);
     }
 
-    console.log(`[SM Webhook] Event stored: ${event.id} (${eventType})`);
+    console.log(`[SM Webhook] Event stored: ${event.id} (${eventType}) → ${delta ? `delta:${delta.type}` : "logged only"}`);
 
     // ── Process in background if actionable ──
     if (delta && event?.id) {
@@ -210,17 +264,16 @@ Deno.serve(async (req) => {
       if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
         EdgeRuntime.waitUntil(processWebhookEvent(supabaseAdmin, event.id, delta));
       } else {
-        // Fallback: process inline (will block response slightly)
         await processWebhookEvent(supabaseAdmin, event.id, delta);
       }
     }
 
-    // Return 200 immediately
     return jsonRes({
       success: true,
       event_id: event.id,
       event_type: eventType,
       action: delta ? "processing" : "logged",
+      delta_type: delta?.type || null,
     });
   } catch (err: any) {
     console.error("[SM Webhook] Error:", err.message);
