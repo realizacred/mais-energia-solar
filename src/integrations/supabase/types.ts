@@ -1821,6 +1821,146 @@ export type Database = {
           },
         ]
       }
+      lead_scores: {
+        Row: {
+          calculado_em: string
+          created_at: string
+          fatores: Json
+          id: string
+          lead_id: string
+          nivel: string
+          probabilidade_fechamento: number
+          recomendacao: string | null
+          score: number
+          score_consumo: number
+          score_engajamento: number
+          score_localizacao: number
+          score_perfil_tecnico: number
+          score_recencia: number
+          score_tempo_resposta: number
+          tenant_id: string | null
+          updated_at: string
+          valor_estimado: number | null
+        }
+        Insert: {
+          calculado_em?: string
+          created_at?: string
+          fatores?: Json
+          id?: string
+          lead_id: string
+          nivel?: string
+          probabilidade_fechamento?: number
+          recomendacao?: string | null
+          score?: number
+          score_consumo?: number
+          score_engajamento?: number
+          score_localizacao?: number
+          score_perfil_tecnico?: number
+          score_recencia?: number
+          score_tempo_resposta?: number
+          tenant_id?: string | null
+          updated_at?: string
+          valor_estimado?: number | null
+        }
+        Update: {
+          calculado_em?: string
+          created_at?: string
+          fatores?: Json
+          id?: string
+          lead_id?: string
+          nivel?: string
+          probabilidade_fechamento?: number
+          recomendacao?: string | null
+          score?: number
+          score_consumo?: number
+          score_engajamento?: number
+          score_localizacao?: number
+          score_perfil_tecnico?: number
+          score_recencia?: number
+          score_tempo_resposta?: number
+          tenant_id?: string | null
+          updated_at?: string
+          valor_estimado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_scores_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_scoring_config: {
+        Row: {
+          consumo_alto_min: number
+          consumo_medio_min: number
+          created_at: string
+          id: string
+          peso_consumo: number
+          peso_engajamento: number
+          peso_localizacao: number
+          peso_perfil_tecnico: number
+          peso_recencia: number
+          peso_tempo_resposta: number
+          probabilidade_cold: number
+          probabilidade_hot: number
+          probabilidade_warm: number
+          recencia_morna_max: number
+          recencia_quente_max: number
+          tenant_id: string | null
+          threshold_hot: number
+          threshold_warm: number
+          ticket_medio: number
+          updated_at: string
+        }
+        Insert: {
+          consumo_alto_min?: number
+          consumo_medio_min?: number
+          created_at?: string
+          id?: string
+          peso_consumo?: number
+          peso_engajamento?: number
+          peso_localizacao?: number
+          peso_perfil_tecnico?: number
+          peso_recencia?: number
+          peso_tempo_resposta?: number
+          probabilidade_cold?: number
+          probabilidade_hot?: number
+          probabilidade_warm?: number
+          recencia_morna_max?: number
+          recencia_quente_max?: number
+          tenant_id?: string | null
+          threshold_hot?: number
+          threshold_warm?: number
+          ticket_medio?: number
+          updated_at?: string
+        }
+        Update: {
+          consumo_alto_min?: number
+          consumo_medio_min?: number
+          created_at?: string
+          id?: string
+          peso_consumo?: number
+          peso_engajamento?: number
+          peso_localizacao?: number
+          peso_perfil_tecnico?: number
+          peso_recencia?: number
+          peso_tempo_resposta?: number
+          probabilidade_cold?: number
+          probabilidade_hot?: number
+          probabilidade_warm?: number
+          recencia_morna_max?: number
+          recencia_quente_max?: number
+          tenant_id?: string | null
+          threshold_hot?: number
+          threshold_warm?: number
+          ticket_medio?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_status: {
         Row: {
           cor: string
