@@ -378,7 +378,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
             observacoes_conclusao: observacoes,
             audio_url: audioUrl,
             video_url: videoUrl,
-            layout_id: savedLayoutId,
+            layout_modulos: savedLayoutId ? { layout_id: savedLayoutId, total_modulos: layoutModuleCount } : null,
           })
           .eq("id", servico.id);
   
