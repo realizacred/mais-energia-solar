@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { BrandSettingsProvider } from "@/components/BrandSettingsProvider";
+import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -43,6 +44,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <BrandSettingsProvider>
+      <SiteSettingsProvider>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -67,6 +69,7 @@ const App = () => (
           </Suspense>
         </BrowserRouter>
       </TooltipProvider>
+      </SiteSettingsProvider>
       </BrandSettingsProvider>
     </AuthProvider>
   </QueryClientProvider>

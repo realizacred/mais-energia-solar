@@ -2,6 +2,7 @@ import { Shield, Award, HeadphonesIcon, Leaf, Phone, CheckCircle2 } from "lucide
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const values = [
   { icon: Shield, label: "Segurança", description: "Projetos dentro das normas técnicas" },
@@ -18,6 +19,10 @@ const purposes = [
 
 export function AboutSection() {
   const { ref, isVisible } = useScrollReveal();
+  const { get } = useSiteSettings();
+
+  const nomeEmpresa = get("nome_empresa");
+  const whatsapp = get("whatsapp");
 
   return (
     <section id="quem-somos" className="py-20 sm:py-32 bg-card relative overflow-hidden">
@@ -37,7 +42,7 @@ export function AboutSection() {
             Quem Somos
           </span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight">
-            Mais Energia Solar
+            {nomeEmpresa}
           </h2>
         </motion.div>
 
@@ -49,17 +54,8 @@ export function AboutSection() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="space-y-5 text-muted-foreground text-base sm:text-lg leading-relaxed mb-16 max-w-3xl mx-auto text-center"
           >
-            <p>
-              A <strong className="text-foreground font-semibold">Mais Energia Solar</strong> foi fundada em 2009,
-              atuando inicialmente no ramo de reparos em eletrônicos. A partir de 2019, acompanhando
-              as tendências do mercado, passamos a nos especializar em{" "}
-              <strong className="text-foreground font-semibold">Energia Solar Fotovoltaica, Projetos Elétricos e Soluções Sustentáveis</strong>.
-            </p>
-            <p>
-              Hoje, somos referência no desenvolvimento e instalação de sistemas de energia solar
-              e também em bombas solares para irrigação, oferecendo soluções inovadoras para
-              propriedades residenciais, comerciais, industriais e rurais.
-            </p>
+            <p>{get("texto_sobre")}</p>
+            {get("texto_sobre_resumido") && <p>{get("texto_sobre_resumido")}</p>}
           </motion.div>
 
           {/* Values - Modern cards */}
@@ -113,7 +109,7 @@ export function AboutSection() {
                   size="lg"
                   className="bg-primary hover:bg-primary/90 rounded-full px-8 font-bold shadow-primary"
                 >
-                  <a href="https://wa.me/5532998437675" target="_blank" rel="noopener noreferrer">
+                  <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
                     <Phone className="w-4 h-4 mr-2" />
                     Fale Conosco
                   </a>

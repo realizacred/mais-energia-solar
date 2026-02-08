@@ -92,6 +92,8 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     hoverClass: "hover:bg-sidebar-operations/5",
     labelClass: "text-sidebar-operations",
     items: [
+      { id: "site-config", title: "Configurações do Site", icon: Settings },
+      { id: "site-banners", title: "Banners", icon: Sun },
       { id: "obras", title: "Obras / Portfólio", icon: Sun },
     ],
   },

@@ -1,10 +1,14 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import financingBg from "@/assets/financing-bg.jpg";
 
 export function CTASection() {
   const { ref, isVisible } = useScrollReveal();
+  const { get } = useSiteSettings();
+
+  const whatsapp = get("whatsapp");
 
   const scrollToContact = () => {
     document.getElementById("contato")?.scrollIntoView({ behavior: "smooth" });
@@ -35,11 +39,10 @@ export function CTASection() {
             Financiamento
           </span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-6 max-w-3xl mx-auto leading-tight tracking-tight">
-            Deseja financiar seu sistema de energia solar?
+            {get("cta_titulo")}
           </h2>
           <p className="text-white/70 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
-            Envie suas informações que nossa equipe irá fazer uma cotação com as instituições
-            financeiras parceiras e enviar a melhor proposta para você.
+            {get("cta_subtitulo")}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button
@@ -47,7 +50,7 @@ export function CTASection() {
               asChild
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold rounded-full shadow-primary hover:shadow-xl hover:shadow-primary/30 transition-all duration-300 hover:-translate-y-0.5"
             >
-              <a href="https://wa.me/5532998437675" target="_blank" rel="noopener noreferrer">
+              <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
                 Solicitar Orçamento
               </a>
             </Button>

@@ -1,11 +1,23 @@
 import { forwardRef } from "react";
-import { Phone, Mail, MapPin, Instagram, ArrowUpRight } from "lucide-react";
+import { Phone, Mail, MapPin, Instagram } from "lucide-react";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import logoBrancaFallback from "@/assets/logo-branca.png";
 
 const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
-  const { settings } = useBrandSettings();
-  const logoBranca = settings?.logo_white_url || settings?.logo_url || logoBrancaFallback;
+  const { settings: brandSettings } = useBrandSettings();
+  const { get } = useSiteSettings();
+
+  const logoBranca = brandSettings?.logo_white_url || brandSettings?.logo_url || logoBrancaFallback;
+  const nomeEmpresa = get("nome_empresa");
+  const slogan = get("slogan");
+  const telefone = get("telefone");
+  const whatsapp = get("whatsapp");
+  const email = get("email");
+  const cidade = get("cidade");
+  const estado = get("estado");
+  const instagramUrl = get("instagram_url");
+
   return (
     <footer ref={ref} className="relative bg-secondary text-secondary-foreground overflow-hidden">
       {/* Top accent line */}
@@ -18,51 +30,53 @@ const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
           <div className="flex items-center gap-3">
             <img
               src={logoBranca}
-              alt="Mais Energia Solar"
+              alt={nomeEmpresa}
               className="h-7 w-auto"
             />
             <div className="hidden sm:block w-px h-5 bg-secondary-foreground/15" />
             <p className="hidden sm:block text-secondary-foreground/40 text-xs">
-              Energia solar para todos
+              {slogan}
             </p>
           </div>
 
           {/* Contact links inline */}
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <a
-              href="tel:+5532998437675"
+              href={`tel:+${whatsapp}`}
               className="flex items-center gap-1.5 text-secondary-foreground/50 hover:text-primary transition-colors text-xs group"
             >
               <Phone className="w-3 h-3" />
-              <span>(32) 99843-7675</span>
+              <span>{telefone}</span>
             </a>
 
             <a
-              href="mailto:contato@maisenergiasolar.com.br"
+              href={`mailto:${email}`}
               className="flex items-center gap-1.5 text-secondary-foreground/50 hover:text-primary transition-colors text-xs group"
             >
               <Mail className="w-3 h-3" />
-              <span className="hidden sm:inline">contato@maisenergiasolar.com.br</span>
+              <span className="hidden sm:inline">{email}</span>
               <span className="sm:hidden">E-mail</span>
             </a>
 
             <div className="flex items-center gap-1.5 text-secondary-foreground/40 text-xs">
               <MapPin className="w-3 h-3" />
-              <span>Cataguases - MG</span>
+              <span>{cidade} - {estado}</span>
             </div>
 
             <div className="flex items-center gap-2">
+              {instagramUrl && (
+                <a
+                  href={instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-7 h-7 rounded-full bg-secondary-foreground/8 hover:bg-primary/20 flex items-center justify-center transition-colors group"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-3.5 h-3.5 text-secondary-foreground/40 group-hover:text-primary transition-colors" />
+                </a>
+              )}
               <a
-                href="https://www.instagram.com/maismaisenergiasolaroficial/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-7 h-7 rounded-full bg-secondary-foreground/8 hover:bg-primary/20 flex items-center justify-center transition-colors group"
-                aria-label="Instagram"
-              >
-                <Instagram className="w-3.5 h-3.5 text-secondary-foreground/40 group-hover:text-primary transition-colors" />
-              </a>
-              <a
-                href="https://wa.me/5532998437675?text=Ol%C3%A1%2C%20gostaria%20de%20um%20or%C3%A7amento%20de%20energia%20solar"
+                href={`https://wa.me/${whatsapp}?text=Ol%C3%A1%2C%20gostaria%20de%20um%20or%C3%A7amento%20de%20energia%20solar`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-7 h-7 rounded-full bg-secondary-foreground/8 hover:bg-primary/20 flex items-center justify-center transition-colors group"
@@ -77,7 +91,7 @@ const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
         {/* Copyright — ultra slim */}
         <div className="mt-3 pt-3 border-t border-secondary-foreground/6 flex items-center justify-center">
           <p className="text-[11px] text-secondary-foreground/25">
-            © {new Date().getFullYear()} Mais Energia Solar · Todos os direitos reservados
+            © {new Date().getFullYear()} {nomeEmpresa} · Todos os direitos reservados
           </p>
         </div>
       </div>
