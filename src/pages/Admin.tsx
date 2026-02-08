@@ -32,12 +32,10 @@ import { InstaladorManager } from "@/components/admin/InstaladorManager";
 import { InadimplenciaDashboard } from "@/components/admin/InadimplenciaDashboard";
 import { WhatsAppAutomationConfig } from "@/components/admin/WhatsAppAutomationConfig";
 import { AprovacaoUsuarios } from "@/components/admin/AprovacaoUsuarios";
-import { BrandSettingsManager } from "@/components/admin/BrandSettingsManager";
 import { AuditLogsViewer } from "@/components/admin/AuditLogsViewer";
 import { ReleaseChecklist } from "@/components/admin/ReleaseChecklist";
 import { ObrasManager } from "@/components/admin/ObrasManager";
-import { SiteConfigManager } from "@/components/admin/SiteConfigManager";
-import { SiteBannersManager } from "@/components/admin/SiteBannersManager";
+import { SiteSettingsUnified } from "@/components/admin/SiteSettingsUnified";
 import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -73,11 +71,10 @@ const TAB_TITLES: Record<string, string> = {
   inadimplencia: "Inadimplência",
   auditoria: "Auditoria",
   aprovacao: "Aprovações de Acesso",
-  brand: "Identidade Visual",
+  brand: "Configurações do Site",
   release: "Release Checklist",
   obras: "Obras / Portfólio",
   "site-config": "Configurações do Site",
-  "site-banners": "Banners do Site",
 };
 
 export default function Admin() {
@@ -182,8 +179,8 @@ export default function Admin() {
       case "aprovacao":
         return <AprovacaoUsuarios />;
       case "brand":
-        return <BrandSettingsManager />;
-      case "leads":
+      case "site-config":
+        return <SiteSettingsUnified />;
         return <LeadsView />;
       case "pipeline":
         return <LeadsPipeline />;
@@ -254,10 +251,6 @@ export default function Admin() {
         return <ReleaseChecklist />;
       case "obras":
         return <ObrasManager />;
-      case "site-config":
-        return <SiteConfigManager />;
-      case "site-banners":
-        return <SiteBannersManager />;
       default:
         return <LeadsView />;
     }
