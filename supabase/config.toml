@@ -32,3 +32,9 @@ verify_jwt = false
 
 [functions.webhook-lead]
 verify_jwt = false
+
+[functions.solar-market-sync]
+verify_jwt = false
+
+[functions.solar-market-webhook]
+verify_jwt = false

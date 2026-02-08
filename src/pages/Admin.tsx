@@ -42,6 +42,7 @@ import { LeadStatusManager } from "@/components/admin/LeadStatusManager";
 import { IntelligenceDashboard } from "@/components/admin/intelligence";
 import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
 import { CommercialDirectorDashboard } from "@/components/admin/director";
+import { SolarMarketManager } from "@/components/admin/SolarMarketManager";
 import { TasksSlaDashboard } from "@/components/admin/tasks";
 import { WhatsAppInbox } from "@/components/admin/inbox";
 import { PendingValidationWidget } from "@/components/admin/widgets/PendingValidationWidget";
@@ -95,6 +96,7 @@ const TAB_TITLES: Record<string, string> = {
   instagram: "Instagram API",
   webhooks: "Webhooks",
   n8n: "Automações",
+  solarmarket: "SolarMarket",
   release: "Release Notes",
 };
 
@@ -290,6 +292,8 @@ export default function Admin() {
         return <SiteServicosManager />;
       case "lead-status":
         return <LeadStatusManager />;
+      case "solarmarket":
+        return <SolarMarketManager />;
       default:
         return <LeadsView />;
     }
