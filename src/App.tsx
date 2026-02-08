@@ -23,7 +23,21 @@ const Instalador = lazy(() => import("./pages/Instalador"));
 const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Dados ficam "frescos" por 2 minutos — evita refetch desnecessário
+      staleTime: 2 * 60 * 1000,
+      // Cache mantido por 10 minutos após componente desmontar
+      gcTime: 10 * 60 * 1000,
+      // Não refaz query ao voltar à aba (reduz chamadas)
+      refetchOnWindowFocus: false,
+      // Retry com backoff para resiliência
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
