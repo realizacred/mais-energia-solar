@@ -62,25 +62,25 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
           <span className="sr-only">Abrir menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0 !bg-background border-l border-border shadow-xl">
+      <SheetContent side="right" className="w-[280px] sm:w-[320px] p-0 !bg-background border-l border-border/40 shadow-2xl">
         <SheetTitle className="sr-only">Menu de navegação</SheetTitle>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border/40">
             <Link to="/" onClick={() => setOpen(false)}>
               <img src={logo} alt="Mais Energia Solar" className="h-8" />
             </Link>
           </div>
 
           {/* Navigation Links */}
-          <nav className="flex-1 p-4 space-y-1">
+          <nav className="flex-1 px-3 py-4 space-y-0.5">
             {isHomePage && navLinks.map((link) => (
               <button
                 key={link.label}
                 onClick={() => handleNavClick(link.href)}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors w-full text-left"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors w-full text-left"
               >
-                <span className="font-medium">{link.label}</span>
+                <span className="font-medium text-sm">{link.label}</span>
               </button>
             ))}
 
@@ -88,10 +88,10 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
               <Link 
                 to="/" 
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors"
               >
-                <Home className="h-5 w-5 text-primary" />
-                <span className="font-medium">Início</span>
+                <Home className="h-4.5 w-4.5 text-primary" />
+                <span className="font-medium text-sm">Início</span>
               </Link>
             )}
 
@@ -99,34 +99,34 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
               <Link 
                 to="/calculadora" 
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors"
               >
-                <Calculator className="h-5 w-5 text-primary" />
-                <span className="font-medium">Simulador</span>
+                <Calculator className="h-4.5 w-4.5 text-primary" />
+                <span className="font-medium text-sm">Simulador</span>
               </Link>
             )}
 
             <button
               onClick={handleWhatsApp}
-              className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors w-full text-left"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors w-full text-left"
             >
-              <Phone className="h-5 w-5 text-primary" />
-              <span className="font-medium">WhatsApp</span>
+              <Phone className="h-4.5 w-4.5 text-primary" />
+              <span className="font-medium text-sm">WhatsApp</span>
             </button>
 
             {user && (
               <button
                 onClick={handlePortal}
-                className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors w-full text-left"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-muted/60 transition-colors w-full text-left"
               >
-                <LayoutDashboard className="h-5 w-5 text-primary" />
-                <span className="font-medium">Meu Portal</span>
+                <LayoutDashboard className="h-4.5 w-4.5 text-primary" />
+                <span className="font-medium text-sm">Meu Portal</span>
               </button>
             )}
           </nav>
 
           {/* Footer */}
-          <div className="p-4 border-t space-y-3">
+          <div className="px-4 py-4 border-t border-border/40 space-y-3">
             {user ? (
               <>
                 <p className="text-xs text-muted-foreground truncate px-1">
@@ -134,7 +134,7 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
                 </p>
                 <Button 
                   variant="outline" 
-                  className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/5 rounded-lg"
                   onClick={handleSignOut}
                 >
                   <LogOut className="h-4 w-4" />
@@ -144,14 +144,14 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
             ) : (
               showAdmin && (
                 <Link to="/auth" onClick={() => setOpen(false)}>
-                  <Button className="w-full gap-2">
+                  <Button className="w-full gap-2 rounded-lg">
                     <LogIn className="h-4 w-4" />
                     Acessar Sistema
                   </Button>
                 </Link>
               )
             )}
-            <p className="text-xs text-center text-muted-foreground">
+            <p className="text-[11px] text-center text-muted-foreground/60">
               © {new Date().getFullYear()} Mais Energia Solar
             </p>
           </div>
