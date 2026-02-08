@@ -14,9 +14,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   RefreshCw, Settings, Plug, Zap, Clock, CheckCircle2, XCircle,
   AlertTriangle, Loader2, Play, ExternalLink, Copy, Shield,
+  FolderOpen, Link2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { SolarMarketDataView, SolarMarketLinksView } from "@/components/admin/solarmarket";
 
 interface SmConfig {
   id: string;
@@ -269,22 +271,30 @@ export function SolarMarketManager() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="config" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6">
           <TabsTrigger value="config" className="gap-1.5">
             <Settings className="h-4 w-4" />
-            Configuração
+            <span className="hidden sm:inline">Config</span>
+          </TabsTrigger>
+          <TabsTrigger value="dados" className="gap-1.5">
+            <FolderOpen className="h-4 w-4" />
+            <span className="hidden sm:inline">Dados</span>
+          </TabsTrigger>
+          <TabsTrigger value="vinculos" className="gap-1.5">
+            <Link2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Vínculos</span>
           </TabsTrigger>
           <TabsTrigger value="sync" className="gap-1.5">
             <RefreshCw className="h-4 w-4" />
-            Sincronizar
+            <span className="hidden sm:inline">Sync</span>
           </TabsTrigger>
           <TabsTrigger value="delta" className="gap-1.5">
             <Zap className="h-4 w-4" />
-            Delta Sync
+            <span className="hidden sm:inline">Delta</span>
           </TabsTrigger>
           <TabsTrigger value="logs" className="gap-1.5">
             <Clock className="h-4 w-4" />
-            Logs
+            <span className="hidden sm:inline">Logs</span>
           </TabsTrigger>
         </TabsList>
 
@@ -402,6 +412,16 @@ export function SolarMarketManager() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Dados Tab ──────────────────────────── */}
+        <TabsContent value="dados" className="mt-4">
+          <SolarMarketDataView />
+        </TabsContent>
+
+        {/* ── Vínculos Tab ───────────────────────── */}
+        <TabsContent value="vinculos" className="mt-4">
+          <SolarMarketLinksView />
         </TabsContent>
 
         {/* ── Full Sync Tab ──────────────────────── */}
