@@ -47,6 +47,7 @@ import {
   SidebarFooter,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
@@ -58,16 +59,20 @@ interface AdminSidebarProps {
   onTabChange: (tab: string) => void;
   userEmail?: string;
   onSignOut: () => void;
+  /** Map of menu item id -> badge count (shown as notification dot/count) */
+  badgeCounts?: Record<string, number>;
 }
 
 function SidebarSectionGroup({
   section,
   activeTab,
   onTabChange,
+  badgeCounts,
 }: {
   section: SidebarSection;
   activeTab: string;
   onTabChange: (tab: string) => void;
+  badgeCounts?: Record<string, number>;
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -96,6 +101,7 @@ function SidebarSectionGroup({
         <SidebarMenu className="gap-px">
           {section.items.map((item) => {
             const isActive = activeTab === item.id;
+            const badgeCount = badgeCounts?.[item.id] || 0;
             return (
               <SidebarMenuItem key={item.id}>
                 <SidebarMenuButton
@@ -130,7 +136,18 @@ function SidebarSectionGroup({
                       {item.title}
                     </span>
                   )}
-                  {isActive && !collapsed && (
+                  {badgeCount > 0 && !collapsed && (
+                    <Badge
+                      variant="secondary"
+                      className="h-5 min-w-5 px-1.5 text-[10px] font-bold bg-warning/15 text-warning border-0 shrink-0"
+                    >
+                      {badgeCount}
+                    </Badge>
+                  )}
+                  {badgeCount > 0 && collapsed && (
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-warning" />
+                  )}
+                  {isActive && !collapsed && badgeCount === 0 && (
                     <ChevronRight className="h-3 w-3 opacity-50 shrink-0" />
                   )}
                 </SidebarMenuButton>
@@ -148,6 +165,7 @@ export function AdminSidebar({
   onTabChange,
   userEmail,
   onSignOut,
+  badgeCounts,
 }: AdminSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
@@ -194,6 +212,7 @@ export function AdminSidebar({
             section={section}
             activeTab={activeTab}
             onTabChange={onTabChange}
+            badgeCounts={badgeCounts}
           />
         ))}
       </SidebarContent>
