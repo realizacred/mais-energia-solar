@@ -1135,6 +1135,7 @@ export type Database = {
       }
       concessionarias: {
         Row: {
+          aliquota_icms: number | null
           ativo: boolean
           created_at: string
           custo_disponibilidade_bifasico: number | null
@@ -1143,6 +1144,8 @@ export type Database = {
           estado: string | null
           id: string
           nome: string
+          percentual_isencao: number | null
+          possui_isencao_scee: boolean | null
           sigla: string | null
           tarifa_energia: number | null
           tarifa_fio_b: number | null
@@ -1150,6 +1153,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aliquota_icms?: number | null
           ativo?: boolean
           created_at?: string
           custo_disponibilidade_bifasico?: number | null
@@ -1158,6 +1162,8 @@ export type Database = {
           estado?: string | null
           id?: string
           nome: string
+          percentual_isencao?: number | null
+          possui_isencao_scee?: boolean | null
           sigla?: string | null
           tarifa_energia?: number | null
           tarifa_fio_b?: number | null
@@ -1165,6 +1171,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aliquota_icms?: number | null
           ativo?: boolean
           created_at?: string
           custo_disponibilidade_bifasico?: number | null
@@ -1173,6 +1180,8 @@ export type Database = {
           estado?: string | null
           id?: string
           nome?: string
+          percentual_isencao?: number | null
+          possui_isencao_scee?: boolean | null
           sigla?: string | null
           tarifa_energia?: number | null
           tarifa_fio_b?: number | null
