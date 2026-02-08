@@ -37,29 +37,32 @@ export function ServicesSection() {
   const { ref, isVisible } = useScrollReveal();
 
   return (
-    <section id="servicos" className="py-20 sm:py-32 bg-background relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-b from-muted/30 via-transparent to-muted/30" />
+    <section id="servicos" className="py-20 sm:py-32 bg-secondary relative overflow-hidden">
+      {/* Decorative elements */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/60 to-transparent" />
+      <div className="absolute top-20 right-0 w-80 h-80 bg-primary/10 rounded-full blur-3xl" />
+      <div className="absolute bottom-10 left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl" />
 
       <div ref={ref} className="container mx-auto px-4 relative z-10">
-        {/* Section Header */}
+        {/* Section Header — white text on dark */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isVisible ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-white text-sm font-bold mb-4 backdrop-blur-sm">
             Nossos Serviços
           </span>
-          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground mb-4 tracking-tight">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
             Do projeto à manutenção
           </h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+          <p className="text-white/60 max-w-2xl mx-auto text-lg">
             Cuidamos de tudo para você ter a melhor experiência com energia solar.
           </p>
         </motion.div>
 
-        {/* Service Cards */}
+        {/* Service Cards — glass style on dark bg */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
           {services.map((service, i) => (
             <motion.div
@@ -67,7 +70,7 @@ export function ServicesSection() {
               initial={{ opacity: 0, y: 40 }}
               animate={isVisible ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + i * 0.1 }}
-              className="group relative rounded-2xl overflow-hidden bg-card border border-border/50 hover:border-primary/20 hover:shadow-xl transition-all duration-500"
+              className="group relative rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/10 hover:border-primary/40 hover:bg-white/15 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500"
             >
               {/* Image */}
               <div className="relative h-52 sm:h-60 overflow-hidden">
@@ -77,24 +80,24 @@ export function ServicesSection() {
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
                   loading="lazy"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 via-foreground/20 to-transparent" />
-                {/* Step number */}
-                <span className="absolute top-4 left-4 w-9 h-9 rounded-xl bg-primary/90 backdrop-blur-sm flex items-center justify-center text-primary-foreground text-sm font-bold">
+                <div className="absolute inset-0 bg-gradient-to-t from-secondary/80 via-secondary/30 to-transparent" />
+                {/* Step number — orange accent */}
+                <span className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-primary shadow-lg shadow-primary/30 flex items-center justify-center text-primary-foreground text-sm font-extrabold">
                   {service.step}
                 </span>
               </div>
 
               {/* Content */}
               <div className="p-5 sm:p-6">
-                <h3 className="font-display text-xl font-bold text-foreground mb-2">{service.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                <h3 className="font-display text-xl font-bold text-white mb-2">{service.title}</h3>
+                <p className="text-sm text-white/60 leading-relaxed mb-4">
                   {service.description}
                 </p>
                 <a
                   href="https://wa.me/5532998437675"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:gap-3 transition-all duration-300"
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:gap-3 transition-all duration-300"
                 >
                   Saiba mais
                   <ArrowRight className="w-4 h-4" />
