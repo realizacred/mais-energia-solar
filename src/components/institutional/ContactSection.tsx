@@ -90,7 +90,9 @@ export function ContactSection() {
   };
 
   return (
-    <section id="contato" className="py-20 sm:py-32 bg-background relative overflow-hidden">
+    <section id="contato" className="py-20 sm:py-32 bg-card relative overflow-hidden">
+      {/* Orange accent line */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/40 to-transparent" />
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/4 translate-x-1/4" />
 
       <div ref={ref} className="container mx-auto px-4 relative z-10">
@@ -101,7 +103,7 @@ export function ContactSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-bold mb-4 border border-primary/20">
             Fale Conosco
           </span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight">
@@ -121,7 +123,7 @@ export function ContactSection() {
             <div className="space-y-6 mb-10">
               {contactInfo.map((info) => (
                 <div key={info.label} className="flex items-start gap-4 group">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-300">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 group-hover:scale-110 group-hover:border-primary/30 transition-all duration-300">
                     <info.icon className="w-5 h-5 text-primary" />
                   </div>
                   <div>
@@ -141,12 +143,12 @@ export function ContactSection() {
               ))}
             </div>
 
-            {/* WhatsApp CTA */}
+            {/* WhatsApp CTA — bold */}
             <a
               href={`https://wa.me/${whatsapp}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-success text-success-foreground font-semibold text-sm hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-primary text-primary-foreground font-bold text-sm hover:bg-primary/90 transition-all duration-300 shadow-lg shadow-primary/25 hover:-translate-y-0.5"
             >
               <Phone className="w-4 h-4" />
               Chamar no WhatsApp
@@ -160,7 +162,7 @@ export function ContactSection() {
             animate={isVisible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.3 }}
             onSubmit={handleSubmit}
-            className="md:col-span-3 space-y-4 p-6 sm:p-8 rounded-2xl bg-card border border-border/50"
+            className="md:col-span-3 space-y-4 p-6 sm:p-8 rounded-2xl bg-background border-2 border-border/50 shadow-lg"
           >
             <div className="grid sm:grid-cols-2 gap-4">
               <Input
@@ -217,9 +219,9 @@ export function ContactSection() {
               type="submit"
               disabled={loading}
               size="xl"
-              className="w-full bg-primary hover:bg-primary/90 rounded-full font-bold shadow-primary hover:shadow-xl hover:shadow-primary/30 transition-all duration-300"
+              className="w-full bg-primary hover:bg-primary/90 rounded-full font-extrabold shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300 hover:-translate-y-0.5 text-lg"
             >
-              <Send className="w-4 h-4 mr-2" />
+              <Send className="w-5 h-5 mr-2" />
               {loading ? "Enviando..." : "Enviar Orçamento"}
             </Button>
           </motion.form>

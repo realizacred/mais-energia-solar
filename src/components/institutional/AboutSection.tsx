@@ -25,7 +25,7 @@ export function AboutSection() {
   const whatsapp = get("whatsapp");
 
   return (
-    <section id="quem-somos" className="py-20 sm:py-32 bg-card relative overflow-hidden">
+    <section id="quem-somos" className="py-20 sm:py-32 bg-background relative overflow-hidden">
       {/* Decorative blobs */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
       <div className="absolute bottom-0 left-0 w-80 h-80 bg-secondary/5 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
@@ -38,7 +38,7 @@ export function AboutSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-bold mb-4 border border-primary/20">
             Quem Somos
           </span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight">
@@ -47,7 +47,7 @@ export function AboutSection() {
         </motion.div>
 
         <div className="max-w-5xl mx-auto">
-          {/* About text with modern typography */}
+          {/* About text */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isVisible ? { opacity: 1, y: 0 } : {}}
@@ -58,7 +58,7 @@ export function AboutSection() {
             {get("texto_sobre_resumido") && <p>{get("texto_sobre_resumido")}</p>}
           </motion.div>
 
-          {/* Values - Modern cards */}
+          {/* Values - Bold cards with orange accent */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5 mb-16">
             {values.map((v, i) => (
               <motion.div
@@ -66,9 +66,11 @@ export function AboutSection() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={isVisible ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
-                className="group relative flex flex-col items-center gap-3 p-6 sm:p-8 rounded-2xl bg-background border border-border/50 hover:border-primary/30 hover:shadow-lg transition-all duration-300"
+                className="group relative flex flex-col items-center gap-3 p-6 sm:p-8 rounded-2xl bg-card border-2 border-border/50 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
               >
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                {/* Orange top accent */}
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 rounded-b-full bg-primary/60 group-hover:w-20 group-hover:bg-primary transition-all duration-300" />
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center group-hover:scale-110 group-hover:from-primary/30 transition-all duration-300">
                   <v.icon className="w-7 h-7 text-primary" />
                 </div>
                 <span className="font-display font-bold text-foreground text-base">{v.label}</span>
@@ -77,20 +79,21 @@ export function AboutSection() {
             ))}
           </div>
 
-          {/* Purpose - Redesigned */}
+          {/* Purpose - Orange dominant card */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={isVisible ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="relative rounded-3xl overflow-hidden"
+            className="relative rounded-3xl overflow-hidden shadow-2xl"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary via-secondary/90 to-primary/30" />
-            <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary/70" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/20 rounded-full blur-3xl" />
 
             <div className="relative z-10 p-8 sm:p-12 md:flex md:items-center md:gap-12">
               <div className="flex-1 mb-8 md:mb-0">
                 <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-4">Nosso Propósito</h3>
-                <p className="text-white/70 text-base leading-relaxed">
+                <p className="text-white/80 text-base leading-relaxed">
                   Mais do que fornecer energia limpa, nosso propósito é gerar economia,
                   autonomia e impacto positivo no dia a dia de nossos clientes.
                 </p>
@@ -99,7 +102,7 @@ export function AboutSection() {
                 <ul className="space-y-4 mb-8">
                   {purposes.map((p) => (
                     <li key={p} className="flex items-center gap-3 text-white">
-                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                      <CheckCircle2 className="w-5 h-5 text-white shrink-0" />
                       <span className="font-medium">{p}</span>
                     </li>
                   ))}
@@ -107,7 +110,7 @@ export function AboutSection() {
                 <Button
                   asChild
                   size="lg"
-                  className="bg-primary hover:bg-primary/90 rounded-full px-8 font-bold shadow-primary"
+                  className="bg-white text-primary hover:bg-white/90 rounded-full px-8 font-extrabold shadow-xl shadow-black/20 hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
                     <Phone className="w-4 h-4 mr-2" />

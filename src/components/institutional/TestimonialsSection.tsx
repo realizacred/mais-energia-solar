@@ -27,9 +27,11 @@ export function TestimonialsSection() {
   const { ref, isVisible } = useScrollReveal();
 
   return (
-    <section id="depoimentos" className="py-20 sm:py-32 bg-card relative overflow-hidden">
-      {/* Decorative */}
+    <section id="depoimentos" className="py-20 sm:py-32 bg-muted/50 relative overflow-hidden">
+      {/* Decorative — orange tint */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary/30 via-primary/10 to-transparent" />
       <div className="absolute top-1/2 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 -translate-x-1/2" />
+      <div className="absolute bottom-0 right-0 w-72 h-72 bg-primary/5 rounded-full blur-3xl translate-y-1/2 translate-x-1/2" />
 
       <div ref={ref} className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
@@ -39,7 +41,7 @@ export function TestimonialsSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-bold mb-4 border border-primary/20">
             Depoimentos
           </span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground tracking-tight">
@@ -55,11 +57,14 @@ export function TestimonialsSection() {
               initial={{ opacity: 0, y: 40 }}
               animate={isVisible ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + i * 0.15 }}
-              className="relative p-7 sm:p-8 rounded-2xl bg-background border border-border/50 hover:border-primary/20 hover:shadow-lg transition-all duration-300 group"
+              className="relative p-7 sm:p-8 rounded-2xl bg-card border-2 border-border/50 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300 group"
             >
+              {/* Orange top accent */}
+              <div className="absolute top-0 left-6 w-10 h-1 rounded-b-full bg-primary/50 group-hover:w-16 group-hover:bg-primary transition-all duration-300" />
+              
               {/* Quote icon */}
-              <div className="absolute top-6 right-6 w-12 h-12 rounded-full bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors duration-300">
-                <Quote className="w-5 h-5 text-primary/40" />
+              <div className="absolute top-6 right-6 w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-300">
+                <Quote className="w-5 h-5 text-primary/60 group-hover:text-primary transition-colors duration-300" />
               </div>
 
               {/* Stars */}
@@ -76,7 +81,7 @@ export function TestimonialsSection() {
 
               {/* Author */}
               <div className="flex items-center gap-3 pt-4 border-t border-border/50">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center text-primary-foreground font-bold text-sm">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-bold text-sm shadow-md shadow-primary/20">
                   {testimonial.name.charAt(0)}
                 </div>
                 <span className="font-display font-bold text-foreground text-sm">{testimonial.name}</span>

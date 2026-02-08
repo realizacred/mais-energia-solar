@@ -92,7 +92,11 @@ export function ProjectsSection() {
   };
 
   return (
-    <section id="obras" className="py-20 sm:py-32 bg-muted/30 relative overflow-hidden">
+    <section id="obras" className="py-20 sm:py-32 bg-background relative overflow-hidden">
+      {/* Decorative */}
+      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
+      <div className="absolute bottom-0 right-0 w-80 h-80 bg-primary/5 rounded-full blur-3xl translate-y-1/2 translate-x-1/4" />
+
       <div ref={ref} className="container mx-auto px-4">
         {/* Section Header */}
         <motion.div
@@ -101,7 +105,7 @@ export function ProjectsSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-bold mb-4 border border-primary/20">
             Nosso Portfólio
           </span>
           <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-foreground mb-4 tracking-tight">
@@ -120,7 +124,7 @@ export function ProjectsSection() {
               initial={{ opacity: 0, y: 40 }}
               animate={isVisible ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + i * 0.1 }}
-              className="group rounded-2xl overflow-hidden bg-card border border-border/50 hover:shadow-xl hover:border-primary/20 transition-all duration-500 cursor-pointer"
+              className="group rounded-2xl overflow-hidden bg-card border-2 border-border/50 hover:shadow-xl hover:border-primary/30 hover:shadow-primary/5 transition-all duration-500 cursor-pointer"
               onClick={() => openProject(project, i)}
             >
               <div className="relative h-60 sm:h-72 overflow-hidden">
@@ -135,7 +139,7 @@ export function ProjectsSection() {
                 {/* Badges */}
                 <div className="absolute top-3 right-3 flex gap-1.5">
                   {project.video_url && (
-                    <Badge className="bg-foreground/60 backdrop-blur-sm text-background text-[10px] gap-1">
+                    <Badge className="bg-primary/90 text-primary-foreground text-[10px] gap-1 shadow-md">
                       <Video className="w-3 h-3" /> Vídeo
                     </Badge>
                   )}
