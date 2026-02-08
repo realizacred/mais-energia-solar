@@ -26,6 +26,7 @@ import { ConcessionariasManager } from "@/components/admin/ConcessionariasManage
 import { GamificacaoConfig } from "@/components/admin/GamificacaoConfig";
 import { ComissoesManager } from "@/components/admin/ComissoesManager";
 import { ValidacaoVendasManager } from "@/components/admin/ValidacaoVendasManager";
+import { PropostasManager } from "@/components/admin/PropostasManager";
 import { ChecklistsManager } from "@/components/admin/ChecklistsManager";
 import { AvaliacoesManager } from "@/components/admin/AvaliacoesManager";
 import { ServicosManager } from "@/components/admin/ServicosManager";
@@ -221,6 +222,8 @@ export default function Admin() {
         return <FollowUpManager diasAlerta={3} />;
       case "validacao":
         return <ValidacaoVendasManager />;
+      case "propostas":
+        return <PropostasManager />;
       case "tarefas":
         return <TasksSlaDashboard />;
       case "clientes":
