@@ -36,6 +36,7 @@ import { AuditLogsViewer } from "@/components/admin/AuditLogsViewer";
 import { ReleaseChecklist } from "@/components/admin/ReleaseChecklist";
 import { ObrasManager } from "@/components/admin/ObrasManager";
 import { SiteSettingsUnified } from "@/components/admin/SiteSettingsUnified";
+import { IntelligenceDashboard } from "@/components/admin/intelligence";
 import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,7 @@ import Footer from "@/components/layout/Footer";
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
 const TAB_TITLES: Record<string, string> = {
+  inteligencia: "Inteligência Comercial",
   leads: "Leads",
   pipeline: "Pipeline de Vendas",
   followup: "Follow-up",
@@ -178,9 +180,12 @@ export default function Admin() {
     switch (activeTab) {
       case "aprovacao":
         return <AprovacaoUsuarios />;
+      case "inteligencia":
+        return <IntelligenceDashboard />;
       case "brand":
       case "site-config":
         return <SiteSettingsUnified />;
+      case "leads":
         return <LeadsView />;
       case "pipeline":
         return <LeadsPipeline />;

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import {
+  Brain,
   Users,
   Kanban,
   Bell,
@@ -79,6 +80,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     hoverClass: "hover:bg-sidebar-analytics/5",
     labelClass: "text-sidebar-analytics",
     items: [
+      { id: "inteligencia", title: "Inteligência Comercial", icon: Brain, description: "Scoring & Previsão" },
       { id: "dashboard", title: "Dashboard", icon: BarChart3 },
       { id: "auditoria", title: "Auditoria", icon: Shield },
       { id: "release", title: "Release Checklist", icon: Rocket },
