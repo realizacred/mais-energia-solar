@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
+import { usePaybackEngine, type PaybackResult } from "@/hooks/usePaybackEngine";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -110,6 +111,9 @@ export default function Calculadora() {
   const [tarifaKwh, setTarifaKwh] = useState(DEFAULT_CONFIG.tarifa_media_kwh);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [paybackResult, setPaybackResult] = useState<PaybackResult | null>(null);
+
+  const { calcularPayback, loading: paybackLoading } = usePaybackEngine();
 
   const { toast } = useToast();
   const { submitOrcamento } = useLeadOrcamento();
@@ -204,6 +208,27 @@ export default function Calculadora() {
     if (currentStep === 2) {
       const valid = await step2Form.trigger();
       if (!valid) return;
+
+      // Run professional payback calculation when entering results
+      const s1 = step1Form.getValues();
+      const s2 = step2Form.getValues();
+      const kWp = s2.consumoMensal / config.geracao_mensal_por_kwp;
+      const geracaoMensal = kWp * config.geracao_mensal_por_kwp;
+      try {
+        const result = await calcularPayback({
+          consumoMensal: s2.consumoMensal,
+          tarifaKwh,
+          custoSistema: kWp * config.custo_por_kwp,
+          geracaoMensalKwh: geracaoMensal,
+          estado: s1.estado,
+          regime: "gd2",
+          tipoLigacao: "monofasico",
+        });
+        setPaybackResult(result);
+      } catch (e) {
+        console.error("Erro no cálculo de payback:", e);
+        setPaybackResult(null);
+      }
     }
     setDirection(1);
     setCurrentStep((s) => Math.min(s + 1, 3));
@@ -721,6 +746,7 @@ export default function Calculadora() {
                   consumoMensal={consumoMensal}
                   tarifaKwh={tarifaKwh}
                   config={config}
+                  paybackResult={paybackResult}
                 />
 
                 <FinancingSimulator

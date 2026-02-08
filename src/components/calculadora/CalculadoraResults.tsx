@@ -9,6 +9,8 @@ import {
   DollarSign,
   Zap,
 } from "lucide-react";
+import type { PaybackResult } from "@/hooks/usePaybackEngine";
+import { PaybackProfessionalResults } from "@/components/payback/PaybackProfessionalResults";
 
 interface CalculadoraResultsProps {
   consumoMensal: number;
@@ -19,19 +21,20 @@ interface CalculadoraResultsProps {
     kg_co2_por_kwh: number;
     percentual_economia: number;
   };
+  paybackResult?: PaybackResult | null;
 }
 
 export function CalculadoraResults({
   consumoMensal,
   tarifaKwh,
   config,
+  paybackResult,
 }: CalculadoraResultsProps) {
   const kWp = consumoMensal / config.geracao_mensal_por_kwp;
   const economiaMensal =
     consumoMensal * tarifaKwh * (config.percentual_economia / 100);
   const economiaAnual = economiaMensal * 12;
   const investimentoTotal = kWp * config.custo_por_kwp;
-  const payback = economiaAnual > 0 ? investimentoTotal / economiaAnual : 0;
   const co2Anual = (consumoMensal * config.kg_co2_por_kwh * 12) / 1000;
 
   const fmt = (v: number) =>
@@ -42,15 +45,60 @@ export function CalculadoraResults({
       maximumFractionDigits: 0,
     }).format(v);
 
+  // If professional payback result is available, show it
+  if (paybackResult) {
+    return (
+      <div className="space-y-4">
+        {/* Hero card with investment */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.4 }}
+        >
+          <Card className="gradient-solar text-white overflow-hidden shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-white/80 text-sm font-medium">
+                    Investimento Estimado
+                  </p>
+                  <p className="text-3xl sm:text-4xl font-bold mt-1 tracking-tight">
+                    {fmt(investimentoTotal)}
+                  </p>
+                  <div className="flex items-center gap-3 mt-3 text-white/90 flex-wrap">
+                    <span className="flex items-center gap-1 text-sm">
+                      <Sun className="w-4 h-4" />
+                      {kWp.toFixed(1)} kWp
+                    </span>
+                    <span className="flex items-center gap-1 text-sm">
+                      <Leaf className="w-4 h-4" />
+                      {co2Anual.toFixed(1)} ton CO₂/ano
+                    </span>
+                  </div>
+                </div>
+                <div className="w-14 h-14 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                  <TrendingDown className="w-7 h-7" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Professional payback results */}
+        <PaybackProfessionalResults
+          result={paybackResult}
+          investimento={investimentoTotal}
+          consumoMensal={consumoMensal}
+          tarifaKwh={tarifaKwh}
+        />
+      </div>
+    );
+  }
+
+  // Fallback: simple results (when no payback engine data)
+  const payback = economiaAnual > 0 ? investimentoTotal / economiaAnual : 0;
+
   const stats = [
-    {
-      icon: TrendingDown,
-      label: "Economia Mensal",
-      value: fmt(economiaMensal),
-      sub: `${fmt(economiaAnual)} por ano`,
-      accent: "primary" as const,
-      highlight: true,
-    },
     {
       icon: Sun,
       label: "Potência do Sistema",
@@ -139,7 +187,7 @@ export function CalculadoraResults({
 
       {/* Stats grid */}
       <div className="grid grid-cols-1 min-[400px]:grid-cols-2 sm:grid-cols-3 gap-3">
-        {stats.slice(1).map((stat, i) => (
+        {stats.map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 10 }}
