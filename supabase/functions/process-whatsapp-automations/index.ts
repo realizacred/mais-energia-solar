@@ -48,7 +48,7 @@ Deno.serve(async (req) => {
     const { data: config } = await supabaseAdmin
       .from("whatsapp_automation_config")
       .select("automacoes_ativas, ativo, modo_envio")
-      .single();
+      .maybeSingle();
 
     if (!config?.automacoes_ativas || !config?.ativo) {
       console.log("Automações desativadas");

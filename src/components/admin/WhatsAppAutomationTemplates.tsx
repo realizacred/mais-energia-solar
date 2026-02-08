@@ -83,7 +83,7 @@ export function WhatsAppAutomationTemplates() {
       const [templatesRes, statusesRes, configRes] = await Promise.all([
         supabase.from("whatsapp_automation_templates").select("*").order("ordem"),
         supabase.from("lead_status").select("id, nome").order("ordem"),
-        supabase.from("whatsapp_automation_config").select("automacoes_ativas").single(),
+        supabase.from("whatsapp_automation_config").select("automacoes_ativas").maybeSingle(),
       ]);
 
       if (templatesRes.data) {
