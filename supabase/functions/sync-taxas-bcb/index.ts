@@ -47,6 +47,7 @@ interface BancoDb {
 async function verifyAdminRole(req: Request): Promise<{ authorized: boolean; error?: Response }> {
   const authHeader = req.headers.get('Authorization');
   if (!authHeader?.startsWith('Bearer ')) {
+    console.error("[sync-taxas-bcb] Token de autenticação ausente");
     return {
       authorized: false,
       error: new Response(
@@ -57,31 +58,78 @@ async function verifyAdminRole(req: Request): Promise<{ authorized: boolean; err
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
   
+  // Use anon key client with user's JWT to get user identity
   const userClient = createClient(supabaseUrl, supabaseAnonKey, {
     global: { headers: { Authorization: authHeader } },
   });
 
   const { data: userData, error: userError } = await userClient.auth.getUser();
+  
   if (userError || !userData?.user) {
-    return {
-      authorized: false,
-      error: new Response(
-        JSON.stringify({ success: false, error: 'Não autorizado' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    };
+    console.error("[sync-taxas-bcb] Auth error:", userError?.message || "No user data");
+    
+    // Fallback: try extracting user from JWT payload directly
+    try {
+      const token = authHeader.replace('Bearer ', '');
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      const userId = payload.sub;
+      
+      if (!userId) {
+        return {
+          authorized: false,
+          error: new Response(
+            JSON.stringify({ success: false, error: 'Não autorizado - token inválido' }),
+            { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        };
+      }
+      
+      // Use service role to check roles (bypasses RLS)
+      const adminClient = createClient(supabaseUrl, serviceRoleKey);
+      const { data: roles } = await adminClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId);
+
+      const isAdmin = roles?.some(r => ['admin', 'gerente', 'financeiro'].includes(r.role));
+      if (!isAdmin) {
+        console.error("[sync-taxas-bcb] User not admin (fallback):", userId);
+        return {
+          authorized: false,
+          error: new Response(
+            JSON.stringify({ success: false, error: 'Apenas administradores podem sincronizar taxas' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        };
+      }
+      
+      console.log("[sync-taxas-bcb] Auth OK via JWT fallback for user:", userId);
+      return { authorized: true };
+    } catch (e) {
+      console.error("[sync-taxas-bcb] JWT fallback failed:", e);
+      return {
+        authorized: false,
+        error: new Response(
+          JSON.stringify({ success: false, error: 'Não autorizado' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      };
+    }
   }
 
-  // Check admin role
-  const { data: roles } = await userClient
+  // Primary path: getUser() succeeded - use service role to check roles (bypasses RLS)
+  const adminClient = createClient(supabaseUrl, serviceRoleKey);
+  const { data: roles } = await adminClient
     .from('user_roles')
     .select('role')
     .eq('user_id', userData.user.id);
 
   const isAdmin = roles?.some(r => ['admin', 'gerente', 'financeiro'].includes(r.role));
   if (!isAdmin) {
+    console.error("[sync-taxas-bcb] User not admin:", userData.user.id);
     return {
       authorized: false,
       error: new Response(
@@ -91,6 +139,7 @@ async function verifyAdminRole(req: Request): Promise<{ authorized: boolean; err
     };
   }
 
+  console.log("[sync-taxas-bcb] Auth OK for user:", userData.user.id);
   return { authorized: true };
 }
 
