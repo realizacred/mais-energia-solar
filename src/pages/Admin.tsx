@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2, Menu, ShieldAlert, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useLeads } from "@/hooks/useLeads";
+import { usePendingValidations } from "@/hooks/usePendingValidations";
 import { supabase } from "@/integrations/supabase/client";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/admin/sidebar/AdminSidebar";
@@ -43,6 +44,7 @@ import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinance
 import { CommercialDirectorDashboard } from "@/components/admin/director";
 import { TasksSlaDashboard } from "@/components/admin/tasks";
 import { WhatsAppInbox } from "@/components/admin/inbox";
+import { PendingValidationWidget } from "@/components/admin/widgets/PendingValidationWidget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -93,9 +95,14 @@ export default function Admin() {
   const [activeTab, setActiveTab] = useState("leads");
   const { user, signOut, loading: authLoading } = useAuth();
   const { leads, statuses, loading, stats, fetchLeads } = useLeads();
+  const { pendingCount } = usePendingValidations();
   const navigate = useNavigate();
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
+
+  const badgeCounts = useMemo(() => ({
+    validacao: pendingCount,
+  }), [pendingCount]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -289,6 +296,7 @@ export default function Admin() {
           onTabChange={handleTabChange}
           userEmail={user?.email}
           onSignOut={handleSignOut}
+          badgeCounts={badgeCounts}
         />
         
         <SidebarInset className="flex-1 min-w-0">
@@ -307,11 +315,17 @@ export default function Admin() {
 
           <main className="flex-1 p-4 md:p-6 space-y-5 overflow-x-hidden animate-fade-in">
             {activeTab === "leads" && (
-              <StatsCards
-                totalLeads={stats.total}
-                totalKwh={stats.totalKwh}
-                uniqueEstados={stats.uniqueEstados}
-              />
+              <>
+                <StatsCards
+                  totalLeads={stats.total}
+                  totalKwh={stats.totalKwh}
+                  uniqueEstados={stats.uniqueEstados}
+                />
+                <PendingValidationWidget onNavigate={() => handleTabChange("validacao")} />
+              </>
+            )}
+            {activeTab === "dashboard" && (
+              <PendingValidationWidget onNavigate={() => handleTabChange("validacao")} />
             )}
             {renderContent()}
           </main>
