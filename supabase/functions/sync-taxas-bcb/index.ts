@@ -80,7 +80,7 @@ async function verifyAdminRole(req: Request): Promise<{ authorized: boolean; err
     .select('role')
     .eq('user_id', userData.user.id);
 
-  const isAdmin = roles?.some(r => r.role === 'admin');
+  const isAdmin = roles?.some(r => ['admin', 'gerente', 'financeiro'].includes(r.role));
   if (!isAdmin) {
     return {
       authorized: false,
