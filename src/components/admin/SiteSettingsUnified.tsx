@@ -167,16 +167,39 @@ export function SiteSettingsUnified() {
     try {
       const palette = await extractColorsFromImage(logoUrl);
       const updates: Partial<BrandSettings> = {
+        // Cores Principais
         color_primary: palette.primary,
         color_primary_foreground: palette.primaryForeground,
         color_secondary: palette.secondary,
         color_secondary_foreground: palette.secondaryForeground,
         color_accent: palette.accent,
+        color_accent_foreground: palette.accentForeground,
+        // Interface
+        color_background: palette.background,
+        color_foreground: palette.foreground,
+        color_card: palette.card,
+        color_card_foreground: palette.cardForeground,
+        color_border: palette.border,
+        color_muted: palette.muted,
+        color_muted_foreground: palette.mutedForeground,
+        // Status
+        color_success: palette.success,
+        color_warning: palette.warning,
+        color_destructive: palette.destructive,
+        color_info: palette.info,
+        // Modo Escuro
+        dark_color_primary: palette.darkPrimary,
+        dark_color_background: palette.darkBackground,
+        dark_color_foreground: palette.darkForeground,
+        dark_color_card: palette.darkCard,
+        dark_color_border: palette.darkBorder,
+        dark_color_muted: palette.darkMuted,
+        dark_color_muted_foreground: palette.darkMutedForeground,
       };
       // Only update the local draft – do NOT persist to DB yet
       setBrandDraft((prev) => ({ ...prev, ...updates }));
       setBrandHasChanges(true);
-      toast({ title: "Cores extraídas!", description: "Pré-visualização aplicada. Clique em 'Salvar Visual' para confirmar." });
+      toast({ title: "Paleta completa extraída!", description: "Cores principais, interface, status e modo escuro aplicados. Clique em 'Salvar Visual' para confirmar." });
     } catch (err) {
       console.error("Color extraction error:", err);
       toast({ title: "Erro na extração", description: "Não foi possível extrair cores da logo. Verifique se a imagem é acessível.", variant: "destructive" });
