@@ -156,6 +156,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         icon: Settings,
         description: "Conteúdo, visual e banners",
       },
+      {
+        id: "site-servicos",
+        title: "Nossos Serviços",
+        icon: Wrench,
+        description: "Serviços exibidos no site",
+      },
       { id: "obras", title: "Obras / Portfólio", icon: Sun },
     ],
   },

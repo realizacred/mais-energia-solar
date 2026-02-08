@@ -1,40 +1,46 @@
 import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
+import { useSiteServicos } from "@/hooks/useSiteServicos";
 import serviceProjeto from "@/assets/service-projeto.jpg";
 import serviceHomologacao from "@/assets/service-homologacao.jpg";
 import serviceInstalacao from "@/assets/service-instalacao.jpg";
 import serviceManutencao from "@/assets/service-manutencao.jpg";
 
-const services = [
-  {
-    title: "Projeto",
-    step: "01",
-    description: "Elaboramos um projeto único e customizado para atender as suas necessidades, utilizando softwares de cálculo avançados.",
-    image: serviceProjeto,
-  },
-  {
-    title: "Homologação",
-    step: "02",
-    description: "Cuidamos de todo o processo de legalização junto à distribuidora de energia, sem burocracia para você.",
-    image: serviceHomologacao,
-  },
-  {
-    title: "Instalação",
-    step: "03",
-    description: "Instalamos o seu sistema usando os melhores equipamentos do mercado, com garantia e segurança total.",
-    image: serviceInstalacao,
-  },
-  {
-    title: "Manutenção",
-    step: "04",
-    description: "Oferecemos manutenção preventiva para garantir que seu sistema funcione com máxima eficiência sempre.",
-    image: serviceManutencao,
-  },
+/** Fallback images keyed by title for backward compatibility */
+const DEFAULT_IMAGES: Record<string, string> = {
+  Projeto: serviceProjeto,
+  Homologação: serviceHomologacao,
+  Instalação: serviceInstalacao,
+  Manutenção: serviceManutencao,
+};
+
+/** Hardcoded fallback when DB is empty or loading */
+const FALLBACK_SERVICES = [
+  { titulo: "Projeto", descricao: "Elaboramos um projeto único e customizado para atender as suas necessidades, utilizando softwares de cálculo avançados." },
+  { titulo: "Homologação", descricao: "Cuidamos de todo o processo de legalização junto à distribuidora de energia, sem burocracia para você." },
+  { titulo: "Instalação", descricao: "Instalamos o seu sistema usando os melhores equipamentos do mercado, com garantia e segurança total." },
+  { titulo: "Manutenção", descricao: "Oferecemos manutenção preventiva para garantir que seu sistema funcione com máxima eficiência sempre." },
 ];
 
 export function ServicesSection() {
   const { ref, isVisible } = useScrollReveal();
+  const { servicos, loading } = useSiteServicos();
+
+  // Only show active services, fallback to hardcoded if empty
+  const activeServicos = servicos.filter((s) => s.ativo);
+  const displayServices =
+    !loading && activeServicos.length > 0
+      ? activeServicos.map((s) => ({
+          title: s.titulo,
+          description: s.descricao,
+          image: s.imagem_url || DEFAULT_IMAGES[s.titulo] || serviceProjeto,
+        }))
+      : FALLBACK_SERVICES.map((s) => ({
+          title: s.titulo,
+          description: s.descricao,
+          image: DEFAULT_IMAGES[s.titulo] || serviceProjeto,
+        }));
 
   return (
     <section id="servicos" className="py-20 sm:py-32 bg-secondary relative overflow-hidden">
@@ -64,7 +70,7 @@ export function ServicesSection() {
 
         {/* Service Cards — glass style on dark bg */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
-          {services.map((service, i) => (
+          {displayServices.map((service, i) => (
             <motion.div
               key={service.title}
               initial={{ opacity: 0, y: 40 }}
@@ -83,7 +89,7 @@ export function ServicesSection() {
                 <div className="absolute inset-0 bg-gradient-to-t from-secondary/80 via-secondary/30 to-transparent" />
                 {/* Step number — orange accent */}
                 <span className="absolute top-4 left-4 w-10 h-10 rounded-xl bg-primary shadow-lg shadow-primary/30 flex items-center justify-center text-primary-foreground text-sm font-extrabold">
-                  {service.step}
+                  {String(i + 1).padStart(2, "0")}
                 </span>
               </div>
 
