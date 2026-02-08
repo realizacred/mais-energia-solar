@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { useSiteServicos, type SiteServico } from "@/hooks/useSiteServicos";
+import { BrandLogoUpload } from "@/components/admin/BrandLogoUpload";
 
 // Default images that match the existing site assets
 import serviceProjeto from "@/assets/service-projeto.jpg";
@@ -277,17 +278,15 @@ export function SiteServicosManager() {
                 rows={3}
               />
             </div>
-            <div className="space-y-2">
-              <Label>URL da Imagem (opcional)</Label>
-              <Input
-                value={imagemUrl}
-                onChange={(e) => setImagemUrl(e.target.value)}
-                placeholder="https://exemplo.com/imagem.jpg"
-              />
-              <p className="text-xs text-muted-foreground">
-                Se vazio, uma imagem padrão será usada
-              </p>
-            </div>
+            <BrandLogoUpload
+              label="Imagem do Serviço (opcional)"
+              description="Se vazio, uma imagem padrão será usada. Recomendado: 800×600px."
+              value={imagemUrl || null}
+              onChange={(url) => setImagemUrl(url || "")}
+              folder="servicos"
+              accept="image/png,image/jpeg,image/webp"
+              previewHeight="h-24"
+            />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>
