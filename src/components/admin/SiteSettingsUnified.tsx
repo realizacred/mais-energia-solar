@@ -166,16 +166,17 @@ export function SiteSettingsUnified() {
     setExtracting(true);
     try {
       const palette = await extractColorsFromImage(logoUrl);
-      const updates = {
+      const updates: Partial<BrandSettings> = {
         color_primary: palette.primary,
         color_primary_foreground: palette.primaryForeground,
         color_secondary: palette.secondary,
         color_secondary_foreground: palette.secondaryForeground,
         color_accent: palette.accent,
       };
-      await updateBrandSettings(updates);
+      // Only update the local draft – do NOT persist to DB yet
       setBrandDraft((prev) => ({ ...prev, ...updates }));
-      toast({ title: "Cores extraídas!", description: "Paleta aplicada com base na logo." });
+      setBrandHasChanges(true);
+      toast({ title: "Cores extraídas!", description: "Pré-visualização aplicada. Clique em 'Salvar Visual' para confirmar." });
     } catch (err) {
       console.error("Color extraction error:", err);
       toast({ title: "Erro na extração", description: "Não foi possível extrair cores da logo. Verifique se a imagem é acessível.", variant: "destructive" });
