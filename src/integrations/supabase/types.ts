@@ -2859,6 +2859,58 @@ export type Database = {
           vida_util_sistema: number
         }[]
       }
+      get_dashboard_financeiro: {
+        Args: never
+        Returns: {
+          atualizado_em: string
+          parcelas_atrasadas: number
+          parcelas_pagas: number
+          parcelas_pendentes: number
+          valor_atrasado: number
+          valor_pago: number
+          valor_pendente: number
+        }[]
+      }
+      get_dashboard_leads_estado: {
+        Args: never
+        Returns: {
+          estado: string
+          media_consumo: number
+          total_kwh: number
+          total_leads: number
+        }[]
+      }
+      get_dashboard_leads_mensal: {
+        Args: never
+        Returns: {
+          estados_unicos: number
+          media_consumo: number
+          mes: string
+          total_kwh: number
+          total_leads: number
+          vendedores_ativos: number
+        }[]
+      }
+      get_dashboard_pipeline: {
+        Args: never
+        Returns: {
+          status_cor: string
+          status_id: string
+          status_nome: string
+          status_ordem: number
+          total_kwh: number
+          total_leads: number
+        }[]
+      }
+      get_dashboard_vendedor_performance: {
+        Args: never
+        Returns: {
+          leads_com_status: number
+          total_kwh: number
+          total_leads: number
+          vendedor: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2867,6 +2919,7 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      refresh_dashboard_views: { Args: never; Returns: undefined }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       validate_vendedor_code: {
         Args: { _codigo: string }
