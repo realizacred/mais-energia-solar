@@ -25,6 +25,7 @@ interface Vendedor {
   ativo: boolean;
   user_id: string | null;
   created_at: string;
+  percentual_comissao: number;
 }
 
 interface UserProfile {
@@ -45,7 +46,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
   const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);
   const [vendedorToDelete, setVendedorToDelete] = useState<Vendedor | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar" as "criar" | "vincular" });
+  const [formData, setFormData] = useState({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar" as "criar" | "vincular", percentual_comissao: "2" });
   const [showPassword, setShowPassword] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -172,6 +173,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
             telefone: formData.telefone,
             email: formData.email || null,
             user_id: formData.user_id || null,
+            percentual_comissao: parseFloat(formData.percentual_comissao) || 0,
           })
           .eq("id", editingVendedor.id);
 
@@ -187,6 +189,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
               telefone: formData.telefone,
               email: formData.email || null,
               user_id: formData.user_id,
+              percentual_comissao: parseFloat(formData.percentual_comissao) || 0,
               codigo: "temp", // Will be overwritten by trigger
             } as any);
 
@@ -268,6 +271,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
             telefone: formData.telefone,
             email: formData.email,
             user_id: newUserId,
+            percentual_comissao: parseFloat(formData.percentual_comissao) || 0,
             codigo: "temp", // Will be overwritten by trigger
           } as any);
 
@@ -285,7 +289,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
 
       setIsDialogOpen(false);
       setEditingVendedor(null);
-      setFormData({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar" });
+      setFormData({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar", percentual_comissao: "2" });
       fetchVendedores();
     } catch (error: any) {
       console.error("Erro ao salvar vendedor:", error);
@@ -382,6 +386,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
       user_id: vendedor.user_id || "",
       senha: "",
       tipoAcesso: "criar",
+      percentual_comissao: String(vendedor.percentual_comissao ?? 2),
     });
     setShowPassword(false);
     setIsDialogOpen(true);
@@ -389,7 +394,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
 
   const openNewDialog = () => {
     setEditingVendedor(null);
-    setFormData({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar" });
+    setFormData({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar", percentual_comissao: "2" });
     setShowPassword(false);
     setIsDialogOpen(true);
   };
@@ -443,6 +448,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
                     <TableHead>Nome</TableHead>
                     <TableHead>Contato</TableHead>
                     <TableHead>Usuário Vinculado</TableHead>
+                    <TableHead>Comissão</TableHead>
                     <TableHead>Leads</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Link</TableHead>
@@ -478,6 +484,11 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
                         )}
                       </TableCell>
                       <TableCell>
+                        <Badge variant="secondary" className="font-mono">
+                          {vendedor.percentual_comissao ?? 0}%
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                           {leadCounts[vendedor.nome.toLowerCase()] || 0} leads
                         </Badge>
@@ -488,7 +499,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
                             checked={vendedor.ativo}
                             onCheckedChange={() => handleToggleAtivo(vendedor)}
                           />
-                          <span className={`text-sm ${vendedor.ativo ? "text-green-600" : "text-muted-foreground"}`}>
+                          <span className={`text-sm ${vendedor.ativo ? "text-success" : "text-muted-foreground"}`}>
                             {vendedor.ativo ? "Ativo" : "Inativo"}
                           </span>
                         </div>
@@ -502,7 +513,7 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
                           disabled={!vendedor.ativo}
                         >
                           {copiedId === vendedor.id ? (
-                            <Check className="w-3 h-3 text-green-600" />
+                            <Check className="w-3 h-3 text-success" />
                           ) : (
                             <Copy className="w-3 h-3" />
                           )}
@@ -559,15 +570,33 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
                 maxLength={100}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="telefone">Telefone *</Label>
-              <Input
-                id="telefone"
-                value={formData.telefone}
-                onChange={(e) => setFormData(prev => ({ ...prev, telefone: formatPhone(e.target.value) }))}
-                placeholder="(00) 00000-0000"
-                maxLength={15}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="telefone">Telefone *</Label>
+                <Input
+                  id="telefone"
+                  value={formData.telefone}
+                  onChange={(e) => setFormData(prev => ({ ...prev, telefone: formatPhone(e.target.value) }))}
+                  placeholder="(00) 00000-0000"
+                  maxLength={15}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="percentual_comissao">Comissão (%)</Label>
+                <Input
+                  id="percentual_comissao"
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  value={formData.percentual_comissao}
+                  onChange={(e) => setFormData(prev => ({ ...prev, percentual_comissao: e.target.value }))}
+                  placeholder="2.0"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Percentual de comissão sobre vendas deste vendedor.
+                </p>
+              </div>
             </div>
             {/* Tipo de acesso - escolha entre criar novo ou vincular existente */}
             {isNewVendedor && (
