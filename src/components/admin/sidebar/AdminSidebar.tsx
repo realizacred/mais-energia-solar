@@ -30,6 +30,7 @@ import {
   Cable,
   Workflow,
   Paintbrush,
+  Rocket,
 } from "lucide-react";
 import {
   Sidebar,
@@ -81,6 +82,7 @@ const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "dashboard", title: "Dashboard", icon: BarChart3 },
       { id: "auditoria", title: "Auditoria", icon: Shield },
+      { id: "release", title: "Release Checklist", icon: Rocket },
     ],
   },
   {

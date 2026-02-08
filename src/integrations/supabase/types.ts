@@ -2039,6 +2039,51 @@ export type Database = {
           },
         ]
       }
+      release_checklists: {
+        Row: {
+          ambiente: string
+          aprovado_em: string | null
+          aprovado_por: string | null
+          commit_hash: string | null
+          created_at: string
+          criado_por: string
+          id: string
+          itens: Json
+          observacoes: string | null
+          status: string
+          updated_at: string
+          versao: string
+        }
+        Insert: {
+          ambiente?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          commit_hash?: string | null
+          created_at?: string
+          criado_por: string
+          id?: string
+          itens?: Json
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          versao?: string
+        }
+        Update: {
+          ambiente?: string
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          commit_hash?: string | null
+          created_at?: string
+          criado_por?: string
+          id?: string
+          itens?: Json
+          observacoes?: string | null
+          status?: string
+          updated_at?: string
+          versao?: string
+        }
+        Relationships: []
+      }
       servicos_agendados: {
         Row: {
           audio_url: string | null

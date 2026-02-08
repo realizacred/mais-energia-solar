@@ -34,6 +34,7 @@ import { WhatsAppAutomationConfig } from "@/components/admin/WhatsAppAutomationC
 import { AprovacaoUsuarios } from "@/components/admin/AprovacaoUsuarios";
 import { BrandSettingsManager } from "@/components/admin/BrandSettingsManager";
 import { AuditLogsViewer } from "@/components/admin/AuditLogsViewer";
+import { ReleaseChecklist } from "@/components/admin/ReleaseChecklist";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
@@ -68,6 +69,7 @@ const TAB_TITLES: Record<string, string> = {
   auditoria: "Auditoria",
   aprovacao: "Aprovações de Acesso",
   brand: "Identidade Visual",
+  release: "Release Checklist",
 };
 
 export default function Admin() {
@@ -238,6 +240,8 @@ export default function Admin() {
         return <InadimplenciaDashboard />;
       case "auditoria":
         return <AuditLogsViewer />;
+      case "release":
+        return <ReleaseChecklist />;
       default:
         return <LeadsView />;
     }
