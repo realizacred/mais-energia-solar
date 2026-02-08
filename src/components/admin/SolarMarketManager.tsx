@@ -24,6 +24,8 @@ interface SmConfig {
   id: string;
   enabled: boolean;
   base_url: string;
+  auth_mode: string;
+  api_token: string | null;
   auth_email: string | null;
   auth_password_encrypted: string | null;
   webhook_secret: string | null;
@@ -51,6 +53,8 @@ export function SolarMarketManager() {
   const [logsFilter, setLogsFilter] = useState("all");
 
   // Form state
+  const [formAuthMode, setFormAuthMode] = useState("token");
+  const [formApiToken, setFormApiToken] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formBaseUrl, setFormBaseUrl] = useState("https://business.solarmarket.com.br/api/v2");
@@ -75,6 +79,8 @@ export function SolarMarketManager() {
 
       if (data) {
         setConfig(data as SmConfig);
+        setFormAuthMode(data.auth_mode || "token");
+        setFormApiToken(""); // never show token
         setFormEmail(data.auth_email || "");
         setFormPassword(""); // never show password
         setFormBaseUrl(data.base_url || "https://business.solarmarket.com.br/api/v2");
@@ -119,13 +125,21 @@ export function SolarMarketManager() {
       const payload: Record<string, unknown> = {
         enabled: formEnabled,
         base_url: formBaseUrl,
-        auth_email: formEmail,
+        auth_mode: formAuthMode,
         webhook_secret: formWebhookSecret || null,
       };
 
-      // Only update password if user typed a new one
-      if (formPassword) {
-        payload.auth_password_encrypted = formPassword;
+      // Token mode
+      if (formAuthMode === "token" && formApiToken) {
+        payload.api_token = formApiToken;
+      }
+
+      // Credentials mode
+      if (formAuthMode === "credentials") {
+        payload.auth_email = formEmail;
+        if (formPassword) {
+          payload.auth_password_encrypted = formPassword;
+        }
       }
 
       if (config?.id) {
@@ -321,31 +335,60 @@ export function SolarMarketManager() {
 
               <Separator />
 
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Modo de Autenticação</Label>
+                <Select value={formAuthMode} onValueChange={setFormAuthMode}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="token">Token direto (Bearer)</SelectItem>
+                    <SelectItem value="credentials">E-mail e Senha</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {formAuthMode === "token" ? (
                 <div className="space-y-2">
-                  <Label htmlFor="sm-email">E-mail SolarMarket</Label>
+                  <Label htmlFor="sm-token">Token da API SolarMarket</Label>
                   <Input
-                    id="sm-email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    value={formEmail}
-                    onChange={(e) => setFormEmail(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="sm-password">Senha SolarMarket</Label>
-                  <Input
-                    id="sm-password"
+                    id="sm-token"
                     type="password"
-                    placeholder={config?.auth_password_encrypted ? "••••••••" : "Digite a senha"}
-                    value={formPassword}
-                    onChange={(e) => setFormPassword(e.target.value)}
+                    placeholder={config?.api_token ? "••••••••••••••••" : "Cole o token aqui (ex: 12648:NSf5SJ...)"}
+                    value={formApiToken}
+                    onChange={(e) => setFormApiToken(e.target.value)}
                   />
-                  {config?.auth_password_encrypted && (
-                    <p className="text-xs text-muted-foreground">Deixe em branco para manter a senha atual</p>
+                  {config?.api_token && (
+                    <p className="text-xs text-muted-foreground">Deixe em branco para manter o token atual</p>
                   )}
                 </div>
-              </div>
+              ) : (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="sm-email">E-mail SolarMarket</Label>
+                    <Input
+                      id="sm-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sm-password">Senha SolarMarket</Label>
+                    <Input
+                      id="sm-password"
+                      type="password"
+                      placeholder={config?.auth_password_encrypted ? "••••••••" : "Digite a senha"}
+                      value={formPassword}
+                      onChange={(e) => setFormPassword(e.target.value)}
+                    />
+                    {config?.auth_password_encrypted && (
+                      <p className="text-xs text-muted-foreground">Deixe em branco para manter a senha atual</p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="sm-url">URL Base da API</Label>

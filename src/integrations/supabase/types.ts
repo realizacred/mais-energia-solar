@@ -3500,7 +3500,9 @@ export type Database = {
       }
       solar_market_config: {
         Row: {
+          api_token: string | null
           auth_email: string | null
+          auth_mode: string
           auth_password_encrypted: string | null
           base_url: string
           created_at: string
@@ -3513,7 +3515,9 @@ export type Database = {
           webhook_secret: string | null
         }
         Insert: {
+          api_token?: string | null
           auth_email?: string | null
+          auth_mode?: string
           auth_password_encrypted?: string | null
           base_url?: string
           created_at?: string
@@ -3526,7 +3530,9 @@ export type Database = {
           webhook_secret?: string | null
         }
         Update: {
+          api_token?: string | null
           auth_email?: string | null
+          auth_mode?: string
           auth_password_encrypted?: string | null
           base_url?: string
           created_at?: string

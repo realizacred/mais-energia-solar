@@ -27,6 +27,8 @@ interface SmConfig {
   tenant_id: string | null;
   enabled: boolean;
   base_url: string;
+  auth_mode: string;
+  api_token: string | null;
   auth_email: string | null;
   auth_password_encrypted: string | null;
   last_token: string | null;
@@ -37,7 +39,13 @@ async function getSmToken(
   supabaseAdmin: ReturnType<typeof createClient>,
   config: SmConfig
 ): Promise<string> {
-  // Check cached token
+  // Direct token mode – use api_token directly, no login needed
+  if (config.auth_mode === "token" && config.api_token) {
+    console.log("[SM] Using direct API token");
+    return config.api_token;
+  }
+
+  // Credentials mode – check cached token first
   if (config.last_token && config.last_token_expires_at) {
     const expires = new Date(config.last_token_expires_at);
     if (expires > new Date(Date.now() + 60_000)) {
