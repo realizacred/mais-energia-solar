@@ -19,11 +19,20 @@ import {
 } from "@/components/ui/select";
 import {
   Loader2, CheckCircle, XCircle, Eye, Clock, DollarSign, User, MapPin,
-  TrendingUp, Zap, AlertTriangle, History, Filter,
+  TrendingUp, Zap, AlertTriangle, History, Filter, FileText,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
+
+interface LeadSimulacao {
+  id: string;
+  investimento_estimado: number | null;
+  potencia_recomendada_kwp: number | null;
+  economia_mensal: number | null;
+  consumo_kwh: number | null;
+  created_at: string;
+}
 
 export function ValidacaoVendasManager() {
   const {
@@ -42,6 +51,8 @@ export function ValidacaoVendasManager() {
   const [valorVenda, setValorVenda] = useState("");
   const [loadingVendedor, setLoadingVendedor] = useState(false);
   const [activeTab, setActiveTab] = useState("pendentes");
+  const [leadSimulacoes, setLeadSimulacoes] = useState<LeadSimulacao[]>([]);
+  const [selectedSimulacaoId, setSelectedSimulacaoId] = useState<string>("");
 
   // Filters
   const [filterVendedor, setFilterVendedor] = useState("all");
@@ -79,38 +90,87 @@ export function ValidacaoVendasManager() {
     return { count: pendingItems.length, totalValue, totalComissao, totalPotencia };
   }, [pendingItems]);
 
-  // Open approval dialog — fetch vendedor's default commission percentage
+  // Open approval dialog — fetch vendedor's commission + all simulações do lead
   const openApprovalDialog = async (cliente: PendingValidation) => {
     setSelectedCliente(cliente);
+    setLeadSimulacoes([]);
+    setSelectedSimulacaoId("");
+
     const valor = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
     setValorVenda(valor > 0 ? valor.toString() : "");
 
-    // Fetch vendedor's default commission percentage
+    // Fetch vendedor's default commission percentage + all simulações in parallel
     const vendedorNome = cliente.leads?.vendedor;
-    if (vendedorNome) {
-      setLoadingVendedor(true);
-      try {
-        const { data } = await supabase
-          .from("vendedores")
-          .select("percentual_comissao")
-          .eq("nome", vendedorNome)
-          .eq("ativo", true)
-          .single();
-        if (data?.percentual_comissao != null) {
-          setPercentualComissao(data.percentual_comissao.toString());
-        } else {
-          setPercentualComissao("2.0");
-        }
-      } catch {
+    setLoadingVendedor(true);
+
+    try {
+      const promises: Promise<void>[] = [];
+
+      // 1) Vendedor commission
+      if (vendedorNome) {
+        const vendedorPromise = async () => {
+          const { data } = await supabase
+            .from("vendedores")
+            .select("percentual_comissao")
+            .eq("nome", vendedorNome)
+            .eq("ativo", true)
+            .single();
+          if (data?.percentual_comissao != null) {
+            setPercentualComissao(data.percentual_comissao.toString());
+          } else {
+            setPercentualComissao("2.0");
+          }
+        };
+        promises.push(vendedorPromise());
+      } else {
         setPercentualComissao("2.0");
-      } finally {
-        setLoadingVendedor(false);
       }
-    } else {
+
+      // 2) All simulações for this lead
+      if (cliente.lead_id) {
+        const simsPromise = async () => {
+          const { data } = await supabase
+            .from("simulacoes")
+            .select("id, investimento_estimado, potencia_recomendada_kwp, economia_mensal, consumo_kwh, created_at")
+            .eq("lead_id", cliente.lead_id!)
+            .order("created_at", { ascending: false });
+          const sims = (data as LeadSimulacao[]) || [];
+          setLeadSimulacoes(sims);
+          // Pre-select the accepted simulation or the first one
+          if (cliente.simulacao_aceita_id) {
+            setSelectedSimulacaoId(cliente.simulacao_aceita_id);
+          } else if (sims.length > 0) {
+            setSelectedSimulacaoId(sims[0].id);
+            // Auto-fill value from the first simulation
+            if (sims[0].investimento_estimado && sims[0].investimento_estimado > 0) {
+              setValorVenda(sims[0].investimento_estimado.toString());
+            }
+          }
+        };
+        promises.push(simsPromise());
+      }
+
+      await Promise.all(promises);
+    } catch {
       setPercentualComissao("2.0");
+    } finally {
+      setLoadingVendedor(false);
     }
 
     setApprovalDialogOpen(true);
+  };
+
+  // Handle simulação selection change
+  const handleSimulacaoChange = (simId: string) => {
+    setSelectedSimulacaoId(simId);
+    if (simId === "manual") {
+      setValorVenda("");
+      return;
+    }
+    const sim = leadSimulacoes.find((s) => s.id === simId);
+    if (sim?.investimento_estimado && sim.investimento_estimado > 0) {
+      setValorVenda(sim.investimento_estimado.toString());
+    }
   };
 
   const handleApprove = async () => {
@@ -547,20 +607,62 @@ export function ValidacaoVendasManager() {
                   <span className="text-muted-foreground">Vendedor</span>
                   <span className="font-medium">{selectedCliente.leads?.vendedor || "-"}</span>
                 </div>
-                {selectedCliente.simulacoes?.investimento_estimado ? (
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Valor da Proposta</span>
-                    <span className="font-medium text-info">
-                      {formatCurrency(selectedCliente.simulacoes.investimento_estimado)}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 text-xs text-warning">
-                    <AlertTriangle className="h-3.5 w-3.5" />
-                    <span>Nenhuma proposta vinculada — informe o valor manualmente</span>
-                  </div>
-                )}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Lead</span>
+                  <span className="font-medium">{selectedCliente.leads?.lead_code || "-"}</span>
+                </div>
               </div>
+
+              {/* Simulação selector */}
+              {loadingVendedor ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-sm text-muted-foreground">Carregando propostas...</span>
+                </div>
+              ) : leadSimulacoes.length > 0 ? (
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-1.5">
+                    <FileText className="h-3.5 w-3.5" />
+                    Selecionar Proposta ({leadSimulacoes.length} disponíveis)
+                  </Label>
+                  <Select value={selectedSimulacaoId} onValueChange={handleSimulacaoChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione uma proposta" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {leadSimulacoes.map((sim, idx) => (
+                        <SelectItem key={sim.id} value={sim.id}>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">
+                              {sim.potencia_recomendada_kwp || 0} kWp
+                            </span>
+                            <span className="text-muted-foreground">—</span>
+                            <span>
+                              {sim.investimento_estimado
+                                ? formatCurrency(sim.investimento_estimado)
+                                : "Sem valor"}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              ({format(new Date(sim.created_at), "dd/MM/yy", { locale: ptBR })})
+                            </span>
+                            {sim.id === selectedCliente.simulacao_aceita_id && (
+                              <Badge variant="secondary" className="text-[10px] h-4 px-1">Aceita</Badge>
+                            )}
+                          </div>
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="manual">
+                        <span className="text-muted-foreground">✏️ Informar valor manualmente</span>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-warning p-3 bg-warning/10 rounded-lg">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  <span>Nenhuma proposta encontrada para este lead — informe o valor manualmente</span>
+                </div>
+              )}
 
               <div className="space-y-2">
                 <Label htmlFor="valor-venda">Valor da Venda (R$)</Label>
