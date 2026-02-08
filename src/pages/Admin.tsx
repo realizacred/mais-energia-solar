@@ -37,6 +37,7 @@ import { ReleaseChecklist } from "@/components/admin/ReleaseChecklist";
 import { ObrasManager } from "@/components/admin/ObrasManager";
 import { SiteSettingsUnified } from "@/components/admin/SiteSettingsUnified";
 import { SiteServicosManager } from "@/components/admin/SiteServicosManager";
+import { LeadStatusManager } from "@/components/admin/LeadStatusManager";
 import { IntelligenceDashboard } from "@/components/admin/intelligence";
 import { EngenhariaFinanceiraConfig } from "@/components/admin/EngenhariaFinanceiraConfig";
 import { CommercialDirectorDashboard } from "@/components/admin/director";
@@ -85,6 +86,7 @@ const TAB_TITLES: Record<string, string> = {
   obras: "Obras / Portfólio",
   "site-config": "Configurações do Site",
   "site-servicos": "Nossos Serviços",
+  "lead-status": "Status de Leads",
 };
 
 export default function Admin() {
@@ -272,6 +274,8 @@ export default function Admin() {
         return <ObrasManager />;
       case "site-servicos":
         return <SiteServicosManager />;
+      case "lead-status":
+        return <LeadStatusManager />;
       default:
         return <LeadsView />;
     }
