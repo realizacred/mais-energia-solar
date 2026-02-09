@@ -165,8 +165,10 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
         .getPublicUrl(filePath);
       
       const mediaUrl = urlData.publicUrl;
-      const isImage = file.type.startsWith("image/");
-      const messageType = isImage ? "image" : "document";
+      let messageType = "document";
+      if (file.type.startsWith("image/")) messageType = "image";
+      else if (file.type.startsWith("video/")) messageType = "video";
+      else if (file.type.startsWith("audio/")) messageType = "audio";
       
       await sendMessage({
         content: caption || file.name,

@@ -300,6 +300,9 @@ export function WaChatPanel({
                           <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity" />
                         </a>
                       )}
+                      {msg.message_type === "image" && msg.content && (
+                        <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
+                      )}
                       {msg.message_type === "video" && (
                         msg.media_url ? (
                           <a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="block mb-1">
@@ -341,7 +344,11 @@ export function WaChatPanel({
                         </a>
                       )}
                       {msg.message_type === "sticker" && (
-                        <div className="text-2xl">🏷️</div>
+                        msg.media_url ? (
+                          <img src={msg.media_url} alt="Sticker" className="max-w-[150px] max-h-[150px] object-contain" />
+                        ) : (
+                          <div className="text-2xl">🏷️</div>
+                        )
                       )}
                       {msg.message_type === "location" && (
                         <div className="flex items-center gap-2 text-xs opacity-80">

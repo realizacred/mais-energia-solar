@@ -419,8 +419,8 @@ export function WaChatComposer({
           ref={fileInputRef}
           type="file"
           className="hidden"
-          accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-          onChange={handleFileSelect}
+        accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+        onChange={handleFileSelect}
         />
       </div>
 
