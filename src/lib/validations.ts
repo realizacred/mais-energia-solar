@@ -81,9 +81,15 @@ export const step4Schema = leadFormSchema.pick({
   observacoes: true,
 });
 
+const passwordSchema = z
+  .string()
+  .min(8, "Senha deve ter pelo menos 8 caracteres")
+  .regex(/[A-Z]/, "Senha deve conter pelo menos 1 letra maiúscula")
+  .regex(/[0-9]/, "Senha deve conter pelo menos 1 número");
+
 export const loginSchema = z.object({
   email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  password: z.string().min(1, "Senha é obrigatória"),
 });
 
 export type LoginData = z.infer<typeof loginSchema>;
@@ -91,7 +97,7 @@ export type LoginData = z.infer<typeof loginSchema>;
 export const signupSchema = z.object({
   nome: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
   email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
+  password: passwordSchema,
   cargo: z.enum(["vendedor", "instalador"], { required_error: "Selecione um cargo" }),
 });
 

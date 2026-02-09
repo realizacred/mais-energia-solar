@@ -23,8 +23,12 @@ import { z } from "zod";
 
 const newPasswordSchema = z
   .object({
-    password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres"),
-    confirmPassword: z.string().min(6, "Confirme sua senha"),
+    password: z
+      .string()
+      .min(8, "A senha deve ter pelo menos 8 caracteres")
+      .regex(/[A-Z]/, "Deve conter pelo menos 1 letra maiúscula")
+      .regex(/[0-9]/, "Deve conter pelo menos 1 número"),
+    confirmPassword: z.string().min(1, "Confirme sua senha"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "As senhas não coincidem",
