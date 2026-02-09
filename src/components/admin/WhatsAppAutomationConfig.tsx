@@ -21,11 +21,15 @@ import {
   Plug,
   Zap,
   XCircle,
-  Bot
+  Bot,
+  Smartphone,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { WhatsAppAutomationTemplates } from "./WhatsAppAutomationTemplates";
+import { useWaInstances } from "@/hooks/useWaInstances";
 
 interface WhatsAppConfig {
   id: string;
@@ -62,6 +66,7 @@ export function WhatsAppAutomationConfig() {
     success: boolean;
     message: string;
   } | null>(null);
+  const { instances, checkStatus, checkingStatus } = useWaInstances();
 
   useEffect(() => {
     fetchData();
@@ -112,9 +117,8 @@ export function WhatsAppAutomationConfig() {
           lembrete_ativo: config.lembrete_ativo,
           mensagem_boas_vindas: config.mensagem_boas_vindas,
           mensagem_followup: config.mensagem_followup,
-          evolution_api_url: config.evolution_api_url,
-          evolution_api_key: config.evolution_api_key,
           evolution_instance: config.evolution_instance,
+          evolution_api_url: config.evolution_api_url,
           modo_envio: config.modo_envio,
         })
         .eq("id", config.id);
@@ -387,76 +391,127 @@ export function WhatsAppAutomationConfig() {
                   <div className="space-y-4 p-4 rounded-lg border border-primary/30 bg-primary/5">
                     <h4 className="font-medium flex items-center gap-2 text-primary">
                       <Plug className="h-4 w-4" />
-                      Evolution API
+                      Evolution API — Instância
                     </h4>
                     <p className="text-xs text-muted-foreground">
-                      Configure a integração direta com a Evolution API para envio de mensagens
+                      Selecione uma instância já configurada em <strong>Instâncias WhatsApp</strong>
                     </p>
-                    <div className="space-y-2">
-                      <Label>URL da API</Label>
-                      <Input
-                        value={config.evolution_api_url || ""}
-                        onChange={(e) => setConfig({ ...config, evolution_api_url: e.target.value })}
-                        placeholder="https://sua-evolution.com"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>API Key</Label>
-                      <Input
-                        type="password"
-                        value={config.evolution_api_key || ""}
-                        onChange={(e) => setConfig({ ...config, evolution_api_key: e.target.value })}
-                        placeholder="Sua chave de API da Evolution"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Nome da Instância</Label>
-                      <Input
-                        value={config.evolution_instance || ""}
-                        onChange={(e) => setConfig({ ...config, evolution_instance: e.target.value })}
-                        placeholder="nome-da-instancia"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Nome da instância do WhatsApp configurada na Evolution API
-                      </p>
-                    </div>
 
-                    {/* Test Connection Button */}
-                    <div className="pt-2 border-t">
-                      <Button
-                        variant="outline"
-                        className="w-full gap-2"
-                        onClick={handleTestConnection}
-                        disabled={testingConnection || !config.evolution_api_url || !config.evolution_api_key || !config.evolution_instance}
-                      >
-                        {testingConnection ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Zap className="h-4 w-4" />
-                        )}
-                        Testar Conexão
-                      </Button>
-                      
-                      {/* Connection Status */}
-                      {connectionStatus && (
-                        <div className={`mt-3 p-3 rounded-lg flex items-start gap-2 ${
-                          connectionStatus.success 
-                            ? 'bg-success/10 border border-success/30' 
-                            : 'bg-destructive/10 border border-destructive/30'
-                        }`}>
-                          {connectionStatus.success ? (
-                            <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
-                          ) : (
-                            <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-                          )}
-                          <p className={`text-sm ${
-                            connectionStatus.success ? 'text-success' : 'text-destructive'
-                          }`}>
-                            {connectionStatus.message}
-                          </p>
+                    {instances.length === 0 ? (
+                      <div className="rounded-lg bg-muted/50 border border-border p-4 text-center">
+                        <Smartphone className="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
+                        <p className="text-sm text-muted-foreground">
+                          Nenhuma instância configurada.
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Vá em <strong>Integrações → Instâncias WhatsApp</strong> para cadastrar.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="space-y-2">
+                          <Label>Instância para Automações</Label>
+                          <Select
+                            value={config.evolution_instance || ""}
+                            onValueChange={(value) => {
+                              const selected = instances.find((i) => i.evolution_instance_key === value);
+                              if (selected) {
+                                setConfig({
+                                  ...config,
+                                  evolution_instance: selected.evolution_instance_key,
+                                  evolution_api_url: selected.evolution_api_url,
+                                  evolution_api_key: null, // API key comes from secret
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a instância" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {instances.map((inst) => (
+                                <SelectItem key={inst.id} value={inst.evolution_instance_key}>
+                                  <div className="flex items-center gap-2">
+                                    {inst.status === "connected" ? (
+                                      <Wifi className="h-3 w-3 text-success" />
+                                    ) : (
+                                      <WifiOff className="h-3 w-3 text-muted-foreground" />
+                                    )}
+                                    <span>{inst.nome}</span>
+                                    <span className="text-xs text-muted-foreground font-mono">
+                                      ({inst.evolution_instance_key})
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
                         </div>
-                      )}
-                    </div>
+
+                        {/* Selected instance info */}
+                        {config.evolution_instance && (() => {
+                          const selected = instances.find((i) => i.evolution_instance_key === config.evolution_instance);
+                          if (!selected) return null;
+                          return (
+                            <div className="rounded-lg bg-background/50 border p-3 space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">{selected.nome}</span>
+                                <Badge
+                                  variant="outline"
+                                  className={
+                                    selected.status === "connected"
+                                      ? "bg-success/10 text-success border-success/20"
+                                      : "bg-muted text-muted-foreground"
+                                  }
+                                >
+                                  {selected.status === "connected" ? "Conectado" : "Desconectado"}
+                                </Badge>
+                              </div>
+                              <p className="text-xs text-muted-foreground font-mono">{selected.evolution_api_url}</p>
+                              {selected.phone_number && (
+                                <p className="text-xs text-muted-foreground">📱 {selected.phone_number}</p>
+                              )}
+                            </div>
+                          );
+                        })()}
+
+                        {/* Test Connection */}
+                        <div className="pt-2 border-t">
+                          <Button
+                            variant="outline"
+                            className="w-full gap-2"
+                            onClick={handleTestConnection}
+                            disabled={testingConnection || !config.evolution_instance}
+                          >
+                            {testingConnection ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Zap className="h-4 w-4" />
+                            )}
+                            Testar Conexão
+                          </Button>
+                          
+                          {connectionStatus && (
+                            <div className={`mt-3 p-3 rounded-lg flex items-start gap-2 ${
+                              connectionStatus.success 
+                                ? 'bg-success/10 border border-success/30' 
+                                : 'bg-destructive/10 border border-destructive/30'
+                            }`}>
+                              {connectionStatus.success ? (
+                                <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
+                              ) : (
+                                <XCircle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+                              )}
+                              <p className={`text-sm ${
+                                connectionStatus.success ? 'text-success' : 'text-destructive'
+                              }`}>
+                                {connectionStatus.message}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
