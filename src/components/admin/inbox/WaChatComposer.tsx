@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import {
   Send,
   StickyNote,
@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Video,
   Music,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -96,12 +97,43 @@ export function WaChatComposer({
   });
 
   // Group by category
-  const groupedReplies = quickReplies.reduce<Record<string, QuickReplyDb[]>>((acc, qr) => {
-    const cat = qr.categoria || "geral";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(qr);
-    return acc;
-  }, {});
+  const categories = useMemo(() => {
+    const grouped = quickReplies.reduce<Record<string, QuickReplyDb[]>>((acc, qr) => {
+      const cat = qr.categoria || "geral";
+      if (!acc[cat]) acc[cat] = [];
+      acc[cat].push(qr);
+      return acc;
+    }, {});
+    return Object.entries(grouped);
+  }, [quickReplies]);
+
+  const [quickReplySearch, setQuickReplySearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const CATEGORY_META: Record<string, { label: string; color: string }> = {
+    geral: { label: "Geral", color: "bg-muted text-muted-foreground" },
+    saudacao: { label: "Saudação", color: "bg-success/10 text-success" },
+    orcamento: { label: "Orçamento", color: "bg-primary/10 text-primary" },
+    followup: { label: "Follow-up", color: "bg-warning/10 text-warning" },
+    financiamento: { label: "Financiamento", color: "bg-info/10 text-info" },
+    tecnico: { label: "Técnico", color: "bg-accent text-accent-foreground" },
+    encerramento: { label: "Encerramento", color: "bg-destructive/10 text-destructive" },
+  };
+
+  // Filter replies
+  const filteredReplies = useMemo(() => {
+    let result = quickReplies;
+    if (selectedCategory) {
+      result = result.filter(qr => (qr.categoria || "geral") === selectedCategory);
+    }
+    if (quickReplySearch.trim()) {
+      const q = quickReplySearch.toLowerCase();
+      result = result.filter(
+        qr => qr.titulo.toLowerCase().includes(q) || qr.conteudo.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  }, [quickReplies, selectedCategory, quickReplySearch]);
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -199,43 +231,93 @@ export function WaChatComposer({
             <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 mb-1.5 text-primary hover:text-primary hover:bg-primary/5">
               <Zap className="h-3 w-3" />
               Respostas rápidas
+              <Badge variant="secondary" className="text-[9px] px-1 py-0 ml-0.5">{quickReplies.length}</Badge>
               <ChevronDown className="h-3 w-3" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent side="top" align="start" className="w-80 p-1.5">
-            <div className="space-y-2 max-h-72 overflow-y-auto">
-              {Object.entries(groupedReplies).map(([cat, replies]) => (
-                <div key={cat}>
-                  <p className="text-[10px] font-medium text-muted-foreground px-2 py-1 uppercase tracking-wider">{cat}</p>
-                  <div className="space-y-0.5">
-                    {replies.map((qr) => {
-                      const MediaIcon = qr.media_type ? MEDIA_ICONS[qr.media_type] : null;
-                      return (
-                        <button
-                          key={qr.id}
-                          className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-muted/50 transition-colors group"
-                          onClick={() => {
-                            setInputValue(qr.conteudo);
-                            textareaRef.current?.focus();
-                          }}
-                        >
-                          <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                            <span>{qr.emoji || "💬"}</span>
-                            {qr.titulo}
-                            {MediaIcon && (
-                              <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 ml-auto">
-                                <MediaIcon className="w-2.5 h-2.5" />
-                                {qr.media_type}
-                              </Badge>
-                            )}
-                          </span>
-                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{qr.conteudo}</p>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+          <PopoverContent side="top" align="start" className="w-96 p-0">
+            {/* Search */}
+            <div className="p-2 border-b border-border/40">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Buscar resposta..."
+                  value={quickReplySearch}
+                  onChange={(e) => setQuickReplySearch(e.target.value)}
+                  className="w-full h-8 pl-8 pr-3 text-xs rounded-md border border-border/50 bg-muted/30 focus:outline-none focus:ring-1 focus:ring-primary/30"
+                />
+              </div>
+            </div>
+
+            {/* Category Pills */}
+            <div className="px-2 pt-2 pb-1 flex flex-wrap gap-1">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                  selectedCategory === null
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted/50 text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                Todas
+              </button>
+              {categories.map(([cat]) => {
+                const meta = CATEGORY_META[cat] || { label: cat, color: "bg-muted text-muted-foreground" };
+                const count = quickReplies.filter(qr => (qr.categoria || "geral") === cat).length;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(selectedCategory === cat ? null : cat)}
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                      selectedCategory === cat
+                        ? "bg-primary text-primary-foreground"
+                        : `${meta.color} hover:opacity-80`
+                    }`}
+                  >
+                    {meta.label} ({count})
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Replies List */}
+            <div className="max-h-64 overflow-y-auto p-1.5 space-y-0.5">
+              {filteredReplies.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">Nenhuma resposta encontrada</p>
+              ) : (
+                filteredReplies.map((qr) => {
+                  const MediaIcon = qr.media_type ? MEDIA_ICONS[qr.media_type] : null;
+                  const catMeta = CATEGORY_META[qr.categoria || "geral"] || { label: qr.categoria, color: "bg-muted text-muted-foreground" };
+                  return (
+                    <button
+                      key={qr.id}
+                      className="w-full text-left px-3 py-2 rounded-lg hover:bg-muted/50 transition-colors group border border-transparent hover:border-border/30"
+                      onClick={() => {
+                        setInputValue(qr.conteudo);
+                        setQuickReplySearch("");
+                        setSelectedCategory(null);
+                        textareaRef.current?.focus();
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-base shrink-0">{qr.emoji || "💬"}</span>
+                        <span className="text-xs font-semibold text-foreground truncate flex-1">{qr.titulo}</span>
+                        {MediaIcon && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 shrink-0">
+                            <MediaIcon className="w-2.5 h-2.5" />
+                            {qr.media_type}
+                          </Badge>
+                        )}
+                        <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 border-0 ${catMeta.color}`}>
+                          {catMeta.label}
+                        </Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2 pl-7">{qr.conteudo}</p>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </PopoverContent>
         </Popover>
