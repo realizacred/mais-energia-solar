@@ -3,23 +3,20 @@ import logoFallback from "@/assets/logo.png";
 import logoBrancaFallback from "@/assets/logo-branca.png";
 
 /**
- * Returns the appropriate logo based on the current theme (light/dark).
- * In dark mode, prefers logo_white_url; in light mode, prefers logo_url.
+ * Returns the appropriate logo based on context.
+ * @param options.onDarkBg - true when the logo sits on a dark background (footer, dark hero, etc.)
+ * @param options.variant - "full" | "small"
  */
-export function useLogo(variant: "full" | "small" = "full") {
+export function useLogo(options?: { onDarkBg?: boolean; variant?: "full" | "small" }) {
   const { settings } = useBrandSettings();
+  const { onDarkBg = false, variant = "full" } = options || {};
 
-  const isDark =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark");
-
-  if (isDark) {
-    const darkLogo =
+  if (onDarkBg) {
+    return (
       settings?.logo_white_url ||
-      (variant === "small" ? settings?.logo_small_url : null) ||
       settings?.logo_url ||
-      logoBrancaFallback;
-    return darkLogo;
+      logoBrancaFallback
+    );
   }
 
   if (variant === "small") {
