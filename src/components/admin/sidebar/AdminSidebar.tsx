@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  LogOut, Sun, ChevronDown, ChevronRight, Star, GripVertical,
+  LogOut, Sun, ChevronDown, ChevronRight, Star, GripVertical, Building2,
 } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { useSidebarPreferences } from "@/hooks/useSidebarPreferences";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import logoFallback from "@/assets/logo.png";
 import {
   SIDEBAR_SECTIONS,
@@ -390,7 +392,20 @@ export function AdminSidebar({
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const { settings } = useBrandSettings();
+  const { user } = useAuth();
   const logo = settings?.logo_url || logoFallback;
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .eq("role", "super_admin")
+      .maybeSingle()
+      .then(({ data }) => setIsSuperAdmin(!!data));
+  }, [user]);
 
   const {
     favorites,
@@ -482,6 +497,18 @@ export function AdminSidebar({
           </div>
         )}
         {!collapsed && <PortalSwitcher />}
+        {isSuperAdmin && (
+          <Link to="/super-admin">
+            <Button
+              variant="outline"
+              size={collapsed ? "icon" : "default"}
+              className={`w-full justify-start gap-2 text-primary border-primary/20 hover:bg-primary/10 ${collapsed ? "justify-center px-0" : ""}`}
+            >
+              <Building2 className="h-4 w-4 shrink-0" />
+              {!collapsed && <span className="text-sm">Super Admin</span>}
+            </Button>
+          </Link>
+        )}
         <Button
           variant="ghost"
           size={collapsed ? "icon" : "default"}
