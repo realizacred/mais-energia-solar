@@ -50,13 +50,6 @@ export default defineConfig(({ mode }) => ({
         ],
         shortcuts: [
           {
-            name: "Cadastro de Lead",
-            short_name: "Novo Lead",
-            description: "Cadastre um novo orçamento solar",
-            url: "/v/",
-            icons: [{ src: "pwa-icon-leads-192.png", sizes: "192x192" }],
-          },
-          {
             name: "Portal do Vendedor",
             short_name: "Vendedor",
             description: "Acesse seus orçamentos",
@@ -68,7 +61,7 @@ export default defineConfig(({ mode }) => ({
             short_name: "Calculadora",
             description: "Simule economia de energia",
             url: "/calculadora",
-            icons: [{ src: "pwa-icon-192.png", sizes: "192x192" }],
+            icons: [{ src: "pwa-icon-leads-192.png", sizes: "192x192" }],
           },
         ],
       },
