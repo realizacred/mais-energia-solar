@@ -5850,6 +5850,9 @@ export type Database = {
           evolution_instance_key: string
           id: string
           last_seen_at: string | null
+          last_sync_at: string | null
+          last_sync_conversations: number | null
+          last_sync_messages: number | null
           nome: string
           owner_user_id: string | null
           phone_number: string | null
@@ -5868,6 +5871,9 @@ export type Database = {
           evolution_instance_key: string
           id?: string
           last_seen_at?: string | null
+          last_sync_at?: string | null
+          last_sync_conversations?: number | null
+          last_sync_messages?: number | null
           nome: string
           owner_user_id?: string | null
           phone_number?: string | null
@@ -5886,6 +5892,9 @@ export type Database = {
           evolution_instance_key?: string
           id?: string
           last_seen_at?: string | null
+          last_sync_at?: string | null
+          last_sync_conversations?: number | null
+          last_sync_messages?: number | null
           nome?: string
           owner_user_id?: string | null
           phone_number?: string | null
