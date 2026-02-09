@@ -1999,6 +1999,119 @@ export type Database = {
           },
         ]
       }
+      lead_distribution_log: {
+        Row: {
+          distribuido_em: string | null
+          distribuido_por: string | null
+          id: string
+          lead_id: string
+          motivo: string | null
+          rule_id: string | null
+          tenant_id: string | null
+          vendedor_anterior_id: string | null
+          vendedor_id: string
+        }
+        Insert: {
+          distribuido_em?: string | null
+          distribuido_por?: string | null
+          id?: string
+          lead_id: string
+          motivo?: string | null
+          rule_id?: string | null
+          tenant_id?: string | null
+          vendedor_anterior_id?: string | null
+          vendedor_id: string
+        }
+        Update: {
+          distribuido_em?: string | null
+          distribuido_por?: string | null
+          id?: string
+          lead_id?: string
+          motivo?: string | null
+          rule_id?: string | null
+          tenant_id?: string | null
+          vendedor_anterior_id?: string | null
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_distribution_log_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_distribution_log_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "lead_distribution_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_distribution_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_distribution_log_vendedor_anterior_id_fkey"
+            columns: ["vendedor_anterior_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_distribution_log_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_distribution_rules: {
+        Row: {
+          ativo: boolean | null
+          config: Json | null
+          created_at: string | null
+          id: string
+          nome: string
+          tenant_id: string | null
+          tipo: string
+          updated_at: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          nome: string
+          tenant_id?: string | null
+          tipo: string
+          updated_at?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          config?: Json | null
+          created_at?: string | null
+          id?: string
+          nome?: string
+          tenant_id?: string | null
+          tipo?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_distribution_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_links: {
         Row: {
           created_at: string
@@ -2189,24 +2302,30 @@ export type Database = {
           cor: string
           created_at: string
           id: string
+          motivo_perda_obrigatorio: boolean | null
           nome: string
           ordem: number
+          probabilidade_peso: number | null
           tenant_id: string | null
         }
         Insert: {
           cor?: string
           created_at?: string
           id?: string
+          motivo_perda_obrigatorio?: boolean | null
           nome: string
           ordem: number
+          probabilidade_peso?: number | null
           tenant_id?: string | null
         }
         Update: {
           cor?: string
           created_at?: string
           id?: string
+          motivo_perda_obrigatorio?: boolean | null
           nome?: string
           ordem?: number
+          probabilidade_peso?: number | null
           tenant_id?: string | null
         }
         Relationships: [
@@ -2230,10 +2349,13 @@ export type Database = {
           consumo_previsto: number
           created_at: string
           data_proxima_acao: string | null
+          distribuido_em: string | null
           estado: string
           id: string
           lead_code: string | null
           media_consumo: number
+          motivo_perda_id: string | null
+          motivo_perda_obs: string | null
           nome: string
           numero: string | null
           observacoes: string | null
@@ -2247,7 +2369,9 @@ export type Database = {
           tipo_telhado: string
           ultimo_contato: string | null
           updated_at: string
+          valor_estimado: number | null
           vendedor: string | null
+          vendedor_id: string | null
           visto: boolean
           visto_admin: boolean
         }
@@ -2261,10 +2385,13 @@ export type Database = {
           consumo_previsto: number
           created_at?: string
           data_proxima_acao?: string | null
+          distribuido_em?: string | null
           estado: string
           id?: string
           lead_code?: string | null
           media_consumo: number
+          motivo_perda_id?: string | null
+          motivo_perda_obs?: string | null
           nome: string
           numero?: string | null
           observacoes?: string | null
@@ -2278,7 +2405,9 @@ export type Database = {
           tipo_telhado: string
           ultimo_contato?: string | null
           updated_at?: string
+          valor_estimado?: number | null
           vendedor?: string | null
+          vendedor_id?: string | null
           visto?: boolean
           visto_admin?: boolean
         }
@@ -2292,10 +2421,13 @@ export type Database = {
           consumo_previsto?: number
           created_at?: string
           data_proxima_acao?: string | null
+          distribuido_em?: string | null
           estado?: string
           id?: string
           lead_code?: string | null
           media_consumo?: number
+          motivo_perda_id?: string | null
+          motivo_perda_obs?: string | null
           nome?: string
           numero?: string | null
           observacoes?: string | null
@@ -2309,11 +2441,20 @@ export type Database = {
           tipo_telhado?: string
           ultimo_contato?: string | null
           updated_at?: string
+          valor_estimado?: number | null
           vendedor?: string | null
+          vendedor_id?: string | null
           visto?: boolean
           visto_admin?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_motivo_perda_id_fkey"
+            columns: ["motivo_perda_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_perda"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_status_id_fkey"
             columns: ["status_id"]
@@ -2326,6 +2467,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
             referencedColumns: ["id"]
           },
         ]
@@ -2445,6 +2593,41 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "modulos_fotovoltaicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      motivos_perda: {
+        Row: {
+          ativo: boolean | null
+          created_at: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          tenant_id: string | null
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          tenant_id?: string | null
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "motivos_perda_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -3904,6 +4087,83 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sla_breaches: {
+        Row: {
+          created_at: string | null
+          escalado: boolean | null
+          escalado_para: string | null
+          id: string
+          lead_id: string
+          minutos_limite: number
+          minutos_real: number | null
+          resolvido: boolean | null
+          resolvido_em: string | null
+          sla_rule_id: string | null
+          tenant_id: string | null
+          tipo: string
+          vendedor_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          escalado?: boolean | null
+          escalado_para?: string | null
+          id?: string
+          lead_id: string
+          minutos_limite: number
+          minutos_real?: number | null
+          resolvido?: boolean | null
+          resolvido_em?: string | null
+          sla_rule_id?: string | null
+          tenant_id?: string | null
+          tipo: string
+          vendedor_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          escalado?: boolean | null
+          escalado_para?: string | null
+          id?: string
+          lead_id?: string
+          minutos_limite?: number
+          minutos_real?: number | null
+          resolvido?: boolean | null
+          resolvido_em?: string | null
+          sla_rule_id?: string | null
+          tenant_id?: string | null
+          tipo?: string
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sla_breaches_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_breaches_sla_rule_id_fkey"
+            columns: ["sla_rule_id"]
+            isOneToOne: false
+            referencedRelation: "sla_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_breaches_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sla_breaches_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
             referencedColumns: ["id"]
           },
         ]
