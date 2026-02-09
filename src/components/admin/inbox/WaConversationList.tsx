@@ -185,6 +185,12 @@ export function WaConversationList({
                             {conv.unread_count}
                           </Badge>
                         )}
+                        {conv.vendedor_nome && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 bg-primary/5">
+                            <User className="h-2.5 w-2.5" />
+                            {conv.vendedor_nome}
+                          </Badge>
+                        )}
                         {instances.length > 1 && conv.instance_name && (
                           <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5">
                             <Smartphone className="h-2.5 w-2.5" />

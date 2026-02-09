@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,6 +68,16 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
+  useEffect(() => {
+    if (selectedConv) {
+      const fresh = conversations.find((c) => c.id === selectedConv.id);
+      if (fresh && JSON.stringify(fresh) !== JSON.stringify(selectedConv)) {
+        setSelectedConv(fresh);
+      }
+    }
+  }, [conversations]);
 
   // Filter unassigned
   const filteredConvs = conversations.filter((c) => {
