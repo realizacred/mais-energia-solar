@@ -4,9 +4,8 @@ import { Menu, Calculator, LogIn, Phone, Home, LogOut, LayoutDashboard, Sun, X }
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
-import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useLogo } from "@/hooks/useLogo";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import logoFallback from "@/assets/logo.png";
 
 interface MobileNavProps {
   showCalculadora?: boolean;
@@ -26,9 +25,8 @@ const navLinks = [
 export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNavProps) {
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const { settings } = useBrandSettings();
   const { get } = useSiteSettings();
-  const logo = settings?.logo_url || logoFallback;
+  const logo = useLogo();
   const navigate = useNavigate();
   const whatsapp = get("whatsapp") || "5532998437675";
 
