@@ -69,12 +69,15 @@ Deno.serve(async (req) => {
         });
 
         if (!res.ok) {
+          const errText = await res.text().catch(() => "");
+          console.warn(`[sync-wa-profile-pictures] API error ${res.status} for ${conv.remote_jid}: ${errText.substring(0, 200)}`);
           failed++;
           continue;
         }
 
         const data = await res.json();
-        const picUrl = data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || null;
+        console.log(`[sync-wa-profile-pictures] API response for ${conv.remote_jid}: ${JSON.stringify(data).substring(0, 300)}`);
+        const picUrl = data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || data?.picture || null;
 
         if (picUrl) {
           await supabase
@@ -84,6 +87,7 @@ Deno.serve(async (req) => {
           updated++;
           console.log(`[sync-wa-profile-pictures] Updated: ${conv.remote_jid}`);
         } else {
+          console.log(`[sync-wa-profile-pictures] No picture found for ${conv.remote_jid}`);
           failed++;
         }
 
