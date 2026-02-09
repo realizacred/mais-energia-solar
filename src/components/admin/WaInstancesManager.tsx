@@ -245,6 +245,18 @@ export function WaInstancesManager() {
                       Verificando...
                     </div>
                   )}
+
+                  <div className="border-t pt-2 mt-1">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 text-xs"
+                      onClick={() => setSyncInstance(inst)}
+                    >
+                      <History className="h-3.5 w-3.5" />
+                      Sincronizar Histórico
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );
