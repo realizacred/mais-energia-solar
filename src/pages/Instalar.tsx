@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Check, Smartphone, Share, MoreVertical, ArrowDown, Sun, Zap, Users } from "lucide-react";
@@ -11,15 +12,21 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function Instalar() {
   const logo = useLogo();
+  const navigate = useNavigate();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
   const [isAndroid, setIsAndroid] = useState(false);
 
   useEffect(() => {
-    // Check if already installed
-    if (window.matchMedia("(display-mode: standalone)").matches) {
-      setIsInstalled(true);
+    // If running in standalone (PWA) mode, redirect away from install page
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true;
+
+    if (isStandalone) {
+      navigate("/vendedor", { replace: true });
+      return;
     }
 
     // Detect platform
@@ -36,15 +43,18 @@ export default function Instalar() {
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     // Listen for app installed
-    window.addEventListener("appinstalled", () => {
+    const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
-    });
+    };
+
+    window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [navigate]);
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) return;
@@ -134,12 +144,13 @@ export default function Instalar() {
                 </div>
 
                 {/* Install Button or Instructions */}
-                {deferredPrompt ? (
+                {deferredPrompt && (
                   <Button onClick={handleInstallClick} className="w-full h-12 text-base" size="lg">
                     <Download className="w-5 h-5 mr-2" />
                     Instalar Agora
                   </Button>
-                ) : isIOS ? (
+                )}
+                {!deferredPrompt && isIOS ? (
                   <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
                     <p className="text-sm font-medium text-center">
                       Para instalar no iPhone/iPad:
@@ -176,41 +187,43 @@ export default function Instalar() {
                     </div>
                   </div>
                 ) : isAndroid ? (
-                  <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                    <p className="text-sm font-medium text-center">
-                      Para instalar no Android:
-                    </p>
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                          1
+                  !deferredPrompt && (
+                    <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                      <p className="text-sm font-medium text-center">
+                        Para instalar no Android:
+                      </p>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                            1
+                          </div>
+                          <div className="flex items-center gap-2 text-sm">
+                            <span>Toque no menu</span>
+                            <MoreVertical className="w-4 h-4" />
+                            <span className="font-medium">(3 pontos)</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span>Toque no menu</span>
-                          <MoreVertical className="w-4 h-4" />
-                          <span className="font-medium">(3 pontos)</span>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                            2
+                          </div>
+                          <span className="text-sm">Toque em <span className="font-medium">"Instalar app"</span> ou <span className="font-medium">"Adicionar à tela inicial"</span></span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                          2
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                            3
+                          </div>
+                          <span className="text-sm">Confirme tocando em <span className="font-medium">Instalar</span></span>
                         </div>
-                        <span className="text-sm">Toque em <span className="font-medium">"Instalar app"</span> ou <span className="font-medium">"Adicionar à tela inicial"</span></span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                          3
-                        </div>
-                        <span className="text-sm">Confirme tocando em <span className="font-medium">Instalar</span></span>
                       </div>
                     </div>
-                  </div>
-                ) : (
+                  )
+                ) : !deferredPrompt ? (
                   <div className="text-center text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
                     <Smartphone className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p>Acesse este link no seu celular para instalar o aplicativo</p>
                   </div>
-                )}
+                ) : null}
               </CardContent>
             </Card>
 
