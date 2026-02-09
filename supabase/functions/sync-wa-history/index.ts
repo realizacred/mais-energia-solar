@@ -132,21 +132,19 @@ Deno.serve(async (req) => {
         if (existingConv) {
           conversationId = existingConv.id;
         } else {
-          // Fetch profile picture for individual chats
+          // Fetch profile picture for all chats (individuals and groups)
           let profilePicUrl: string | null = null;
-          if (!isGroup) {
-            try {
-              const picRes = await fetch(`${apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceKey)}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", apikey: apiKey },
-                body: JSON.stringify({ number: remoteJid }),
-              });
-              if (picRes.ok) {
-                const picData = await picRes.json();
-                profilePicUrl = picData?.profilePictureUrl || picData?.url || null;
-              }
-            } catch (_) { /* ignore */ }
-          }
+          try {
+            const picRes = await fetch(`${apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceKey)}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", apikey: apiKey },
+              body: JSON.stringify({ number: remoteJid }),
+            });
+            if (picRes.ok) {
+              const picData = await picRes.json();
+              profilePicUrl = picData?.profilePictureUrl || picData?.url || null;
+            }
+          } catch (_) { /* ignore */ }
 
           const displayName = isGroup
             ? (chat.subject || chat.name || `Grupo ${phone.substring(0, 12)}...`)

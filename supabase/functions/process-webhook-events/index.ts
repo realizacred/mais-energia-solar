@@ -223,11 +223,11 @@ async function handleMessageUpsert(
     } else {
       const displayName = isGroup ? (groupSubject || `Grupo ${phone.substring(0, 12)}...`) : contactName;
       
-      // Fetch profile picture for new conversations (non-blocking for groups)
+      // Fetch profile picture for new conversations (individuals and groups)
       let profilePicUrl: string | null = null;
-      if (!isGroup) {
+      try {
         profilePicUrl = await fetchProfilePicture(supabase, instanceId, remoteJid);
-      }
+      } catch (_) { /* ignore for groups */ }
 
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
@@ -255,7 +255,7 @@ async function handleMessageUpsert(
     }
 
     // For existing conversations without profile picture, fetch it periodically
-    if (existingConv && !isGroup && !fromMe) {
+    if (existingConv && !fromMe) {
       // Check if we should refresh (no picture or stale check)
       const shouldRefresh = shouldRefreshProfilePic(existingConv);
       if (shouldRefresh) {
