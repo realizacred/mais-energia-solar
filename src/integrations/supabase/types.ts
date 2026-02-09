@@ -1412,6 +1412,33 @@ export type Database = {
           },
         ]
       }
+      edge_rate_limits: {
+        Row: {
+          function_name: string
+          id: string
+          identifier: string
+          request_count: number
+          tenant_id: string | null
+          window_start: string
+        }
+        Insert: {
+          function_name: string
+          id?: string
+          identifier: string
+          request_count?: number
+          tenant_id?: string | null
+          window_start?: string
+        }
+        Update: {
+          function_name?: string
+          id?: string
+          identifier?: string
+          request_count?: number
+          tenant_id?: string | null
+          window_start?: string
+        }
+        Relationships: []
+      }
       financiamento_api_config: {
         Row: {
           api_key: string | null
@@ -6655,6 +6682,16 @@ export type Database = {
     }
     Functions: {
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
+      check_rate_limit: {
+        Args: {
+          _function_name: string
+          _identifier: string
+          _max_requests?: number
+          _window_seconds?: number
+        }
+        Returns: boolean
+      }
+      cleanup_edge_rate_limits: { Args: never; Returns: undefined }
       cleanup_sm_integration_requests: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
       generate_vendedor_slug: { Args: { nome: string }; Returns: string }

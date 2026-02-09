@@ -20,6 +20,26 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // ===== RATE LIMITING =====
+    const identifier = req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
+    const supabaseRL = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: allowed } = await supabaseRL.rpc("check_rate_limit", {
+      _function_name: "webhook-lead",
+      _identifier: identifier,
+      _window_seconds: 60,
+      _max_requests: 30,
+    });
+    if (allowed === false) {
+      console.warn(`[webhook-lead] Rate limited: ${identifier}`);
+      return new Response(JSON.stringify({ success: false, error: "Rate limit exceeded" }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+
     // ===== STAGING GUARD =====
     const isStaging = Deno.env.get("IS_STAGING") === "true";
     if (isStaging) {
