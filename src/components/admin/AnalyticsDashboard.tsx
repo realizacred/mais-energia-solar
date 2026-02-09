@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SalesFunnel, VendorPerformance, ConversionMetrics } from "@/components/admin/analytics";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import { BarChart3, Users, TrendingUp, Target } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Lead {
   id: string;
@@ -24,11 +25,31 @@ interface LeadStatus {
 }
 
 interface AnalyticsDashboardProps {
-  leads: Lead[];
-  statuses: LeadStatus[];
+  leads?: Lead[];
+  statuses?: LeadStatus[];
 }
 
-export default function AnalyticsDashboard({ leads, statuses }: AnalyticsDashboardProps) {
+export default function AnalyticsDashboard({ leads: propLeads, statuses: propStatuses }: AnalyticsDashboardProps) {
+  const [fetchedLeads, setFetchedLeads] = useState<Lead[]>([]);
+  const [fetchedStatuses, setFetchedStatuses] = useState<LeadStatus[]>([]);
+
+  // Fetch own data if no props provided
+  useEffect(() => {
+    if (!propLeads || !propStatuses) {
+      const fetchData = async () => {
+        const [leadsRes, statusesRes] = await Promise.all([
+          supabase.from("leads").select("id, nome, estado, cidade, media_consumo, vendedor, created_at, status_id").order("created_at", { ascending: false }),
+          supabase.from("lead_status").select("*").order("ordem"),
+        ]);
+        if (leadsRes.data) setFetchedLeads(leadsRes.data);
+        if (statusesRes.data) setFetchedStatuses(statusesRes.data);
+      };
+      fetchData();
+    }
+  }, [propLeads, propStatuses]);
+
+  const leads = propLeads || fetchedLeads;
+  const statuses = propStatuses || fetchedStatuses;
   // Summary stats
   const summaryStats = useMemo(() => {
     const now = new Date();

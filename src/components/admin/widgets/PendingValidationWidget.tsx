@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,11 +8,20 @@ import { ptBR } from "date-fns/locale";
 import { usePendingValidations } from "@/hooks/usePendingValidations";
 
 interface PendingValidationWidgetProps {
-  onNavigate: () => void;
+  onNavigate?: () => void;
 }
 
 export function PendingValidationWidget({ onNavigate }: PendingValidationWidgetProps) {
+  const navigate = useNavigate();
   const { pendingCount, pendingItems, loading } = usePendingValidations();
+
+  const handleNavigate = () => {
+    if (onNavigate) {
+      onNavigate();
+    } else {
+      navigate("/admin/validacao");
+    }
+  };
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -83,7 +93,7 @@ export function PendingValidationWidget({ onNavigate }: PendingValidationWidgetP
           variant="outline"
           size="sm"
           className="w-full gap-2"
-          onClick={onNavigate}
+          onClick={handleNavigate}
         >
           <CheckCircle className="h-4 w-4" />
           Validar Vendas

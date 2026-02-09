@@ -1,5 +1,5 @@
-import React, { useRef, useState, useCallback, useMemo } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   LogOut, Sun, ChevronDown, ChevronRight, Star, GripVertical,
 } from "lucide-react";
@@ -25,7 +25,6 @@ import {
 
 interface AdminSidebarProps {
   activeTab: string;
-  onTabChange: (tab: string) => void;
   userEmail?: string;
   onSignOut: () => void;
   badgeCounts?: Record<string, number>;
@@ -45,7 +44,6 @@ function SidebarItemButton({
   collapsed,
   badgeCount,
   isFav,
-  onTabChange,
   onToggleFav,
   draggable,
   onDragStart,
@@ -59,7 +57,6 @@ function SidebarItemButton({
   collapsed: boolean;
   badgeCount: number;
   isFav: boolean;
-  onTabChange: (id: string) => void;
   onToggleFav: (id: string) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent, id: string) => void;
@@ -67,6 +64,12 @@ function SidebarItemButton({
   onDrop?: (e: React.DragEvent, id: string) => void;
   onDragEnd?: () => void;
 }) {
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/admin/${item.id}`);
+  };
+
   return (
     <SidebarMenuItem
       draggable={draggable}
@@ -77,7 +80,7 @@ function SidebarItemButton({
       className="group/item"
     >
       <SidebarMenuButton
-        onClick={() => onTabChange(item.id)}
+        onClick={handleClick}
         isActive={isActive}
         tooltip={
           item.description
@@ -159,7 +162,6 @@ function SidebarItemButton({
 function SidebarSectionGroup({
   section,
   activeTab,
-  onTabChange,
   badgeCounts,
   isFavorite,
   onToggleFav,
@@ -168,7 +170,6 @@ function SidebarSectionGroup({
 }: {
   section: SidebarSection;
   activeTab: string;
-  onTabChange: (tab: string) => void;
   badgeCounts?: Record<string, number>;
   isFavorite: (id: string) => boolean;
   onToggleFav: (id: string) => void;
@@ -292,7 +293,6 @@ function SidebarSectionGroup({
                         collapsed={collapsed}
                         badgeCount={badgeCount}
                         isFav={isFavorite(item.id)}
-                        onTabChange={onTabChange}
                         onToggleFav={onToggleFav}
                         draggable={!collapsed}
                         onDragStart={handleDragStart}
@@ -316,20 +316,17 @@ function SidebarSectionGroup({
 function FavoritesSection({
   favoriteIds,
   activeTab,
-  onTabChange,
   badgeCounts,
   onToggleFav,
 }: {
   favoriteIds: string[];
   activeTab: string;
-  onTabChange: (tab: string) => void;
   badgeCounts?: Record<string, number>;
   onToggleFav: (id: string) => void;
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
-  // Resolve items from the map
   const resolvedItems = favoriteIds
     .map((id) => ITEM_MAP.get(id))
     .filter(Boolean) as { item: MenuItem; section: SidebarSection }[];
@@ -372,7 +369,6 @@ function FavoritesSection({
                   collapsed={collapsed}
                   badgeCount={badgeCounts?.[item.id] || 0}
                   isFav
-                  onTabChange={onTabChange}
                   onToggleFav={onToggleFav}
                 />
               ))}
@@ -387,7 +383,6 @@ function FavoritesSection({
 /* ─── Main Sidebar ─── */
 export function AdminSidebar({
   activeTab,
-  onTabChange,
   userEmail,
   onSignOut,
   badgeCounts,
@@ -405,13 +400,11 @@ export function AdminSidebar({
     getSectionOrder,
   } = useSidebarPreferences();
 
-  // Compute ordered items for each section
   const getOrderedItems = useCallback(
     (section: SidebarSection): MenuItem[] => {
       const customOrder = getSectionOrder(section.label);
       if (!customOrder || customOrder.length === 0) return section.items;
 
-      // Build ordered list: items in customOrder first, then any new items
       const itemMap = new Map(section.items.map((i) => [i.id, i]));
       const ordered: MenuItem[] = [];
       for (const id of customOrder) {
@@ -421,7 +414,6 @@ export function AdminSidebar({
           itemMap.delete(id);
         }
       }
-      // Append items not in custom order (newly added items)
       for (const item of itemMap.values()) {
         ordered.push(item);
       }
@@ -432,7 +424,6 @@ export function AdminSidebar({
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border/20">
-      {/* Header with logo */}
       <SidebarHeader className="border-b border-border/20 p-3">
         <Link
           to="/"
@@ -455,15 +446,12 @@ export function AdminSidebar({
         </Link>
       </SidebarHeader>
 
-      {/* Scrollable sections */}
       <SidebarContent className="scrollbar-thin py-1.5 space-y-0.5">
-        {/* Favorites pinned at the top */}
         {favorites.length > 0 && (
           <>
             <FavoritesSection
               favoriteIds={favorites}
               activeTab={activeTab}
-              onTabChange={onTabChange}
               badgeCounts={badgeCounts}
               onToggleFav={toggleFavorite}
             />
@@ -476,7 +464,6 @@ export function AdminSidebar({
             key={section.label}
             section={section}
             activeTab={activeTab}
-            onTabChange={onTabChange}
             badgeCounts={badgeCounts}
             isFavorite={isFavorite}
             onToggleFav={toggleFavorite}
@@ -486,7 +473,6 @@ export function AdminSidebar({
         ))}
       </SidebarContent>
 
-      {/* Footer */}
       <SidebarFooter className="border-t border-border/20 p-3 space-y-2">
         {!collapsed && userEmail && (
           <div className="px-3 py-2 rounded-lg bg-muted/50 border border-border/20">
@@ -500,9 +486,12 @@ export function AdminSidebar({
           variant="ghost"
           size={collapsed ? "icon" : "default"}
           onClick={onSignOut}
-          className="w-full gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/8 rounded-lg transition-all duration-200 h-9"
+          className={`
+            w-full justify-start gap-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10
+            ${collapsed ? "justify-center px-0" : ""}
+          `}
         >
-          <LogOut className="h-4 w-4" />
+          <LogOut className="h-4 w-4 shrink-0" />
           {!collapsed && <span className="text-sm">Sair</span>}
         </Button>
       </SidebarFooter>
