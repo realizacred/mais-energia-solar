@@ -11,6 +11,7 @@ import { WaChatPanel } from "./WaChatPanel";
 import { WaTransferDialog, WaAssignDialog, WaTagsDialog } from "./WaInboxDialogs";
 import { WaLinkLeadSearch } from "./WaLinkLeadSearch";
 import { WaInboxStats } from "./WaInboxStats";
+import { WaResolveDialog } from "./WaResolveDialog";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
 interface WaInboxProps {
@@ -33,6 +34,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
   const [showAssign, setShowAssign] = useState(false);
   const [showTags, setShowTags] = useState(false);
   const [showLinkLead, setShowLinkLead] = useState(false);
+  const [showResolve, setShowResolve] = useState(false);
 
   // Notification sound
   const prevUnreadRef = useRef<number>(0);
@@ -167,10 +169,18 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
     }
   };
 
-  const handleResolve = async () => {
+  const openResolveDialog = () => {
     if (!selectedConv) return;
+    setShowResolve(true);
+  };
+
+  const handleResolve = async (sendSurvey: boolean) => {
+    if (!selectedConv) return;
+    setShowResolve(false);
     resolveConversation(selectedConv.id);
     setSelectedConv({ ...selectedConv, status: "resolved" });
+
+    if (!sendSurvey) return;
 
     // Send satisfaction survey message
     try {
@@ -321,7 +331,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
                   isSending={isSending}
                   onSendMessage={handleSendMessage}
                   onSendMedia={handleSendMedia}
-                  onResolve={handleResolve}
+                  onResolve={openResolveDialog}
                   onReopen={handleReopen}
                   onOpenTransfer={() => setShowTransfer(true)}
                   onOpenTags={() => setShowTags(true)}
@@ -362,7 +372,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
               isSending={isSending}
               onSendMessage={handleSendMessage}
               onSendMedia={handleSendMedia}
-              onResolve={handleResolve}
+              onResolve={openResolveDialog}
               onReopen={handleReopen}
               onOpenTransfer={() => setShowTransfer(true)}
               onOpenTags={() => setShowTags(true)}
@@ -379,6 +389,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
       <WaAssignDialog open={showAssign} onOpenChange={setShowAssign} onAssign={handleAssign} vendedores={vendedores} currentAssigned={selectedConv?.assigned_to || null} />
       <WaTagsDialog open={showTags} onOpenChange={setShowTags} conversation={selectedConv} allTags={tags} onToggleTag={handleToggleTag} onCreateTag={createTag} onDeleteTag={deleteTag} />
       <WaLinkLeadSearch open={showLinkLead} onOpenChange={setShowLinkLead} conversation={selectedConv} onLink={handleLinkLead} />
+      <WaResolveDialog open={showResolve} onOpenChange={setShowResolve} onConfirm={handleResolve} clienteName={selectedConv?.cliente_nome || undefined} />
     </div>
   );
 }
