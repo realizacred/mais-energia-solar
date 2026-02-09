@@ -50,12 +50,6 @@ export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
     return null;
   }
 
-  // Show on mobile devices or when browser supports install prompt
-  const showBanner = isIOS || isAndroid || canInstall;
-  if (!showBanner) {
-    return null;
-  }
-
   return (
     <>
       <Card className="mx-4 mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
