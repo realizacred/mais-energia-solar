@@ -192,7 +192,7 @@ Deno.serve(async (req) => {
 
       if (evoApiUrl && evoInstance) {
         try {
-          const sendUrl = `${evoApiUrl}/message/sendText/${evoInstance}`;
+          const sendUrl = `${evoApiUrl}/message/sendText/${encodeURIComponent(evoInstance)}`;
           console.log(`Sending to: ${sendUrl}`);
 
           const evoRes = await fetch(sendUrl, {

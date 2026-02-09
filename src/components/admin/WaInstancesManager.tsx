@@ -323,10 +323,10 @@ function InstanceFormDialog({
               onChange={(e) => setInstanceKey(e.target.value)}
               placeholder="minha-instancia"
               className="font-mono text-sm"
-              disabled={!!instance}
+              disabled={false}
             />
             <p className="text-[10px] text-muted-foreground mt-1">
-              Identificador único da instância na Evolution API.
+              Nome da instância na Evolution API (ex: "Mais Energia Solar"). Não é a API Key.
             </p>
           </div>
           <div>

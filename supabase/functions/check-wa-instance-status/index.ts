@@ -99,8 +99,9 @@ Deno.serve(async (req) => {
       }
 
       try {
-        // Check connectionState
-        const stateUrl = `${apiUrl}/instance/connectionState/${instanceKey}`;
+        // Check connectionState — encode instance name for URL safety (may contain spaces)
+        const encodedKey = encodeURIComponent(instanceKey);
+        const stateUrl = `${apiUrl}/instance/connectionState/${encodedKey}`;
         console.log(`Checking: ${stateUrl}`);
 
         const stateRes = await fetch(stateUrl, {
@@ -163,7 +164,8 @@ Deno.serve(async (req) => {
 
         if (newStatus === "connected") {
           try {
-            const infoUrl = `${apiUrl}/instance/fetchInstances?instanceName=${instanceKey}`;
+            const encodedKeyInfo = encodeURIComponent(instanceKey);
+            const infoUrl = `${apiUrl}/instance/fetchInstances?instanceName=${encodedKeyInfo}`;
             const infoRes = await fetch(infoUrl, {
               method: "GET",
               headers: { apikey: apiKey, "Content-Type": "application/json" },
