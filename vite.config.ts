@@ -20,6 +20,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "favicon.png", "pwa-icon-192.png", "pwa-icon-512.png"],
       manifest: {
+        id: "/",
         name: "Mais Energia Solar",
         short_name: "MaisEnergia",
         description: "Sistema de gestão de orçamentos e instalações solares",
@@ -30,6 +31,7 @@ export default defineConfig(({ mode }) => ({
         start_url: "/",
         scope: "/",
         categories: ["business", "productivity"],
+        prefer_related_applications: false,
         icons: [
           {
             src: "pwa-icon-192.png",
@@ -46,6 +48,22 @@ export default defineConfig(({ mode }) => ({
             sizes: "512x512",
             type: "image/png",
             purpose: "maskable",
+          },
+        ],
+        screenshots: [
+          {
+            src: "temp-menu-screenshot.png",
+            sizes: "1080x1920",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Portal do Vendedor",
+          },
+          {
+            src: "temp-calc-screenshot.png",
+            sizes: "1080x1920",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Calculadora Solar",
           },
         ],
         shortcuts: [

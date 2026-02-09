@@ -10,6 +10,7 @@ import { BrandSettingsProvider } from "@/components/BrandSettingsProvider";
 import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import { WaNotificationProvider } from "@/components/notifications/WaNotificationProvider";
 import { consumePWAReturnUrl } from "@/hooks/usePWAInstall";
+import { PWAAutoInstallPrompt } from "@/components/pwa/PWAAutoInstallPrompt";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -75,6 +76,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <PWAReturnRedirect />
+          <PWAAutoInstallPrompt />
           <WaNotificationProvider />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
