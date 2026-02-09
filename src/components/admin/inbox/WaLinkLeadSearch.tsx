@@ -52,6 +52,25 @@ const stripCountryCode = (phone: string) => {
   return digits;
 };
 
+// Build phone search patterns handling Brazil's 9th digit variation
+const buildPhonePatterns = (digits: string): string[] => {
+  const patterns = [digits];
+  // 11 digits = DDD(2) + 9 + number(8) → also try without the 9
+  if (digits.length === 11 && digits[2] === "9") {
+    patterns.push(digits.slice(0, 2) + digits.slice(3));
+  }
+  // 10 digits = DDD(2) + number(8) → also try with the 9
+  if (digits.length === 10) {
+    patterns.push(digits.slice(0, 2) + "9" + digits.slice(2));
+  }
+  // Always try last 8 digits as fallback
+  if (digits.length >= 8) {
+    const last8 = digits.slice(-8);
+    if (!patterns.includes(last8)) patterns.push(last8);
+  }
+  return patterns;
+};
+
 export function WaLinkLeadSearch({
   open,
   onOpenChange,
@@ -82,8 +101,14 @@ export function WaLinkLeadSearch({
         const digits = search.replace(/\D/g, "");
         
         if (digits.length >= 4) {
-          // Search by normalized phone OR name
-          query = query.or(`telefone_normalized.ilike.%${digits}%,telefone.ilike.%${digits}%,nome.ilike.%${search}%`);
+          // Build multiple phone patterns to handle 9th digit variations
+          const patterns = buildPhonePatterns(digits);
+          const phoneFilters = patterns.flatMap((p) => [
+            `telefone_normalized.ilike.%${p}%`,
+            `telefone.ilike.%${p}%`,
+          ]);
+          phoneFilters.push(`nome.ilike.%${search}%`);
+          query = query.or(phoneFilters.join(","));
         } else {
           query = query.ilike("nome", `%${search}%`);
         }
@@ -111,7 +136,10 @@ export function WaLinkLeadSearch({
         const digits = search.replace(/\D/g, "");
 
         if (digits.length >= 4) {
-          query = query.or(`telefone.ilike.%${digits}%,nome.ilike.%${search}%`);
+          const patterns = buildPhonePatterns(digits);
+          const phoneFilters = patterns.map((p) => `telefone.ilike.%${p}%`);
+          phoneFilters.push(`nome.ilike.%${search}%`);
+          query = query.or(phoneFilters.join(","));
         } else {
           query = query.ilike("nome", `%${search}%`);
         }
