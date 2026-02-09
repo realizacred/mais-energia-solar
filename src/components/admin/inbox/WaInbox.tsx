@@ -4,9 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaConversations, useWaMessages, useWaTags } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
+import { useToast } from "@/hooks/use-toast";
 import { WaConversationList } from "./WaConversationList";
 import { WaChatPanel } from "./WaChatPanel";
-import { WaTransferDialog, WaAssignDialog, WaTagsDialog, WaLinkLeadDialog } from "./WaInboxDialogs";
+import { WaTransferDialog, WaAssignDialog, WaTagsDialog } from "./WaInboxDialogs";
+import { WaLinkLeadSearch } from "./WaLinkLeadSearch";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
 interface WaInboxProps {
@@ -31,6 +33,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
 
   // Hooks
   const { instances } = useWaInstances();
+  const { toast } = useToast();
 
   const {
     conversations,
@@ -82,6 +85,38 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
   const handleSendMessage = async (content: string, isNote?: boolean) => {
     if (!selectedConv) return;
     await sendMessage({ content, isInternalNote: isNote });
+  };
+
+  const handleSendMedia = async (file: File, caption?: string) => {
+    if (!selectedConv) return;
+    try {
+      // Upload to Supabase storage
+      const ext = file.name.split(".").pop() || "bin";
+      const filePath = `${selectedConv.id}/${Date.now()}.${ext}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from("wa-attachments")
+        .upload(filePath, file);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage
+        .from("wa-attachments")
+        .getPublicUrl(filePath);
+      
+      const mediaUrl = urlData.publicUrl;
+      const isImage = file.type.startsWith("image/");
+      const messageType = isImage ? "image" : "document";
+      
+      await sendMessage({
+        content: caption || file.name,
+        messageType,
+        mediaUrl,
+      });
+    } catch (err: any) {
+      console.error("Failed to send media:", err);
+      toast({ title: "Erro ao enviar arquivo", description: err.message, variant: "destructive" });
+    }
   };
 
   const handleResolve = () => {
@@ -183,6 +218,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
                   loading={msgsLoading}
                   isSending={isSending}
                   onSendMessage={handleSendMessage}
+                  onSendMedia={handleSendMedia}
                   onResolve={handleResolve}
                   onReopen={handleReopen}
                   onOpenTransfer={() => setShowTransfer(true)}
@@ -220,6 +256,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
               loading={msgsLoading}
               isSending={isSending}
               onSendMessage={handleSendMessage}
+              onSendMedia={handleSendMedia}
               onResolve={handleResolve}
               onReopen={handleReopen}
               onOpenTransfer={() => setShowTransfer(true)}
@@ -236,7 +273,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
       <WaTransferDialog open={showTransfer} onOpenChange={setShowTransfer} onTransfer={handleTransfer} vendedores={vendedores} />
       <WaAssignDialog open={showAssign} onOpenChange={setShowAssign} onAssign={handleAssign} vendedores={vendedores} currentAssigned={selectedConv?.assigned_to || null} />
       <WaTagsDialog open={showTags} onOpenChange={setShowTags} conversation={selectedConv} allTags={tags} onToggleTag={handleToggleTag} onCreateTag={createTag} onDeleteTag={deleteTag} />
-      <WaLinkLeadDialog open={showLinkLead} onOpenChange={setShowLinkLead} conversation={selectedConv} onLink={handleLinkLead} />
+      <WaLinkLeadSearch open={showLinkLead} onOpenChange={setShowLinkLead} conversation={selectedConv} onLink={handleLinkLead} />
     </div>
   );
 }

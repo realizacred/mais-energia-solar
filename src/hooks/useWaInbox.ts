@@ -271,10 +271,12 @@ export function useWaMessages(conversationId?: string) {
       content,
       messageType = "text",
       isInternalNote = false,
+      mediaUrl,
     }: {
       content: string;
       messageType?: string;
       isInternalNote?: boolean;
+      mediaUrl?: string;
     }) => {
       if (!conversationId) throw new Error("No conversation selected");
 
@@ -295,6 +297,7 @@ export function useWaMessages(conversationId?: string) {
           direction: "out",
           message_type: messageType,
           content,
+          media_url: mediaUrl || null,
           sent_by_user_id: user?.id,
           is_internal_note: isInternalNote,
           status: isInternalNote ? "sent" : "pending",
@@ -315,6 +318,7 @@ export function useWaMessages(conversationId?: string) {
             remote_jid: conv.remote_jid,
             message_type: messageType,
             content,
+            media_url: mediaUrl || null,
             status: "pending",
           });
 

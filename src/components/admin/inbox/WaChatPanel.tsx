@@ -2,9 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Send,
   StickyNote,
-  Loader2,
   User,
   CheckCircle2,
   ArrowRightLeft,
@@ -12,7 +10,6 @@ import {
   MoreVertical,
   Phone,
   Link2,
-  X,
   RefreshCw,
   Smartphone,
   Check,
@@ -21,7 +18,6 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { WaConversation, WaMessage } from "@/hooks/useWaInbox";
+import { WaChatComposer } from "./WaChatComposer";
 
 const MESSAGE_STATUS_ICON: Record<string, typeof Check> = {
   pending: Clock,
@@ -49,6 +46,7 @@ interface WaChatPanelProps {
   loading: boolean;
   isSending: boolean;
   onSendMessage: (content: string, isNote?: boolean) => void;
+  onSendMedia: (file: File, caption?: string) => void;
   onResolve: () => void;
   onReopen: () => void;
   onOpenTransfer: () => void;
@@ -64,6 +62,7 @@ export function WaChatPanel({
   loading,
   isSending,
   onSendMessage,
+  onSendMedia,
   onResolve,
   onReopen,
   onOpenTransfer,
@@ -72,32 +71,12 @@ export function WaChatPanel({
   onLinkLead,
   vendedores,
 }: WaChatPanelProps) {
-  const [inputValue, setInputValue] = useState("");
   const [isNoteMode, setIsNoteMode] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
-
-  useEffect(() => {
-    inputRef.current?.focus();
-  }, [conversation?.id]);
-
-  const handleSend = () => {
-    if (!inputValue.trim()) return;
-    onSendMessage(inputValue.trim(), isNoteMode);
-    setInputValue("");
-    setIsNoteMode(false);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
 
   if (!conversation) {
     return (
@@ -286,7 +265,9 @@ export function WaChatPanel({
                         </div>
                       )}
                       {(msg.message_type === "image") && msg.media_url && (
-                        <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover" />
+                        <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
+                          <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity" />
+                        </a>
                       )}
                       {msg.message_type === "audio" && (
                         <div className="flex items-center gap-2 text-xs opacity-80">
@@ -294,9 +275,14 @@ export function WaChatPanel({
                         </div>
                       )}
                       {msg.message_type === "document" && (
-                        <div className="flex items-center gap-2 text-xs opacity-80">
+                        <a
+                          href={msg.media_url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-xs opacity-80 hover:opacity-100 transition-opacity"
+                        >
                           <span>📄</span> {msg.content || "Documento"}
-                        </div>
+                        </a>
                       )}
                       {msg.message_type === "sticker" && (
                         <div className="text-2xl">🏷️</div>
@@ -306,8 +292,8 @@ export function WaChatPanel({
                           <span>📍</span> Localização
                         </div>
                       )}
-                      {(msg.message_type === "text" || !["audio", "document", "sticker", "location"].includes(msg.message_type)) && msg.content && (
-                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                      {(msg.message_type === "text" || !["audio", "document", "sticker", "location", "image"].includes(msg.message_type)) && msg.content && (
+                        <p className="whitespace-pre-wrap break-words">{renderFormattedText(msg.content)}</p>
                       )}
                       <div className={`flex items-center gap-1 mt-1 ${isNote ? "text-warning/70" : isOut ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                         <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
@@ -326,55 +312,59 @@ export function WaChatPanel({
       </ScrollArea>
 
       {/* Composer */}
-      <div className="p-3 border-t border-border/40 bg-card/50">
-        {isNoteMode && (
-          <div className="flex items-center gap-2 mb-2 px-1">
-            <StickyNote className="h-3.5 w-3.5 text-warning" />
-            <span className="text-xs text-warning font-medium">Modo nota interna — não será enviada ao cliente</span>
-            <Button size="icon" variant="ghost" className="h-5 w-5 ml-auto" onClick={() => setIsNoteMode(false)}>
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="icon"
-                variant={isNoteMode ? "default" : "ghost"}
-                className={`h-9 w-9 shrink-0 ${isNoteMode ? "bg-warning hover:bg-warning/90 text-warning-foreground" : ""}`}
-                onClick={() => setIsNoteMode(!isNoteMode)}
-              >
-                <StickyNote className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Nota interna</TooltipContent>
-          </Tooltip>
-
-          <Input
-            ref={inputRef}
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite uma mensagem..."}
-            className={`flex-1 h-9 text-sm ${isNoteMode ? "border-warning/30 bg-warning/5" : ""}`}
-            disabled={isSending}
-          />
-
-          <Button
-            size="icon"
-            className={`h-9 w-9 shrink-0 ${isNoteMode ? "bg-warning hover:bg-warning/90" : ""}`}
-            onClick={handleSend}
-            disabled={!inputValue.trim() || isSending}
-          >
-            {isSending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      </div>
+      <WaChatComposer
+        onSendMessage={onSendMessage}
+        onSendMedia={onSendMedia}
+        isSending={isSending}
+        isNoteMode={isNoteMode}
+        onNoteModeChange={setIsNoteMode}
+      />
     </div>
   );
+}
+
+// ── Render WhatsApp formatted text ──
+function renderFormattedText(text: string): React.ReactNode {
+  // Simple WhatsApp formatting: *bold*, _italic_, ~strikethrough~
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let key = 0;
+
+  const patterns = [
+    { regex: /\*([^*]+)\*/, tag: "strong" },
+    { regex: /_([^_]+)_/, tag: "em" },
+    { regex: /~([^~]+)~/, tag: "s" },
+  ];
+
+  while (remaining.length > 0) {
+    let earliestMatch: { index: number; length: number; content: string; tag: string } | null = null;
+
+    for (const { regex, tag } of patterns) {
+      const match = remaining.match(regex);
+      if (match && match.index !== undefined) {
+        if (!earliestMatch || match.index < earliestMatch.index) {
+          earliestMatch = {
+            index: match.index,
+            length: match[0].length,
+            content: match[1],
+            tag,
+          };
+        }
+      }
+    }
+
+    if (earliestMatch) {
+      if (earliestMatch.index > 0) {
+        parts.push(remaining.substring(0, earliestMatch.index));
+      }
+      const Tag = earliestMatch.tag as any;
+      parts.push(<Tag key={key++}>{earliestMatch.content}</Tag>);
+      remaining = remaining.substring(earliestMatch.index + earliestMatch.length);
+    } else {
+      parts.push(remaining);
+      break;
+    }
+  }
+
+  return <>{parts}</>;
 }
