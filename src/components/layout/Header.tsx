@@ -4,8 +4,7 @@ import { Button } from "@/components/ui/button";
 import { MobileNav } from "./MobileNav";
 import { TopBannerCarousel } from "./TopBannerCarousel";
 import { useAuth } from "@/hooks/useAuth";
-import { useBrandSettings } from "@/hooks/useBrandSettings";
-import logoFallback from "@/assets/logo.png";
+import { useLogo } from "@/hooks/useLogo";
 
 interface HeaderProps {
   showCalculadora?: boolean;
@@ -27,8 +26,7 @@ export default function Header({
   children,
 }: HeaderProps) {
   const { user } = useAuth();
-  const { settings } = useBrandSettings();
-  const logo = settings?.logo_url || logoFallback;
+  const logo = useLogo();
   const location = useLocation();
   const isHomePage = location.pathname === "/";
 

@@ -3,8 +3,7 @@
  import { Badge } from "@/components/ui/badge";
  import { LogOut, Eye } from "lucide-react";
  import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
- import { useBrandSettings } from "@/hooks/useBrandSettings";
- import logoFallback from "@/assets/logo.png";
+ import { useLogo } from "@/hooks/useLogo";
  
  interface InstaladorHeaderProps {
    userName?: string;
@@ -13,8 +12,7 @@
  }
  
  export function InstaladorHeader({ userName, onSignOut, isAdminMode = false }: InstaladorHeaderProps) {
-   const { settings } = useBrandSettings();
-   const logo = settings?.logo_small_url || settings?.logo_url || logoFallback;
+    const logo = useLogo("small");
    return (
      <header className="sticky top-0 z-50 border-b bg-background">
        <div className="container mx-auto px-4">
