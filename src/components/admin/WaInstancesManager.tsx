@@ -293,12 +293,10 @@ function InstanceFormDialog({
   }, [open, instance]);
 
   // Detect if value looks like a UUID (API Key) instead of an instance name
-  const looksLikeUuid = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(instanceKey.trim()) ||
-    /^[0-9A-F]{20,}$/i.test(instanceKey.trim().replace(/-/g, ""));
+  // No longer block UUIDs in instance key field since we have a dedicated API Key field
   
   const handleSubmit = async () => {
     if (!nome.trim() || !instanceKey.trim() || !apiUrl.trim()) return;
-    if (looksLikeUuid) return; // Block submission if it looks like UUID/API Key
     setSaving(true);
     try {
       await onSave({
@@ -330,18 +328,11 @@ function InstanceFormDialog({
               value={instanceKey}
               onChange={(e) => setInstanceKey(e.target.value)}
               placeholder="Ex: Escritorio, MaisEnergia"
-              className={`font-mono text-sm ${looksLikeUuid ? "border-destructive focus-visible:ring-destructive" : ""}`}
-              disabled={false}
+              className="font-mono text-sm"
             />
-            {looksLikeUuid ? (
-              <p className="text-[10px] text-destructive mt-1 font-medium">
-                ⚠️ Isso parece ser a API Key/Token. Insira o nome exato da instância como aparece no painel da Evolution API (ex: "Escritorio").
-              </p>
-            ) : (
-              <p className="text-[10px] text-muted-foreground mt-1">
-                O nome exato como aparece na Evolution API. <strong>Não</strong> é o token/API Key.
-              </p>
-            )}
+            <p className="text-[10px] text-muted-foreground mt-1">
+              O nome exato como aparece na Evolution API.
+            </p>
           </div>
           <div>
             <Label>URL da Evolution API *</Label>
@@ -382,7 +373,7 @@ function InstanceFormDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!nome.trim() || !instanceKey.trim() || looksLikeUuid || saving}>
+          <Button onClick={handleSubmit} disabled={!nome.trim() || !instanceKey.trim() || saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {instance ? "Salvar" : "Criar Instância"}
           </Button>
