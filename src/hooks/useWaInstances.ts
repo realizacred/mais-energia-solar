@@ -17,6 +17,9 @@ export interface WaInstance {
   profile_name: string | null;
   profile_picture_url: string | null;
   last_seen_at: string | null;
+  last_sync_at: string | null;
+  last_sync_messages: number | null;
+  last_sync_conversations: number | null;
   created_at: string;
   updated_at: string;
 }

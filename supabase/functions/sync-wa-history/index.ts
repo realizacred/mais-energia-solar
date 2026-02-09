@@ -277,6 +277,16 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Save sync metadata on the instance
+    await supabase
+      .from("wa_instances")
+      .update({
+        last_sync_at: new Date().toISOString(),
+        last_sync_messages: totalMessages,
+        last_sync_conversations: totalConversations,
+      })
+      .eq("id", instance.id);
+
     const summary = {
       success: true,
       conversations_created: totalConversations,
