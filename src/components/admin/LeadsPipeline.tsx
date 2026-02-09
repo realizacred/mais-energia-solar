@@ -408,23 +408,37 @@ import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
                  <CardDescription>Leads que precisam de atenção</CardDescription>
                </CardHeader>
                <CardContent>
-                 <div className="space-y-2">
-                   {filteredLeads
-                     .filter((l) => {
-                       if (!l.ultimo_contato) return true;
-                       const daysSince = Math.floor((Date.now() - new Date(l.ultimo_contato).getTime()) / (1000 * 60 * 60 * 24));
-                       return daysSince >= 3;
-                     })
-                     .slice(0, 5)
-                     .map((lead) => (
-                       <div key={lead.id} className="flex items-center justify-between p-2 rounded border bg-muted/50">
-                         <div>
-                           <p className="text-sm font-medium">{lead.nome}</p>
-                           <p className="text-xs text-muted-foreground">{lead.lead_code}</p>
-                         </div>
-                         <Badge variant="destructive" className="text-xs">Sem contato</Badge>
-                       </div>
-                     ))}
+                  <div className="space-y-2">
+                    {filteredLeads
+                      .filter((l) => {
+                        if (!l.ultimo_contato) return true;
+                        const daysSince = Math.floor((Date.now() - new Date(l.ultimo_contato).getTime()) / (1000 * 60 * 60 * 24));
+                        return daysSince >= 3;
+                      })
+                      .slice(0, 5)
+                      .map((lead) => {
+                        const daysSince = lead.ultimo_contato
+                          ? Math.floor((Date.now() - new Date(lead.ultimo_contato).getTime()) / (1000 * 60 * 60 * 24))
+                          : null;
+                        return (
+                          <div key={lead.id} className="flex items-center justify-between p-2.5 rounded-lg border bg-muted/50 gap-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium truncate">{lead.nome}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {lead.telefone}
+                                {lead.cidade && ` · ${lead.cidade}`}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {lead.lead_code}
+                                {lead.vendedor && ` · ${lead.vendedor}`}
+                              </p>
+                            </div>
+                            <Badge variant="destructive" className="text-[10px] shrink-0">
+                              {daysSince === null ? "Nunca contatado" : `${daysSince}d sem contato`}
+                            </Badge>
+                          </div>
+                        );
+                      })}
                    {filteredLeads.filter((l) => !l.ultimo_contato || Math.floor((Date.now() - new Date(l.ultimo_contato).getTime()) / (1000 * 60 * 60 * 24)) >= 3).length === 0 && (
                      <p className="text-sm text-muted-foreground text-center py-4">Nenhum alerta ativo</p>
                    )}
