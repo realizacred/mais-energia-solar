@@ -5842,6 +5842,131 @@ export type Database = {
           },
         ]
       }
+      wa_followup_queue: {
+        Row: {
+          assigned_to: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          mensagem_enviada: string | null
+          responded_at: string | null
+          rule_id: string
+          scheduled_at: string
+          sent_at: string | null
+          status: string
+          tenant_id: string
+          tentativa: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          mensagem_enviada?: string | null
+          responded_at?: string | null
+          rule_id: string
+          scheduled_at: string
+          sent_at?: string | null
+          status?: string
+          tenant_id: string
+          tentativa?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          mensagem_enviada?: string | null
+          responded_at?: string | null
+          rule_id?: string
+          scheduled_at?: string
+          sent_at?: string | null
+          status?: string
+          tenant_id?: string
+          tentativa?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_followup_queue_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "wa_followup_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_followup_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_followup_rules: {
+        Row: {
+          ativo: boolean
+          cenario: string
+          created_at: string
+          descricao: string | null
+          envio_automatico: boolean
+          id: string
+          max_tentativas: number
+          mensagem_template: string | null
+          nome: string
+          ordem: number
+          prazo_horas: number
+          prioridade: string
+          status_conversa: string[] | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cenario: string
+          created_at?: string
+          descricao?: string | null
+          envio_automatico?: boolean
+          id?: string
+          max_tentativas?: number
+          mensagem_template?: string | null
+          nome: string
+          ordem?: number
+          prazo_horas?: number
+          prioridade?: string
+          status_conversa?: string[] | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cenario?: string
+          created_at?: string
+          descricao?: string | null
+          envio_automatico?: boolean
+          id?: string
+          max_tentativas?: number
+          mensagem_template?: string | null
+          nome?: string
+          ordem?: number
+          prazo_horas?: number
+          prioridade?: string
+          status_conversa?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_followup_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_instances: {
         Row: {
           api_key: string | null
