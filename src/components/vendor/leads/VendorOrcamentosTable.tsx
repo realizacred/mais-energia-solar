@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import {
   Table,
   TableBody,
@@ -55,18 +54,15 @@ export function VendorOrcamentosTable({
 }: VendorOrcamentosTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [orcamentoToDelete, setOrcamentoToDelete] = useState<OrcamentoVendedor | null>(null);
-  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
-  const [selectedOrcForWhatsapp, setSelectedOrcForWhatsapp] = useState<OrcamentoVendedor | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState<GroupedOrcamento | null>(null);
   const isMobile = useIsMobile();
 
   const groupedOrcamentos = useGroupedOrcamentos(orcamentos);
 
-  const handleWhatsappClick = (orc: OrcamentoVendedor) => {
-    setSelectedOrcForWhatsapp(orc);
-    setWhatsappDialogOpen(true);
-  };
+  const getWhatsAppUrl = (telefone: string) =>
+    `https://wa.me/55${telefone.replace(/\D/g, '')}`;
+
 
   const handleDeleteClick = (orcamento: OrcamentoVendedor) => {
     setOrcamentoToDelete(orcamento);
@@ -86,13 +82,9 @@ export function VendorOrcamentosTable({
     setHistoryOpen(true);
   };
 
-  const handleWhatsAppFromHistory = (telefone: string, nome: string, leadId: string) => {
+  const handleWhatsAppFromHistory = (telefone: string, _nome: string, _leadId: string) => {
     setHistoryOpen(false);
-    const orc = orcamentos.find((o) => o.lead_id === leadId);
-    if (orc) {
-      setSelectedOrcForWhatsapp(orc);
-      setWhatsappDialogOpen(true);
-    }
+    window.open(getWhatsAppUrl(telefone), '_blank');
   };
 
   const getConvertedStatus = () => statuses.find(s => s.nome === "Convertido");
@@ -320,16 +312,16 @@ export function VendorOrcamentosTable({
                       <div className="flex items-center justify-end gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-success hover:text-success hover:bg-success/10"
-                              onClick={() => handleWhatsappClick(orc)}
+                            <a
+                              href={getWhatsAppUrl(orc.telefone)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-md text-success hover:text-success hover:bg-success/10"
                             >
                               <MessageSquare className="w-4 h-4" />
-                            </Button>
+                            </a>
                           </TooltipTrigger>
-                          <TooltipContent>Enviar WhatsApp</TooltipContent>
+                          <TooltipContent>Abrir WhatsApp</TooltipContent>
                         </Tooltip>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -422,16 +414,6 @@ export function VendorOrcamentosTable({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      <ScheduleWhatsAppDialog
-        lead={selectedOrcForWhatsapp ? {
-          id: selectedOrcForWhatsapp.lead_id,
-          nome: selectedOrcForWhatsapp.nome,
-          telefone: selectedOrcForWhatsapp.telefone,
-        } : null}
-        open={whatsappDialogOpen}
-        onOpenChange={setWhatsappDialogOpen}
-      />
 
       <OrcamentoHistoryDialog
         group={selectedGroup}

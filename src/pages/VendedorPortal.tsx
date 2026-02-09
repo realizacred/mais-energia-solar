@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LayoutDashboard, FileText, ClipboardCheck, MessageCircle } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Loader2, LayoutDashboard, FileText, ClipboardCheck, MessageCircle, ChevronDown, Trophy } from "lucide-react";
 import { LeadAlerts } from "@/components/vendor/LeadAlerts";
 import { FollowUpStatsCards } from "@/components/vendor/FollowUpStatsCards";
  import { VendorPersonalDashboard } from "@/components/vendor/VendorPersonalDashboard";
@@ -91,28 +92,40 @@ export default function VendedorPortal() {
        />
 
       <main className="container mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full max-w-2xl grid-cols-4">
-            <TabsTrigger value="dashboard" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              <span className="hidden sm:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="whatsapp" className="gap-2">
-              <MessageCircle className="h-4 w-4" />
-              <span className="hidden sm:inline">WhatsApp</span>
-            </TabsTrigger>
-            <TabsTrigger value="agenda" className="gap-2">
-              <ClipboardCheck className="h-4 w-4" />
-              <span className="hidden sm:inline">Agenda</span>
-            </TabsTrigger>
-            <TabsTrigger value="orcamentos" className="gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Orçamentos</span>
-            </TabsTrigger>
-          </TabsList>
+        {/* Unseen badge count */}
+        {(() => {
+          const unseenCount = orcamentos.filter(o => !o.visto).length;
+          return (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full max-w-2xl grid-cols-4">
+                <TabsTrigger value="dashboard" className="gap-2">
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span className="hidden sm:inline">Dashboard</span>
+                </TabsTrigger>
+                <TabsTrigger value="whatsapp" className="gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  <span className="hidden sm:inline">WhatsApp</span>
+                </TabsTrigger>
+                <TabsTrigger value="agenda" className="gap-2">
+                  <ClipboardCheck className="h-4 w-4" />
+                  <span className="hidden sm:inline">Agenda</span>
+                </TabsTrigger>
+                <TabsTrigger value="orcamentos" className="gap-2 relative">
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Orçamentos</span>
+                  {unseenCount > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold px-1">
+                      {unseenCount}
+                    </span>
+                  )}
+                </TabsTrigger>
+              </TabsList>
 
           {/* Dashboard Tab */}
           <TabsContent value="dashboard" className="space-y-4 sm:space-y-6 mt-4">
+            {/* Urgent Alerts at Top */}
+            <LeadAlerts leads={leadsForAlerts} diasAlerta={3} />
+
             {/* Share Link Card */}
             {(!isAdminMode || isViewingAsVendedor) && vendedor && (
               <VendedorShareLink slug={vendedor.slug || vendedor.codigo} onCopy={copyLink} />
@@ -125,7 +138,7 @@ export default function VendedorPortal() {
                onDismiss={markNotificationAsRead}
              />
            )}
- 
+
             {/* Personal Dashboard */}
             {vendedor && (
               <VendorPersonalDashboard
@@ -135,21 +148,30 @@ export default function VendedorPortal() {
               />
             )}
 
-            {/* Gamification Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <VendorGoals goals={goals} />
-              <VendorAchievements
-                achievements={achievements}
-                totalPoints={totalPoints}
-              />
-            </div>
+            {/* Gamification Section — Collapsible */}
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group">
+                <Trophy className="h-4 w-4" />
+                Gamificação & Ranking
+                <ChevronDown className="h-4 w-4 ml-auto transition-transform group-data-[state=open]:rotate-180" />
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4 pt-3">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <VendorGoals goals={goals} />
+                  <VendorAchievements
+                    achievements={achievements}
+                    totalPoints={totalPoints}
+                  />
+                </div>
 
-            {/* Leaderboard */}
-            <VendorLeaderboard
-              ranking={ranking}
-              currentVendedorId={vendedor?.id || null}
-              myRankPosition={myRankPosition}
-            />
+                {/* Leaderboard */}
+                <VendorLeaderboard
+                  ranking={ranking}
+                  currentVendedorId={vendedor?.id || null}
+                  myRankPosition={myRankPosition}
+                />
+              </CollapsibleContent>
+            </Collapsible>
 
             {/* Advanced Performance Metrics */}
             <AdvancedMetricsCard 
@@ -218,8 +240,7 @@ export default function VendedorPortal() {
 
           {/* Orçamentos Tab */}
           <TabsContent value="orcamentos" className="space-y-4 sm:space-y-6 mt-4">
-            {/* AI Assistant Alerts */}
-            <LeadAlerts leads={leadsForAlerts} diasAlerta={3} />
+            {/* Follow-Up Manager — alerts already shown in dashboard */}
 
             {/* Follow-Up Manager */}
             <VendorFollowUpManager 
@@ -292,7 +313,9 @@ export default function VendedorPortal() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+            </Tabs>
+          );
+        })()}
       </main>
 
       <ConvertLeadToClientDialog
