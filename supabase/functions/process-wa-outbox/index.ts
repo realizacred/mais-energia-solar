@@ -190,6 +190,16 @@ async function sendEvolutionMessage(
       };
       break;
 
+    case "video":
+      endpoint = `/message/sendMedia/${instanceKey}`;
+      body = {
+        number: item.remote_jid.replace("@s.whatsapp.net", ""),
+        mediatype: "video",
+        media: item.media_url,
+        caption: item.content || "",
+      };
+      break;
+
     default:
       endpoint = `/message/sendText/${instanceKey}`;
       body = {
