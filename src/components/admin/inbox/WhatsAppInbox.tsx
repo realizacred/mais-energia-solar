@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MessageCircle, Loader2, Inbox } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +7,7 @@ import {
   useConversationMessages,
   useWhatsAppTags,
 } from "@/hooks/useWhatsAppInbox";
+import { useNotificationSound } from "@/hooks/useNotificationSound";
 import { ConversationList } from "./ConversationList";
 import { ChatPanel } from "./ChatPanel";
 import { TransferDialog, AssignDialog, TagsDialog, LinkLeadDialog } from "./InboxDialogs";
@@ -55,6 +56,18 @@ export function WhatsAppInbox({ vendorMode = false }: WhatsAppInboxProps) {
   } = useConversationMessages(selectedConv?.id);
 
   const { tags, createTag, deleteTag, toggleConversationTag } = useWhatsAppTags();
+  const { play: playNotification } = useNotificationSound();
+
+  // Track previous unread total to detect new incoming messages
+  const prevUnreadRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+    if (prevUnreadRef.current !== null && totalUnread > prevUnreadRef.current) {
+      playNotification();
+    }
+    prevUnreadRef.current = totalUnread;
+  }, [conversations, playNotification]);
 
   // Fetch vendedores
   const { data: vendedores = [] } = useQuery({
