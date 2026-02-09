@@ -307,16 +307,28 @@ export function useWaMessages(conversationId?: string) {
     }) => {
       if (!conversationId) throw new Error("No conversation selected");
 
-      // Get conversation details for outbox
-      const { data: conv } = await supabase
-        .from("wa_conversations")
-        .select("instance_id, remote_jid")
-        .eq("id", conversationId)
-        .single();
+      // Get conversation details and sender profile in parallel
+      const [convResult, profileResult] = await Promise.all([
+        supabase
+          .from("wa_conversations")
+          .select("instance_id, remote_jid")
+          .eq("id", conversationId)
+          .single(),
+        user?.id
+          ? supabase
+              .from("profiles")
+              .select("nome")
+              .eq("user_id", user.id)
+              .single()
+          : Promise.resolve({ data: null }),
+      ]);
 
+      const conv = convResult.data;
       if (!conv) throw new Error("Conversation not found");
 
-      // Insert message locally
+      const senderName = profileResult.data?.nome || null;
+
+      // Insert message locally (without name prefix — shown in UI via sent_by_name)
       const { data: msg, error: msgError } = await supabase
         .from("wa_messages")
         .insert({
@@ -335,7 +347,13 @@ export function useWaMessages(conversationId?: string) {
       if (msgError) throw msgError;
 
       // If not internal note, queue for sending via Evolution API
+      // Prepend attendant name so the client sees who is writing
       if (!isInternalNote) {
+        const outboxContent =
+          senderName && messageType === "text"
+            ? `*${senderName}:*\n${content}`
+            : content;
+
         const { error: outboxError } = await supabase
           .from("wa_outbox")
           .insert({
@@ -344,7 +362,7 @@ export function useWaMessages(conversationId?: string) {
             message_id: msg.id,
             remote_jid: conv.remote_jid,
             message_type: messageType,
-            content,
+            content: outboxContent,
             media_url: mediaUrl || null,
             status: "pending",
           });
