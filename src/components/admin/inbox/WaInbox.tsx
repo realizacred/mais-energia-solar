@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { WaConversationList } from "./WaConversationList";
 import { WaChatPanel } from "./WaChatPanel";
 import { WaTransferDialog, WaAssignDialog, WaTagsDialog } from "./WaInboxDialogs";
 import { WaLinkLeadSearch } from "./WaLinkLeadSearch";
+import { WaInboxStats } from "./WaInboxStats";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
 interface WaInboxProps {
@@ -21,6 +22,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
   const [filterStatus, setFilterStatus] = useState("open");
   const [filterAssigned, setFilterAssigned] = useState("all");
   const [filterInstance, setFilterInstance] = useState("all");
+  const [filterTag, setFilterTag] = useState("all");
 
   // Selected conversation
   const [selectedConv, setSelectedConv] = useState<WaConversation | null>(null);
@@ -30,6 +32,10 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
   const [showAssign, setShowAssign] = useState(false);
   const [showTags, setShowTags] = useState(false);
   const [showLinkLead, setShowLinkLead] = useState(false);
+
+  // Notification sound
+  const prevUnreadRef = useRef<number>(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Hooks
   const { instances } = useWaInstances();
@@ -79,9 +85,40 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
     }
   }, [conversations]);
 
-  // Filter unassigned
+  // 🔔 Notification sound on new unread messages
+  useEffect(() => {
+    const totalUnread = conversations.reduce((sum, c) => sum + c.unread_count, 0);
+    if (totalUnread > prevUnreadRef.current && prevUnreadRef.current > 0) {
+      // Play notification sound
+      try {
+        if (!audioRef.current) {
+          // Create a simple notification beep using AudioContext
+          const ctx = new AudioContext();
+          const oscillator = ctx.createOscillator();
+          const gain = ctx.createGain();
+          oscillator.connect(gain);
+          gain.connect(ctx.destination);
+          oscillator.type = "sine";
+          oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+          oscillator.start(ctx.currentTime);
+          oscillator.stop(ctx.currentTime + 0.5);
+        }
+      } catch {
+        // Audio not available
+      }
+    }
+    prevUnreadRef.current = totalUnread;
+  }, [conversations]);
+
+  // Filter unassigned + tags
   const filteredConvs = conversations.filter((c) => {
     if (filterAssigned === "unassigned" && c.assigned_to) return false;
+    if (filterTag !== "all") {
+      const hasTag = c.tags?.some((ct) => ct.tag_id === filterTag);
+      if (!hasTag) return false;
+    }
     return true;
   });
 
@@ -100,7 +137,6 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
   const handleSendMedia = async (file: File, caption?: string) => {
     if (!selectedConv) return;
     try {
-      // Upload to Supabase storage
       const ext = file.name.split(".").pop() || "bin";
       const filePath = `${selectedConv.id}/${Date.now()}.${ext}`;
       
@@ -164,33 +200,30 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
     toggleConversationTag({ conversationId: selectedConv.id, tagId, add });
   };
 
-  const openWithoutResponse = conversations.filter(
-    (c) => c.status === "open" && c.unread_count > 0
-  ).length;
-
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 rounded-xl bg-gradient-to-br from-success/20 to-success/5 border border-success/10">
-          <MessageCircle className="h-6 w-6 text-success" />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-foreground">
-            {vendorMode ? "Meu WhatsApp" : "Central WhatsApp"}
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            {filteredConvs.length} conversas
-            {instances.length > 0 && ` · ${instances.filter(i => i.status === "connected").length}/${instances.length} instâncias online`}
-            {openWithoutResponse > 0 && (
-              <span className="text-destructive font-medium"> · {openWithoutResponse} sem resposta</span>
-            )}
-          </p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-success/20 to-success/5 border border-success/10">
+            <MessageCircle className="h-6 w-6 text-success" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">
+              {vendorMode ? "Meu WhatsApp" : "Central WhatsApp"}
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {instances.length > 0 && `${instances.filter(i => i.status === "connected").length}/${instances.length} instâncias online`}
+            </p>
+          </div>
         </div>
       </div>
 
+      {/* Stats */}
+      <WaInboxStats conversations={conversations} />
+
       {/* Chat Layout */}
-      <div className="bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden" style={{ height: "calc(100vh - 220px)", minHeight: "500px" }}>
+      <div className="bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden" style={{ height: "calc(100vh - 300px)", minHeight: "500px" }}>
         <div className="flex h-full">
           {/* Sidebar - Conversations (Desktop) */}
           <div className="w-[360px] shrink-0 hidden md:flex flex-col">
@@ -207,8 +240,11 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
               onFilterAssignedChange={setFilterAssigned}
               filterInstance={filterInstance}
               onFilterInstanceChange={setFilterInstance}
+              filterTag={filterTag}
+              onFilterTagChange={setFilterTag}
               vendedores={vendedores}
               instances={instances}
+              tags={tags}
             />
           </div>
 
@@ -252,8 +288,11 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
                 onFilterAssignedChange={setFilterAssigned}
                 filterInstance={filterInstance}
                 onFilterInstanceChange={setFilterInstance}
+                filterTag={filterTag}
+                onFilterTagChange={setFilterTag}
                 vendedores={vendedores}
                 instances={instances}
+                tags={tags}
               />
             )}
           </div>

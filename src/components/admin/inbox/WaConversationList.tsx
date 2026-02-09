@@ -7,15 +7,15 @@ import {
   Clock,
   CheckCircle2,
   Smartphone,
-  CircleDot,
   Link2,
+  Tag,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { WaConversation } from "@/hooks/useWaInbox";
+import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
 const statusConfig: Record<string, { label: string; color: string; dotColor: string; icon: typeof MessageCircle }> = {
@@ -37,8 +37,11 @@ interface WaConversationListProps {
   onFilterAssignedChange: (v: string) => void;
   filterInstance: string;
   onFilterInstanceChange: (v: string) => void;
+  filterTag: string;
+  onFilterTagChange: (v: string) => void;
   vendedores: { id: string; nome: string; user_id: string | null }[];
   instances: WaInstance[];
+  tags: WaTag[];
 }
 
 export function WaConversationList({
@@ -54,8 +57,11 @@ export function WaConversationList({
   onFilterAssignedChange,
   filterInstance,
   onFilterInstanceChange,
+  filterTag,
+  onFilterTagChange,
   vendedores,
   instances,
+  tags,
 }: WaConversationListProps) {
   return (
     <div className="flex flex-col h-full border-r border-border/40">
@@ -123,6 +129,25 @@ export function WaConversationList({
               {instances.map((inst) => (
                 <SelectItem key={inst.id} value={inst.id}>
                   {inst.nome}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+        {tags.length > 0 && (
+          <Select value={filterTag} onValueChange={onFilterTagChange}>
+            <SelectTrigger className="h-7 text-[11px] border-border/30">
+              <Tag className="h-3 w-3 mr-1.5" />
+              <SelectValue placeholder="Tag" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas as tags</SelectItem>
+              {tags.map((tag) => (
+                <SelectItem key={tag.id} value={tag.id}>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color }} />
+                    {tag.name}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

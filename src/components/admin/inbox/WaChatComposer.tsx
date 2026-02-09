@@ -11,6 +11,8 @@ import {
   Paperclip,
   Image as ImageIcon,
   FileText,
+  Zap,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,6 +33,16 @@ const EMOJI_CATEGORIES: Record<string, string[]> = {
   "☀️ Natureza": ["☀️","🌤️","⛅","🌧️","🌩️","❄️","🌊","🌺","🌸","🌼","🌻","🌹","🍃","🌿","☘️","🌵","🌴","🌳"],
   "📦 Objetos": ["📱","💻","📧","📞","📊","📈","💰","💵","🏠","🔧","⚡","🔋","☎️","📋","📎","🗂️","📅","🕐","⏰","🚀"],
 };
+
+// ── Quick Reply Templates ──
+const QUICK_REPLIES = [
+  { label: "Saudação", emoji: "👋", text: "Olá! Tudo bem? Sou da equipe de energia solar. Como posso ajudar?" },
+  { label: "Orçamento", emoji: "📋", text: "Vou preparar um orçamento personalizado para você! Pode me informar seu consumo médio mensal em kWh?" },
+  { label: "Follow-up", emoji: "🔄", text: "Olá! Estou entrando em contato para saber se teve a oportunidade de avaliar nossa proposta. Posso esclarecer alguma dúvida?" },
+  { label: "Agradecimento", emoji: "🙏", text: "Muito obrigado pelo seu interesse! Fico à disposição para qualquer dúvida." },
+  { label: "Visita técnica", emoji: "🔧", text: "Gostaria de agendar uma visita técnica gratuita para avaliar o melhor projeto para sua residência. Qual o melhor dia e horário?" },
+  { label: "Financiamento", emoji: "💰", text: "Temos ótimas condições de financiamento! Parcelas que cabem no seu bolso e começam a se pagar desde o primeiro mês. Quer saber mais?" },
+];
 
 interface WaChatComposerProps {
   onSendMessage: (content: string, isNote?: boolean) => void;
@@ -141,6 +153,40 @@ export function WaChatComposer({
             <X className="h-3 w-3" />
           </Button>
         </div>
+      )}
+
+      {/* Quick Replies */}
+      {!isNoteMode && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 mb-1.5 text-primary hover:text-primary hover:bg-primary/5">
+              <Zap className="h-3 w-3" />
+              Respostas rápidas
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="start" className="w-80 p-1.5">
+            <p className="text-[10px] font-medium text-muted-foreground px-2 py-1 uppercase tracking-wider">Templates</p>
+            <div className="space-y-0.5 max-h-64 overflow-y-auto">
+              {QUICK_REPLIES.map((qr) => (
+                <button
+                  key={qr.label}
+                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-muted/50 transition-colors group"
+                  onClick={() => {
+                    setInputValue(qr.text);
+                    textareaRef.current?.focus();
+                  }}
+                >
+                  <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <span>{qr.emoji}</span>
+                    {qr.label}
+                  </span>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{qr.text}</p>
+                </button>
+              ))}
+            </div>
+          </PopoverContent>
+        </Popover>
       )}
 
       {/* Formatting Toolbar */}
