@@ -973,6 +973,7 @@ export type Database = {
           rua: string | null
           simulacao_aceita_id: string | null
           telefone: string
+          telefone_normalized: string | null
           tenant_id: string | null
           transformador_id: string | null
           updated_at: string
@@ -1008,6 +1009,7 @@ export type Database = {
           rua?: string | null
           simulacao_aceita_id?: string | null
           telefone: string
+          telefone_normalized?: string | null
           tenant_id?: string | null
           transformador_id?: string | null
           updated_at?: string
@@ -1043,6 +1045,7 @@ export type Database = {
           rua?: string | null
           simulacao_aceita_id?: string | null
           telefone?: string
+          telefone_normalized?: string | null
           tenant_id?: string | null
           transformador_id?: string | null
           updated_at?: string
