@@ -18,13 +18,21 @@ interface InstallAppBannerProps {
 export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
   const { isInstalled, isIOS, isAndroid, canInstall, promptInstall } = usePWAInstall();
   const [isDismissed, setIsDismissed] = useState(() => {
-    return sessionStorage.getItem("pwa-banner-dismissed") === "true";
+    const dismissed = localStorage.getItem("pwa-banner-dismissed");
+    if (!dismissed) return false;
+    // Reset after 24h so it shows again
+    const ts = parseInt(dismissed, 10);
+    if (Date.now() - ts > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem("pwa-banner-dismissed");
+      return false;
+    }
+    return true;
   });
   const [showInstructions, setShowInstructions] = useState(false);
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    sessionStorage.setItem("pwa-banner-dismissed", "true");
+    localStorage.setItem("pwa-banner-dismissed", Date.now().toString());
   };
 
   const handleInstallClick = async () => {
@@ -42,8 +50,9 @@ export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
     return null;
   }
 
-  // Only show on mobile devices
-  if (!isIOS && !isAndroid && !canInstall) {
+  // Show on mobile devices or when browser supports install prompt
+  const showBanner = isIOS || isAndroid || canInstall;
+  if (!showBanner) {
     return null;
   }
 
