@@ -7,7 +7,7 @@
  import { toast } from "@/hooks/use-toast";
  import { Loader2, CheckCircle2, Sun, Sparkles } from "lucide-react";
  import { StarRating } from "@/components/ui/star-rating";
- import logoBrancaImg from "@/assets/logo-branca.png";
+ import { useLogo } from "@/hooks/useLogo";
  
  // Mapeamento de estrelas para valores de avaliação
  const starToValue: Record<number, string> = {
@@ -19,6 +19,7 @@
  };
  
  export default function Avaliacao() {
+   const logoBrancaImg = useLogo({ onDarkBg: true });
    const [nome, setNome] = useState("");
    const [endereco, setEndereco] = useState("");
    const [rating, setRating] = useState(0);
@@ -104,7 +105,7 @@
        {/* Header corporativo */}
        <header className="gradient-blue text-white py-5 shadow-lg">
          <div className="container mx-auto px-4 flex items-center justify-center">
-           <img src={logoBrancaImg} alt="Mais Energia Solar" className="h-10 sm:h-12" />
+           <img src={logoBrancaImg} alt="Logo" className="h-10 sm:h-12" />
          </div>
        </header>
  

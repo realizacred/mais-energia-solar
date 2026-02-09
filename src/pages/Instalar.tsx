@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download, Check, Smartphone, Share, MoreVertical, ArrowDown, Sun, Zap, Users } from "lucide-react";
-import logo from "@/assets/logo.png";
+import { useLogo } from "@/hooks/useLogo";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -10,6 +10,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function Instalar() {
+  const logo = useLogo();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);

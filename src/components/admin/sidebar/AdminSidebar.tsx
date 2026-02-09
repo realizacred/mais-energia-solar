@@ -14,11 +14,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
-import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useLogo } from "@/hooks/useLogo";
 import { useSidebarPreferences } from "@/hooks/useSidebarPreferences";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import logoFallback from "@/assets/logo.png";
 import {
   SIDEBAR_SECTIONS,
   type SidebarSection,
@@ -391,9 +390,8 @@ export function AdminSidebar({
 }: AdminSidebarProps) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const { settings } = useBrandSettings();
+  const logo = useLogo({ variant: "small" });
   const { user } = useAuth();
-  const logo = settings?.logo_url || logoFallback;
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   useEffect(() => {

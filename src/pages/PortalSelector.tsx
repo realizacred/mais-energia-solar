@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import logo from "@/assets/logo.png";
+import { useLogo } from "@/hooks/useLogo";
 
 const PORTAL_PREFERENCE_KEY = "preferred_portal";
 
@@ -22,6 +22,7 @@ interface PortalAccess {
 
 export default function PortalSelector() {
   const { user, loading: authLoading } = useAuth();
+  const logo = useLogo();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [access, setAccess] = useState<PortalAccess>({ vendedor: false, admin: false, vendedorRecord: false, instalador: false });
