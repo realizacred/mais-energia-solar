@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeftRight, Users, Settings, Wrench, ChevronRight } from "lucide-react";
+import { ArrowLeftRight, Users, Settings, Wrench, ChevronRight, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,6 +30,7 @@ interface PortalAccess {
   admin: boolean;
   instalador: boolean;
   vendedorRecord: boolean;
+  superAdmin: boolean;
 }
 
 interface Vendedor {
@@ -53,7 +54,8 @@ export function PortalSwitcher() {
     vendedor: false, 
     admin: false, 
     instalador: false,
-    vendedorRecord: false 
+    vendedorRecord: false,
+    superAdmin: false,
   });
   const [loading, setLoading] = useState(true);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
@@ -85,6 +87,7 @@ export function PortalSwitcher() {
       const isVendedor = roles?.some(r => r.role === "vendedor");
       const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
       const isInstalador = roles?.some(r => r.role === "instalador");
+      const isSuperAdmin = roles?.some(r => r.role === "super_admin");
 
       let hasVendedorRecord = false;
       if (isVendedor) {
@@ -126,6 +129,7 @@ export function PortalSwitcher() {
         admin: isAdmin || false,
         instalador: isInstalador || false,
         vendedorRecord: hasVendedorRecord,
+        superAdmin: isSuperAdmin || false,
       });
     } catch (error) {
       console.error("Error checking access:", error);
@@ -291,6 +295,20 @@ export function PortalSwitcher() {
               <Settings className="mr-2 h-4 w-4" />
               <span>Painel Admin</span>
               {currentPortal === "admin" && (
+                <span className="ml-auto text-xs text-muted-foreground">Atual</span>
+              )}
+            </DropdownMenuItem>
+          )}
+
+          {/* Super Admin */}
+          {access.superAdmin && (
+            <DropdownMenuItem 
+              onClick={() => navigate("/super-admin")}
+              className={location.pathname === "/super-admin" ? "bg-primary/10" : ""}
+            >
+              <Building2 className="mr-2 h-4 w-4" />
+              <span>Super Admin</span>
+              {location.pathname === "/super-admin" && (
                 <span className="ml-auto text-xs text-muted-foreground">Atual</span>
               )}
             </DropdownMenuItem>
