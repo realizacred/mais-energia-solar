@@ -50,6 +50,8 @@ const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: str
   failed: { icon: AlertCircle, className: "text-red-400", label: "Falhou" },
 };
 
+const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
 interface WaChatPanelProps {
   conversation: WaConversation | null;
   messages: WaMessage[];
@@ -57,6 +59,7 @@ interface WaChatPanelProps {
   isSending: boolean;
   onSendMessage: (content: string, isNote?: boolean) => void;
   onSendMedia: (file: File, caption?: string) => void;
+  onSendReaction: (messageId: string, reaction: string) => void;
   onResolve: () => void;
   onReopen: () => void;
   onOpenTransfer: () => void;
@@ -73,6 +76,7 @@ export function WaChatPanel({
   isSending,
   onSendMessage,
   onSendMedia,
+  onSendReaction,
   onResolve,
   onReopen,
   onOpenTransfer,
@@ -84,6 +88,7 @@ export function WaChatPanel({
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [showLeadInfo, setShowLeadInfo] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ url: string; type: "image" | "video" | "audio" | "document"; caption?: string } | null>(null);
+  const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -276,7 +281,40 @@ export function WaChatPanel({
                     </div>
                   )}
 
-                  <div className={`flex ${isOut ? "justify-end" : "justify-start"} mb-1`}>
+                  <div className={`flex ${isOut ? "justify-end" : "justify-start"} mb-1 group/msg relative`}>
+                    {/* Reaction picker trigger - shown on hover */}
+                    {!isNote && (
+                      <div className={`absolute ${isOut ? "left-0 -translate-x-full" : "right-0 translate-x-full"} top-1/2 -translate-y-1/2 px-1 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10`}>
+                        <button
+                          onClick={() => setReactionPickerMsgId(reactionPickerMsgId === msg.id ? null : msg.id)}
+                          className="p-1 rounded-full hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Reagir"
+                        >
+                          <span className="text-sm">😀</span>
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Quick reaction picker */}
+                    {reactionPickerMsgId === msg.id && (
+                      <div
+                        className={`absolute ${isOut ? "right-0" : "left-0"} -top-10 z-20 flex items-center gap-0.5 bg-card border border-border rounded-full px-2 py-1 shadow-lg`}
+                      >
+                        {QUICK_REACTIONS.map((emoji) => (
+                          <button
+                            key={emoji}
+                            onClick={() => {
+                              onSendReaction(msg.id, emoji);
+                              setReactionPickerMsgId(null);
+                            }}
+                            className="text-lg hover:scale-125 transition-transform p-0.5"
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
                     <div
                       className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
                         isNote
