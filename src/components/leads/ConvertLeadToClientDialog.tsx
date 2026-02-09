@@ -468,6 +468,8 @@ export function ConvertLeadToClientDialog({
           .update({
             status_id: aguardandoStatus.id,
             cep: formData.cep || null,
+            estado: formData.estado || lead.estado,
+            cidade: formData.cidade || lead.cidade,
             bairro: formData.bairro || null,
             rua: formData.rua || null,
             numero: formData.numero || null,
