@@ -147,7 +147,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         description: "Inbox de atendimento",
       },
       {
-        id: "quick-replies",
+        id: "respostas-rapidas",
         title: "Respostas Rápidas",
         icon: Sparkles,
         description: "Templates de mensagens",
