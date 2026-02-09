@@ -117,7 +117,7 @@ export function useConversations(filters?: {
       })) as Conversation[];
     },
     staleTime: 15 * 1000,
-    refetchInterval: 60 * 1000, // Fallback polling (realtime handles fast updates)
+    refetchInterval: 15 * 1000, // Fallback polling every 15s
   });
 
   // ── Realtime: listen for conversation changes ──
@@ -280,7 +280,7 @@ export function useConversationMessages(conversationId?: string) {
     },
     enabled: !!conversationId,
     staleTime: 10 * 1000,
-    refetchInterval: 60 * 1000, // Fallback polling (realtime handles fast updates)
+    refetchInterval: 15 * 1000, // Fallback polling every 15s
   });
 
   // ── Realtime: listen for new messages in current conversation ──
