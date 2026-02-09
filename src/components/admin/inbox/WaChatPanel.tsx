@@ -17,11 +17,19 @@ import {
   CheckCheck,
   Clock,
   AlertCircle,
+  X,
+  Download,
+  Maximize2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,6 +83,7 @@ export function WaChatPanel({
 }: WaChatPanelProps) {
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [showLeadInfo, setShowLeadInfo] = useState(false);
+  const [mediaPreview, setMediaPreview] = useState<{ url: string; type: "image" | "video" | "audio" | "document"; caption?: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -296,17 +305,23 @@ export function WaChatPanel({
                         </div>
                       )}
                       {(msg.message_type === "image") && msg.media_url && (
-                        <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
-                          <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity" />
-                        </a>
+                        <div
+                          className="cursor-pointer hover:opacity-90 transition-opacity"
+                          onClick={() => setMediaPreview({ url: msg.media_url!, type: "image", caption: msg.content || undefined })}
+                        >
+                          <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover" />
+                        </div>
                       )}
                       {msg.message_type === "image" && msg.content && (
                         <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
                       )}
                       {msg.message_type === "video" && (
                         msg.media_url ? (
-                          <a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="block mb-1">
-                            <div className="relative rounded-lg overflow-hidden max-w-full max-h-48 bg-black/10 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity">
+                          <div
+                            className="cursor-pointer hover:opacity-90 transition-opacity block mb-1"
+                            onClick={() => setMediaPreview({ url: msg.media_url!, type: "video", caption: msg.content || undefined })}
+                          >
+                            <div className="relative rounded-lg overflow-hidden max-w-full max-h-48 bg-black/10 flex items-center justify-center">
                               <video src={msg.media_url} className="rounded-lg max-w-full max-h-48 object-cover" preload="metadata" />
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
@@ -314,7 +329,7 @@ export function WaChatPanel({
                                 </div>
                               </div>
                             </div>
-                          </a>
+                          </div>
                         ) : (
                           <div className="flex items-center gap-2 text-xs opacity-80">
                             <span>🎬</span> Vídeo
@@ -334,18 +349,21 @@ export function WaChatPanel({
                         )
                       )}
                       {msg.message_type === "document" && (
-                        <a
-                          href={msg.media_url || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-xs opacity-80 hover:opacity-100 transition-opacity"
+                        <div
+                          className="flex items-center gap-2 text-xs opacity-80 hover:opacity-100 transition-opacity cursor-pointer"
+                          onClick={() => msg.media_url && setMediaPreview({ url: msg.media_url, type: "document", caption: msg.content || undefined })}
                         >
                           <span>📄</span> {msg.content || "Documento"}
-                        </a>
+                        </div>
                       )}
                       {msg.message_type === "sticker" && (
                         msg.media_url ? (
-                          <img src={msg.media_url} alt="Sticker" className="max-w-[150px] max-h-[150px] object-contain" />
+                          <div
+                            className="cursor-pointer hover:opacity-90 transition-opacity"
+                            onClick={() => setMediaPreview({ url: msg.media_url!, type: "image" })}
+                          >
+                            <img src={msg.media_url} alt="Sticker" className="max-w-[150px] max-h-[150px] object-contain" />
+                          </div>
                         ) : (
                           <div className="text-2xl">🏷️</div>
                         )
@@ -401,6 +419,101 @@ export function WaChatPanel({
           onOpenChange={setShowLeadInfo}
         />
       )}
+
+      {/* Media Preview Modal */}
+      <Dialog open={!!mediaPreview} onOpenChange={(open) => !open && setMediaPreview(null)}>
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] p-0 overflow-hidden bg-black/95 border-none">
+          <DialogTitle className="sr-only">Visualizar mídia</DialogTitle>
+          <div className="relative flex flex-col items-center justify-center min-h-[300px]">
+            {/* Top bar */}
+            <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
+              <span className="text-white/80 text-sm font-medium">
+                {mediaPreview?.type === "image" ? "Imagem" : mediaPreview?.type === "video" ? "Vídeo" : mediaPreview?.type === "audio" ? "Áudio" : "Documento"}
+              </span>
+              <div className="flex items-center gap-1">
+                <a
+                  href={mediaPreview?.url}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <Download className="h-5 w-5 text-white/80" />
+                </a>
+                <a
+                  href={mediaPreview?.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <Maximize2 className="h-5 w-5 text-white/80" />
+                </a>
+                <button
+                  onClick={() => setMediaPreview(null)}
+                  className="p-2 rounded-full hover:bg-white/10 transition-colors"
+                >
+                  <X className="h-5 w-5 text-white/80" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex items-center justify-center w-full p-4 pt-14 pb-4">
+              {mediaPreview?.type === "image" && (
+                <img
+                  src={mediaPreview.url}
+                  alt="Preview"
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              )}
+              {mediaPreview?.type === "video" && (
+                <video
+                  src={mediaPreview.url}
+                  controls
+                  autoPlay
+                  className="max-w-full max-h-[70vh] rounded-lg"
+                />
+              )}
+              {mediaPreview?.type === "audio" && (
+                <div className="flex flex-col items-center gap-4 py-12">
+                  <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span className="text-3xl">🎵</span>
+                  </div>
+                  <audio controls autoPlay className="w-80">
+                    <source src={mediaPreview.url} />
+                  </audio>
+                </div>
+              )}
+              {mediaPreview?.type === "document" && (
+                <div className="flex flex-col items-center gap-4 py-12">
+                  <div className="w-20 h-20 rounded-2xl bg-primary/20 flex items-center justify-center">
+                    <span className="text-3xl">📄</span>
+                  </div>
+                  <p className="text-white/80 text-sm">{mediaPreview.caption || "Documento"}</p>
+                  <a
+                    href={mediaPreview.url}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Button variant="secondary" className="gap-2">
+                      <Download className="h-4 w-4" />
+                      Baixar documento
+                    </Button>
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Caption */}
+            {mediaPreview?.caption && mediaPreview.type !== "document" && (
+              <div className="w-full px-6 pb-4">
+                <p className="text-white/80 text-sm text-center">{mediaPreview.caption}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
