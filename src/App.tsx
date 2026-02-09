@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { BrandSettingsProvider } from "@/components/BrandSettingsProvider";
 import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
+import { WaNotificationProvider } from "@/components/notifications/WaNotificationProvider";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -49,6 +50,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <WaNotificationProvider />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               <Route path="/" element={<Index />} />
