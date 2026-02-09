@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -72,8 +72,8 @@ interface UserEditDialogProps {
 }
 
 export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavigateAway }: UserEditDialogProps) {
-  const [editName, setEditName] = useState(user?.nome || "");
-  const [editEmail, setEditEmail] = useState(user?.email || "");
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -86,8 +86,19 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
   const { toast } = useToast();
 
   // Keep local state for status toggle
-  const [localAtivo, setLocalAtivo] = useState(user?.ativo ?? true);
-  const [localRoles, setLocalRoles] = useState<string[]>(user?.roles || []);
+  const [localAtivo, setLocalAtivo] = useState(true);
+  const [localRoles, setLocalRoles] = useState<string[]>([]);
+
+  // Sync local state when user prop changes
+  useEffect(() => {
+    if (user) {
+      setEditName(user.nome || "");
+      setEditEmail(user.email || "");
+      setLocalAtivo(user.ativo ?? true);
+      setLocalRoles(user.roles || []);
+      setSelectedNewRole("");
+    }
+  }, [user]);
 
   if (!user) return null;
 
