@@ -152,12 +152,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         icon: Bell,
         description: "Regras de acompanhamento",
       },
-      {
-        id: "wa-etiquetas",
-        title: "Etiquetas",
-        icon: Tag,
-        description: "Tags para conversas",
-      },
     ],
   },
 
@@ -270,6 +264,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API" },
+      { id: "wa-etiquetas", title: "Etiquetas WhatsApp", icon: Tag, description: "Tags para conversas" },
       { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle },
       { id: "instagram", title: "Instagram", icon: Instagram },
       { id: "solarmarket", title: "SolarMarket", icon: Sun },
