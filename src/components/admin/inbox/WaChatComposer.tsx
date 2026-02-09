@@ -498,6 +498,7 @@ export function WaChatComposer({
           spellCheck={spellCheckEnabled}
           autoCorrect={spellCheckEnabled ? "on" : "off"}
           autoCapitalize={spellCheckEnabled ? "sentences" : "off"}
+          lang="pt-BR"
           placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite uma mensagem..."}
           className={`flex-1 min-h-[36px] max-h-[120px] resize-none text-sm leading-snug py-2 ${isNoteMode ? "border-warning/30 bg-warning/5" : ""}`}
           rows={1}
