@@ -5760,6 +5760,7 @@ export type Database = {
           created_at: string
           id: string
           instance_id: string
+          is_group: boolean
           last_message_at: string | null
           last_message_preview: string | null
           lead_id: string | null
@@ -5779,6 +5780,7 @@ export type Database = {
           created_at?: string
           id?: string
           instance_id: string
+          is_group?: boolean
           last_message_at?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
@@ -5798,6 +5800,7 @@ export type Database = {
           created_at?: string
           id?: string
           instance_id?: string
+          is_group?: boolean
           last_message_at?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
@@ -5925,6 +5928,8 @@ export type Database = {
           media_url: string | null
           message_type: string
           metadata: Json | null
+          participant_jid: string | null
+          participant_name: string | null
           quoted_message_id: string | null
           sent_by_user_id: string | null
           status: string | null
@@ -5943,6 +5948,8 @@ export type Database = {
           media_url?: string | null
           message_type?: string
           metadata?: Json | null
+          participant_jid?: string | null
+          participant_name?: string | null
           quoted_message_id?: string | null
           sent_by_user_id?: string | null
           status?: string | null
@@ -5961,6 +5968,8 @@ export type Database = {
           media_url?: string | null
           message_type?: string
           metadata?: Json | null
+          participant_jid?: string | null
+          participant_name?: string | null
           quoted_message_id?: string | null
           sent_by_user_id?: string | null
           status?: string | null

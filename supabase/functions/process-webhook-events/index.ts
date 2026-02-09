@@ -138,6 +138,9 @@ async function handleMessageUpsert(
     
     if (!remoteJid || remoteJid === "status@broadcast") continue;
     
+    // Detect group
+    const isGroup = remoteJid.endsWith("@g.us");
+    
     // Determine direction
     const fromMe = key.fromMe === true;
     const direction = fromMe ? "out" : "in";
@@ -149,14 +152,25 @@ async function handleMessageUpsert(
     // Evolution message ID for deduplication
     const evolutionMessageId = key.id || msg.id || null;
     
-    // Find or create conversation
+    // Group participant info
+    const participantJid = isGroup ? (key.participant || msg.participant || null) : null;
+    const participantName = isGroup ? (msg.pushName || null) : null;
+    
+    // For individual chats, use pushName as contact name
+    const contactName = isGroup ? null : (msg.pushName || msg.verifiedBizName || null);
+    
+    // Phone / group ID
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
-    const pushName = msg.pushName || msg.verifiedBizName || null;
+    
+    // Group subject (Evolution API sends it in different places)
+    const groupSubject = isGroup
+      ? (msg.groupMetadata?.subject || msg.messageContextInfo?.messageSecret?.groupSubject || payload.groupSubject || null)
+      : null;
     
     // Upsert conversation
     const { data: existingConv } = await supabase
       .from("wa_conversations")
-      .select("id, unread_count, status")
+      .select("id, unread_count, status, is_group, cliente_nome")
       .eq("instance_id", instanceId)
       .eq("remote_jid", remoteJid)
       .maybeSingle();
@@ -165,24 +179,45 @@ async function handleMessageUpsert(
 
     if (existingConv) {
       conversationId = existingConv.id;
+      const preview = isGroup && participantName
+        ? `${participantName}: ${content ? content.substring(0, 80) : `[${messageType}]`}`
+        : content ? content.substring(0, 100) : `[${messageType}]`;
+      
       const updates: any = {
         last_message_at: new Date().toISOString(),
-        last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
+        last_message_preview: preview,
       };
+      
+      // Update group name if we got it from payload
+      if (isGroup && groupSubject && !existingConv.cliente_nome) {
+        updates.cliente_nome = groupSubject;
+      }
+      
       if (!fromMe) {
         updates.unread_count = (existingConv.unread_count || 0) + 1;
-        if (pushName) updates.cliente_nome = pushName;
+        // For individual chats, update contact name
+        if (!isGroup && contactName) {
+          updates.cliente_nome = contactName;
+        }
         // Reopen resolved conversations when client sends a new message
         if (existingConv.status === "resolved") {
           updates.status = "open";
           console.log(`[process-webhook-events] Reopening resolved conversation ${conversationId}`);
         }
       }
+      
+      // Ensure is_group flag is set
+      if (isGroup && !existingConv.is_group) {
+        updates.is_group = true;
+      }
+      
       await supabase
         .from("wa_conversations")
         .update(updates)
         .eq("id", conversationId);
     } else {
+      const displayName = isGroup ? (groupSubject || `Grupo ${phone.substring(0, 12)}...`) : contactName;
+      
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
         .insert({
@@ -190,7 +225,8 @@ async function handleMessageUpsert(
           tenant_id: tenantId,
           remote_jid: remoteJid,
           cliente_telefone: phone,
-          cliente_nome: pushName,
+          cliente_nome: displayName,
+          is_group: isGroup,
           status: "open",
           last_message_at: new Date().toISOString(),
           last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
@@ -230,6 +266,8 @@ async function handleMessageUpsert(
       media_url: msg.mediaUrl || null,
       media_mime_type: msg.mimetype || null,
       status: fromMe ? "sent" : "delivered",
+      participant_jid: participantJid,
+      participant_name: participantName,
       metadata: { raw_key: key },
     });
 

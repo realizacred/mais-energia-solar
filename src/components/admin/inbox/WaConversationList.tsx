@@ -4,6 +4,7 @@ import {
   Search,
   MessageCircle,
   User,
+  Users,
   Clock,
   CheckCircle2,
   Smartphone,
@@ -204,6 +205,8 @@ export function WaConversationList({
                       >
                         {conv.profile_picture_url ? (
                           <img src={conv.profile_picture_url} alt="" className="w-full h-full rounded-full object-cover" />
+                        ) : conv.is_group ? (
+                          <Users className="h-4 w-4" />
                         ) : conv.cliente_nome ? (
                           conv.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
                         ) : (
