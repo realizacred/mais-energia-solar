@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle } from "lucide-react";
+import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -440,7 +440,7 @@ export function ConcessionariasManager() {
 
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
+             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Sigla</TableHead>
@@ -449,14 +449,15 @@ export function ConcessionariasManager() {
                 <TableHead>Fio B</TableHead>
                 <TableHead>ICMS</TableHead>
                 <TableHead>Isenção</TableHead>
+                <TableHead>Sync ANEEL</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredConcessionarias.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+               <TableRow>
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
                     Nenhuma concessionária encontrada
                   </TableCell>
                 </TableRow>
@@ -493,6 +494,59 @@ export function ConcessionariasManager() {
                       ) : (
                         <span className="text-xs text-muted-foreground">estado</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {(() => {
+                        if (!c.ultima_sync_tarifas) {
+                          return (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <Badge variant="outline" className="gap-1 text-[10px] text-muted-foreground border-muted-foreground/30">
+                                    <XCircle className="h-3 w-3" />
+                                    Nunca
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent>Nunca sincronizada com a ANEEL</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        }
+                        const syncDate = new Date(c.ultima_sync_tarifas);
+                        const monthsAgo = Math.floor((Date.now() - syncDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+                        const isRecent = monthsAgo < 6;
+                        const isOutdated = monthsAgo >= 12;
+                        const dateStr = syncDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
+                        
+                        return (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge
+                                  variant="outline"
+                                  className={`gap-1 text-[10px] ${
+                                    isRecent
+                                      ? "text-success border-success/30 bg-success/5"
+                                      : isOutdated
+                                      ? "text-destructive border-destructive/30 bg-destructive/5"
+                                      : "text-warning border-warning/30 bg-warning/5"
+                                  }`}
+                                >
+                                  {isRecent ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                                  {dateStr}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {isRecent
+                                  ? `Sincronizada em ${syncDate.toLocaleDateString("pt-BR")}`
+                                  : isOutdated
+                                  ? `Desatualizada (${monthsAgo} meses atrás)`
+                                  : `Sincronizada há ${monthsAgo} meses`}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
