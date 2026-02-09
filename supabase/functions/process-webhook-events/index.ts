@@ -175,7 +175,7 @@ async function handleMessageUpsert(
     // Upsert conversation
     const { data: existingConv } = await supabase
       .from("wa_conversations")
-      .select("id, unread_count, status, is_group, cliente_nome")
+      .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url")
       .eq("instance_id", instanceId)
       .eq("remote_jid", remoteJid)
       .maybeSingle();
@@ -223,6 +223,12 @@ async function handleMessageUpsert(
     } else {
       const displayName = isGroup ? (groupSubject || `Grupo ${phone.substring(0, 12)}...`) : contactName;
       
+      // Fetch profile picture for new conversations (non-blocking for groups)
+      let profilePicUrl: string | null = null;
+      if (!isGroup) {
+        profilePicUrl = await fetchProfilePicture(supabase, instanceId, remoteJid);
+      }
+
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
         .insert({
@@ -236,6 +242,7 @@ async function handleMessageUpsert(
           last_message_at: new Date().toISOString(),
           last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
           unread_count: fromMe ? 0 : 1,
+          profile_picture_url: profilePicUrl,
         })
         .select("id")
         .single();
@@ -245,6 +252,21 @@ async function handleMessageUpsert(
         throw convError;
       }
       conversationId = newConv.id;
+    }
+
+    // For existing conversations without profile picture, fetch it periodically
+    if (existingConv && !isGroup && !fromMe) {
+      // Check if we should refresh (no picture or stale check)
+      const shouldRefresh = shouldRefreshProfilePic(existingConv);
+      if (shouldRefresh) {
+        const picUrl = await fetchProfilePicture(supabase, instanceId, remoteJid);
+        if (picUrl) {
+          await supabase
+            .from("wa_conversations")
+            .update({ profile_picture_url: picUrl })
+            .eq("id", existingConv.id);
+        }
+      }
     }
 
     // Insert message (deduplicate by evolution_message_id)
@@ -496,6 +518,53 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
     return { content: msg.body || msg.text, messageType: "text" };
   }
   return { content: null, messageType: "text" };
+}
+
+// ── Fetch profile picture from Evolution API ──
+async function fetchProfilePicture(
+  supabase: any,
+  instanceId: string,
+  remoteJid: string,
+): Promise<string | null> {
+  try {
+    const { data: instance } = await supabase
+      .from("wa_instances")
+      .select("evolution_api_url, evolution_instance_key, api_key")
+      .eq("id", instanceId)
+      .maybeSingle();
+
+    if (!instance) return null;
+
+    const apiUrl = instance.evolution_api_url?.replace(/\/$/, "");
+    const apiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
+    const instanceKey = instance.evolution_instance_key;
+
+    if (!apiUrl || !instanceKey) return null;
+
+    const endpoint = `${apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceKey)}`;
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({ number: remoteJid }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const picUrl = data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || null;
+    if (picUrl) {
+      console.log(`[process-webhook-events] Profile picture fetched for ${remoteJid}`);
+    }
+    return picUrl;
+  } catch (err) {
+    console.warn("[process-webhook-events] Failed to fetch profile picture:", err);
+    return null;
+  }
+}
+
+// Check if we should refresh profile picture (only if missing)
+function shouldRefreshProfilePic(existingConv: any): boolean {
+  return !existingConv.profile_picture_url;
 }
 
 async function handleMessageUpdate(supabase: any, payload: any) {
