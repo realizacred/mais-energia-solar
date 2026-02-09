@@ -157,38 +157,38 @@ function playNotificationSound() {
     // Chime 1
     const g1 = ctx.createGain();
     g1.connect(ctx.destination);
-    g1.gain.setValueAtTime(0.18, t);
-    g1.gain.exponentialRampToValueAtTime(0.01, t + 0.5);
+    g1.gain.setValueAtTime(0.55, t);
+    g1.gain.exponentialRampToValueAtTime(0.01, t + 0.6);
     const o1 = ctx.createOscillator();
     o1.type = "sine";
     o1.frequency.setValueAtTime(784, t); // G5
     o1.connect(g1);
     o1.start(t);
-    o1.stop(t + 0.15);
+    o1.stop(t + 0.2);
 
     // Chime 2
     const g2 = ctx.createGain();
     g2.connect(ctx.destination);
-    g2.gain.setValueAtTime(0.15, t + 0.12);
-    g2.gain.exponentialRampToValueAtTime(0.01, t + 0.55);
+    g2.gain.setValueAtTime(0.45, t + 0.15);
+    g2.gain.exponentialRampToValueAtTime(0.01, t + 0.65);
     const o2 = ctx.createOscillator();
     o2.type = "sine";
-    o2.frequency.setValueAtTime(1047, t + 0.12); // C6
+    o2.frequency.setValueAtTime(1047, t + 0.15); // C6
     o2.connect(g2);
-    o2.start(t + 0.12);
-    o2.stop(t + 0.35);
+    o2.start(t + 0.15);
+    o2.stop(t + 0.4);
 
     // Chime 3
     const g3 = ctx.createGain();
     g3.connect(ctx.destination);
-    g3.gain.setValueAtTime(0.12, t + 0.25);
-    g3.gain.exponentialRampToValueAtTime(0.01, t + 0.65);
+    g3.gain.setValueAtTime(0.4, t + 0.3);
+    g3.gain.exponentialRampToValueAtTime(0.01, t + 0.75);
     const o3 = ctx.createOscillator();
     o3.type = "sine";
-    o3.frequency.setValueAtTime(1319, t + 0.25); // E6
+    o3.frequency.setValueAtTime(1319, t + 0.3); // E6
     o3.connect(g3);
-    o3.start(t + 0.25);
-    o3.stop(t + 0.5);
+    o3.start(t + 0.3);
+    o3.stop(t + 0.55);
   } catch {
     // Audio not available
   }

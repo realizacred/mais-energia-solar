@@ -104,8 +104,8 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
           gain.connect(ctx.destination);
           oscillator.type = "sine";
           oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5
-          gain.gain.setValueAtTime(0.3, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+          gain.gain.setValueAtTime(0.7, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
           oscillator.start(ctx.currentTime);
           oscillator.stop(ctx.currentTime + 0.5);
         }

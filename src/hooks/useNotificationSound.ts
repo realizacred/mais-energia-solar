@@ -30,7 +30,7 @@ export function useNotificationSound() {
       // Create a pleasant two-tone chime
       const gainNode = ctx.createGain();
       gainNode.connect(ctx.destination);
-      gainNode.gain.setValueAtTime(0.15, now);
+      gainNode.gain.setValueAtTime(0.5, now);
       gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
 
       // First tone
@@ -39,12 +39,12 @@ export function useNotificationSound() {
       osc1.frequency.setValueAtTime(880, now); // A5
       osc1.connect(gainNode);
       osc1.start(now);
-      osc1.stop(now + 0.15);
+      osc1.stop(now + 0.2);
 
       // Second tone (higher, slightly delayed)
       const gainNode2 = ctx.createGain();
       gainNode2.connect(ctx.destination);
-      gainNode2.gain.setValueAtTime(0.12, now + 0.15);
+      gainNode2.gain.setValueAtTime(0.4, now + 0.15);
       gainNode2.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
 
       const osc2 = ctx.createOscillator();
