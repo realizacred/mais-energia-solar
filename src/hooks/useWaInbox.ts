@@ -321,6 +321,11 @@ export function useWaMessages(conversationId?: string) {
         if (outboxError) {
           console.error("Failed to queue message:", outboxError);
         }
+
+        // Trigger outbox processing
+        supabase.functions.invoke("process-wa-outbox").catch((e: any) => {
+          console.warn("Failed to trigger outbox processing:", e);
+        });
       }
 
       // Update conversation preview
