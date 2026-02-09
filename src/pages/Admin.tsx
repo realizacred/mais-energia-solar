@@ -22,6 +22,7 @@ import { RecebimentosManager } from "@/components/admin/RecebimentosManager";
 import { InstagramConfig } from "@/components/admin/InstagramConfig";
 import { UsuariosManager } from "@/components/admin/UsuariosManager";
 import { EquipamentosManager } from "@/components/admin/EquipamentosManager";
+import { ModulosManager, InversoresManager, BateriasManager } from "@/components/admin/equipamentos";
 import { ConcessionariasManager } from "@/components/admin/ConcessionariasManager";
 import { GamificacaoConfig } from "@/components/admin/GamificacaoConfig";
 import { ComissoesManager } from "@/components/admin/ComissoesManager";
@@ -93,7 +94,10 @@ const TAB_TITLES: Record<string, string> = {
   usuarios: "Usuários & Permissões",
   gamificacao: "Gamificação",
   "lead-status": "Status de Leads",
-  equipamentos: "Equipamentos",
+  equipamentos: "Disjuntores & Transformadores",
+  modulos: "Módulos Fotovoltaicos",
+  "inversores-cadastro": "Inversores",
+  baterias: "Baterias",
   concessionarias: "Concessionárias",
   config: "Calculadora Solar",
   whatsapp: "WhatsApp API",
@@ -242,6 +246,12 @@ export default function Admin() {
         return <UsuariosManager />;
       case "equipamentos":
         return <EquipamentosManager />;
+      case "modulos":
+        return <ModulosManager />;
+      case "inversores-cadastro":
+        return <InversoresManager />;
+      case "baterias":
+        return <BateriasManager />;
       case "concessionarias":
         return <ConcessionariasManager />;
       case "gamificacao":
