@@ -1189,6 +1189,7 @@ export type Database = {
           tarifa_energia: number | null
           tarifa_fio_b: number | null
           tenant_id: string | null
+          ultima_sync_tarifas: string | null
           updated_at: string
         }
         Insert: {
@@ -1207,6 +1208,7 @@ export type Database = {
           tarifa_energia?: number | null
           tarifa_fio_b?: number | null
           tenant_id?: string | null
+          ultima_sync_tarifas?: string | null
           updated_at?: string
         }
         Update: {
@@ -1225,6 +1227,7 @@ export type Database = {
           tarifa_energia?: number | null
           tarifa_fio_b?: number | null
           tenant_id?: string | null
+          ultima_sync_tarifas?: string | null
           updated_at?: string
         }
         Relationships: [
