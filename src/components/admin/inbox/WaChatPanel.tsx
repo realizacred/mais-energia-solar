@@ -291,6 +291,24 @@ export function WaChatPanel({
                           <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity" />
                         </a>
                       )}
+                      {msg.message_type === "video" && (
+                        msg.media_url ? (
+                          <a href={msg.media_url} target="_blank" rel="noopener noreferrer" className="block mb-1">
+                            <div className="relative rounded-lg overflow-hidden max-w-full max-h-48 bg-black/10 flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity">
+                              <video src={msg.media_url} className="rounded-lg max-w-full max-h-48 object-cover" preload="metadata" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="w-10 h-10 rounded-full bg-black/50 flex items-center justify-center">
+                                  <span className="text-white text-lg ml-0.5">▶</span>
+                                </div>
+                              </div>
+                            </div>
+                          </a>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs opacity-80">
+                            <span>🎬</span> Vídeo
+                          </div>
+                        )
+                      )}
                       {msg.message_type === "audio" && (
                         <div className="flex items-center gap-2 text-xs opacity-80">
                           <span>🎵</span> Mensagem de áudio
@@ -314,8 +332,11 @@ export function WaChatPanel({
                           <span>📍</span> Localização
                         </div>
                       )}
-                      {(msg.message_type === "text" || !["audio", "document", "sticker", "location", "image"].includes(msg.message_type)) && msg.content && (
+                      {(msg.message_type === "text" || !["audio", "document", "sticker", "location", "image", "video"].includes(msg.message_type)) && msg.content && (
                         <p className="whitespace-pre-wrap break-words">{renderFormattedText(msg.content)}</p>
+                      )}
+                      {msg.message_type === "video" && msg.content && (
+                        <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
                       )}
                       <div className={`flex items-center gap-1 mt-1 ${isNote ? "text-warning/70" : isOut ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                         <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
