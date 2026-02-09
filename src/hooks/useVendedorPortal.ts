@@ -203,20 +203,23 @@ const ADMIN_PROFILE: VendedorProfile = {
      [orcamentosData.orcamentos]
    );
  
-   // Calculate goals when data changes
-   useEffect(() => {
-     if (vendedor && orcamentosData.stats) {
-       const startOfMonth = new Date();
-       startOfMonth.setDate(1);
-       startOfMonth.setHours(0, 0, 0, 0);
- 
-       const monthlyOrcamentos = orcamentosData.orcamentos.filter(
-         (o) => new Date(o.created_at) >= startOfMonth
-       ).length;
- 
-       gamification.calculateGoals(monthlyOrcamentos, 0, 0);
-     }
-   }, [vendedor, orcamentosData.stats, orcamentosData.orcamentos, gamification.calculateGoals]);
+    // Calculate goals when data changes — use real conversion/value data from advancedMetrics
+    useEffect(() => {
+      if (vendedor && orcamentosData.orcamentos.length >= 0 && gamification.config) {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(1);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const monthlyOrcamentos = orcamentosData.orcamentos.filter(
+          (o) => new Date(o.created_at) >= startOfMonth
+        ).length;
+
+        const conversoes = advancedMetrics.metrics?.leads_convertidos ?? 0;
+        const valorVendas = advancedMetrics.metrics?.valor_total_vendas ?? 0;
+
+        gamification.calculateGoals(monthlyOrcamentos, conversoes, valorVendas);
+      }
+    }, [vendedor, orcamentosData.orcamentos, gamification.calculateGoals, gamification.config, advancedMetrics.metrics]);
  
    // Calculate advanced metrics
    useEffect(() => {
@@ -304,10 +307,12 @@ const ADMIN_PROFILE: VendedorProfile = {
      updateStatus: orcamentosData.updateStatus,
      deleteOrcamento: orcamentosData.deleteOrcamento,
  
-     // Gamification
-     achievements: gamification.achievements,
-     goals: gamification.goals,
-     totalPoints: gamification.totalPoints,
+      // Gamification
+      achievements: gamification.achievements,
+      goals: gamification.goals,
+      totalPoints: gamification.totalPoints,
+      ranking: gamification.ranking,
+      myRankPosition: gamification.myRankPosition,
  
      // Advanced Metrics
      advancedMetrics: advancedMetrics.metrics,

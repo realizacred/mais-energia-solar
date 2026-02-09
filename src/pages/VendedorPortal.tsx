@@ -9,7 +9,7 @@ import { VendorFollowUpManager } from "@/components/vendor/VendorFollowUpManager
 import { VendorPendingDocumentation } from "@/components/vendor/VendorPendingDocumentation";
 import { WhatsAppTemplates, FollowUpCalendar, SmartReminders } from "@/components/vendor/productivity";
  import { VendorLeadFilters, VendorOrcamentosTable, VendorLeadViewDialog, LeadScoring } from "@/components/vendor/leads";
- import { VendorAchievements, VendorGoals, AdvancedMetricsCard, GoalProgressNotifications } from "@/components/vendor/gamification";
+ import { VendorAchievements, VendorGoals, VendorLeaderboard, AdvancedMetricsCard, GoalProgressNotifications } from "@/components/vendor/gamification";
 import { ConvertLeadToClientDialog } from "@/components/leads/ConvertLeadToClientDialog";
 import { OfflineConversionsManager } from "@/components/leads/OfflineConversionsManager";
 import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateResolver";
@@ -53,10 +53,12 @@ export default function VendedorPortal() {
     toggleVisto,
     updateStatus,
     deleteOrcamento,
-     // Gamification
-     achievements,
-     goals,
-     totalPoints,
+      // Gamification
+      achievements,
+      goals,
+      totalPoints,
+      ranking,
+      myRankPosition,
      // Advanced Metrics
      advancedMetrics,
      metricsLoading,
@@ -134,19 +136,26 @@ export default function VendedorPortal() {
             )}
 
             {/* Gamification Section */}
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <VendorGoals goals={goals} />
               <VendorAchievements
                 achievements={achievements}
                 totalPoints={totalPoints}
               />
             </div>
- 
-           {/* Advanced Performance Metrics */}
-           <AdvancedMetricsCard 
-             metrics={advancedMetrics} 
-             loading={metricsLoading} 
-           />
+
+            {/* Leaderboard */}
+            <VendorLeaderboard
+              ranking={ranking}
+              currentVendedorId={vendedor?.id || null}
+              myRankPosition={myRankPosition}
+            />
+
+            {/* Advanced Performance Metrics */}
+            <AdvancedMetricsCard 
+              metrics={advancedMetrics} 
+              loading={metricsLoading} 
+            />
 
             {/* Sync Status & Notifications Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
