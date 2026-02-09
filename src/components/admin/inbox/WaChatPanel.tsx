@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
 import { ptBR } from "date-fns/locale";
 import {
   StickyNote,
@@ -135,7 +136,30 @@ export function WaChatPanel({
               {conversation.lead_id && (
                 <>
                   <span>·</span>
-                  <Badge variant="outline" className="text-[9px] px-1 py-0">Lead vinculado</Badge>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className="text-[9px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors"
+                        onClick={() => {
+                          // Navigate to admin leads view with the lead selected
+                          window.open(`/admin?tab=leads&lead=${conversation.lead_id}`, '_blank');
+                        }}
+                      >
+                        <Link2 className="h-2.5 w-2.5 mr-0.5" />
+                        {conversation.lead_nome || "Lead vinculado"}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      <div className="space-y-0.5">
+                        <p className="font-medium">{conversation.lead_nome || "Lead vinculado"}</p>
+                        {conversation.lead_telefone && (
+                          <p className="text-muted-foreground">{conversation.lead_telefone}</p>
+                        )}
+                        <p className="text-[10px] text-muted-foreground/70">Clique para abrir</p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
                 </>
               )}
             </div>

@@ -27,6 +27,8 @@ export interface WaConversation {
   tags?: WaConversationTag[];
   instance_name?: string;
   vendedor_nome?: string;
+  lead_nome?: string;
+  lead_telefone?: string;
 }
 
 export interface WaMessage {
@@ -77,7 +79,7 @@ export function useWaConversations(filters?: {
     queryFn: async () => {
       let query = supabase
         .from("wa_conversations")
-        .select("*, wa_instances!inner(nome, vendedores(nome))")
+        .select("*, wa_instances!inner(nome, vendedores(nome)), leads(nome, telefone)")
         .order("last_message_at", { ascending: false });
 
       if (filters?.status && filters.status !== "all") {
@@ -123,6 +125,8 @@ export function useWaConversations(filters?: {
         ...c,
         instance_name: c.wa_instances?.nome || "—",
         vendedor_nome: c.wa_instances?.vendedores?.nome || null,
+        lead_nome: c.leads?.nome || null,
+        lead_telefone: c.leads?.telefone || null,
         tags: tagsMap[c.id] || [],
       })) as WaConversation[];
     },
