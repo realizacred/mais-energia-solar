@@ -181,6 +181,24 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
     }
   };
 
+  const handleSendReaction = async (messageId: string, reaction: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Sessão inválida");
+
+      const response = await supabase.functions.invoke("send-wa-reaction", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { message_id: messageId, reaction },
+      });
+
+      if (response.error) throw new Error(response.error.message || "Erro ao reagir");
+      if (response.data?.error) throw new Error(String(response.data.error));
+    } catch (err: any) {
+      console.error("Failed to send reaction:", err);
+      toast({ title: "Erro ao reagir", description: err.message, variant: "destructive" });
+    }
+  };
+
   const openResolveDialog = () => {
     if (!selectedConv) return;
     setShowResolve(true);
@@ -356,6 +374,7 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
                   isSending={isSending}
                   onSendMessage={handleSendMessage}
                   onSendMedia={handleSendMedia}
+                  onSendReaction={handleSendReaction}
                   onResolve={openResolveDialog}
                   onReopen={handleReopen}
                   onOpenTransfer={() => setShowTransfer(true)}
@@ -397,6 +416,7 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
               isSending={isSending}
               onSendMessage={handleSendMessage}
               onSendMedia={handleSendMedia}
+              onSendReaction={handleSendReaction}
               onResolve={openResolveDialog}
               onReopen={handleReopen}
               onOpenTransfer={() => setShowTransfer(true)}
