@@ -357,6 +357,7 @@ Deno.serve(async (req) => {
           .from('concessionarias')
           .update({
             tarifa_energia: tarifaTotal,
+            tarifa_fio_b: tusd,
             ultima_sync_tarifas: new Date().toISOString(),
           })
           .eq('id', conc.id);
