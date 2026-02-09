@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json();
-    const { instance_id } = body;
+    const { instance_id, days = 365 } = body;
+    const cutoffMs = Date.now() - (days * 24 * 60 * 60 * 1000);
 
     if (!instance_id) {
       return new Response(JSON.stringify({ error: "instance_id required" }), {
@@ -214,12 +215,15 @@ Deno.serve(async (req) => {
           const messageContent = msg.message || {};
           const { content, messageType } = extractContent(messageContent, msg);
 
-          const msgTimestamp = msg.messageTimestamp
-            ? new Date(typeof msg.messageTimestamp === "number"
-                ? (msg.messageTimestamp > 1e12 ? msg.messageTimestamp : msg.messageTimestamp * 1000)
-                : msg.messageTimestamp
-              ).toISOString()
-            : new Date().toISOString();
+          const rawTs = msg.messageTimestamp;
+          const msgMs = rawTs
+            ? (typeof rawTs === "number" ? (rawTs > 1e12 ? rawTs : rawTs * 1000) : new Date(rawTs).getTime())
+            : Date.now();
+
+          // Skip messages older than cutoff
+          if (msgMs < cutoffMs) continue;
+
+          const msgTimestamp = new Date(msgMs).toISOString();
 
           // Track latest message for conversation update
           if (!latestMsgAt || msgTimestamp > latestMsgAt) {
