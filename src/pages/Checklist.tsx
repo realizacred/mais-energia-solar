@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import logoImg from "@/assets/logo.png";
+import { useLogo } from "@/hooks/useLogo";
 
  const PAGE_TITLE = "Registro de Serviço";
 
@@ -29,6 +29,7 @@ interface ChecklistRecord {
 
 export default function Checklist() {
   const { user, loading, signOut } = useAuth();
+  const logoImg = useLogo();
   const navigate = useNavigate();
   const [view, setView] = useState<"form" | "history">("form");
   const [menuOpen, setMenuOpen] = useState(false);
