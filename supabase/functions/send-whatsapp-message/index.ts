@@ -11,10 +11,10 @@ interface SendMessageRequest {
   mensagem: string;
   lead_id?: string;
   tipo?: "automatico" | "manual" | "lembrete";
+  instance_id?: string; // optional: send via specific wa_instance
 }
 
 Deno.serve(async (req) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { telefone, mensagem, lead_id, tipo = "manual" } = body;
+    const { telefone, mensagem, lead_id, tipo = "manual", instance_id } = body;
 
     if (!telefone || !mensagem) {
       return new Response(
@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Busca config (RLS) — usa maybeSingle para não quebrar quando sem registro
+    // Busca config (RLS)
     const { data: config, error: configError } = await supabase
       .from("whatsapp_automation_config")
       .select("ativo, modo_envio, webhook_url, api_token, evolution_api_url, evolution_api_key, evolution_instance")
@@ -90,8 +90,8 @@ Deno.serve(async (req) => {
     }
 
     if (!config) {
-      console.warn("WhatsApp config not found — no row in whatsapp_automation_config");
-      return new Response(JSON.stringify({ success: false, error: "Configuração de WhatsApp não encontrada. Acesse Configurações > WhatsApp no painel admin para configurar." }), {
+      console.warn("WhatsApp config not found");
+      return new Response(JSON.stringify({ success: false, error: "Configuração de WhatsApp não encontrada." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -104,13 +104,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Normaliza telefone (somente dígitos + adiciona 55 se faltar)
+    // Normaliza telefone
     let formattedPhone = telefone.replace(/\D/g, "");
     if (!formattedPhone.startsWith("55")) {
       formattedPhone = `55${formattedPhone}`;
     }
 
     const results: Array<{ method: "webhook" | "evolution"; success: boolean; error?: string }> = [];
+    const globalApiKey = Deno.env.get("EVOLUTION_API_KEY") || "";
 
     // Webhook
     if ((config.modo_envio === "webhook" || config.modo_envio === "ambos") && config.webhook_url) {
@@ -130,7 +131,6 @@ Deno.serve(async (req) => {
           }),
         });
 
-        // Consome body (boa prática no Deno)
         await webhookRes.text().catch(() => null);
 
         results.push({
@@ -144,46 +144,90 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Evolution
-    if (
-      (config.modo_envio === "evolution" || config.modo_envio === "ambos") &&
-      config.evolution_api_url &&
-      config.evolution_api_key &&
-      config.evolution_instance
-    ) {
-      try {
-        const baseUrl = config.evolution_api_url.replace(/\/$/, "");
-        const sendUrl = `${baseUrl}/message/sendText/${config.evolution_instance}`;
+    // Evolution API — resolve connection details from wa_instances or config
+    if (config.modo_envio === "evolution" || config.modo_envio === "ambos") {
+      let evoApiUrl = "";
+      let evoApiKey = globalApiKey;
+      let evoInstance = "";
 
-        const evoRes = await fetch(sendUrl, {
-          method: "POST",
-          headers: {
-            apikey: config.evolution_api_key,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            number: formattedPhone,
-            text: mensagem,
-          }),
-        });
+      // Use service role to read wa_instances (bypasses RLS)
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
 
-        const evoText = await evoRes.text();
+      // Try to resolve from wa_instances first
+      const instanceKey = instance_id || config.evolution_instance;
+      if (instanceKey) {
+        // Try finding by ID first, then by instance_key
+        let waQuery = supabaseAdmin.from("wa_instances").select("*");
+        
+        // If it looks like a UUID, try by ID; otherwise by instance_key
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceKey);
+        if (isUuid) {
+          waQuery = waQuery.eq("id", instanceKey);
+        } else {
+          waQuery = waQuery.eq("evolution_instance_key", instanceKey);
+        }
 
-        results.push({
-          method: "evolution",
-          success: evoRes.ok,
-          error: evoRes.ok ? undefined : evoText || `Status: ${evoRes.status}`,
-        });
-      } catch (e: any) {
-        console.error("Evolution error:", e);
-        results.push({ method: "evolution", success: false, error: e?.message || String(e) });
+        const { data: waInst } = await waQuery.maybeSingle();
+
+        if (waInst) {
+          evoApiUrl = waInst.evolution_api_url?.replace(/\/$/, "") || "";
+          evoInstance = waInst.evolution_instance_key;
+          console.log(`Using wa_instance: ${waInst.nome} (${evoInstance})`);
+        }
+      }
+
+      // Fallback to config fields if wa_instance not found
+      if (!evoApiUrl && config.evolution_api_url) {
+        evoApiUrl = config.evolution_api_url.replace(/\/$/, "");
+        evoInstance = config.evolution_instance || "";
+        // If config has its own API key, use it
+        if (config.evolution_api_key) {
+          evoApiKey = config.evolution_api_key;
+        }
+        console.log(`Fallback to config: instance=${evoInstance}`);
+      }
+
+      if (evoApiUrl && evoInstance) {
+        try {
+          const sendUrl = `${evoApiUrl}/message/sendText/${evoInstance}`;
+          console.log(`Sending to: ${sendUrl}`);
+
+          const evoRes = await fetch(sendUrl, {
+            method: "POST",
+            headers: {
+              apikey: evoApiKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              number: formattedPhone,
+              text: mensagem,
+            }),
+          });
+
+          const evoText = await evoRes.text();
+
+          results.push({
+            method: "evolution",
+            success: evoRes.ok,
+            error: evoRes.ok ? undefined : evoText || `Status: ${evoRes.status}`,
+          });
+        } catch (e: any) {
+          console.error("Evolution error:", e);
+          results.push({ method: "evolution", success: false, error: e?.message || String(e) });
+        }
+      } else {
+        console.warn("Evolution API not configured — missing URL or instance");
+        results.push({ method: "evolution", success: false, error: "Instância não configurada" });
       }
     }
 
     const anySuccess = results.some((r) => r.success);
     const status = anySuccess ? "enviado" : "erro";
 
-    // Log no histórico (se RLS impedir, não quebra o envio)
+    // Log no histórico
     const { error: logError } = await supabase.from("whatsapp_messages").insert({
       lead_id: lead_id || null,
       tipo,

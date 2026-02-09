@@ -7,13 +7,11 @@ const corsHeaders = {
 };
 
 Deno.serve(async (req) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    // Auth (functions.invoke envia Authorization automaticamente quando o usuário está logado)
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
@@ -40,12 +38,12 @@ Deno.serve(async (req) => {
 
     const userId = claimsData.claims.sub;
 
-    // Restringe a admins (mesmo padrão do instagram-sync)
     const { data: roleData } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
-      .eq("role", "admin")
+      .in("role", ["admin", "gerente"])
+      .limit(1)
       .maybeSingle();
 
     if (!roleData) {
@@ -55,11 +53,11 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Busca configuração (com RLS do usuário)
+    // Busca configuração
     const { data: config, error: configError } = await supabase
       .from("whatsapp_automation_config")
       .select("evolution_api_url, evolution_api_key, evolution_instance")
-      .single();
+      .maybeSingle();
 
     if (configError) {
       console.error("Error fetching WhatsApp config:", configError);
@@ -69,20 +67,50 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!config?.evolution_api_url || !config?.evolution_api_key || !config?.evolution_instance) {
+    // Resolve connection details from wa_instances
+    let evolutionUrl = "";
+    let apiKey = Deno.env.get("EVOLUTION_API_KEY") || "";
+    let instanceName = "";
+
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const instanceKey = config?.evolution_instance;
+    if (instanceKey) {
+      const { data: waInst } = await supabaseAdmin
+        .from("wa_instances")
+        .select("*")
+        .eq("evolution_instance_key", instanceKey)
+        .maybeSingle();
+
+      if (waInst) {
+        evolutionUrl = waInst.evolution_api_url?.replace(/\/$/, "") || "";
+        instanceName = waInst.evolution_instance_key;
+        console.log(`Resolved wa_instance: ${waInst.nome} (${instanceName})`);
+      }
+    }
+
+    // Fallback to config fields
+    if (!evolutionUrl && config?.evolution_api_url) {
+      evolutionUrl = config.evolution_api_url.replace(/\/$/, "");
+      instanceName = config.evolution_instance || "";
+      if (config.evolution_api_key) {
+        apiKey = config.evolution_api_key;
+      }
+      console.log(`Fallback to config: instance=${instanceName}`);
+    }
+
+    if (!evolutionUrl || !instanceName) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Configuração incompleta. Preencha URL, API Key e Instância.",
+          error: "Configuração incompleta. Selecione uma instância em Automação WhatsApp → Integração.",
         }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const evolutionUrl = config.evolution_api_url.replace(/\/$/, "");
 
     // 1) fetchInstances
     const instancesUrl = `${evolutionUrl}/instance/fetchInstances`;
@@ -91,7 +119,7 @@ Deno.serve(async (req) => {
     const instancesRes = await fetch(instancesUrl, {
       method: "GET",
       headers: {
-        apikey: config.evolution_api_key,
+        apikey: apiKey,
         "Content-Type": "application/json",
       },
     });
@@ -105,10 +133,7 @@ Deno.serve(async (req) => {
           success: false,
           error: `Erro na API (fetchInstances): ${instancesRes.status} - ${instancesText}`,
         }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -116,7 +141,6 @@ Deno.serve(async (req) => {
     try {
       instances = JSON.parse(instancesText);
     } catch {
-      // algumas instalações retornam string/obj diferente
       instances = instancesText;
     }
 
@@ -124,26 +148,23 @@ Deno.serve(async (req) => {
       Array.isArray(instances) &&
       instances.some(
         (inst: any) =>
-          inst?.instance?.instanceName === config.evolution_instance ||
-          inst?.instanceName === config.evolution_instance ||
-          inst?.name === config.evolution_instance
+          inst?.instance?.instanceName === instanceName ||
+          inst?.instanceName === instanceName ||
+          inst?.name === instanceName
       );
 
-    // 2) connectionState (best-effort)
+    // 2) connectionState
     let connectionState: string = "unknown";
     let instanceStatus = instanceExists ? "encontrada" : "não encontrada";
 
     if (instanceExists) {
       try {
-        const stateUrl = `${evolutionUrl}/instance/connectionState/${config.evolution_instance}`;
-        console.log("Testing Evolution API (connectionState):", stateUrl);
+        const stateUrl = `${evolutionUrl}/instance/connectionState/${instanceName}`;
+        console.log("Testing connectionState:", stateUrl);
 
         const stateRes = await fetch(stateUrl, {
           method: "GET",
-          headers: {
-            apikey: config.evolution_api_key,
-            "Content-Type": "application/json",
-          },
+          headers: { apikey: apiKey, "Content-Type": "application/json" },
         });
 
         const stateText = await stateRes.text();
@@ -166,8 +187,8 @@ Deno.serve(async (req) => {
         instanceStatus,
         connectionState,
         message: instanceExists
-          ? `Conexão OK! Instância \"${config.evolution_instance}\" ${instanceStatus}`
-          : `API conectada, mas instância \"${config.evolution_instance}\" não encontrada`,
+          ? `Conexão OK! Instância "${instanceName}" ${instanceStatus}`
+          : `API conectada, mas instância "${instanceName}" não encontrada. Verifique o nome no painel Evolution.`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
