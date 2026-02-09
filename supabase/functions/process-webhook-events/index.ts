@@ -175,7 +175,7 @@ async function handleMessageUpsert(
     // Upsert conversation
     const { data: existingConv } = await supabase
       .from("wa_conversations")
-      .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url")
+      .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at")
       .eq("instance_id", instanceId)
       .eq("remote_jid", remoteJid)
       .maybeSingle();
@@ -278,17 +278,21 @@ async function handleMessageUpsert(
       conversationId = newConv.id;
     }
 
-    // For existing conversations without profile picture, fetch it periodically
-    if (existingConv && !fromMe) {
-      // Check if we should refresh (no picture or stale check)
+    // For existing conversations, refresh profile picture periodically
+    if (existingConv && !fromMe && !isGroup) {
       const shouldRefresh = shouldRefreshProfilePic(existingConv);
       if (shouldRefresh) {
-        const picUrl = await fetchProfilePicture(supabase, instanceId, remoteJid);
-        if (picUrl) {
-          await supabase
-            .from("wa_conversations")
-            .update({ profile_picture_url: picUrl })
-            .eq("id", existingConv.id);
+        try {
+          const picUrl = await fetchProfilePicture(supabase, instanceId, remoteJid);
+          if (picUrl && picUrl !== existingConv.profile_picture_url) {
+            await supabase
+              .from("wa_conversations")
+              .update({ profile_picture_url: picUrl })
+              .eq("id", existingConv.id);
+            console.log(`[process-webhook-events] Profile picture updated for conversation ${conversationId}`);
+          }
+        } catch (e) {
+          console.warn(`[process-webhook-events] Profile picture refresh failed for ${remoteJid}:`, e);
         }
       }
     }
@@ -586,9 +590,22 @@ async function fetchProfilePicture(
   }
 }
 
-// Check if we should refresh profile picture (only if missing)
+// Check if we should refresh profile picture
+// - Always refresh if missing
+// - Retry every ~24h if still missing after last update
 function shouldRefreshProfilePic(existingConv: any): boolean {
-  return !existingConv.profile_picture_url;
+  if (!existingConv.profile_picture_url) {
+    // If updated recently (within last 6 hours), skip to avoid hammering API
+    if (existingConv.updated_at) {
+      const lastUpdate = new Date(existingConv.updated_at).getTime();
+      const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000;
+      if (lastUpdate > sixHoursAgo) {
+        return false; // Updated recently, skip
+      }
+    }
+    return true;
+  }
+  return false;
 }
 
 async function handleMessageUpdate(supabase: any, payload: any) {
@@ -680,7 +697,7 @@ async function handleContactsUpsert(
     if (!jid) continue;
 
     const name = contact.pushName || contact.name || contact.verifiedName || null;
-    const profilePicUrl = contact.profilePictureUrl || null;
+    const profilePicUrl = contact.profilePictureUrl || contact.imgUrl || null;
 
     if (name || profilePicUrl) {
       const updates: any = {};
@@ -692,6 +709,21 @@ async function handleContactsUpsert(
         .update(updates)
         .eq("instance_id", instanceId)
         .eq("remote_jid", jid);
+    }
+
+    // If contact has no profile picture, try to fetch it
+    if (!profilePicUrl && !jid.endsWith("@g.us")) {
+      try {
+        const picUrl = await fetchProfilePicture(supabase, instanceId, jid);
+        if (picUrl) {
+          await supabase
+            .from("wa_conversations")
+            .update({ profile_picture_url: picUrl })
+            .eq("instance_id", instanceId)
+            .eq("remote_jid", jid);
+          console.log(`[process-webhook-events] Profile picture fetched via contacts.upsert for ${jid}`);
+        }
+      } catch (_) { /* ignore */ }
     }
   }
 }
