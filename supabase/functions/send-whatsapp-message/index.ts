@@ -280,6 +280,10 @@ Deno.serve(async (req) => {
         if (waInst) {
           evoApiUrl = waInst.evolution_api_url?.replace(/\/$/, "") || "";
           evoInstance = waInst.evolution_instance_key;
+          // Use instance-specific API key with global fallback
+          if (waInst.api_key) {
+            evoApiKey = waInst.api_key;
+          }
           console.log(`[send-wa] Using wa_instance: ${waInst.nome} (${evoInstance})`);
         }
       }
