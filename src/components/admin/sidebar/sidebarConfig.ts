@@ -332,7 +332,13 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield },
       { id: "auditoria", title: "Auditoria (Logs)", icon: Shield },
-      { id: "instalar-app", title: "Instalar App", icon: Smartphone, description: "PWA no celular", separator: true },
+      {
+        id: "links-instalacao",
+        title: "Links & Instalação",
+        icon: Smartphone,
+        description: "App PWA e links de vendedor",
+        separator: true,
+      },
     ],
   },
 ];

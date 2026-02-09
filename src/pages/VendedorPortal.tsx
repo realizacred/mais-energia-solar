@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, LayoutDashboard, FileText, ClipboardCheck, MessageCircle, ChevronDown, Trophy } from "lucide-react";
+import { Loader2, LayoutDashboard, FileText, ClipboardCheck, MessageCircle, ChevronDown, Trophy, Smartphone } from "lucide-react";
 import { LeadAlerts } from "@/components/vendor/LeadAlerts";
 import { FollowUpStatsCards } from "@/components/vendor/FollowUpStatsCards";
  import { VendorPersonalDashboard } from "@/components/vendor/VendorPersonalDashboard";
@@ -18,6 +18,7 @@ import NotificationSettings from "@/components/vendor/NotificationSettings";
 import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
 import { VendorTaskAgenda } from "@/components/vendor/VendorTaskAgenda";
 import { WaInbox } from "@/components/admin/inbox/WaInbox";
+import { LinksInstalacaoPage } from "@/components/admin/LinksInstalacaoPage";
 import { VendedorHeader, VendedorShareLink } from "@/components/vendor/portal";
 import { useVendedorPortal, orcamentoToLead } from "@/hooks/useVendedorPortal";
 
@@ -96,8 +97,8 @@ export default function VendedorPortal() {
         {(() => {
           const unseenCount = orcamentos.filter(o => !o.visto).length;
           return (
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full max-w-2xl grid-cols-4">
+             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid w-full max-w-3xl grid-cols-5">
                 <TabsTrigger value="dashboard" className="gap-2">
                   <LayoutDashboard className="h-4 w-4" />
                   <span className="hidden sm:inline">Dashboard</span>
@@ -118,6 +119,10 @@ export default function VendedorPortal() {
                       {unseenCount}
                     </span>
                   )}
+                </TabsTrigger>
+                <TabsTrigger value="links" className="gap-2">
+                  <Smartphone className="h-4 w-4" />
+                  <span className="hidden sm:inline">Links</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -312,6 +317,19 @@ export default function VendedorPortal() {
                 />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Links & Instalação Tab */}
+          <TabsContent value="links" className="mt-4">
+            {vendedor && (
+              <LinksInstalacaoPage
+                vendedor={{
+                  nome: vendedor.nome,
+                  slug: vendedor.slug || vendedor.codigo,
+                  codigo: vendedor.codigo,
+                }}
+              />
+            )}
           </TabsContent>
             </Tabs>
           );
