@@ -72,23 +72,29 @@ Deno.serve(async (req) => {
     let apiKey = Deno.env.get("EVOLUTION_API_KEY") || "";
     let instanceName = "";
 
+    console.log(`[DEBUG] EVOLUTION_API_KEY from env: length=${apiKey.length}, first4=${apiKey.substring(0, 4)}, last4=${apiKey.substring(apiKey.length - 4)}`);
+
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
     const instanceKey = config?.evolution_instance;
+    console.log(`[DEBUG] Config evolution_instance: "${instanceKey}"`);
+
     if (instanceKey) {
-      const { data: waInst } = await supabaseAdmin
+      const { data: waInst, error: waErr } = await supabaseAdmin
         .from("wa_instances")
         .select("*")
         .eq("evolution_instance_key", instanceKey)
         .maybeSingle();
 
+      console.log(`[DEBUG] wa_instances lookup result: found=${!!waInst}, error=${waErr?.message || 'none'}`);
+
       if (waInst) {
         evolutionUrl = waInst.evolution_api_url?.replace(/\/$/, "") || "";
         instanceName = waInst.evolution_instance_key;
-        console.log(`Resolved wa_instance: ${waInst.nome} (${instanceName})`);
+        console.log(`Resolved wa_instance: ${waInst.nome} (${instanceName}) url=${evolutionUrl}`);
       }
     }
 
@@ -101,6 +107,8 @@ Deno.serve(async (req) => {
       }
       console.log(`Fallback to config: instance=${instanceName}`);
     }
+
+    console.log(`[DEBUG] Final: url=${evolutionUrl}, instance=${instanceName}, apiKeyLen=${apiKey.length}`);
 
     if (!evolutionUrl || !instanceName) {
       return new Response(
