@@ -346,12 +346,16 @@ async function fetchAndStoreMedia(
     if (!apiUrl || !instanceKey) return null;
 
     // Call Evolution API to get base64 media
+    // The key must include remoteJid, fromMe, and id for Evolution to find the message
     const mediaEndpoint = `${apiUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceKey)}`;
+    const messageKey = rawMsg.key && rawMsg.key.remoteJid
+      ? rawMsg.key
+      : { remoteJid: rawMsg.key?.remoteJid || rawMsg.remoteJid || "", fromMe: rawMsg.key?.fromMe ?? false, id: messageId };
     
     const mediaRes = await fetch(mediaEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: apiKey },
-      body: JSON.stringify({ message: { key: rawMsg.key || { id: messageId } }, convertToMp4: messageType === "audio" }),
+      body: JSON.stringify({ message: { key: messageKey }, convertToMp4: messageType === "audio" }),
     });
 
     if (!mediaRes.ok) {
@@ -373,10 +377,11 @@ async function fetchAndStoreMedia(
     const extMap: Record<string, string> = {
       "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
       "video/mp4": "mp4", "video/3gpp": "3gp",
-      "audio/ogg": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a",
+      "audio/ogg": "ogg", "audio/ogg; codecs=opus": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a",
       "application/pdf": "pdf",
     };
-    const ext = extMap[mediaMime] || mediaMime.split("/")[1] || "bin";
+    const cleanMime = mediaMime.split(";")[0].trim();
+    const ext = extMap[mediaMime] || extMap[cleanMime] || cleanMime.split("/")[1] || "bin";
 
     // Upload to Supabase Storage
     const filePath = `${tenantId}/media/${messageId}.${ext}`;

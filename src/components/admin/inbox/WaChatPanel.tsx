@@ -319,9 +319,16 @@ export function WaChatPanel({
                         )
                       )}
                       {msg.message_type === "audio" && (
-                        <div className="flex items-center gap-2 text-xs opacity-80">
-                          <span>🎵</span> Mensagem de áudio
-                        </div>
+                        msg.media_url ? (
+                          <audio controls preload="metadata" className="max-w-[240px] h-10">
+                            <source src={msg.media_url} type={msg.media_mime_type || "audio/ogg"} />
+                            Seu navegador não suporta áudio.
+                          </audio>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs opacity-80">
+                            <span>🎵</span> Mensagem de áudio (mídia indisponível)
+                          </div>
+                        )
                       )}
                       {msg.message_type === "document" && (
                         <a
