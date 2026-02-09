@@ -69,27 +69,35 @@ Deno.serve(async (req) => {
         }
 
         // Send via Evolution API
-        await sendEvolutionMessage(
+        const sendResult = await sendEvolutionMessage(
           instance.evolution_api_url,
           instance.evolution_instance_key,
           EVOLUTION_API_KEY,
           item
         );
 
-        // Mark as sent
+        // Extract the Evolution message ID from the response
+        const evolutionMessageId = sendResult?.key?.id || sendResult?.id || null;
+
+        // Mark outbox item as sent
         await supabase
           .from("wa_outbox")
           .update({ status: "sent", sent_at: new Date().toISOString() })
           .eq("id", item.id);
 
-        // Update message status if linked
+        // Update message status AND save evolution_message_id for delivery tracking
         if (item.message_id) {
+          const msgUpdate: Record<string, unknown> = { status: "sent" };
+          if (evolutionMessageId) {
+            msgUpdate.evolution_message_id = evolutionMessageId;
+          }
           await supabase
             .from("wa_messages")
-            .update({ status: "sent" })
+            .update(msgUpdate)
             .eq("id", item.message_id);
         }
 
+        sent++;
         sent++;
       } catch (err) {
         console.error(`[process-wa-outbox] Failed to send item ${item.id}:`, err);
