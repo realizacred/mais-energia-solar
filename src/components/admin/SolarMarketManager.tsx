@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import {
   RefreshCw, Settings, Plug, Zap, Clock, CheckCircle2, XCircle,
   AlertTriangle, Loader2, Play, ExternalLink, Copy, Shield,
-  FolderOpen, Link2, Activity,
+  FolderOpen, Link2, Activity, StopCircle, Ban,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -63,6 +63,7 @@ export function SolarMarketManager() {
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [integrationRequests, setIntegrationRequests] = useState<IntegrationRequest[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
   const [logsFilter, setLogsFilter] = useState("all");
 
@@ -293,6 +294,7 @@ export function SolarMarketManager() {
       case "fail": return <XCircle className="h-4 w-4 text-destructive" />;
       case "partial": return <AlertTriangle className="h-4 w-4 text-warning" />;
       case "running": return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
+      case "cancelled": return <Ban className="h-4 w-4 text-muted-foreground" />;
       default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }
   };
@@ -303,6 +305,7 @@ export function SolarMarketManager() {
       fail: "destructive",
       partial: "secondary",
       running: "outline",
+      cancelled: "secondary",
     };
     return (
       <Badge variant={variants[status] || "outline"} className="gap-1">
@@ -310,6 +313,26 @@ export function SolarMarketManager() {
         {status}
       </Badge>
     );
+  };
+
+  const cancelSync = async (logId: string) => {
+    setCancellingId(logId);
+    try {
+      const { error } = await supabase
+        .from("solar_market_sync_logs")
+        .update({ status: "cancelled", finished_at: new Date().toISOString(), error: "Cancelado pelo usuário" })
+        .eq("id", logId)
+        .eq("status", "running");
+
+      if (error) throw error;
+
+      toast.success("Sincronização cancelada. O processo será interrompido em instantes.");
+      fetchLogs();
+    } catch (err: any) {
+      toast.error(`Erro ao cancelar: ${err.message}`);
+    } finally {
+      setCancellingId(null);
+    }
   };
 
   if (loading) {
@@ -707,6 +730,7 @@ Content-Type: application/json
                       <SelectItem value="fail">Falha</SelectItem>
                       <SelectItem value="partial">Parcial</SelectItem>
                       <SelectItem value="running">Rodando</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button variant="outline" size="icon" onClick={fetchLogs}>
@@ -732,6 +756,7 @@ Content-Type: application/json
                         <TableHead>Duração</TableHead>
                         <TableHead>Contagens</TableHead>
                         <TableHead>Erro</TableHead>
+                        <TableHead className="w-[80px]">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -766,6 +791,24 @@ Content-Type: application/json
                             </TableCell>
                             <TableCell className="text-xs max-w-[200px] truncate text-destructive">
                               {log.error || "—"}
+                            </TableCell>
+                            <TableCell>
+                              {log.status === "running" && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 gap-1 text-destructive hover:text-destructive"
+                                  disabled={cancellingId === log.id}
+                                  onClick={() => cancelSync(log.id)}
+                                >
+                                  {cancellingId === log.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <StopCircle className="h-3 w-3" />
+                                  )}
+                                  Parar
+                                </Button>
+                              )}
                             </TableCell>
                           </TableRow>
                         );

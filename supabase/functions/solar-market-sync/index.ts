@@ -486,6 +486,23 @@ class SolarMarketClient {
 // Sync Logic
 // ══════════════════════════════════════════════════════════════
 
+// ── Cancellation check helper ──
+async function isSyncCancelled(
+  db: ReturnType<typeof createClient>, syncLogId: string | null
+): Promise<boolean> {
+  if (!syncLogId) return false;
+  try {
+    const { data } = await db
+      .from("solar_market_sync_logs")
+      .select("status")
+      .eq("id", syncLogId)
+      .single();
+    return data?.status === "cancelled";
+  } catch {
+    return false;
+  }
+}
+
 interface SyncCounts {
   clients_synced: number;
   projects_synced: number;
@@ -891,7 +908,14 @@ async function runFullSync(
   const clients = await syncClients(db, smClient, config, counts, syncLogId);
 
   // 2. For each client: sync projects + sub-resources
-  for (const c of clients) {
+  for (let i = 0; i < clients.length; i++) {
+    // Check cancellation every 5 clients
+    if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
+      console.log("[SM] Sync cancelled by user");
+      counts.errors.push("Cancelado pelo usuário");
+      return;
+    }
+    const c = clients[i];
     const smClientId = c.id || c.clientId;
     if (!smClientId) continue;
     await syncProjectsForClient(db, smClient, config, smClientId, counts, syncLogId);
@@ -937,17 +961,36 @@ async function runIncrementalSync(
 
   // Sync new clients
   const newClients = await syncClients(db, smClient, config, counts, syncLogId, clientsAfter);
-  for (const c of newClients) {
+  for (let i = 0; i < newClients.length; i++) {
+    if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
+      console.log("[SM] Incremental sync cancelled by user");
+      counts.errors.push("Cancelado pelo usuário");
+      return;
+    }
+    const c = newClients[i];
     const smClientId = c.id || c.clientId;
     if (!smClientId) continue;
     await syncProjectsForClient(db, smClient, config, smClientId, counts, syncLogId);
     await new Promise((r) => setTimeout(r, 200));
   }
 
+  // Check cancellation before projects phase
+  if (await isSyncCancelled(db, syncLogId)) {
+    console.log("[SM] Incremental sync cancelled by user before projects phase");
+    counts.errors.push("Cancelado pelo usuário");
+    return;
+  }
+
   // Sync new projects (may belong to existing clients)
   try {
     const newProjects = await smClient.listProjectsAll({ createdAfter: projectsAfter });
-    for (const p of newProjects) {
+    for (let i = 0; i < newProjects.length; i++) {
+      if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
+        console.log("[SM] Incremental projects sync cancelled by user");
+        counts.errors.push("Cancelado pelo usuário");
+        return;
+      }
+      const p = newProjects[i];
       const smProjId = p.id || p.projectId;
       const smCliId = p.clientId || p.client_id;
       if (!smProjId) continue;
@@ -1215,7 +1258,14 @@ Deno.serve(async (req) => {
       await runFullSync(supabaseAdmin, smClient, config, counts, syncLogId);
     }
 
-    const finalStatus = counts.errors.length > 0 ? "partial" : "success";
+    // Check if sync was cancelled during execution
+    const wasCancelled = await isSyncCancelled(supabaseAdmin, syncLogId);
+    const hasCancelError = counts.errors.some(e => e.includes("Cancelado pelo usuário"));
+    const finalStatus = wasCancelled || hasCancelError
+      ? "cancelled"
+      : counts.errors.length > 0
+        ? "partial"
+        : "success";
 
     if (syncLogId) {
       await supabaseAdmin.from("solar_market_sync_logs").update({
