@@ -120,6 +120,33 @@ function normalizeStr(s: string | null | undefined): string {
     .trim();
 }
 
+// Remove common suffixes for fuzzy matching
+function stripSuffixes(s: string): string {
+  return s
+    .replace(/\b(DISTRIBUICAO|DISTRIBUIDORA|DISTRIBUICOES|ENERGIA|ELETRICA|ELETRICIDADE|SA|S A|LTDA|CIA|COMPANHIA)\b/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+// Known alias mapping: DB sigla → ANEEL SigAgente alternatives
+const SIGLA_ALIASES: Record<string, string[]> = {
+  "CEMIG": ["CEMIG-D", "CEMIG"],
+  "COPEL": ["COPEL-DIS", "COPEL-D", "COPEL"],
+  "CPFL": ["CPFL", "CPFL-PAULISTA", "CPFL PAULISTA"],
+  "CPFL-PIR": ["CPFL-PIRATININGA", "CPFL PIRATININGA", "PIRATININGA"],
+  "LIGHT": ["LIGHT", "LIGHT SA", "LIGHT S/A"],
+  "ENEL-RJ": ["ENEL-RJ", "ENEL RJ", "LIGHT"],
+  "ENEL-GO": ["ENEL-GO", "ENEL GO", "CELG-D", "CELG"],
+  "EDP-SP": ["EDP-SP", "EDP SP", "BANDEIRANTE", "EDP BANDEIRANTE"],
+  "EMG": ["EMG", "ENERGISA MG", "ENERGISA MINAS"],
+  "EPR": ["EPR", "ENERGISA PR", "FORCEL", "ENERGISA PARANA"],
+  "CELPE": ["CELPE", "NEOENERGIA CELPE"],
+  "CEEE": ["CEEE", "CEEE-D", "CEEE EQUATORIAL", "EQUATORIAL RS"],
+  "RRE": ["RRE", "RORAIMA", "BOA VISTA", "RORAIMA ENERGIA"],
+  "ENEL-CE": ["ENEL-CE", "ENEL CE", "COELCE"],
+  "ENEL-SP": ["ENEL-SP", "ENEL SP", "ELETROPAULO"],
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -221,7 +248,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[sync-tarifas-aneel] ${Object.keys(tarifasPorAgente).length} distribuidoras únicas encontradas`);
+    const agentKeys = Object.keys(tarifasPorAgente).sort();
+    console.log(`[sync-tarifas-aneel] ${agentKeys.length} distribuidoras únicas encontradas: ${agentKeys.join(", ")}`);
 
     // Match and update
     const resultados: { concessionaria: string; tarifa_anterior: number | null; tarifa_nova: number; tusd: number; te: number; vigencia: string; sincronizado: boolean }[] = [];
@@ -229,25 +257,73 @@ Deno.serve(async (req) => {
 
     for (const conc of concParaSincronizar) {
       let tarifa: TarifaAneel | undefined;
+      let matchMethod = "";
 
-      // Try match by sigla first
+      // 1. Try exact sigla match
       if (conc.sigla) {
         const siglaNorm = normalizeStr(conc.sigla);
         tarifa = tarifasPorAgente[siglaNorm];
+        if (tarifa) matchMethod = "sigla-exata";
       }
 
-      // Try match by name
+      // 2. Try known aliases for this sigla
+      if (!tarifa && conc.sigla) {
+        const siglaUpper = conc.sigla.toUpperCase();
+        const aliases = SIGLA_ALIASES[siglaUpper] || [];
+        for (const alias of aliases) {
+          const aliasNorm = normalizeStr(alias);
+          tarifa = tarifasPorAgente[aliasNorm];
+          if (tarifa) { matchMethod = `alias(${alias})`; break; }
+          // Also try in names
+          tarifa = tarifasPorNome[aliasNorm];
+          if (tarifa) { matchMethod = `alias-nome(${alias})`; break; }
+        }
+      }
+
+      // 3. Try exact nome match
       if (!tarifa) {
         const nomeNorm = normalizeStr(conc.nome);
         tarifa = tarifasPorNome[nomeNorm];
+        if (tarifa) matchMethod = "nome-exato";
+      }
 
-        // Partial match: check if conc nome contains any agent sigla
-        if (!tarifa) {
-          for (const [agentKey, agentTarifa] of Object.entries(tarifasPorAgente)) {
-            if (nomeNorm.includes(agentKey) || agentKey.includes(nomeNorm)) {
-              tarifa = agentTarifa;
-              break;
-            }
+      // 4. Try stripped nome match (remove DISTRIBUICAO, ENERGIA, etc.)
+      if (!tarifa) {
+        const nomeStripped = stripSuffixes(normalizeStr(conc.nome));
+        for (const [agentKey, agentTarifa] of Object.entries(tarifasPorAgente)) {
+          const agentStripped = stripSuffixes(agentKey);
+          if (nomeStripped === agentStripped || 
+              nomeStripped.includes(agentStripped) || 
+              agentStripped.includes(nomeStripped)) {
+            tarifa = agentTarifa;
+            matchMethod = `stripped(${agentKey})`;
+            break;
+          }
+        }
+      }
+
+      // 5. Try partial match on nome vs all ANEEL agent names
+      if (!tarifa) {
+        const nomeStripped = stripSuffixes(normalizeStr(conc.nome));
+        for (const [nomeKey, nomeTarifa] of Object.entries(tarifasPorNome)) {
+          const aneelStripped = stripSuffixes(nomeKey);
+          if (nomeStripped.includes(aneelStripped) || 
+              aneelStripped.includes(nomeStripped)) {
+            tarifa = nomeTarifa;
+            matchMethod = `nome-parcial(${nomeKey})`;
+            break;
+          }
+        }
+      }
+
+      // 6. Partial match: check if conc sigla appears inside any ANEEL agent key
+      if (!tarifa && conc.sigla) {
+        const siglaNorm = normalizeStr(conc.sigla);
+        for (const [agentKey, agentTarifa] of Object.entries(tarifasPorAgente)) {
+          if (agentKey.includes(siglaNorm) || siglaNorm.includes(agentKey)) {
+            tarifa = agentTarifa;
+            matchMethod = `sigla-parcial(${agentKey})`;
+            break;
           }
         }
       }
@@ -272,7 +348,7 @@ Deno.serve(async (req) => {
           console.error(`[sync-tarifas-aneel] Erro ao atualizar ${conc.nome}:`, updateError);
           erros.push({ concessionaria: conc.nome, erro: updateError.message });
         } else {
-          console.log(`[sync-tarifas-aneel] ✅ ${conc.nome} (${tarifa.SigAgente}): ${conc.tarifa_energia || '?'} → ${tarifaTotal} R$/kWh (TUSD: ${tusd} + TE: ${te}, vigência: ${tarifa.DatInicioVigencia})`);
+          console.log(`[sync-tarifas-aneel] ✅ ${conc.nome} (${tarifa.SigAgente}) [${matchMethod}]: ${conc.tarifa_energia || '?'} → ${tarifaTotal} R$/kWh (TUSD: ${tusd} + TE: ${te}, vigência: ${tarifa.DatInicioVigencia})`);
           resultados.push({
             concessionaria: conc.nome,
             tarifa_anterior: conc.tarifa_energia,
