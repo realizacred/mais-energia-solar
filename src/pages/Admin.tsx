@@ -276,7 +276,7 @@ export default function Admin() {
         return <InstagramConfig />;
       case "inbox":
         return <WaInbox />;
-      case "quick-replies":
+      case "respostas-rapidas":
         return <WaQuickRepliesManager />;
       case "wa-instances":
         return <WaInstancesManager />;
