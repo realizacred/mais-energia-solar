@@ -322,21 +322,21 @@ function InstanceFormDialog({
             <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex: WhatsApp Vendas" />
           </div>
           <div>
-            <Label>Instance Key (Evolution API) *</Label>
+            <Label>Nome da Instância na Evolution API *</Label>
             <Input
               value={instanceKey}
               onChange={(e) => setInstanceKey(e.target.value)}
-              placeholder="Ex: Mais Energia Solar"
+              placeholder="Ex: Escritorio, MaisEnergia"
               className={`font-mono text-sm ${looksLikeUuid ? "border-destructive focus-visible:ring-destructive" : ""}`}
               disabled={false}
             />
             {looksLikeUuid ? (
               <p className="text-[10px] text-destructive mt-1 font-medium">
-                ⚠️ Isso parece ser a API Key, não o nome da instância. Insira o nome exato da instância como aparece no painel da Evolution API (ex: "Mais Energia Solar").
+                ⚠️ Isso parece ser a API Key/Token. Insira o nome exato da instância como aparece no painel da Evolution API (ex: "Escritorio").
               </p>
             ) : (
               <p className="text-[10px] text-muted-foreground mt-1">
-                Nome exato da instância na Evolution API (ex: "Mais Energia Solar"). <strong>Não</strong> é a API Key.
+                O nome exato como aparece na Evolution API. <strong>Não</strong> é o token/API Key.
               </p>
             )}
           </div>
