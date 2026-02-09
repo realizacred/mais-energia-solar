@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, Loader2, UserCheck, Eye, EyeOff, KeyRound, Unlink } from "lucide-react";
+import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, Loader2, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
 
 interface Vendedor {
   id: string;
@@ -46,15 +46,102 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const [editingVendedor, setEditingVendedor] = useState<Vendedor | null>(null);
   const [vendedorToDelete, setVendedorToDelete] = useState<Vendedor | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar" as "criar" | "vincular", percentual_comissao: "2" });
+  const [formData, setFormData] = useState({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "convite" as "convite" | "criar" | "vincular", percentual_comissao: "2" });
   const [showPassword, setShowPassword] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [saving, setSaving] = useState(false);
   const [fetchedLeads, setFetchedLeads] = useState<{ vendedor: string | null }[]>([]);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+  const [generatingInvite, setGeneratingInvite] = useState<string | null>(null);
   const { toast } = useToast();
 
   const isNewVendedor = !editingVendedor;
   const isLinkingExistingUser = isNewVendedor && formData.tipoAcesso === "vincular";
+  const isInviteFlow = isNewVendedor && formData.tipoAcesso === "convite";
+
+  // Generate invite for a vendedor
+  const generateInvite = async (vendedorId: string, vendedorEmail: string, vendedorTelefone: string) => {
+    try {
+      setGeneratingInvite(vendedorId);
+
+      // Get tenant_id from current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Sessão inválida");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
+      // Revoke previous invites for this vendedor
+      await supabase
+        .from("vendor_invites")
+        .update({ revoked_at: new Date().toISOString() })
+        .eq("vendedor_id", vendedorId)
+        .is("used_at", null)
+        .is("revoked_at", null);
+
+      // Create new invite
+      const { data: invite, error } = await supabase
+        .from("vendor_invites")
+        .insert({
+          vendedor_id: vendedorId,
+          tenant_id: profile.tenant_id,
+          email: vendedorEmail,
+          created_by: user.id,
+        })
+        .select("token")
+        .single();
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/ativar-conta?token=${invite.token}`;
+      setInviteLink(link);
+      setInviteDialogOpen(true);
+
+      toast({
+        title: "Convite gerado!",
+        description: "Copie o link e envie ao vendedor.",
+      });
+
+      return link;
+    } catch (err: any) {
+      toast({
+        title: "Erro ao gerar convite",
+        description: err.message,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setGeneratingInvite(null);
+    }
+  };
+
+  const copyInviteLink = async () => {
+    if (!inviteLink) return;
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+      toast({ title: "Link copiado!" });
+    } catch {
+      toast({ title: "Erro ao copiar", variant: "destructive" });
+    }
+  };
+
+  const sendInviteViaWhatsApp = (telefone: string) => {
+    if (!inviteLink) return;
+    const message = encodeURIComponent(
+      `🔐 Ative sua conta no CRM!\n\nClique no link abaixo para criar sua senha e acessar o sistema:\n\n${inviteLink}\n\n⏰ Este link expira em 48 horas.`
+    );
+    const phone = telefone.replace(/\D/g, "");
+    window.open(`https://wa.me/55${phone}?text=${message}`, "_blank");
+  };
 
   // Fetch leads if not provided via props
   useEffect(() => {
@@ -145,7 +232,16 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
     // Validate based on access type
     if (isNewVendedor) {
-      if (isLinkingExistingUser) {
+      if (isInviteFlow) {
+        if (!formData.email.trim()) {
+          toast({
+            title: "Email obrigatório",
+            description: "Preencha o email para enviar o convite.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else if (isLinkingExistingUser) {
         if (!formData.user_id) {
           toast({
             title: "Usuário obrigatório",
@@ -192,8 +288,32 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
         if (error) throw error;
         toast({ title: "Vendedor atualizado!" });
       } else {
-        // If linking an existing user, skip user creation
-        if (isLinkingExistingUser) {
+        // INVITE FLOW — create vendedor first, then generate invite
+        if (isInviteFlow) {
+          const { data: newVendedor, error: vendedorError } = await supabase
+            .from("vendedores")
+            .insert({
+              nome: formData.nome,
+              telefone: formData.telefone,
+              email: formData.email,
+              percentual_comissao: parseFloat(formData.percentual_comissao) || 0,
+              codigo: "temp",
+            } as any)
+            .select("id")
+            .single();
+
+          if (vendedorError) throw vendedorError;
+
+          // Generate invite link
+          await generateInvite(newVendedor.id, formData.email, formData.telefone);
+
+          toast({
+            title: "Vendedor cadastrado!",
+            description: "Convite gerado. Envie o link ao vendedor.",
+          });
+
+          fetchUsers();
+        } else if (isLinkingExistingUser) {
           const { error: vendedorError } = await supabase
             .from("vendedores")
             .insert({
@@ -202,7 +322,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               email: formData.email || null,
               user_id: formData.user_id,
               percentual_comissao: parseFloat(formData.percentual_comissao) || 0,
-              codigo: "temp", // Will be overwritten by trigger
+              codigo: "temp",
             } as any);
 
           if (vendedorError) throw vendedorError;
@@ -212,96 +332,91 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             description: "Usuário existente vinculado ao Portal do Vendedor.",
           });
 
-          // Refresh users list
           fetchUsers();
         } else {
-        // Create user account first
-        setCreatingUser(true);
-        
-        // Get current session to pass auth token
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          throw new Error("Sessão inválida. Faça login novamente.");
-        }
-        
-        const { data: userResult, error: userError } = await supabase.functions.invoke(
-          "create-vendedor-user",
-          {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
-            body: {
-              email: formData.email,
-              password: formData.senha,
+          // CRIAR ACESSO DIRETO (fallback)
+          setCreatingUser(true);
+          
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) {
+            throw new Error("Sessão inválida. Faça login novamente.");
+          }
+          
+          const { data: userResult, error: userError } = await supabase.functions.invoke(
+            "create-vendedor-user",
+            {
+              headers: {
+                Authorization: `Bearer ${session.access_token}`,
+              },
+              body: {
+                email: formData.email,
+                password: formData.senha,
+                nome: formData.nome,
+                role: "vendedor",
+              },
+            }
+          );
+
+          if (userError) {
+            const parsed = await parseInvokeError(userError);
+            const msg = parsed.message || "Erro ao criar usuário";
+
+            if (isEmailAlreadyRegisteredError(msg)) {
+              setFormData((prev) => ({ ...prev, tipoAcesso: "vincular", senha: "" }));
+              toast({
+                title: "E-mail já cadastrado",
+                description:
+                  "Esse e-mail já existe no sistema. Selecione 'Vincular usuário existente' e escolha o usuário na lista.",
+                variant: "destructive",
+              });
+              return;
+            }
+
+            throw new Error(msg);
+          }
+
+          if (userResult?.error) {
+            const msg = String(userResult.error);
+            if (isEmailAlreadyRegisteredError(msg)) {
+              setFormData((prev) => ({ ...prev, tipoAcesso: "vincular", senha: "" }));
+              toast({
+                title: "E-mail já cadastrado",
+                description:
+                  "Esse e-mail já existe no sistema. Selecione 'Vincular usuário existente' e escolha o usuário na lista.",
+                variant: "destructive",
+              });
+              return;
+            }
+            throw new Error(msg);
+          }
+
+          const newUserId = userResult?.user_id;
+          
+          const { error: vendedorError } = await supabase
+            .from("vendedores")
+            .insert({
               nome: formData.nome,
-              role: "vendedor",
-            },
-          }
-        );
+              telefone: formData.telefone,
+              email: formData.email,
+              user_id: newUserId,
+              percentual_comissao: parseFloat(formData.percentual_comissao) || 0,
+              codigo: "temp",
+            } as any);
 
-        if (userError) {
-          const parsed = await parseInvokeError(userError);
-          const msg = parsed.message || "Erro ao criar usuário";
-
-          if (isEmailAlreadyRegisteredError(msg)) {
-            // Mantém o modal aberto e guia o usuário pro fluxo correto.
-            setFormData((prev) => ({ ...prev, tipoAcesso: "vincular", senha: "" }));
-            toast({
-              title: "E-mail já cadastrado",
-              description:
-                "Esse e-mail já existe no sistema. Selecione 'Vincular usuário existente' e escolha o usuário na lista.",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          throw new Error(msg);
-        }
-
-        if (userResult?.error) {
-          const msg = String(userResult.error);
-          if (isEmailAlreadyRegisteredError(msg)) {
-            setFormData((prev) => ({ ...prev, tipoAcesso: "vincular", senha: "" }));
-            toast({
-              title: "E-mail já cadastrado",
-              description:
-                "Esse e-mail já existe no sistema. Selecione 'Vincular usuário existente' e escolha o usuário na lista.",
-              variant: "destructive",
-            });
-            return;
-          }
-          throw new Error(msg);
-        }
-
-        const newUserId = userResult?.user_id;
-        
-        // Create vendedor with the new user_id
-        const { error: vendedorError } = await supabase
-          .from("vendedores")
-          .insert({
-            nome: formData.nome,
-            telefone: formData.telefone,
-            email: formData.email,
-            user_id: newUserId,
-            percentual_comissao: parseFloat(formData.percentual_comissao) || 0,
-            codigo: "temp", // Will be overwritten by trigger
-          } as any);
-
-        if (vendedorError) throw vendedorError;
-        
-        toast({ 
-          title: "Vendedor cadastrado!", 
-          description: `Acesso criado para ${formData.email}`,
-        });
-        
-        // Refresh users list
-        fetchUsers();
+          if (vendedorError) throw vendedorError;
+          
+          toast({ 
+            title: "Vendedor cadastrado!", 
+            description: `Acesso criado para ${formData.email}`,
+          });
+          
+          fetchUsers();
         }
       }
 
       setIsDialogOpen(false);
       setEditingVendedor(null);
-      setFormData({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar", percentual_comissao: "2" });
+      setFormData({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "convite", percentual_comissao: "2" });
       fetchVendedores();
     } catch (error: any) {
       console.error("Erro ao salvar vendedor:", error);
@@ -406,7 +521,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
   const openNewDialog = () => {
     setEditingVendedor(null);
-    setFormData({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "criar", percentual_comissao: "2" });
+    setFormData({ nome: "", telefone: "", email: "", user_id: "", senha: "", tipoAcesso: "convite", percentual_comissao: "2" });
     setShowPassword(false);
     setIsDialogOpen(true);
   };
@@ -491,6 +606,21 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                             <UserCheck className="w-3 h-3" />
                             {getUserName(vendedor.user_id) || "Vinculado"}
                           </Badge>
+                        ) : vendedor.email ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="gap-1 text-xs"
+                            disabled={generatingInvite === vendedor.id}
+                            onClick={() => generateInvite(vendedor.id, vendedor.email!, vendedor.telefone)}
+                          >
+                            {generatingInvite === vendedor.id ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              <TicketCheck className="w-3 h-3" />
+                            )}
+                            Enviar Convite
+                          </Button>
                         ) : (
                           <span className="text-sm text-muted-foreground">—</span>
                         )}
@@ -614,7 +744,18 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             {isNewVendedor && (
               <div className="space-y-3 rounded-lg border p-4 bg-muted/30">
                 <Label>Tipo de Acesso ao Portal *</Label>
-                <div className="flex gap-4">
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="tipoAcesso"
+                      value="convite"
+                      checked={formData.tipoAcesso === "convite"}
+                      onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "convite", user_id: "", senha: "" }))}
+                      className="w-4 h-4 text-primary"
+                    />
+                    <span className="text-sm font-medium">Enviar convite</span>
+                  </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="radio"
@@ -624,7 +765,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                       onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "criar", user_id: "" }))}
                       className="w-4 h-4 text-primary"
                     />
-                    <span className="text-sm">Criar acesso novo</span>
+                    <span className="text-sm">Criar com senha</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -635,9 +776,33 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                       onChange={() => setFormData(prev => ({ ...prev, tipoAcesso: "vincular", email: "", senha: "" }))}
                       className="w-4 h-4 text-primary"
                     />
-                    <span className="text-sm">Vincular usuário existente</span>
+                    <span className="text-sm">Vincular existente</span>
                   </label>
                 </div>
+                {formData.tipoAcesso === "convite" && (
+                  <p className="text-xs text-muted-foreground">
+                    <TicketCheck className="w-3 h-3 inline mr-1" />
+                    O vendedor receberá um link para criar sua própria senha. Recomendado.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Email para convite */}
+            {isNewVendedor && formData.tipoAcesso === "convite" && (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email do vendedor *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="email@exemplo.com"
+                />
+                <p className="text-xs text-muted-foreground">
+                  <Mail className="w-3 h-3 inline mr-1" />
+                  Será usado para login após ativação do convite.
+                </p>
               </div>
             )}
 
@@ -832,6 +997,44 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Invite Link Dialog */}
+      <Dialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <TicketCheck className="w-5 h-5 text-primary" />
+              Convite Gerado
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Envie este link ao vendedor para que ele ative sua conta. O link expira em 48 horas.
+            </p>
+            <div className="flex gap-2">
+              <Input value={inviteLink || ""} readOnly className="text-xs font-mono" />
+              <Button variant="outline" size="icon" onClick={copyInviteLink}>
+                {inviteCopied ? <Check className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+          </div>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setInviteDialogOpen(false)}>
+              Fechar
+            </Button>
+            <Button
+              onClick={() => {
+                const v = vendedores.find(v => inviteLink?.includes(v.id)) || vendedores[vendedores.length - 1];
+                if (v) sendInviteViaWhatsApp(v.telefone);
+              }}
+              className="gap-2"
+            >
+              <Send className="w-4 h-4" />
+              Enviar via WhatsApp
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

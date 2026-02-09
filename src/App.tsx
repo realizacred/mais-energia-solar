@@ -24,6 +24,7 @@ const Avaliacao = lazy(() => import("./pages/Avaliacao"));
 const Instalador = lazy(() => import("./pages/Instalador"));
 const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
+const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -67,6 +68,7 @@ const App = () => (
               <Route path="/avaliacao" element={<Avaliacao />} />
               <Route path="/instalador" element={<Instalador />} />
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
+              <Route path="/ativar-conta" element={<AtivarConta />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

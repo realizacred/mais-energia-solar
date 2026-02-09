@@ -88,7 +88,7 @@ const passwordSchema = z
   .regex(/[0-9]/, "Senha deve conter pelo menos 1 número");
 
 export const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
+  email: z.string().min(1, "Email ou telefone é obrigatório"),
   password: z.string().min(1, "Senha é obrigatória"),
 });
 
