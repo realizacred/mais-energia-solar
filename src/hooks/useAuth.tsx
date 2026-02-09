@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, useCallback, useRef, createContext, useContext, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,10 +13,88 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const ACCESS_CHECK_INTERVAL = 30_000; // 30 seconds
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+  }, []);
+
+  // Periodically check if user still has access (ativo + has roles)
+  useEffect(() => {
+    if (!user) {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      return;
+    }
+
+    const checkAccess = async () => {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("ativo")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile && profile.ativo === false) {
+          console.warn("[auth] User deactivated, signing out");
+          await signOut();
+          return;
+        }
+
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id);
+
+        if (!roles || roles.length === 0) {
+          console.warn("[auth] User has no roles, signing out");
+          await signOut();
+        }
+      } catch {
+        // Silently ignore — network errors shouldn't log user out
+      }
+    };
+
+    // Run first check after a short delay (avoid blocking initial render)
+    const timeout = setTimeout(checkAccess, 5_000);
+    intervalRef.current = setInterval(checkAccess, ACCESS_CHECK_INTERVAL);
+
+    return () => {
+      clearTimeout(timeout);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [user, signOut]);
+
+  // Also listen to realtime changes on profiles for instant logout
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`profile-access-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          if (payload.new && (payload.new as any).ativo === false) {
+            console.warn("[auth] Profile deactivated via realtime, signing out");
+            signOut();
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, signOut]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -63,10 +141,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     return { error: error as Error | null };
-  };
-
-  const signOut = async () => {
-    await supabase.auth.signOut();
   };
 
   return (
