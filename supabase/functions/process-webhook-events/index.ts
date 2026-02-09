@@ -299,14 +299,16 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
 }
 
 async function handleMessageUpdate(supabase: any, payload: any) {
-  const updates = payload.data || payload.updates || (payload.key ? [payload] : []);
+  const data = payload.data || payload;
+  const updates = Array.isArray(data) ? data : [data];
   
-  for (const update of Array.isArray(updates) ? updates : [updates]) {
-    const key = update.key || {};
-    const evolutionId = key.id || update.id;
+  for (const update of updates) {
+    // Evolution API v2 uses keyId, v1 uses key.id
+    const evolutionId = update.keyId || update.key?.id || update.id;
     if (!evolutionId) continue;
 
-    const statusMap: Record<number, string> = {
+    // Map both numeric (v1) and string (v2) statuses
+    const numericStatusMap: Record<number, string> = {
       0: "pending",
       1: "sent",
       2: "delivered",
@@ -314,13 +316,38 @@ async function handleMessageUpdate(supabase: any, payload: any) {
       4: "read",
     };
 
-    const newStatus = statusMap[update.status || update.update?.status] || null;
-    if (!newStatus) continue;
+    const stringStatusMap: Record<string, string> = {
+      "PENDING": "pending",
+      "SERVER_ACK": "sent",
+      "DELIVERY_ACK": "delivered",
+      "READ": "read",
+      "PLAYED": "read",
+    };
 
-    await supabase
+    const rawStatus = update.status || update.update?.status;
+    const newStatus = typeof rawStatus === "number"
+      ? numericStatusMap[rawStatus]
+      : typeof rawStatus === "string"
+      ? stringStatusMap[rawStatus.toUpperCase()] || null
+      : null;
+
+    if (!newStatus) {
+      console.log(`[process-webhook-events] Unknown message status: ${rawStatus} for ${evolutionId}`);
+      continue;
+    }
+
+    const { data: updated, error } = await supabase
       .from("wa_messages")
       .update({ status: newStatus })
-      .eq("evolution_message_id", evolutionId);
+      .eq("evolution_message_id", evolutionId)
+      .select("id")
+      .maybeSingle();
+
+    if (updated) {
+      console.log(`[process-webhook-events] Message ${evolutionId} status -> ${newStatus}`);
+    } else if (error) {
+      console.warn(`[process-webhook-events] Failed to update message ${evolutionId}:`, error.message);
+    }
   }
 }
 
