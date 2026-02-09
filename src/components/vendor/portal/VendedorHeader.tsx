@@ -11,7 +11,7 @@ interface VendedorHeaderProps {
 }
 
 export function VendedorHeader({ vendedorNome, isAdminMode, isViewingAsVendedor, onSignOut }: VendedorHeaderProps) {
-  const logo = useLogo("small");
+  const logo = useLogo({ variant: "small" });
   const displayName = isAdminMode && !isViewingAsVendedor ? "Administrador" : vendedorNome;
   
   return (

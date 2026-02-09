@@ -1,14 +1,12 @@
 import { forwardRef } from "react";
 import { Phone, Mail, MapPin, Instagram } from "lucide-react";
-import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useLogo } from "@/hooks/useLogo";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
-import logoBrancaFallback from "@/assets/logo-branca.png";
 
 const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
-  const { settings: brandSettings } = useBrandSettings();
+  const logoBranca = useLogo({ onDarkBg: true });
   const { get } = useSiteSettings();
 
-  const logoBranca = brandSettings?.logo_white_url || brandSettings?.logo_url || logoBrancaFallback;
   const nomeEmpresa = get("nome_empresa");
   const slogan = get("slogan");
   const telefone = get("telefone");

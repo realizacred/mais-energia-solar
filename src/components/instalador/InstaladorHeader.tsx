@@ -12,7 +12,7 @@
  }
  
  export function InstaladorHeader({ userName, onSignOut, isAdminMode = false }: InstaladorHeaderProps) {
-    const logo = useLogo("small");
+    const logo = useLogo({ variant: "small" });
    return (
      <header className="sticky top-0 z-50 border-b bg-background">
        <div className="container mx-auto px-4">
