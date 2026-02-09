@@ -208,7 +208,7 @@ export default function VendedorPortal() {
 
           {/* WhatsApp Tab */}
           <TabsContent value="whatsapp" className="space-y-4 sm:space-y-6 mt-4">
-            <WhatsAppInbox vendorMode />
+            <WhatsAppInbox vendorMode vendorUserId={vendedor?.user_id || undefined} />
           </TabsContent>
 
           {/* Agenda Tab */}

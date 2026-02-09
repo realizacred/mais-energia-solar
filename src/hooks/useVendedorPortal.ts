@@ -15,6 +15,7 @@ export interface VendedorProfile {
   slug: string;
   telefone: string;
   email: string | null;
+  user_id: string | null;
 }
  
  // Special admin profile when admin accesses without vendedor record
@@ -25,6 +26,7 @@ const ADMIN_PROFILE: VendedorProfile = {
   slug: "admin",
   telefone: "",
   email: null,
+  user_id: null,
 };
  
  // Convert orcamento to Lead format
