@@ -6207,6 +6207,8 @@ export type Database = {
         Row: {
           answered_at: string | null
           attendant_user_id: string | null
+          cliente_nome: string | null
+          cliente_telefone: string | null
           conversation_id: string
           created_at: string
           feedback: string | null
@@ -6218,6 +6220,8 @@ export type Database = {
         Insert: {
           answered_at?: string | null
           attendant_user_id?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
           conversation_id: string
           created_at?: string
           feedback?: string | null
@@ -6229,6 +6233,8 @@ export type Database = {
         Update: {
           answered_at?: string | null
           attendant_user_id?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string | null
           conversation_id?: string
           created_at?: string
           feedback?: string | null
