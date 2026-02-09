@@ -76,7 +76,7 @@ const Footer = forwardRef<HTMLElement>(function Footer(props, ref) {
                 </a>
               )}
               <a
-                href={`https://wa.me/${whatsapp}?text=Ol%C3%A1%2C%20gostaria%20de%20um%20or%C3%A7amento%20de%20energia%20solar`}
+                href={`https://wa.me/${whatsapp}?text=${encodeURIComponent((get as any)("whatsapp_mensagem_padrao") || "Olá, gostaria de um orçamento de energia solar")}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-7 h-7 rounded-full bg-secondary-foreground/8 hover:bg-primary/20 flex items-center justify-center transition-colors group"

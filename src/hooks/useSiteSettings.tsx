@@ -26,7 +26,8 @@ const DEFAULTS: Partial<SiteSettingsRow> = {
   stat_economia_percentual: 90,
   texto_sobre: "A Mais Energia Solar foi fundada em 2009, atuando inicialmente no ramo de reparos em eletrônicos. A partir de 2019, acompanhando as tendências do mercado, passamos a nos especializar em Energia Solar Fotovoltaica, Projetos Elétricos e Soluções Sustentáveis.",
   texto_sobre_resumido: "Hoje, somos referência no desenvolvimento e instalação de sistemas de energia solar e também em bombas solares para irrigação, oferecendo soluções inovadoras para propriedades residenciais, comerciais, industriais e rurais.",
-};
+  whatsapp_mensagem_padrao: "Olá! Vi o site de vocês e gostaria de mais informações sobre energia solar.",
+} as Partial<SiteSettingsRow>;
 
 interface SiteSettingsContextType {
   settings: SiteSettingsRow | null;

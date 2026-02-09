@@ -11,13 +11,14 @@ interface WhatsAppButtonProps {
 
 const WhatsAppButton = forwardRef<HTMLDivElement, WhatsAppButtonProps>(function WhatsAppButton({ 
   phoneNumber, 
-  message = "Olá! Gostaria de saber mais sobre energia solar." 
+  message 
 }, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const { get } = useSiteSettings();
 
   const nomeEmpresa = get("nome_empresa");
   const whatsapp = phoneNumber || get("whatsapp") || "5532998437675";
+  const whatsappMessage = message || (get as any)("whatsapp_mensagem_padrao") || "Olá! Gostaria de saber mais sobre energia solar.";
 
   const formatPhoneForWhatsApp = (phone: string) => {
     return phone.replace(/\D/g, "");
@@ -25,7 +26,7 @@ const WhatsAppButton = forwardRef<HTMLDivElement, WhatsAppButtonProps>(function 
 
   const openWhatsApp = () => {
     const formattedPhone = formatPhoneForWhatsApp(whatsapp);
-    const encodedMessage = encodeURIComponent(message);
+    const encodedMessage = encodeURIComponent(whatsappMessage);
     const url = `https://wa.me/${formattedPhone}?text=${encodedMessage}`;
     window.open(url, "_blank", "noopener,noreferrer");
   };
