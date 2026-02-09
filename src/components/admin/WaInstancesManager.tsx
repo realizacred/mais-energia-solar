@@ -290,8 +290,13 @@ function InstanceFormDialog({
     }
   }, [open, instance]);
 
+  // Detect if value looks like a UUID (API Key) instead of an instance name
+  const looksLikeUuid = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(instanceKey.trim()) ||
+    /^[0-9A-F]{20,}$/i.test(instanceKey.trim().replace(/-/g, ""));
+  
   const handleSubmit = async () => {
     if (!nome.trim() || !instanceKey.trim() || !apiUrl.trim()) return;
+    if (looksLikeUuid) return; // Block submission if it looks like UUID/API Key
     setSaving(true);
     try {
       await onSave({
@@ -321,13 +326,19 @@ function InstanceFormDialog({
             <Input
               value={instanceKey}
               onChange={(e) => setInstanceKey(e.target.value)}
-              placeholder="minha-instancia"
-              className="font-mono text-sm"
+              placeholder="Ex: Mais Energia Solar"
+              className={`font-mono text-sm ${looksLikeUuid ? "border-destructive focus-visible:ring-destructive" : ""}`}
               disabled={false}
             />
-            <p className="text-[10px] text-muted-foreground mt-1">
-              Nome da instância na Evolution API (ex: "Mais Energia Solar"). Não é a API Key.
-            </p>
+            {looksLikeUuid ? (
+              <p className="text-[10px] text-destructive mt-1 font-medium">
+                ⚠️ Isso parece ser a API Key, não o nome da instância. Insira o nome exato da instância como aparece no painel da Evolution API (ex: "Mais Energia Solar").
+              </p>
+            ) : (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                Nome exato da instância na Evolution API (ex: "Mais Energia Solar"). <strong>Não</strong> é a API Key.
+              </p>
+            )}
           </div>
           <div>
             <Label>URL da Evolution API *</Label>
@@ -355,7 +366,7 @@ function InstanceFormDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!nome.trim() || !instanceKey.trim() || saving}>
+          <Button onClick={handleSubmit} disabled={!nome.trim() || !instanceKey.trim() || looksLikeUuid || saving}>
             {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             {instance ? "Salvar" : "Criar Instância"}
           </Button>
