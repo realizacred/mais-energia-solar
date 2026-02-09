@@ -75,8 +75,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Busca config (RLS)
-    const { data: config, error: configError } = await supabase
+    // Use service role to read config (bypasses RLS — config is system-level, not user-specific)
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Busca config (service role — RLS blocks vendedores)
+    const { data: config, error: configError } = await supabaseAdmin
       .from("whatsapp_automation_config")
       .select("ativo, modo_envio, webhook_url, api_token, evolution_api_url, evolution_api_key, evolution_instance")
       .maybeSingle();
@@ -150,11 +156,7 @@ Deno.serve(async (req) => {
       let evoApiKey = globalApiKey;
       let evoInstance = "";
 
-      // Use service role to read wa_instances (bypasses RLS)
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
+      // supabaseAdmin already declared above
 
       // Try to resolve from wa_instances first
       const instanceKey = instance_id || config.evolution_instance;
