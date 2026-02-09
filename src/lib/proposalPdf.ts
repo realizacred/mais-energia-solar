@@ -44,6 +44,7 @@ interface ProposalData {
   // Empresa
   empresaNome?: string;
   empresaTelefone?: string;
+  logoUrl?: string;
 }
 
 const COLORS = {
@@ -70,6 +71,27 @@ function formatNumber(value: number): string {
   }).format(value);
 }
 
+async function loadImageAsBase64(url: string): Promise<string | null> {
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    await new Promise<void>((resolve, reject) => {
+      img.onload = () => resolve();
+      img.onerror = () => reject(new Error("Failed to load image"));
+      img.src = url;
+    });
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    ctx.drawImage(img, 0, 0);
+    return canvas.toDataURL("image/png");
+  } catch {
+    return null;
+  }
+}
+
 export async function generateProposalPdf(data: ProposalData): Promise<Blob> {
   const doc = new jsPDF({
     orientation: "portrait",
@@ -82,19 +104,35 @@ export async function generateProposalPdf(data: ProposalData): Promise<Blob> {
   const margin = 15;
   let y = margin;
 
+  // Load logo if available
+  let logoBase64: string | null = null;
+  if (data.logoUrl) {
+    logoBase64 = await loadImageAsBase64(data.logoUrl);
+  }
+
   // Header with gradient effect
   doc.setFillColor(COLORS.primary[0], COLORS.primary[1], COLORS.primary[2]);
   doc.rect(0, 0, pageWidth, 45, "F");
 
-  // Company name
+  // Logo or company name
+  let textStartX = margin;
+  if (logoBase64) {
+    try {
+      doc.addImage(logoBase64, "PNG", margin, 8, 30, 30);
+      textStartX = margin + 35;
+    } catch {
+      // fallback to text
+    }
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
-  doc.text(data.empresaNome || "MAIS ENERGIA SOLAR", margin, 25);
+  doc.text(data.empresaNome || "MAIS ENERGIA SOLAR", textStartX, 25);
   
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text(data.empresaTelefone || "(00) 00000-0000", margin, 35);
+  doc.text(data.empresaTelefone || "(00) 00000-0000", textStartX, 35);
 
   // Proposal title
   doc.setFontSize(12);
