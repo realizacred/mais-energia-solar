@@ -18,6 +18,7 @@ export interface Lead {
   consumo_previsto: number;
   observacoes: string | null;
   vendedor: string | null;
+  vendedor_id: string | null;
   arquivos_urls: string[] | null;
   status_id: string | null;
   visto: boolean;
@@ -25,13 +26,28 @@ export interface Lead {
   ultimo_contato: string | null;
   proxima_acao: string | null;
   data_proxima_acao: string | null;
+  valor_estimado: number | null;
+  motivo_perda_id: string | null;
+  motivo_perda_obs: string | null;
+  distribuido_em: string | null;
   created_at: string;
   updated_at: string;
+  /** Joined from vendedores table */
+  vendedor_nome?: string;
 }
 
 export interface LeadStatus {
   id: string;
   nome: string;
   cor: string;
+  ordem: number;
+  probabilidade_peso?: number;
+  motivo_perda_obrigatorio?: boolean;
+}
+
+export interface MotivoPerda {
+  id: string;
+  nome: string;
+  ativo: boolean;
   ordem: number;
 }

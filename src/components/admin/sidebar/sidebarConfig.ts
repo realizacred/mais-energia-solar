@@ -38,6 +38,8 @@ import {
   SunMedium,
   Cpu,
   Battery,
+  RotateCcw,
+  XCircle,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -108,6 +110,18 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "pipeline", title: "Pipeline", icon: Kanban },
       { id: "followup", title: "Follow-ups", icon: Bell },
       {
+        id: "distribuicao",
+        title: "Distribuição",
+        icon: RotateCcw,
+        description: "Regras & fila de leads",
+      },
+      {
+        id: "sla-breaches",
+        title: "SLA & Breaches",
+        icon: AlertTriangle,
+        description: "Violações de prazo",
+      },
+      {
         id: "propostas",
         title: "Propostas",
         icon: FileText,
@@ -119,6 +133,11 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         title: "Status de Leads",
         icon: Kanban,
         separator: true,
+      },
+      {
+        id: "motivos-perda",
+        title: "Motivos de Perda",
+        icon: XCircle,
       },
       {
         id: "inteligencia",
