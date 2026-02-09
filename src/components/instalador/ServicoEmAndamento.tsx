@@ -164,17 +164,21 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
 
   const uploadAudio = async (blob: Blob) => {
     try {
-      const fileName = `${userId || 'unknown'}/${servico.id}/audio_${Date.now()}.webm`;
+      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+      const tid = await getCurrentTenantId();
+      const basePath = tid
+        ? tenantPath(tid, userId || 'unknown', servico.id, `audio_${Date.now()}.webm`)
+        : `${userId || 'unknown'}/${servico.id}/audio_${Date.now()}.webm`;
       
       const { error } = await supabase.storage
         .from('checklist-assets')
-        .upload(fileName, blob, { upsert: true });
+        .upload(basePath, blob, { upsert: true });
 
       if (error) throw error;
 
       const { data: urlData } = supabase.storage
         .from('checklist-assets')
-        .getPublicUrl(fileName);
+        .getPublicUrl(basePath);
 
       setAudioUrl(urlData.publicUrl);
       toast({
@@ -237,21 +241,25 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
   // Handle photo upload for checklist item
   const handlePhotoUpload = async (itemKey: string, files: File[]) => {
     try {
+      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+      const tid = await getCurrentTenantId();
       const uploadedUrls: string[] = [];
       
       for (const file of files) {
         const fileExt = file.name.split('.').pop();
-        const fileName = `${userId || 'unknown'}/${servico.id}/${itemKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+        const photoPath = tid
+          ? tenantPath(tid, userId || 'unknown', servico.id, `${itemKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`)
+          : `${userId || 'unknown'}/${servico.id}/${itemKey}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
         
         const { error } = await supabase.storage
           .from('checklist-assets')
-          .upload(fileName, file, { upsert: true });
+          .upload(photoPath, file, { upsert: true });
 
         if (error) throw error;
 
         const { data: urlData } = supabase.storage
           .from('checklist-assets')
-          .getPublicUrl(fileName);
+          .getPublicUrl(photoPath);
 
         uploadedUrls.push(urlData.publicUrl);
       }

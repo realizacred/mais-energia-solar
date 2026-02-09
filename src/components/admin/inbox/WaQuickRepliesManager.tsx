@@ -288,8 +288,12 @@ export function WaQuickRepliesManager() {
     if (mediaFile) {
       setUploading(true);
       try {
+        const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+        const tid = await getCurrentTenantId();
         const ext = mediaFile.name.split(".").pop() || "bin";
-        const filePath = `quick-replies/${Date.now()}.${ext}`;
+        const filePath = tid
+          ? tenantPath(tid, "quick-replies", `${Date.now()}.${ext}`)
+          : `quick-replies/${Date.now()}.${ext}`;
         const { error: uploadError } = await supabase.storage
           .from("wa-attachments")
           .upload(filePath, mediaFile);

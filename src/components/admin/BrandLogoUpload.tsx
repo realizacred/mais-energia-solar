@@ -1,10 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Upload, Trash2, Loader2, ImageIcon, Link2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 
 interface BrandLogoUploadProps {
   label: string;
@@ -47,8 +48,10 @@ export function BrandLogoUpload({
     setUploading(true);
 
     try {
+      const tid = await getCurrentTenantId();
+      if (!tid) throw new Error("Tenant não encontrado");
       const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-      const fileName = `${folder}/${Date.now()}.${ext}`;
+      const fileName = tenantPath(tid, folder, `${Date.now()}.${ext}`);
 
       // Delete old file if it's from our bucket
       if (value && value.includes("brand-assets")) {

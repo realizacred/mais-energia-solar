@@ -63,8 +63,13 @@
     const uploadVideo = async (blob: Blob) => {
       setIsUploading(true);
       try {
+        const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+        const tid = await getCurrentTenantId();
         const { data: { user } } = await supabase.auth.getUser();
-        const fileName = `${user?.id || 'unknown'}/${servicoId}/video_${Date.now()}.webm`;
+        const userId = user?.id || 'unknown';
+        const fileName = tid
+          ? tenantPath(tid, userId, servicoId, `video_${Date.now()}.webm`)
+          : `${userId}/${servicoId}/video_${Date.now()}.webm`;
        
        const { error } = await supabase.storage
          .from('checklist-assets')

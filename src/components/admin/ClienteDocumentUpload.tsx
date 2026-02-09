@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -98,6 +99,8 @@ export function ClienteDocumentUpload({ clienteId, documents, onDocumentsChange 
   const handleUpload = useCallback(async (field: DocCategory, files: FileList) => {
     setUploadingField(field);
     try {
+      const tid = await getCurrentTenantId();
+      if (!tid) throw new Error("Tenant não encontrado");
       const uploadedPaths: string[] = [];
 
       for (const file of Array.from(files)) {
@@ -107,7 +110,7 @@ export function ClienteDocumentUpload({ clienteId, documents, onDocumentsChange 
         }
 
         const ext = file.name.split(".").pop();
-        const fileName = `${clienteId}/${field}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
+        const fileName = tenantPath(tid, clienteId, field, `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`);
 
         const { error } = await supabase.storage
           .from("documentos-clientes")

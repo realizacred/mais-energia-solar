@@ -1,13 +1,16 @@
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
 import { Upload, X, FileText, Image, Loader2, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { buildStoragePath, resolvePublicTenantId, tenantPath } from "@/lib/storagePaths";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FileUploadProps {
   onFilesChange: (urls: string[]) => void;
   maxFiles?: number;
   maxSizeMB?: number;
+  /** Vendedor code for resolving tenant on anonymous uploads */
+  vendedorCode?: string | null;
 }
 
 interface UploadedFile {
@@ -20,15 +23,35 @@ interface UploadedFile {
 export default function FileUpload({ 
   onFilesChange, 
   maxFiles = 10, 
-  maxSizeMB = 10 
+  maxSizeMB = 10,
+  vendedorCode,
 }: FileUploadProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  // Resolve tenant_id on mount (authenticated or anon)
+  useEffect(() => {
+    (async () => {
+      try {
+        const tid = await buildStoragePath("_probe").then(p => p.split("/")[0]).catch(() => null);
+        if (tid) {
+          setTenantId(tid);
+        } else {
+          const publicTid = await resolvePublicTenantId(vendedorCode);
+          setTenantId(publicTid);
+        }
+      } catch {
+        const publicTid = await resolvePublicTenantId(vendedorCode);
+        setTenantId(publicTid);
+      }
+    })();
+  }, [vendedorCode]);
 
   const formatFileSize = (bytes: number) => {
     return (bytes / 1024 / 1024).toFixed(1) + " MB";
@@ -59,7 +82,9 @@ export default function FileUpload({
   const uploadFile = async (file: File): Promise<UploadedFile | null> => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-    const filePath = `uploads/${fileName}`;
+    const filePath = tenantId
+      ? tenantPath(tenantId, "uploads", fileName)
+      : `uploads/${fileName}`;
 
     const { error } = await supabase.storage
       .from('contas-luz')
@@ -69,10 +94,6 @@ export default function FileUpload({
       console.error('Upload error:', error);
       throw new Error('Erro ao fazer upload do arquivo');
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('contas-luz')
-      .getPublicUrl(filePath);
 
     return {
       name: file.name,

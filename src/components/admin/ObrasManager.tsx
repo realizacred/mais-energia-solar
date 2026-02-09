@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
+import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -181,9 +182,11 @@ export function ObrasManager() {
     setUploadingImages(true);
     const newUrls: string[] = [];
     try {
+      const tid = await getCurrentTenantId();
+      if (!tid) throw new Error("Tenant não encontrado");
       for (const file of Array.from(files)) {
         const ext = file.name.split(".").pop();
-        const path = `${crypto.randomUUID()}.${ext}`;
+        const path = tenantPath(tid, `${crypto.randomUUID()}.${ext}`);
         const { error: uploadError } = await supabase.storage
           .from("obras-portfolio")
           .upload(path, file, { cacheControl: "3600", upsert: false });
