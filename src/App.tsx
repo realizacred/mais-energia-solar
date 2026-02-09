@@ -23,6 +23,7 @@ const Instalar = lazy(() => import("./pages/Instalar"));
 const Avaliacao = lazy(() => import("./pages/Avaliacao"));
 const Instalador = lazy(() => import("./pages/Instalador"));
 const PendingApproval = lazy(() => import("./pages/PendingApproval"));
+const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -58,6 +59,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/portal" element={<PortalSelector />} />
               <Route path="/admin/*" element={<Admin />} />
+              <Route path="/super-admin" element={<SuperAdmin />} />
               <Route path="/vendedor" element={<VendedorPortal />} />
               <Route path="/calculadora" element={<Calculadora />} />
               <Route path="/checklist" element={<Checklist />} />
