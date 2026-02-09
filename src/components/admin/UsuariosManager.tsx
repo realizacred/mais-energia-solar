@@ -62,6 +62,7 @@ import {
   UserX,
   UserCheck,
   KeyRound,
+  Pencil,
 } from "lucide-react";
 
 interface UserRole {
@@ -120,6 +121,9 @@ export function UsuariosManager() {
   const [userToDeactivate, setUserToDeactivate] = useState<UserWithRoles | null>(null);
   const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
   const [userToResetPassword, setUserToResetPassword] = useState<UserWithRoles | null>(null);
+  const [userToEdit, setUserToEdit] = useState<UserWithRoles | null>(null);
+  const [editName, setEditName] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -565,6 +569,34 @@ export function UsuariosManager() {
     }
   };
 
+  const handleEditUser = async () => {
+    if (!userToEdit || !editName.trim()) return;
+
+    setIsEditing(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ nome: editName.trim() })
+        .eq("user_id", userToEdit.user_id);
+
+      if (error) throw error;
+
+      toast({ title: "Usuário atualizado!", description: `Nome alterado para "${editName.trim()}".` });
+      setUserToEdit(null);
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error editing user:", error);
+      toast({ title: "Erro ao editar", description: error.message, variant: "destructive" });
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const openEditDialog = (u: UserWithRoles) => {
+    setUserToEdit(u);
+    setEditName(u.nome);
+  };
+
   if (loading) {
     return (
       <Card>
@@ -697,6 +729,10 @@ export function UsuariosManager() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => openEditDialog(user)}>
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                              </DropdownMenuItem>
                               <DropdownMenuItem 
                                 onClick={() => setUserToDeactivate(user)}
                                 className={user.ativo ? "text-amber-600" : "text-green-600"}
@@ -945,6 +981,45 @@ export function UsuariosManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={!!userToEdit} onOpenChange={(open) => !open && setUserToEdit(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogDescription>
+              Altere os dados do usuário {userToEdit?.nome}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-nome">Nome completo</Label>
+              <Input
+                id="edit-nome"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Nome do usuário"
+              />
+            </div>
+            {userToEdit?.email && (
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input value={userToEdit.email} disabled className="opacity-60" />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUserToEdit(null)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditUser} disabled={isEditing || !editName.trim()}>
+              {isEditing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {LimitDialog}
     </>
   );
