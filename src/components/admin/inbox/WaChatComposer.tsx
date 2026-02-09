@@ -208,6 +208,26 @@ export function WaChatComposer({
     [inputValue]
   );
 
+  // ── Paste image from clipboard ──
+  const handlePaste = useCallback((e: React.ClipboardEvent) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith("image/")) {
+        e.preventDefault();
+        const file = items[i].getAsFile();
+        if (!file) return;
+        if (file.size > 16 * 1024 * 1024) {
+          toast({ title: "Imagem muito grande", description: "Máximo 16MB", variant: "destructive" });
+          return;
+        }
+        onSendMedia(file, inputValue.trim() || undefined);
+        setInputValue("");
+        return;
+      }
+    }
+  }, [onSendMedia, inputValue, toast]);
+
   // ── File Upload ──
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -445,6 +465,7 @@ export function WaChatComposer({
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite uma mensagem..."}
           className={`flex-1 min-h-[36px] max-h-[120px] resize-none text-sm leading-snug py-2 ${isNoteMode ? "border-warning/30 bg-warning/5" : ""}`}
           rows={1}
