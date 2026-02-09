@@ -42,31 +42,30 @@ interface WaLinkLeadSearchProps {
   onLink: (leadId: string | null) => void;
 }
 
+// Strip country code "55" prefix and format for better matching
+const stripCountryCode = (phone: string) => {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length >= 12) {
+    return digits.substring(2);
+  }
+  return digits;
+};
+
 export function WaLinkLeadSearch({
   open,
   onOpenChange,
   conversation,
   onLink,
 }: WaLinkLeadSearchProps) {
-  const [search, setSearch] = useState("");
+  const initialPhone = stripCountryCode(conversation?.cliente_telefone || "");
+  const [search, setSearch] = useState(initialPhone);
   const [tab, setTab] = useState<"leads" | "clientes">("leads");
 
-  // Strip country code "55" prefix and format for better matching
-  const stripCountryCode = (phone: string) => {
-    if (!phone) return "";
-    const digits = phone.replace(/\D/g, "");
-    // Remove leading 55 (Brazil country code) if present and phone is long enough
-    if (digits.startsWith("55") && digits.length >= 12) {
-      return digits.substring(2);
-    }
-    return digits;
-  };
-
-  // Reset search when opening
+  // Reset search when dialog opens or conversation changes
   useEffect(() => {
     if (open) {
-      const phone = conversation?.cliente_telefone || "";
-      setSearch(stripCountryCode(phone));
+      setSearch(stripCountryCode(conversation?.cliente_telefone || ""));
     }
   }, [open, conversation?.cliente_telefone]);
 
