@@ -81,7 +81,7 @@ const EMPTY_FORM: QuickReplyForm = {
   conteudo: "",
   emoji: "💬",
   categoria: "geral",
-  media_type: "",
+  media_type: "none",
 };
 
 const EMOJI_OPTIONS = ["💬", "👋", "📋", "🔄", "🙏", "🔧", "💰", "📊", "⚡", "🏠", "📱", "🎉", "⭐", "📦", "🚀"];
@@ -265,7 +265,7 @@ export function WaQuickRepliesManager() {
         conteudo: reply.conteudo,
         emoji: reply.emoji || "💬",
         categoria: reply.categoria || "geral",
-        media_type: reply.media_type || "",
+        media_type: reply.media_type || "none",
       });
     } else {
       setEditing(null);
@@ -312,46 +312,13 @@ export function WaQuickRepliesManager() {
       conteudo: form.conteudo.trim(),
       emoji: form.emoji,
       categoria: form.categoria,
-      media_url: form.media_type ? mediaUrl : null,
-      media_type: form.media_type || null,
-      media_filename: form.media_type ? mediaFilename : null,
+      media_url: form.media_type && form.media_type !== "none" ? mediaUrl : null,
+      media_type: form.media_type && form.media_type !== "none" ? form.media_type : null,
+      media_filename: form.media_type && form.media_type !== "none" ? mediaFilename : null,
     });
   };
 
-  if (isLoading) {
-    return <div className="flex justify-center p-8">Carregando...</div>;
-  }
-
-  const openCatDialog = (cat?: QRCategory) => {
-    if (cat) {
-      setEditingCat(cat);
-      setCatForm({ nome: cat.nome, slug: cat.slug, cor: cat.cor, emoji: cat.emoji || "💬", ordem: cat.ordem });
-    } else {
-      setEditingCat(null);
-      setCatForm({ nome: "", slug: "", cor: COLOR_OPTIONS[0].value, emoji: "💬", ordem: categories.length });
-    }
-    setCatDialogOpen(true);
-  };
-
-  const handleSaveCat = () => {
-    if (!catForm.nome.trim()) {
-      toast({ title: "Preencha o nome da categoria", variant: "destructive" });
-      return;
-    }
-    const slug = catForm.slug.trim() || catForm.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    saveCategory({
-      ...(editingCat ? { id: editingCat.id } : {}),
-      nome: catForm.nome.trim(),
-      slug,
-      cor: catForm.cor,
-      emoji: catForm.emoji,
-      ordem: catForm.ordem,
-      ativo: true,
-    });
-    setCatDialogOpen(false);
-  };
-
-  // ── Text formatting helpers ──
+  // ── Text formatting helpers (hooks must be before any conditional returns) ──
   const wrapContentSelection = useCallback(
     (prefix: string, suffix?: string) => {
       const textarea = contentRef.current;
@@ -394,6 +361,40 @@ export function WaQuickRepliesManager() {
       textarea.setSelectionRange(pos, pos);
     }, 0);
   }, [form.conteudo]);
+
+  // ── Non-hook helpers ──
+  const openCatDialog = (cat?: QRCategory) => {
+    if (cat) {
+      setEditingCat(cat);
+      setCatForm({ nome: cat.nome, slug: cat.slug, cor: cat.cor, emoji: cat.emoji || "💬", ordem: cat.ordem });
+    } else {
+      setEditingCat(null);
+      setCatForm({ nome: "", slug: "", cor: COLOR_OPTIONS[0].value, emoji: "💬", ordem: categories.length });
+    }
+    setCatDialogOpen(true);
+  };
+
+  const handleSaveCat = () => {
+    if (!catForm.nome.trim()) {
+      toast({ title: "Preencha o nome da categoria", variant: "destructive" });
+      return;
+    }
+    const slug = catForm.slug.trim() || catForm.nome.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    saveCategory({
+      ...(editingCat ? { id: editingCat.id } : {}),
+      nome: catForm.nome.trim(),
+      slug,
+      cor: catForm.cor,
+      emoji: catForm.emoji,
+      ordem: catForm.ordem,
+      ativo: true,
+    });
+    setCatDialogOpen(false);
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8">Carregando...</div>;
+  }
 
   return (
     <Card>
@@ -789,7 +790,7 @@ export function WaQuickRepliesManager() {
                 <Label>Mídia (opcional)</Label>
                 <Select
                   value={form.media_type}
-                  onValueChange={(v) => setForm(p => ({ ...p, media_type: v === "none" ? "" : v }))}
+                  onValueChange={(v) => setForm(p => ({ ...p, media_type: v }))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sem mídia" />
@@ -802,7 +803,7 @@ export function WaQuickRepliesManager() {
                     <SelectItem value="document">📄 Documento</SelectItem>
                   </SelectContent>
                 </Select>
-                {form.media_type && (
+                {form.media_type && form.media_type !== "none" && (
                   <div className="space-y-1">
                     <Input
                       type="file"
