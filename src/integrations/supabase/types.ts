@@ -103,6 +103,74 @@ export type Database = {
           },
         ]
       }
+      baterias: {
+        Row: {
+          ativo: boolean
+          corrente_max_carga_a: number | null
+          corrente_max_descarga_a: number | null
+          correntes_recomendadas_a: string | null
+          created_at: string
+          dimensoes_mm: string | null
+          energia_kwh: number | null
+          fabricante: string
+          id: string
+          modelo: string
+          potencia_max_saida_kw: number | null
+          tenant_id: string | null
+          tensao_carga_v: number | null
+          tensao_nominal_v: number | null
+          tensao_operacao_v: string | null
+          tipo_bateria: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          corrente_max_carga_a?: number | null
+          corrente_max_descarga_a?: number | null
+          correntes_recomendadas_a?: string | null
+          created_at?: string
+          dimensoes_mm?: string | null
+          energia_kwh?: number | null
+          fabricante: string
+          id?: string
+          modelo: string
+          potencia_max_saida_kw?: number | null
+          tenant_id?: string | null
+          tensao_carga_v?: number | null
+          tensao_nominal_v?: number | null
+          tensao_operacao_v?: string | null
+          tipo_bateria?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          corrente_max_carga_a?: number | null
+          corrente_max_descarga_a?: number | null
+          correntes_recomendadas_a?: string | null
+          created_at?: string
+          dimensoes_mm?: string | null
+          energia_kwh?: number | null
+          fabricante?: string
+          id?: string
+          modelo?: string
+          potencia_max_saida_kw?: number | null
+          tenant_id?: string | null
+          tensao_carga_v?: number | null
+          tensao_nominal_v?: number | null
+          tensao_operacao_v?: string | null
+          tipo_bateria?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "baterias_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       brand_settings: {
         Row: {
           allow_theme_switch: boolean
@@ -1726,6 +1794,74 @@ export type Database = {
           },
         ]
       }
+      inversores: {
+        Row: {
+          ativo: boolean
+          corrente_max_mppt_a: number | null
+          created_at: string
+          eficiencia_percent: string | null
+          fabricante: string
+          id: string
+          modelo: string
+          mppts: number | null
+          potencia_maxima_w: number | null
+          potencia_nominal_w: number
+          tenant_id: string | null
+          tensao_linha_v: number | null
+          tensao_max_mppt_v: number | null
+          tensao_max_v: number | null
+          tensao_min_mppt_v: number | null
+          tipo_sistema: Database["public"]["Enums"]["tipo_sistema_inversor"]
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          corrente_max_mppt_a?: number | null
+          created_at?: string
+          eficiencia_percent?: string | null
+          fabricante: string
+          id?: string
+          modelo: string
+          mppts?: number | null
+          potencia_maxima_w?: number | null
+          potencia_nominal_w: number
+          tenant_id?: string | null
+          tensao_linha_v?: number | null
+          tensao_max_mppt_v?: number | null
+          tensao_max_v?: number | null
+          tensao_min_mppt_v?: number | null
+          tipo_sistema?: Database["public"]["Enums"]["tipo_sistema_inversor"]
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          corrente_max_mppt_a?: number | null
+          created_at?: string
+          eficiencia_percent?: string | null
+          fabricante?: string
+          id?: string
+          modelo?: string
+          mppts?: number | null
+          potencia_maxima_w?: number | null
+          potencia_nominal_w?: number
+          tenant_id?: string | null
+          tensao_linha_v?: number | null
+          tensao_max_mppt_v?: number | null
+          tensao_max_v?: number | null
+          tensao_min_mppt_v?: number | null
+          tipo_sistema?: Database["public"]["Enums"]["tipo_sistema_inversor"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inversores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layouts_solares: {
         Row: {
           cliente_id: string | null
@@ -2241,6 +2377,77 @@ export type Database = {
             columns: ["vendedor_id"]
             isOneToOne: false
             referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modulos_fotovoltaicos: {
+        Row: {
+          ativo: boolean
+          coef_temp: string | null
+          created_at: string
+          dimensoes_mm: string | null
+          eficiencia_percent: string | null
+          fabricante: string
+          id: string
+          imp: number | null
+          isc: number | null
+          modelo: string
+          numero_celulas: number | null
+          potencia_w: number
+          tenant_id: string | null
+          tensao_sistema_v: number | null
+          tipo_celula: string | null
+          updated_at: string
+          vmp: number | null
+          voc: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          coef_temp?: string | null
+          created_at?: string
+          dimensoes_mm?: string | null
+          eficiencia_percent?: string | null
+          fabricante: string
+          id?: string
+          imp?: number | null
+          isc?: number | null
+          modelo: string
+          numero_celulas?: number | null
+          potencia_w: number
+          tenant_id?: string | null
+          tensao_sistema_v?: number | null
+          tipo_celula?: string | null
+          updated_at?: string
+          vmp?: number | null
+          voc?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          coef_temp?: string | null
+          created_at?: string
+          dimensoes_mm?: string | null
+          eficiencia_percent?: string | null
+          fabricante?: string
+          id?: string
+          imp?: number | null
+          isc?: number | null
+          modelo?: string
+          numero_celulas?: number | null
+          potencia_w?: number
+          tenant_id?: string | null
+          tensao_sistema_v?: number | null
+          tipo_celula?: string | null
+          updated_at?: string
+          vmp?: number | null
+          voc?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modulos_fotovoltaicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2836,6 +3043,61 @@ export type Database = {
           },
           {
             foreignKeyName: "projetos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposal_variables: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          proposta_id: string | null
+          tenant_id: string | null
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          proposta_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          proposta_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_variables_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_variables_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposal_variables_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6200,6 +6462,7 @@ export type Database = {
         | "cancelado"
         | "reagendado"
       servico_tipo: "instalacao" | "manutencao" | "visita_tecnica" | "suporte"
+      tipo_sistema_inversor: "ON_GRID" | "HIBRIDO" | "OFF_GRID"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -6398,6 +6661,7 @@ export const Constants = {
         "reagendado",
       ],
       servico_tipo: ["instalacao", "manutencao", "visita_tecnica", "suporte"],
+      tipo_sistema_inversor: ["ON_GRID", "HIBRIDO", "OFF_GRID"],
     },
   },
 } as const

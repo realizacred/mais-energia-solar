@@ -35,6 +35,9 @@ import {
   Bot,
   Cable,
   Smartphone,
+  SunMedium,
+  Cpu,
+  Battery,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -236,7 +239,10 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "vendedores", title: "Vendedores", icon: Users },
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield },
-      { id: "equipamentos", title: "Equipamentos", icon: Plug },
+      { id: "equipamentos", title: "Disjuntores & Transf.", icon: Plug },
+      { id: "modulos", title: "Módulos Fotovoltaicos", icon: SunMedium },
+      { id: "inversores-cadastro", title: "Inversores", icon: Cpu },
+      { id: "baterias", title: "Baterias", icon: Battery },
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb },
       {
         id: "config",
