@@ -27,16 +27,6 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -59,11 +49,9 @@ import {
   ShieldAlert,
   Plus,
   MoreVertical,
-  UserX,
-  UserCheck,
-  KeyRound,
   Pencil,
 } from "lucide-react";
+import { UserEditDialog } from "./users/UserEditDialog";
 
 interface UserRole {
   id: string;
@@ -118,15 +106,7 @@ export function UsuariosManager() {
     password: "",
     role: "vendedor",
   });
-  const [userToDeactivate, setUserToDeactivate] = useState<UserWithRoles | null>(null);
-  const [userToDelete, setUserToDelete] = useState<UserWithRoles | null>(null);
-  const [userToResetPassword, setUserToResetPassword] = useState<UserWithRoles | null>(null);
   const [userToEdit, setUserToEdit] = useState<UserWithRoles | null>(null);
-  const [editName, setEditName] = useState("");
-  const [isEditing, setIsEditing] = useState(false);
-  const [isDeactivating, setIsDeactivating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -442,159 +422,8 @@ export function UsuariosManager() {
     return Object.keys(ROLE_LABELS).filter(role => !user.roles.includes(role));
   };
 
-  const handleToggleActive = async () => {
-    if (!userToDeactivate) return;
-
-    setIsDeactivating(true);
-    try {
-      const newStatus = !userToDeactivate.ativo;
-      const { error } = await supabase
-        .from("profiles")
-        .update({ ativo: newStatus })
-        .eq("user_id", userToDeactivate.user_id);
-
-      if (error) throw error;
-
-      toast({ 
-        title: newStatus ? "Usuário reativado!" : "Usuário desativado!",
-        description: newStatus 
-          ? `${userToDeactivate.nome} agora pode acessar o sistema.`
-          : `${userToDeactivate.nome} não poderá mais acessar o sistema.`,
-      });
-      setUserToDeactivate(null);
-      fetchUsers();
-    } catch (error) {
-      console.error("Error toggling user status:", error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível alterar o status do usuário.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeactivating(false);
-    }
-  };
-
-  const handleDeleteUser = async () => {
-    if (!userToDelete) return;
-
-    setIsDeleting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error("Sessão inválida. Faça login novamente.");
-      }
-
-      const response = await supabase.functions.invoke("delete-user", {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: {
-          user_id: userToDelete.user_id,
-        },
-      });
-
-      if (response.error) {
-        const parsed = await parseInvokeError(response.error);
-        throw new Error(parsed.message || "Erro ao excluir usuário");
-      }
-
-      if (response.data?.error) {
-        throw new Error(String(response.data.error));
-      }
-
-      toast({ 
-        title: "Usuário excluído!",
-        description: `${userToDelete.nome} foi removido permanentemente do sistema.`,
-      });
-      setUserToDelete(null);
-      fetchUsers();
-    } catch (error: any) {
-      console.error("Error deleting user:", error);
-      toast({
-        title: "Erro ao excluir usuário",
-        description: error.message || "Não foi possível excluir o usuário.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const handleResetPassword = async () => {
-    if (!userToResetPassword || !userToResetPassword.email) return;
-
-    setIsResettingPassword(true);
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(
-        userToResetPassword.email,
-        {
-          redirectTo: `${window.location.origin}/auth?type=recovery`,
-        }
-      );
-
-      if (error) {
-        // Handle rate limiting errors specifically
-        const isRateLimited = error.message.includes("security purposes") || 
-                              error.message.includes("rate") ||
-                              error.message.includes("email rate limit") ||
-                              (error as any).status === 429;
-        
-        if (isRateLimited) {
-          toast({
-            title: "Aguarde um momento",
-            description: "Por segurança, aguarde alguns minutos antes de solicitar novamente. Um email pode já ter sido enviado.",
-            variant: "destructive",
-          });
-          setUserToResetPassword(null);
-          return;
-        }
-        throw error;
-      }
-
-      toast({ 
-        title: "Email de redefinição enviado!",
-        description: `Um email foi enviado para ${userToResetPassword.email} com instruções para redefinir a senha.`,
-      });
-      setUserToResetPassword(null);
-    } catch (error: any) {
-      console.error("Error resetting password:", error);
-      toast({
-        title: "Erro ao enviar email",
-        description: error.message || "Não foi possível enviar o email de redefinição.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsResettingPassword(false);
-    }
-  };
-
-  const handleEditUser = async () => {
-    if (!userToEdit || !editName.trim()) return;
-
-    setIsEditing(true);
-    try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ nome: editName.trim() })
-        .eq("user_id", userToEdit.user_id);
-
-      if (error) throw error;
-
-      toast({ title: "Usuário atualizado!", description: `Nome alterado para "${editName.trim()}".` });
-      setUserToEdit(null);
-      fetchUsers();
-    } catch (error: any) {
-      console.error("Error editing user:", error);
-      toast({ title: "Erro ao editar", description: error.message, variant: "destructive" });
-    } finally {
-      setIsEditing(false);
-    }
-  };
-
   const openEditDialog = (u: UserWithRoles) => {
     setUserToEdit(u);
-    setEditName(u.nome);
   };
 
   if (loading) {
@@ -731,38 +560,7 @@ export function UsuariosManager() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onClick={() => openEditDialog(user)}>
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => setUserToDeactivate(user)}
-                                className={user.ativo ? "text-amber-600" : "text-green-600"}
-                              >
-                                {user.ativo ? (
-                                  <>
-                                    <UserX className="mr-2 h-4 w-4" />
-                                    Desativar
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserCheck className="mr-2 h-4 w-4" />
-                                    Reativar
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              {user.email && (
-                                <DropdownMenuItem 
-                                  onClick={() => setUserToResetPassword(user)}
-                                >
-                                  <KeyRound className="mr-2 h-4 w-4" />
-                                  Redefinir senha
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem 
-                                onClick={() => setUserToDelete(user)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Excluir permanentemente
+                                Editar / Gerenciar
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -893,190 +691,14 @@ export function UsuariosManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Deactivate/Reactivate Confirmation Dialog */}
-      <AlertDialog open={!!userToDeactivate} onOpenChange={(open) => !open && setUserToDeactivate(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {userToDeactivate?.ativo ? "Desativar usuário?" : "Reativar usuário?"}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {userToDeactivate?.ativo 
-                ? `O usuário "${userToDeactivate?.nome}" não poderá mais acessar o sistema. Você poderá reativá-lo a qualquer momento.`
-                : `O usuário "${userToDeactivate?.nome}" poderá acessar o sistema novamente.`
-              }
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeactivating}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleToggleActive} 
-              disabled={isDeactivating}
-              className={userToDeactivate?.ativo ? "bg-amber-600 hover:bg-amber-700" : "bg-green-600 hover:bg-green-700"}
-            >
-              {isDeactivating && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              {userToDeactivate?.ativo ? "Desativar" : "Reativar"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive">
-              Excluir usuário permanentemente?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              <span className="font-semibold text-destructive">Atenção: Esta ação é irreversível!</span>
-              <br /><br />
-              O usuário "{userToDelete?.nome}" será removido permanentemente do sistema, incluindo:
-              <ul className="list-disc ml-4 mt-2">
-                <li>Conta de acesso (login)</li>
-                <li>Perfil e informações</li>
-                <li>Todos os perfis/roles atribuídos</li>
-              </ul>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteUser} 
-              disabled={isDeleting}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Excluir permanentemente
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Reset Password Confirmation Dialog */}
-      <AlertDialog open={!!userToResetPassword} onOpenChange={(open) => !open && setUserToResetPassword(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <KeyRound className="w-5 h-5 text-primary" />
-              Redefinir senha do usuário?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Um email de redefinição de senha será enviado para:
-              <br />
-              <span className="font-semibold text-foreground">{userToResetPassword?.email}</span>
-              <br /><br />
-              O usuário "{userToResetPassword?.nome}" receberá um link para criar uma nova senha.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isResettingPassword}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleResetPassword} 
-              disabled={isResettingPassword}
-            >
-              {isResettingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Enviar email
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Edit User Dialog */}
-      <Dialog open={!!userToEdit} onOpenChange={(open) => !open && setUserToEdit(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Pencil className="w-5 h-5 text-primary" />
-              Editar Usuário
-            </DialogTitle>
-            <DialogDescription>
-              Visualize e edite os dados do usuário.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            {/* Nome */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-nome">Nome completo</Label>
-              <Input
-                id="edit-nome"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                placeholder="Nome do usuário"
-              />
-            </div>
-
-            {/* Email (read-only) */}
-            {userToEdit?.email && (
-              <div className="space-y-2">
-                <Label>E-mail</Label>
-                <Input value={userToEdit.email} disabled className="opacity-60" />
-              </div>
-            )}
-
-            {/* Status */}
-            <div className="space-y-2">
-              <Label>Status</Label>
-              <div>
-                <Badge 
-                  variant="outline"
-                  className={userToEdit?.ativo 
-                    ? "bg-success/10 text-success border-success/30" 
-                    : "bg-muted text-muted-foreground border-border"
-                  }
-                >
-                  {userToEdit?.ativo ? "Ativo" : "Inativo"}
-                </Badge>
-              </div>
-            </div>
-
-            {/* Perfis / Roles */}
-            <div className="space-y-2">
-              <Label>Perfis de acesso</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {userToEdit?.roles.length === 0 ? (
-                  <span className="text-sm text-muted-foreground">Sem perfil atribuído</span>
-                ) : (
-                  userToEdit?.roles.map((role) => {
-                    const roleInfo = ROLE_LABELS[role];
-                    return (
-                      <Badge key={role} variant="outline" className={roleInfo?.color || ""}>
-                        {roleInfo?.label || role}
-                      </Badge>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            {/* Redefinir Senha */}
-            {userToEdit?.email && (
-              <div className="pt-2 border-t">
-                <Button
-                  variant="outline"
-                  className="w-full gap-2"
-                  onClick={() => {
-                    setUserToResetPassword(userToEdit);
-                    setUserToEdit(null);
-                  }}
-                >
-                  <KeyRound className="w-4 h-4" />
-                  Redefinir senha
-                </Button>
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUserToEdit(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleEditUser} disabled={isEditing || !editName.trim()}>
-              {isEditing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* User Edit Dialog */}
+      <UserEditDialog
+        user={userToEdit}
+        onClose={() => setUserToEdit(null)}
+        onRefresh={fetchUsers}
+        currentUserId={user?.id}
+        onNavigateAway={() => navigate("/portal", { replace: true })}
+      />
 
       {LimitDialog}
     </>
