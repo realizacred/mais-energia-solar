@@ -156,7 +156,7 @@ async function handleMessageUpsert(
     // Upsert conversation
     const { data: existingConv } = await supabase
       .from("wa_conversations")
-      .select("id, unread_count")
+      .select("id, unread_count, status")
       .eq("instance_id", instanceId)
       .eq("remote_jid", remoteJid)
       .maybeSingle();
@@ -172,6 +172,11 @@ async function handleMessageUpsert(
       if (!fromMe) {
         updates.unread_count = (existingConv.unread_count || 0) + 1;
         if (pushName) updates.cliente_nome = pushName;
+        // Reopen resolved conversations when client sends a new message
+        if (existingConv.status === "resolved") {
+          updates.status = "open";
+          console.log(`[process-webhook-events] Reopening resolved conversation ${conversationId}`);
+        }
       }
       await supabase
         .from("wa_conversations")
