@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { MessageCircle, Loader2, Inbox } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import {
   useConversations,
   useConversationMessages,
@@ -16,13 +17,23 @@ import type { Conversation } from "@/hooks/useWhatsAppInbox";
 interface WhatsAppInboxProps {
   /** If true, only shows conversations assigned to current user */
   vendorMode?: boolean;
+  /** When admin views as a specific vendor, pass the vendor's user_id to filter conversations */
+  vendorUserId?: string | null;
 }
 
-export function WhatsAppInbox({ vendorMode = false }: WhatsAppInboxProps) {
+export function WhatsAppInbox({ vendorMode = false, vendorUserId }: WhatsAppInboxProps) {
+  const { user } = useAuth();
+
   // Filters
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("open");
   const [filterAssigned, setFilterAssigned] = useState("all");
+
+  // Determine the effective assigned_to filter for vendor mode
+  const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
+  const effectiveAssigned = vendorMode
+    ? (effectiveUserId || "all")
+    : filterAssigned;
 
   // Selected conversation
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
@@ -44,7 +55,7 @@ export function WhatsAppInbox({ vendorMode = false }: WhatsAppInboxProps) {
     updateConversation,
   } = useConversations({
     status: filterStatus !== "all" ? filterStatus : undefined,
-    assigned_to: filterAssigned !== "all" && filterAssigned !== "unassigned" ? filterAssigned : undefined,
+    assigned_to: effectiveAssigned !== "all" && effectiveAssigned !== "unassigned" ? effectiveAssigned : undefined,
     search: search || undefined,
   });
 
