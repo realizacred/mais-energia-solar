@@ -67,6 +67,7 @@ const TAB_TITLES: Record<string, string> = {
   leads: "Gestão de Leads",
   pipeline: "Pipeline de Vendas",
   inbox: "Central de Atendimento",
+  "respostas-rapidas": "Respostas Rápidas",
   followup: "Follow-ups",
   validacao: "Validação de Vendas",
   tarefas: "Tarefas & SLA",

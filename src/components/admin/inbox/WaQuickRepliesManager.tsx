@@ -503,201 +503,6 @@ export function WaQuickRepliesManager() {
             </TableBody>
           </Table>
         </div>
-
-        {/* Add/Edit Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Zap className="w-5 h-5" />
-                {editing ? "Editar Resposta Rápida" : "Nova Resposta Rápida"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
-                <div className="space-y-1">
-                  <Label className="text-xs">Emoji</Label>
-                  <Select value={form.emoji} onValueChange={(v) => setForm(p => ({ ...p, emoji: v }))}>
-                    <SelectTrigger className="w-16 h-9 text-lg">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {EMOJI_OPTIONS.map(e => (
-                        <SelectItem key={e} value={e}><span className="text-lg">{e}</span></SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Título *</Label>
-                  <Input
-                    value={form.titulo}
-                    onChange={(e) => setForm(p => ({ ...p, titulo: e.target.value }))}
-                    placeholder="Ex: Saudação inicial"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <Label>Categoria</Label>
-                <Select value={form.categoria} onValueChange={(v) => setForm(p => ({ ...p, categoria: v }))}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.filter(c => c.ativo).map(c => (
-                      <SelectItem key={c.slug} value={c.slug}>
-                        <span className="flex items-center gap-2">
-                          <span>{c.emoji || "💬"}</span>
-                          {c.nome}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1">
-                <Label>Conteúdo da mensagem *</Label>
-                {/* WhatsApp formatting toolbar */}
-                <div className="flex items-center gap-0.5 border border-border rounded-t-lg px-2 py-1 bg-muted/30">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button" size="icon" variant="ghost" className="h-7 w-7"
-                        onClick={() => wrapContentSelection("*")}
-                      >
-                        <Bold className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">Negrito *texto*</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button" size="icon" variant="ghost" className="h-7 w-7"
-                        onClick={() => wrapContentSelection("_")}
-                      >
-                        <Italic className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">Itálico _texto_</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button" size="icon" variant="ghost" className="h-7 w-7"
-                        onClick={() => wrapContentSelection("~")}
-                      >
-                        <Strikethrough className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">Tachado ~texto~</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button" size="icon" variant="ghost" className="h-7 w-7"
-                        onClick={() => wrapContentSelection("```\n", "\n```")}
-                      >
-                        <Code className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">Monospace ```texto```</TooltipContent>
-                  </Tooltip>
-                  <div className="w-px h-4 bg-border/50 mx-1" />
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button" size="icon" variant="ghost" className="h-7 w-7"
-                        onClick={insertBulletList}
-                      >
-                        <List className="h-3.5 w-3.5" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" className="text-xs">Lista com bullets</TooltipContent>
-                  </Tooltip>
-                </div>
-                <Textarea
-                  ref={contentRef}
-                  value={form.conteudo}
-                  onChange={(e) => setForm(p => ({ ...p, conteudo: e.target.value }))}
-                  placeholder="Olá! Como posso ajudar?"
-                  rows={5}
-                  className="text-sm rounded-t-none border-t-0 font-mono"
-                />
-                <p className="text-[10px] text-muted-foreground">
-                  Selecione texto e clique nos botões acima para formatar. Suporta formatação WhatsApp.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Mídia (opcional)</Label>
-                <Select
-                  value={form.media_type}
-                  onValueChange={(v) => setForm(p => ({ ...p, media_type: v === "none" ? "" : v }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sem mídia" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Sem mídia</SelectItem>
-                    <SelectItem value="image">📷 Imagem</SelectItem>
-                    <SelectItem value="video">🎥 Vídeo</SelectItem>
-                    <SelectItem value="audio">🎵 Áudio</SelectItem>
-                    <SelectItem value="document">📄 Documento</SelectItem>
-                  </SelectContent>
-                </Select>
-                {form.media_type && (
-                  <div className="space-y-1">
-                    <Input
-                      type="file"
-                      accept={
-                        form.media_type === "image" ? "image/*" :
-                        form.media_type === "video" ? "video/*" :
-                        form.media_type === "audio" ? "audio/*" :
-                        ".pdf,.doc,.docx,.xls,.xlsx,.txt"
-                      }
-                      onChange={(e) => setMediaFile(e.target.files?.[0] || null)}
-                    />
-                    {editing?.media_url && !mediaFile && (
-                      <p className="text-[10px] text-muted-foreground">
-                        Arquivo atual: {editing.media_filename || "arquivo"} — selecione outro para substituir
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={saveMutation.isPending || uploading}>
-                {saveMutation.isPending || uploading ? "Salvando..." : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Delete Dialog */}
-        <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Excluir Resposta Rápida</AlertDialogTitle>
-              <AlertDialogDescription>
-                Deseja excluir "{deleting?.titulo}"? Esta ação não pode ser desfeita.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => deleting && deleteMutation.mutate(deleting.id)}
-                className="bg-destructive hover:bg-destructive/90"
-              >
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
           </TabsContent>
 
           {/* ── Categories Tab ── */}
@@ -867,6 +672,186 @@ export function WaQuickRepliesManager() {
             </AlertDialog>
           </TabsContent>
         </Tabs>
+
+        {/* ── Respostas: Add/Edit Dialog ── */}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Zap className="w-5 h-5" />
+                {editing ? "Editar Resposta Rápida" : "Nova Resposta Rápida"}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-[auto_1fr] gap-3 items-start">
+                <div className="space-y-1">
+                  <Label className="text-xs">Emoji</Label>
+                  <Select value={form.emoji} onValueChange={(v) => setForm(p => ({ ...p, emoji: v }))}>
+                    <SelectTrigger className="w-16 h-9 text-lg">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EMOJI_OPTIONS.map(e => (
+                        <SelectItem key={e} value={e}><span className="text-lg">{e}</span></SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Título *</Label>
+                  <Input
+                    value={form.titulo}
+                    onChange={(e) => setForm(p => ({ ...p, titulo: e.target.value }))}
+                    placeholder="Ex: Saudação inicial"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Categoria</Label>
+                <Select value={form.categoria} onValueChange={(v) => setForm(p => ({ ...p, categoria: v }))}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {categories.filter(c => c.ativo).map(c => (
+                      <SelectItem key={c.slug} value={c.slug}>
+                        <span className="flex items-center gap-2">
+                          <span>{c.emoji || "💬"}</span>
+                          {c.nome}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1">
+                <Label>Conteúdo da mensagem *</Label>
+                {/* WhatsApp formatting toolbar */}
+                <div className="flex items-center gap-0.5 border border-border rounded-t-lg px-2 py-1 bg-muted/30">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => wrapContentSelection("*")}>
+                        <Bold className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Negrito *texto*</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => wrapContentSelection("_")}>
+                        <Italic className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Itálico _texto_</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => wrapContentSelection("~")}>
+                        <Strikethrough className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Tachado ~texto~</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={() => wrapContentSelection("```\n", "\n```")}>
+                        <Code className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Monospace ```texto```</TooltipContent>
+                  </Tooltip>
+                  <div className="w-px h-4 bg-border/50 mx-1" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button type="button" size="icon" variant="ghost" className="h-7 w-7" onClick={insertBulletList}>
+                        <List className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Lista com bullets</TooltipContent>
+                  </Tooltip>
+                </div>
+                <Textarea
+                  ref={contentRef}
+                  value={form.conteudo}
+                  onChange={(e) => setForm(p => ({ ...p, conteudo: e.target.value }))}
+                  placeholder="Olá! Como posso ajudar?"
+                  rows={5}
+                  className="text-sm rounded-t-none border-t-0 font-mono"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Selecione texto e clique nos botões acima para formatar. Suporta formatação WhatsApp.
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Mídia (opcional)</Label>
+                <Select
+                  value={form.media_type}
+                  onValueChange={(v) => setForm(p => ({ ...p, media_type: v === "none" ? "" : v }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sem mídia" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sem mídia</SelectItem>
+                    <SelectItem value="image">📷 Imagem</SelectItem>
+                    <SelectItem value="video">🎥 Vídeo</SelectItem>
+                    <SelectItem value="audio">🎵 Áudio</SelectItem>
+                    <SelectItem value="document">📄 Documento</SelectItem>
+                  </SelectContent>
+                </Select>
+                {form.media_type && (
+                  <div className="space-y-1">
+                    <Input
+                      type="file"
+                      accept={
+                        form.media_type === "image" ? "image/*" :
+                        form.media_type === "video" ? "video/*" :
+                        form.media_type === "audio" ? "audio/*" :
+                        ".pdf,.doc,.docx,.xls,.xlsx,.txt"
+                      }
+                      onChange={(e) => setMediaFile(e.target.files?.[0] || null)}
+                    />
+                    {editing?.media_url && !mediaFile && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Arquivo atual: {editing.media_filename || "arquivo"} — selecione outro para substituir
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={saveMutation.isPending || uploading}>
+                {saveMutation.isPending || uploading ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Respostas: Delete Dialog */}
+        <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir Resposta Rápida</AlertDialogTitle>
+              <AlertDialogDescription>
+                Deseja excluir "{deleting?.titulo}"? Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleting && deleteMutation.mutate(deleting.id)}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
