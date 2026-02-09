@@ -143,7 +143,7 @@ export function WhatsAppInbox({ vendorMode = false }: WhatsAppInboxProps) {
   ).length;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-wa-inbox-active>
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2.5 rounded-xl bg-gradient-to-br from-success/20 to-success/5 border border-success/10">
