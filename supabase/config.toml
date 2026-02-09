@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.process-wa-outbox]
 verify_jwt = false
+
+[functions.check-wa-instance-status]
+verify_jwt = false

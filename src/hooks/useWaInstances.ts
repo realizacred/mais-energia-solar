@@ -20,6 +20,16 @@ export interface WaInstance {
   updated_at: string;
 }
 
+export interface CheckStatusResult {
+  id: string;
+  nome: string;
+  status: string;
+  phone_number?: string;
+  profile_name?: string;
+  connectionState?: string;
+  error?: string;
+}
+
 export function useWaInstances() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -54,9 +64,17 @@ export function useWaInstances() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    onSuccess: async (data) => {
       queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
       toast({ title: "Instância criada com sucesso" });
+      // Auto-check status after creation
+      if (data?.id) {
+        try {
+          await checkInstanceStatus(data.id);
+        } catch (e) {
+          console.warn("Auto-check status after create failed:", e);
+        }
+      }
     },
     onError: (err: any) => {
       toast({ title: "Erro ao criar instância", description: err.message, variant: "destructive" });
@@ -97,11 +115,49 @@ export function useWaInstances() {
     },
   });
 
+  // Check status of a single instance or all instances
+  const checkInstanceStatus = async (instanceId?: string): Promise<CheckStatusResult[]> => {
+    const { data, error } = await supabase.functions.invoke("check-wa-instance-status", {
+      body: instanceId ? { instance_id: instanceId } : {},
+    });
+
+    if (error) throw error;
+    if (!data?.success) throw new Error(data?.error || "Erro ao verificar status");
+
+    // Refetch instances to get updated statuses
+    queryClient.invalidateQueries({ queryKey: ["wa-instances"] });
+
+    return data.results as CheckStatusResult[];
+  };
+
+  const checkStatusMutation = useMutation({
+    mutationFn: async (instanceId?: string) => {
+      return checkInstanceStatus(instanceId);
+    },
+    onSuccess: (results) => {
+      const connected = results.filter((r) => r.status === "connected").length;
+      const total = results.length;
+      toast({
+        title: "Status verificado",
+        description: `${connected}/${total} instância(s) conectada(s).`,
+      });
+    },
+    onError: (err: any) => {
+      toast({
+        title: "Erro ao verificar status",
+        description: err.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   return {
     instances: instancesQuery.data || [],
     loading: instancesQuery.isLoading,
     createInstance: createInstance.mutateAsync,
     updateInstance: updateInstance.mutate,
     deleteInstance: deleteInstance.mutate,
+    checkStatus: checkStatusMutation.mutate,
+    checkingStatus: checkStatusMutation.isPending,
   };
 }

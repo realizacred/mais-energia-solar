@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Smartphone,
   Plus,
@@ -12,6 +12,7 @@ import {
   MoreVertical,
   Edit,
   Link2,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +53,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
 };
 
 export function WaInstancesManager() {
-  const { instances, loading, createInstance, updateInstance, deleteInstance } = useWaInstances();
+  const { instances, loading, createInstance, updateInstance, deleteInstance, checkStatus, checkingStatus } = useWaInstances();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [editInstance, setEditInstance] = useState<WaInstance | null>(null);
@@ -74,10 +75,12 @@ export function WaInstancesManager() {
     toast({ title: "URL copiada!", description: "Cole na configuração de webhook da Evolution API." });
   };
 
+  const connectedCount = instances.filter((i) => i.status === "connected").length;
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/10">
             <Smartphone className="h-6 w-6 text-primary" />
@@ -85,14 +88,31 @@ export function WaInstancesManager() {
           <div>
             <h2 className="text-xl font-bold text-foreground">Instâncias WhatsApp</h2>
             <p className="text-sm text-muted-foreground">
-              {instances.length} instância{instances.length !== 1 ? "s" : ""} configurada{instances.length !== 1 ? "s" : ""}
+              {connectedCount}/{instances.length} conectada{connectedCount !== 1 ? "s" : ""}
             </p>
           </div>
         </div>
-        <Button onClick={() => setShowCreate(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nova Instância
-        </Button>
+        <div className="flex items-center gap-2">
+          {instances.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => checkStatus(undefined)}
+              disabled={checkingStatus}
+              className="gap-2"
+            >
+              {checkingStatus ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Sincronizar Status
+            </Button>
+          )}
+          <Button onClick={() => setShowCreate(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nova Instância
+          </Button>
+        </div>
       </div>
 
       {/* Instances Grid */}
@@ -142,6 +162,13 @@ export function WaInstancesManager() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => checkStatus(inst.id)}
+                          disabled={checkingStatus}
+                        >
+                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                          Verificar Conexão
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setEditInstance(inst)}>
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
@@ -191,6 +218,13 @@ export function WaInstancesManager() {
                       Perfil: {inst.profile_name}
                     </p>
                   )}
+
+                  {checkingStatus && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      Verificando...
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );
@@ -238,19 +272,21 @@ function InstanceFormDialog({
   vendedores: { id: string; nome: string; user_id: string | null }[];
   onSave: (data: any) => Promise<void>;
 }) {
-  const [nome, setNome] = useState(instance?.nome || "");
-  const [instanceKey, setInstanceKey] = useState(instance?.evolution_instance_key || "");
-  const [apiUrl, setApiUrl] = useState(instance?.evolution_api_url || "https://");
-  const [vendedorId, setVendedorId] = useState(instance?.vendedor_id || "none");
+  const [nome, setNome] = useState("");
+  const [instanceKey, setInstanceKey] = useState("");
+  const [apiUrl, setApiUrl] = useState("https://");
+  const [vendedorId, setVendedorId] = useState("none");
   const [saving, setSaving] = useState(false);
 
-  // Reset form when instance changes
-  useState(() => {
-    setNome(instance?.nome || "");
-    setInstanceKey(instance?.evolution_instance_key || "");
-    setApiUrl(instance?.evolution_api_url || "https://");
-    setVendedorId(instance?.vendedor_id || "none");
-  });
+  // Reset form when instance changes or dialog opens
+  useEffect(() => {
+    if (open) {
+      setNome(instance?.nome || "");
+      setInstanceKey(instance?.evolution_instance_key || "");
+      setApiUrl(instance?.evolution_api_url || "https://");
+      setVendedorId(instance?.vendedor_id || "none");
+    }
+  }, [open, instance]);
 
   const handleSubmit = async () => {
     if (!nome.trim() || !instanceKey.trim() || !apiUrl.trim()) return;
