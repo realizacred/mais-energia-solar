@@ -59,6 +59,9 @@ export function WaInstancesManager() {
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [editInstance, setEditInstance] = useState<WaInstance | null>(null);
+  const [syncInstance, setSyncInstance] = useState<WaInstance | null>(null);
+  const [syncDays, setSyncDays] = useState("365");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data: vendedores = [] } = useQuery({
     queryKey: ["vendedores-wa-instances"],
@@ -187,8 +190,7 @@ export function WaInstancesManager() {
                           </a>
                         </DropdownMenuItem>
                         <DropdownMenuItem
-                          onClick={() => syncHistory(inst.id)}
-                          disabled={inst.status !== "connected"}
+                          onClick={() => setSyncInstance(inst)}
                         >
                           <History className="h-4 w-4 mr-2" />
                           Sincronizar Histórico
@@ -263,6 +265,69 @@ export function WaInstancesManager() {
           setEditInstance(null);
         }}
       />
+
+      {/* Sync History Dialog */}
+      <Dialog open={!!syncInstance} onOpenChange={(v) => !v && setSyncInstance(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <History className="w-5 h-5 text-primary" />
+              Sincronizar Histórico
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Busca todas as conversas e mensagens da instância <strong>{syncInstance?.nome}</strong> na Evolution API e importa para a central de atendimento.
+            </p>
+            <div className="space-y-2">
+              <Label htmlFor="sync-days">Quantidade de dias</Label>
+              <Select value={syncDays} onValueChange={setSyncDays}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7">Últimos 7 dias</SelectItem>
+                  <SelectItem value="30">Últimos 30 dias</SelectItem>
+                  <SelectItem value="90">Últimos 90 dias</SelectItem>
+                  <SelectItem value="180">Últimos 180 dias</SelectItem>
+                  <SelectItem value="365">Últimos 365 dias</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Conversas com mensagens dos últimos 7 dias serão reabertas. As demais ficarão como encerradas.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSyncInstance(null)} disabled={isSyncing}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!syncInstance) return;
+                setIsSyncing(true);
+                try {
+                  toast({ title: "Sincronizando...", description: `Buscando mensagens dos últimos ${syncDays} dias.` });
+                  const result = await syncHistory(syncInstance.id, parseInt(syncDays));
+                  toast({
+                    title: "Histórico sincronizado!",
+                    description: `${result?.conversations_created || 0} conversas, ${result?.messages_imported || 0} mensagens importadas.`,
+                  });
+                  setSyncInstance(null);
+                } catch (e: any) {
+                  toast({ title: "Erro na sincronização", description: e.message, variant: "destructive" });
+                } finally {
+                  setIsSyncing(false);
+                }
+              }}
+              disabled={isSyncing}
+            >
+              {isSyncing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Sincronizar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

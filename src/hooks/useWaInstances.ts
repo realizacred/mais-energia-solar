@@ -75,7 +75,15 @@ export function useWaInstances() {
           // If connected, auto-sync history
           const connected = results?.some((r) => r.status === "connected");
           if (connected) {
-            triggerHistorySync(data.id);
+            toast({ title: "Sincronizando histórico...", description: "Buscando mensagens dos últimos 365 dias." });
+            triggerHistorySync(data.id, 365).then((result) => {
+              toast({
+                title: "Histórico sincronizado!",
+                description: `${result?.conversations_created || 0} conversas, ${result?.messages_imported || 0} mensagens importadas.`,
+              });
+            }).catch((e) => {
+              toast({ title: "Erro na sincronização", description: e.message, variant: "destructive" });
+            });
           }
         } catch (e) {
           console.warn("Auto-check status after create failed:", e);
@@ -136,31 +144,20 @@ export function useWaInstances() {
     return data.results as CheckStatusResult[];
   };
 
-  // Trigger historical message sync for an instance (fire & forget)
-  const triggerHistorySync = async (instanceId: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) return;
+  // Trigger historical message sync for an instance
+  const triggerHistorySync = async (instanceId: string, days = 365) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error("Sessão inválida");
 
-      toast({ title: "Sincronizando histórico...", description: "Buscando mensagens dos últimos 365 dias." });
+    const { data, error } = await supabase.functions.invoke("sync-wa-history", {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: { instance_id: instanceId, days },
+    });
 
-      const { data, error } = await supabase.functions.invoke("sync-wa-history", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: { instance_id: instanceId },
-      });
+    if (error) throw error;
 
-      if (error) throw error;
-
-      toast({
-        title: "Histórico sincronizado!",
-        description: `${data?.conversations_created || 0} conversas, ${data?.messages_imported || 0} mensagens importadas.`,
-      });
-
-      queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-    } catch (e: any) {
-      console.warn("History sync failed:", e);
-      toast({ title: "Erro na sincronização", description: e.message, variant: "destructive" });
-    }
+    queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+    return data;
   };
 
   const checkStatusMutation = useMutation({
