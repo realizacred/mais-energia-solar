@@ -1,8 +1,19 @@
 # 🔒 PLANO DE HARDENING — SaaS Enterprise
 
 **Data:** 2026-02-09  
-**Status:** PLANO TÉCNICO — NÃO EXECUTAR SEM APROVAÇÃO  
+**Última atualização:** 2026-02-09  
+**Status:** EM EXECUÇÃO  
 **Filosofia:** Engenharia incremental, sem reescrita destrutiva
+
+---
+
+## HISTÓRICO DE EXECUÇÃO
+
+| Fase | Status | Data | Notas |
+|------|--------|------|-------|
+| **0.1 — Fix tenant_id defaults** | ✅ CONCLUÍDA | 2026-02-09 | 57 tabelas corrigidas. 7 tabelas com dados NULL pendentes de backfill. `wa_conversation_tags` sem coluna `tenant_id`. `site_banners` e `site_settings` sem default (NOT NULL, valor passado explicitamente). |
+| 0.2 — Reescrever RLS policies | ⏳ Pendente | — | — |
+| 1.0 — JWT em Edge Functions | ⏳ Pendente | — | — |
 
 ---
 
