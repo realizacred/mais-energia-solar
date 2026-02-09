@@ -32,7 +32,7 @@ export default function CalculadoraConfig() {
       const { data, error } = await supabase
         .from("calculadora_config")
         .select("*")
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       setConfig(data);
