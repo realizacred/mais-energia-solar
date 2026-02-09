@@ -40,6 +40,7 @@ import {
   Battery,
   RotateCcw,
   XCircle,
+  Tag,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -150,6 +151,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         title: "Follow-up WhatsApp",
         icon: Bell,
         description: "Regras de acompanhamento",
+      },
+      {
+        id: "wa-etiquetas",
+        title: "Etiquetas",
+        icon: Tag,
+        description: "Tags para conversas",
       },
     ],
   },

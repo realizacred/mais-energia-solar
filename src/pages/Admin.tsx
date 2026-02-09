@@ -59,6 +59,7 @@ const SlaBreachDashboard = lazy(() => import("@/components/admin/distribution").
 const MotivoPerdaManager = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.MotivoPerdaManager })));
 const WaFollowupRulesManager = lazy(() => import("@/components/admin/WaFollowupRulesManager").then(m => ({ default: m.WaFollowupRulesManager })));
 const WaInstancesManager = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
+const WaTagsManager = lazy(() => import("@/components/admin/inbox/WaTagsManager").then(m => ({ default: m.WaTagsManager })));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -111,6 +112,7 @@ const TAB_TITLES: Record<string, string> = {
   release: "Release Notes",
   propostas: "Propostas Comerciais",
   "followup-wa": "Follow-up WhatsApp",
+  "wa-etiquetas": "Etiquetas WhatsApp",
 };
 
 /** N8n placeholder component */
@@ -283,6 +285,7 @@ export default function Admin() {
                 <Route path="inbox" element={<WaInbox />} />
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
+                <Route path="wa-etiquetas" element={<WaTagsManager />} />
                 <Route path="validacao" element={<ValidacaoVendasManager />} />
                 <Route path="tarefas" element={<TasksSlaDashboard />} />
                 
