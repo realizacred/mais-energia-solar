@@ -159,7 +159,7 @@ Deno.serve(async (req) => {
 
     if (instanceExists) {
       try {
-        const stateUrl = `${evolutionUrl}/instance/connectionState/${instanceName}`;
+        const stateUrl = `${evolutionUrl}/instance/connectionState/${encodeURIComponent(instanceName)}`;
         console.log("Testing connectionState:", stateUrl);
 
         const stateRes = await fetch(stateUrl, {
