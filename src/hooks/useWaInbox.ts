@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -133,8 +134,26 @@ export function useWaConversations(filters?: {
       })) as WaConversation[];
     },
     staleTime: 15 * 1000,
-    refetchInterval: 20 * 1000,
+    refetchInterval: 60 * 1000, // Fallback polling (realtime handles fast updates)
   });
+
+  // ── Realtime: listen for conversation changes ──
+  useEffect(() => {
+    const channel = supabase
+      .channel("wa-conversations-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "wa_conversations" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const updateConversation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<WaConversation> }) => {
@@ -290,8 +309,45 @@ export function useWaMessages(conversationId?: string) {
     },
     enabled: !!conversationId,
     staleTime: 10 * 1000,
-    refetchInterval: 10 * 1000,
+    refetchInterval: 60 * 1000, // Fallback polling (realtime handles fast updates)
   });
+
+  // ── Realtime: listen for new messages in current conversation ──
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const channel = supabase
+      .channel(`wa-messages-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "wa_messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["wa-messages", conversationId] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "wa_messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["wa-messages", conversationId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, queryClient]);
 
   const sendMessage = useMutation({
     mutationFn: async ({

@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -116,8 +117,26 @@ export function useConversations(filters?: {
       })) as Conversation[];
     },
     staleTime: 15 * 1000,
-    refetchInterval: 30 * 1000, // Polling every 30s for new messages
+    refetchInterval: 60 * 1000, // Fallback polling (realtime handles fast updates)
   });
+
+  // ── Realtime: listen for conversation changes ──
+  useEffect(() => {
+    const channel = supabase
+      .channel("whatsapp-conversations-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "whatsapp_conversations" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["whatsapp-conversations"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Update conversation status
   const updateConversation = useMutation({
@@ -261,8 +280,33 @@ export function useConversationMessages(conversationId?: string) {
     },
     enabled: !!conversationId,
     staleTime: 10 * 1000,
-    refetchInterval: 15 * 1000, // Poll messages more frequently
+    refetchInterval: 60 * 1000, // Fallback polling (realtime handles fast updates)
   });
+
+  // ── Realtime: listen for new messages in current conversation ──
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const channel = supabase
+      .channel(`whatsapp-messages-${conversationId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "whatsapp_conversation_messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["whatsapp-messages", conversationId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [conversationId, queryClient]);
 
   const sendMessage = useMutation({
     mutationFn: async ({
