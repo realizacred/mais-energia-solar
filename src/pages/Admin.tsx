@@ -53,6 +53,9 @@ const SolarMarketManager = lazy(() => import("@/components/admin/SolarMarketMana
 const TasksSlaDashboard = lazy(() => import("@/components/admin/tasks").then(m => ({ default: m.TasksSlaDashboard })));
 const WaInbox = lazy(() => import("@/components/admin/inbox/WaInbox").then(m => ({ default: m.WaInbox })));
 const WaQuickRepliesManager = lazy(() => import("@/components/admin/inbox/WaQuickRepliesManager").then(m => ({ default: m.WaQuickRepliesManager })));
+const DistributionConfig = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.DistributionConfig })));
+const SlaBreachDashboard = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.SlaBreachDashboard })));
+const MotivoPerdaManager = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.MotivoPerdaManager })));
 const WaInstancesManager = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
@@ -64,6 +67,9 @@ const TAB_TITLES: Record<string, string> = {
   auditoria: "Auditoria & Logs",
   leads: "Gestão de Leads",
   pipeline: "Pipeline de Vendas",
+  distribuicao: "Distribuição de Leads",
+  "sla-breaches": "Violações de SLA",
+  "motivos-perda": "Motivos de Perda",
   inbox: "Central de Atendimento",
   "respostas-rapidas": "Respostas Rápidas",
   followup: "Follow-ups",
@@ -265,6 +271,9 @@ export default function Admin() {
                 <Route path="aprovacao" element={<AprovacaoUsuarios />} />
                 <Route path="lead-status" element={<LeadStatusManager />} />
                 <Route path="inteligencia" element={<IntelligenceDashboard />} />
+                <Route path="distribuicao" element={<DistributionConfig />} />
+                <Route path="sla-breaches" element={<SlaBreachDashboard />} />
+                <Route path="motivos-perda" element={<MotivoPerdaManager />} />
                 
                 {/* Atendimento */}
                 <Route path="inbox" element={<WaInbox />} />

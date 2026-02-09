@@ -86,6 +86,9 @@ export function AssignVendorDialog({
 
     setSaving(true);
     try {
+      // Find vendedor name for backwards compatibility
+      const vendedorObj = vendedores.find(v => v.nome === selectedVendedor);
+
       // Update the orcamento's vendedor
       const { error: orcError } = await supabase
         .from("orcamentos")
@@ -94,10 +97,18 @@ export function AssignVendorDialog({
 
       if (orcError) throw orcError;
 
-      // Also update the lead's vendedor so vendor can see it
+      // Update lead with both vendedor (text) and vendedor_id (FK)
+      const leadUpdate: Record<string, any> = {
+        vendedor: selectedVendedor,
+        distribuido_em: new Date().toISOString(),
+      };
+      if (vendedorObj) {
+        leadUpdate.vendedor_id = vendedorObj.id;
+      }
+
       const { error: leadError } = await supabase
         .from("leads")
-        .update({ vendedor: selectedVendedor })
+        .update(leadUpdate)
         .eq("id", leadId);
 
       if (leadError) throw leadError;
@@ -133,7 +144,7 @@ export function AssignVendorDialog({
 
       const { error: leadError } = await supabase
         .from("leads")
-        .update({ vendedor: null })
+        .update({ vendedor: null, vendedor_id: null })
         .eq("id", leadId);
 
       if (leadError) throw leadError;
