@@ -127,8 +127,14 @@ Deno.serve(async (req) => {
 
     console.log(`[evolution-webhook] Event queued: type=${eventType}, instance=${instance.id}`);
 
-    // Auto-trigger processing for message events
-    if (eventType === "messages.upsert" || eventType === "MESSAGES_UPSERT") {
+    // Auto-trigger processing for message and status events
+    const autoTriggerEvents = [
+      "messages.upsert", "MESSAGES_UPSERT",
+      "messages.update", "MESSAGES_UPDATE",
+      "connection.update", "CONNECTION_UPDATE",
+      "contacts.upsert", "CONTACTS_UPSERT",
+    ];
+    if (autoTriggerEvents.includes(eventType)) {
       try {
         const processUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-webhook-events`;
         fetch(processUrl, {

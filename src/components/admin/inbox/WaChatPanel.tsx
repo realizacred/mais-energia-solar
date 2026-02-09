@@ -33,12 +33,12 @@ import type { WaConversation, WaMessage } from "@/hooks/useWaInbox";
 import { WaChatComposer } from "./WaChatComposer";
 import { WaLeadInfoCard } from "./WaLeadInfoCard";
 
-const MESSAGE_STATUS_ICON: Record<string, typeof Check> = {
-  pending: Clock,
-  sent: Check,
-  delivered: CheckCheck,
-  read: CheckCheck,
-  failed: AlertCircle,
+const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: string; label: string }> = {
+  pending: { icon: Clock, className: "text-primary-foreground/40", label: "Enviando..." },
+  sent: { icon: Check, className: "text-primary-foreground/60", label: "Enviado" },
+  delivered: { icon: CheckCheck, className: "text-primary-foreground/60", label: "Entregue" },
+  read: { icon: CheckCheck, className: "text-blue-400", label: "Lido" },
+  failed: { icon: AlertCircle, className: "text-red-400", label: "Falhou" },
 };
 
 interface WaChatPanelProps {
@@ -252,7 +252,7 @@ export function WaChatPanel({
               const showDate = idx === 0 ||
                 format(new Date(messages[idx - 1].created_at), "yyyy-MM-dd") !== format(new Date(msg.created_at), "yyyy-MM-dd");
 
-              const StatusIcon = isOut && msg.status ? MESSAGE_STATUS_ICON[msg.status] || Check : null;
+              const statusConfig = isOut && msg.status ? MESSAGE_STATUS_CONFIG[msg.status] || null : null;
 
               return (
                 <div key={msg.id}>
@@ -313,8 +313,15 @@ export function WaChatPanel({
                       )}
                       <div className={`flex items-center gap-1 mt-1 ${isNote ? "text-warning/70" : isOut ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                         <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
-                        {StatusIcon && (
-                          <StatusIcon className={`h-3 w-3 ${msg.status === "read" ? "text-blue-400" : ""} ${msg.status === "failed" ? "text-destructive" : ""}`} />
+                        {statusConfig && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <statusConfig.icon className={`h-3.5 w-3.5 ${statusConfig.className}`} />
+                            </TooltipTrigger>
+                            <TooltipContent side="left" className="text-[10px] px-2 py-1">
+                              {statusConfig.label}
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </div>
