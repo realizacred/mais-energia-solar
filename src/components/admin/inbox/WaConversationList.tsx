@@ -235,9 +235,13 @@ export function WaConversationList({
                         </div>
                       </div>
 
-                      {/* Message preview */}
+                      {/* Message preview with type icon */}
                       <p className={`text-xs truncate mb-1.5 ${hasUnread ? "text-foreground/80 font-medium" : "text-muted-foreground"}`}>
-                        {conv.last_message_preview || "Sem mensagens"}
+                        {conv.last_message_preview
+                          ? conv.last_message_preview.startsWith("[Nota interna]")
+                            ? "📝 Nota interna"
+                            : conv.last_message_preview
+                          : "Sem mensagens"}
                       </p>
 
                       {/* Metadata badges */}
