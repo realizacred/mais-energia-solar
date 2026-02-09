@@ -312,10 +312,12 @@ export function useConversationMessages(conversationId?: string) {
     mutationFn: async ({
       content,
       messageType = "text",
+      mediaUrl,
       isInternalNote = false,
     }: {
       content: string;
       messageType?: string;
+      mediaUrl?: string | null;
       isInternalNote?: boolean;
     }) => {
       if (!conversationId) throw new Error("No conversation selected");
@@ -326,7 +328,8 @@ export function useConversationMessages(conversationId?: string) {
           conversation_id: conversationId,
           direction: "out",
           message_type: messageType,
-          content,
+          content: content || null,
+          media_url: mediaUrl || null,
           sent_by_user_id: user?.id,
           is_internal_note: isInternalNote,
         })
@@ -334,14 +337,25 @@ export function useConversationMessages(conversationId?: string) {
         .single();
       if (error) throw error;
 
+      // Compute preview
+      const typeLabels: Record<string, string> = {
+        audio: "🎤 Áudio",
+        video: "📹 Vídeo",
+        image: "📷 Imagem",
+        document: "📎 Documento",
+      };
+      const preview = isInternalNote
+        ? "[Nota interna]"
+        : content
+        ? content.substring(0, 100)
+        : typeLabels[messageType] || "Mídia";
+
       // Update conversation last message
       await supabase
         .from("whatsapp_conversations")
         .update({
           last_message_at: new Date().toISOString(),
-          last_message_preview: isInternalNote
-            ? "[Nota interna]"
-            : content.substring(0, 100),
+          last_message_preview: preview,
         })
         .eq("id", conversationId);
 

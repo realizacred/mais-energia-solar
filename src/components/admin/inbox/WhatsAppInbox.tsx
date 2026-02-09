@@ -104,9 +104,14 @@ export function WhatsAppInbox({ vendorMode = false, vendorUserId }: WhatsAppInbo
     }
   };
 
-  const handleSendMessage = async (content: string, isNote?: boolean) => {
+  const handleSendMessage = async (content: string, isNote?: boolean, mediaUrl?: string, messageType?: string) => {
     if (!selectedConv) return;
-    await sendMessage({ content, isInternalNote: isNote });
+    await sendMessage({
+      content,
+      isInternalNote: isNote,
+      mediaUrl: mediaUrl || null,
+      messageType: messageType || "text",
+    });
   };
 
   const handleResolve = () => {
