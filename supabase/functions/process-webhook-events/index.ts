@@ -205,9 +205,33 @@ async function handleMessageUpsert(
           updates.cliente_nome = contactName;
         }
         // Reopen resolved conversations when client sends a new message
+        // BUT not if the message is a satisfaction survey response
         if (existingConv.status === "resolved") {
-          updates.status = "open";
-          console.log(`[process-webhook-events] Reopening resolved conversation ${conversationId}`);
+          const trimmedContent = content?.trim() || "";
+          const possibleRating = parseInt(trimmedContent, 10);
+          const isSurveyResponse = possibleRating >= 1 && possibleRating <= 5 && trimmedContent.length <= 2;
+          
+          if (isSurveyResponse) {
+            // Check if there's a pending satisfaction rating
+            const { data: pendingSurvey } = await supabase
+              .from("wa_satisfaction_ratings")
+              .select("id")
+              .eq("conversation_id", existingConv.id)
+              .is("rating", null)
+              .limit(1)
+              .maybeSingle();
+            
+            if (!pendingSurvey) {
+              // No pending survey — reopen normally
+              updates.status = "open";
+              console.log(`[process-webhook-events] Reopening resolved conversation ${conversationId} (not a survey response)`);
+            } else {
+              console.log(`[process-webhook-events] Keeping conversation ${conversationId} resolved (satisfaction survey response)`);
+            }
+          } else {
+            updates.status = "open";
+            console.log(`[process-webhook-events] Reopening resolved conversation ${conversationId}`);
+          }
         }
       }
       
