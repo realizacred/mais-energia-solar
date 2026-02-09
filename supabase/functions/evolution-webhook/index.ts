@@ -12,9 +12,29 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // ===== RATE LIMITING =====
     const url = new URL(req.url);
-    // Instance key comes as query param: ?instance=INSTANCE_KEY
     const instanceKey = url.searchParams.get("instance");
+    const identifier = instanceKey || req.headers.get("x-forwarded-for") || req.headers.get("cf-connecting-ip") || "unknown";
+    
+    const supabaseRL = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: allowed } = await supabaseRL.rpc("check_rate_limit", {
+      _function_name: "evolution-webhook",
+      _identifier: identifier,
+      _window_seconds: 60,
+      _max_requests: 120, // webhooks can be bursty
+    });
+    if (allowed === false) {
+      console.warn(`[evolution-webhook] Rate limited: ${identifier}`);
+      return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+        status: 429,
+        headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+
     const webhookSecret = url.searchParams.get("secret");
 
     if (!instanceKey) {

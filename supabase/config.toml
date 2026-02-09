@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.check-wa-instance-status]
 verify_jwt = false
+
+[functions.cleanup-legacy-storage]
+verify_jwt = false
+
+[functions.migrate-storage-paths]
+verify_jwt = false
