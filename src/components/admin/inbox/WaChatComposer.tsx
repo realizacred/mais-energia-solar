@@ -96,6 +96,33 @@ export function WaChatComposer({
     staleTime: 60 * 1000,
   });
 
+  // Fetch categories from DB
+  const { data: dbCategories = [] } = useQuery({
+    queryKey: ["wa-qr-categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("wa_quick_reply_categories")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true });
+      if (error) throw error;
+      return data as Array<{ id: string; nome: string; slug: string; cor: string; emoji: string | null }>;
+    },
+    staleTime: 60 * 1000,
+  });
+
+  // Build category meta from DB
+  const CATEGORY_META = useMemo(() => {
+    const map: Record<string, { label: string; color: string }> = {};
+    dbCategories.forEach(c => {
+      map[c.slug] = { label: c.nome, color: c.cor };
+    });
+    return map;
+  }, [dbCategories]);
+
+  const [quickReplySearch, setQuickReplySearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
   // Group by category
   const categories = useMemo(() => {
     const grouped = quickReplies.reduce<Record<string, QuickReplyDb[]>>((acc, qr) => {
@@ -106,19 +133,6 @@ export function WaChatComposer({
     }, {});
     return Object.entries(grouped);
   }, [quickReplies]);
-
-  const [quickReplySearch, setQuickReplySearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-
-  const CATEGORY_META: Record<string, { label: string; color: string }> = {
-    geral: { label: "Geral", color: "bg-muted text-muted-foreground" },
-    saudacao: { label: "Saudação", color: "bg-success/10 text-success" },
-    orcamento: { label: "Orçamento", color: "bg-primary/10 text-primary" },
-    followup: { label: "Follow-up", color: "bg-warning/10 text-warning" },
-    financiamento: { label: "Financiamento", color: "bg-info/10 text-info" },
-    tecnico: { label: "Técnico", color: "bg-accent text-accent-foreground" },
-    encerramento: { label: "Encerramento", color: "bg-destructive/10 text-destructive" },
-  };
 
   // Filter replies
   const filteredReplies = useMemo(() => {
