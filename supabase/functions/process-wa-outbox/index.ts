@@ -98,7 +98,6 @@ Deno.serve(async (req) => {
         }
 
         sent++;
-        sent++;
       } catch (err) {
         console.error(`[process-wa-outbox] Failed to send item ${item.id}:`, err);
 

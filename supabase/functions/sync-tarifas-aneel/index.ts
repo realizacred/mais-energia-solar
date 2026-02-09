@@ -253,8 +253,11 @@ Deno.serve(async (req) => {
       }
 
       if (tarifa) {
-        const tusd = parseFloat(tarifa.VlrTUSD) || 0;
-        const te = parseFloat(tarifa.VlrTE) || 0;
+        const tusdMwh = parseFloat(tarifa.VlrTUSD) || 0;
+        const teMwh = parseFloat(tarifa.VlrTE) || 0;
+        // ANEEL API returns values in R$/MWh — convert to R$/kWh (÷1000)
+        const tusd = Math.round(tusdMwh / 1000 * 10000) / 10000;
+        const te = Math.round(teMwh / 1000 * 10000) / 10000;
         const tarifaTotal = Math.round((tusd + te) * 10000) / 10000; // R$/kWh
 
         const { error: updateError } = await supabase
