@@ -163,10 +163,15 @@ async function handleMessageUpsert(
     const phone = remoteJid.replace("@s.whatsapp.net", "").replace("@g.us", "");
     
     // Group subject (Evolution API sends it in different places)
-    const groupSubject = isGroup
-      ? (msg.groupMetadata?.subject || msg.messageContextInfo?.messageSecret?.groupSubject || payload.groupSubject || null)
+    let groupSubject: string | null = isGroup
+      ? (msg.groupMetadata?.subject || msg.messageContextInfo?.messageSecret?.groupSubject || payload.groupSubject || payload.subject || msg.subject || null)
       : null;
     
+    // If group but no subject, try fetching from Evolution API
+    if (isGroup && !groupSubject) {
+      groupSubject = await fetchGroupName(supabase, instanceId, remoteJid);
+    }
+
     // Upsert conversation
     const { data: existingConv } = await supabase
       .from("wa_conversations")
@@ -188,8 +193,8 @@ async function handleMessageUpsert(
         last_message_preview: preview,
       };
       
-      // Update group name if we got it from payload
-      if (isGroup && groupSubject && !existingConv.cliente_nome) {
+      // Update group name if we got it from payload (always update, even if already set with fallback)
+      if (isGroup && groupSubject) {
         updates.cliente_nome = groupSubject;
       }
       
@@ -403,6 +408,48 @@ async function fetchAndStoreMedia(
     return publicUrl?.publicUrl || null;
   } catch (err) {
     console.error("[process-webhook-events] Media fetch/store error:", err);
+    return null;
+  }
+}
+
+// ── Fetch group name from Evolution API ──
+async function fetchGroupName(
+  supabase: any,
+  instanceId: string,
+  groupJid: string,
+): Promise<string | null> {
+  try {
+    const { data: instance } = await supabase
+      .from("wa_instances")
+      .select("evolution_api_url, evolution_instance_key, api_key")
+      .eq("id", instanceId)
+      .maybeSingle();
+
+    if (!instance) return null;
+
+    const apiUrl = instance.evolution_api_url?.replace(/\/$/, "");
+    const apiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
+    const instanceKey = instance.evolution_instance_key;
+
+    if (!apiUrl || !instanceKey) return null;
+
+    const endpoint = `${apiUrl}/group/findGroupInfos/${encodeURIComponent(instanceKey)}?groupJid=${encodeURIComponent(groupJid)}`;
+
+    const res = await fetch(endpoint, {
+      method: "GET",
+      headers: { apikey: apiKey },
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const subject = data?.subject || data?.data?.subject || null;
+    if (subject) {
+      console.log(`[process-webhook-events] Fetched group name: "${subject}" for ${groupJid}`);
+    }
+    return subject;
+  } catch (err) {
+    console.warn("[process-webhook-events] Failed to fetch group name:", err);
     return null;
   }
 }
