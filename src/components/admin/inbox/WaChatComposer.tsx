@@ -16,6 +16,7 @@ import {
   Video,
   Music,
   Search,
+  SpellCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -76,6 +77,10 @@ export function WaChatComposer({
   const [inputValue, setInputValue] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [spellCheckEnabled, setSpellCheckEnabled] = useState(() => {
+    const saved = localStorage.getItem("wa-spellcheck");
+    return saved !== null ? saved === "true" : true;
+  });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -435,12 +440,36 @@ export function WaChatComposer({
             <TooltipContent side="top" className="text-xs">Anexar arquivo</TooltipContent>
           </Tooltip>
         )}
+
+        <div className="w-px h-4 bg-border/50 mx-1" />
+
+        {/* Spell check toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="ghost"
+              className={`h-7 w-7 ${spellCheckEnabled ? "text-primary bg-primary/10" : "text-muted-foreground"}`}
+              onClick={() => {
+                const next = !spellCheckEnabled;
+                setSpellCheckEnabled(next);
+                localStorage.setItem("wa-spellcheck", String(next));
+              }}
+            >
+              <SpellCheck className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="top" className="text-xs">
+            {spellCheckEnabled ? "Desativar corretor" : "Ativar corretor"}
+          </TooltipContent>
+        </Tooltip>
+
         <input
           ref={fileInputRef}
           type="file"
           className="hidden"
-        accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
-        onChange={handleFileSelect}
+          accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.txt"
+          onChange={handleFileSelect}
         />
       </div>
 
@@ -466,6 +495,9 @@ export function WaChatComposer({
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
+          spellCheck={spellCheckEnabled}
+          autoCorrect={spellCheckEnabled ? "on" : "off"}
+          autoCapitalize={spellCheckEnabled ? "sentences" : "off"}
           placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite uma mensagem..."}
           className={`flex-1 min-h-[36px] max-h-[120px] resize-none text-sm leading-snug py-2 ${isNoteMode ? "border-warning/30 bg-warning/5" : ""}`}
           rows={1}
