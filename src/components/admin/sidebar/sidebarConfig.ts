@@ -143,6 +143,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         icon: MessageCircle,
         description: "Inbox de atendimento",
       },
+      {
+        id: "quick-replies",
+        title: "Respostas Rápidas",
+        icon: Sparkles,
+        description: "Templates de mensagens",
+      },
       { id: "validacao", title: "Validação", icon: ClipboardCheck },
       {
         id: "tarefas",

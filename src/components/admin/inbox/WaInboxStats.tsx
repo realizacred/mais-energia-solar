@@ -2,17 +2,30 @@ import { MessageCircle, Clock, CheckCircle2, AlertTriangle, Star } from "lucide-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import type { WaConversation } from "@/hooks/useWaInbox";
 
-interface WaInboxStatsProps {
-  conversations: WaConversation[];
-}
+export function WaInboxStats() {
+  // Fetch ALL conversations stats (not filtered)
+  const { data: stats } = useQuery({
+    queryKey: ["wa-inbox-stats-global"],
+    queryFn: async () => {
+      // Fetch counts by status in a single query
+      const { data: conversations, error } = await supabase
+        .from("wa_conversations")
+        .select("status, unread_count");
+      
+      if (error) throw error;
 
-export function WaInboxStats({ conversations }: WaInboxStatsProps) {
-  const open = conversations.filter((c) => c.status === "open").length;
-  const pending = conversations.filter((c) => c.status === "pending").length;
-  const resolved = conversations.filter((c) => c.status === "resolved").length;
-  const unread = conversations.filter((c) => c.unread_count > 0).length;
+      const all = conversations || [];
+      return {
+        open: all.filter((c) => c.status === "open").length,
+        pending: all.filter((c) => c.status === "pending").length,
+        resolved: all.filter((c) => c.status === "resolved").length,
+        unread: all.filter((c) => c.unread_count > 0).length,
+      };
+    },
+    staleTime: 15 * 1000,
+    refetchInterval: 30 * 1000,
+  });
 
   // Load satisfaction stats
   const { data: satisfactionData } = useQuery({
@@ -34,10 +47,10 @@ export function WaInboxStats({ conversations }: WaInboxStatsProps) {
     staleTime: 60 * 1000,
   });
 
-  const stats = [
+  const statItems = [
     {
       label: "Abertas",
-      value: open,
+      value: stats?.open ?? 0,
       icon: MessageCircle,
       color: "text-success",
       bg: "bg-success/10",
@@ -45,7 +58,7 @@ export function WaInboxStats({ conversations }: WaInboxStatsProps) {
     },
     {
       label: "Pendentes",
-      value: pending,
+      value: stats?.pending ?? 0,
       icon: Clock,
       color: "text-warning",
       bg: "bg-warning/10",
@@ -53,7 +66,7 @@ export function WaInboxStats({ conversations }: WaInboxStatsProps) {
     },
     {
       label: "Não lidas",
-      value: unread,
+      value: stats?.unread ?? 0,
       icon: AlertTriangle,
       color: "text-destructive",
       bg: "bg-destructive/10",
@@ -61,7 +74,7 @@ export function WaInboxStats({ conversations }: WaInboxStatsProps) {
     },
     {
       label: "Resolvidas",
-      value: resolved,
+      value: stats?.resolved ?? 0,
       icon: CheckCircle2,
       color: "text-muted-foreground",
       bg: "bg-muted/50",
@@ -81,7 +94,7 @@ export function WaInboxStats({ conversations }: WaInboxStatsProps) {
 
   return (
     <div className="grid grid-cols-5 gap-2">
-      {stats.map((stat) => (
+      {statItems.map((stat) => (
         <Tooltip key={stat.label}>
           <TooltipTrigger asChild>
             <div

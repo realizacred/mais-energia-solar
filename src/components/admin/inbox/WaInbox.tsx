@@ -245,6 +245,19 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
 
   const handleTransfer = async (toUserId: string, reason?: string) => {
     if (!selectedConv) return;
+    
+    // Find the name of the person being transferred to
+    const targetVendedor = vendedores.find((v) => v.user_id === toUserId || v.id === toUserId);
+    const targetName = targetVendedor?.nome || "outro atendente";
+
+    // Send automated transfer notification to the client
+    try {
+      const transferMsg = `🔄 Você está sendo transferido para *${targetName}*.${reason ? `\n\n📝 Motivo: ${reason}` : ""}\n\nEm instantes, ${targetName} continuará seu atendimento.`;
+      await sendMessage({ content: transferMsg, isInternalNote: false });
+    } catch (err) {
+      console.error("Failed to send transfer notification:", err);
+    }
+
     await transferConversation({ conversationId: selectedConv.id, toUserId, reason });
     setSelectedConv({ ...selectedConv, assigned_to: toUserId });
   };
@@ -285,8 +298,8 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
         </div>
       </div>
 
-      {/* Stats */}
-      <WaInboxStats conversations={conversations} />
+      {/* Stats - fetches its own global data */}
+      <WaInboxStats />
 
       {/* Chat Layout */}
       <div className="bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden" style={{ height: "calc(100vh - 300px)", minHeight: "500px" }}>
