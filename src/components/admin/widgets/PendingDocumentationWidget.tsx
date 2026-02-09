@@ -170,12 +170,10 @@ export function PendingDocumentationWidget({
                       <div className="min-w-0 flex-1">
                         <p className="font-medium truncate">{lead.nome}</p>
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                          {lead.cidade && lead.estado && lead.cidade !== "N/A" && lead.estado !== "N/A" && (
-                            <span className="flex items-center gap-1">
-                              <MapPin className="h-3 w-3" />
-                              {lead.cidade}/{lead.estado}
-                            </span>
-                          )}
+                          <span className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3" />
+                            {lead.cidade}/{lead.estado}
+                          </span>
                           <span className="flex items-center gap-1">
                             <Phone className="h-3 w-3" />
                             {lead.telefone}
