@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
 
     const { data: config, error: configError } = await supabaseAdmin
       .from("instagram_config")
-      .select("*")
+      .select("*, tenant_id")
       .limit(1)
       .maybeSingle();
 
@@ -74,6 +74,17 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // ── TENANT VALIDATION ──────────────────────────────────
+    const tenantId: string | null = config.tenant_id;
+    if (!tenantId) {
+      console.error("[instagram-sync] CRITICAL: instagram_config.tenant_id is NULL — cannot insert posts without tenant");
+      return new Response(
+        JSON.stringify({ success: false, error: "Tenant não resolvido para instagram_config. Corrija antes de sincronizar." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    console.log(`[instagram-sync] Resolved tenant_id=${tenantId} from instagram_config`);
 
     if (!config.access_token) {
       return new Response(
@@ -104,8 +115,12 @@ Deno.serve(async (req) => {
     const media = instagramData.data || [];
     console.log(`Found ${media.length} media items`);
 
-    // Clear existing posts and insert new ones
-    await supabaseAdmin.from("instagram_posts").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    // Clear existing posts FOR THIS TENANT ONLY
+    await supabaseAdmin
+      .from("instagram_posts")
+      .delete()
+      .eq("tenant_id", tenantId)
+      .neq("id", "00000000-0000-0000-0000-000000000000");
 
     const postsToInsert = media.map((item: any) => ({
       instagram_id: item.id,
@@ -115,6 +130,7 @@ Deno.serve(async (req) => {
       permalink: item.permalink,
       caption: item.caption || null,
       timestamp: item.timestamp,
+      tenant_id: tenantId, // ← EXPLICIT tenant_id
     }));
 
     if (postsToInsert.length > 0) {
@@ -134,7 +150,7 @@ Deno.serve(async (req) => {
       .update({ ultima_sincronizacao: new Date().toISOString() })
       .eq("id", config.id);
 
-    console.log(`Successfully synced ${postsToInsert.length} posts`);
+    console.log(`[instagram-sync] Successfully synced ${postsToInsert.length} posts for tenant=${tenantId}`);
 
     return new Response(
       JSON.stringify({ success: true, count: postsToInsert.length }),

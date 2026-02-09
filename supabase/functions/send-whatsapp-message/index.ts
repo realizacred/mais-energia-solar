@@ -11,7 +11,8 @@ interface SendMessageRequest {
   mensagem: string;
   lead_id?: string;
   tipo?: "automatico" | "manual" | "lembrete";
-  instance_id?: string; // optional: send via specific wa_instance
+  instance_id?: string;
+  tenant_id?: string; // ← callers can pass explicitly (e.g. automations)
 }
 
 Deno.serve(async (req) => {
@@ -43,19 +44,33 @@ Deno.serve(async (req) => {
       });
     }
 
-    const supabase = createClient(
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Determine if caller is a real user or service_role
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const isServiceRole = token === serviceRoleKey;
+
+    let userId: string | null = null;
+
+    if (!isServiceRole) {
+      // Regular user — validate JWT
+      const supabaseUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ success: false, error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = claimsData.claims.sub as string;
     }
 
     const body = (await req.json().catch(() => null)) as SendMessageRequest | null;
@@ -75,16 +90,54 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Use service role to read config (bypasses RLS — config is system-level, not user-specific)
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // ── TENANT RESOLUTION (multi-source) ──────────────────────
+    let tenantId: string | null = body.tenant_id || null;
+
+    // Strategy 1: From user profile (regular user)
+    if (!tenantId && userId) {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      tenantId = profile?.tenant_id || null;
+      if (tenantId) console.log(`[send-wa] tenant from user profile: ${tenantId}`);
+    }
+
+    // Strategy 2: From lead (if lead_id provided)
+    if (!tenantId && lead_id) {
+      const { data: lead } = await supabaseAdmin
+        .from("leads")
+        .select("tenant_id")
+        .eq("id", lead_id)
+        .maybeSingle();
+      tenantId = lead?.tenant_id || null;
+      if (tenantId) console.log(`[send-wa] tenant from lead: ${tenantId}`);
+    }
+
+    // Strategy 3: From whatsapp_automation_config (system-level fallback)
+    if (!tenantId) {
+      const { data: waConfig } = await supabaseAdmin
+        .from("whatsapp_automation_config")
+        .select("tenant_id")
+        .maybeSingle();
+      tenantId = waConfig?.tenant_id || null;
+      if (tenantId) console.log(`[send-wa] tenant from wa_config: ${tenantId}`);
+    }
+
+    if (!tenantId) {
+      console.error("[send-wa] CRITICAL: Could not resolve tenant_id from any source");
+      return new Response(
+        JSON.stringify({ success: false, error: "Tenant não resolvido. Operação bloqueada." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Busca config (service role — RLS blocks vendedores)
     const { data: config, error: configError } = await supabaseAdmin
       .from("whatsapp_automation_config")
-      .select("ativo, modo_envio, webhook_url, api_token, evolution_api_url, evolution_api_key, evolution_instance")
+      .select("ativo, modo_envio, webhook_url, api_token, evolution_api_url, evolution_api_key, evolution_instance, tenant_id")
+      .eq("tenant_id", tenantId)
       .maybeSingle();
 
     if (configError) {
@@ -96,7 +149,7 @@ Deno.serve(async (req) => {
     }
 
     if (!config) {
-      console.warn("WhatsApp config not found");
+      console.warn("WhatsApp config not found for tenant:", tenantId);
       return new Response(JSON.stringify({ success: false, error: "Configuração de WhatsApp não encontrada." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -156,15 +209,11 @@ Deno.serve(async (req) => {
       let evoApiKey = globalApiKey;
       let evoInstance = "";
 
-      // supabaseAdmin already declared above
-
       // Try to resolve from wa_instances first
       const instanceKey = instance_id || config.evolution_instance;
       if (instanceKey) {
-        // Try finding by ID first, then by instance_key
         let waQuery = supabaseAdmin.from("wa_instances").select("*");
         
-        // If it looks like a UUID, try by ID; otherwise by instance_key
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceKey);
         if (isUuid) {
           waQuery = waQuery.eq("id", instanceKey);
@@ -172,7 +221,7 @@ Deno.serve(async (req) => {
           waQuery = waQuery.eq("evolution_instance_key", instanceKey);
         }
 
-        const { data: waInst } = await waQuery.maybeSingle();
+        const { data: waInst } = await waQuery.eq("tenant_id", tenantId).maybeSingle();
 
         if (waInst) {
           evoApiUrl = waInst.evolution_api_url?.replace(/\/$/, "") || "";
@@ -185,7 +234,6 @@ Deno.serve(async (req) => {
       if (!evoApiUrl && config.evolution_api_url) {
         evoApiUrl = config.evolution_api_url.replace(/\/$/, "");
         evoInstance = config.evolution_instance || "";
-        // If config has its own API key, use it
         if (config.evolution_api_key) {
           evoApiKey = config.evolution_api_key;
         }
@@ -229,17 +277,19 @@ Deno.serve(async (req) => {
     const anySuccess = results.some((r) => r.success);
     const status = anySuccess ? "enviado" : "erro";
 
-    // Log no histórico
-    const { error: logError } = await supabase.from("whatsapp_messages").insert({
+    // Log no histórico — EXPLICIT tenant_id
+    const { error: logError } = await supabaseAdmin.from("whatsapp_messages").insert({
       lead_id: lead_id || null,
       tipo,
       mensagem,
       telefone: formattedPhone,
       status,
       erro_detalhes: anySuccess ? null : JSON.stringify(results),
+      enviado_por: userId || null,
+      tenant_id: tenantId, // ← EXPLICIT tenant_id
     });
 
-    if (logError) console.warn("Log insert failed:", logError);
+    if (logError) console.warn("[send-wa] Log insert failed:", logError);
 
     if (results.length === 0) {
       return new Response(JSON.stringify({ success: false, error: "Nenhum método de envio configurado" }), {
@@ -247,6 +297,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log(`[send-wa] Done for tenant=${tenantId}: ${results.length} methods, anySuccess=${anySuccess}`);
 
     return new Response(
       JSON.stringify({
