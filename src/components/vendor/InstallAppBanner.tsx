@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Download, X, Share, MoreVertical, Smartphone } from "lucide-react";
-import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { usePWAInstall, savePWAReturnUrl } from "@/hooks/usePWAInstall";
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,8 @@ export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
   };
 
   const handleInstallClick = async () => {
+    // Save current URL so PWA opens on this page after install
+    savePWAReturnUrl();
     if (canInstall) {
       await promptInstall();
     } else if (isIOS || isAndroid) {

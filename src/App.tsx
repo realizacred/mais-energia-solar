@@ -1,14 +1,15 @@
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { BrandSettingsProvider } from "@/components/BrandSettingsProvider";
 import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import { WaNotificationProvider } from "@/components/notifications/WaNotificationProvider";
+import { consumePWAReturnUrl } from "@/hooks/usePWAInstall";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -43,6 +44,27 @@ const queryClient = new QueryClient({
   },
 });
 
+/** Redirects to saved vendor page when PWA opens for the first time after install */
+function PWAReturnRedirect() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true;
+
+    if (isStandalone && location.pathname === "/") {
+      const returnUrl = consumePWAReturnUrl();
+      if (returnUrl) {
+        navigate(returnUrl, { replace: true });
+      }
+    }
+  }, [navigate, location.pathname]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -52,6 +74,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <PWAReturnRedirect />
           <WaNotificationProvider />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
