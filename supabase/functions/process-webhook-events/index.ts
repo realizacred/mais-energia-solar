@@ -256,6 +256,14 @@ async function handleMessageUpsert(
       }
     }
 
+    // ── Fetch media if applicable ──
+    let mediaUrl: string | null = msg.mediaUrl || null;
+    const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || null;
+    
+    if (!mediaUrl && ["image", "video", "audio", "document"].includes(messageType) && evolutionMessageId) {
+      mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType, mediaMimeType, msg);
+    }
+
     await supabase.from("wa_messages").insert({
       conversation_id: conversationId,
       tenant_id: tenantId,
@@ -263,8 +271,8 @@ async function handleMessageUpsert(
       direction,
       message_type: messageType,
       content,
-      media_url: msg.mediaUrl || null,
-      media_mime_type: msg.mimetype || null,
+      media_url: mediaUrl,
+      media_mime_type: mediaMimeType,
       status: fromMe ? "sent" : "delivered",
       participant_jid: participantJid,
       participant_name: participantName,
@@ -299,6 +307,103 @@ async function handleMessageUpsert(
         }
       }
     }
+  }
+}
+
+// ── Fetch media from Evolution API and store in Supabase Storage ──
+
+async function fetchAndStoreMedia(
+  supabase: any,
+  instanceId: string,
+  tenantId: string,
+  messageId: string,
+  messageType: string,
+  mimeType: string | null,
+  rawMsg: any,
+): Promise<string | null> {
+  try {
+    // Get instance details for API call
+    const { data: instance } = await supabase
+      .from("wa_instances")
+      .select("evolution_api_url, evolution_instance_key, api_key")
+      .eq("id", instanceId)
+      .maybeSingle();
+
+    if (!instance) {
+      console.warn(`[process-webhook-events] No instance found for media fetch: ${instanceId}`);
+      return null;
+    }
+
+    const apiUrl = instance.evolution_api_url?.replace(/\/$/, "");
+    const apiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
+    const instanceKey = instance.evolution_instance_key;
+
+    if (!apiUrl || !instanceKey) return null;
+
+    // Call Evolution API to get base64 media
+    const mediaEndpoint = `${apiUrl}/chat/getBase64FromMediaMessage/${encodeURIComponent(instanceKey)}`;
+    
+    const mediaRes = await fetch(mediaEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({ message: { key: rawMsg.key || { id: messageId } }, convertToMp4: messageType === "audio" }),
+    });
+
+    if (!mediaRes.ok) {
+      const errText = await mediaRes.text().catch(() => "");
+      console.warn(`[process-webhook-events] Media fetch failed [${mediaRes.status}]: ${errText.substring(0, 200)}`);
+      return null;
+    }
+
+    const mediaData = await mediaRes.json();
+    const base64 = mediaData.base64 || mediaData.data?.base64 || null;
+    const mediaMime = mediaData.mimetype || mediaData.data?.mimetype || mimeType || "application/octet-stream";
+
+    if (!base64) {
+      console.warn("[process-webhook-events] No base64 in media response");
+      return null;
+    }
+
+    // Determine file extension
+    const extMap: Record<string, string> = {
+      "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp",
+      "video/mp4": "mp4", "video/3gpp": "3gp",
+      "audio/ogg": "ogg", "audio/mpeg": "mp3", "audio/mp4": "m4a",
+      "application/pdf": "pdf",
+    };
+    const ext = extMap[mediaMime] || mediaMime.split("/")[1] || "bin";
+
+    // Upload to Supabase Storage
+    const filePath = `${tenantId}/media/${messageId}.${ext}`;
+    
+    // Convert base64 to Uint8Array
+    const binaryStr = atob(base64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for (let i = 0; i < binaryStr.length; i++) {
+      bytes[i] = binaryStr.charCodeAt(i);
+    }
+
+    const { error: uploadError } = await supabase.storage
+      .from("wa-attachments")
+      .upload(filePath, bytes, {
+        contentType: mediaMime,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("[process-webhook-events] Storage upload error:", uploadError);
+      return null;
+    }
+
+    const { data: publicUrl } = supabase.storage
+      .from("wa-attachments")
+      .getPublicUrl(filePath);
+
+    console.log(`[process-webhook-events] Media stored: ${messageType} -> ${filePath}`);
+    return publicUrl?.publicUrl || null;
+  } catch (err) {
+    console.error("[process-webhook-events] Media fetch/store error:", err);
+    return null;
   }
 }
 
