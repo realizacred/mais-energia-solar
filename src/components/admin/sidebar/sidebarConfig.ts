@@ -166,6 +166,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         description: "Inbox de atendimento",
       },
       {
+        id: "followup-wa",
+        title: "Follow-up WhatsApp",
+        icon: Bell,
+        description: "Regras de acompanhamento",
+      },
+      {
         id: "respostas-rapidas",
         title: "Respostas Rápidas",
         icon: Sparkles,

@@ -12,6 +12,7 @@ import { WaTransferDialog, WaAssignDialog, WaTagsDialog } from "./WaInboxDialogs
 import { WaLinkLeadSearch } from "./WaLinkLeadSearch";
 import { WaInboxStats } from "./WaInboxStats";
 import { WaResolveDialog } from "./WaResolveDialog";
+import { WaFollowupWidget } from "@/components/admin/widgets/WaFollowupWidget";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
 interface WaInboxProps {
@@ -330,6 +331,9 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
 
       {/* Stats - fetches its own global data */}
       <WaInboxStats />
+
+      {/* Follow-up Widget */}
+      {!vendorMode && <WaFollowupWidget />}
 
       {/* Chat Layout */}
       <div className="bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden" style={{ height: "calc(100vh - 300px)", minHeight: "500px" }}>
