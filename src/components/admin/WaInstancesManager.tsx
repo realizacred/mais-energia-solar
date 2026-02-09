@@ -13,6 +13,7 @@ import {
   Edit,
   Link2,
   CheckCircle2,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
 };
 
 export function WaInstancesManager() {
-  const { instances, loading, createInstance, updateInstance, deleteInstance, checkStatus, checkingStatus } = useWaInstances();
+  const { instances, loading, createInstance, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory } = useWaInstances();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [editInstance, setEditInstance] = useState<WaInstance | null>(null);
@@ -184,6 +185,13 @@ export function WaInstancesManager() {
                             <ExternalLink className="h-4 w-4 mr-2" />
                             Abrir Evolution API
                           </a>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => syncHistory(inst.id)}
+                          disabled={inst.status !== "connected"}
+                        >
+                          <History className="h-4 w-4 mr-2" />
+                          Sincronizar Histórico
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem

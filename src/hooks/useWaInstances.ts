@@ -71,7 +71,12 @@ export function useWaInstances() {
       // Auto-check status after creation
       if (data?.id) {
         try {
-          await checkInstanceStatus(data.id);
+          const results = await checkInstanceStatus(data.id);
+          // If connected, auto-sync history
+          const connected = results?.some((r) => r.status === "connected");
+          if (connected) {
+            triggerHistorySync(data.id);
+          }
         } catch (e) {
           console.warn("Auto-check status after create failed:", e);
         }
@@ -131,6 +136,33 @@ export function useWaInstances() {
     return data.results as CheckStatusResult[];
   };
 
+  // Trigger historical message sync for an instance (fire & forget)
+  const triggerHistorySync = async (instanceId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) return;
+
+      toast({ title: "Sincronizando histórico...", description: "Buscando mensagens dos últimos 365 dias." });
+
+      const { data, error } = await supabase.functions.invoke("sync-wa-history", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+        body: { instance_id: instanceId },
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Histórico sincronizado!",
+        description: `${data?.conversations_created || 0} conversas, ${data?.messages_imported || 0} mensagens importadas.`,
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+    } catch (e: any) {
+      console.warn("History sync failed:", e);
+      toast({ title: "Erro na sincronização", description: e.message, variant: "destructive" });
+    }
+  };
+
   const checkStatusMutation = useMutation({
     mutationFn: async (instanceId?: string) => {
       return checkInstanceStatus(instanceId);
@@ -160,5 +192,6 @@ export function useWaInstances() {
     deleteInstance: deleteInstance.mutate,
     checkStatus: checkStatusMutation.mutate,
     checkingStatus: checkStatusMutation.isPending,
+    syncHistory: triggerHistorySync,
   };
 }
