@@ -21,7 +21,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(async (reason?: string) => {
+    if (reason) {
+      sessionStorage.setItem("logout_reason", reason);
+    }
     await supabase.auth.signOut();
   }, []);
 
@@ -45,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (profile && profile.ativo === false) {
           console.warn("[auth] User deactivated, signing out");
-          await signOut();
+          await signOut("Seu acesso foi desativado. Entre em contato com o administrador.");
           return;
         }
 
@@ -56,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (!roles || roles.length === 0) {
           console.warn("[auth] User has no roles, signing out");
-          await signOut();
+          await signOut("Seus perfis de acesso foram removidos. Entre em contato com o administrador.");
         }
       } catch {
         // Silently ignore — network errors shouldn't log user out
@@ -85,7 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         (payload) => {
           if (payload.new && (payload.new as any).ativo === false) {
             console.warn("[auth] Profile deactivated via realtime, signing out");
-            signOut();
+            signOut("Seu acesso foi desativado. Entre em contato com o administrador.");
           }
         }
       )
