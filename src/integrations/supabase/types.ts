@@ -4836,6 +4836,499 @@ export type Database = {
           },
         ]
       }
+      wa_conversation_tags: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          tag_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          tag_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          tag_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversation_tags_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversation_tags_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "wa_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_conversations: {
+        Row: {
+          assigned_to: string | null
+          canal: string
+          cliente_id: string | null
+          cliente_nome: string | null
+          cliente_telefone: string
+          created_at: string
+          id: string
+          instance_id: string
+          last_message_at: string | null
+          last_message_preview: string | null
+          lead_id: string | null
+          profile_picture_url: string | null
+          remote_jid: string
+          status: string
+          tenant_id: string | null
+          unread_count: number
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          canal?: string
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          cliente_telefone: string
+          created_at?: string
+          id?: string
+          instance_id: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          lead_id?: string | null
+          profile_picture_url?: string | null
+          remote_jid: string
+          status?: string
+          tenant_id?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          canal?: string
+          cliente_id?: string | null
+          cliente_nome?: string | null
+          cliente_telefone?: string
+          created_at?: string
+          id?: string
+          instance_id?: string
+          last_message_at?: string | null
+          last_message_preview?: string | null
+          lead_id?: string | null
+          profile_picture_url?: string | null
+          remote_jid?: string
+          status?: string
+          tenant_id?: string | null
+          unread_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversations_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "wa_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_instances: {
+        Row: {
+          created_at: string
+          evolution_api_url: string
+          evolution_instance_key: string
+          id: string
+          last_seen_at: string | null
+          nome: string
+          owner_user_id: string | null
+          phone_number: string | null
+          profile_name: string | null
+          profile_picture_url: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+          vendedor_id: string | null
+          webhook_secret: string
+        }
+        Insert: {
+          created_at?: string
+          evolution_api_url?: string
+          evolution_instance_key: string
+          id?: string
+          last_seen_at?: string | null
+          nome: string
+          owner_user_id?: string | null
+          phone_number?: string | null
+          profile_name?: string | null
+          profile_picture_url?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          vendedor_id?: string | null
+          webhook_secret?: string
+        }
+        Update: {
+          created_at?: string
+          evolution_api_url?: string
+          evolution_instance_key?: string
+          id?: string
+          last_seen_at?: string | null
+          nome?: string
+          owner_user_id?: string | null
+          phone_number?: string | null
+          profile_name?: string | null
+          profile_picture_url?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+          vendedor_id?: string | null
+          webhook_secret?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_instances_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_instances_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_messages: {
+        Row: {
+          content: string | null
+          conversation_id: string
+          created_at: string
+          direction: string
+          error_message: string | null
+          evolution_message_id: string | null
+          id: string
+          is_internal_note: boolean
+          media_mime_type: string | null
+          media_url: string | null
+          message_type: string
+          metadata: Json | null
+          quoted_message_id: string | null
+          sent_by_user_id: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          content?: string | null
+          conversation_id: string
+          created_at?: string
+          direction: string
+          error_message?: string | null
+          evolution_message_id?: string | null
+          id?: string
+          is_internal_note?: boolean
+          media_mime_type?: string | null
+          media_url?: string | null
+          message_type?: string
+          metadata?: Json | null
+          quoted_message_id?: string | null
+          sent_by_user_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          content?: string | null
+          conversation_id?: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          evolution_message_id?: string | null
+          id?: string
+          is_internal_note?: boolean
+          media_mime_type?: string | null
+          media_url?: string | null
+          message_type?: string
+          metadata?: Json | null
+          quoted_message_id?: string | null
+          sent_by_user_id?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_messages_quoted_message_id_fkey"
+            columns: ["quoted_message_id"]
+            isOneToOne: false
+            referencedRelation: "wa_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_outbox: {
+        Row: {
+          content: string | null
+          conversation_id: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          instance_id: string
+          max_retries: number
+          media_url: string | null
+          message_id: string | null
+          message_type: string
+          remote_jid: string
+          retry_count: number
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          instance_id: string
+          max_retries?: number
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string
+          remote_jid: string
+          retry_count?: number
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          instance_id?: string
+          max_retries?: number
+          media_url?: string | null
+          message_id?: string | null
+          message_type?: string
+          remote_jid?: string
+          retry_count?: number
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_outbox_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_outbox_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "wa_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_outbox_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "wa_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_outbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_tags: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+          tenant_id: string | null
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+          tenant_id?: string | null
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_transfers: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          from_user_id: string | null
+          id: string
+          reason: string | null
+          tenant_id: string | null
+          to_user_id: string | null
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          reason?: string | null
+          tenant_id?: string | null
+          to_user_id?: string | null
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          from_user_id?: string | null
+          id?: string
+          reason?: string | null
+          tenant_id?: string | null
+          to_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_transfers_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_transfers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_webhook_events: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_type: string
+          id: string
+          instance_id: string | null
+          payload: Json
+          processed: boolean
+          processed_at: string | null
+          retry_count: number
+          tenant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_type: string
+          id?: string
+          instance_id?: string | null
+          payload?: Json
+          processed?: boolean
+          processed_at?: string | null
+          retry_count?: number
+          tenant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          instance_id?: string | null
+          payload?: Json
+          processed?: boolean
+          processed_at?: string | null
+          retry_count?: number
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_webhook_events_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "wa_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_webhook_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       webhook_config: {
         Row: {
           ativo: boolean
@@ -5406,6 +5899,7 @@ export type Database = {
     Functions: {
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
       cleanup_sm_integration_requests: { Args: never; Returns: undefined }
+      cleanup_wa_webhook_events: { Args: never; Returns: undefined }
       generate_vendedor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
         Args: never
