@@ -32,6 +32,27 @@ import { ChatMediaComposer } from "./ChatMediaComposer";
 import { ChatMediaMessage } from "./ChatMediaMessage";
 import type { Conversation, ConversationMessage } from "@/hooks/useWhatsAppInbox";
 
+const URL_REGEX = /(https?:\/\/[^\s<]+)/g;
+
+function linkifyContent(text: string, isOut: boolean) {
+  const parts = text.split(URL_REGEX);
+  if (parts.length === 1) return text;
+  return parts.map((part, i) =>
+    URL_REGEX.test(part) ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`underline break-all ${isOut ? "text-primary-foreground/90 hover:text-primary-foreground" : "text-primary hover:text-primary/80"}`}
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  );
+}
 interface ChatPanelProps {
   conversation: Conversation | null;
   messages: ConversationMessage[];
@@ -276,7 +297,9 @@ export function ChatPanel({
                         isOut={isOut}
                       />
                       {msg.content && msg.message_type !== "document" && (
-                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                        <p className="whitespace-pre-wrap break-words">
+                          {linkifyContent(msg.content, isOut)}
+                        </p>
                       )}
                       <p className={`text-[10px] mt-1 ${isNote ? "text-warning/70" : isOut ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                         {format(new Date(msg.created_at), "HH:mm")}
