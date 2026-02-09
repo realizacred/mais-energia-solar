@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { TrialBanner } from "@/components/plan";
 
 // Lazy load admin sub-pages for better code splitting
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
@@ -253,6 +254,7 @@ export default function Admin() {
             </div>
           </header>
 
+          <TrialBanner />
           <main className="flex-1 p-4 md:p-6 space-y-5 overflow-x-hidden animate-fade-in">
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>

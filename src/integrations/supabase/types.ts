@@ -3137,6 +3137,112 @@ export type Database = {
         }
         Relationships: []
       }
+      plan_features: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature_key: string
+          id: string
+          plan_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature_key: string
+          id?: string
+          plan_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature_key?: string
+          id?: string
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_features_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plan_limits: {
+        Row: {
+          created_at: string
+          id: string
+          limit_key: string
+          limit_value: number
+          plan_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          limit_key: string
+          limit_value?: number
+          plan_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          limit_key?: string
+          limit_value?: number
+          plan_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_limits_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      plans: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          name: string
+          price_monthly: number
+          price_yearly: number | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name: string
+          price_monthly?: number
+          price_yearly?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          name?: string
+          price_monthly?: number
+          price_yearly?: number | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           ativo: boolean
@@ -4963,6 +5069,66 @@ export type Database = {
         }
         Relationships: []
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean
+          canceled_at: string | null
+          created_at: string
+          current_period_end: string
+          current_period_start: string
+          external_id: string | null
+          id: string
+          plan_id: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          tenant_id: string
+          trial_ends_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          external_id?: string | null
+          id?: string
+          plan_id: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tenant_id: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          canceled_at?: string | null
+          created_at?: string
+          current_period_end?: string
+          current_period_start?: string
+          external_id?: string | null
+          id?: string
+          plan_id?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tenant_id?: string
+          trial_ends_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_events: {
         Row: {
           action: string
@@ -5125,6 +5291,88 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "transformadores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_counters: {
+        Row: {
+          created_at: string
+          current_value: number
+          id: string
+          metric_key: string
+          period_end: string
+          period_start: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          metric_key: string
+          period_end?: string
+          period_start?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_value?: number
+          id?: string
+          metric_key?: string
+          period_end?: string
+          period_start?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_counters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      usage_events: {
+        Row: {
+          created_at: string
+          delta: number
+          id: string
+          metadata: Json | null
+          metric_key: string
+          source: string | null
+          tenant_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          delta?: number
+          id?: string
+          metadata?: Json | null
+          metric_key: string
+          source?: string | null
+          tenant_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          delta?: number
+          id?: string
+          metadata?: Json | null
+          metric_key?: string
+          source?: string | null
+          tenant_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "usage_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -6691,9 +6939,22 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_tenant_limit: {
+        Args: { _delta?: number; _metric_key: string }
+        Returns: {
+          allowed: boolean
+          current_value: number
+          limit_value: number
+          remaining: number
+        }[]
+      }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
       cleanup_sm_integration_requests: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
+      enforce_limit_or_throw: {
+        Args: { _delta?: number; _metric_key: string }
+        Returns: undefined
+      }
       generate_vendedor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
         Args: never
@@ -6794,6 +7055,20 @@ export type Database = {
           taxas_fixas_mensais: number
         }[]
       }
+      get_tenant_subscription: {
+        Args: never
+        Returns: {
+          cancel_at_period_end: boolean
+          current_period_end: string
+          current_period_start: string
+          plan_code: string
+          plan_name: string
+          price_monthly: number
+          status: Database["public"]["Enums"]["subscription_status"]
+          subscription_id: string
+          trial_ends_at: string
+        }[]
+      }
       get_user_tenant_id: { Args: { _user_id?: string }; Returns: string }
       has_role: {
         Args: {
@@ -6801,6 +7076,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_usage: {
+        Args: { _delta?: number; _metric_key: string; _source?: string }
+        Returns: undefined
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
@@ -6881,6 +7160,12 @@ export type Database = {
         | "cancelado"
         | "reagendado"
       servico_tipo: "instalacao" | "manutencao" | "visita_tecnica" | "suporte"
+      subscription_status:
+        | "trialing"
+        | "active"
+        | "past_due"
+        | "canceled"
+        | "expired"
       tipo_sistema_inversor: "ON_GRID" | "HIBRIDO" | "OFF_GRID"
     }
     CompositeTypes: {
@@ -7080,6 +7365,13 @@ export const Constants = {
         "reagendado",
       ],
       servico_tipo: ["instalacao", "manutencao", "visita_tecnica", "suporte"],
+      subscription_status: [
+        "trialing",
+        "active",
+        "past_due",
+        "canceled",
+        "expired",
+      ],
       tipo_sistema_inversor: ["ON_GRID", "HIBRIDO", "OFF_GRID"],
     },
   },
