@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, Pencil, Zap, Image, FileText, Video, Music, GripVertical, Tag, Palette } from "lucide-react";
+import { useState, useRef, useCallback } from "react";
+import { Plus, Trash2, Pencil, Zap, Image, FileText, Video, Music, GripVertical, Tag, Palette, Bold, Italic, Strikethrough, Code, List } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -178,6 +179,7 @@ export function WaQuickRepliesManager() {
   const [form, setForm] = useState<QuickReplyForm>(EMPTY_FORM);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
 
   // Category management
   const { categories, loading: catsLoading, saveCategory, deleteCategory, isSaving: catSaving } = useQRCategories();
@@ -349,6 +351,50 @@ export function WaQuickRepliesManager() {
     setCatDialogOpen(false);
   };
 
+  // ── Text formatting helpers ──
+  const wrapContentSelection = useCallback(
+    (prefix: string, suffix?: string) => {
+      const textarea = contentRef.current;
+      if (!textarea) return;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = form.conteudo;
+      const selected = text.substring(start, end);
+      const s = suffix || prefix;
+      const newText = text.substring(0, start) + prefix + selected + s + text.substring(end);
+      setForm(p => ({ ...p, conteudo: newText }));
+      setTimeout(() => {
+        textarea.focus();
+        const newCursor = selected
+          ? start + prefix.length + selected.length + s.length
+          : start + prefix.length;
+        textarea.setSelectionRange(
+          selected ? start : start + prefix.length,
+          selected ? newCursor : start + prefix.length
+        );
+      }, 0);
+    },
+    [form.conteudo]
+  );
+
+  const insertBulletList = useCallback(() => {
+    const textarea = contentRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const text = form.conteudo;
+    const selected = text.substring(start, textarea.selectionEnd);
+    const bullets = selected
+      ? selected.split("\n").map(line => `• ${line}`).join("\n")
+      : "• ";
+    const newText = text.substring(0, start) + bullets + text.substring(textarea.selectionEnd);
+    setForm(p => ({ ...p, conteudo: newText }));
+    setTimeout(() => {
+      textarea.focus();
+      const pos = start + bullets.length;
+      textarea.setSelectionRange(pos, pos);
+    }, 0);
+  }, [form.conteudo]);
+
   return (
     <Card>
       <CardHeader>
@@ -513,15 +559,75 @@ export function WaQuickRepliesManager() {
 
               <div className="space-y-1">
                 <Label>Conteúdo da mensagem *</Label>
+                {/* WhatsApp formatting toolbar */}
+                <div className="flex items-center gap-0.5 border border-border rounded-t-lg px-2 py-1 bg-muted/30">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button" size="icon" variant="ghost" className="h-7 w-7"
+                        onClick={() => wrapContentSelection("*")}
+                      >
+                        <Bold className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Negrito *texto*</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button" size="icon" variant="ghost" className="h-7 w-7"
+                        onClick={() => wrapContentSelection("_")}
+                      >
+                        <Italic className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Itálico _texto_</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button" size="icon" variant="ghost" className="h-7 w-7"
+                        onClick={() => wrapContentSelection("~")}
+                      >
+                        <Strikethrough className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Tachado ~texto~</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button" size="icon" variant="ghost" className="h-7 w-7"
+                        onClick={() => wrapContentSelection("```\n", "\n```")}
+                      >
+                        <Code className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Monospace ```texto```</TooltipContent>
+                  </Tooltip>
+                  <div className="w-px h-4 bg-border/50 mx-1" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button" size="icon" variant="ghost" className="h-7 w-7"
+                        onClick={insertBulletList}
+                      >
+                        <List className="h-3.5 w-3.5" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">Lista com bullets</TooltipContent>
+                  </Tooltip>
+                </div>
                 <Textarea
+                  ref={contentRef}
                   value={form.conteudo}
                   onChange={(e) => setForm(p => ({ ...p, conteudo: e.target.value }))}
                   placeholder="Olá! Como posso ajudar?"
-                  rows={4}
-                  className="text-sm"
+                  rows={5}
+                  className="text-sm rounded-t-none border-t-0 font-mono"
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Use *negrito*, _itálico_ e ~tachado~ para formatação WhatsApp.
+                  Selecione texto e clique nos botões acima para formatar. Suporta formatação WhatsApp.
                 </p>
               </div>
 
