@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
+import { AlertTriangle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Mail, Lock, Loader2, CheckCircle, KeyRound, ArrowRight, Sparkles, ArrowLeft, User, Briefcase } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -44,8 +45,18 @@ export function AuthForm() {
   const [recoveryStep, setRecoveryStep] = useState<RecoveryStep>("idle");
   const [recoveryEmail, setRecoveryEmail] = useState("");
   const [hasRecoverySession, setHasRecoverySession] = useState(false);
+  const [logoutReason, setLogoutReason] = useState<string | null>(null);
   const { signIn, signUp } = useAuth();
   const { toast } = useToast();
+
+  // Check for logout reason from sessionStorage
+  useEffect(() => {
+    const reason = sessionStorage.getItem("logout_reason");
+    if (reason) {
+      setLogoutReason(reason);
+      sessionStorage.removeItem("logout_reason");
+    }
+  }, []);
 
   const isRecoveryFlow = useMemo(() => {
     const hash = window.location.hash ?? "";
@@ -451,6 +462,15 @@ export function AuthForm() {
 
   return (
     <div className="animate-fade-in">
+      {logoutReason && (
+        <div className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+          <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold text-destructive">Acesso revogado</p>
+            <p className="text-muted-foreground mt-1">{logoutReason}</p>
+          </div>
+        </div>
+      )}
       <Tabs defaultValue="login" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6 h-11 p-1 bg-muted/50">
           <TabsTrigger value="login" className="data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg font-medium">
