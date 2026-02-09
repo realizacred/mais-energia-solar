@@ -5714,6 +5714,60 @@ export type Database = {
           },
         ]
       }
+      vendor_invites: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          revoked_at: string | null
+          tenant_id: string
+          token: string
+          used_at: string | null
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          tenant_id: string
+          token?: string
+          used_at?: string | null
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          revoked_at?: string | null
+          tenant_id?: string
+          token?: string
+          used_at?: string | null
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendor_invites_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendor_invites_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversation_tags: {
         Row: {
           conversation_id: string
@@ -7240,6 +7294,7 @@ export type Database = {
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       require_tenant_id: { Args: { _user_id?: string }; Returns: string }
+      resolve_phone_to_email: { Args: { _phone: string }; Returns: string }
       resolve_public_tenant_id: { Args: never; Returns: string }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }

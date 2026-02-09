@@ -77,3 +77,6 @@ verify_jwt = false
 
 [functions.create-tenant]
 verify_jwt = false
+
+[functions.activate-vendor-account]
+verify_jwt = false

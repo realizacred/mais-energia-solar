@@ -236,11 +236,33 @@ export function AuthForm() {
   const handleSignIn = async (data: LoginData) => {
     setIsLoading(true);
     try {
-      const { error } = await signIn(data.email, data.password);
+      let loginEmail = data.email;
+
+      // If input looks like a phone number, resolve to email
+      const digitsOnly = data.email.replace(/\D/g, "");
+      if (digitsOnly.length >= 10 && !data.email.includes("@")) {
+        const { data: resolvedEmail, error: resolveError } = await supabase.rpc(
+          "resolve_phone_to_email",
+          { _phone: data.email }
+        );
+
+        if (resolveError || !resolvedEmail) {
+          toast({
+            title: "Telefone não encontrado",
+            description: "Nenhuma conta vinculada a este telefone. Use seu email.",
+            variant: "destructive",
+          });
+          setIsLoading(false);
+          return;
+        }
+        loginEmail = resolvedEmail;
+      }
+
+      const { error } = await signIn(loginEmail, data.password);
       if (error) {
         let message = "Erro ao fazer login. Tente novamente.";
         if (error.message.includes("Invalid login credentials")) {
-          message = "Email ou senha incorretos.";
+          message = "Email/telefone ou senha incorretos.";
         } else if (error.message.includes("Email not confirmed")) {
           message = "Por favor, confirme seu email antes de fazer login.";
         }
@@ -489,13 +511,13 @@ export function AuthForm() {
                 name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium">Email</FormLabel>
+                    <FormLabel className="text-sm font-medium">Email ou Telefone</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
-                          type="email"
-                          placeholder="seu@email.com"
+                          type="text"
+                          placeholder="seu@email.com ou (00) 00000-0000"
                           className="pl-10"
                           {...field}
                         />
