@@ -136,7 +136,7 @@ describe("loginSchema", () => {
   it("should validate valid credentials", () => {
     const result = loginSchema.safeParse({
       email: "admin@empresa.com",
-      password: "123456",
+      password: "Senha123",
     });
     expect(result.success).toBe(true);
   });
@@ -144,15 +144,15 @@ describe("loginSchema", () => {
   it("should reject invalid email", () => {
     const result = loginSchema.safeParse({
       email: "not-an-email",
-      password: "123456",
+      password: "Senha123",
     });
     expect(result.success).toBe(false);
   });
 
-  it("should reject short password", () => {
+  it("should reject empty password", () => {
     const result = loginSchema.safeParse({
       email: "admin@empresa.com",
-      password: "123",
+      password: "",
     });
     expect(result.success).toBe(false);
   });
@@ -164,17 +164,37 @@ describe("signupSchema", () => {
     const result = signupSchema.safeParse({
       nome: "João Vendedor",
       email: "joao@empresa.com",
-      password: "senha123",
+      password: "Senha123",
       cargo: "vendedor",
     });
     expect(result.success).toBe(true);
+  });
+
+  it("should reject weak password (no uppercase)", () => {
+    const result = signupSchema.safeParse({
+      nome: "João",
+      email: "joao@empresa.com",
+      password: "senha123",
+      cargo: "vendedor",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("should reject short password", () => {
+    const result = signupSchema.safeParse({
+      nome: "João",
+      email: "joao@empresa.com",
+      password: "Abc1",
+      cargo: "vendedor",
+    });
+    expect(result.success).toBe(false);
   });
 
   it("should reject invalid cargo", () => {
     const result = signupSchema.safeParse({
       nome: "João",
       email: "joao@empresa.com",
-      password: "senha123",
+      password: "Senha123",
       cargo: "admin",
     });
     expect(result.success).toBe(false);
@@ -184,7 +204,7 @@ describe("signupSchema", () => {
     const result = signupSchema.safeParse({
       nome: "Carlos Instalador",
       email: "carlos@empresa.com",
-      password: "senha123",
+      password: "Senha123",
       cargo: "instalador",
     });
     expect(result.success).toBe(true);
