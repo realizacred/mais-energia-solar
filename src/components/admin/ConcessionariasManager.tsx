@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Landmark, Info } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -62,6 +62,7 @@ interface Concessionaria {
   aliquota_icms: number | null;
   possui_isencao_scee: boolean | null;
   percentual_isencao: number | null;
+  ultima_sync_tarifas: string | null;
   created_at: string;
 }
 
@@ -110,6 +111,61 @@ export function ConcessionariasManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [syncing, setSyncing] = useState(false);
+
+  // Check if any concessionária needs tariff update (>12 months)
+  const syncAlert = useMemo(() => {
+    const now = new Date();
+    const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 12, now.getDate());
+    const outdated = concessionarias.filter(c => {
+      if (!c.ultima_sync_tarifas) return true;
+      return new Date(c.ultima_sync_tarifas) < twelveMonthsAgo;
+    });
+    return outdated.length > 0 ? outdated.length : 0;
+  }, [concessionarias]);
+
+  const handleSyncTarifas = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("sync-tarifas-aneel");
+      if (error) throw error;
+
+      if (data?.success) {
+        const updated = data.resultados?.length || 0;
+        const errors = data.erros?.length || 0;
+        
+        let description = `${updated} concessionária(s) atualizada(s)`;
+        if (errors > 0) description += `, ${errors} não encontrada(s)`;
+        
+        toast({
+          title: "Sincronização concluída",
+          description,
+        });
+
+        // Show details of errors if any
+        if (data.erros?.length > 0) {
+          const errorNames = data.erros.map((e: any) => e.concessionaria).join(", ");
+          toast({
+            title: "Não encontradas na ANEEL",
+            description: `Verifique a sigla: ${errorNames}`,
+            variant: "destructive",
+          });
+        }
+      } else {
+        throw new Error(data?.error || "Erro desconhecido");
+      }
+
+      fetchData();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao sincronizar tarifas",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -262,7 +318,7 @@ export function ConcessionariasManager() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-row items-start justify-between gap-4">
         <div>
           <CardTitle className="flex items-center gap-2">
             <Building className="w-5 h-5" />
@@ -272,19 +328,56 @@ export function ConcessionariasManager() {
             Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos.
           </CardDescription>
         </div>
-        <Button onClick={() => openDialog()} className="gap-2">
-          <Plus className="w-4 h-4" />
-          Nova Concessionária
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  onClick={handleSyncTarifas}
+                  disabled={syncing}
+                  className="gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+                  {syncing ? "Sincronizando..." : "Sincronizar Tarifas"}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                Buscar tarifas atualizadas da ANEEL (Dados Abertos)
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <Button onClick={() => openDialog()} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Nova Concessionária
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
+        {/* Sync alert */}
+        {syncAlert > 0 && (
+          <div className="p-3 rounded-lg bg-warning/10 border border-warning/30 flex items-start gap-2 mb-4">
+            <AlertTriangle className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+            <div className="text-xs text-muted-foreground">
+              <strong className="text-foreground">{syncAlert} concessionária(s)</strong> sem sincronização de tarifas nos últimos 12 meses.{" "}
+              <button
+                onClick={handleSyncTarifas}
+                disabled={syncing}
+                className="text-primary underline hover:no-underline font-medium"
+              >
+                Sincronizar agora
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Info banner */}
         <div className="p-3 rounded-lg bg-info/5 border border-info/20 flex items-start gap-2 mb-4">
           <Info className="w-4 h-4 text-info mt-0.5 shrink-0" />
           <p className="text-xs text-muted-foreground">
             Cada concessionária pode ter sua própria configuração de ICMS e isenção SCEE. Quando não
-            definido, o sistema usa o padrão do estado (aba ICMS/Tributação). Exemplo: RJ tem Light e
-            Enel, cada uma pode ter regras diferentes.
+            definido, o sistema usa o padrão do estado (aba ICMS/Tributação). A sincronização busca tarifas
+            B1 residenciais homologadas diretamente da API de Dados Abertos da ANEEL.
           </p>
         </div>
 
@@ -557,7 +650,7 @@ export function ConcessionariasManager() {
               {/* ICMS / Tributação */}
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
-                  <Landmark className="w-4 h-4" />
+                  <Building className="w-4 h-4" />
                   Tributação ICMS
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
