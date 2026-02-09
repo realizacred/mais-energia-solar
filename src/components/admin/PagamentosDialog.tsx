@@ -37,6 +37,8 @@ import {
   Trash2,
   DollarSign,
   AlertCircle,
+  Zap,
+  ArrowDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -86,6 +88,55 @@ const FORMAS_PAGAMENTO = [
   { value: "financiamento", label: "Financiamento" },
 ];
 
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(value);
+};
+
+/**
+ * After inserting a pagamento, auto-reconcile with pending parcelas.
+ * Marks parcelas as "paga" starting from the earliest pending,
+ * consuming the payment amount progressively.
+ */
+async function reconcilePagamentoWithParcelas(
+  recebimentoId: string,
+  pagamentoId: string,
+  valorPago: number
+) {
+  // Fetch all pending parcelas for this recebimento, ordered by numero_parcela
+  const { data: parcelas, error } = await supabase
+    .from("parcelas")
+    .select("id, numero_parcela, valor, status")
+    .eq("recebimento_id", recebimentoId)
+    .in("status", ["pendente", "atrasada"])
+    .order("numero_parcela", { ascending: true });
+
+  if (error || !parcelas || parcelas.length === 0) return;
+
+  let remaining = valorPago;
+  const parcelasToUpdate: string[] = [];
+
+  for (const parcela of parcelas) {
+    if (remaining <= 0) break;
+
+    // If remaining covers this parcela (within 1 cent tolerance)
+    if (remaining >= parcela.valor - 0.01) {
+      parcelasToUpdate.push(parcela.id);
+      remaining -= parcela.valor;
+    }
+  }
+
+  // Mark matched parcelas as paid and link to pagamento
+  if (parcelasToUpdate.length > 0) {
+    await supabase
+      .from("parcelas")
+      .update({ status: "paga", pagamento_id: pagamentoId })
+      .in("id", parcelasToUpdate);
+  }
+}
+
 export function PagamentosDialog({
   open,
   onOpenChange,
@@ -113,17 +164,28 @@ export function PagamentosDialog({
     setSaving(true);
 
     try {
-      const { error } = await supabase.from("pagamentos").insert({
-        recebimento_id: recebimento.id,
-        valor_pago: parseFloat(formData.valor_pago),
-        forma_pagamento: formData.forma_pagamento,
-        data_pagamento: formData.data_pagamento,
-        observacoes: formData.observacoes || null,
-      });
+      const valorPago = parseFloat(formData.valor_pago);
+
+      const { data: inserted, error } = await supabase
+        .from("pagamentos")
+        .insert({
+          recebimento_id: recebimento.id,
+          valor_pago: valorPago,
+          forma_pagamento: formData.forma_pagamento,
+          data_pagamento: formData.data_pagamento,
+          observacoes: formData.observacoes || null,
+        })
+        .select("id")
+        .single();
 
       if (error) throw error;
 
-      toast({ title: "Pagamento registrado!" });
+      // Auto-reconcile with pending parcelas
+      if (inserted?.id) {
+        await reconcilePagamentoWithParcelas(recebimento.id, inserted.id, valorPago);
+      }
+
+      toast({ title: "Pagamento registrado e parcelas atualizadas!" });
       resetForm();
       onUpdate();
     } catch (error) {
@@ -138,12 +200,18 @@ export function PagamentosDialog({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Excluir este pagamento?")) return;
+    if (!confirm("Excluir este pagamento? As parcelas vinculadas voltarão a pendente.")) return;
 
     try {
+      // First, unlink any parcelas tied to this pagamento
+      await supabase
+        .from("parcelas")
+        .update({ status: "pendente", pagamento_id: null })
+        .eq("pagamento_id", id);
+
       const { error } = await supabase.from("pagamentos").delete().eq("id", id);
       if (error) throw error;
-      toast({ title: "Pagamento excluído!" });
+      toast({ title: "Pagamento excluído e parcelas restauradas!" });
       onUpdate();
     } catch (error) {
       console.error("Error deleting pagamento:", error);
@@ -162,13 +230,6 @@ export function PagamentosDialog({
       observacoes: "",
     });
     setShowForm(false);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
   };
 
   const isFormaDiferente = (formaPaga: string) => {
@@ -204,11 +265,11 @@ export function PagamentosDialog({
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Pago</p>
-                <p className="text-lg font-bold text-green-600">{formatCurrency(totalPago)}</p>
+                <p className="text-lg font-bold text-success">{formatCurrency(totalPago)}</p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Saldo Restante</p>
-                <p className="text-lg font-bold text-orange-600">{formatCurrency(saldoRestante)}</p>
+                <p className="text-lg font-bold text-warning">{formatCurrency(Math.max(0, saldoRestante))}</p>
               </div>
             </div>
 
@@ -232,6 +293,15 @@ export function PagamentosDialog({
                 <span>{recebimento.numero_parcelas}x</span>
               </div>
             </div>
+
+            {/* Hint about auto-reconciliation */}
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-info/10 border border-info/20">
+              <Zap className="h-4 w-4 text-info mt-0.5 shrink-0" />
+              <p className="text-xs text-info">
+                <strong>Reconciliação automática:</strong> ao registrar um pagamento (inclusive adiantamento),
+                as parcelas pendentes serão marcadas como pagas automaticamente da mais antiga para a mais recente.
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -239,10 +309,10 @@ export function PagamentosDialog({
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="font-medium">Histórico de Pagamentos</h3>
-            {!showForm && saldoRestante > 0 && (
+            {!showForm && (
               <Button size="sm" onClick={() => setShowForm(true)} className="gap-1">
                 <Plus className="h-4 w-4" />
-                Novo Pagamento
+                {saldoRestante > 0 ? "Novo Pagamento" : "Pagamento Extra"}
               </Button>
             )}
           </div>
@@ -259,11 +329,23 @@ export function PagamentosDialog({
                         id="valor_pago"
                         type="number"
                         step="0.01"
-                        placeholder={`Restante: ${formatCurrency(saldoRestante)}`}
+                        placeholder={`Restante: ${formatCurrency(Math.max(0, saldoRestante))}`}
                         value={formData.valor_pago}
                         onChange={(e) => setFormData({ ...formData, valor_pago: e.target.value })}
                         required
                       />
+                      {saldoRestante > 0 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-xs gap-1 text-muted-foreground"
+                          onClick={() => setFormData({ ...formData, valor_pago: saldoRestante.toFixed(2) })}
+                        >
+                          <ArrowDown className="h-3 w-3" />
+                          Usar saldo: {formatCurrency(saldoRestante)}
+                        </Button>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="data_pagamento">Data do Pagamento *</Label>
@@ -313,7 +395,7 @@ export function PagamentosDialog({
                       value={formData.observacoes}
                       onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
                       rows={2}
-                      placeholder="Motivo da diferença, número do comprovante..."
+                      placeholder="Adiantamento, número do comprovante..."
                     />
                   </div>
 
