@@ -44,6 +44,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useWaInstances, type WaInstance } from "@/hooks/useWaInstances";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { WaSetupGuide } from "@/components/admin/wa/WaSetupGuide";
 
 const STATUS_CONFIG: Record<string, { label: string; className: string; icon: typeof Wifi }> = {
   connected: { label: "Conectado", className: "bg-success/10 text-success border-success/20", icon: Wifi },
@@ -93,6 +94,7 @@ export function WaInstancesManager() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <WaSetupGuide />
           {instances.length > 0 && (
             <Button
               variant="outline"
