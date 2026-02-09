@@ -278,11 +278,37 @@ Já possuem filtro tenant_id correto nas policies.
 - Fallback: resolve_public_tenant_id() (single tenant)
 - WITH CHECK valida tenant_id IS NOT NULL
 
-### ✅ Risco 3: Edge functions sem tenant_id — RESOLVIDO
-**Solução**: 3 edge functions corrigidas para passar tenant_id explicitamente:
-- instagram-sync: tenant_id do instagram_config
-- send-whatsapp-message: tenant_id do profile do user logado
-- process-whatsapp-automations: tenant_id do whatsapp_automation_config
+### ✅ Risco 3: Edge functions sem tenant_id — RESOLVIDO ✅ PATCHED
+**Solução**: 3 edge functions corrigidas para passar tenant_id explicitamente.
+Código implementado e deployado em staging em 2026-02-09.
+
+#### Detalhes dos Patches
+
+| Função | Tabela INSERT | Fonte do tenant_id | Fallback Chain |
+|--------|--------------|---------------------|----------------|
+| `instagram-sync` | `instagram_posts` | `instagram_config.tenant_id` | config → ERRO |
+| `send-whatsapp-message` | `whatsapp_messages` | body.tenant_id → profile → lead → wa_config | 4 fontes → ERRO |
+| `process-whatsapp-automations` | `whatsapp_automation_logs` | wa_config → lead → cliente → servico | 4 fontes → ERRO + log |
+
+#### Verificações Realizadas
+
+- [x] `instagram-sync`: Valida `config.tenant_id IS NOT NULL` antes de inserir. DELETE scoped por tenant.
+- [x] `send-whatsapp-message`: Detecta service_role vs JWT real. Resolve tenant via profile, lead, ou wa_config.
+- [x] `send-whatsapp-message`: Aceita `tenant_id` explícito no body (propagado por automações).
+- [x] `send-whatsapp-message`: wa_instances query filtrada por `tenant_id` (previne cross-tenant).
+- [x] `process-whatsapp-automations`: Templates query filtrada por `tenant_id`.
+- [x] `process-whatsapp-automations`: Loga erro em `whatsapp_automation_logs` quando tenant não resolvível.
+- [x] `process-whatsapp-automations`: Propaga `tenant_id` para `send-whatsapp-message` via body.
+
+#### Smoke Tests — Staging (2026-02-09)
+
+| Teste | Resultado | Observação |
+|-------|-----------|------------|
+| `instagram-sync` sem auth | 401 Unauthorized | ✅ Auth correta |
+| `send-whatsapp-message` sem auth | 401 Unauthorized | ✅ Auth correta |
+| `process-whatsapp-automations` (service_role) | 200 OK, tenant=`00..001` | ✅ Tenant resolvido via wa_config |
+| `process-whatsapp-automations` com lead_id inválido | 200 OK, tenant=`00..001` | ✅ Fallback para wa_config |
+| Tenant não resolvível | Retorna 500 + log em automation_logs | ✅ Falha controlada |
 
 ### ⚠️ Risco 4: Subqueries em policies de vendedor
 **Status**: MITIGADO. TODAS as subqueries incluem `AND v.tenant_id = get_user_tenant_id()`.
