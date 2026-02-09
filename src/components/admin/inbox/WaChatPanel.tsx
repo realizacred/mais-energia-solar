@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import {
   StickyNote,
   User,
+  Users,
   CheckCircle2,
   ArrowRightLeft,
   Tag,
@@ -104,6 +105,8 @@ export function WaChatPanel({
           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-primary overflow-hidden">
             {conversation.profile_picture_url ? (
               <img src={conversation.profile_picture_url} alt="" className="w-full h-full object-cover" />
+            ) : conversation.is_group ? (
+              <Users className="h-4 w-4" />
             ) : conversation.cliente_nome ? (
               conversation.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
             ) : (
@@ -274,6 +277,12 @@ export function WaChatPanel({
                           : "bg-muted rounded-bl-md text-foreground"
                       }`}
                     >
+                      {/* Participant name for group incoming messages */}
+                      {!isOut && !isNote && msg.participant_name && conversation.is_group && (
+                        <p className="text-[10px] font-semibold text-primary/80 mb-0.5">
+                          {msg.participant_name}
+                        </p>
+                      )}
                       {/* Attendant name for outgoing messages */}
                       {isOut && msg.sent_by_name && !isNote && (
                         <p className="text-[10px] font-semibold text-primary-foreground/70 mb-0.5">

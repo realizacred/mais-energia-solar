@@ -22,6 +22,7 @@ export interface WaConversation {
   unread_count: number;
   canal: string;
   profile_picture_url: string | null;
+  is_group: boolean;
   created_at: string;
   updated_at: string;
   // joined
@@ -47,6 +48,8 @@ export interface WaMessage {
   status: string | null;
   error_message: string | null;
   metadata: any;
+  participant_jid: string | null;
+  participant_name: string | null;
   created_at: string;
   // joined
   sent_by_name?: string | null;
