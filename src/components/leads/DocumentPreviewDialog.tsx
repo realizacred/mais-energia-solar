@@ -74,8 +74,8 @@ export function DocumentPreviewDialog({
               {isImage ? "🖼️" : "📄"} {title}
             </DialogTitle>
             <div className="flex items-center gap-2">
-              {/* Zoom controls - only for images */}
-              {isImage && (
+              {/* Zoom controls - for images and PDFs */}
+              {(isImage || isPDF) && (
                 <>
                   <Button
                     variant="ghost"
@@ -161,13 +161,25 @@ export function DocumentPreviewDialog({
             />
           )}
 
-          {/* PDF preview */}
+          {/* PDF preview with zoom */}
           {isPDF && (
-            <iframe
-              src={currentFile.data}
-              title={currentFile.name}
-              className="w-full h-full min-h-[500px]"
-            />
+            <div
+              className="w-full h-full min-h-[500px] overflow-auto flex items-start justify-center"
+              style={{ cursor: zoom > 1 ? "grab" : "default" }}
+            >
+              <iframe
+                src={currentFile.data}
+                title={currentFile.name}
+                className="border-0 origin-top-left transition-transform duration-200"
+                style={{
+                  width: `${100 / zoom}%`,
+                  height: `${100 / zoom}%`,
+                  minHeight: "500px",
+                  transform: `scale(${zoom})`,
+                  transformOrigin: "top left",
+                }}
+              />
+            </div>
           )}
 
           {/* Other file types */}
