@@ -14,6 +14,7 @@ import {
   Link2,
   X,
   RefreshCw,
+  SpellCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,6 +85,7 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const [inputValue, setInputValue] = useState("");
   const [isNoteMode, setIsNoteMode] = useState(false);
+  const [spellCheck, setSpellCheck] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -350,6 +352,20 @@ export function ChatPanel({
             />
           )}
 
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant={spellCheck ? "default" : "ghost"}
+                className={`h-9 w-9 shrink-0 ${spellCheck ? "bg-info/80 hover:bg-info text-info-foreground" : ""}`}
+                onClick={() => setSpellCheck(!spellCheck)}
+              >
+                <SpellCheck className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{spellCheck ? "Desativar corretor" : "Ativar corretor"}</TooltipContent>
+          </Tooltip>
+
           <Input
             ref={inputRef}
             value={inputValue}
@@ -358,6 +374,9 @@ export function ChatPanel({
             placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite uma mensagem..."}
             className={`flex-1 h-9 text-sm ${isNoteMode ? "border-warning/30 bg-warning/5" : ""}`}
             disabled={isSending}
+            spellCheck={spellCheck}
+            autoCorrect={spellCheck ? "on" : "off"}
+            autoCapitalize={spellCheck ? "sentences" : "off"}
           />
 
           <Button
