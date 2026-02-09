@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
-import { useNavigate } from "react-router-dom";
 import { ptBR } from "date-fns/locale";
 import {
   StickyNote,
@@ -32,6 +31,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import type { WaConversation, WaMessage } from "@/hooks/useWaInbox";
 import { WaChatComposer } from "./WaChatComposer";
+import { WaLeadInfoCard } from "./WaLeadInfoCard";
 
 const MESSAGE_STATUS_ICON: Record<string, typeof Check> = {
   pending: Clock,
@@ -73,6 +73,7 @@ export function WaChatPanel({
   vendedores,
 }: WaChatPanelProps) {
   const [isNoteMode, setIsNoteMode] = useState(false);
+  const [showLeadInfo, setShowLeadInfo] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -140,24 +141,15 @@ export function WaChatPanel({
                     <TooltipTrigger asChild>
                       <Badge
                         variant="outline"
-                        className="text-[9px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors"
-                        onClick={() => {
-                          // Navigate to admin leads view with the lead selected
-                          window.open(`/admin?tab=leads&lead=${conversation.lead_id}`, '_blank');
-                        }}
+                        className="text-[9px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors gap-0.5"
+                        onClick={() => setShowLeadInfo(true)}
                       >
-                        <Link2 className="h-2.5 w-2.5 mr-0.5" />
+                        <Link2 className="h-2.5 w-2.5" />
                         {conversation.lead_nome || "Lead vinculado"}
                       </Badge>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="text-xs">
-                      <div className="space-y-0.5">
-                        <p className="font-medium">{conversation.lead_nome || "Lead vinculado"}</p>
-                        {conversation.lead_telefone && (
-                          <p className="text-muted-foreground">{conversation.lead_telefone}</p>
-                        )}
-                        <p className="text-[10px] text-muted-foreground/70">Clique para abrir</p>
-                      </div>
+                      <p>Clique para ver detalhes do lead</p>
                     </TooltipContent>
                   </Tooltip>
                 </>
@@ -343,6 +335,15 @@ export function WaChatPanel({
         isNoteMode={isNoteMode}
         onNoteModeChange={setIsNoteMode}
       />
+
+      {/* Lead Info Card */}
+      {conversation.lead_id && (
+        <WaLeadInfoCard
+          leadId={conversation.lead_id}
+          open={showLeadInfo}
+          onOpenChange={setShowLeadInfo}
+        />
+      )}
     </div>
   );
 }
