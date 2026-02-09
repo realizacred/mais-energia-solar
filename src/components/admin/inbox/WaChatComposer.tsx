@@ -13,6 +13,8 @@ import {
   FileText,
   Zap,
   ChevronDown,
+  Video,
+  Music,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +24,9 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
 // ── Common Emojis ──
@@ -34,15 +38,24 @@ const EMOJI_CATEGORIES: Record<string, string[]> = {
   "📦 Objetos": ["📱","💻","📧","📞","📊","📈","💰","💵","🏠","🔧","⚡","🔋","☎️","📋","📎","🗂️","📅","🕐","⏰","🚀"],
 };
 
-// ── Quick Reply Templates ──
-const QUICK_REPLIES = [
-  { label: "Saudação", emoji: "👋", text: "Olá! Tudo bem? Sou da equipe de energia solar. Como posso ajudar?" },
-  { label: "Orçamento", emoji: "📋", text: "Vou preparar um orçamento personalizado para você! Pode me informar seu consumo médio mensal em kWh?" },
-  { label: "Follow-up", emoji: "🔄", text: "Olá! Estou entrando em contato para saber se teve a oportunidade de avaliar nossa proposta. Posso esclarecer alguma dúvida?" },
-  { label: "Agradecimento", emoji: "🙏", text: "Muito obrigado pelo seu interesse! Fico à disposição para qualquer dúvida." },
-  { label: "Visita técnica", emoji: "🔧", text: "Gostaria de agendar uma visita técnica gratuita para avaliar o melhor projeto para sua residência. Qual o melhor dia e horário?" },
-  { label: "Financiamento", emoji: "💰", text: "Temos ótimas condições de financiamento! Parcelas que cabem no seu bolso e começam a se pagar desde o primeiro mês. Quer saber mais?" },
-];
+interface QuickReplyDb {
+  id: string;
+  titulo: string;
+  conteudo: string;
+  emoji: string | null;
+  categoria: string | null;
+  media_url: string | null;
+  media_type: string | null;
+  media_filename: string | null;
+  ativo: boolean;
+}
+
+const MEDIA_ICONS: Record<string, typeof ImageIcon> = {
+  image: ImageIcon,
+  video: Video,
+  audio: Music,
+  document: FileText,
+};
 
 interface WaChatComposerProps {
   onSendMessage: (content: string, isNote?: boolean) => void;
@@ -65,6 +78,30 @@ export function WaChatComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Fetch quick replies from DB
+  const { data: quickReplies = [] } = useQuery({
+    queryKey: ["wa-quick-replies-active"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("wa_quick_replies")
+        .select("*")
+        .eq("ativo", true)
+        .order("ordem", { ascending: true })
+        .order("titulo", { ascending: true });
+      if (error) throw error;
+      return data as QuickReplyDb[];
+    },
+    staleTime: 60 * 1000,
+  });
+
+  // Group by category
+  const groupedReplies = quickReplies.reduce<Record<string, QuickReplyDb[]>>((acc, qr) => {
+    const cat = qr.categoria || "geral";
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(qr);
+    return acc;
+  }, {});
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
@@ -156,7 +193,7 @@ export function WaChatComposer({
       )}
 
       {/* Quick Replies */}
-      {!isNoteMode && (
+      {!isNoteMode && quickReplies.length > 0 && (
         <Popover>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 mb-1.5 text-primary hover:text-primary hover:bg-primary/5">
@@ -166,23 +203,38 @@ export function WaChatComposer({
             </Button>
           </PopoverTrigger>
           <PopoverContent side="top" align="start" className="w-80 p-1.5">
-            <p className="text-[10px] font-medium text-muted-foreground px-2 py-1 uppercase tracking-wider">Templates</p>
-            <div className="space-y-0.5 max-h-64 overflow-y-auto">
-              {QUICK_REPLIES.map((qr) => (
-                <button
-                  key={qr.label}
-                  className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-muted/50 transition-colors group"
-                  onClick={() => {
-                    setInputValue(qr.text);
-                    textareaRef.current?.focus();
-                  }}
-                >
-                  <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <span>{qr.emoji}</span>
-                    {qr.label}
-                  </span>
-                  <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{qr.text}</p>
-                </button>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {Object.entries(groupedReplies).map(([cat, replies]) => (
+                <div key={cat}>
+                  <p className="text-[10px] font-medium text-muted-foreground px-2 py-1 uppercase tracking-wider">{cat}</p>
+                  <div className="space-y-0.5">
+                    {replies.map((qr) => {
+                      const MediaIcon = qr.media_type ? MEDIA_ICONS[qr.media_type] : null;
+                      return (
+                        <button
+                          key={qr.id}
+                          className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-muted/50 transition-colors group"
+                          onClick={() => {
+                            setInputValue(qr.conteudo);
+                            textareaRef.current?.focus();
+                          }}
+                        >
+                          <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                            <span>{qr.emoji || "💬"}</span>
+                            {qr.titulo}
+                            {MediaIcon && (
+                              <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 ml-auto">
+                                <MediaIcon className="w-2.5 h-2.5" />
+                                {qr.media_type}
+                              </Badge>
+                            )}
+                          </span>
+                          <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{qr.conteudo}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               ))}
             </div>
           </PopoverContent>

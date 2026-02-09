@@ -5204,6 +5204,65 @@ export type Database = {
           },
         ]
       }
+      wa_quick_replies: {
+        Row: {
+          ativo: boolean | null
+          categoria: string | null
+          conteudo: string
+          created_at: string
+          created_by: string | null
+          emoji: string | null
+          id: string
+          media_filename: string | null
+          media_type: string | null
+          media_url: string | null
+          ordem: number | null
+          tenant_id: string | null
+          titulo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          categoria?: string | null
+          conteudo: string
+          created_at?: string
+          created_by?: string | null
+          emoji?: string | null
+          id?: string
+          media_filename?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          ordem?: number | null
+          tenant_id?: string | null
+          titulo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          categoria?: string | null
+          conteudo?: string
+          created_at?: string
+          created_by?: string | null
+          emoji?: string | null
+          id?: string
+          media_filename?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          ordem?: number | null
+          tenant_id?: string | null
+          titulo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_quick_replies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_satisfaction_ratings: {
         Row: {
           answered_at: string | null

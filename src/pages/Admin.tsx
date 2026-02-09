@@ -47,6 +47,7 @@ import { SolarMarketManager } from "@/components/admin/SolarMarketManager";
 import { TasksSlaDashboard } from "@/components/admin/tasks";
 import { WhatsAppInbox } from "@/components/admin/inbox";
 import { WaInbox } from "@/components/admin/inbox/WaInbox";
+import { WaQuickRepliesManager } from "@/components/admin/inbox/WaQuickRepliesManager";
 import { WaInstancesManager } from "@/components/admin/WaInstancesManager";
 import { PendingValidationWidget } from "@/components/admin/widgets/PendingValidationWidget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -265,6 +266,8 @@ export default function Admin() {
         return <InstagramConfig />;
       case "inbox":
         return <WaInbox />;
+      case "quick-replies":
+        return <WaQuickRepliesManager />;
       case "wa-instances":
         return <WaInstancesManager />;
       case "whatsapp":
