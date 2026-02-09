@@ -11,6 +11,7 @@ export interface WaInstance {
   owner_user_id: string | null;
   vendedor_id: string | null;
   webhook_secret: string;
+  api_key: string | null;
   status: "connected" | "disconnected" | "connecting" | "error";
   phone_number: string | null;
   profile_name: string | null;
