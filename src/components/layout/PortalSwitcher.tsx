@@ -183,6 +183,7 @@ export function PortalSwitcher() {
 
   // Show if admin (can access all portals) or has multiple roles
   const hasMultipleAccess = access.admin || 
+    access.superAdmin ||
     (access.vendedor && access.vendedorRecord) || 
     access.instalador ||
     (access.vendedor && access.instalador);
