@@ -5525,6 +5525,53 @@ export type Database = {
           },
         ]
       }
+      wa_quick_reply_categories: {
+        Row: {
+          ativo: boolean | null
+          cor: string
+          created_at: string
+          emoji: string | null
+          id: string
+          nome: string
+          ordem: number | null
+          slug: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cor?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          nome: string
+          ordem?: number | null
+          slug: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cor?: string
+          created_at?: string
+          emoji?: string | null
+          id?: string
+          nome?: string
+          ordem?: number | null
+          slug?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_quick_reply_categories_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_satisfaction_ratings: {
         Row: {
           answered_at: string | null
