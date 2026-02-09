@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Sun, ShieldAlert, LogOut, Plus, Building2, Users, CreditCard, BarChart3 } from "lucide-react";
+import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -245,6 +246,7 @@ export default function SuperAdmin() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
+          <PortalSwitcher />
           <Button variant="ghost" size="icon" onClick={() => signOut()}>
             <LogOut className="w-4 h-4" />
           </Button>
