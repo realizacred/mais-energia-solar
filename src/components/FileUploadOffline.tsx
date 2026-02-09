@@ -1,8 +1,9 @@
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
 import { Upload, X, FileText, Image, Loader2, Camera, WifiOff } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { buildStoragePath, resolvePublicTenantId, tenantPath } from "@/lib/storagePaths";
 
 interface FileUploadOfflineProps {
   onFilesChange: (files: OfflineFile[]) => void;
@@ -308,24 +309,33 @@ export default function FileUploadOffline({
 }
 
 // Utility function to upload offline files to storage during sync
-export async function uploadOfflineFiles(files: OfflineFile[]): Promise<string[]> {
+export async function uploadOfflineFiles(files: OfflineFile[], vendedorCode?: string | null): Promise<string[]> {
   const uploadedUrls: string[] = [];
-  
+
+  // Resolve tenant for path prefix
+  let tid: string | null = null;
+  try {
+    tid = await buildStoragePath("_probe").then(p => p.split("/")[0]).catch(() => null);
+  } catch { /* ignore */ }
+  if (!tid) {
+    tid = await resolvePublicTenantId(vendedorCode);
+  }
+
   for (const file of files) {
     if (file.uploaded) {
-      // Already uploaded, just use the existing URL
       uploadedUrls.push(file.data);
       continue;
     }
 
     try {
-      // Convert base64 to blob
       const response = await fetch(file.data);
       const blob = await response.blob();
       
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `uploads/${fileName}`;
+      const filePath = tid
+        ? tenantPath(tid, "uploads", fileName)
+        : `uploads/${fileName}`;
 
       const { error } = await supabase.storage
         .from('contas-luz')
@@ -341,7 +351,6 @@ export async function uploadOfflineFiles(files: OfflineFile[]): Promise<string[]
       uploadedUrls.push(filePath);
     } catch (error) {
       console.error('Failed to upload file:', file.name, error);
-      // Continue with other files even if one fails
     }
   }
   

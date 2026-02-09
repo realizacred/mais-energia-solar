@@ -56,10 +56,15 @@ export function useOfflineSync() {
   const uploadAsset = async (dataUrl: string, path: string): Promise<string> => {
     const response = await fetch(dataUrl);
     const blob = await response.blob();
+
+    // Prepend tenant_id to path for storage isolation
+    const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+    const tid = await getCurrentTenantId();
+    const scopedPath = tid ? tenantPath(tid, path) : path;
     
     const { data, error } = await supabase.storage
       .from("checklist-assets")
-      .upload(path, blob, {
+      .upload(scopedPath, blob, {
         contentType: "image/png",
         upsert: true,
       });

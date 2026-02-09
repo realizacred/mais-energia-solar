@@ -49,7 +49,10 @@ export function useOfflineChecklistDb(options: UseOfflineChecklistDbOptions = {}
   // Upload media to storage
   const uploadMedia = async (media: OfflineMedia): Promise<string | null> => {
     try {
-      const fileName = `${media.parentTempId}/${media.fileName}`;
+      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+      const tid = await getCurrentTenantId();
+      const rawName = `${media.parentTempId}/${media.fileName}`;
+      const fileName = tid ? tenantPath(tid, rawName) : rawName;
       const bucket = media.parentType === 'checklist' ? 'checklist-files' : 'lead-files';
       
       const { data, error } = await supabase.storage

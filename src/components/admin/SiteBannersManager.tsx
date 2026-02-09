@@ -22,8 +22,11 @@ function BannerImageUpload({ value, onChange }: { value: string; onChange: (url:
     }
     setUploading(true);
     try {
+      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+      const tid = await getCurrentTenantId();
+      if (!tid) throw new Error("Tenant não encontrado");
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
-      const fileName = `banners/${Date.now()}.${ext}`;
+      const fileName = tenantPath(tid, "banners", `${Date.now()}.${ext}`);
       const { error: uploadError } = await supabase.storage
         .from("brand-assets")
         .upload(fileName, file, { cacheControl: "3600", upsert: true });

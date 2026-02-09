@@ -148,8 +148,11 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
   const handleSendMedia = async (file: File, caption?: string) => {
     if (!selectedConv) return;
     try {
+      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+      const tid = await getCurrentTenantId();
+      if (!tid) throw new Error("Tenant não encontrado");
       const ext = file.name.split(".").pop() || "bin";
-      const filePath = `${selectedConv.id}/${Date.now()}.${ext}`;
+      const filePath = tenantPath(tid, selectedConv.id, `${Date.now()}.${ext}`);
       
       const { error: uploadError } = await supabase.storage
         .from("wa-attachments")

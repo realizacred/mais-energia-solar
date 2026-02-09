@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 
 interface ChatMediaComposerProps {
   conversationId: string;
@@ -28,9 +29,11 @@ export function ChatMediaComposer({
     async (blob: Blob, ext: string): Promise<string | null> => {
       setIsUploading(true);
       try {
+        const tid = await getCurrentTenantId();
+        if (!tid) throw new Error("Tenant não encontrado");
         const { data: userData } = await supabase.auth.getUser();
         const userId = userData?.user?.id || "unknown";
-        const fileName = `${userId}/${conversationId}/${Date.now()}.${ext}`;
+        const fileName = tenantPath(tid, userId, conversationId, `${Date.now()}.${ext}`);
 
         const { error } = await supabase.storage
           .from("wa-attachments")
