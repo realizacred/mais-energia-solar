@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Download, ExternalLink, X } from "lucide-react";
+import { FileText, Download, ExternalLink, ZoomIn, ZoomOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
@@ -11,15 +11,31 @@ interface ChatMediaMessageProps {
 }
 
 function DocumentPreviewPopup({ url, title, open, onClose }: { url: string; title: string; open: boolean; onClose: () => void }) {
+  const [zoom, setZoom] = useState(1);
   const isPdf = url.toLowerCase().includes(".pdf");
   const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)/i.test(url);
+  const canZoom = isPdf || isImage;
+
+  const handleZoomIn = () => setZoom((p) => Math.min(p + 0.25, 3));
+  const handleZoomOut = () => setZoom((p) => Math.max(p - 0.25, 0.5));
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { setZoom(1); } onClose(); }}>
       <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
         <DialogHeader className="flex flex-row items-center justify-between">
           <DialogTitle className="text-sm truncate flex-1">{title}</DialogTitle>
           <div className="flex items-center gap-1 shrink-0">
+            {canZoom && (
+              <>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleZoomOut} disabled={zoom <= 0.5}>
+                  <ZoomOut className="h-3.5 w-3.5" />
+                </Button>
+                <span className="text-xs text-muted-foreground min-w-[36px] text-center">{Math.round(zoom * 100)}%</span>
+                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={handleZoomIn} disabled={zoom >= 3}>
+                  <ZoomIn className="h-3.5 w-3.5" />
+                </Button>
+              </>
+            )}
             <Button size="icon" variant="ghost" className="h-7 w-7" asChild>
               <a href={url} target="_blank" rel="noopener noreferrer">
                 <ExternalLink className="h-3.5 w-3.5" />
@@ -34,9 +50,23 @@ function DocumentPreviewPopup({ url, title, open, onClose }: { url: string; titl
         </DialogHeader>
         <div className="flex-1 min-h-0 overflow-auto rounded-lg border border-border/40 bg-muted/30">
           {isPdf ? (
-            <iframe src={url} className="w-full h-[65vh] rounded-lg" title={title} />
+            <div className="w-full h-[65vh] overflow-auto">
+              <iframe
+                src={url}
+                className="border-0 origin-top-left transition-transform duration-200"
+                style={{ width: `${100 / zoom}%`, height: `${100 / zoom}%`, minHeight: "500px", transform: `scale(${zoom})`, transformOrigin: "top left" }}
+                title={title}
+              />
+            </div>
           ) : isImage ? (
-            <img src={url} alt={title} className="max-w-full mx-auto" />
+            <div className="flex items-center justify-center overflow-auto w-full h-full min-h-[300px]">
+              <img
+                src={url}
+                alt={title}
+                className="max-w-full transition-transform duration-200"
+                style={{ transform: `scale(${zoom})` }}
+              />
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
               <FileText className="h-12 w-12 text-muted-foreground" />
@@ -80,12 +110,20 @@ export function ChatMediaMessage({ messageType, mediaUrl, content, isOut }: Chat
 
     case "image":
       return (
-        <img
-          src={mediaUrl}
-          alt="Imagem"
-          className="rounded-lg mb-1 max-w-full max-h-48 object-cover cursor-pointer"
-          onClick={() => window.open(mediaUrl, "_blank")}
-        />
+        <>
+          <img
+            src={mediaUrl}
+            alt="Imagem"
+            className="rounded-lg mb-1 max-w-full max-h-48 object-cover cursor-pointer"
+            onClick={() => setPreviewOpen(true)}
+          />
+          <DocumentPreviewPopup
+            url={mediaUrl}
+            title={content || "Imagem"}
+            open={previewOpen}
+            onClose={() => setPreviewOpen(false)}
+          />
+        </>
       );
 
     case "document":
