@@ -46,6 +46,8 @@ import { CommercialDirectorDashboard } from "@/components/admin/director";
 import { SolarMarketManager } from "@/components/admin/SolarMarketManager";
 import { TasksSlaDashboard } from "@/components/admin/tasks";
 import { WhatsAppInbox } from "@/components/admin/inbox";
+import { WaInbox } from "@/components/admin/inbox/WaInbox";
+import { WaInstancesManager } from "@/components/admin/WaInstancesManager";
 import { PendingValidationWidget } from "@/components/admin/widgets/PendingValidationWidget";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -98,6 +100,7 @@ const TAB_TITLES: Record<string, string> = {
   webhooks: "Webhooks",
   n8n: "Automações",
   solarmarket: "SolarMarket",
+  "wa-instances": "Instâncias WhatsApp",
   release: "Release Notes",
 };
 
@@ -261,7 +264,9 @@ export default function Admin() {
       case "instagram":
         return <InstagramConfig />;
       case "inbox":
-        return <WhatsAppInbox />;
+        return <WaInbox />;
+      case "wa-instances":
+        return <WaInstancesManager />;
       case "whatsapp":
         return <WhatsAppAutomationConfig />;
       case "webhooks":

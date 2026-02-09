@@ -34,6 +34,7 @@ import {
   Database,
   Bot,
   Cable,
+  Smartphone,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -272,6 +273,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-integrations",
     defaultOpen: false,
     items: [
+      { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API" },
       { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle },
       { id: "instagram", title: "Instagram", icon: Instagram },
       { id: "solarmarket", title: "SolarMarket", icon: Sun },
