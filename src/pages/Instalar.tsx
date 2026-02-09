@@ -1,22 +1,15 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Check, Smartphone, Share, MoreVertical, ArrowDown, Sun, Zap, Users } from "lucide-react";
+import { Download, Check, Smartphone, Share, MoreVertical, Sun, Zap, Users } from "lucide-react";
 import { useLogo } from "@/hooks/useLogo";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
+import { usePWAInstall, savePWAReturnUrl } from "@/hooks/usePWAInstall";
 
 export default function Instalar() {
   const logo = useLogo();
   const navigate = useNavigate();
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const [isIOS, setIsIOS] = useState(false);
-  const [isAndroid, setIsAndroid] = useState(false);
+  const { isInstalled, isIOS, isAndroid, canInstall, promptInstall } = usePWAInstall();
 
   useEffect(() => {
     // If running in standalone (PWA) mode, redirect away from install page
@@ -26,46 +19,14 @@ export default function Instalar() {
 
     if (isStandalone) {
       navigate("/vendedor", { replace: true });
-      return;
     }
-
-    // Detect platform
-    const userAgent = navigator.userAgent.toLowerCase();
-    setIsIOS(/iphone|ipad|ipod/.test(userAgent));
-    setIsAndroid(/android/.test(userAgent));
-
-    // Listen for install prompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-    };
-
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    // Listen for app installed
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-    };
-
-    window.addEventListener("appinstalled", handleAppInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
   }, [navigate]);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
-    if (outcome === "accepted") {
-      setIsInstalled(true);
+    savePWAReturnUrl();
+    if (canInstall) {
+      await promptInstall();
     }
-    setDeferredPrompt(null);
   };
 
   const features = [
@@ -143,87 +104,83 @@ export default function Instalar() {
                   ))}
                 </div>
 
-                {/* Install Button or Instructions */}
-                {deferredPrompt && (
+                {/* Native install button (Android Chrome) */}
+                {canInstall && (
                   <Button onClick={handleInstallClick} className="w-full h-12 text-base" size="lg">
                     <Download className="w-5 h-5 mr-2" />
                     Instalar Agora
                   </Button>
                 )}
-                {!deferredPrompt && isIOS ? (
+
+                {/* iOS manual instructions */}
+                {isIOS && !canInstall && (
                   <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
                     <p className="text-sm font-medium text-center">
                       Para instalar no iPhone/iPad:
                     </p>
                     <div className="space-y-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                          1
-                        </div>
-                        <div className="flex items-center gap-2 text-sm">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">1</div>
+                        <div className="flex items-center gap-2 text-sm pt-1">
                           <span>Toque no botão</span>
                           <Share className="w-4 h-4" />
                           <span className="font-medium">Compartilhar</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                          2
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">2</div>
+                        <div className="text-sm pt-1">
+                          Deslize e toque em <span className="font-medium">"Adicionar à Tela Inicial"</span>
                         </div>
-                        <span className="text-sm">Deslize para baixo e toque em</span>
                       </div>
-                      <div className="flex items-center gap-3 ml-11">
-                        <span className="text-sm font-medium flex items-center gap-1">
-                          "Adicionar à Tela Inicial"
-                          <ArrowDown className="w-3 h-3" />
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                          3
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">3</div>
+                        <div className="text-sm pt-1">
+                          Toque em <span className="font-medium">Adicionar</span>
                         </div>
-                        <span className="text-sm">Toque em <span className="font-medium">Adicionar</span></span>
                       </div>
                     </div>
                   </div>
-                ) : isAndroid ? (
-                  !deferredPrompt && (
-                    <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
-                      <p className="text-sm font-medium text-center">
-                        Para instalar no Android:
-                      </p>
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                            1
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <span>Toque no menu</span>
-                            <MoreVertical className="w-4 h-4" />
-                            <span className="font-medium">(3 pontos)</span>
-                          </div>
+                )}
+
+                {/* Android manual instructions (fallback when native prompt doesn't fire) */}
+                {isAndroid && !canInstall && (
+                  <div className="space-y-4 p-4 bg-muted/50 rounded-lg">
+                    <p className="text-sm font-medium text-center">
+                      Para instalar no Android:
+                    </p>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">1</div>
+                        <div className="flex items-center gap-2 text-sm pt-1">
+                          <span>Toque no menu</span>
+                          <MoreVertical className="w-4 h-4" />
+                          <span className="font-medium">(3 pontos)</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                            2
-                          </div>
-                          <span className="text-sm">Toque em <span className="font-medium">"Instalar app"</span> ou <span className="font-medium">"Adicionar à tela inicial"</span></span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">2</div>
+                        <div className="text-sm pt-1">
+                          Toque em <span className="font-medium">"Instalar app"</span> ou <span className="font-medium">"Adicionar à tela inicial"</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                            3
-                          </div>
-                          <span className="text-sm">Confirme tocando em <span className="font-medium">Instalar</span></span>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">3</div>
+                        <div className="text-sm pt-1">
+                          Confirme tocando em <span className="font-medium">Instalar</span>
                         </div>
                       </div>
                     </div>
-                  )
-                ) : !deferredPrompt ? (
+                  </div>
+                )}
+
+                {/* Desktop fallback */}
+                {!isIOS && !isAndroid && !canInstall && (
                   <div className="text-center text-sm text-muted-foreground p-4 bg-muted/50 rounded-lg">
                     <Smartphone className="w-8 h-8 mx-auto mb-2 opacity-50" />
                     <p>Acesse este link no seu celular para instalar o aplicativo</p>
                   </div>
-                ) : null}
+                )}
               </CardContent>
             </Card>
 
