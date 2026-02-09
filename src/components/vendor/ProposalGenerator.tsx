@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { FileText, Download, Eye, Loader2, Calculator, Banknote } from "lucide-react";
 import { generateProposalPdf, downloadProposalPdf } from "@/lib/proposalPdf";
 import { toast } from "@/hooks/use-toast";
+import { useLogo } from "@/hooks/useLogo";
 import type { Lead } from "@/types/lead";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 
@@ -52,6 +53,7 @@ function formatCurrency(value: number): string {
 }
 
 export function ProposalGenerator({ lead, orcamento, vendedorNome }: ProposalGeneratorProps) {
+  const logoUrl = useLogo();
   const [isGenerating, setIsGenerating] = useState(false);
   const [includeFinancing, setIncludeFinancing] = useState(true);
   const [selectedBank, setSelectedBank] = useState(0);
@@ -148,6 +150,7 @@ export function ProposalGenerator({ lead, orcamento, vendedorNome }: ProposalGen
         vendedorNome,
         empresaNome: "MAIS ENERGIA SOLAR",
         empresaTelefone: "(00) 00000-0000",
+        logoUrl,
       });
 
       downloadProposalPdf(blob, clienteNome);
