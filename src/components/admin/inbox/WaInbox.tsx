@@ -16,9 +16,10 @@ import type { WaConversation } from "@/hooks/useWaInbox";
 
 interface WaInboxProps {
   vendorMode?: boolean;
+  vendorUserId?: string | null;
 }
 
-export function WaInbox({ vendorMode = false }: WaInboxProps) {
+export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
   // Filters
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("open");
@@ -45,6 +46,12 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Determine the effective assigned_to filter for vendor mode
+  const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
+  const effectiveAssigned = vendorMode
+    ? (effectiveUserId || "all")
+    : filterAssigned;
+
   const {
     conversations,
     loading: convsLoading,
@@ -55,7 +62,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
     updateConversation,
   } = useWaConversations({
     status: filterStatus !== "all" ? filterStatus : undefined,
-    assigned_to: filterAssigned !== "all" && filterAssigned !== "unassigned" ? filterAssigned : undefined,
+    assigned_to: effectiveAssigned !== "all" && effectiveAssigned !== "unassigned" ? effectiveAssigned : undefined,
     instance_id: filterInstance !== "all" ? filterInstance : undefined,
     search: search || undefined,
   });

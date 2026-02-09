@@ -16,7 +16,7 @@ import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateRe
 import NotificationSettings from "@/components/vendor/NotificationSettings";
 import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
 import { VendorTaskAgenda } from "@/components/vendor/VendorTaskAgenda";
-import { WhatsAppInbox } from "@/components/admin/inbox";
+import { WaInbox } from "@/components/admin/inbox/WaInbox";
 import { VendedorHeader, VendedorShareLink } from "@/components/vendor/portal";
 import { useVendedorPortal, orcamentoToLead } from "@/hooks/useVendedorPortal";
 
@@ -208,7 +208,7 @@ export default function VendedorPortal() {
 
           {/* WhatsApp Tab */}
           <TabsContent value="whatsapp" className="space-y-4 sm:space-y-6 mt-4">
-            <WhatsAppInbox vendorMode vendorUserId={vendedor?.user_id || undefined} />
+            <WaInbox vendorMode vendorUserId={vendedor?.user_id || undefined} />
           </TabsContent>
 
           {/* Agenda Tab */}
