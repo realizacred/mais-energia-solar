@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
+import { usePlanGuard } from "@/components/plan";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,7 @@ export function UsuariosManager() {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { guardLimit, LimitDialog } = usePlanGuard();
 
   useEffect(() => {
     let cancelled = false;
@@ -353,6 +355,10 @@ export function UsuariosManager() {
   };
 
   const handleCreateUser = async () => {
+    // Plan limit guard
+    const allowed = await guardLimit("max_users");
+    if (!allowed) return;
+
     if (!newUserForm.nome || !newUserForm.email || !newUserForm.password) {
       toast({
         title: "Erro",
@@ -939,6 +945,7 @@ export function UsuariosManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {LimitDialog}
     </>
   );
 }
