@@ -85,6 +85,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Resolve tenant_id from requesting admin's profile
+    const { data: adminProfile } = await userClient
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", requestingUserId)
+      .maybeSingle();
+
+    const tenantId = adminProfile?.tenant_id || null;
+    console.log("Resolved tenant_id:", tenantId);
+
     // Parse request body
     const { email, password, nome, role = "vendedor" }: CreateUserRequest = await req.json();
 
@@ -143,6 +153,7 @@ Deno.serve(async (req) => {
       .insert({
         user_id: newUser.user.id,
         nome,
+        tenant_id: tenantId,
       });
 
     if (profileError) {
@@ -157,6 +168,7 @@ Deno.serve(async (req) => {
         user_id: newUser.user.id,
         role: role,
         created_by: requestingUserId,
+        tenant_id: tenantId,
       });
 
     if (roleAssignError) {

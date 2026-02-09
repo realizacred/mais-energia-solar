@@ -1,0 +1,3 @@
+-- Backfill orphaned profiles and user_roles with tenant_id
+UPDATE profiles SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL AND user_id IN ('0c73dc6b-4b47-4a05-8673-ff225e0b6972', '017e125b-5d87-43ab-8a31-24abc1705334', '8485b4e1-15be-4a8c-8c34-edfb0d2459bb');
+UPDATE user_roles SET tenant_id = '00000000-0000-0000-0000-000000000001' WHERE tenant_id IS NULL AND user_id IN ('0c73dc6b-4b47-4a05-8673-ff225e0b6972', '017e125b-5d87-43ab-8a31-24abc1705334', '8485b4e1-15be-4a8c-8c34-edfb0d2459bb');
