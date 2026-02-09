@@ -60,6 +60,7 @@ const MotivoPerdaManager = lazy(() => import("@/components/admin/distribution").
 const WaFollowupRulesManager = lazy(() => import("@/components/admin/WaFollowupRulesManager").then(m => ({ default: m.WaFollowupRulesManager })));
 const WaInstancesManager = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
 const WaTagsManager = lazy(() => import("@/components/admin/inbox/WaTagsManager").then(m => ({ default: m.WaTagsManager })));
+const InstalarApp = lazy(() => import("@/pages/Instalar"));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -113,6 +114,7 @@ const TAB_TITLES: Record<string, string> = {
   propostas: "Propostas Comerciais",
   "followup-wa": "Follow-up WhatsApp",
   "wa-etiquetas": "Etiquetas WhatsApp",
+  "instalar-app": "Instalar App",
 };
 
 /** N8n placeholder component */
@@ -335,6 +337,7 @@ export default function Admin() {
                 
                 {/* Administração */}
                 <Route path="auditoria" element={<AuditLogsViewer />} />
+                <Route path="instalar-app" element={<InstalarApp />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
