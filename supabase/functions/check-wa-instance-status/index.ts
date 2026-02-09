@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
     for (const inst of instances) {
       const apiUrl = inst.evolution_api_url?.replace(/\/$/, "");
       const instanceKey = inst.evolution_instance_key;
-      const apiKey = globalApiKey;
+      const apiKey = inst.api_key || globalApiKey;
 
       if (!apiUrl || !instanceKey) {
         results.push({

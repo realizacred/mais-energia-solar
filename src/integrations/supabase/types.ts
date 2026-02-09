@@ -5841,6 +5841,7 @@ export type Database = {
       }
       wa_instances: {
         Row: {
+          api_key: string | null
           created_at: string
           evolution_api_url: string
           evolution_instance_key: string
@@ -5858,6 +5859,7 @@ export type Database = {
           webhook_secret: string
         }
         Insert: {
+          api_key?: string | null
           created_at?: string
           evolution_api_url?: string
           evolution_instance_key: string
@@ -5875,6 +5877,7 @@ export type Database = {
           webhook_secret?: string
         }
         Update: {
+          api_key?: string | null
           created_at?: string
           evolution_api_url?: string
           evolution_instance_key?: string

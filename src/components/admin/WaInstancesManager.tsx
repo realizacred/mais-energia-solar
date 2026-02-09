@@ -277,6 +277,7 @@ function InstanceFormDialog({
   const [nome, setNome] = useState("");
   const [instanceKey, setInstanceKey] = useState("");
   const [apiUrl, setApiUrl] = useState("https://");
+  const [apiKey, setApiKey] = useState("");
   const [vendedorId, setVendedorId] = useState("none");
   const [saving, setSaving] = useState(false);
 
@@ -286,6 +287,7 @@ function InstanceFormDialog({
       setNome(instance?.nome || "");
       setInstanceKey(instance?.evolution_instance_key || "");
       setApiUrl(instance?.evolution_api_url || "https://");
+      setApiKey((instance as any)?.api_key || "");
       setVendedorId(instance?.vendedor_id || "none");
     }
   }, [open, instance]);
@@ -303,6 +305,7 @@ function InstanceFormDialog({
         nome: nome.trim(),
         evolution_instance_key: instanceKey.trim(),
         evolution_api_url: apiUrl.trim(),
+        api_key: apiKey.trim() || null,
         vendedor_id: vendedorId === "none" ? null : vendedorId,
       });
     } finally {
@@ -348,6 +351,19 @@ function InstanceFormDialog({
               placeholder="https://evolution.suaempresa.com"
               className="font-mono text-sm"
             />
+          </div>
+          <div>
+            <Label>API Key da Evolution</Label>
+            <Input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Cole aqui a API Key / Global Token"
+              className="font-mono text-sm"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">
+              Opcional. Se vazio, usa a chave global configurada nas secrets do projeto.
+            </p>
           </div>
           <div>
             <Label>Vincular a Vendedor (opcional)</Label>
