@@ -110,7 +110,8 @@ async function verifyAdminRole(req: Request): Promise<{ authorized: boolean; err
 }
 
 // Normalize string for matching
-function normalizeStr(s: string): string {
+function normalizeStr(s: string | null | undefined): string {
+  if (!s) return "";
   return s
     .toUpperCase()
     .normalize("NFD")
@@ -199,7 +200,9 @@ Deno.serve(async (req) => {
     // Group by SigAgente, keep only the most recent (highest DatInicioVigencia)
     const tarifasPorAgente: Record<string, TarifaAneel> = {};
     for (const t of tarifas) {
+      if (!t.SigAgente) continue;
       const key = normalizeStr(t.SigAgente);
+      if (!key) continue;
       const existing = tarifasPorAgente[key];
       if (!existing || t.DatInicioVigencia > existing.DatInicioVigencia) {
         tarifasPorAgente[key] = t;
@@ -209,7 +212,9 @@ Deno.serve(async (req) => {
     // Also index by full name
     const tarifasPorNome: Record<string, TarifaAneel> = {};
     for (const t of tarifas) {
+      if (!t.NomAgente) continue;
       const key = normalizeStr(t.NomAgente);
+      if (!key) continue;
       const existing = tarifasPorNome[key];
       if (!existing || t.DatInicioVigencia > existing.DatInicioVigencia) {
         tarifasPorNome[key] = t;
