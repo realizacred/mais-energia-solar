@@ -984,14 +984,18 @@ export function UsuariosManager() {
 
       {/* Edit User Dialog */}
       <Dialog open={!!userToEdit} onOpenChange={(open) => !open && setUserToEdit(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Editar Usuário</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Pencil className="w-5 h-5 text-primary" />
+              Editar Usuário
+            </DialogTitle>
             <DialogDescription>
-              Altere os dados do usuário {userToEdit?.nome}.
+              Visualize e edite os dados do usuário.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            {/* Nome */}
             <div className="space-y-2">
               <Label htmlFor="edit-nome">Nome completo</Label>
               <Input
@@ -1001,10 +1005,64 @@ export function UsuariosManager() {
                 placeholder="Nome do usuário"
               />
             </div>
+
+            {/* Email (read-only) */}
             {userToEdit?.email && (
               <div className="space-y-2">
                 <Label>E-mail</Label>
                 <Input value={userToEdit.email} disabled className="opacity-60" />
+              </div>
+            )}
+
+            {/* Status */}
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <div>
+                <Badge 
+                  variant="outline"
+                  className={userToEdit?.ativo 
+                    ? "bg-success/10 text-success border-success/30" 
+                    : "bg-muted text-muted-foreground border-border"
+                  }
+                >
+                  {userToEdit?.ativo ? "Ativo" : "Inativo"}
+                </Badge>
+              </div>
+            </div>
+
+            {/* Perfis / Roles */}
+            <div className="space-y-2">
+              <Label>Perfis de acesso</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {userToEdit?.roles.length === 0 ? (
+                  <span className="text-sm text-muted-foreground">Sem perfil atribuído</span>
+                ) : (
+                  userToEdit?.roles.map((role) => {
+                    const roleInfo = ROLE_LABELS[role];
+                    return (
+                      <Badge key={role} variant="outline" className={roleInfo?.color || ""}>
+                        {roleInfo?.label || role}
+                      </Badge>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Redefinir Senha */}
+            {userToEdit?.email && (
+              <div className="pt-2 border-t">
+                <Button
+                  variant="outline"
+                  className="w-full gap-2"
+                  onClick={() => {
+                    setUserToResetPassword(userToEdit);
+                    setUserToEdit(null);
+                  }}
+                >
+                  <KeyRound className="w-4 h-4" />
+                  Redefinir senha
+                </Button>
               </div>
             )}
           </div>
