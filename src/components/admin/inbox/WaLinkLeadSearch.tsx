@@ -137,9 +137,13 @@ export function WaLinkLeadSearch({
 
         if (digits.length >= 4) {
           const patterns = buildPhonePatterns(digits);
-          const phoneFilters = patterns.map((p) => `telefone.ilike.%${p}%`);
+          const phoneFilters = patterns.flatMap((p) => [
+            `telefone_normalized.ilike.%${p}%`,
+            `telefone.ilike.%${p}%`,
+          ]);
           phoneFilters.push(`nome.ilike.%${search}%`);
-          query = query.or(phoneFilters.join(","));
+          const unique = [...new Set(phoneFilters)];
+          query = query.or(unique.join(","));
         } else {
           query = query.ilike("nome", `%${search}%`);
         }
