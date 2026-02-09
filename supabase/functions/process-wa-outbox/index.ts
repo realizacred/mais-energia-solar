@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     // Fetch pending outbox items
     const { data: items, error: fetchError } = await supabase
       .from("wa_outbox")
-      .select("*, wa_instances!inner(evolution_instance_key, evolution_api_url, status)")
+      .select("*, wa_instances!inner(evolution_instance_key, evolution_api_url, status, api_key)")
       .eq("status", "pending")
       .lte("scheduled_at", new Date().toISOString())
       .lt("retry_count", 3)
@@ -68,11 +68,12 @@ Deno.serve(async (req) => {
           throw new Error(`Instance ${instance.evolution_instance_key} is not connected (${instance.status})`);
         }
 
-        // Send via Evolution API
+        // Send via Evolution API — use instance-specific key with global fallback
+        const effectiveApiKey = instance.api_key || EVOLUTION_API_KEY;
         const sendResult = await sendEvolutionMessage(
           instance.evolution_api_url,
           instance.evolution_instance_key,
-          EVOLUTION_API_KEY,
+          effectiveApiKey,
           item
         );
 
