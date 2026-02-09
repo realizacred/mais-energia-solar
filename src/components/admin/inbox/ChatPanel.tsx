@@ -3,7 +3,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Send,
-  Paperclip,
   StickyNote,
   Loader2,
   User,
@@ -29,6 +28,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { ChatMediaComposer } from "./ChatMediaComposer";
+import { ChatMediaMessage } from "./ChatMediaMessage";
 import type { Conversation, ConversationMessage } from "@/hooks/useWhatsAppInbox";
 
 interface ChatPanelProps {
@@ -36,7 +37,7 @@ interface ChatPanelProps {
   messages: ConversationMessage[];
   loading: boolean;
   isSending: boolean;
-  onSendMessage: (content: string, isNote?: boolean) => void;
+  onSendMessage: (content: string, isNote?: boolean, mediaUrl?: string, messageType?: string) => void;
   onResolve: () => void;
   onReopen: () => void;
   onOpenTransfer: () => void;
@@ -268,10 +269,15 @@ export function ChatPanel({
                           Nota interna
                         </div>
                       )}
-                      {msg.message_type === "image" && msg.media_url && (
-                        <img src={msg.media_url} alt="Imagem" className="rounded-lg mb-1 max-w-full max-h-48 object-cover" />
+                      <ChatMediaMessage
+                        messageType={msg.message_type}
+                        mediaUrl={msg.media_url}
+                        content={msg.content}
+                        isOut={isOut}
+                      />
+                      {msg.content && msg.message_type !== "document" && (
+                        <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                       )}
-                      {msg.content && <p className="whitespace-pre-wrap break-words">{msg.content}</p>}
                       <p className={`text-[10px] mt-1 ${isNote ? "text-warning/70" : isOut ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                         {format(new Date(msg.created_at), "HH:mm")}
                       </p>
@@ -310,6 +316,16 @@ export function ChatPanel({
             </TooltipTrigger>
             <TooltipContent>Nota interna</TooltipContent>
           </Tooltip>
+
+          {!isNoteMode && conversation && (
+            <ChatMediaComposer
+              conversationId={conversation.id}
+              disabled={isSending}
+              onMediaSent={(mediaUrl, type) => {
+                onSendMessage("", false, mediaUrl, type);
+              }}
+            />
+          )}
 
           <Input
             ref={inputRef}
