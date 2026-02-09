@@ -5201,6 +5201,57 @@ export type Database = {
           },
         ]
       }
+      wa_satisfaction_ratings: {
+        Row: {
+          answered_at: string | null
+          attendant_user_id: string | null
+          conversation_id: string
+          created_at: string
+          feedback: string | null
+          id: string
+          rating: number | null
+          sent_at: string
+          tenant_id: string | null
+        }
+        Insert: {
+          answered_at?: string | null
+          attendant_user_id?: string | null
+          conversation_id: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          rating?: number | null
+          sent_at?: string
+          tenant_id?: string | null
+        }
+        Update: {
+          answered_at?: string | null
+          attendant_user_id?: string | null
+          conversation_id?: string
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          rating?: number | null
+          sent_at?: string
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_satisfaction_ratings_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_satisfaction_ratings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_tags: {
         Row: {
           color: string
