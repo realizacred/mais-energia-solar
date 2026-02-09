@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/useAuth";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import logoFallback from "@/assets/logo.png";
 
 interface MobileNavProps {
@@ -12,7 +13,7 @@ interface MobileNavProps {
   showAdmin?: boolean;
 }
 
-const WHATSAPP_NUMBER = "5532998437675";
+
 
 const navLinks = [
   { label: "Home", href: "#", icon: Home },
@@ -26,11 +27,15 @@ export function MobileNav({ showCalculadora = true, showAdmin = true }: MobileNa
   const [open, setOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { settings } = useBrandSettings();
+  const { get } = useSiteSettings();
   const logo = settings?.logo_url || logoFallback;
   const navigate = useNavigate();
+  const whatsapp = get("whatsapp") || "5532998437675";
 
   const handleWhatsApp = () => {
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}`, "_blank");
+    const msg = (get as any)("whatsapp_mensagem_padrao") || "";
+    const url = msg ? `https://wa.me/${whatsapp}?text=${encodeURIComponent(msg)}` : `https://wa.me/${whatsapp}`;
+    window.open(url, "_blank");
     setOpen(false);
   };
 

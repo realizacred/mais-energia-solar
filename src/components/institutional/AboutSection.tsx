@@ -112,7 +112,7 @@ export function AboutSection() {
                   size="lg"
                   className="bg-white text-primary hover:bg-white/90 rounded-full px-8 font-extrabold shadow-xl shadow-black/20 hover:-translate-y-0.5 transition-all duration-300"
                 >
-                  <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
+                  <a href={`https://wa.me/${whatsapp}?text=${encodeURIComponent((get as any)("whatsapp_mensagem_padrao") || "Olá! Gostaria de mais informações sobre energia solar.")}`} target="_blank" rel="noopener noreferrer">
                     <Phone className="w-4 h-4 mr-2" />
                     Fale Conosco
                   </a>

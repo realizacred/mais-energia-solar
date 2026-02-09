@@ -342,6 +342,18 @@ export function SiteSettingsUnified() {
                   </div>
                 </div>
                 <div className="space-y-2">
+                  <Label>Mensagem padrão do WhatsApp</Label>
+                  <Textarea
+                    value={(siteSettings as any).whatsapp_mensagem_padrao || ""}
+                    onChange={(e) => updateSite("whatsapp_mensagem_padrao" as any, e.target.value)}
+                    placeholder="Olá! Vi o site de vocês e gostaria de mais informações sobre energia solar."
+                    rows={2}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Texto pré-preenchido quando o visitante clica em "WhatsApp" no site.
+                  </p>
+                </div>
+                <div className="space-y-2">
                   <Label>E-mail</Label>
                   <Input value={siteSettings.email || ""} onChange={(e) => updateSite("email", e.target.value)} />
                 </div>

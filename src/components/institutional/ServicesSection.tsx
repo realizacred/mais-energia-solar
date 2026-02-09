@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useSiteServicos } from "@/hooks/useSiteServicos";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 import serviceProjeto from "@/assets/service-projeto.jpg";
 import serviceHomologacao from "@/assets/service-homologacao.jpg";
 import serviceInstalacao from "@/assets/service-instalacao.jpg";
@@ -25,6 +26,8 @@ const FALLBACK_SERVICES = [
 
 export function ServicesSection() {
   const { ref, isVisible } = useScrollReveal();
+  const { get } = useSiteSettings();
+  const whatsapp = get("whatsapp") || "5532998437675";
   const { servicos, loading } = useSiteServicos();
 
   // Only show active services, fallback to hardcoded if empty
@@ -100,7 +103,7 @@ export function ServicesSection() {
                   {service.description}
                 </p>
                 <a
-                  href="https://wa.me/5532998437675"
+                  href={`https://wa.me/${whatsapp}?text=${encodeURIComponent((get as any)("whatsapp_mensagem_padrao") || "Olá! Gostaria de mais informações sobre energia solar.")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:gap-3 transition-all duration-300"

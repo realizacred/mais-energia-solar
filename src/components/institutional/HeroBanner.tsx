@@ -143,7 +143,7 @@ export function HeroBanner() {
               asChild
               className="border-2 border-white/70 bg-white/20 text-white hover:bg-white/30 hover:border-white font-bold px-8 py-6 text-base rounded-full backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 shadow-lg"
             >
-              <a href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener noreferrer">
+              <a href={`https://wa.me/${whatsapp}?text=${encodeURIComponent((get as any)("whatsapp_mensagem_padrao") || "Olá! Gostaria de mais informações sobre energia solar.")}`} target="_blank" rel="noopener noreferrer">
                 {get("hero_cta_whatsapp_texto")}
               </a>
             </Button>

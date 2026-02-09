@@ -50,7 +50,7 @@ export function TopBannerCarousel() {
     } else if (link.startsWith("http")) {
       window.open(link, "_blank", "noopener,noreferrer");
     } else if (link === "whatsapp" && whatsapp) {
-      window.open(`https://wa.me/${whatsapp}`, "_blank", "noopener,noreferrer");
+      window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent((get as any)("whatsapp_mensagem_padrao") || "")}`, "_blank", "noopener,noreferrer");
     }
   };
 
