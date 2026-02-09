@@ -227,6 +227,35 @@ async function handleMessageUpsert(
       status: fromMe ? "sent" : "delivered",
       metadata: { raw_key: key },
     });
+
+    // Check for satisfaction survey response (incoming messages only)
+    if (!fromMe && content) {
+      const trimmed = content.trim();
+      const rating = parseInt(trimmed, 10);
+      if (rating >= 1 && rating <= 5 && trimmed.length <= 2) {
+        // Look for a pending satisfaction rating for this conversation
+        const { data: pendingRating } = await supabase
+          .from("wa_satisfaction_ratings")
+          .select("id")
+          .eq("conversation_id", conversationId)
+          .is("rating", null)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingRating) {
+          await supabase
+            .from("wa_satisfaction_ratings")
+            .update({
+              rating,
+              answered_at: new Date().toISOString(),
+            })
+            .eq("id", pendingRating.id);
+
+          console.log(`[process-webhook-events] Satisfaction rating ${rating} recorded for conversation ${conversationId}`);
+        }
+      }
+    }
   }
 }
 

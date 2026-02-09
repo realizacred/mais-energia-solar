@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaConversations, useWaMessages, useWaTags } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
+import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { WaConversationList } from "./WaConversationList";
 import { WaChatPanel } from "./WaChatPanel";
@@ -39,6 +40,7 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
 
   // Hooks
   const { instances } = useWaInstances();
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const {
@@ -165,10 +167,64 @@ export function WaInbox({ vendorMode = false }: WaInboxProps) {
     }
   };
 
-  const handleResolve = () => {
+  const handleResolve = async () => {
     if (!selectedConv) return;
     resolveConversation(selectedConv.id);
     setSelectedConv({ ...selectedConv, status: "resolved" });
+
+    // Send satisfaction survey message
+    try {
+      const surveyMessage = "Olá! Seu atendimento foi finalizado. 😊\n\nPor favor, avalie nosso atendimento de 1 a 5:\n⭐ 1 - Péssimo\n⭐⭐ 2 - Ruim\n⭐⭐⭐ 3 - Regular\n⭐⭐⭐⭐ 4 - Bom\n⭐⭐⭐⭐⭐ 5 - Excelente\n\nResponda apenas com o número (1 a 5).";
+
+      // Get conversation details for outbox
+      const { data: conv } = await supabase
+        .from("wa_conversations")
+        .select("instance_id, remote_jid, tenant_id")
+        .eq("id", selectedConv.id)
+        .single();
+
+      if (conv) {
+        // Insert the satisfaction survey message
+        const { data: msg } = await supabase
+          .from("wa_messages")
+          .insert({
+            conversation_id: selectedConv.id,
+            direction: "out",
+            message_type: "text",
+            content: surveyMessage,
+            sent_by_user_id: user?.id,
+            is_internal_note: false,
+            status: "pending",
+          })
+          .select()
+          .single();
+
+        if (msg) {
+          // Queue for sending
+          await supabase.from("wa_outbox").insert({
+            instance_id: conv.instance_id,
+            conversation_id: selectedConv.id,
+            message_id: msg.id,
+            remote_jid: conv.remote_jid,
+            message_type: "text",
+            content: surveyMessage,
+            status: "pending",
+          });
+
+          // Create satisfaction record
+          await supabase.from("wa_satisfaction_ratings").insert({
+            tenant_id: conv.tenant_id,
+            conversation_id: selectedConv.id,
+            attendant_user_id: selectedConv.assigned_to || user?.id,
+          });
+
+          // Trigger outbox
+          supabase.functions.invoke("process-wa-outbox").catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error("Failed to send satisfaction survey:", err);
+    }
   };
 
   const handleReopen = () => {

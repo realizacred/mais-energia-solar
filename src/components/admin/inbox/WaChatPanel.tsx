@@ -274,10 +274,16 @@ export function WaChatPanel({
                           : "bg-muted rounded-bl-md text-foreground"
                       }`}
                     >
+                      {/* Attendant name for outgoing messages */}
+                      {isOut && msg.sent_by_name && !isNote && (
+                        <p className="text-[10px] font-semibold text-primary-foreground/70 mb-0.5">
+                          {msg.sent_by_name}
+                        </p>
+                      )}
                       {isNote && (
                         <div className="flex items-center gap-1 mb-1 text-[10px] text-warning font-medium">
                           <StickyNote className="h-3 w-3" />
-                          Nota interna
+                          Nota interna{msg.sent_by_name ? ` · ${msg.sent_by_name}` : ""}
                         </div>
                       )}
                       {(msg.message_type === "image") && msg.media_url && (

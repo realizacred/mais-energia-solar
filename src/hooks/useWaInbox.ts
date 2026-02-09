@@ -47,6 +47,8 @@ export interface WaMessage {
   error_message: string | null;
   metadata: any;
   created_at: string;
+  // joined
+  sent_by_name?: string | null;
 }
 
 export interface WaTag {
@@ -265,7 +267,26 @@ export function useWaMessages(conversationId?: string) {
         .order("created_at", { ascending: true })
         .limit(500);
       if (error) throw error;
-      return (data || []) as WaMessage[];
+
+      // Load attendant names for outgoing messages
+      const userIds = [...new Set((data || []).filter(m => m.sent_by_user_id).map(m => m.sent_by_user_id!))];
+      let namesMap: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, nome")
+          .in("user_id", userIds);
+        if (profiles) {
+          for (const p of profiles) {
+            if (p.user_id) namesMap[p.user_id] = p.nome || "";
+          }
+        }
+      }
+
+      return (data || []).map((m: any) => ({
+        ...m,
+        sent_by_name: m.sent_by_user_id ? namesMap[m.sent_by_user_id] || null : null,
+      })) as WaMessage[];
     },
     enabled: !!conversationId,
     staleTime: 10 * 1000,
