@@ -50,17 +50,17 @@ export default defineConfig(({ mode }) => ({
         ],
         shortcuts: [
           {
+            name: "Cadastro de Lead",
+            short_name: "Novo Lead",
+            description: "Cadastre um novo orçamento solar",
+            url: "/v/",
+            icons: [{ src: "pwa-icon-leads-192.png", sizes: "192x192" }],
+          },
+          {
             name: "Portal do Vendedor",
             short_name: "Vendedor",
             description: "Acesse seus orçamentos",
             url: "/vendedor",
-            icons: [{ src: "pwa-icon-192.png", sizes: "192x192" }],
-          },
-          {
-            name: "Checklist de Instalação",
-            short_name: "Checklist",
-            description: "Preencha o checklist de instalação",
-            url: "/checklist",
             icons: [{ src: "pwa-icon-192.png", sizes: "192x192" }],
           },
           {
