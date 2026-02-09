@@ -51,10 +51,22 @@ export function WaLinkLeadSearch({
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"leads" | "clientes">("leads");
 
+  // Strip country code "55" prefix and format for better matching
+  const stripCountryCode = (phone: string) => {
+    if (!phone) return "";
+    const digits = phone.replace(/\D/g, "");
+    // Remove leading 55 (Brazil country code) if present and phone is long enough
+    if (digits.startsWith("55") && digits.length >= 12) {
+      return digits.substring(2);
+    }
+    return digits;
+  };
+
   // Reset search when opening
   useEffect(() => {
     if (open) {
-      setSearch(conversation?.cliente_telefone || "");
+      const phone = conversation?.cliente_telefone || "";
+      setSearch(stripCountryCode(phone));
     }
   }, [open, conversation?.cliente_telefone]);
 
@@ -62,53 +74,57 @@ export function WaLinkLeadSearch({
   const { data: leads = [], isLoading: leadsLoading } = useQuery({
     queryKey: ["wa-link-leads", search],
     queryFn: async () => {
-      if (!search || search.length < 2) return [];
-      const normalizedSearch = search.replace(/\D/g, "");
-      
       let query = supabase
         .from("leads")
         .select("id, nome, telefone, estado, cidade, lead_code, status_id")
         .limit(20);
 
-      // Search by phone (digits) or name
-      if (normalizedSearch.length >= 4) {
-        query = query.or(`telefone.ilike.%${normalizedSearch}%,nome.ilike.%${search}%`);
-      } else {
-        query = query.ilike("nome", `%${search}%`);
+      if (search.trim().length >= 2) {
+        const digits = search.replace(/\D/g, "");
+        
+        if (digits.length >= 4) {
+          // Search by normalized phone OR name
+          query = query.or(`telefone_normalized.ilike.%${digits}%,telefone.ilike.%${digits}%,nome.ilike.%${search}%`);
+        } else {
+          query = query.ilike("nome", `%${search}%`);
+        }
       }
+      // When empty, just return most recent leads
 
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as LeadResult[];
     },
-    enabled: open && search.length >= 2,
-    staleTime: 10 * 1000,
+    enabled: open,
+    staleTime: 5 * 1000,
   });
 
   // Search clients
   const { data: clientes = [], isLoading: clientesLoading } = useQuery({
     queryKey: ["wa-link-clientes", search],
     queryFn: async () => {
-      if (!search || search.length < 2) return [];
-      const normalizedSearch = search.replace(/\D/g, "");
-
       let query = supabase
         .from("clientes")
         .select("id, nome, telefone, email, lead_id, cidade")
         .limit(20);
 
-      if (normalizedSearch.length >= 4) {
-        query = query.or(`telefone.ilike.%${normalizedSearch}%,nome.ilike.%${search}%`);
-      } else {
-        query = query.ilike("nome", `%${search}%`);
+      if (search.trim().length >= 2) {
+        const digits = search.replace(/\D/g, "");
+
+        if (digits.length >= 4) {
+          query = query.or(`telefone.ilike.%${digits}%,nome.ilike.%${search}%`);
+        } else {
+          query = query.ilike("nome", `%${search}%`);
+        }
       }
+      // When empty, return most recent clients
 
       const { data, error } = await query.order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as ClienteResult[];
     },
-    enabled: open && search.length >= 2,
-    staleTime: 10 * 1000,
+    enabled: open,
+    staleTime: 5 * 1000,
   });
 
   const handleSelectLead = (lead: LeadResult) => {
@@ -167,7 +183,7 @@ export function WaLinkLeadSearch({
                   </div>
                 ) : leads.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
-                    {search.length < 2 ? "Digite para buscar leads..." : "Nenhum lead encontrado."}
+                    Nenhum lead encontrado.
                   </p>
                 ) : (
                   <div className="space-y-1">
@@ -211,7 +227,7 @@ export function WaLinkLeadSearch({
                   </div>
                 ) : clientes.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
-                    {search.length < 2 ? "Digite para buscar clientes..." : "Nenhum cliente encontrado."}
+                    Nenhum cliente encontrado.
                   </p>
                 ) : (
                   <div className="space-y-1">
