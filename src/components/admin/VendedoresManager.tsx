@@ -34,10 +34,10 @@ interface UserProfile {
 }
 
 interface VendedoresManagerProps {
-  leads: { vendedor: string | null }[];
+  leads?: { vendedor: string | null }[];
 }
 
-export default function VendedoresManager({ leads }: VendedoresManagerProps) {
+export default function VendedoresManager({ leads: propLeads }: VendedoresManagerProps = {}) {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,10 +50,22 @@ export default function VendedoresManager({ leads }: VendedoresManagerProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [fetchedLeads, setFetchedLeads] = useState<{ vendedor: string | null }[]>([]);
   const { toast } = useToast();
 
   const isNewVendedor = !editingVendedor;
   const isLinkingExistingUser = isNewVendedor && formData.tipoAcesso === "vincular";
+
+  // Fetch leads if not provided via props
+  useEffect(() => {
+    if (!propLeads) {
+      supabase.from("leads").select("vendedor").then(({ data }) => {
+        if (data) setFetchedLeads(data);
+      });
+    }
+  }, [propLeads]);
+
+  const leads = propLeads || fetchedLeads;
 
   // Count leads per vendedor (by nome, case-insensitive)
   const leadCounts = useMemo(() => {

@@ -57,7 +57,7 @@ const App = () => (
               <Route path="/v/:codigo" element={<VendorPage />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/portal" element={<PortalSelector />} />
-              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/*" element={<Admin />} />
               <Route path="/vendedor" element={<VendedorPortal />} />
               <Route path="/calculadora" element={<Calculadora />} />
               <Route path="/checklist" element={<Checklist />} />
