@@ -6,9 +6,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AuthForm } from "@/components/auth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useLogo } from "@/hooks/useLogo";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
-import logo from "@/assets/logo.png";
-import logoBranca from "@/assets/logo-branca.png";
 
 const PORTAL_PREFERENCE_KEY = "preferred_portal";
 const ALLOWED_ROLES = ["admin", "gerente", "financeiro", "vendedor", "instalador"];
@@ -34,6 +33,8 @@ export default function Auth() {
   const [searchParams] = useSearchParams();
   const [checkingRole, setCheckingRole] = useState(false);
   const { settings } = useBrandSettings();
+  const brandLogo = useLogo();
+  const brandLogoWhite = useLogo({ onDarkBg: true });
 
   const isRecoveryFlow =
     searchParams.get("type") === "recovery" ||
@@ -156,8 +157,6 @@ export default function Auth() {
     );
   }
 
-  const brandLogo = settings?.logo_url || logo;
-  const brandLogoWhite = settings?.logo_small_url || logoBranca;
   const loginImage = settings?.login_image_url;
 
   return (
