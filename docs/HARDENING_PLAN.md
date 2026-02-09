@@ -9,10 +9,12 @@
 
 ## HISTÓRICO DE EXECUÇÃO
 
-| Fase | Status | Data | Notas |
-|------|--------|------|-------|
-| **0.1 — Fix tenant_id defaults** | ✅ CONCLUÍDA | 2026-02-09 | 57 tabelas corrigidas. 7 tabelas com dados NULL pendentes de backfill. `wa_conversation_tags` sem coluna `tenant_id`. `site_banners` e `site_settings` sem default (NOT NULL, valor passado explicitamente). |
-| 0.2 — Reescrever RLS policies | ⏳ Pendente | — | — |
+| Fase | Status | Data | Migration IDs | Notas |
+|------|--------|------|---------------|-------|
+| **0.1 — Fix tenant_id defaults** | ✅ CONCLUÍDA | 2026-02-09 03:48 UTC | `20260209034857` | 57 tabelas: default alterado de hardcoded para `get_user_tenant_id()`. |
+| **0.1.1-A — Backfill tenant_id NULL** | ✅ CONCLUÍDA | 2026-02-09 03:56 UTC | `20260209035619` + `20260209035905` | **157 registros** backfilled com auditoria completa. Tabela `backfill_audit` criada. Detalhes: wa_webhook_events (76), wa_messages (28), wa_quick_replies (17), wa_outbox (13), wa_tags (5), wa_transfers (4), site_servicos (4), solar_market_sync_logs (3), wa_conversations (3), wa_instances (1), inversores (1), baterias (1), modulos_fotovoltaicos (1). **Zero órfãos**. |
+| **0.1.1-B — Hardening funções tenant** | ✅ CONCLUÍDA | 2026-02-09 03:57 UTC | `20260209035758` | `get_user_tenant_id()` sem fallback (retorna NULL). Nova `require_tenant_id()` com RAISE EXCEPTION. 97 tabelas reclassificadas: ~35 com `require_tenant_id()`, ~45 com `get_user_tenant_id()`, 2 sem default. |
+| 0.2 — Reescrever RLS policies | ⏳ Pendente | — | — | — |
 | 1.0 — JWT em Edge Functions | ⏳ Pendente | — | — |
 
 ---
