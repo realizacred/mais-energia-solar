@@ -254,6 +254,14 @@ export function ChatPanel({
                           : "bg-muted rounded-bl-md text-foreground"
                       }`}
                     >
+                      {isOut && !isNote && msg.sent_by_user_id && (() => {
+                        const sender = vendedores.find((v) => v.user_id === msg.sent_by_user_id);
+                        return sender ? (
+                          <p className="text-[10px] font-medium mb-0.5 text-primary-foreground/70">
+                            {sender.nome}
+                          </p>
+                        ) : null;
+                      })()}
                       {isNote && (
                         <div className="flex items-center gap-1 mb-1 text-[10px] text-warning font-medium">
                           <StickyNote className="h-3 w-3" />
