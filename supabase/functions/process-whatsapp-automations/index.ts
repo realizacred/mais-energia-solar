@@ -29,6 +29,19 @@ interface Lead {
   tenant_id?: string;
 }
 
+/**
+ * AUTH MODEL: "internal / service_role" — NOT a public webhook.
+ * Called by other edge functions or cron jobs with service_role key.
+ * No JWT validation (no end-user calls this directly).
+ *
+ * TENANT RESOLUTION (deterministic, multi-tenant safe):
+ * 1. body.tenant_id (explicit — preferred for multi-tenant)
+ * 2. lead.tenant_id (if lead_id provided)
+ * 3. cliente.tenant_id (if cliente_id provided)
+ * 4. servico.tenant_id (if servico_id provided)
+ * 5. wa_config — ONLY if exactly 1 record exists (single-tenant compat)
+ *    In multi-tenant (>1 config): FAIL with clear error
+ */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -54,62 +67,95 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Parse request body
     const body = await req.json().catch(() => ({}));
     const { tipo, lead_id, lead_data, status_anterior, status_novo, servico_id, cliente_id } = body;
 
-    console.log("[process-wa-auto] Processing automation:", { tipo, lead_id, status_novo });
+    console.log("[process-wa-auto] Processing:", { tipo, lead_id, status_novo });
 
-    // ── TENANT RESOLUTION (multi-source) ──────────────────────
-    let tenantId: string | null = null;
+    // ── TENANT RESOLUTION (deterministic, multi-tenant safe) ──
+    let tenantId: string | null = body.tenant_id || null;
+    let tenantSource = tenantId ? "body" : "";
 
-    // Strategy 1: From whatsapp_automation_config
-    const { data: config } = await supabaseAdmin
-      .from("whatsapp_automation_config")
-      .select("automacoes_ativas, ativo, modo_envio, tenant_id")
-      .maybeSingle();
-
-    if (config?.tenant_id) {
-      tenantId = config.tenant_id;
-      console.log(`[process-wa-auto] tenant from wa_config: ${tenantId}`);
+    // Validate explicit tenant_id if provided — HARD FAIL if invalid (no fallback)
+    if (tenantId) {
+      const { data: tenantRow } = await supabaseAdmin
+        .from("tenants")
+        .select("id")
+        .eq("id", tenantId)
+        .eq("ativo", true)
+        .maybeSingle();
+      if (!tenantRow) {
+        console.error(`[process-wa-auto] BLOCKED: body.tenant_id=${tenantId} not found or inactive — no fallback`);
+        return new Response(
+          JSON.stringify({ success: false, error: "Tenant inválido ou inativo" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
-    // Strategy 2: From lead (if provided)
+    // Strategy 2: From lead
     if (!tenantId && lead_id) {
       const { data: leadRow } = await supabaseAdmin
         .from("leads")
         .select("tenant_id")
         .eq("id", lead_id)
         .maybeSingle();
-      tenantId = leadRow?.tenant_id || null;
-      if (tenantId) console.log(`[process-wa-auto] tenant from lead: ${tenantId}`);
+      if (leadRow?.tenant_id) {
+        tenantId = leadRow.tenant_id;
+        tenantSource = "lead";
+      }
     }
 
-    // Strategy 3: From cliente (if provided)
+    // Strategy 3: From cliente
     if (!tenantId && cliente_id) {
       const { data: clienteRow } = await supabaseAdmin
         .from("clientes")
         .select("tenant_id")
         .eq("id", cliente_id)
         .maybeSingle();
-      tenantId = clienteRow?.tenant_id || null;
-      if (tenantId) console.log(`[process-wa-auto] tenant from cliente: ${tenantId}`);
+      if (clienteRow?.tenant_id) {
+        tenantId = clienteRow.tenant_id;
+        tenantSource = "cliente";
+      }
     }
 
-    // Strategy 4: From servico agendado (if provided)
+    // Strategy 4: From servico
     if (!tenantId && servico_id) {
       const { data: servicoRow } = await supabaseAdmin
         .from("servicos_agendados")
         .select("tenant_id")
         .eq("id", servico_id)
         .maybeSingle();
-      tenantId = servicoRow?.tenant_id || null;
-      if (tenantId) console.log(`[process-wa-auto] tenant from servico: ${tenantId}`);
+      if (servicoRow?.tenant_id) {
+        tenantId = servicoRow.tenant_id;
+        tenantSource = "servico";
+      }
+    }
+
+    // Strategy 5: wa_config — ONLY if exactly 1 record (single-tenant compat)
+    if (!tenantId) {
+      const { data: allConfigs } = await supabaseAdmin
+        .from("whatsapp_automation_config")
+        .select("tenant_id")
+        .limit(2); // fetch max 2 to detect multi-tenant
+
+      if (allConfigs && allConfigs.length === 1 && allConfigs[0].tenant_id) {
+        tenantId = allConfigs[0].tenant_id;
+        tenantSource = "wa_config_single";
+        console.log(`[process-wa-auto] Single-tenant fallback: ${tenantId}`);
+      } else if (allConfigs && allConfigs.length > 1) {
+        console.error("[process-wa-auto] BLOCKED: Multiple wa_configs found — tenant_id obrigatório no body");
+        return new Response(
+          JSON.stringify({ success: false, error: "Multi-tenant: tenant_id obrigatório no body da requisição" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     if (!tenantId) {
-      console.error("[process-wa-auto] CRITICAL: Could not resolve tenant_id from any source");
-      // Log the failure for audit
+      console.error("[process-wa-auto] BLOCKED: tenant não resolvido de nenhuma fonte");
+
+      // Log error for audit
       await supabaseAdmin.from("whatsapp_automation_logs").insert({
         template_id: null,
         lead_id: lead_id || null,
@@ -118,28 +164,36 @@ Deno.serve(async (req) => {
         telefone: "N/A",
         mensagem_enviada: "",
         status: "erro",
-        erro_detalhes: "Tenant não resolvido — automação bloqueada",
-        tenant_id: null, // intentionally null — this is an error record
+        erro_detalhes: "Tenant não resolvido — automação bloqueada (nenhuma fonte determinística)",
+        tenant_id: null,
       }).then(({ error }) => {
-        if (error) console.error("[process-wa-auto] Failed to log tenant resolution error:", error);
+        if (error) console.error("[process-wa-auto] Audit log insert failed:", error);
       });
 
       return new Response(
         JSON.stringify({ success: false, error: "Tenant não resolvido. Automação bloqueada." }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Verificar se automações estão ativas
+    console.log(`[process-wa-auto] tenant=${tenantId} via ${tenantSource}`);
+
+    // ── FETCH CONFIG (scoped by resolved tenant) ──────────────
+    const { data: config } = await supabaseAdmin
+      .from("whatsapp_automation_config")
+      .select("automacoes_ativas, ativo, modo_envio")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
     if (!config?.automacoes_ativas || !config?.ativo) {
-      console.log("[process-wa-auto] Automações desativadas");
+      console.log("[process-wa-auto] Automações desativadas para tenant:", tenantId);
       return new Response(
         JSON.stringify({ success: false, message: "Automações desativadas" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Buscar templates ativos do tipo especificado — scoped to tenant
+    // ── FETCH TEMPLATES (scoped by tenant) ─────────────────────
     const { data: templates, error: templatesError } = await supabaseAdmin
       .from("whatsapp_automation_templates")
       .select("*, tenant_id")
@@ -149,14 +203,14 @@ Deno.serve(async (req) => {
       .order("ordem");
 
     if (templatesError || !templates?.length) {
-      console.log("[process-wa-auto] Nenhum template ativo encontrado para:", tipo);
+      console.log("[process-wa-auto] Nenhum template ativo para:", tipo, "tenant:", tenantId);
       return new Response(
         JSON.stringify({ success: false, message: "Nenhum template ativo" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Buscar dados do lead se necessário
+    // ── FETCH RELATED DATA ─────────────────────────────────────
     let lead: Lead | null = lead_data || null;
     if (lead_id && !lead) {
       const { data: leadData } = await supabaseAdmin
@@ -167,7 +221,6 @@ Deno.serve(async (req) => {
       lead = leadData;
     }
 
-    // Buscar dados do cliente se necessário
     let cliente = null;
     if (cliente_id) {
       const { data: clienteData } = await supabaseAdmin
@@ -178,7 +231,6 @@ Deno.serve(async (req) => {
       cliente = clienteData;
     }
 
-    // Buscar dados do serviço agendado se necessário
     let servico = null;
     if (servico_id) {
       const { data: servicoData } = await supabaseAdmin
@@ -189,11 +241,11 @@ Deno.serve(async (req) => {
       servico = servicoData;
     }
 
+    // ── PROCESS TEMPLATES ──────────────────────────────────────
     const results: Array<{ template: string; success: boolean; error?: string }> = [];
 
     for (const template of templates as AutomationTemplate[]) {
       try {
-        // Verificar condições do gatilho
         const shouldSend = checkTriggerConditions(template, {
           tipo,
           lead,
@@ -204,18 +256,16 @@ Deno.serve(async (req) => {
         });
 
         if (!shouldSend) {
-          console.log(`[process-wa-auto] Template ${template.nome} não atende condições`);
+          console.log(`[process-wa-auto] Template ${template.nome} — condições não atendidas`);
           continue;
         }
 
-        // Determinar destinatário e mensagem
         const recipient = lead || cliente || servico?.clientes;
         if (!recipient?.telefone) {
           console.log("[process-wa-auto] Sem telefone para enviar");
           continue;
         }
 
-        // Substituir variáveis na mensagem
         const mensagem = substituirVariaveis(template.mensagem, {
           nome: recipient.nome,
           cidade: lead?.cidade || cliente?.cidade || "",
@@ -224,7 +274,7 @@ Deno.serve(async (req) => {
           vendedor: lead?.vendedor || "",
         });
 
-        // Enviar mensagem via edge function — pass tenant_id explicitly
+        // Send via send-whatsapp-message — PROPAGATE tenant_id explicitly
         const sendUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-whatsapp-message`;
         const sendResponse = await fetch(sendUrl, {
           method: "POST",
@@ -237,13 +287,13 @@ Deno.serve(async (req) => {
             mensagem,
             lead_id: lead?.id || null,
             tipo: "automatico",
-            tenant_id: tenantId, // ← EXPLICIT tenant_id propagated to send-whatsapp-message
+            tenant_id: tenantId, // ← EXPLICIT propagation
           }),
         });
 
         const sendResult = await sendResponse.json();
 
-        // Registrar log — EXPLICIT tenant_id
+        // Log with explicit tenant_id
         await supabaseAdmin.from("whatsapp_automation_logs").insert({
           template_id: template.id,
           lead_id: lead?.id || null,
@@ -253,7 +303,7 @@ Deno.serve(async (req) => {
           mensagem_enviada: mensagem,
           status: sendResult.success ? "enviado" : "erro",
           erro_detalhes: sendResult.error || null,
-          tenant_id: tenantId, // ← EXPLICIT tenant_id
+          tenant_id: tenantId,
         });
 
         results.push({
@@ -262,11 +312,10 @@ Deno.serve(async (req) => {
           error: sendResult.error,
         });
 
-        console.log(`[process-wa-auto] Template ${template.nome} processado: ${sendResult.success}`);
+        console.log(`[process-wa-auto] Template ${template.nome}: ${sendResult.success}`);
       } catch (err: any) {
-        console.error(`[process-wa-auto] Erro no template ${template.nome}:`, err);
+        console.error(`[process-wa-auto] Erro template ${template.nome}:`, err);
 
-        // Log error with tenant_id
         await supabaseAdmin.from("whatsapp_automation_logs").insert({
           template_id: template.id,
           lead_id: lead?.id || null,
@@ -278,7 +327,7 @@ Deno.serve(async (req) => {
           erro_detalhes: err.message,
           tenant_id: tenantId,
         }).then(({ error }) => {
-          if (error) console.error("[process-wa-auto] Failed to log template error:", error);
+          if (error) console.error("[process-wa-auto] Log insert failed:", error);
         });
 
         results.push({
@@ -289,14 +338,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[process-wa-auto] Done for tenant=${tenantId}: ${results.length} templates processed`);
+    console.log(`[process-wa-auto] Done tenant=${tenantId} src=${tenantSource}: ${results.length} templates`);
 
     return new Response(
       JSON.stringify({ success: true, results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
-    console.error("[process-wa-auto] Erro processando automações:", error);
+    console.error("[process-wa-auto] Unhandled error:", error);
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
