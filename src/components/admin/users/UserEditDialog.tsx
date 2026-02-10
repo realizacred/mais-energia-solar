@@ -45,6 +45,7 @@ import {
   Users,
   UserPlus,
   Save,
+  Link2,
 } from "lucide-react";
 
 interface UserWithRoles {
@@ -88,6 +89,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
   // Keep local state for status toggle
   const [localAtivo, setLocalAtivo] = useState(true);
   const [localRoles, setLocalRoles] = useState<string[]>([]);
+  const [linkedVendedor, setLinkedVendedor] = useState<{ id: string; nome: string; telefone: string; email: string; codigo: string } | null>(null);
 
   // Sync local state when user prop changes
   useEffect(() => {
@@ -97,6 +99,15 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
       setLocalAtivo(user.ativo ?? true);
       setLocalRoles(user.roles || []);
       setSelectedNewRole("");
+      // Fetch linked vendedor
+      supabase
+        .from("vendedores")
+        .select("id, nome, telefone, email, codigo")
+        .eq("user_id", user.user_id)
+        .maybeSingle()
+        .then(({ data }) => setLinkedVendedor(data));
+    } else {
+      setLinkedVendedor(null);
     }
   }, [user]);
 
@@ -116,6 +127,16 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
         .update({ nome: editName.trim() })
         .eq("user_id", user.user_id);
       if (error) throw error;
+
+      // Sync name to linked vendedor
+      if (linkedVendedor) {
+        await supabase
+          .from("vendedores")
+          .update({ nome: editName.trim() })
+          .eq("user_id", user.user_id);
+        setLinkedVendedor({ ...linkedVendedor, nome: editName.trim() });
+      }
+
       toast({ title: "Nome atualizado!", description: `Nome alterado para "${editName.trim()}".` });
       onRefresh();
     } catch (error: any) {
@@ -139,6 +160,15 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
 
       if (response.error) throw new Error(response.error.message || "Erro ao atualizar email");
       if (response.data?.error) throw new Error(String(response.data.error));
+
+      // Sync email to linked vendedor
+      if (linkedVendedor) {
+        await supabase
+          .from("vendedores")
+          .update({ email: editEmail.trim() })
+          .eq("user_id", user.user_id);
+        setLinkedVendedor({ ...linkedVendedor, email: editEmail.trim() });
+      }
 
       toast({ title: "Email atualizado!", description: `Novo email: ${editEmail.trim()}` });
       onRefresh();
@@ -419,6 +449,30 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                 </div>
               )}
             </div>
+
+            <Separator />
+
+            {/* Linked Vendedor */}
+            {linkedVendedor && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Link2 className="w-4 h-4 text-primary" />
+                  Vendedor vinculado
+                </Label>
+                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                  <p><span className="text-muted-foreground">Código:</span> <span className="font-medium">{linkedVendedor.codigo}</span></p>
+                  <p><span className="text-muted-foreground">Telefone:</span> {linkedVendedor.telefone || "—"}</p>
+                  <p><span className="text-muted-foreground">Email:</span> {linkedVendedor.email || "—"}</p>
+                </div>
+              </div>
+            )}
+
+            {!linkedVendedor && localRoles.includes("vendedor") && (
+              <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 text-sm text-warning">
+                <p className="font-medium">⚠️ Vendedor não vinculado</p>
+                <p className="text-xs mt-1">Este usuário tem perfil vendedor mas não está vinculado a um registro de vendedor.</p>
+              </div>
+            )}
 
             <Separator />
 

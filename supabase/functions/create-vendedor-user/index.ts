@@ -172,7 +172,25 @@ Deno.serve(async (req) => {
 
     if (roleAssignError) {
       console.error("Role assignment error:", roleAssignError.message);
-      // Don't fail - role can be assigned later
+    }
+
+    // If role is vendedor, auto-create vendedores record linked to this user
+    if (role === "vendedor") {
+      const { error: vendedorError } = await adminClient
+        .from("vendedores")
+        .insert({
+          nome,
+          email,
+          user_id: newUser.user.id,
+          tenant_id: tenantId,
+          ativo: true,
+        });
+
+      if (vendedorError) {
+        console.error("Vendedor record creation error:", vendedorError.message);
+      } else {
+        console.log("Vendedor record auto-created for user:", newUser.user.id);
+      }
     }
 
     console.log(`User created successfully: ${newUser.user.id} with role: ${role}`);
