@@ -88,6 +88,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Sync email to vendedores if linked
+    const { error: vendorSyncError } = await adminClient
+      .from("vendedores")
+      .update({ email: new_email })
+      .eq("user_id", user_id);
+    
+    if (vendorSyncError) {
+      console.warn("Vendor email sync (non-fatal):", vendorSyncError.message);
+    }
+
     return new Response(
       JSON.stringify({ success: true, email: updatedUser.user.email }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
