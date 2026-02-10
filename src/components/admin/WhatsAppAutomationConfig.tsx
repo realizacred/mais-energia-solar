@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,12 +24,14 @@ import {
   Bot,
   Smartphone,
   Wifi,
-  WifiOff
+  WifiOff,
+  Bell
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { WhatsAppAutomationTemplates } from "./WhatsAppAutomationTemplates";
 import { useWaInstances } from "@/hooks/useWaInstances";
+const PushNotificationSettings = lazy(() => import("./PushNotificationSettings").then(m => ({ default: m.PushNotificationSettings })));
 
 interface WhatsAppConfig {
   id: string;
@@ -223,22 +225,26 @@ export function WhatsAppAutomationConfig() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="config" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
-              Geral
+              <span className="hidden sm:inline">Geral</span>
             </TabsTrigger>
             <TabsTrigger value="automacoes" className="gap-2">
               <Bot className="h-4 w-4" />
-              Automações
+              <span className="hidden sm:inline">Automações</span>
             </TabsTrigger>
             <TabsTrigger value="integracao" className="gap-2">
               <Plug className="h-4 w-4" />
-              Integração
+              <span className="hidden sm:inline">Integração</span>
+            </TabsTrigger>
+            <TabsTrigger value="push" className="gap-2">
+              <Bell className="h-4 w-4" />
+              <span className="hidden sm:inline">Push</span>
             </TabsTrigger>
             <TabsTrigger value="historico" className="gap-2">
               <Clock className="h-4 w-4" />
-              Histórico
+              <span className="hidden sm:inline">Histórico</span>
             </TabsTrigger>
           </TabsList>
 
@@ -530,6 +536,12 @@ export function WhatsAppAutomationConfig() {
                 </Button>
               </>
             )}
+          </TabsContent>
+
+          <TabsContent value="push" className="mt-4">
+            <Suspense fallback={<div className="flex items-center gap-2 p-8 justify-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando...</div>}>
+              <PushNotificationSettings />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="historico" className="space-y-4 mt-4">
