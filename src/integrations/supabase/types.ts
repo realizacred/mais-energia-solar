@@ -5940,6 +5940,54 @@ export type Database = {
           },
         ]
       }
+      wa_conversation_preferences: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          hidden: boolean
+          id: string
+          muted: boolean
+          tenant_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          muted?: boolean
+          tenant_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          hidden?: boolean
+          id?: string
+          muted?: boolean
+          tenant_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversation_preferences_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversation_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversation_tags: {
         Row: {
           conversation_id: string

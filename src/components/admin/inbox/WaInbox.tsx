@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
+import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferences";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { WaConversationList } from "./WaConversationList";
@@ -28,6 +29,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [filterAssigned, setFilterAssigned] = useState("all");
   const [filterInstance, setFilterInstance] = useState("all");
   const [filterTag, setFilterTag] = useState("all");
+  const [showGroups, setShowGroups] = useState(true);
+  const [showHidden, setShowHidden] = useState(false);
 
   // Selected conversation
   const [selectedConv, setSelectedConv] = useState<WaConversation | null>(null);
@@ -101,6 +104,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const { lastReadMessageId, markAsRead } = useWaReadTracking(selectedConv?.id, user?.id);
 
   const { tags, createTag, deleteTag, toggleConversationTag } = useWaTags();
+  const { mutedIds, hiddenIds, isMuted, isHidden, toggleMute, toggleHide } = useWaConversationPreferences();
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   useEffect(() => {
     if (selectedConv) {
@@ -113,7 +117,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   // 🔔 Notification sound on new unread messages
   useEffect(() => {
-    const totalUnread = allConversations.reduce((sum, c) => sum + c.unread_count, 0);
+    const totalUnread = allConversations
+      .filter((c) => !mutedIds.has(c.id))
+      .reduce((sum, c) => sum + c.unread_count, 0);
     if (totalUnread > prevUnreadRef.current && prevUnreadRef.current > 0) {
       try {
         if (!audioRef.current) {
@@ -147,6 +153,10 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       const hasTag = c.tags?.some((ct) => ct.tag_id === filterTag);
       if (!hasTag) return false;
     }
+    // Group filter
+    if (!showGroups && c.is_group) return false;
+    // Hidden filter
+    if (!showHidden && hiddenIds.has(c.id)) return false;
     return true;
   });
 
@@ -383,6 +393,12 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               instances={instances}
               tags={tags}
               hideAssignedFilter={vendorMode}
+              showGroups={showGroups}
+              onShowGroupsChange={setShowGroups}
+              showHidden={showHidden}
+              onShowHiddenChange={setShowHidden}
+              mutedIds={mutedIds}
+              hiddenIds={hiddenIds}
             />
           </div>
 
@@ -417,6 +433,10 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   vendedores={vendedores}
                   lastReadMessageId={lastReadMessageId}
                   onMarkAsRead={markAsRead}
+                  isMuted={selectedConv ? isMuted(selectedConv.id) : false}
+                  isHidden={selectedConv ? isHidden(selectedConv.id) : false}
+                  onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
+                  onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
                 />
               </>
             ) : (
@@ -439,6 +459,12 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 instances={instances}
                 tags={tags}
                 hideAssignedFilter={vendorMode}
+                showGroups={showGroups}
+                onShowGroupsChange={setShowGroups}
+                showHidden={showHidden}
+                onShowHiddenChange={setShowHidden}
+                mutedIds={mutedIds}
+                hiddenIds={hiddenIds}
               />
             )}
           </div>
@@ -466,6 +492,10 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               vendedores={vendedores}
               lastReadMessageId={lastReadMessageId}
               onMarkAsRead={markAsRead}
+              isMuted={selectedConv ? isMuted(selectedConv.id) : false}
+              isHidden={selectedConv ? isHidden(selectedConv.id) : false}
+              onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
+              onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
             />
           </div>
         </div>

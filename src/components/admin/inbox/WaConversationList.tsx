@@ -10,11 +10,15 @@ import {
   Smartphone,
   Link2,
   Tag,
+  EyeOff,
+  BellOff,
+  Eye,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 import type { WaInstance } from "@/hooks/useWaInstances";
@@ -44,6 +48,13 @@ interface WaConversationListProps {
   instances: WaInstance[];
   tags: WaTag[];
   hideAssignedFilter?: boolean;
+  // Group & preference filters
+  showGroups?: boolean;
+  onShowGroupsChange?: (v: boolean) => void;
+  showHidden?: boolean;
+  onShowHiddenChange?: (v: boolean) => void;
+  mutedIds?: Set<string>;
+  hiddenIds?: Set<string>;
 }
 
 export function WaConversationList({
@@ -65,6 +76,12 @@ export function WaConversationList({
   instances,
   tags,
   hideAssignedFilter = false,
+  showGroups = true,
+  onShowGroupsChange,
+  showHidden = false,
+  onShowHiddenChange,
+  mutedIds,
+  hiddenIds,
 }: WaConversationListProps) {
   return (
     <div className="flex flex-col h-full border-r border-border/30 bg-card/50">
@@ -158,6 +175,25 @@ export function WaConversationList({
             </SelectContent>
           </Select>
         )}
+        {/* Group & Hidden toggles */}
+        <div className="flex items-center gap-3 pt-0.5">
+          {onShowGroupsChange && (
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Switch checked={showGroups} onCheckedChange={onShowGroupsChange} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3" />
+              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                <Users className="h-3 w-3" /> Grupos
+              </span>
+            </label>
+          )}
+          {onShowHiddenChange && (
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <Switch checked={showHidden} onCheckedChange={onShowHiddenChange} className="h-4 w-7 [&>span]:h-3 [&>span]:w-3" />
+              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                <Eye className="h-3 w-3" /> Ocultas
+              </span>
+            </label>
+          )}
+        </div>
       </div>
 
       {/* Conversations */}
@@ -224,8 +260,10 @@ export function WaConversationList({
                     <div className="flex-1 min-w-0">
                       {/* Name + time */}
                       <div className="flex items-center justify-between mb-0.5">
-                        <span className={`text-sm truncate ${hasUnread ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>
+                        <span className={`text-sm truncate flex items-center gap-1 ${hasUnread ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>
                           {conv.cliente_nome || conv.cliente_telefone}
+                          {mutedIds?.has(conv.id) && <BellOff className="h-3 w-3 text-muted-foreground/60 shrink-0" />}
+                          {hiddenIds?.has(conv.id) && <EyeOff className="h-3 w-3 text-muted-foreground/60 shrink-0" />}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
                           {conv.status === "resolved" && (

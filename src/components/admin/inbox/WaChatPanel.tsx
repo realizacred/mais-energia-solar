@@ -32,6 +32,10 @@ import {
   PanelRightClose,
   Upload,
   MessageCircle,
+  BellOff,
+  Bell,
+  EyeOff,
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -99,6 +103,10 @@ interface WaChatPanelProps {
   vendedores: { id: string; nome: string; user_id: string | null }[];
   lastReadMessageId?: string | null;
   onMarkAsRead?: (messageId: string) => void;
+  isMuted?: boolean;
+  isHidden?: boolean;
+  onToggleMute?: () => void;
+  onToggleHide?: () => void;
 }
 
 export function WaChatPanel({
@@ -122,6 +130,10 @@ export function WaChatPanel({
   vendedores,
   lastReadMessageId,
   onMarkAsRead,
+  isMuted,
+  isHidden,
+  onToggleMute,
+  onToggleHide,
 }: WaChatPanelProps) {
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [showLeadInfo, setShowLeadInfo] = useState(false);
@@ -637,6 +649,19 @@ export function WaChatPanel({
                   <DropdownMenuItem onClick={onResolve}>
                     <CheckCircle2 className="h-4 w-4 mr-2" />
                     Resolver Conversa
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {onToggleMute && (
+                  <DropdownMenuItem onClick={onToggleMute}>
+                    {isMuted ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
+                    {isMuted ? "Ativar notificações" : "Silenciar conversa"}
+                  </DropdownMenuItem>
+                )}
+                {onToggleHide && (
+                  <DropdownMenuItem onClick={onToggleHide}>
+                    {isHidden ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
+                    {isHidden ? "Mostrar conversa" : "Ocultar conversa"}
                   </DropdownMenuItem>
                 )}
               </DropdownMenuContent>
