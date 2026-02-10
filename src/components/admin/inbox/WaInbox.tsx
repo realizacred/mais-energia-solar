@@ -50,6 +50,16 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
   // Determine the effective user for vendor mode
   const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
 
+  // Fetch vendedores (moved up so vendorInstanceIds can reference it)
+  const { data: vendedores = [] } = useQuery({
+    queryKey: ["vendedores-wa-inbox"],
+    queryFn: async () => {
+      const { data } = await supabase.from("vendedores").select("id, nome, user_id").eq("ativo", true);
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Compute vendor's allowed instance IDs (instances where owner_user_id or vendedor linked via vendedores.user_id)
   const vendorInstanceIds = vendorMode
     ? instances
@@ -57,7 +67,7 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
           if (inst.owner_user_id === effectiveUserId) return true;
           // Check if vendedor linked to this instance belongs to the current user
           const matchingVendedor = vendedores.find(
-            (v) => v.user_id === effectiveUserId && v.id === inst.vendedor_id
+            (v: any) => v.user_id === effectiveUserId && v.id === inst.vendedor_id
           );
           return !!matchingVendedor;
         })
@@ -100,17 +110,6 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
   const { lastReadMessageId, markAsRead } = useWaReadTracking(selectedConv?.id, user?.id);
 
   const { tags, createTag, deleteTag, toggleConversationTag } = useWaTags();
-
-  // Fetch vendedores
-  const { data: vendedores = [] } = useQuery({
-    queryKey: ["vendedores-wa-inbox"],
-    queryFn: async () => {
-      const { data } = await supabase.from("vendedores").select("id, nome, user_id").eq("ativo", true);
-      return data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   useEffect(() => {
     if (selectedConv) {
