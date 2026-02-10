@@ -1,1 +1,1 @@
-export { WhatsAppInbox } from "./WhatsAppInbox";
+export { WaInbox } from "./WaInbox";

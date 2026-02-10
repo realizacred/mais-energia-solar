@@ -83,6 +83,10 @@ interface WaChatPanelProps {
   messages: WaMessage[];
   loading: boolean;
   isSending: boolean;
+  initialLoadDone: boolean;
+  isLoadingMore: boolean;
+  hasOlderMessages: boolean;
+  onLoadOlder: () => void;
   onSendMessage: (content: string, isNote?: boolean, quotedMessageId?: string) => void;
   onSendMedia: (file: File, caption?: string) => void;
   onSendReaction: (messageId: string, reaction: string) => void;
@@ -93,6 +97,8 @@ interface WaChatPanelProps {
   onOpenAssign: () => void;
   onLinkLead: () => void;
   vendedores: { id: string; nome: string; user_id: string | null }[];
+  lastReadMessageId?: string | null;
+  onMarkAsRead?: (messageId: string) => void;
 }
 
 export function WaChatPanel({
@@ -100,6 +106,10 @@ export function WaChatPanel({
   messages,
   loading,
   isSending,
+  initialLoadDone,
+  isLoadingMore,
+  hasOlderMessages,
+  onLoadOlder,
   onSendMessage,
   onSendMedia,
   onSendReaction,
@@ -110,6 +120,8 @@ export function WaChatPanel({
   onOpenAssign,
   onLinkLead,
   vendedores,
+  lastReadMessageId,
+  onMarkAsRead,
 }: WaChatPanelProps) {
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [showLeadInfo, setShowLeadInfo] = useState(false);
@@ -122,8 +134,11 @@ export function WaChatPanel({
   const [deletedMsgIds, setDeletedMsgIds] = useState<Set<string>>(new Set());
   const [isRemoteTyping, setIsRemoteTyping] = useState(false);
   const [forwardingMsg, setForwardingMsg] = useState<WaMessage | null>(null);
+  const [atBottom, setAtBottom] = useState(true);
+  const [newMsgCount, setNewMsgCount] = useState(0);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const dragCounter = useRef(0);
+  const prevMsgCountRef = useRef(0);
 
   // Load hidden messages from DB on conversation change
   useEffect(() => {
@@ -156,13 +171,32 @@ export function WaChatPanel({
     [messages, deletedMsgIds]
   );
 
-  // Scroll to bottom when new messages arrive
+  // Track new messages for "new messages" banner (NO setTimeout)
   useEffect(() => {
-    if (visibleMessages.length > 0) {
-      setTimeout(() => {
+    if (visibleMessages.length > prevMsgCountRef.current && prevMsgCountRef.current > 0) {
+      if (atBottom) {
+        // Auto-scroll only if at bottom
         virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length - 1, behavior: "smooth" });
-      }, 100);
+      } else {
+        // Show new messages banner
+        setNewMsgCount(prev => prev + (visibleMessages.length - prevMsgCountRef.current));
+      }
     }
+    prevMsgCountRef.current = visibleMessages.length;
+  }, [visibleMessages.length, atBottom]);
+
+  // Mark as read when at bottom and messages exist
+  useEffect(() => {
+    if (atBottom && visibleMessages.length > 0 && onMarkAsRead) {
+      const lastMsg = visibleMessages[visibleMessages.length - 1];
+      onMarkAsRead(lastMsg.id);
+    }
+  }, [atBottom, visibleMessages.length, onMarkAsRead]);
+
+  // Reset new message count when scrolling to bottom
+  const handleScrollToBottom = useCallback(() => {
+    setNewMsgCount(0);
+    virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length - 1, behavior: "smooth" });
   }, [visibleMessages.length]);
 
   // Close context menu on click outside
@@ -645,18 +679,38 @@ export function WaChatPanel({
               <p className="text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>
             </div>
           ) : (
-            <Virtuoso
-              ref={virtuosoRef}
-              totalCount={visibleMessages.length}
-              itemContent={renderMessage}
-              initialTopMostItemIndex={visibleMessages.length - 1}
-              followOutput="smooth"
-              className="h-full"
-              style={{ height: "100%" }}
-              overscan={200}
-              increaseViewportBy={{ top: 200, bottom: 200 }}
-              itemSize={() => undefined as any}
-            />
+            <>
+              <Virtuoso
+                ref={virtuosoRef}
+                totalCount={visibleMessages.length}
+                itemContent={renderMessage}
+                initialTopMostItemIndex={visibleMessages.length - 1}
+                followOutput={atBottom ? "smooth" : false}
+                atBottomStateChange={setAtBottom}
+                startReached={() => {
+                  if (hasOlderMessages && !isLoadingMore) onLoadOlder();
+                }}
+                className="h-full"
+                style={{ height: "100%" }}
+                overscan={200}
+                increaseViewportBy={{ top: 400, bottom: 200 }}
+                components={{
+                  Header: () => isLoadingMore ? (
+                    <div className="flex justify-center py-3">
+                      <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                    </div>
+                  ) : null,
+                }}
+              />
+              {newMsgCount > 0 && !atBottom && (
+                <button
+                  onClick={handleScrollToBottom}
+                  className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-medium shadow-lg hover:bg-primary/90 transition-colors animate-in slide-in-from-bottom-2"
+                >
+                  {`↓ ${newMsgCount} nova${newMsgCount > 1 ? "s" : ""} mensage${newMsgCount > 1 ? "ns" : "m"}`}
+                </button>
+              )}
+            </>
           )}
 
           {/* Context menu */}
