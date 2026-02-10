@@ -334,7 +334,35 @@ async function handleMessageUpsert(
       metadata: { raw_key: key },
     });
 
-    // Check for satisfaction survey response (incoming messages only)
+    // ── Send Web Push for inbound messages (fire-and-forget) ──
+    if (!fromMe && evolutionMessageId) {
+      const preview = isGroup && participantName
+        ? `${participantName}: ${content ? content.substring(0, 60) : `[${messageType}]`}`
+        : content ? content.substring(0, 80) : `[${messageType}]`;
+
+      try {
+        const pushUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-push-notification`;
+        fetch(pushUrl, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            conversationId,
+            tenantId,
+            instanceId,
+            contactName: isGroup ? (groupSubject || contactName) : contactName,
+            messagePreview: preview,
+            messageId: evolutionMessageId,
+            direction,
+          }),
+        }).catch(e => console.warn("[process-webhook-events] Push trigger failed:", e));
+      } catch (e) {
+        console.warn("[process-webhook-events] Push trigger error:", e);
+      }
+    }
+
     if (!fromMe && content) {
       const trimmed = content.trim();
       const rating = parseInt(trimmed, 10);

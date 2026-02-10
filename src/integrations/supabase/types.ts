@@ -3685,14 +3685,128 @@ export type Database = {
           },
         ]
       }
+      push_muted_conversations: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          muted_until: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          muted_until?: string | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          muted_until?: string | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_muted_conversations_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_muted_conversations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_preferences: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_preferences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_sent_log: {
+        Row: {
+          id: string
+          message_id: string
+          sent_at: string
+          subscription_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          sent_at?: string
+          subscription_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          sent_at?: string
+          subscription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_sent_log_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       push_subscriptions: {
         Row: {
           auth: string
           created_at: string
           endpoint: string
           id: string
+          is_active: boolean
+          last_seen_at: string
           p256dh: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
           user_agent: string | null
           user_id: string
@@ -3702,8 +3816,10 @@ export type Database = {
           created_at?: string
           endpoint: string
           id?: string
+          is_active?: boolean
+          last_seen_at?: string
           p256dh: string
-          tenant_id?: string | null
+          tenant_id: string
           updated_at?: string
           user_agent?: string | null
           user_id: string
@@ -3713,8 +3829,10 @@ export type Database = {
           created_at?: string
           endpoint?: string
           id?: string
+          is_active?: boolean
+          last_seen_at?: string
           p256dh?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           user_agent?: string | null
           user_id?: string
