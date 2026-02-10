@@ -13,6 +13,7 @@ import {
   EyeOff,
   BellOff,
   Eye,
+  Bell,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -55,6 +56,8 @@ interface WaConversationListProps {
   onShowHiddenChange?: (v: boolean) => void;
   mutedIds?: Set<string>;
   hiddenIds?: Set<string>;
+  // Follow-up data
+  followupConvIds?: Set<string>;
 }
 
 export function WaConversationList({
@@ -82,6 +85,7 @@ export function WaConversationList({
   onShowHiddenChange,
   mutedIds,
   hiddenIds,
+  followupConvIds,
 }: WaConversationListProps) {
   return (
     <div className="flex flex-col h-full border-r border-border/30 bg-card/50">
@@ -264,6 +268,7 @@ export function WaConversationList({
                           {conv.cliente_nome || conv.cliente_telefone}
                           {mutedIds?.has(conv.id) && <BellOff className="h-3 w-3 text-muted-foreground/60 shrink-0" />}
                           {hiddenIds?.has(conv.id) && <EyeOff className="h-3 w-3 text-muted-foreground/60 shrink-0" />}
+                          {followupConvIds?.has(conv.id) && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
                           {conv.status === "resolved" && (
