@@ -112,15 +112,15 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
 
   if (compact) {
     return (
-      <div className="flex items-center gap-1.5 overflow-x-auto px-3 py-2 no-scrollbar">
+      <div className="flex items-center gap-2 overflow-x-auto px-3 py-2.5 no-scrollbar bg-card/80 border-b border-border/30">
         {statItems.map((stat) => (
           <div
             key={stat.label}
-            className={`flex items-center gap-1 px-2 py-1 rounded-lg ${stat.bg} border border-border/20 shrink-0`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${stat.bg} border border-border/20 shrink-0 min-h-[32px]`}
           >
-            <stat.icon className={`h-3 w-3 ${stat.color}`} />
-            <span className="text-xs font-bold text-foreground">{stat.value}</span>
-            <span className="text-[9px] text-muted-foreground">{stat.label}</span>
+            <stat.icon className={`h-3.5 w-3.5 ${stat.color}`} />
+            <span className="text-sm font-bold text-foreground leading-none">{stat.value}</span>
+            <span className="text-[10px] text-muted-foreground leading-none">{stat.label}</span>
           </div>
         ))}
       </div>

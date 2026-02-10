@@ -87,7 +87,7 @@ export default function MessagingApp() {
         <div className="flex">
           <button
             onClick={() => setActiveTab("messages")}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors active:bg-muted/30 ${
               activeTab === "messages"
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -98,7 +98,7 @@ export default function MessagingApp() {
           </button>
           <button
             onClick={() => setActiveTab("settings")}
-            className={`flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors ${
+            className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors active:bg-muted/30 ${
               activeTab === "settings"
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
