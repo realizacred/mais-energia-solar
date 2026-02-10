@@ -111,6 +111,11 @@ export function useWaNotifications() {
       if (soundEnabled) {
         playNotificationSound();
       }
+
+      // Vibrate on mobile
+      if ("vibrate" in navigator) {
+        navigator.vibrate([200, 100, 200]);
+      }
     }
   }, [snapshot, enabled, soundEnabled, isOnInbox]);
 
@@ -124,6 +129,17 @@ export function useWaNotifications() {
 
   // Total unread count for badge
   const totalUnread = snapshot?.reduce((sum, c) => sum + c.unread_count, 0) ?? 0;
+
+  // Update app badge on PWA icon
+  useEffect(() => {
+    if ("setAppBadge" in navigator) {
+      if (totalUnread > 0) {
+        (navigator as any).setAppBadge(totalUnread).catch(() => {});
+      } else {
+        (navigator as any).clearAppBadge().catch(() => {});
+      }
+    }
+  }, [totalUnread]);
 
   return {
     enabled,
