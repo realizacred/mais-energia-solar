@@ -15,7 +15,8 @@ interface FormProgressBarProps {
 }
 
 export function FormProgressBar({ steps, currentStep, className }: FormProgressBarProps) {
-  const progressPercentage = ((currentStep - 1) / (steps.length - 1)) * 100;
+  // Progress: each completed step counts, current step is not yet complete
+  const progressPercentage = Math.round(((currentStep - 1) / steps.length) * 100);
 
   return (
     <div className={cn("relative", className)}>
