@@ -469,7 +469,7 @@ export function AvaliacoesManager() {
 
         if (conversationIds.length > 0) {
           const { data: convs } = await supabase
-            .from("whatsapp_conversations")
+            .from("wa_conversations")
             .select("id, cliente_nome, cliente_telefone")
             .in("id", conversationIds);
           if (convs) {

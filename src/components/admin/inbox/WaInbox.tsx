@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { MessageCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useWaConversations, useWaMessages, useWaTags } from "@/hooks/useWaInbox";
+import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -73,7 +73,13 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
     loading: msgsLoading,
     sendMessage,
     isSending,
+    initialLoadDone,
+    isLoadingMore,
+    hasOlderMessages,
+    loadOlderMessages,
   } = useWaMessages(selectedConv?.id);
+
+  const { lastReadMessageId, markAsRead } = useWaReadTracking(selectedConv?.id, user?.id);
 
   const { tags, createTag, deleteTag, toggleConversationTag } = useWaTags();
 
@@ -381,6 +387,10 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
                   messages={messages}
                   loading={msgsLoading}
                   isSending={isSending}
+                  initialLoadDone={initialLoadDone}
+                  isLoadingMore={isLoadingMore}
+                  hasOlderMessages={hasOlderMessages}
+                  onLoadOlder={loadOlderMessages}
                   onSendMessage={handleSendMessage}
                   onSendMedia={handleSendMedia}
                   onSendReaction={handleSendReaction}
@@ -391,6 +401,8 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
                   onOpenAssign={() => setShowAssign(true)}
                   onLinkLead={() => setShowLinkLead(true)}
                   vendedores={vendedores}
+                  lastReadMessageId={lastReadMessageId}
+                  onMarkAsRead={markAsRead}
                 />
               </>
             ) : (
@@ -423,6 +435,10 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
               messages={messages}
               loading={msgsLoading}
               isSending={isSending}
+              initialLoadDone={initialLoadDone}
+              isLoadingMore={isLoadingMore}
+              hasOlderMessages={hasOlderMessages}
+              onLoadOlder={loadOlderMessages}
               onSendMessage={handleSendMessage}
               onSendMedia={handleSendMedia}
               onSendReaction={handleSendReaction}
@@ -433,6 +449,8 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
               onOpenAssign={() => setShowAssign(true)}
               onLinkLead={() => setShowLinkLead(true)}
               vendedores={vendedores}
+              lastReadMessageId={lastReadMessageId}
+              onMarkAsRead={markAsRead}
             />
           </div>
         </div>

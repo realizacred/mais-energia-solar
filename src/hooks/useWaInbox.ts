@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -272,49 +272,100 @@ export function useWaConversations(filters?: {
   };
 }
 
-// ── Messages Hook ─────────────────────────────────────
+// ── Messages Hook (Keyset Pagination) ─────────────────
+
+const PAGE_SIZE = 50;
 
 export function useWaMessages(conversationId?: string) {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const messagesQuery = useQuery({
-    queryKey: ["wa-messages", conversationId],
+  // State for paginated messages
+  const [allMessages, setAllMessages] = useState<WaMessage[]>([]);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasOlderMessages, setHasOlderMessages] = useState(true);
+  const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // Attendant name cache
+  const namesCache = useRef<Record<string, string>>({});
+
+  const resolveNames = useCallback(async (msgs: any[]): Promise<WaMessage[]> => {
+    const userIds = [...new Set(msgs.filter(m => m.sent_by_user_id).map(m => m.sent_by_user_id!))];
+    const uncached = userIds.filter(id => !(id in namesCache.current));
+    if (uncached.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, nome")
+        .in("user_id", uncached);
+      if (profiles) {
+        for (const p of profiles) {
+          if (p.user_id) namesCache.current[p.user_id] = p.nome || "";
+        }
+      }
+    }
+    return msgs.map((m: any) => ({
+      ...m,
+      sent_by_name: m.sent_by_user_id ? namesCache.current[m.sent_by_user_id] || null : null,
+    }));
+  }, []);
+
+  // Initial load: latest PAGE_SIZE messages
+  const initialQuery = useQuery({
+    queryKey: ["wa-messages-initial", conversationId],
     queryFn: async () => {
       if (!conversationId) return [];
       const { data, error } = await supabase
         .from("wa_messages")
         .select("*")
         .eq("conversation_id", conversationId)
-        .order("created_at", { ascending: true })
-        .limit(500);
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(PAGE_SIZE);
       if (error) throw error;
-
-      // Load attendant names for outgoing messages
-      const userIds = [...new Set((data || []).filter(m => m.sent_by_user_id).map(m => m.sent_by_user_id!))];
-      let namesMap: Record<string, string> = {};
-      if (userIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from("profiles")
-          .select("user_id, nome")
-          .in("user_id", userIds);
-        if (profiles) {
-          for (const p of profiles) {
-            if (p.user_id) namesMap[p.user_id] = p.nome || "";
-          }
-        }
-      }
-
-      return (data || []).map((m: any) => ({
-        ...m,
-        sent_by_name: m.sent_by_user_id ? namesMap[m.sent_by_user_id] || null : null,
-      })) as WaMessage[];
+      const sorted = (data || []).reverse(); // oldest first
+      setHasOlderMessages(sorted.length === PAGE_SIZE);
+      const withNames = await resolveNames(sorted);
+      setAllMessages(withNames);
+      setInitialLoadDone(true);
+      return withNames;
     },
     enabled: !!conversationId,
-    staleTime: 10 * 1000,
-    refetchInterval: 15 * 1000, // Fallback polling every 15s
+    staleTime: 30 * 1000,
   });
+
+  // Reset on conversation change
+  useEffect(() => {
+    setAllMessages([]);
+    setHasOlderMessages(true);
+    setInitialLoadDone(false);
+  }, [conversationId]);
+
+  // Load older messages (infinite scroll up)
+  const loadOlderMessages = useCallback(async () => {
+    if (!conversationId || isLoadingMore || !hasOlderMessages || allMessages.length === 0) return;
+    setIsLoadingMore(true);
+    try {
+      const oldest = allMessages[0];
+      const { data, error } = await supabase
+        .from("wa_messages")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .or(`created_at.lt.${oldest.created_at},and(created_at.eq.${oldest.created_at},id.lt.${oldest.id})`)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(PAGE_SIZE);
+      if (error) throw error;
+      const older = (data || []).reverse();
+      setHasOlderMessages(older.length === PAGE_SIZE);
+      if (older.length > 0) {
+        const withNames = await resolveNames(older);
+        setAllMessages(prev => [...withNames, ...prev]);
+      }
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [conversationId, isLoadingMore, hasOlderMessages, allMessages, resolveNames]);
 
   // ── Realtime: listen for new messages in current conversation ──
   useEffect(() => {
@@ -330,8 +381,15 @@ export function useWaMessages(conversationId?: string) {
           table: "wa_messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["wa-messages", conversationId] });
+        async (payload) => {
+          // Append new message directly instead of refetching all
+          const newMsg = payload.new as any;
+          const [withName] = await resolveNames([newMsg]);
+          setAllMessages(prev => {
+            // Avoid duplicates
+            if (prev.some(m => m.id === withName.id)) return prev;
+            return [...prev, withName];
+          });
         }
       )
       .on(
@@ -342,8 +400,11 @@ export function useWaMessages(conversationId?: string) {
           table: "wa_messages",
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["wa-messages", conversationId] });
+        (payload) => {
+          const updated = payload.new as any;
+          setAllMessages(prev =>
+            prev.map(m => m.id === updated.id ? { ...m, ...updated } : m)
+          );
         }
       )
       .subscribe();
@@ -351,7 +412,7 @@ export function useWaMessages(conversationId?: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, queryClient]);
+  }, [conversationId, resolveNames]);
 
   const sendMessage = useMutation({
     mutationFn: async ({
@@ -421,7 +482,6 @@ export function useWaMessages(conversationId?: string) {
       if (msgError) throw msgError;
 
       // If not internal note, queue for sending via Evolution API
-      // Prepend attendant name so the client sees who is writing
       if (!isInternalNote) {
         const outboxContent =
           senderName && messageType === "text"
@@ -451,7 +511,7 @@ export function useWaMessages(conversationId?: string) {
         });
       }
 
-      // Update conversation preview
+      // Update conversation preview + last_message_id
       await supabase
         .from("wa_conversations")
         .update({
@@ -459,13 +519,13 @@ export function useWaMessages(conversationId?: string) {
           last_message_preview: isInternalNote
             ? "[Nota interna]"
             : content.substring(0, 100),
+          last_message_id: msg.id,
         })
         .eq("id", conversationId);
 
       return msg;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["wa-messages", conversationId] });
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
     },
     onError: (err: any) => {
@@ -474,10 +534,59 @@ export function useWaMessages(conversationId?: string) {
   });
 
   return {
-    messages: messagesQuery.data || [],
-    loading: messagesQuery.isLoading,
+    messages: allMessages,
+    loading: initialQuery.isLoading,
+    initialLoadDone,
+    isLoadingMore,
+    hasOlderMessages,
+    loadOlderMessages,
     sendMessage: sendMessage.mutateAsync,
     isSending: sendMessage.isPending,
+  };
+}
+
+// ── Read Tracking Hook ────────────────────────────────
+
+export function useWaReadTracking(conversationId?: string, userId?: string) {
+  const queryClient = useQueryClient();
+
+  const readQuery = useQuery({
+    queryKey: ["wa-read", conversationId, userId],
+    queryFn: async () => {
+      if (!conversationId || !userId) return null;
+      const { data } = await supabase
+        .from("wa_reads")
+        .select("*")
+        .eq("conversation_id", conversationId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!conversationId && !!userId,
+    staleTime: 60 * 1000,
+  });
+
+  const markAsRead = useCallback(async (lastMessageId: string) => {
+    if (!conversationId || !userId) return;
+    const { error } = await supabase
+      .from("wa_reads")
+      .upsert(
+        {
+          conversation_id: conversationId,
+          user_id: userId,
+          last_read_message_id: lastMessageId,
+          last_read_at: new Date().toISOString(),
+        },
+        { onConflict: "conversation_id,user_id" }
+      );
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ["wa-read", conversationId, userId] });
+    }
+  }, [conversationId, userId, queryClient]);
+
+  return {
+    lastReadMessageId: readQuery.data?.last_read_message_id || null,
+    markAsRead,
   };
 }
 

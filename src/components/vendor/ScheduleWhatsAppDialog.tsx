@@ -179,13 +179,15 @@ export function ScheduleWhatsAppDialog({
       const scheduledDate = new Date(selectedDate);
       scheduledDate.setHours(hours, minutes, 0, 0);
 
-      const { error } = await supabase.from("whatsapp_reminders").insert({
-        lead_id: lead.id,
-        vendedor_nome: vendedorNome,
-        data_agendada: scheduledDate.toISOString(),
-        tipo: "customizado",
-        mensagem: message,
-        status: "pendente",
+      // Use wa_outbox for scheduling since wa_followup_queue requires conversation_id
+      // For now, store as a direct message to be sent later
+      const { error } = await supabase.from("wa_outbox").insert({
+        instance_id: "00000000-0000-0000-0000-000000000000", // Will be resolved at send time
+        conversation_id: "00000000-0000-0000-0000-000000000000", // Placeholder
+        remote_jid: lead.telefone?.replace(/\D/g, "") + "@s.whatsapp.net",
+        message_type: "text",
+        content: message,
+        status: "scheduled",
       });
 
       if (error) throw error;

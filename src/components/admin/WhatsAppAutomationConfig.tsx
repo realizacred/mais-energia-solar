@@ -50,12 +50,12 @@ interface WhatsAppConfig {
 
 interface WhatsAppMessage {
   id: string;
-  lead_id: string;
-  tipo: string;
-  mensagem: string;
+  lead_id: string | null;
   telefone: string;
   status: string;
   created_at: string;
+  mensagem_enviada: string | null;
+  erro_detalhes: string | null;
 }
 
 export function WhatsAppAutomationConfig() {
@@ -89,7 +89,7 @@ export function WhatsAppAutomationConfig() {
 
       // Fetch recent messages
       const { data: messagesData } = await supabase
-        .from("whatsapp_messages")
+        .from("whatsapp_automation_logs")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
@@ -538,7 +538,6 @@ export function WhatsAppAutomationConfig() {
                   <div key={msg.id} className="p-3 rounded-lg border space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {getTipoBadge(msg.tipo)}
                         {getStatusBadge(msg.status)}
                       </div>
                       <span className="text-xs text-muted-foreground">
@@ -546,7 +545,7 @@ export function WhatsAppAutomationConfig() {
                       </span>
                     </div>
                     <p className="text-sm">{msg.telefone}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{msg.mensagem}</p>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{msg.mensagem_enviada || "—"}</p>
                   </div>
                 ))}
               </div>
