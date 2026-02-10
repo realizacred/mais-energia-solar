@@ -22,25 +22,40 @@ export function WaTransferDialog({
   onOpenChange,
   onTransfer,
   vendedores,
+  currentAssigned,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onTransfer: (toUserId: string, reason?: string) => void;
+  onTransfer: (toUserId: string, reason?: string) => Promise<void> | void;
   vendedores: { id: string; nome: string; user_id: string | null }[];
+  currentAssigned?: string | null;
 }) {
   const [toUser, setToUser] = useState("");
   const [reason, setReason] = useState("");
+  const [isTransferring, setIsTransferring] = useState(false);
 
-  const handleSubmit = () => {
-    if (!toUser) return;
-    onTransfer(toUser, reason || undefined);
-    setToUser("");
-    setReason("");
-    onOpenChange(false);
+  // Filter out the currently assigned user
+  const availableVendedores = vendedores.filter(
+    (v) => v.user_id && v.user_id !== currentAssigned
+  );
+
+  const handleSubmit = async () => {
+    if (!toUser || isTransferring) return;
+    setIsTransferring(true);
+    try {
+      await onTransfer(toUser, reason || undefined);
+      setToUser("");
+      setReason("");
+      onOpenChange(false);
+    } catch (err) {
+      console.error("Transfer failed:", err);
+    } finally {
+      setIsTransferring(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!isTransferring) onOpenChange(v); }}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Transferir Conversa</DialogTitle>
@@ -51,8 +66,8 @@ export function WaTransferDialog({
             <Select value={toUser} onValueChange={setToUser}>
               <SelectTrigger><SelectValue placeholder="Selecionar vendedor" /></SelectTrigger>
               <SelectContent>
-                {vendedores.map((v) => (
-                  <SelectItem key={v.id} value={v.user_id || v.id}>{v.nome}</SelectItem>
+                {availableVendedores.map((v) => (
+                  <SelectItem key={v.id} value={v.user_id!}>{v.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -63,8 +78,10 @@ export function WaTransferDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button onClick={handleSubmit} disabled={!toUser}>Transferir</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isTransferring}>Cancelar</Button>
+          <Button onClick={handleSubmit} disabled={!toUser || isTransferring}>
+            {isTransferring ? "Transferindo..." : "Transferir"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
