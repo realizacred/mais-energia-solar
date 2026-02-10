@@ -57,8 +57,8 @@ function PWAReturnRedirect() {
 
     if (isStandalone && location.pathname === "/") {
       const returnUrl = consumePWAReturnUrl();
-      // Always redirect standalone PWA away from "/" — use saved URL or default to /portal
-      navigate(returnUrl || "/portal", { replace: true });
+      // PWA is a WhatsApp-like app — default to vendedor portal (inbox)
+      navigate(returnUrl || "/vendedor", { replace: true });
     }
   }, [navigate, location.pathname]);
 
