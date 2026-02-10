@@ -44,23 +44,22 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Create client with user's token to verify they're admin
+    // Validate JWT using getClaims (doesn't depend on server session)
     const userClient = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Verify the token using getUser
-    const { data: userData, error: userError } = await userClient.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
     
-    if (userError || !userData?.user) {
-      console.error("Token validation failed:", userError?.message);
+    if (claimsError || !claimsData?.claims) {
+      console.error("Token validation failed:", claimsError?.message);
       return new Response(
         JSON.stringify({ error: "Unauthorized: Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const requestingUserId = userData.user.id;
+    const requestingUserId = claimsData.claims.sub as string;
     console.log("Authenticated user:", requestingUserId);
 
     // Check if requesting user has admin role
