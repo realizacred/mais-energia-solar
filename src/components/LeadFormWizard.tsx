@@ -185,7 +185,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   const form = useForm<LeadFormData>({
     resolver: zodResolver(leadFormSchema),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: {
       nome: "",
       telefone: "",
@@ -257,9 +257,19 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     const fields = getFieldsForStep(currentStep);
     const isValid = await trigger(fields);
     
-    // Mark all fields as touched to show errors
+    // Always mark step fields as touched so errors become visible
+    fields.forEach(field => markFieldTouched(field));
+    
+    // Scroll and focus the first invalid field
     if (!isValid) {
-      fields.forEach(field => markFieldTouched(field));
+      requestAnimationFrame(() => {
+        const firstError = document.querySelector('[data-field-error="true"]');
+        if (firstError) {
+          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const input = firstError.querySelector('input, select, textarea, [role="combobox"]') as HTMLElement;
+          input?.focus();
+        }
+      });
     }
     
     return isValid;
@@ -382,6 +392,15 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       title: "Campos obrigatórios",
       description: "Preencha todos os campos obrigatórios para enviar.",
       variant: "destructive",
+    });
+    // Scroll to first invalid field
+    requestAnimationFrame(() => {
+      const firstError = document.querySelector('[data-field-error="true"]');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const input = firstError.querySelector('input, select, textarea, [role="combobox"]') as HTMLElement;
+        input?.focus();
+      }
     });
   };
 
@@ -806,36 +825,32 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
               {currentStep === 1 && (
                 <div className="space-y-5">
                   <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
+                  <div data-field-error={!!errors.nome && touchedFields.has("nome")} className="space-y-0">
                     <FloatingInput
                       label="Nome Completo *"
                       icon={<User className="w-4 h-4" />}
                       value={watchedValues.nome}
                       autoComplete="off"
-                      onChange={(e) => setValue("nome", formatName(e.target.value))}
-                      onBlur={() => {
-                        markFieldTouched("nome");
-                        trigger("nome");
-                      }}
+                      onChange={(e) => setValue("nome", formatName(e.target.value), { shouldValidate: touchedFields.has("nome") })}
                       error={touchedFields.has("nome") ? errors.nome?.message : undefined}
                       success={isFieldValid("nome")}
                     />
+                  </div>
                   </motion.div>
 
                   <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible">
+                  <div data-field-error={!!errors.telefone && touchedFields.has("telefone")} className="space-y-0">
                     <FloatingInput
                       label="Telefone *"
                       icon={<Phone className="w-4 h-4" />}
                       value={watchedValues.telefone}
                       maxLength={15}
                       autoComplete="off"
-                      onChange={(e) => setValue("telefone", formatPhone(e.target.value))}
-                      onBlur={() => {
-                        markFieldTouched("telefone");
-                        trigger("telefone");
-                      }}
+                      onChange={(e) => setValue("telefone", formatPhone(e.target.value), { shouldValidate: touchedFields.has("telefone") })}
                       error={touchedFields.has("telefone") ? errors.telefone?.message : undefined}
                       success={isFieldValid("telefone")}
                     />
+                  </div>
                   </motion.div>
                 </div>
               )}
@@ -852,7 +867,6 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       autoComplete="off"
                       onChange={(e) => setValue("cep", formatCEP(e.target.value))}
                       onBlur={(e) => {
-                        markFieldTouched("cep");
                         handleCEPBlur(e.target.value);
                       }}
                       error={touchedFields.has("cep") ? errors.cep?.message : undefined}
@@ -861,29 +875,28 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                   </motion.div>
 
                   <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div data-field-error={!!errors.estado && touchedFields.has("estado")}>
                     <FloatingSelect
                       label="Estado *"
                       icon={<Building className="w-4 h-4" />}
                       value={watchedValues.estado}
                       onValueChange={(value) => {
-                        setValue("estado", value);
-                        markFieldTouched("estado");
+                        setValue("estado", value, { shouldValidate: touchedFields.has("estado") });
                       }}
                       options={ESTADOS_BRASIL.map(e => ({ value: e.sigla, label: `${e.sigla} - ${e.nome}` }))}
                       error={touchedFields.has("estado") ? errors.estado?.message : undefined}
                       success={isFieldValid("estado")}
                     />
+                    </div>
+                    <div data-field-error={!!errors.cidade && touchedFields.has("cidade")}>
                     <FloatingInput
                       label="Cidade *"
                       value={watchedValues.cidade}
-                      onChange={(e) => setValue("cidade", e.target.value)}
-                      onBlur={() => {
-                        markFieldTouched("cidade");
-                        trigger("cidade");
-                      }}
+                      onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
                       error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
                       success={isFieldValid("cidade")}
                     />
+                    </div>
                   </motion.div>
 
                   <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
@@ -924,14 +937,13 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
               {currentStep === 3 && (
                 <div className="space-y-5">
                   <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
+                    <div data-field-error={!!errors.area && touchedFields.has("area")}>
                     <FloatingSelect
                       label="Área *"
                       icon={<Home className="w-4 h-4" />}
                       value={watchedValues.area}
                       onValueChange={(value) => {
-                        setValue("area", value as "Urbana" | "Rural");
-                        markFieldTouched("area");
-                        trigger("area");
+                        setValue("area", value as "Urbana" | "Rural", { shouldValidate: touchedFields.has("area") });
                       }}
                       options={[
                         { value: "Urbana", label: "Urbana" },
@@ -940,67 +952,64 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       error={touchedFields.has("area") ? errors.area?.message : undefined}
                       success={isFieldValid("area")}
                     />
+                    </div>
                   </motion.div>
 
                   <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible">
+                    <div data-field-error={!!errors.tipo_telhado && touchedFields.has("tipo_telhado")}>
                     <FloatingSelect
                       label="Tipo de Telhado *"
                       icon={<Home className="w-4 h-4" />}
                       value={watchedValues.tipo_telhado}
                       onValueChange={(value) => {
-                        setValue("tipo_telhado", value);
-                        markFieldTouched("tipo_telhado");
-                        trigger("tipo_telhado");
+                        setValue("tipo_telhado", value, { shouldValidate: touchedFields.has("tipo_telhado") });
                       }}
                       options={TIPOS_TELHADO.map(t => ({ value: t, label: t }))}
                       error={touchedFields.has("tipo_telhado") ? errors.tipo_telhado?.message : undefined}
                       success={isFieldValid("tipo_telhado")}
                     />
+                    </div>
                   </motion.div>
 
                   <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
+                    <div data-field-error={!!errors.rede_atendimento && touchedFields.has("rede_atendimento")}>
                     <FloatingSelect
                       label="Rede de Atendimento *"
                       icon={<Zap className="w-4 h-4" />}
                       value={watchedValues.rede_atendimento}
                       onValueChange={(value) => {
-                        setValue("rede_atendimento", value);
-                        markFieldTouched("rede_atendimento");
-                        trigger("rede_atendimento");
+                        setValue("rede_atendimento", value, { shouldValidate: touchedFields.has("rede_atendimento") });
                       }}
                       options={REDES_ATENDIMENTO.map(r => ({ value: r, label: r }))}
                       error={touchedFields.has("rede_atendimento") ? errors.rede_atendimento?.message : undefined}
                       success={isFieldValid("rede_atendimento")}
                     />
+                    </div>
                   </motion.div>
 
                   <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div data-field-error={!!errors.media_consumo && touchedFields.has("media_consumo")}>
                     <FloatingInput
                       label="Média de Consumo (kWh) *"
                       icon={<BarChart3 className="w-4 h-4" />}
                       type="number"
                       value={watchedValues.media_consumo || ""}
-                      onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined)}
-                      onBlur={() => {
-                        markFieldTouched("media_consumo");
-                        trigger("media_consumo");
-                      }}
+                      onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined, { shouldValidate: touchedFields.has("media_consumo") })}
                       error={touchedFields.has("media_consumo") ? errors.media_consumo?.message : undefined}
                       success={isFieldValid("media_consumo")}
                     />
+                    </div>
+                    <div data-field-error={!!errors.consumo_previsto && touchedFields.has("consumo_previsto")}>
                     <FloatingInput
                       label="Consumo Previsto (kWh) *"
                       icon={<BarChart3 className="w-4 h-4" />}
                       type="number"
                       value={watchedValues.consumo_previsto || ""}
-                      onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined)}
-                      onBlur={() => {
-                        markFieldTouched("consumo_previsto");
-                        trigger("consumo_previsto");
-                      }}
+                      onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined, { shouldValidate: touchedFields.has("consumo_previsto") })}
                       error={touchedFields.has("consumo_previsto") ? errors.consumo_previsto?.message : undefined}
                       success={isFieldValid("consumo_previsto")}
                     />
+                    </div>
                   </motion.div>
 
                   {watchedValues.media_consumo && watchedValues.consumo_previsto && (

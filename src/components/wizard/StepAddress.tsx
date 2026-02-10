@@ -44,7 +44,6 @@ export function StepAddress({
           autoComplete="off"
           onChange={(e) => setValue("cep", formatCEP(e.target.value))}
           onBlur={(e) => {
-            markFieldTouched("cep");
             onCEPBlur(e.target.value);
           }}
           error={touchedFields.has("cep") ? errors.cep?.message : undefined}
@@ -53,29 +52,28 @@ export function StepAddress({
       </motion.div>
 
       <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div data-field-error={!!errors.estado && touchedFields.has("estado")}>
         <FloatingSelect
           label="Estado *"
           icon={<Building className="w-4 h-4" />}
           value={values.estado}
           onValueChange={(value) => {
-            setValue("estado", value);
-            markFieldTouched("estado");
+            setValue("estado", value, { shouldValidate: touchedFields.has("estado") });
           }}
           options={ESTADOS_BRASIL.map(e => ({ value: e.sigla, label: `${e.sigla} - ${e.nome}` }))}
           error={touchedFields.has("estado") ? errors.estado?.message : undefined}
           success={isFieldValid("estado")}
         />
+        </div>
+        <div data-field-error={!!errors.cidade && touchedFields.has("cidade")}>
         <FloatingInput
           label="Cidade *"
           value={values.cidade}
-          onChange={(e) => setValue("cidade", e.target.value)}
-          onBlur={() => {
-            markFieldTouched("cidade");
-            trigger("cidade");
-          }}
+          onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
           error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
           success={isFieldValid("cidade")}
         />
+        </div>
       </motion.div>
 
       <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">

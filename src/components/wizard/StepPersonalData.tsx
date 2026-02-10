@@ -34,36 +34,32 @@ export function StepPersonalData({
   return (
     <div className="space-y-5">
       <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
+        <div data-field-error={!!errors.nome && touchedFields.has("nome")}>
         <FloatingInput
           label="Nome Completo *"
           icon={<User className="w-4 h-4" />}
           value={values.nome}
           autoComplete="off"
-          onChange={(e) => setValue("nome", formatName(e.target.value))}
-          onBlur={() => {
-            markFieldTouched("nome");
-            trigger("nome");
-          }}
+          onChange={(e) => setValue("nome", formatName(e.target.value), { shouldValidate: touchedFields.has("nome") })}
           error={touchedFields.has("nome") ? errors.nome?.message : undefined}
           success={isFieldValid("nome")}
         />
+        </div>
       </motion.div>
 
       <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible">
+        <div data-field-error={!!errors.telefone && touchedFields.has("telefone")}>
         <FloatingInput
           label="Telefone *"
           icon={<Phone className="w-4 h-4" />}
           value={values.telefone}
           maxLength={15}
           autoComplete="off"
-          onChange={(e) => setValue("telefone", formatPhone(e.target.value))}
-          onBlur={() => {
-            markFieldTouched("telefone");
-            trigger("telefone");
-          }}
+          onChange={(e) => setValue("telefone", formatPhone(e.target.value), { shouldValidate: touchedFields.has("telefone") })}
           error={touchedFields.has("telefone") ? errors.telefone?.message : undefined}
           success={isFieldValid("telefone")}
         />
+        </div>
       </motion.div>
     </div>
   );
