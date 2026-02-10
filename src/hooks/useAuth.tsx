@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, createContext, useContext, ReactNode } from "react";
+import { useState, useEffect, useCallback, createContext, useContext, ReactNode } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -13,13 +13,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ACCESS_CHECK_INTERVAL = 30_000; // 30 seconds
+// ⚠️ HARDENING: No polling for auth access checks. Realtime only.
+// Never combine polling + realtime on the same resource.
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const signOut = useCallback(async (reason?: string) => {
     if (reason) {
@@ -28,15 +28,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await supabase.auth.signOut();
   }, []);
 
-  // Periodically check if user still has access (ativo + has roles)
+  // One-time access check on login (profile ativo + has roles)
   useEffect(() => {
-    if (!user) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
+    if (!user) return;
 
     const checkAccess = async () => {
       try {
@@ -66,21 +60,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    // Run first check after a short delay (avoid blocking initial render)
-    const timeout = setTimeout(checkAccess, 5_000);
-    intervalRef.current = setInterval(checkAccess, ACCESS_CHECK_INTERVAL);
-
-    return () => {
-      clearTimeout(timeout);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
+    // Single check after login, then realtime handles ongoing changes
+    const timeout = setTimeout(checkAccess, 3_000);
+    return () => clearTimeout(timeout);
   }, [user, signOut]);
 
-  // Also listen to realtime changes on profiles for instant logout
+  // Realtime: listen for profile deactivation AND role removal
   useEffect(() => {
     if (!user) return;
 
-    const channel = supabase
+    const profileChannel = supabase
       .channel(`profile-access-${user.id}`)
       .on(
         "postgres_changes",
@@ -94,8 +83,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       )
       .subscribe();
 
+    const rolesChannel = supabase
+      .channel(`roles-access-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "user_roles", filter: `user_id=eq.${user.id}` },
+        async () => {
+          // Verify no roles remain before signing out
+          const { data: roles } = await supabase
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", user.id);
+          if (!roles || roles.length === 0) {
+            console.warn("[auth] All roles removed via realtime, signing out");
+            await signOut("Seus perfis de acesso foram removidos. Entre em contato com o administrador.");
+          }
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(profileChannel);
+      supabase.removeChannel(rolesChannel);
     };
   }, [user, signOut]);
 

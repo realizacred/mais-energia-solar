@@ -141,24 +141,42 @@ export function useWaConversations(filters?: {
         tags: tagsMap[c.id] || [],
       })) as WaConversation[];
     },
-    staleTime: 5 * 1000,
-    refetchInterval: 5 * 1000, // Polling every 5s for faster updates
+    staleTime: 30 * 1000, // 30s — realtime handles freshness
+    // ⚠️ HARDENING: NO refetchInterval here. Realtime is the ONLY update trigger.
+    // Never combine polling + realtime on the same resource.
   });
 
-  // ── Realtime: listen for conversation changes ──
+  // ── Realtime: listen for conversation changes (debounced) ──
   useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
     const channel = supabase
       .channel("wa-conversations-realtime")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "wa_conversations" },
+        { event: "INSERT", schema: "public", table: "wa_conversations" },
         () => {
-          queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+          // Debounce to avoid rapid-fire invalidations
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+          }, 500);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "wa_conversations" },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+          }, 500);
         }
       )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [queryClient]);
