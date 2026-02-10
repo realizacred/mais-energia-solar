@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { LeadSimplified, DuplicateLeadsResult } from "@/types/orcamento";
 import { useAuth } from "@/hooks/useAuth";
+import { mapToUserMessage } from "@/lib/errorHandler";
 
 interface LeadData {
   nome: string;
@@ -156,13 +157,13 @@ export function useLeadOrcamento() {
 
       if (error) {
         console.error("[createLead] Error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: mapToUserMessage(error.message, error.code) };
       }
 
       return { success: true, leadId };
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
-      return { success: false, error: msg };
+      return { success: false, error: mapToUserMessage(msg) };
     }
   };
 
@@ -196,13 +197,13 @@ export function useLeadOrcamento() {
 
       if (error) {
         console.error("[createOrcamento] Error:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: mapToUserMessage(error.message, error.code) };
       }
 
       return { success: true, orcamentoId };
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
-      return { success: false, error: msg };
+      return { success: false, error: mapToUserMessage(msg) };
     }
   };
 
@@ -276,7 +277,7 @@ export function useLeadOrcamento() {
       const msg = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("[submitOrcamento] Exception:", msg);
       setIsSubmitting(false);
-      return { success: false, isNewLead: true, error: msg };
+      return { success: false, isNewLead: true, error: mapToUserMessage(msg) };
     }
   };
 
