@@ -167,6 +167,7 @@ export function useWaConversations(filters?: {
       })) as WaConversation[];
     },
     staleTime: 30 * 1000, // 30s — realtime handles freshness
+    gcTime: 2 * 60 * 1000, // 2min — prevent stale cross-session cache
     // ⚠️ HARDENING: NO refetchInterval here. Realtime is the ONLY update trigger.
     // Never combine polling + realtime on the same resource.
   });

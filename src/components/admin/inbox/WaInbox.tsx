@@ -306,7 +306,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     }
 
     await transferConversation({ conversationId: selectedConv.id, toUserId, reason });
-    setSelectedConv({ ...selectedConv, assigned_to: toUserId });
+    setSelectedConv(null);
   };
 
   const handleAssign = (userId: string | null) => {
