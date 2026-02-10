@@ -70,8 +70,10 @@ export function useWaNotifications() {
       }>;
     },
     enabled: !!user && enabled,
-    staleTime: 10_000,
-    refetchInterval: 15_000,
+    staleTime: 30_000,
+    // ⚠️ HARDENING: 60s polling (was 15s). This runs on EVERY page globally.
+    // Realtime in useWaInbox handles real-time updates when on inbox.
+    refetchInterval: 60_000,
   });
 
   // Detect new messages by comparing snapshots
