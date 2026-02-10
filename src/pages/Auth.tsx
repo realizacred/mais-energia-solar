@@ -58,6 +58,13 @@ export default function Auth() {
   useEffect(() => {
     const checkUserRoleAndRedirect = async () => {
       if (!loading && user && !isRecoveryFlow) {
+        // If user came from /app (messaging PWA), always go back there
+        const redirectFrom = searchParams.get("from");
+        if (redirectFrom === "app") {
+          navigate("/app", { replace: true });
+          return;
+        }
+
         setCheckingRole(true);
         try {
           const { data: profile } = await supabase
@@ -142,7 +149,7 @@ export default function Auth() {
     };
 
     checkUserRoleAndRedirect();
-  }, [user, loading, navigate, isRecoveryFlow]);
+  }, [user, loading, navigate, isRecoveryFlow, searchParams]);
 
   if (loading || checkingRole) {
     return (

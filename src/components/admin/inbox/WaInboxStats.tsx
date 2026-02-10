@@ -7,9 +7,11 @@ import type { WaConversation } from "@/hooks/useWaInbox";
 interface WaInboxStatsProps {
   /** When provided, stats are computed from this list (already filtered). */
   conversations?: WaConversation[];
+  /** Compact mode for mobile */
+  compact?: boolean;
 }
 
-export function WaInboxStats({ conversations }: WaInboxStatsProps) {
+export function WaInboxStats({ conversations, compact = false }: WaInboxStatsProps) {
   // If conversations are provided, compute stats locally (aligned with list filters)
   const localStats = conversations
     ? {
@@ -107,6 +109,23 @@ export function WaInboxStats({ conversations }: WaInboxStatsProps) {
         : "Nenhuma avaliação ainda",
     },
   ];
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-1.5 overflow-x-auto px-3 py-2 no-scrollbar">
+        {statItems.map((stat) => (
+          <div
+            key={stat.label}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg ${stat.bg} border border-border/20 shrink-0`}
+          >
+            <stat.icon className={`h-3 w-3 ${stat.color}`} />
+            <span className="text-xs font-bold text-foreground">{stat.value}</span>
+            <span className="text-[9px] text-muted-foreground">{stat.label}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-5 gap-2">
