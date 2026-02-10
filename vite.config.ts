@@ -65,6 +65,13 @@ export default defineConfig(({ mode }) => ({
             form_factor: "narrow",
             label: "Calculadora Solar",
           },
+          {
+            src: "temp-menu-screenshot.png",
+            sizes: "1920x1080",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Portal do Vendedor - Desktop",
+          },
         ],
         shortcuts: [
           {
@@ -84,7 +91,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,webmanifest}"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/],
         runtimeCaching: [
