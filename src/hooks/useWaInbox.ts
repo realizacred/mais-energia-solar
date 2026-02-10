@@ -75,9 +75,6 @@ export function useWaConversations(filters?: {
   assigned_to?: string;
   instance_id?: string;
   search?: string;
-  /** Vendor mode: show conversations on these instances OR assigned to vendor_user_id */
-  vendor_instance_ids?: string[];
-  vendor_user_id?: string;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -86,31 +83,20 @@ export function useWaConversations(filters?: {
   const conversationsQuery = useQuery({
     queryKey: ["wa-conversations", filters],
     queryFn: async () => {
-      // In vendor mode we need OR logic: instance in allowed list OR assigned_to vendor
-      const isVendorFilter = filters?.vendor_instance_ids && filters?.vendor_user_id;
+      // RLS handles vendor visibility (assigned_to OR instance ownership/vendedor link)
+      // We only need to apply UI-level filters here.
 
       let query = supabase
         .from("wa_conversations")
-        .select("*, wa_instances!inner(nome, vendedores(nome)), leads(nome, telefone)")
+        .select("*, wa_instances(nome, vendedores(nome)), leads(nome, telefone)")
         .order("last_message_at", { ascending: false });
 
       if (filters?.status && filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
 
-      if (isVendorFilter) {
-        // Vendor sees: conversations on their instances + conversations assigned to them
-        const instanceFilter = filters.vendor_instance_ids!.length > 0
-          ? `instance_id.in.(${filters.vendor_instance_ids!.join(",")})`
-          : "";
-        const assignedFilter = `assigned_to.eq.${filters.vendor_user_id}`;
-        const orParts = [assignedFilter];
-        if (instanceFilter) orParts.unshift(instanceFilter);
-        query = query.or(orParts.join(","));
-      } else {
-        if (filters?.assigned_to && filters.assigned_to !== "all") {
-          query = query.eq("assigned_to", filters.assigned_to);
-        }
+      if (filters?.assigned_to && filters.assigned_to !== "all") {
+        query = query.eq("assigned_to", filters.assigned_to);
       }
 
       if (filters?.instance_id && filters.instance_id !== "all") {
