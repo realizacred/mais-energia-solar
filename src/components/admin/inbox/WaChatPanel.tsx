@@ -56,11 +56,11 @@ import { WaCRMSidebar } from "./WaCRMSidebar";
 import { WaForwardDialog } from "./WaForwardDialog";
 
 const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: string; label: string }> = {
-  pending: { icon: Clock, className: "text-primary-foreground/40", label: "Enviando..." },
-  sent: { icon: Check, className: "text-primary-foreground/60", label: "Enviado" },
-  delivered: { icon: CheckCheck, className: "text-primary-foreground/60", label: "Entregue" },
-  read: { icon: CheckCheck, className: "text-blue-400", label: "Lido" },
-  failed: { icon: AlertCircle, className: "text-red-400", label: "Falhou" },
+  pending: { icon: Clock, className: "text-muted-foreground/50", label: "Enviando..." },
+  sent: { icon: Check, className: "text-muted-foreground/70", label: "Enviado" },
+  delivered: { icon: CheckCheck, className: "text-muted-foreground/70", label: "Entregue" },
+  read: { icon: CheckCheck, className: "text-info", label: "Lido" },
+  failed: { icon: AlertCircle, className: "text-destructive", label: "Falhou" },
 };
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
@@ -362,11 +362,11 @@ export function WaChatPanel({
           )}
 
           <div
-            className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
+            className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-[15px] leading-relaxed shadow-sm ${
               isNote
                 ? "bg-warning/10 border border-warning/30 text-foreground italic"
                 : isOut
-                ? "bg-primary text-primary-foreground rounded-br-md shadow-primary/10"
+                ? "bg-primary/10 text-foreground border border-primary/15 rounded-br-md"
                 : "bg-card border border-border/30 rounded-bl-md text-foreground"
             }`}
           >
@@ -392,7 +392,7 @@ export function WaChatPanel({
             )}
             {/* Attendant name for outgoing messages */}
             {isOut && msg.sent_by_name && !isNote && (
-              <p className="text-[10px] font-semibold text-primary-foreground/70 mb-0.5">
+              <p className="text-[10px] font-semibold text-primary/80 mb-0.5">
                 {msg.sent_by_name}
               </p>
             )}
@@ -477,7 +477,7 @@ export function WaChatPanel({
             {msg.message_type === "video" && msg.content && (
               <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
             )}
-            <div className={`flex items-center gap-1 mt-1 ${isNote ? "text-warning/70" : isOut ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
+            <div className={`flex items-center gap-1 mt-1 ${isNote ? "text-warning/70" : "text-muted-foreground"}`}>
               <span className="text-[10px]">{format(new Date(msg.created_at), "HH:mm")}</span>
               {statusCfg && (
                 <Tooltip>
@@ -497,8 +497,8 @@ export function WaChatPanel({
   };
 
   return (
-    <div className="flex-1 flex min-w-0">
-      <div className="flex-1 flex flex-col min-w-0">
+    <div className="flex-1 flex min-w-0 w-full max-w-full overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full">
         {/* Chat Header */}
         <div className="px-4 py-2.5 border-b border-border/30 bg-card flex items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3 min-w-0">

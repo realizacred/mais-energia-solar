@@ -184,11 +184,18 @@
     @apply border-border;
   }
 
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 
   body {
@@ -196,6 +203,9 @@
     font-feature-settings: "cv11", "ss01", "ss03";
     line-height: 1.7;
     letter-spacing: -0.01em;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100%;
   }
 
   h1 {
