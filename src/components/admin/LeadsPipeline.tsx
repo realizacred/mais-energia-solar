@@ -1,16 +1,22 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutGrid, BarChart3, Settings2 } from "lucide-react";
+import { LayoutGrid, BarChart3, Settings2, Loader2 } from "lucide-react";
 import { subDays, isAfter } from "date-fns";
 import { PipelineFilters, KanbanCard, PipelineAutomations, EnhancedFunnel } from "./pipeline";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
- 
+import { Button } from "@/components/ui/button";
+
+const LEADS_PAGE_SIZE = 25;
+
+// ⚠️ HARDENING: Only select columns actually used in the pipeline UI
+const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consumo, vendedor, status_id, created_at, ultimo_contato, visto";
+
  interface LeadStatus {
    id: string;
    nome: string;
@@ -37,6 +43,8 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
    const [statuses, setStatuses] = useState<LeadStatus[]>([]);
    const [leads, setLeads] = useState<Lead[]>([]);
    const [loading, setLoading] = useState(true);
+   const [loadingMore, setLoadingMore] = useState(false);
+   const [hasMore, setHasMore] = useState(true);
   const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
   const [activeTab, setActiveTab] = useState("kanban");
   const [whatsappOpen, setWhatsappOpen] = useState(false);
@@ -51,22 +59,42 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
  
    const { toast } = useToast();
  
-   useEffect(() => {
-     fetchData();
-   }, []);
- 
-   const fetchData = async () => {
+   const fetchData = useCallback(async (append = false) => {
      try {
-       const [statusRes, leadsRes] = await Promise.all([
-         supabase.from("lead_status").select("*").order("ordem"),
-         supabase.from("leads").select("id, lead_code, nome, telefone, cidade, estado, media_consumo, vendedor, status_id, created_at, ultimo_contato, visto").order("created_at", { ascending: false }),
-       ]);
- 
-       if (statusRes.error) throw statusRes.error;
-       if (leadsRes.error) throw leadsRes.error;
- 
-       setStatuses(statusRes.data || []);
-       setLeads(leadsRes.data || []);
+       if (append) {
+         setLoadingMore(true);
+       } else {
+         setLoading(true);
+       }
+
+       const from = append ? leads.length : 0;
+       const to = from + LEADS_PAGE_SIZE - 1;
+
+       const leadsPromise = supabase.from("leads")
+         .select(LEADS_SELECT, { count: "exact" })
+         .order("created_at", { ascending: false })
+         .range(from, to);
+
+       if (append) {
+         const leadsRes = await leadsPromise;
+         if (leadsRes.error) throw leadsRes.error;
+         const newLeads = leadsRes.data || [];
+         const totalCount = leadsRes.count || 0;
+         setLeads(prev => [...prev, ...newLeads]);
+         setHasMore(leads.length + newLeads.length < totalCount);
+       } else {
+         const [leadsRes, statusRes] = await Promise.all([
+           leadsPromise,
+           supabase.from("lead_status").select("id, nome, ordem, cor").order("ordem"),
+         ]);
+         if (leadsRes.error) throw leadsRes.error;
+         if (statusRes.error) throw statusRes.error;
+         const newLeads = leadsRes.data || [];
+         const totalCount = leadsRes.count || 0;
+         setLeads(newLeads);
+         setStatuses(statusRes.data || []);
+         setHasMore(newLeads.length < totalCount);
+       }
      } catch (error) {
        console.error("Erro ao buscar dados:", error);
        toast({
@@ -76,8 +104,13 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
        });
      } finally {
        setLoading(false);
+       setLoadingMore(false);
      }
-   };
+   }, [leads.length, toast]);
+
+   useEffect(() => {
+     fetchData();
+   }, []);
  
    // Extract unique vendedores and estados for filters
    const vendedores = useMemo(() => {
@@ -353,9 +386,24 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
                  </div>
                  <ScrollBar orientation="horizontal" />
                </ScrollArea>
-             </CardContent>
-           </Card>
-         </TabsContent>
+              </CardContent>
+            </Card>
+
+            {/* Load More */}
+            {hasMore && (
+              <div className="flex justify-center py-4">
+                <Button
+                  variant="outline"
+                  onClick={() => fetchData(true)}
+                  disabled={loadingMore}
+                  className="gap-2"
+                >
+                  {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Carregar mais leads ({leads.length} carregados)
+                </Button>
+              </div>
+            )}
+          </TabsContent>
  
          <TabsContent value="funnel" className="mt-0">
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
