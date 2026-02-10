@@ -19,7 +19,7 @@ export default function Instalar() {
       (navigator as any).standalone === true;
 
     if (isStandalone) {
-      navigate("/inbox", { replace: true });
+      navigate("/app", { replace: true });
     }
   }, [navigate]);
 
