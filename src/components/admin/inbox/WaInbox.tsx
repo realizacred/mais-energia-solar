@@ -406,7 +406,24 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
 
       {/* Follow-up Widget */}
-      {!vendorMode && <WaFollowupWidget />}
+      <WaFollowupWidget
+        vendorUserId={vendorMode ? effectiveUserId : undefined}
+        onOpenConversation={(convId) => {
+          const conv = allConversations.find((c) => c.id === convId);
+          if (conv) {
+            handleSelectConversation(conv);
+          } else {
+            supabase
+              .from("wa_conversations")
+              .select("*")
+              .eq("id", convId)
+              .maybeSingle()
+              .then(({ data }) => {
+                if (data) handleSelectConversation(data as any);
+              });
+          }
+        }}
+      />
 
       {/* Chat Layout */}
       <div
