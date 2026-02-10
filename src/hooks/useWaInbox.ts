@@ -358,11 +358,13 @@ export function useWaMessages(conversationId?: string) {
       messageType = "text",
       isInternalNote = false,
       mediaUrl,
+      quotedMessageId,
     }: {
       content: string;
       messageType?: string;
       isInternalNote?: boolean;
       mediaUrl?: string;
+      quotedMessageId?: string;
     }) => {
       if (!conversationId) throw new Error("No conversation selected");
 
@@ -387,7 +389,18 @@ export function useWaMessages(conversationId?: string) {
 
       const senderName = profileResult.data?.nome || null;
 
-      // Insert message locally (without name prefix — shown in UI via sent_by_name)
+      // If quoting, get the quoted message's evolution_message_id
+      let quotedEvolutionId: string | null = null;
+      if (quotedMessageId) {
+        const { data: quotedMsg } = await supabase
+          .from("wa_messages")
+          .select("evolution_message_id")
+          .eq("id", quotedMessageId)
+          .single();
+        quotedEvolutionId = quotedMsg?.evolution_message_id || null;
+      }
+
+      // Insert message locally
       const { data: msg, error: msgError } = await supabase
         .from("wa_messages")
         .insert({
@@ -399,6 +412,7 @@ export function useWaMessages(conversationId?: string) {
           sent_by_user_id: user?.id,
           is_internal_note: isInternalNote,
           status: isInternalNote ? "sent" : "pending",
+          quoted_message_id: quotedMessageId || null,
         })
         .select()
         .single();

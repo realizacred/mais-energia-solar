@@ -141,9 +141,9 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
     }
   };
 
-  const handleSendMessage = async (content: string, isNote?: boolean) => {
+  const handleSendMessage = async (content: string, isNote?: boolean, quotedMessageId?: string) => {
     if (!selectedConv) return;
-    await sendMessage({ content, isInternalNote: isNote });
+    await sendMessage({ content, isInternalNote: isNote, quotedMessageId });
   };
 
   const handleSendMedia = async (file: File, caption?: string) => {

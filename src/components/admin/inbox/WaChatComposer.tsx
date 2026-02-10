@@ -59,12 +59,21 @@ const MEDIA_ICONS: Record<string, typeof ImageIcon> = {
   document: FileText,
 };
 
+interface ReplyingTo {
+  id: string;
+  content: string | null;
+  direction: "in" | "out";
+  sent_by_name?: string | null;
+}
+
 interface WaChatComposerProps {
-  onSendMessage: (content: string, isNote?: boolean) => void;
+  onSendMessage: (content: string, isNote?: boolean, quotedMessageId?: string) => void;
   onSendMedia: (file: File, caption?: string) => void;
   isSending: boolean;
   isNoteMode: boolean;
   onNoteModeChange: (v: boolean) => void;
+  replyingTo?: ReplyingTo | null;
+  onCancelReply?: () => void;
 }
 
 export function WaChatComposer({
@@ -73,6 +82,8 @@ export function WaChatComposer({
   isSending,
   isNoteMode,
   onNoteModeChange,
+  replyingTo,
+  onCancelReply,
 }: WaChatComposerProps) {
   const [inputValue, setInputValue] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
@@ -156,9 +167,10 @@ export function WaChatComposer({
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
-    onSendMessage(inputValue.trim(), isNoteMode);
+    onSendMessage(inputValue.trim(), isNoteMode, replyingTo?.id);
     setInputValue("");
     onNoteModeChange(false);
+    onCancelReply?.();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -252,7 +264,36 @@ export function WaChatComposer({
   const busy = isSending || isUploading;
 
   return (
-    <div className="p-3 border-t border-border/40 bg-card/50">
+    <div
+      className="p-3 border-t border-border/40 bg-card/50"
+      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const file = e.dataTransfer.files?.[0];
+        if (file && file.size <= 16 * 1024 * 1024) {
+          onSendMedia(file, inputValue.trim() || undefined);
+          setInputValue("");
+        }
+      }}
+    >
+      {/* Reply bar */}
+      {replyingTo && (
+        <div className="flex items-center gap-2 mb-2 px-2 py-1.5 rounded-lg bg-primary/5 border-l-2 border-primary">
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-semibold text-primary">
+              {replyingTo.direction === "out" ? (replyingTo.sent_by_name || "Você") : "Cliente"}
+            </p>
+            <p className="text-[11px] text-muted-foreground truncate">
+              {replyingTo.content || "Mídia"}
+            </p>
+          </div>
+          <Button size="icon" variant="ghost" className="h-5 w-5 shrink-0" onClick={onCancelReply}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
       {isNoteMode && (
         <div className="flex items-center gap-2 mb-2 px-1">
           <StickyNote className="h-3.5 w-3.5 text-warning" />
