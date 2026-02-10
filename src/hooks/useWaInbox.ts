@@ -75,6 +75,7 @@ export function useWaConversations(filters?: {
   assigned_to?: string;
   instance_id?: string;
   search?: string;
+  vendor_user_id?: string;
 }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -85,6 +86,8 @@ export function useWaConversations(filters?: {
     queryFn: async () => {
       // RLS handles vendor visibility (assigned_to OR instance ownership/vendedor link)
       // We only need to apply UI-level filters here.
+      // ⚠️ When vendor_user_id is set (admin impersonating vendor), we filter
+      //    by assigned_to OR instance linked to vendor, since RLS won't limit the admin.
 
       // ⚠️ HARDENING: Explicit columns only — never SELECT * on hot paths
       let query = supabase
@@ -93,7 +96,7 @@ export function useWaConversations(filters?: {
           id, tenant_id, instance_id, remote_jid, cliente_nome, cliente_telefone,
           status, assigned_to, lead_id, cliente_id, last_message_at, last_message_preview,
           unread_count, canal, profile_picture_url, is_group, created_at, updated_at,
-          wa_instances(nome, vendedores(nome)),
+          wa_instances(nome, vendedores(nome, user_id)),
           leads(nome, telefone)
         `)
         .order("last_message_at", { ascending: false });
@@ -102,7 +105,10 @@ export function useWaConversations(filters?: {
         query = query.eq("status", filters.status);
       }
 
-      if (filters?.assigned_to && filters.assigned_to !== "all") {
+      // In vendor mode, filter by assigned_to (the vendor's user_id)
+      // Don't use !inner join filter here because vendor may also see
+      // conversations on their linked instances — we'll filter post-query.
+      if (filters?.assigned_to && filters.assigned_to !== "all" && !filters?.vendor_user_id) {
         query = query.eq("assigned_to", filters.assigned_to);
       }
 
@@ -118,8 +124,20 @@ export function useWaConversations(filters?: {
       const { data, error } = await query.limit(200);
       if (error) throw error;
 
+      // ⚠️ Vendor mode post-filter: when an admin impersonates a vendor,
+      // RLS still grants admin-level access. Filter client-side so only
+      // conversations assigned to the vendor OR on their linked instance show.
+      let filtered = data || [];
+      if (filters?.vendor_user_id) {
+        const vuid = filters.vendor_user_id;
+        filtered = filtered.filter((c: any) =>
+          c.assigned_to === vuid ||
+          c.wa_instances?.vendedores?.user_id === vuid
+        );
+      }
+
       // Load tags
-      const convIds = (data || []).map((c: any) => c.id);
+      const convIds = filtered.map((c: any) => c.id);
       let tagsMap: Record<string, WaConversationTag[]> = {};
       if (convIds.length > 0) {
         const { data: ctData } = await supabase
@@ -139,7 +157,7 @@ export function useWaConversations(filters?: {
         }
       }
 
-      return (data || []).map((c: any) => ({
+      return filtered.map((c: any) => ({
         ...c,
         instance_name: c.wa_instances?.nome || "—",
         vendedor_nome: c.wa_instances?.vendedores?.nome || null,
