@@ -27,6 +27,7 @@ export default function MessagingApp() {
     const existing = document.querySelector('link[rel="manifest"]');
     const originalHref = existing?.getAttribute("href") || "";
 
+    // Remove existing VitePWA manifest and add dedicated one
     if (existing) {
       existing.setAttribute("href", "/app-manifest.json");
     } else {

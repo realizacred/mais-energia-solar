@@ -214,9 +214,10 @@ export function useWaConversations(filters?: {
         reason,
       });
 
+      // Update assignment AND set status to "open" so vendor sees it immediately
       const { error } = await supabase
         .from("wa_conversations")
-        .update({ assigned_to: toUserId })
+        .update({ assigned_to: toUserId, status: "open" })
         .eq("id", conversationId);
       if (error) throw error;
     },
