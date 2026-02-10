@@ -86,7 +86,7 @@ export function ServicosTable({
       </TableHeader>
       <TableBody>
         {servicos.map((servico) => (
-          <TableRow key={servico.id} className={isAtrasado(servico) ? "bg-red-50 dark:bg-red-950/20" : ""}>
+          <TableRow key={servico.id} className={isAtrasado(servico) ? "bg-destructive/5" : ""}>
             <TableCell>
               <div className="flex items-center gap-1">
                 <CalendarDays className="h-4 w-4 text-muted-foreground" />

@@ -102,11 +102,11 @@ export function ServicosCalendar({ servicos, instaladores, onSelectServico }: Se
                   onClick={() => onSelectServico(servico)}
                   className={cn(
                     "text-[10px] p-1 rounded cursor-pointer truncate",
-                    servico.status === "concluido" && "bg-green-500/20 text-green-700 dark:text-green-400",
-                    servico.status === "em_andamento" && "bg-amber-500/20 text-amber-700 dark:text-amber-400",
-                    servico.status === "agendado" && "bg-blue-500/20 text-blue-700 dark:text-blue-400",
-                    servico.status === "cancelado" && "bg-red-500/20 text-red-700 dark:text-red-400",
-                    servico.status === "reagendado" && "bg-purple-500/20 text-purple-700 dark:text-purple-400"
+                    servico.status === "concluido" && "bg-success/20 text-success",
+                    servico.status === "em_andamento" && "bg-warning/20 text-warning",
+                    servico.status === "agendado" && "bg-info/20 text-info",
+                    servico.status === "cancelado" && "bg-destructive/20 text-destructive",
+                    servico.status === "reagendado" && "bg-secondary/20 text-secondary"
                   )}
                 >
                   {servico.hora_inicio?.slice(0, 5)} {servico.cliente?.nome || tipoOptions.find(t => t.value === servico.tipo)?.label}
@@ -144,11 +144,11 @@ export function ServicosCalendar({ servicos, instaladores, onSelectServico }: Se
             <div key={key} className="flex items-center gap-1 text-xs">
               <div className={cn(
                 "w-3 h-3 rounded",
-                key === "agendado" && "bg-blue-500/40",
-                key === "em_andamento" && "bg-amber-500/40",
-                key === "concluido" && "bg-green-500/40",
-                key === "cancelado" && "bg-red-500/40",
-                key === "reagendado" && "bg-purple-500/40"
+                key === "agendado" && "bg-info/40",
+                key === "em_andamento" && "bg-warning/40",
+                key === "concluido" && "bg-success/40",
+                key === "cancelado" && "bg-destructive/40",
+                key === "reagendado" && "bg-secondary/40"
               )} />
               {config.label}
             </div>

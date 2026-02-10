@@ -55,10 +55,10 @@ interface ParcelasManagerProps {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pendente: { label: "Pendente", color: "bg-yellow-500", icon: <Clock className="h-3 w-3" /> },
-  paga: { label: "Paga", color: "bg-green-500", icon: <CheckCircle className="h-3 w-3" /> },
-  atrasada: { label: "Atrasada", color: "bg-red-500", icon: <AlertTriangle className="h-3 w-3" /> },
-  cancelada: { label: "Cancelada", color: "bg-gray-500", icon: null },
+  pendente: { label: "Pendente", color: "bg-warning/15 text-warning border-warning/20", icon: <Clock className="h-3 w-3" /> },
+  paga: { label: "Paga", color: "bg-success/15 text-success border-success/20", icon: <CheckCircle className="h-3 w-3" /> },
+  atrasada: { label: "Atrasada", color: "bg-destructive/15 text-destructive border-destructive/20", icon: <AlertTriangle className="h-3 w-3" /> },
+  cancelada: { label: "Cancelada", color: "bg-muted text-muted-foreground border-border", icon: null },
 };
 
 const FORMAS_PAGAMENTO = [
@@ -268,7 +268,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
                           {format(new Date(parcela.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
                         </TableCell>
                         <TableCell>
-                          <Badge className={`${config.color} text-white gap-1`}>
+                          <Badge variant="outline" className={`${config.color} gap-1`}>
                             {config.icon}
                             {config.label}
                           </Badge>
