@@ -29,6 +29,7 @@ const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Inbox = lazy(() => import("./pages/Inbox"));
+const MessagingApp = lazy(() => import("./pages/MessagingApp"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -59,7 +60,7 @@ function PWAReturnRedirect() {
     if (isStandalone && location.pathname === "/") {
       const returnUrl = consumePWAReturnUrl();
       // PWA opens as WhatsApp clone — go straight to fullscreen inbox
-      navigate(returnUrl || "/inbox", { replace: true });
+      navigate(returnUrl || "/app", { replace: true });
     }
   }, [navigate, location.pathname]);
 
@@ -95,6 +96,7 @@ const App = () => (
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
               <Route path="/ativar-conta" element={<AtivarConta />} />
               <Route path="/inbox" element={<Inbox />} />
+              <Route path="/app" element={<MessagingApp />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -26,6 +26,7 @@ import {
   Reply,
   Copy,
   Trash2,
+  Forward,
   PanelRightOpen,
   PanelRightClose,
   Upload,
@@ -116,6 +117,8 @@ export function WaChatPanel({
   const [replyingTo, setReplyingTo] = useState<ReplyingTo | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [deletedMsgIds, setDeletedMsgIds] = useState<Set<string>>(new Set());
+  const [isRemoteTyping, setIsRemoteTyping] = useState(false);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const dragCounter = useRef(0);
 
@@ -126,14 +129,20 @@ export function WaChatPanel({
     return map;
   }, [messages]);
 
+  // Filter out deleted-for-me messages
+  const visibleMessages = useMemo(
+    () => messages.filter((m) => !deletedMsgIds.has(m.id)),
+    [messages, deletedMsgIds]
+  );
+
   // Scroll to bottom when new messages arrive
   useEffect(() => {
-    if (messages.length > 0) {
+    if (visibleMessages.length > 0) {
       setTimeout(() => {
-        virtuosoRef.current?.scrollToIndex({ index: messages.length - 1, behavior: "smooth" });
+        virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length - 1, behavior: "smooth" });
       }, 100);
     }
-  }, [messages.length]);
+  }, [visibleMessages.length]);
 
   // Close context menu on click outside
   useEffect(() => {
@@ -163,6 +172,22 @@ export function WaChatPanel({
     setContextMenu(null);
   }, []);
 
+  const handleDeleteForMe = useCallback((msg: WaMessage) => {
+    setDeletedMsgIds((prev) => new Set(prev).add(msg.id));
+    setContextMenu(null);
+  }, []);
+
+  const handleForward = useCallback((msg: WaMessage) => {
+    // Copy content to composer for forwarding
+    const text = msg.content || (msg.media_url ? `[${msg.message_type}] ${msg.media_url}` : "");
+    if (text) navigator.clipboard.writeText(text);
+    setContextMenu(null);
+    // Toast feedback
+    import("@/hooks/use-toast").then(({ toast }) => {
+      toast({ title: "Mensagem copiada", description: "Cole em outra conversa para encaminhar." });
+    });
+  }, []);
+
   // Drag & drop handlers
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -190,6 +215,7 @@ export function WaChatPanel({
     }
   }, [onSendMedia]);
 
+
   if (!conversation) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-muted/5 to-muted/20">
@@ -207,7 +233,7 @@ export function WaChatPanel({
   const assignedVendedor = vendedores.find((v) => v.user_id === conversation.assigned_to);
 
   const renderMessage = (idx: number) => {
-    const msg = messages[idx];
+    const msg = visibleMessages[idx];
     if (!msg) return null;
 
     const isOut = msg.direction === "out";
@@ -585,16 +611,16 @@ export function WaChatPanel({
                 </div>
               ))}
             </div>
-          ) : messages.length === 0 ? (
+          ) : visibleMessages.length === 0 ? (
             <div className="flex items-center justify-center h-full text-center">
               <p className="text-sm text-muted-foreground">Nenhuma mensagem ainda.</p>
             </div>
           ) : (
             <Virtuoso
               ref={virtuosoRef}
-              totalCount={messages.length}
+              totalCount={visibleMessages.length}
               itemContent={renderMessage}
-              initialTopMostItemIndex={messages.length - 1}
+              initialTopMostItemIndex={visibleMessages.length - 1}
               followOutput="smooth"
               className="h-full"
               style={{ height: "100%" }}
@@ -637,9 +663,36 @@ export function WaChatPanel({
                   Copiar
                 </button>
               )}
+              <button
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-muted/60 transition-colors"
+                onClick={() => handleForward(contextMenu.message)}
+              >
+                <Forward className="h-4 w-4 text-muted-foreground" />
+                Encaminhar
+              </button>
+              <div className="h-px bg-border/50 mx-2 my-1" />
+              <button
+                className="w-full flex items-center gap-2.5 px-3 py-2 text-sm hover:bg-destructive/10 text-destructive transition-colors"
+                onClick={() => handleDeleteForMe(contextMenu.message)}
+              >
+                <Trash2 className="h-4 w-4" />
+                Apagar para mim
+              </button>
             </div>
           )}
         </div>
+
+        {/* Typing indicator */}
+        {isRemoteTyping && (
+          <div className="px-4 py-1.5 text-xs text-muted-foreground flex items-center gap-1.5 animate-in fade-in-0 slide-in-from-bottom-1">
+            <span className="flex gap-0.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:0ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:150ms]" />
+              <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce [animation-delay:300ms]" />
+            </span>
+            {conversation.cliente_nome || "Cliente"} está digitando...
+          </div>
+        )}
 
         {/* Composer */}
         <WaChatComposer
