@@ -2,20 +2,33 @@ import { MessageCircle, Clock, CheckCircle2, AlertTriangle, Star } from "lucide-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import type { WaConversation } from "@/hooks/useWaInbox";
 
-export function WaInboxStats() {
-  // Fetch ALL conversations stats (not filtered)
-  const { data: stats } = useQuery({
+interface WaInboxStatsProps {
+  /** When provided, stats are computed from this list (already filtered). */
+  conversations?: WaConversation[];
+}
+
+export function WaInboxStats({ conversations }: WaInboxStatsProps) {
+  // If conversations are provided, compute stats locally (aligned with list filters)
+  const localStats = conversations
+    ? {
+        open: conversations.filter((c) => c.status === "open").length,
+        pending: conversations.filter((c) => c.status === "pending").length,
+        resolved: conversations.filter((c) => c.status === "resolved").length,
+        unread: conversations.filter((c) => c.unread_count > 0).length,
+      }
+    : null;
+
+  // Fallback: fetch globally if no conversations prop (shouldn't happen, but safe)
+  const { data: fetchedStats } = useQuery({
     queryKey: ["wa-inbox-stats-global"],
     queryFn: async () => {
-      // Fetch counts by status in a single query
-      const { data: conversations, error } = await supabase
+      const { data: convs, error } = await supabase
         .from("wa_conversations")
         .select("status, unread_count");
-      
       if (error) throw error;
-
-      const all = conversations || [];
+      const all = convs || [];
       return {
         open: all.filter((c) => c.status === "open").length,
         pending: all.filter((c) => c.status === "pending").length,
@@ -23,9 +36,12 @@ export function WaInboxStats() {
         unread: all.filter((c) => c.unread_count > 0).length,
       };
     },
+    enabled: !conversations,
     staleTime: 15 * 1000,
     refetchInterval: 30 * 1000,
   });
+
+  const stats = localStats || fetchedStats;
 
   // Load satisfaction stats
   const { data: satisfactionData } = useQuery({

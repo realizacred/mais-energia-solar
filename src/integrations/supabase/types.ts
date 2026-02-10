@@ -2834,6 +2834,7 @@ export type Database = {
           ultimo_contato: string | null
           updated_at: string
           vendedor: string | null
+          vendedor_id: string | null
           visto: boolean
           visto_admin: boolean
         }
@@ -2866,6 +2867,7 @@ export type Database = {
           ultimo_contato?: string | null
           updated_at?: string
           vendedor?: string | null
+          vendedor_id?: string | null
           visto?: boolean
           visto_admin?: boolean
         }
@@ -2898,6 +2900,7 @@ export type Database = {
           ultimo_contato?: string | null
           updated_at?: string
           vendedor?: string | null
+          vendedor_id?: string | null
           visto?: boolean
           visto_admin?: boolean
         }
@@ -2928,6 +2931,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orcamentos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
             referencedColumns: ["id"]
           },
         ]

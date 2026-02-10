@@ -47,11 +47,34 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Determine the effective assigned_to filter for vendor mode
+  // Determine the effective user for vendor mode
   const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
-  const effectiveAssigned = vendorMode
-    ? (effectiveUserId || "all")
-    : filterAssigned;
+
+  // Compute vendor's allowed instance IDs (instances where owner_user_id or vendedor linked via vendedores.user_id)
+  const vendorInstanceIds = vendorMode
+    ? instances
+        .filter((inst) => {
+          if (inst.owner_user_id === effectiveUserId) return true;
+          // Check if vendedor linked to this instance belongs to the current user
+          const matchingVendedor = vendedores.find(
+            (v) => v.user_id === effectiveUserId && v.id === inst.vendedor_id
+          );
+          return !!matchingVendedor;
+        })
+        .map((inst) => inst.id)
+    : undefined;
+
+  const effectiveAssigned = vendorMode ? "all" : filterAssigned;
+
+  const conversationFilters = {
+    status: filterStatus !== "all" ? filterStatus : undefined,
+    assigned_to: !vendorMode && effectiveAssigned !== "all" && effectiveAssigned !== "unassigned" ? effectiveAssigned : undefined,
+    instance_id: filterInstance !== "all" ? filterInstance : undefined,
+    search: search || undefined,
+    // Vendor mode: OR logic (instances + assigned_to)
+    vendor_instance_ids: vendorMode ? vendorInstanceIds : undefined,
+    vendor_user_id: vendorMode ? effectiveUserId : undefined,
+  };
 
   const {
     conversations,
@@ -61,12 +84,7 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
     resolveConversation,
     reopenConversation,
     updateConversation,
-  } = useWaConversations({
-    status: filterStatus !== "all" ? filterStatus : undefined,
-    assigned_to: effectiveAssigned !== "all" && effectiveAssigned !== "unassigned" ? effectiveAssigned : undefined,
-    instance_id: filterInstance !== "all" ? filterInstance : undefined,
-    search: search || undefined,
-  });
+  } = useWaConversations(conversationFilters);
 
   const {
     messages,
@@ -336,7 +354,7 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
       )}
 
       {/* Stats - only in admin mode */}
-      {!vendorMode && <WaInboxStats />}
+      {!vendorMode && <WaInboxStats conversations={filteredConvs} />}
 
       {/* Follow-up Widget */}
       {!vendorMode && <WaFollowupWidget />}
