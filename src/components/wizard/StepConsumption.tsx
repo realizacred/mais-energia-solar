@@ -39,14 +39,13 @@ export function StepConsumption({
   return (
     <div className="space-y-5">
       <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
+        <div data-field-error={!!errors.area && touchedFields.has("area")}>
         <FloatingSelect
           label="Área *"
           icon={<Home className="w-4 h-4" />}
           value={values.area}
           onValueChange={(value) => {
-            setValue("area", value as "Urbana" | "Rural");
-            markFieldTouched("area");
-            trigger("area");
+            setValue("area", value as "Urbana" | "Rural", { shouldValidate: touchedFields.has("area") });
           }}
           options={[
             { value: "Urbana", label: "Urbana" },
@@ -55,67 +54,64 @@ export function StepConsumption({
           error={touchedFields.has("area") ? errors.area?.message : undefined}
           success={isFieldValid("area")}
         />
+        </div>
       </motion.div>
 
       <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible">
+        <div data-field-error={!!errors.tipo_telhado && touchedFields.has("tipo_telhado")}>
         <FloatingSelect
           label="Tipo de Telhado *"
           icon={<Home className="w-4 h-4" />}
           value={values.tipo_telhado}
           onValueChange={(value) => {
-            setValue("tipo_telhado", value);
-            markFieldTouched("tipo_telhado");
-            trigger("tipo_telhado");
+            setValue("tipo_telhado", value, { shouldValidate: touchedFields.has("tipo_telhado") });
           }}
           options={TIPOS_TELHADO.map(t => ({ value: t, label: t }))}
           error={touchedFields.has("tipo_telhado") ? errors.tipo_telhado?.message : undefined}
           success={isFieldValid("tipo_telhado")}
         />
+        </div>
       </motion.div>
 
       <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
+        <div data-field-error={!!errors.rede_atendimento && touchedFields.has("rede_atendimento")}>
         <FloatingSelect
           label="Rede de Atendimento *"
           icon={<Zap className="w-4 h-4" />}
           value={values.rede_atendimento}
           onValueChange={(value) => {
-            setValue("rede_atendimento", value);
-            markFieldTouched("rede_atendimento");
-            trigger("rede_atendimento");
+            setValue("rede_atendimento", value, { shouldValidate: touchedFields.has("rede_atendimento") });
           }}
           options={REDES_ATENDIMENTO.map(r => ({ value: r, label: r }))}
           error={touchedFields.has("rede_atendimento") ? errors.rede_atendimento?.message : undefined}
           success={isFieldValid("rede_atendimento")}
         />
+        </div>
       </motion.div>
 
       <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div data-field-error={!!errors.media_consumo && touchedFields.has("media_consumo")}>
         <FloatingInput
           label="Média de Consumo (kWh) *"
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
           value={values.media_consumo || ""}
-          onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined)}
-          onBlur={() => {
-            markFieldTouched("media_consumo");
-            trigger("media_consumo");
-          }}
+          onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined, { shouldValidate: touchedFields.has("media_consumo") })}
           error={touchedFields.has("media_consumo") ? errors.media_consumo?.message : undefined}
           success={isFieldValid("media_consumo")}
         />
+        </div>
+        <div data-field-error={!!errors.consumo_previsto && touchedFields.has("consumo_previsto")}>
         <FloatingInput
           label="Consumo Previsto (kWh) *"
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
           value={values.consumo_previsto || ""}
-          onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined)}
-          onBlur={() => {
-            markFieldTouched("consumo_previsto");
-            trigger("consumo_previsto");
-          }}
+          onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined, { shouldValidate: touchedFields.has("consumo_previsto") })}
           error={touchedFields.has("consumo_previsto") ? errors.consumo_previsto?.message : undefined}
           success={isFieldValid("consumo_previsto")}
         />
+        </div>
       </motion.div>
 
       {values.media_consumo && values.consumo_previsto && (
