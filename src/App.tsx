@@ -57,9 +57,8 @@ function PWAReturnRedirect() {
 
     if (isStandalone && location.pathname === "/") {
       const returnUrl = consumePWAReturnUrl();
-      if (returnUrl) {
-        navigate(returnUrl, { replace: true });
-      }
+      // Always redirect standalone PWA away from "/" — use saved URL or default to /portal
+      navigate(returnUrl || "/portal", { replace: true });
     }
   }, [navigate, location.pathname]);
 
