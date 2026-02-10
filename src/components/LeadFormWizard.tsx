@@ -91,6 +91,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const [vendedorCodigo, setVendedorCodigo] = useState<string | null>(null);
   const [vendedorNome, setVendedorNome] = useState<string | null>(null);
+  const [vendedorId, setVendedorId] = useState<string | null>(null);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   // Store the user's duplicate decision so final submit skips re-check
   const [duplicateDecision, setDuplicateDecision] = useState<
@@ -159,6 +160,16 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           const vendedor = data[0];
           setVendedorCodigo(vendedor.codigo);
           setVendedorNome(vendedor.nome);
+          // Resolve vendedor_id for proper attribution
+          const { data: vendedorRecord } = await supabase
+            .from("vendedores")
+            .select("id")
+            .eq("codigo", vendedor.codigo)
+            .eq("ativo", true)
+            .maybeSingle();
+          if (vendedorRecord) {
+            setVendedorId(vendedorRecord.id);
+          }
           console.log("Vendedor validado:", vendedor.nome);
         } else {
           // Fallback: se não encontrou vendedor válido, não salva nada
@@ -354,6 +365,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     observacoes: data.observacoes?.trim() || null,
     arquivos_urls: urls,
     vendedor: vendedorNome || "Site",
+    vendedor_id: vendedorId || undefined,
   });
 
   // Handler for when form validation fails (fields have errors but user can't see them)
@@ -726,13 +738,30 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   return (
     <Card className="max-w-2xl mx-auto border-0 shadow-2xl overflow-hidden">
       <CardHeader className="text-center pb-4 bg-gradient-to-b from-primary/5 to-transparent relative px-4 sm:px-6">
-        <motion.img
+         <motion.img
           src={logo}
           alt="Mais Energia Solar"
           className="h-12 sm:h-16 w-auto mx-auto mb-3 sm:mb-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         />
+        
+        {/* Vendor name highlight */}
+        {vendedorNome && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="mb-3"
+          >
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full">
+              <User className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-primary">
+                Consultor: {vendedorNome}
+              </span>
+            </div>
+          </motion.div>
+        )}
+
         <div className="flex items-center justify-center gap-2 mb-1">
           <CardTitle className="text-xl sm:text-2xl md:text-3xl font-bold text-secondary">
             Solicite seu Orçamento

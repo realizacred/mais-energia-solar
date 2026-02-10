@@ -25,6 +25,7 @@ interface OrcamentoData {
   observacoes?: string | null;
   arquivos_urls?: string[];
   vendedor?: string | null;
+  vendedor_id?: string;
 }
 
 interface SubmitResult {
@@ -193,6 +194,7 @@ export function useLeadOrcamento() {
           observacoes: data.observacoes || null,
           arquivos_urls: data.arquivos_urls || [],
           vendedor: data.vendedor || null,
+          vendedor_id: data.vendedor_id || null,
         });
 
       if (error) {
