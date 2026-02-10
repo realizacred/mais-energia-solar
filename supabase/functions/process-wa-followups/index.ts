@@ -42,14 +42,13 @@ Deno.serve(async (req) => {
       ).toISOString();
 
       // 2. Find conversations matching this rule's criteria
-      let query = supabase
+      const { data: conversations, error: convError } = await supabase
         .from("wa_conversations")
         .select("id, last_message_at, assigned_to, cliente_nome, cliente_telefone, remote_jid, instance_id, tenant_id")
         .eq("tenant_id", rule.tenant_id)
         .in("status", statusFilter)
         .lt("last_message_at", cutoffDate);
 
-      const { data: conversations, error: convError } = await query;
       if (convError) {
         console.error(`Error fetching convs for rule ${rule.id}:`, convError);
         continue;
@@ -57,153 +56,186 @@ Deno.serve(async (req) => {
 
       if (!conversations || conversations.length === 0) continue;
 
-      for (const conv of conversations) {
-        // 3. Check scenario-specific conditions
-        if (rule.cenario === "equipe_sem_resposta") {
-          // Last message must be from client (direction = 'in')
+      const convIds = conversations.map(c => c.id);
+
+      // 3. Get last message direction per conversation (individually — reliable, single-row each)
+      const lastMsgMap = new Map<string, string>();
+      if (rule.cenario !== "conversa_parada") {
+        // Only need direction check for specific scenarios
+        const directionPromises = convIds.map(async (convId) => {
           const { data: lastMsg } = await supabase
             .from("wa_messages")
             .select("direction")
-            .eq("conversation_id", conv.id)
+            .eq("conversation_id", convId)
             .eq("is_internal_note", false)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
+          if (lastMsg) lastMsgMap.set(convId, lastMsg.direction);
+        });
+        await Promise.all(directionPromises);
+      }
 
-          if (!lastMsg || lastMsg.direction !== "in") continue;
-        } else if (rule.cenario === "cliente_sem_resposta") {
-          // Last message must be from us (direction = 'out')
-          const { data: lastMsg } = await supabase
-            .from("wa_messages")
-            .select("direction")
-            .eq("conversation_id", conv.id)
-            .eq("is_internal_note", false)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+      // 4. BATCH: Get existing follow-ups for all conversations + this rule
+      const { data: existingFollowups } = await supabase
+        .from("wa_followup_queue")
+        .select("conversation_id, tentativa, status")
+        .eq("rule_id", rule.id)
+        .in("conversation_id", convIds);
 
-          if (!lastMsg || lastMsg.direction !== "out") continue;
+      // Build maps for existing active follow-ups and attempt counts
+      const activeFollowupSet = new Set<string>();
+      const attemptCountMap = new Map<string, number>();
+      if (existingFollowups) {
+        for (const fu of existingFollowups) {
+          if (fu.status === "pendente" || fu.status === "enviado") {
+            activeFollowupSet.add(fu.conversation_id);
+          }
+          attemptCountMap.set(fu.conversation_id, (attemptCountMap.get(fu.conversation_id) || 0) + 1);
         }
-        // 'conversa_parada' = any direction, just stale
+      }
 
-        // 4. Check if follow-up already exists for this conversation+rule
-        const { data: existing } = await supabase
-          .from("wa_followup_queue")
-          .select("id, tentativa, status")
-          .eq("conversation_id", conv.id)
-          .eq("rule_id", rule.id)
-          .in("status", ["pendente", "enviado"])
-          .maybeSingle();
+      // 5. Process each conversation
+      const toInsert: any[] = [];
+      const autoSendList: { conv: typeof conversations[0]; attempt: number }[] = [];
 
-        if (existing) continue; // Already queued
+      for (const conv of conversations) {
+        // Check scenario-specific conditions
+        if (rule.cenario === "equipe_sem_resposta") {
+          const lastDir = lastMsgMap.get(conv.id);
+          if (!lastDir || lastDir !== "in") continue;
+        } else if (rule.cenario === "cliente_sem_resposta") {
+          const lastDir = lastMsgMap.get(conv.id);
+          if (!lastDir || lastDir !== "out") continue;
+        }
+
+        // Skip if already queued
+        if (activeFollowupSet.has(conv.id)) continue;
 
         // Check max attempts
-        const { count: pastAttempts } = await supabase
-          .from("wa_followup_queue")
-          .select("id", { count: "exact", head: true })
-          .eq("conversation_id", conv.id)
-          .eq("rule_id", rule.id);
+        const pastAttempts = attemptCountMap.get(conv.id) || 0;
+        if (pastAttempts >= rule.max_tentativas) continue;
 
-        if ((pastAttempts || 0) >= rule.max_tentativas) continue;
+        const attempt = pastAttempts + 1;
+        toInsert.push({
+          tenant_id: rule.tenant_id,
+          rule_id: rule.id,
+          conversation_id: conv.id,
+          status: "pendente",
+          tentativa: attempt,
+          scheduled_at: new Date().toISOString(),
+          assigned_to: conv.assigned_to,
+        });
 
-        // 5. Create follow-up queue entry
-        const scheduledAt = new Date().toISOString();
+        if (rule.envio_automatico && rule.mensagem_template) {
+          autoSendList.push({ conv, attempt });
+        }
+      }
+
+      // 6. Batch insert follow-up queue entries
+      if (toInsert.length > 0) {
         const { error: insertError } = await supabase
           .from("wa_followup_queue")
-          .insert({
-            tenant_id: rule.tenant_id,
-            rule_id: rule.id,
-            conversation_id: conv.id,
-            status: "pendente",
-            tentativa: (pastAttempts || 0) + 1,
-            scheduled_at: scheduledAt,
-            assigned_to: conv.assigned_to,
-          });
+          .insert(toInsert);
 
         if (insertError) {
-          console.error(`Error creating followup:`, insertError);
+          console.error(`Error batch inserting followups for rule ${rule.id}:`, insertError);
           continue;
         }
+        totalCreated += toInsert.length;
+      }
 
-        totalCreated++;
+      // 7. Auto-send messages if configured
+      for (const { conv } of autoSendList) {
+        const message = rule.mensagem_template!
+          .replace(/\{nome\}/g, conv.cliente_nome || "")
+          .replace(/\{vendedor\}/g, "");
 
-        // 6. Auto-send if configured
-        if (rule.envio_automatico && rule.mensagem_template) {
-          const message = rule.mensagem_template
-            .replace(/\{nome\}/g, conv.cliente_nome || "")
-            .replace(/\{vendedor\}/g, "");
+        const { data: msg } = await supabase
+          .from("wa_messages")
+          .insert({
+            conversation_id: conv.id,
+            direction: "out",
+            message_type: "text",
+            content: message,
+            is_internal_note: false,
+            status: "pending",
+          })
+          .select()
+          .single();
 
-          // Insert message
-          const { data: msg } = await supabase
-            .from("wa_messages")
-            .insert({
-              conversation_id: conv.id,
-              direction: "out",
-              message_type: "text",
-              content: message,
-              is_internal_note: false,
-              status: "pending",
+        if (msg && conv.remote_jid && conv.instance_id) {
+          await supabase.from("wa_outbox").insert({
+            instance_id: conv.instance_id,
+            conversation_id: conv.id,
+            message_id: msg.id,
+            remote_jid: conv.remote_jid,
+            message_type: "text",
+            content: message,
+            status: "pending",
+          });
+
+          await supabase
+            .from("wa_followup_queue")
+            .update({
+              status: "enviado",
+              sent_at: new Date().toISOString(),
+              mensagem_enviada: message,
             })
-            .select()
-            .single();
+            .eq("conversation_id", conv.id)
+            .eq("rule_id", rule.id)
+            .eq("status", "pendente");
 
-          if (msg && conv.remote_jid && conv.instance_id) {
-            await supabase.from("wa_outbox").insert({
-              instance_id: conv.instance_id,
-              conversation_id: conv.id,
-              message_id: msg.id,
-              remote_jid: conv.remote_jid,
-              message_type: "text",
-              content: message,
-              status: "pending",
-            });
-
-            // Update queue entry
-            await supabase
-              .from("wa_followup_queue")
-              .update({
-                status: "enviado",
-                sent_at: new Date().toISOString(),
-                mensagem_enviada: message,
-              })
-              .eq("conversation_id", conv.id)
-              .eq("rule_id", rule.id)
-              .eq("status", "pendente");
-
-            totalSent++;
-          }
+          totalSent++;
         }
       }
     }
 
-    // 7. Trigger outbox processing if messages were sent
+    // 8. Trigger outbox processing if messages were sent
     if (totalSent > 0) {
       await supabase.functions.invoke("process-wa-outbox").catch(() => {});
     }
 
-    // 8. Mark follow-ups as responded when conversation has new activity
+    // 9. Mark follow-ups as responded when conversation has new activity
     const { data: pendingFollowups } = await supabase
       .from("wa_followup_queue")
       .select("id, conversation_id, created_at")
       .in("status", ["pendente", "enviado"]);
 
-    if (pendingFollowups) {
-      for (const fu of pendingFollowups) {
-        const { data: recentMsg } = await supabase
-          .from("wa_messages")
-          .select("id")
-          .eq("conversation_id", fu.conversation_id)
-          .eq("direction", "in")
-          .gt("created_at", fu.created_at)
-          .limit(1)
-          .maybeSingle();
+    if (pendingFollowups && pendingFollowups.length > 0) {
+      const pendingConvIds = [...new Set(pendingFollowups.map(fu => fu.conversation_id))];
+      
+      // Batch: get recent incoming messages for all pending conversations
+      const { data: recentMessages } = await supabase
+        .from("wa_messages")
+        .select("conversation_id, created_at")
+        .in("conversation_id", pendingConvIds)
+        .eq("direction", "in")
+        .order("created_at", { ascending: false });
 
-        if (recentMsg) {
-          await supabase
-            .from("wa_followup_queue")
-            .update({ status: "respondido", responded_at: now })
-            .eq("id", fu.id);
+      // Build map: conversation_id -> latest incoming message date
+      const latestIncoming = new Map<string, string>();
+      if (recentMessages) {
+        for (const msg of recentMessages) {
+          if (!latestIncoming.has(msg.conversation_id)) {
+            latestIncoming.set(msg.conversation_id, msg.created_at);
+          }
         }
+      }
+
+      const toMarkResponded: string[] = [];
+      for (const fu of pendingFollowups) {
+        const latestIn = latestIncoming.get(fu.conversation_id);
+        if (latestIn && latestIn > fu.created_at) {
+          toMarkResponded.push(fu.id);
+        }
+      }
+
+      if (toMarkResponded.length > 0) {
+        await supabase
+          .from("wa_followup_queue")
+          .update({ status: "respondido", responded_at: now })
+          .in("id", toMarkResponded);
       }
     }
 

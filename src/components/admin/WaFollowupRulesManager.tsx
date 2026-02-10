@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
+import { Play } from "lucide-react";
 import {
   Bell,
   Plus,
@@ -132,6 +133,26 @@ export function WaFollowupRulesManager() {
   const [deleteTarget, setDeleteTarget] = useState<FollowupRule | null>(null);
   const [formData, setFormData] = useState<RuleFormData>(DEFAULT_FORM);
   const [timeUnit, setTimeUnit] = useState<TimeUnit>("horas");
+
+  // Manual trigger mutation
+  const processNowMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("process-wa-followups");
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["wa-followup-queue-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["wa-followup-pending-widget"] });
+      toast({
+        title: "Processamento concluído!",
+        description: `${data?.created || 0} follow-ups criados, ${data?.sent || 0} enviados.`,
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao processar", description: err.message, variant: "destructive" });
+    },
+  });
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ["wa-followup-rules"],
@@ -309,10 +330,25 @@ export function WaFollowupRulesManager() {
             </p>
           </div>
         </div>
-        <Button onClick={openCreate} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Nova Regra
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={() => processNowMutation.mutate()}
+            disabled={processNowMutation.isPending}
+            className="gap-2"
+          >
+            {processNowMutation.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+            Processar Agora
+          </Button>
+          <Button onClick={openCreate} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Nova Regra
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}

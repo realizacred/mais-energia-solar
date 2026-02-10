@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { MessageCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -105,6 +105,50 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   const { tags, createTag, deleteTag, toggleConversationTag } = useWaTags();
   const { mutedIds, hiddenIds, isMuted, isHidden, toggleMute, toggleHide } = useWaConversationPreferences();
+
+  // Follow-up queue: pending follow-ups for badge indicators
+  const { data: pendingFollowups = [] } = useQuery({
+    queryKey: ["wa-followup-pending-inbox"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("wa_followup_queue")
+        .select("id, conversation_id, assigned_to, rule_id")
+        .eq("status", "pendente");
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 30 * 1000,
+    refetchInterval: 60 * 1000,
+  });
+
+  const followupConvIds = useMemo(
+    () => new Set(pendingFollowups.map((f) => f.conversation_id)),
+    [pendingFollowups]
+  );
+
+  // Realtime listener for new follow-ups → toast notification
+  useEffect(() => {
+    const channel = supabase
+      .channel("followup-notifications")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "wa_followup_queue" },
+        (payload) => {
+          const newFU = payload.new as any;
+          // Only notify if assigned to current user
+          if (newFU.assigned_to === user?.id) {
+            toast({
+              title: "⏰ Novo Follow-up",
+              description: "Uma conversa precisa de atenção!",
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, toast]);
+
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   useEffect(() => {
     if (selectedConv) {
@@ -399,6 +443,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               onShowHiddenChange={setShowHidden}
               mutedIds={mutedIds}
               hiddenIds={hiddenIds}
+              followupConvIds={followupConvIds}
             />
           </div>
 
@@ -465,6 +510,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 onShowHiddenChange={setShowHidden}
                 mutedIds={mutedIds}
                 hiddenIds={hiddenIds}
+                followupConvIds={followupConvIds}
               />
             )}
           </div>
