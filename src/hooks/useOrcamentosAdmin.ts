@@ -42,7 +42,8 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
               vendedor_id,
               vendedor,
               vendedores:vendedor_id(id, nome)
-            )
+            ),
+            orc_vendedores:vendedor_id(id, nome)
           `, { count: "exact" })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
@@ -57,8 +58,8 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       
       // Transform to flat display format
       const displayItems: OrcamentoDisplayItem[] = (orcamentosRes.data || []).map((orc: any) => {
-        const leadVendedorNome = orc.leads?.vendedores?.nome || orc.leads?.vendedor || orc.vendedor || null;
-        const leadVendedorId = orc.leads?.vendedor_id || null;
+        const leadVendedorNome = orc.orc_vendedores?.nome || orc.leads?.vendedores?.nome || orc.leads?.vendedor || orc.vendedor || null;
+        const leadVendedorId = orc.vendedor_id || orc.leads?.vendedor_id || null;
 
         return {
           id: orc.id,
