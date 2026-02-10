@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { MessageCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,34 +60,18 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
     staleTime: 5 * 60 * 1000,
   });
 
-  // Compute vendor's allowed instance IDs (instances where owner_user_id or vendedor linked via vendedores.user_id)
-  const vendorInstanceIds = vendorMode
-    ? instances
-        .filter((inst) => {
-          if (inst.owner_user_id === effectiveUserId) return true;
-          // Check if vendedor linked to this instance belongs to the current user
-          const matchingVendedor = vendedores.find(
-            (v: any) => v.user_id === effectiveUserId && v.id === inst.vendedor_id
-          );
-          return !!matchingVendedor;
-        })
-        .map((inst) => inst.id)
-    : undefined;
-
   const effectiveAssigned = vendorMode ? "all" : filterAssigned;
 
+  // RLS handles vendor visibility at DB level — do NOT filter by status in the query
+  // so stats and list share the same data source (single source of truth)
   const conversationFilters = {
-    status: filterStatus !== "all" ? filterStatus : undefined,
     assigned_to: !vendorMode && effectiveAssigned !== "all" && effectiveAssigned !== "unassigned" ? effectiveAssigned : undefined,
     instance_id: filterInstance !== "all" ? filterInstance : undefined,
     search: search || undefined,
-    // Vendor mode: OR logic (instances + assigned_to)
-    vendor_instance_ids: vendorMode ? vendorInstanceIds : undefined,
-    vendor_user_id: vendorMode ? effectiveUserId : undefined,
   };
 
   const {
-    conversations,
+    conversations: allConversations,
     loading: convsLoading,
     assignConversation,
     transferConversation,
@@ -113,28 +97,26 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   useEffect(() => {
     if (selectedConv) {
-      const fresh = conversations.find((c) => c.id === selectedConv.id);
+      const fresh = allConversations.find((c) => c.id === selectedConv.id);
       if (fresh && JSON.stringify(fresh) !== JSON.stringify(selectedConv)) {
         setSelectedConv(fresh);
       }
     }
-  }, [conversations]);
+  }, [allConversations]);
 
   // 🔔 Notification sound on new unread messages
   useEffect(() => {
-    const totalUnread = conversations.reduce((sum, c) => sum + c.unread_count, 0);
+    const totalUnread = allConversations.reduce((sum, c) => sum + c.unread_count, 0);
     if (totalUnread > prevUnreadRef.current && prevUnreadRef.current > 0) {
-      // Play notification sound
       try {
         if (!audioRef.current) {
-          // Create a simple notification beep using AudioContext
           const ctx = new AudioContext();
           const oscillator = ctx.createOscillator();
           const gain = ctx.createGain();
           oscillator.connect(gain);
           gain.connect(ctx.destination);
           oscillator.type = "sine";
-          oscillator.frequency.setValueAtTime(880, ctx.currentTime); // A5
+          oscillator.frequency.setValueAtTime(880, ctx.currentTime);
           gain.gain.setValueAtTime(0.7, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
           oscillator.start(ctx.currentTime);
@@ -145,11 +127,15 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
       }
     }
     prevUnreadRef.current = totalUnread;
-  }, [conversations]);
+  }, [allConversations]);
 
-  // Filter unassigned + tags
-  const filteredConvs = conversations.filter((c) => {
+  // Single source of truth: filter client-side for status, unassigned, and tags
+  const filteredConvs = allConversations.filter((c) => {
+    // Status filter
+    if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    // Unassigned filter
     if (filterAssigned === "unassigned" && c.assigned_to) return false;
+    // Tag filter
     if (filterTag !== "all") {
       const hasTag = c.tags?.some((ct) => ct.tag_id === filterTag);
       if (!hasTag) return false;
@@ -353,7 +339,7 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
       )}
 
       {/* Stats - only in admin mode */}
-      {!vendorMode && <WaInboxStats conversations={filteredConvs} />}
+      {!vendorMode && <WaInboxStats conversations={allConversations} />}
 
       {/* Follow-up Widget */}
       {!vendorMode && <WaFollowupWidget />}
