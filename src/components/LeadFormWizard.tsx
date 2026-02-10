@@ -391,14 +391,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     let fileUrls: string[] = [];
     const hasFiles = uploadedFiles.length > 0;
 
-    // Helper to save offline (only used when truly offline)
+    // Helper to save offline (used when offline or when online submission fails)
     const saveOfflineFallback = async (): Promise<boolean> => {
-      // Only use offline fallback when actually offline
-      if (navigator.onLine) {
-        console.log("[LeadFormWizard] Still online, not using offline fallback");
-        return false;
-      }
-      
       const leadData = {
         nome: data.nome.trim(),
         telefone: data.telefone.trim(),
@@ -406,7 +400,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         offlineFiles: hasFiles ? uploadedFiles : undefined,
       };
 
-      console.log("[LeadFormWizard] Device offline, using saveLead for local storage");
+      console.log("[LeadFormWizard] Using saveLead for local storage");
       const result = await saveLead(leadData);
 
       if (result.success && result.offline) {
@@ -535,8 +529,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         setIsSuccess(true);
         return;
       } else {
-        // Online submission failed - show error, don't silently fall back to offline
-        console.error("[LeadFormWizard] Online save failed:", result.error);
+        // Online submission failed — try offline fallback
+        console.warn("[LeadFormWizard] Online save failed, attempting offline fallback:", result.error);
+        const offlineSuccess = await saveOfflineFallback();
+        if (offlineSuccess) return;
+
         toast({
           title: "Erro ao enviar cadastro",
           description: result.error || "Ocorreu um erro. Tente novamente.",
@@ -548,12 +545,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
       console.error("[LeadFormWizard] Exception during submission:", errorMessage);
       
-      // Only try offline fallback if we're truly offline now
-      if (!navigator.onLine) {
-        console.log("[LeadFormWizard] Connection lost, attempting offline fallback");
-        const offlineSuccess = await saveOfflineFallback();
-        if (offlineSuccess) return;
-      }
+      // Try offline fallback for any network failure
+      console.log("[LeadFormWizard] Attempting offline fallback after exception");
+      const offlineSuccess = await saveOfflineFallback();
+      if (offlineSuccess) return;
       
       toast({
         title: "Erro ao enviar cadastro",
