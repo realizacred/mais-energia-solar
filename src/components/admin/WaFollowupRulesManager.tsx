@@ -52,7 +52,7 @@ interface FollowupRule {
   nome: string;
   descricao: string | null;
   cenario: string;
-  prazo_horas: number;
+  prazo_minutos: number;
   prioridade: string;
   mensagem_template: string | null;
   envio_automatico: boolean;
@@ -65,6 +65,19 @@ interface FollowupRule {
 }
 
 type RuleFormData = Omit<FollowupRule, "id" | "tenant_id" | "created_at" | "updated_at">;
+type TimeUnit = "minutos" | "horas" | "dias";
+
+function minutesToBestUnit(mins: number): { value: number; unit: TimeUnit } {
+  if (mins >= 1440 && mins % 1440 === 0) return { value: mins / 1440, unit: "dias" };
+  if (mins >= 60 && mins % 60 === 0) return { value: mins / 60, unit: "horas" };
+  return { value: mins, unit: "minutos" };
+}
+
+function toMinutes(value: number, unit: TimeUnit): number {
+  if (unit === "dias") return value * 1440;
+  if (unit === "horas") return value * 60;
+  return value;
+}
 
 const CENARIO_CONFIG = {
   cliente_sem_resposta: {
@@ -101,7 +114,7 @@ const DEFAULT_FORM: RuleFormData = {
   nome: "",
   descricao: null,
   cenario: "cliente_sem_resposta",
-  prazo_horas: 24,
+  prazo_minutos: 1440,
   prioridade: "media",
   mensagem_template: null,
   envio_automatico: false,
@@ -118,6 +131,7 @@ export function WaFollowupRulesManager() {
   const [showForm, setShowForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FollowupRule | null>(null);
   const [formData, setFormData] = useState<RuleFormData>(DEFAULT_FORM);
+  const [timeUnit, setTimeUnit] = useState<TimeUnit>("horas");
 
   const { data: rules = [], isLoading } = useQuery({
     queryKey: ["wa-followup-rules"],
@@ -164,7 +178,7 @@ export function WaFollowupRulesManager() {
             nome: data.form.nome,
             descricao: data.form.descricao,
             cenario: data.form.cenario,
-            prazo_horas: data.form.prazo_horas,
+            prazo_minutos: data.form.prazo_minutos,
             prioridade: data.form.prioridade,
             mensagem_template: data.form.mensagem_template,
             envio_automatico: data.form.envio_automatico,
@@ -181,7 +195,7 @@ export function WaFollowupRulesManager() {
           nome: data.form.nome,
           descricao: data.form.descricao,
           cenario: data.form.cenario,
-          prazo_horas: data.form.prazo_horas,
+          prazo_minutos: data.form.prazo_minutos,
           prioridade: data.form.prioridade,
           mensagem_template: data.form.mensagem_template,
           envio_automatico: data.form.envio_automatico,
@@ -236,11 +250,13 @@ export function WaFollowupRulesManager() {
 
   const openEdit = (rule: FollowupRule) => {
     setEditingRule(rule);
+    const best = minutesToBestUnit(rule.prazo_minutos);
+    setTimeUnit(best.unit);
     setFormData({
       nome: rule.nome,
       descricao: rule.descricao,
       cenario: rule.cenario,
-      prazo_horas: rule.prazo_horas,
+      prazo_minutos: rule.prazo_minutos,
       prioridade: rule.prioridade,
       mensagem_template: rule.mensagem_template,
       envio_automatico: rule.envio_automatico,
@@ -266,10 +282,15 @@ export function WaFollowupRulesManager() {
     saveMutation.mutate({ rule: editingRule || undefined, form: formData });
   };
 
-  const formatPrazo = (horas: number) => {
-    if (horas < 24) return `${horas}h`;
-    const dias = Math.floor(horas / 24);
-    const resto = horas % 24;
+  const formatPrazo = (minutos: number) => {
+    if (minutos < 60) return `${minutos}min`;
+    if (minutos < 1440) {
+      const h = Math.floor(minutos / 60);
+      const m = minutos % 60;
+      return m ? `${h}h ${m}min` : `${h}h`;
+    }
+    const dias = Math.floor(minutos / 1440);
+    const resto = Math.floor((minutos % 1440) / 60);
     return resto ? `${dias}d ${resto}h` : `${dias}d`;
   };
 
@@ -374,7 +395,7 @@ export function WaFollowupRulesManager() {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mb-2">
-                        {cenario.label} · Prazo: <strong>{formatPrazo(rule.prazo_horas)}</strong>
+                        {cenario.label} · Prazo: <strong>{formatPrazo(rule.prazo_minutos)}</strong>
                         {rule.max_tentativas > 1 && ` · Até ${rule.max_tentativas} tentativas`}
                       </p>
                       {rule.descricao && (
@@ -480,15 +501,37 @@ export function WaFollowupRulesManager() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Prazo (horas)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={720}
-                  value={formData.prazo_horas}
-                  onChange={(e) => setFormData({ ...formData, prazo_horas: parseInt(e.target.value) || 24 })}
-                />
-                <p className="text-[10px] text-muted-foreground">= {formatPrazo(formData.prazo_horas)}</p>
+                <Label>Prazo</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    className="flex-1"
+                    value={minutesToBestUnit(formData.prazo_minutos).value}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value) || 1;
+                      setFormData({ ...formData, prazo_minutos: toMinutes(val, timeUnit) });
+                    }}
+                  />
+                  <Select
+                    value={timeUnit}
+                    onValueChange={(v: TimeUnit) => {
+                      const currentDisplay = minutesToBestUnit(formData.prazo_minutos).value;
+                      setTimeUnit(v);
+                      setFormData({ ...formData, prazo_minutos: toMinutes(currentDisplay, v) });
+                    }}
+                  >
+                    <SelectTrigger className="w-[110px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="minutos">Minutos</SelectItem>
+                      <SelectItem value="horas">Horas</SelectItem>
+                      <SelectItem value="dias">Dias</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <p className="text-[10px] text-muted-foreground">= {formatPrazo(formData.prazo_minutos)}</p>
               </div>
 
               <div className="space-y-2">
