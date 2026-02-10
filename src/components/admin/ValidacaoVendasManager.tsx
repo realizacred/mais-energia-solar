@@ -81,17 +81,22 @@ export function ValidacaoVendasManager() {
     fetchVendedores();
   }, []);
 
-  // Derived: unique vendors from pending items
+  // Derived: unique vendors from pending items using vendedor_id
   const vendedorNames = useMemo(() => {
-    const names = new Set(pendingItems.map((c) => c.leads?.vendedor).filter(Boolean) as string[]);
-    return Array.from(names).sort();
+    const map = new Map<string, string>();
+    pendingItems.forEach((c) => {
+      const vId = c.leads?.vendedor_id;
+      const vNome = c.leads?.vendedores?.nome || c.leads?.vendedor;
+      if (vId && vNome) map.set(vId, vNome);
+    });
+    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
   }, [pendingItems]);
 
   // Filtered items
   const filteredItems = useMemo(() => {
     let items = [...pendingItems];
     if (filterVendedor !== "all") {
-      items = items.filter((c) => c.leads?.vendedor === filterVendedor);
+      items = items.filter((c) => c.leads?.vendedor_id === filterVendedor);
     }
     if (filterPeriodo !== "all") {
       const now = new Date();
@@ -127,25 +132,39 @@ export function ValidacaoVendasManager() {
     try {
       const promises: Promise<void>[] = [];
 
-      // 1) Try to match vendedor by name and set default commission
-      const vendedorNome = cliente.leads?.vendedor;
-      if (vendedorNome) {
-        const matchedVendedor = vendedores.find(
-          (v) => v.nome.toLowerCase() === vendedorNome.toLowerCase()
-        );
+      // 1) Try to match vendedor by vendedor_id from lead
+      const vendedorId = cliente.leads?.vendedor_id;
+      if (vendedorId) {
+        const matchedVendedor = vendedores.find((v) => v.id === vendedorId);
         if (matchedVendedor) {
           setSelectedVendedorId(matchedVendedor.id);
           setPercentualComissao(
             matchedVendedor.percentual_comissao?.toString() || "2.0"
           );
         } else {
-          // Vendedor name from lead doesn't match any registered vendedor
           setSelectedVendedorId("");
           setPercentualComissao("2.0");
         }
       } else {
-        setSelectedVendedorId("");
-        setPercentualComissao("2.0");
+        // Fallback: try name matching for legacy data
+        const vendedorNome = cliente.leads?.vendedores?.nome || cliente.leads?.vendedor;
+        if (vendedorNome) {
+          const matchedVendedor = vendedores.find(
+            (v) => v.nome.toLowerCase() === vendedorNome.toLowerCase()
+          );
+          if (matchedVendedor) {
+            setSelectedVendedorId(matchedVendedor.id);
+            setPercentualComissao(
+              matchedVendedor.percentual_comissao?.toString() || "2.0"
+            );
+          } else {
+            setSelectedVendedorId("");
+            setPercentualComissao("2.0");
+          }
+        } else {
+          setSelectedVendedorId("");
+          setPercentualComissao("2.0");
+        }
       }
 
       // 2) All simulações for this lead
@@ -416,7 +435,7 @@ export function ValidacaoVendasManager() {
               <SelectContent>
                 <SelectItem value="all">Todos os vendedores</SelectItem>
                 {vendedorNames.map((v) => (
-                  <SelectItem key={v} value={v}>{v}</SelectItem>
+                  <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -467,9 +486,9 @@ export function ValidacaoVendasManager() {
                       {filteredItems.map((cliente) => {
                         const clienteValorVenda = cliente.simulacoes?.investimento_estimado || cliente.valor_projeto || 0;
                         const potencia = cliente.simulacoes?.potencia_recomendada_kwp || cliente.potencia_kwp || 0;
-                        const vendedorNome = cliente.leads?.vendedor;
-                        const vendedorFound = vendedorNome
-                          ? vendedores.some((v) => v.nome.toLowerCase() === vendedorNome.toLowerCase())
+                        const vendedorNome = cliente.leads?.vendedores?.nome || cliente.leads?.vendedor;
+                        const vendedorFound = cliente.leads?.vendedor_id
+                          ? vendedores.some((v) => v.id === cliente.leads?.vendedor_id)
                           : false;
 
                         return (
@@ -586,7 +605,7 @@ export function ValidacaoVendasManager() {
                               <p className="text-xs text-muted-foreground">{cliente.leads?.lead_code || "-"}</p>
                             </div>
                           </TableCell>
-                          <TableCell className="text-sm">{cliente.leads?.vendedor || "-"}</TableCell>
+                          <TableCell className="text-sm">{cliente.leads?.vendedores?.nome || cliente.leads?.vendedor || "-"}</TableCell>
                           <TableCell className="text-sm">
                             {cliente.cidade}{cliente.estado ? `, ${cliente.estado}` : ""}
                           </TableCell>
@@ -639,7 +658,7 @@ export function ValidacaoVendasManager() {
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Vendedor</Label>
-                  <p>{selectedCliente.leads?.vendedor || "-"}</p>
+                  <p>{selectedCliente.leads?.vendedores?.nome || selectedCliente.leads?.vendedor || "-"}</p>
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Potência</Label>
@@ -680,10 +699,10 @@ export function ValidacaoVendasManager() {
                   <span className="text-muted-foreground">Lead</span>
                   <span className="font-medium">{selectedCliente.leads?.lead_code || "-"}</span>
                 </div>
-                {selectedCliente.leads?.vendedor && (
+                {(selectedCliente.leads?.vendedores?.nome || selectedCliente.leads?.vendedor) && (
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Vendedor (lead)</span>
-                    <span className="font-medium">{selectedCliente.leads.vendedor}</span>
+                    <span className="font-medium">{selectedCliente.leads?.vendedores?.nome || selectedCliente.leads?.vendedor}</span>
                   </div>
                 )}
               </div>
@@ -715,12 +734,12 @@ export function ValidacaoVendasManager() {
                     Selecione o vendedor para gerar a comissão
                   </p>
                 )}
-                {selectedCliente.leads?.vendedor && !vendedores.some(
-                  (v) => v.nome.toLowerCase() === selectedCliente.leads!.vendedor!.toLowerCase()
+                {selectedCliente.leads?.vendedor_id && !vendedores.some(
+                  (v) => v.id === selectedCliente.leads!.vendedor_id
                 ) && (
                   <p className="text-xs text-warning flex items-center gap-1">
                     <AlertTriangle className="h-3 w-3" />
-                    O vendedor "{selectedCliente.leads.vendedor}" do lead não está cadastrado na tabela de vendedores
+                    O vendedor do lead não está mais ativo na tabela de vendedores
                   </p>
                 )}
               </div>
@@ -855,7 +874,7 @@ export function ValidacaoVendasManager() {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Vendedor</span>
-                <span className="font-medium">{selectedCliente?.leads?.vendedor || "-"}</span>
+                <span className="font-medium">{selectedCliente?.leads?.vendedores?.nome || selectedCliente?.leads?.vendedor || "-"}</span>
               </div>
             </div>
             <div className="space-y-2">

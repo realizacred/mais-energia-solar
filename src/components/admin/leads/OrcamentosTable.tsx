@@ -168,7 +168,7 @@ export function OrcamentosTable({
                   </div>
                 </TableCell>
                 <TableCell>
-                  {orc.vendedor ? (
+                  {(orc.vendedor_nome || orc.vendedor) ? (
                     <Badge
                       variant="outline"
                       className="bg-primary/10 text-primary border-primary/20 cursor-pointer hover:bg-primary/20"
@@ -177,7 +177,7 @@ export function OrcamentosTable({
                         setAssignOpen(true);
                       }}
                     >
-                      {orc.vendedor}
+                      {orc.vendedor_nome || orc.vendedor}
                     </Badge>
                   ) : (
                     <Button
@@ -321,7 +321,8 @@ export function OrcamentosTable({
           onOpenChange={setAssignOpen}
           orcamentoId={assignOrcamento.id}
           leadId={assignOrcamento.lead_id}
-          currentVendedor={assignOrcamento.vendedor}
+          currentVendedorId={assignOrcamento.vendedor_id}
+          currentVendedorNome={assignOrcamento.vendedor_nome}
           clienteNome={assignOrcamento.nome}
           onSuccess={onRefresh}
         />

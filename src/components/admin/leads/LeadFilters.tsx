@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { VendedorFilter } from "@/hooks/useLeads";
 
 interface LeadFiltersProps {
   searchTerm: string;
@@ -18,7 +19,7 @@ interface LeadFiltersProps {
   onFilterVendedorChange: (value: string) => void;
   filterEstado: string;
   onFilterEstadoChange: (value: string) => void;
-  vendedores: string[];
+  vendedores: VendedorFilter[];
   estados: string[];
   onClearFilters: () => void;
 }
@@ -78,8 +79,8 @@ export function LeadFilters({
             <SelectItem value="todos">Todos Vendedores</SelectItem>
             <SelectItem value="sem_vendedor">⚠️ Sem Vendedor</SelectItem>
             {vendedores.map((v) => (
-              <SelectItem key={v} value={v}>
-                {v}
+              <SelectItem key={v.id} value={v.id}>
+                {v.nome}
               </SelectItem>
             ))}
           </SelectContent>

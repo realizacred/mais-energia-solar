@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { handleSupabaseError } from "@/lib/errorHandler";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
+import type { VendedorFilter } from "@/hooks/useLeads";
 
 const PAGE_SIZE = 50;
 
@@ -26,7 +27,7 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       const from = page * pageSize;
       const to = from + pageSize - 1;
       
-      // Fetch orcamentos with lead data joined
+      // Fetch orcamentos with lead data + vendedor join via lead.vendedor_id
       const [orcamentosRes, statusesRes] = await Promise.all([
         supabase
           .from("orcamentos")
@@ -37,7 +38,10 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
               lead_code,
               nome,
               telefone,
-              telefone_normalized
+              telefone_normalized,
+              vendedor_id,
+              vendedor,
+              vendedores:vendedor_id(id, nome)
             )
           `, { count: "exact" })
           .order("created_at", { ascending: false })
@@ -52,36 +56,44 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       if (orcamentosRes.error) throw orcamentosRes.error;
       
       // Transform to flat display format
-      const displayItems: OrcamentoDisplayItem[] = (orcamentosRes.data || []).map((orc: any) => ({
-        id: orc.id,
-        orc_code: orc.orc_code,
-        lead_id: orc.lead_id,
-        lead_code: orc.leads?.lead_code || null,
-        nome: orc.leads?.nome || "",
-        telefone: orc.leads?.telefone || "",
-        cep: orc.cep,
-        estado: orc.estado,
-        cidade: orc.cidade,
-        bairro: orc.bairro,
-        rua: orc.rua,
-        numero: orc.numero,
-        area: orc.area,
-        tipo_telhado: orc.tipo_telhado,
-        rede_atendimento: orc.rede_atendimento,
-        media_consumo: orc.media_consumo,
-        consumo_previsto: orc.consumo_previsto,
-        arquivos_urls: orc.arquivos_urls,
-        observacoes: orc.observacoes,
-        vendedor: orc.vendedor,
-        status_id: orc.status_id,
-        visto: orc.visto,
-        visto_admin: orc.visto_admin,
-        ultimo_contato: orc.ultimo_contato,
-        proxima_acao: orc.proxima_acao,
-        data_proxima_acao: orc.data_proxima_acao,
-        created_at: orc.created_at,
-        updated_at: orc.updated_at,
-      }));
+      const displayItems: OrcamentoDisplayItem[] = (orcamentosRes.data || []).map((orc: any) => {
+        const leadVendedorNome = orc.leads?.vendedores?.nome || orc.leads?.vendedor || orc.vendedor || null;
+        const leadVendedorId = orc.leads?.vendedor_id || null;
+
+        return {
+          id: orc.id,
+          orc_code: orc.orc_code,
+          lead_id: orc.lead_id,
+          lead_code: orc.leads?.lead_code || null,
+          nome: orc.leads?.nome || "",
+          telefone: orc.leads?.telefone || "",
+          cep: orc.cep,
+          estado: orc.estado,
+          cidade: orc.cidade,
+          bairro: orc.bairro,
+          rua: orc.rua,
+          numero: orc.numero,
+          complemento: orc.complemento || null,
+          area: orc.area,
+          tipo_telhado: orc.tipo_telhado,
+          rede_atendimento: orc.rede_atendimento,
+          media_consumo: orc.media_consumo,
+          consumo_previsto: orc.consumo_previsto,
+          arquivos_urls: orc.arquivos_urls,
+          observacoes: orc.observacoes,
+          vendedor: orc.vendedor, // keep text for backward compat
+          vendedor_id: leadVendedorId,
+          vendedor_nome: leadVendedorNome,
+          status_id: orc.status_id,
+          visto: orc.visto,
+          visto_admin: orc.visto_admin,
+          ultimo_contato: orc.ultimo_contato,
+          proxima_acao: orc.proxima_acao,
+          data_proxima_acao: orc.data_proxima_acao,
+          created_at: orc.created_at,
+          updated_at: orc.updated_at,
+        };
+      });
 
       setOrcamentos(displayItems);
       setTotalCount(orcamentosRes.count || 0);
@@ -104,7 +116,6 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
   const toggleVisto = useCallback(async (orcamento: OrcamentoDisplayItem) => {
     const newVisto = !orcamento.visto_admin;
     
-    // Optimistic update
     setOrcamentos((prev) =>
       prev.map((o) => (o.id === orcamento.id ? { ...o, visto_admin: newVisto } : o))
     );
@@ -118,7 +129,6 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       if (error) throw error;
     } catch (error) {
       const appError = handleSupabaseError(error, "toggle_visto_orcamento", { entityId: orcamento.id });
-      // Revert on error
       setOrcamentos((prev) =>
         prev.map((o) => (o.id === orcamento.id ? { ...o, visto_admin: orcamento.visto_admin } : o))
       );
@@ -163,7 +173,6 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
     }
   }, [autoFetch, fetchOrcamentos]);
 
-  // Realtime subscription for orcamentos updates
   useEffect(() => {
     if (!autoFetch) return;
 
@@ -171,28 +180,28 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       .channel('orcamentos-admin-changes')
       .on(
         'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'orcamentos',
-        },
-        (payload) => {
-          console.log('Realtime update received:', payload.eventType);
-          // Refetch all data to ensure consistency with joins
-          fetchOrcamentos();
-        }
+        { event: '*', schema: 'public', table: 'orcamentos' },
+        () => { fetchOrcamentos(); }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [autoFetch, fetchOrcamentos]);
 
-  // Computed values
+  // Computed values — filter by vendedor_id
   const totalKwh = orcamentos.reduce((acc, o) => acc + o.media_consumo, 0);
   const uniqueEstados = new Set(orcamentos.map((o) => o.estado)).size;
-  const uniqueVendedores = [...new Set(orcamentos.map((o) => o.vendedor).filter(Boolean))] as string[];
+
+  const vendedorFilterMap = new Map<string, string>();
+  orcamentos.forEach((o) => {
+    if (o.vendedor_id && o.vendedor_nome) {
+      vendedorFilterMap.set(o.vendedor_id, o.vendedor_nome);
+    }
+  });
+  const uniqueVendedores: VendedorFilter[] = Array.from(vendedorFilterMap.entries())
+    .map(([id, nome]) => ({ id, nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+
   const estadosList = [...new Set(orcamentos.map((o) => o.estado))].sort();
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -204,7 +213,6 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
     fetchOrcamentos,
     toggleVisto,
     deleteOrcamento,
-    // Pagination
     page,
     setPage,
     totalCount,

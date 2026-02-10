@@ -37,6 +37,7 @@ export function LeadsView() {
         orc.estado.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (orc.orc_code && orc.orc_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (orc.lead_code && orc.lead_code.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (orc.vendedor_nome && orc.vendedor_nome.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (orc.vendedor && orc.vendedor.toLowerCase().includes(searchTerm.toLowerCase()))
     );
 
@@ -47,9 +48,9 @@ export function LeadsView() {
     }
 
     if (filterVendedor === "sem_vendedor") {
-      filtered = filtered.filter((orc) => !orc.vendedor);
+      filtered = filtered.filter((orc) => !orc.vendedor_id);
     } else if (filterVendedor !== "todos") {
-      filtered = filtered.filter((orc) => orc.vendedor === filterVendedor);
+      filtered = filtered.filter((orc) => orc.vendedor_id === filterVendedor);
     }
 
     if (filterEstado !== "todos") {
@@ -95,8 +96,8 @@ export function LeadsView() {
       consumo_previsto: orc.consumo_previsto,
       observacoes: orc.observacoes,
       arquivos_urls: orc.arquivos_urls,
-      vendedor: orc.vendedor,
-      vendedor_id: null,
+      vendedor: orc.vendedor_nome || orc.vendedor,
+      vendedor_id: orc.vendedor_id || null,
       visto: orc.visto,
       visto_admin: orc.visto_admin,
       status_id: orc.status_id,

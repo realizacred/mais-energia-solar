@@ -32,7 +32,10 @@ interface AssignVendorDialogProps {
   onOpenChange: (open: boolean) => void;
   orcamentoId: string;
   leadId: string;
-  currentVendedor: string | null;
+  /** @deprecated Display-only — use vendedor_nome or currentVendedorId */
+  currentVendedor?: string | null;
+  currentVendedorId?: string | null;
+  currentVendedorNome?: string | null;
   clienteNome: string;
   onSuccess?: () => void;
 }
@@ -43,14 +46,18 @@ export function AssignVendorDialog({
   orcamentoId,
   leadId,
   currentVendedor,
+  currentVendedorId,
+  currentVendedorNome,
   clienteNome,
   onSuccess,
 }: AssignVendorDialogProps) {
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-  const [selectedVendedor, setSelectedVendedor] = useState<string>("");
+  const [selectedVendedorId, setSelectedVendedorId] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  const displayName = currentVendedorNome || currentVendedor || null;
 
   useEffect(() => {
     if (!open) return;
@@ -70,12 +77,12 @@ export function AssignVendorDialog({
         setLoading(false);
       });
 
-    // Pre-select current vendedor
-    setSelectedVendedor(currentVendedor || "");
-  }, [open, currentVendedor]);
+    // Pre-select current vendedor by ID
+    setSelectedVendedorId(currentVendedorId || "");
+  }, [open, currentVendedorId]);
 
   const handleAssign = async () => {
-    if (!selectedVendedor) {
+    if (!selectedVendedorId) {
       toast({
         title: "Selecione um vendedor",
         description: "Escolha um vendedor para atribuir este orçamento.",
@@ -86,36 +93,32 @@ export function AssignVendorDialog({
 
     setSaving(true);
     try {
-      // Find vendedor name for backwards compatibility
-      const vendedorObj = vendedores.find(v => v.nome === selectedVendedor);
+      const vendedorObj = vendedores.find(v => v.id === selectedVendedorId);
+      const vendedorNome = vendedorObj?.nome || "";
 
-      // Update the orcamento's vendedor
+      // Update the orcamento's vendedor (text) for backward compat
       const { error: orcError } = await supabase
         .from("orcamentos")
-        .update({ vendedor: selectedVendedor })
+        .update({ vendedor: vendedorNome })
         .eq("id", orcamentoId);
 
       if (orcError) throw orcError;
 
-      // Update lead with both vendedor (text) and vendedor_id (FK)
-      const leadUpdate: Record<string, any> = {
-        vendedor: selectedVendedor,
-        distribuido_em: new Date().toISOString(),
-      };
-      if (vendedorObj) {
-        leadUpdate.vendedor_id = vendedorObj.id;
-      }
-
+      // Update lead with vendedor_id (primary) + vendedor text (backward compat)
       const { error: leadError } = await supabase
         .from("leads")
-        .update(leadUpdate)
+        .update({
+          vendedor_id: selectedVendedorId,
+          vendedor: vendedorNome,
+          distribuido_em: new Date().toISOString(),
+        })
         .eq("id", leadId);
 
       if (leadError) throw leadError;
 
       toast({
         title: "Vendedor atribuído!",
-        description: `Orçamento transferido para ${selectedVendedor}.`,
+        description: `Orçamento transferido para ${vendedorNome}.`,
       });
 
       onOpenChange(false);
@@ -182,11 +185,11 @@ export function AssignVendorDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {currentVendedor && (
+          {displayName && (
             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
               <span className="text-sm text-muted-foreground">Vendedor atual:</span>
               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                {currentVendedor}
+                {displayName}
               </Badge>
             </div>
           )}
@@ -198,13 +201,13 @@ export function AssignVendorDialog({
           ) : (
             <div className="space-y-2">
               <label className="text-sm font-medium">Novo vendedor</label>
-              <Select value={selectedVendedor} onValueChange={setSelectedVendedor}>
+              <Select value={selectedVendedorId} onValueChange={setSelectedVendedorId}>
                 <SelectTrigger className="w-full bg-background">
                   <SelectValue placeholder="Selecione um vendedor..." />
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-popover border border-border shadow-lg">
                   {vendedores.map((v) => (
-                    <SelectItem key={v.id} value={v.nome}>
+                    <SelectItem key={v.id} value={v.id}>
                       <span className="flex items-center gap-2">
                         {v.nome}
                         {v.codigo && (
@@ -220,7 +223,7 @@ export function AssignVendorDialog({
         </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
-          {currentVendedor && (
+          {displayName && (
             <Button
               variant="outline"
               onClick={handleRemoveVendor}
@@ -234,7 +237,7 @@ export function AssignVendorDialog({
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
               Cancelar
             </Button>
-            <Button onClick={handleAssign} disabled={saving || !selectedVendedor}>
+            <Button onClick={handleAssign} disabled={saving || !selectedVendedorId}>
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />

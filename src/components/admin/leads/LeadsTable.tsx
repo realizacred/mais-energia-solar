@@ -81,12 +81,12 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                 </div>
               </TableCell>
               <TableCell>
-                {lead.vendedor ? (
+                {(lead.vendedor_nome || lead.vendedor) ? (
                   <Badge
                     variant="outline"
                     className="bg-primary/10 text-primary border-primary/20"
                   >
-                    {lead.vendedor}
+                    {lead.vendedor_nome || lead.vendedor}
                   </Badge>
                 ) : (
                   <span className="text-muted-foreground text-sm">-</span>

@@ -25,6 +25,7 @@ export interface Orcamento {
   
   // Tracking
   vendedor: string | null;
+  vendedor_id: string | null;
   status_id: string | null;
   visto: boolean;
   visto_admin: boolean;
@@ -61,6 +62,7 @@ export interface OrcamentoDisplayItem {
   bairro: string | null;
   rua: string | null;
   numero: string | null;
+  complemento: string | null;
   area: string;
   tipo_telhado: string;
   rede_atendimento: string;
@@ -69,6 +71,8 @@ export interface OrcamentoDisplayItem {
   arquivos_urls: string[] | null;
   observacoes: string | null;
   vendedor: string | null;
+  vendedor_id: string | null;
+  vendedor_nome: string | null;
   status_id: string | null;
   visto: boolean;
   visto_admin: boolean;
