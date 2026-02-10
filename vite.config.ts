@@ -28,7 +28,7 @@ export default defineConfig(({ mode }) => ({
         background_color: "#ffffff",
         display: "standalone",
         orientation: "portrait",
-        start_url: "/",
+        start_url: "/inbox",
         scope: "/",
         categories: ["business", "productivity"],
         prefer_related_applications: false,
