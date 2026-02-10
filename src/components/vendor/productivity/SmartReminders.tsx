@@ -221,7 +221,7 @@ export function SmartReminders({ leads, orcamentos = [], vendedorNome, onContact
       case "scheduled":
         return "bg-primary/10 border-primary/30 text-primary";
       case "stale":
-        return "bg-amber-100 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-400";
+        return "bg-warning/10 border-warning/30 text-warning";
     }
   };
 

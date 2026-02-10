@@ -101,13 +101,13 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-green-500">
+        <Card className="border-l-4 border-l-success">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-              <TrendingUp className="w-5 h-5 text-green-600" />
+            <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-green-600">
+              <p className="text-2xl font-bold text-success">
                 {summaryStats.growth > 0 ? "+" : ""}{summaryStats.growth}%
               </p>
               <p className="text-xs text-muted-foreground">Crescimento</p>
@@ -115,25 +115,25 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-blue-500">
+        <Card className="border-l-4 border-l-info">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-blue-600">{summaryStats.conversionRate}%</p>
+              <p className="text-2xl font-bold text-info">{summaryStats.conversionRate}%</p>
               <p className="text-xs text-muted-foreground">Conversão</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-purple-500">
+        <Card className="border-l-4 border-l-accent">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-              <Users className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
+              <Users className="w-5 h-5 text-accent-foreground" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-purple-600">{summaryStats.uniqueVendors}</p>
+              <p className="text-2xl font-bold text-accent-foreground">{summaryStats.uniqueVendors}</p>
               <p className="text-xs text-muted-foreground">Vendedores</p>
             </div>
           </CardContent>
@@ -260,7 +260,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
                     <p className="text-xs text-muted-foreground">Leads Totais</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-2xl font-bold text-green-600">{summaryStats.closedLeads}</p>
+                    <p className="text-2xl font-bold text-success">{summaryStats.closedLeads}</p>
                     <p className="text-xs text-muted-foreground">Convertidos</p>
                   </div>
                 </div>
@@ -270,7 +270,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span>Meta de Conversão</span>
-                      <span className={summaryStats.conversionRate >= 20 ? "text-green-600" : "text-yellow-600"}>
+                      <span className={summaryStats.conversionRate >= 20 ? "text-success" : "text-warning"}>
                         20% {summaryStats.conversionRate >= 20 ? "✓" : ""}
                       </span>
                     </div>

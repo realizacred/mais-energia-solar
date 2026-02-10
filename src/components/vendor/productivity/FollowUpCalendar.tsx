@@ -115,18 +115,18 @@
              "p-3 rounded-lg border",
              overdueActions.length > 0 
                ? "bg-destructive/10 border-destructive/20" 
-               : "bg-green-50 border-green-200"
-           )}>
-             <div className="flex items-center gap-2">
-               <AlertTriangle className={cn(
-                 "h-4 w-4",
-                 overdueActions.length > 0 ? "text-destructive" : "text-green-600"
+                : "bg-success/10 border-success/20"
+            )}>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className={cn(
+                  "h-4 w-4",
+                  overdueActions.length > 0 ? "text-destructive" : "text-success"
                )} />
                <span className="text-sm font-medium">Atrasadas</span>
              </div>
              <p className={cn(
                "text-2xl font-bold mt-1",
-               overdueActions.length > 0 ? "text-destructive" : "text-green-600"
+               overdueActions.length > 0 ? "text-destructive" : "text-success"
              )}>
                {overdueActions.length}
              </p>
@@ -214,7 +214,7 @@
                          <Button
                            size="icon"
                            variant="ghost"
-                           className="h-8 w-8 text-green-600"
+                           className="h-8 w-8 text-success"
                            onClick={() => openWhatsApp(action.lead)}
                          >
                            <MessageCircle className="h-4 w-4" />

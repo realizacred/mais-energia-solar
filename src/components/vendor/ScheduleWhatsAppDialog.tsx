@@ -218,7 +218,7 @@ export function ScheduleWhatsAppDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-green-600" />
+            <MessageCircle className="h-5 w-5 text-success" />
             Enviar WhatsApp
           </DialogTitle>
           <DialogDescription>
@@ -318,7 +318,7 @@ export function ScheduleWhatsAppDialog({
             <Button 
               onClick={handleSendNow} 
               disabled={!message || sending}
-              className="w-full sm:w-auto bg-green-600 hover:bg-green-700"
+              className="w-full sm:w-auto bg-success hover:bg-success/90 text-success-foreground"
             >
               {sending ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
