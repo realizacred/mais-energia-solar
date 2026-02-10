@@ -64,7 +64,7 @@ export default function MessagingApp() {
   if (!user) return null;
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-background">
+    <div className="h-[100dvh] flex flex-col bg-background w-full max-w-full overflow-x-hidden">
       {/* Main content */}
       <div className="flex-1 min-h-0">
         {activeTab === "messages" && (
@@ -83,7 +83,7 @@ export default function MessagingApp() {
       </div>
 
       {/* Bottom navigation */}
-      <nav className="shrink-0 border-t border-border/40 bg-card/95 backdrop-blur-sm safe-area-bottom">
+      <nav className="shrink-0 border-t border-border/40 bg-card safe-area-bottom" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex">
           <button
             onClick={() => setActiveTab("messages")}
