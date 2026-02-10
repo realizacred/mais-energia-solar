@@ -53,10 +53,10 @@ export default function MessagingApp() {
     };
   }, []);
 
-  // Auth guard
+  // Auth guard — redirect to /auth with from=app so we come back here
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/auth", { replace: true });
+      navigate("/auth?from=app", { replace: true });
     }
   }, [user, loading, navigate]);
 
@@ -68,7 +68,7 @@ export default function MessagingApp() {
       {/* Main content */}
       <div className="flex-1 min-h-0">
         {activeTab === "messages" && (
-          <WaInbox vendorMode vendorUserId={user.id} />
+          <WaInbox vendorMode vendorUserId={user.id} showCompactStats />
         )}
         {activeTab === "settings" && (
           <div className="h-full overflow-y-auto">

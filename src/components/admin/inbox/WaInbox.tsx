@@ -18,9 +18,10 @@ import type { WaConversation } from "@/hooks/useWaInbox";
 interface WaInboxProps {
   vendorMode?: boolean;
   vendorUserId?: string | null;
+  showCompactStats?: boolean;
 }
 
-export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
+export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = false }: WaInboxProps) {
   // Filters
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("open");
@@ -340,6 +341,9 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
 
       {/* Stats - only in admin mode */}
       {!vendorMode && <WaInboxStats conversations={allConversations} />}
+
+      {/* Compact stats for vendor/mobile mode */}
+      {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
 
       {/* Follow-up Widget */}
       {!vendorMode && <WaFollowupWidget />}
