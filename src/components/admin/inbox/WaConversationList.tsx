@@ -43,6 +43,7 @@ interface WaConversationListProps {
   vendedores: { id: string; nome: string; user_id: string | null }[];
   instances: WaInstance[];
   tags: WaTag[];
+  hideAssignedFilter?: boolean;
 }
 
 export function WaConversationList({
@@ -63,6 +64,7 @@ export function WaConversationList({
   vendedores,
   instances,
   tags,
+  hideAssignedFilter = false,
 }: WaConversationListProps) {
   return (
     <div className="flex flex-col h-full border-r border-border/30 bg-card/50">
@@ -104,20 +106,22 @@ export function WaConversationList({
               </SelectItem>
             </SelectContent>
           </Select>
-          <Select value={filterAssigned} onValueChange={onFilterAssignedChange}>
-            <SelectTrigger className="h-7 text-[11px] flex-1 border-border/30">
-              <SelectValue placeholder="Atribuído" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="unassigned">Sem atribuição</SelectItem>
-              {vendedores.map((v) => (
-                <SelectItem key={v.id} value={v.user_id || v.id}>
-                  {v.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {!hideAssignedFilter && (
+            <Select value={filterAssigned} onValueChange={onFilterAssignedChange}>
+              <SelectTrigger className="h-7 text-[11px] flex-1 border-border/30">
+                <SelectValue placeholder="Atribuído" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="unassigned">Sem atribuição</SelectItem>
+                {vendedores.map((v) => (
+                  <SelectItem key={v.id} value={v.user_id || v.id}>
+                    {v.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         {instances.length > 1 && (
           <Select value={filterInstance} onValueChange={onFilterInstanceChange}>
@@ -251,12 +255,16 @@ export function WaConversationList({
 
                       {/* Metadata badges */}
                       <div className="flex items-center gap-1 flex-wrap">
-                        {conv.vendedor_nome && (
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 bg-accent/30 border-accent/20 text-accent-foreground/80">
-                            <User className="h-2.5 w-2.5" />
-                            {conv.vendedor_nome}
-                          </Badge>
-                        )}
+                        {/* Responsável / Assigned to */}
+                        {(() => {
+                          const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
+                          return (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 bg-accent/30 border-accent/20 text-accent-foreground/80">
+                              <User className="h-2.5 w-2.5" />
+                              {responsible ? responsible.nome : "Não atribuído"}
+                            </Badge>
+                          );
+                        })()}
                         {conv.lead_nome && (
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 bg-primary/5 border-primary/20 text-primary/80">
                             <Link2 className="h-2.5 w-2.5" />

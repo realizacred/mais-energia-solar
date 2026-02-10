@@ -517,45 +517,41 @@ export function WaChatPanel({
               <h3 className="text-sm font-semibold text-foreground truncate">
                 {conversation.cliente_nome || conversation.cliente_telefone}
               </h3>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>{conversation.cliente_telefone}</span>
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground flex-wrap">
+                <span className="truncate max-w-[120px]">{conversation.cliente_telefone}</span>
                 {conversation.instance_name && (
-                  <>
-                    <span>·</span>
-                    <span className="flex items-center gap-0.5">
-                      <Smartphone className="h-3 w-3" />
-                      {conversation.instance_name}
-                    </span>
-                  </>
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 border-border/50 shrink-0">
+                    <Smartphone className="h-2.5 w-2.5" />
+                    {conversation.instance_name}
+                  </Badge>
                 )}
-                {assignedVendedor && (
-                  <>
-                    <span>·</span>
-                    <span className="flex items-center gap-1">
-                      <User className="h-3 w-3" />
-                      {assignedVendedor.nome}
-                    </span>
-                  </>
+                {assignedVendedor ? (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 bg-accent/30 border-accent/20 text-accent-foreground/80 shrink-0">
+                    <User className="h-2.5 w-2.5" />
+                    {assignedVendedor.nome}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 border-border/50 text-muted-foreground shrink-0">
+                    <Users className="h-2.5 w-2.5" />
+                    Equipe
+                  </Badge>
                 )}
                 {conversation.lead_id && (
-                  <>
-                    <span>·</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge
-                          variant="outline"
-                          className="text-[9px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors gap-0.5"
-                          onClick={() => setShowLeadInfo(true)}
-                        >
-                          <Link2 className="h-2.5 w-2.5" />
-                          {conversation.lead_nome || "Lead vinculado"}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">
-                        <p>Clique para ver detalhes do lead</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge
+                        variant="outline"
+                        className="text-[9px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors gap-0.5 shrink-0"
+                        onClick={() => setShowLeadInfo(true)}
+                      >
+                        <Link2 className="h-2.5 w-2.5" />
+                        {conversation.lead_nome || "Lead"}
+                      </Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">
+                      <p>Clique para ver detalhes do lead</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
             </div>

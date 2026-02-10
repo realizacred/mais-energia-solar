@@ -376,6 +376,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               vendedores={vendedores}
               instances={instances}
               tags={tags}
+              hideAssignedFilter={vendorMode}
             />
           </div>
 
@@ -431,6 +432,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 vendedores={vendedores}
                 instances={instances}
                 tags={tags}
+                hideAssignedFilter={vendorMode}
               />
             )}
           </div>
