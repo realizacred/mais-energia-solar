@@ -14,7 +14,9 @@ export interface PendingValidation {
   valor_projeto: number | null;
   leads?: {
     vendedor: string | null;
+    vendedor_id: string | null;
     lead_code: string | null;
+    vendedores?: { id: string; nome: string } | null;
   } | null;
   simulacoes?: {
     investimento_estimado: number | null;
@@ -34,8 +36,10 @@ export interface ValidationHistory {
   lead_id: string | null;
   leads?: {
     vendedor: string | null;
+    vendedor_id: string | null;
     lead_code: string | null;
     status_id: string | null;
+    vendedores?: { id: string; nome: string } | null;
   } | null;
 }
 
@@ -88,7 +92,7 @@ export function usePendingValidations() {
           simulacao_aceita_id,
           potencia_kwp,
           valor_projeto,
-          leads(vendedor, lead_code),
+          leads(vendedor, vendedor_id, lead_code, vendedores:vendedor_id(id, nome)),
           simulacoes:simulacao_aceita_id(investimento_estimado, potencia_recomendada_kwp)
         `)
         .in("lead_id", leadIds)
@@ -143,7 +147,7 @@ export function usePendingValidations() {
           valor_projeto,
           potencia_kwp,
           lead_id,
-          leads(vendedor, lead_code, status_id)
+          leads(vendedor, vendedor_id, lead_code, status_id, vendedores:vendedor_id(id, nome))
         `)
         .in("lead_id", leadIds)
         .order("created_at", { ascending: false })

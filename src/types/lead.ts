@@ -32,8 +32,10 @@ export interface Lead {
   distribuido_em: string | null;
   created_at: string;
   updated_at: string;
-  /** Joined from vendedores table */
+  /** Joined from vendedores table via vendedor_id */
   vendedor_nome?: string;
+  /** @deprecated Use vendedor_id + vendedor_nome instead */
+  _vendedor_text_fallback?: string;
 }
 
 export interface LeadStatus {

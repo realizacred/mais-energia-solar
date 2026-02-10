@@ -11,6 +11,11 @@ interface UseLeadsOptions {
   pageSize?: number;
 }
 
+export interface VendedorFilter {
+  id: string;
+  nome: string;
+}
+
 export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOptions = {}) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
@@ -28,7 +33,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       const [leadsRes, statusesRes] = await Promise.all([
         supabase
           .from("leads")
-          .select("*", { count: "exact" })
+          .select("*, vendedores:vendedor_id(id, nome)", { count: "exact" })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .range(from, to),
@@ -39,7 +44,15 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       ]);
 
       if (leadsRes.error) throw leadsRes.error;
-      setLeads(leadsRes.data || []);
+
+      // Resolve vendedor_nome from join, fallback to vendedor text
+      const enrichedLeads: Lead[] = (leadsRes.data || []).map((l: any) => ({
+        ...l,
+        vendedor_nome: l.vendedores?.nome || l.vendedor || null,
+        vendedores: undefined, // clean up join artifact
+      }));
+
+      setLeads(enrichedLeads);
       setTotalCount(leadsRes.count || 0);
       
       if (statusesRes.data) {
@@ -119,10 +132,21 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
     }
   }, [autoFetch, fetchLeads]);
 
-  // Computed values
+  // Computed values — use vendedor_id as source of truth for filters
   const totalKwh = leads.reduce((acc, l) => acc + l.media_consumo, 0);
   const uniqueEstados = new Set(leads.map((l) => l.estado)).size;
-  const uniqueVendedores = [...new Set(leads.map((l) => l.vendedor).filter(Boolean))] as string[];
+
+  // Build vendedor filter options from vendedor_id + resolved name
+  const vendedorFilterMap = new Map<string, string>();
+  leads.forEach((l) => {
+    if (l.vendedor_id && l.vendedor_nome) {
+      vendedorFilterMap.set(l.vendedor_id, l.vendedor_nome);
+    }
+  });
+  const uniqueVendedores: VendedorFilter[] = Array.from(vendedorFilterMap.entries())
+    .map(([id, nome]) => ({ id, nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+
   const estadosList = [...new Set(leads.map((l) => l.estado))].sort();
 
   const totalPages = Math.ceil(totalCount / pageSize);

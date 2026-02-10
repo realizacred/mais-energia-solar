@@ -107,9 +107,9 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
               <div>
                 <p className="text-xs text-muted-foreground">Vendedor</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  {orcamento.vendedor ? (
+                  {(orcamento.vendedor_nome || orcamento.vendedor) ? (
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                      {orcamento.vendedor}
+                      {orcamento.vendedor_nome || orcamento.vendedor}
                     </Badge>
                   ) : (
                     <span className="text-sm text-muted-foreground">Sem vendedor</span>
@@ -121,7 +121,7 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
                     onClick={() => setAssignOpen(true)}
                   >
                     <UserPlus className="w-3 h-3" />
-                    {orcamento.vendedor ? "Trocar" : "Atribuir"}
+                    {(orcamento.vendedor_nome || orcamento.vendedor) ? "Trocar" : "Atribuir"}
                   </Button>
                 </div>
               </div>
@@ -220,7 +220,8 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
         onOpenChange={setAssignOpen}
         orcamentoId={orcamento.id}
         leadId={orcamento.lead_id}
-        currentVendedor={orcamento.vendedor}
+        currentVendedorId={orcamento.vendedor_id}
+        currentVendedorNome={orcamento.vendedor_nome}
         clienteNome={orcamento.nome}
         onSuccess={() => {
           onRefresh?.();
