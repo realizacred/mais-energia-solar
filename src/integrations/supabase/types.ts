@@ -7062,6 +7062,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_wa_conversation: {
+        Args: { _conversation_id: string; _user_id?: string }
+        Returns: boolean
+      }
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
       check_rate_limit: {
         Args: {
