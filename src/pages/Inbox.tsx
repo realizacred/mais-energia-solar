@@ -37,7 +37,7 @@ export default function Inbox() {
   if (!user) return null;
 
   return (
-    <div className="h-[100dvh] flex flex-col bg-background">
+    <div className="h-[100dvh] flex flex-col bg-background w-full max-w-full overflow-x-hidden">
       {/* Floating settings button */}
       <div className="absolute top-2 right-2 z-50">
         <Sheet>
