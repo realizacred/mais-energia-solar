@@ -147,10 +147,16 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         description: "Inbox de atendimento",
       },
       {
+        id: "followup-queue",
+        title: "Fila de Follow-ups",
+        icon: CalendarClock,
+        description: "Acompanhar follow-ups pendentes",
+      },
+      {
         id: "followup-wa",
-        title: "Follow-up WhatsApp",
+        title: "Regras de Follow-up",
         icon: Bell,
-        description: "Regras de acompanhamento",
+        description: "Configurar regras de acompanhamento",
       },
       { id: "wa-etiquetas", title: "Etiquetas WhatsApp", icon: Tag, description: "Tags para conversas" },
     ],

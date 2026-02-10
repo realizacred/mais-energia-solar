@@ -58,6 +58,7 @@ const DistributionConfig = lazy(() => import("@/components/admin/distribution").
 const SlaBreachDashboard = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.SlaBreachDashboard })));
 const MotivoPerdaManager = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.MotivoPerdaManager })));
 const WaFollowupRulesManager = lazy(() => import("@/components/admin/WaFollowupRulesManager").then(m => ({ default: m.WaFollowupRulesManager })));
+const WaFollowupQueuePage = lazy(() => import("@/components/admin/WaFollowupQueuePage").then(m => ({ default: m.WaFollowupQueuePage })));
 const WaInstancesManager = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
 const WaTagsManager = lazy(() => import("@/components/admin/inbox/WaTagsManager").then(m => ({ default: m.WaTagsManager })));
 const InstalarApp = lazy(() => import("@/pages/Instalar"));
@@ -113,7 +114,8 @@ const TAB_TITLES: Record<string, string> = {
   "wa-instances": "Instâncias WhatsApp",
   release: "Release Notes",
   propostas: "Propostas Comerciais",
-  "followup-wa": "Follow-up WhatsApp",
+  "followup-wa": "Regras de Follow-up",
+  "followup-queue": "Fila de Follow-ups",
   "wa-etiquetas": "Etiquetas WhatsApp",
   "links-instalacao": "Links & Instalação",
 };
@@ -288,6 +290,7 @@ export default function Admin() {
                 <Route path="inbox" element={<WaInbox />} />
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
+                <Route path="followup-queue" element={<WaFollowupQueuePage />} />
                 <Route path="wa-etiquetas" element={<WaTagsManager />} />
                 <Route path="validacao" element={<ValidacaoVendasManager />} />
                 <Route path="tarefas" element={<TasksSlaDashboard />} />
