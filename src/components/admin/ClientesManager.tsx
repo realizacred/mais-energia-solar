@@ -33,7 +33,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users,
   Plus,
-  Search,
   Loader2,
   Edit,
   Trash2,
@@ -48,6 +47,7 @@ import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
+import { PageHeader, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
 
 interface Cliente {
   id: string;
@@ -333,28 +333,30 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      <PageHeader
+        icon={Users}
+        title="Clientes"
+        description="Gerencie os clientes da sua base"
+        actions={
+          <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+            <Plus className="h-4 w-4" />
+            Novo Cliente
+          </Button>
+        }
+      />
+
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, telefone ou CPF..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Buscar por nome, telefone ou CPF..."
+        />
 
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) resetForm();
         }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Cliente
-            </Button>
-          </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -631,16 +633,14 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <LoadingState />
       ) : filteredClientes.length === 0 ? (
-        <Card className="py-12">
-          <CardContent className="text-center text-muted-foreground">
-            <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Nenhum cliente encontrado</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Users}
+          title="Nenhum cliente encontrado"
+          description="Cadastre um novo cliente para começar"
+          action={{ label: "Novo Cliente", onClick: () => setDialogOpen(true), icon: Plus }}
+        />
       ) : (
         <Card>
           <Table>

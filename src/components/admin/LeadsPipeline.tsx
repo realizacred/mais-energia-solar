@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, LayoutGrid, BarChart3, Settings2 } from "lucide-react";
+import { LayoutGrid, BarChart3, Settings2 } from "lucide-react";
 import { subDays, isAfter } from "date-fns";
 import { PipelineFilters, KanbanCard, PipelineAutomations, EnhancedFunnel } from "./pipeline";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
+import { PageHeader, LoadingState } from "@/components/ui-kit";
  
  interface LeadStatus {
    id: string;
@@ -231,17 +232,16 @@ import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
     };
  
    if (loading) {
-     return (
-       <Card>
-         <CardContent className="flex items-center justify-center py-12">
-           <Loader2 className="w-8 h-8 animate-spin text-primary" />
-         </CardContent>
-       </Card>
-     );
+     return <LoadingState message="Carregando pipeline..." />;
    }
  
    return (
-     <div className="space-y-4">
+     <div className="space-y-6">
+       <PageHeader
+         icon={LayoutGrid}
+         title="Pipeline de Vendas"
+         description="Acompanhe e gerencie seus leads no funil de vendas"
+       />
        <Card>
          <CardContent className="pt-4">
            <PipelineFilters

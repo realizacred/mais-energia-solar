@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -34,7 +34,6 @@ import { Progress } from "@/components/ui/progress";
 import {
   DollarSign,
   Plus,
-  Search,
   Loader2,
   Edit,
   Trash2,
@@ -52,6 +51,7 @@ import { ParcelasManager } from "./recebimentos/ParcelasManager";
 import { RelatoriosFinanceiros } from "./recebimentos/RelatoriosFinanceiros";
 import { CalendarioPagamentos } from "./recebimentos/CalendarioPagamentos";
 import { ParcelasAtrasadasWidget } from "./widgets/ParcelasAtrasadasWidget";
+import { PageHeader, StatCard, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
 
 interface Cliente {
   id: string;
@@ -92,10 +92,10 @@ const FORMAS_PAGAMENTO = [
 ];
 
 const STATUS_COLORS: Record<string, string> = {
-  pendente: "bg-yellow-500",
-  parcial: "bg-blue-500",
-  quitado: "bg-green-500",
-  cancelado: "bg-red-500",
+  pendente: "bg-warning/15 text-warning border-warning/20",
+  parcial: "bg-info/15 text-info border-info/20",
+  quitado: "bg-success/15 text-success border-success/20",
+  cancelado: "bg-destructive/15 text-destructive border-destructive/20",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -291,19 +291,25 @@ export function RecebimentosManager() {
 
   return (
     <div className="space-y-6">
+      <PageHeader
+        icon={Receipt}
+        title="Recebimentos"
+        description="Gerencie pagamentos, parcelas e controle financeiro dos projetos"
+      />
+
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="lista" className="gap-2">
             <Receipt className="h-4 w-4" />
-            Recebimentos
+            <span className="hidden sm:inline">Recebimentos</span>
           </TabsTrigger>
           <TabsTrigger value="relatorios" className="gap-2">
             <BarChart3 className="h-4 w-4" />
-            Relatórios
+            <span className="hidden sm:inline">Relatórios</span>
           </TabsTrigger>
           <TabsTrigger value="calendario" className="gap-2">
             <CalendarDays className="h-4 w-4" />
-            Calendário
+            <span className="hidden sm:inline">Calendário</span>
           </TabsTrigger>
         </TabsList>
 
@@ -311,38 +317,28 @@ export function RecebimentosManager() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <ParcelasAtrasadasWidget />
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Recebido</CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-primary">{formatCurrency(totalRecebido)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">A Receber</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-muted-foreground">{formatCurrency(totalPendente)}</div>
-          </CardContent>
-        </Card>
+        <StatCard
+          icon={Receipt}
+          label="Total Recebido"
+          value={formatCurrency(totalRecebido)}
+          color="success"
+        />
+        <StatCard
+          icon={DollarSign}
+          label="A Receber"
+          value={formatCurrency(totalPendente)}
+          color="warning"
+        />
       </div>
 
       {/* Filters and Actions */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between">
         <div className="flex flex-1 gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por cliente..."
+          <SearchInput
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9"
+              onChange={setSearchTerm}
+              placeholder="Buscar por cliente..."
             />
-          </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-40">
               <SelectValue placeholder="Status" />
@@ -477,19 +473,13 @@ export function RecebimentosManager() {
 
       {/* Table */}
       {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <LoadingState />
       ) : filteredRecebimentos.length === 0 ? (
-        <Card className="py-12">
-          <CardContent className="text-center text-muted-foreground">
-            <Receipt className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Nenhum recebimento encontrado</p>
-            {clientes.length === 0 && (
-              <p className="text-sm mt-2">Cadastre um cliente primeiro</p>
-            )}
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Receipt}
+          title="Nenhum recebimento encontrado"
+          description={clientes.length === 0 ? "Cadastre um cliente primeiro" : undefined}
+        />
       ) : (
         <Card>
           <Table>
@@ -539,7 +529,7 @@ export function RecebimentosManager() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge className={`${STATUS_COLORS[recebimento.status]} text-white`}>
+                      <Badge variant="outline" className={STATUS_COLORS[recebimento.status]}>
                         {STATUS_LABELS[recebimento.status] || recebimento.status}
                       </Badge>
                     </TableCell>

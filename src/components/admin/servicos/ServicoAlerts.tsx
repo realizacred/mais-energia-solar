@@ -73,20 +73,20 @@ export function ServicoAlerts({ servicos }: ServicoAlertsProps) {
       )}
 
       {servicosAmanha.length > 0 && (
-        <Alert className="border-blue-500/50 bg-blue-500/10">
-          <Clock className="h-4 w-4 text-blue-500" />
-          <AlertTitle className="text-blue-700 dark:text-blue-400">Serviços para Amanhã</AlertTitle>
-          <AlertDescription className="text-blue-600 dark:text-blue-300">
+        <Alert className="border-info/50 bg-info/10">
+          <Clock className="h-4 w-4 text-info" />
+          <AlertTitle className="text-info">Serviços para Amanhã</AlertTitle>
+          <AlertDescription className="text-info/80">
             <strong>{servicosAmanha.length}</strong> serviço(s) agendado(s) para amanhã.
           </AlertDescription>
         </Alert>
       )}
 
       {pendentesValidacao.length > 0 && (
-        <Alert className="border-purple-500/50 bg-purple-500/10">
-          <AlertTriangle className="h-4 w-4 text-purple-500" />
-          <AlertTitle className="text-purple-700 dark:text-purple-400">Pendentes de Validação</AlertTitle>
-          <AlertDescription className="text-purple-600 dark:text-purple-300">
+        <Alert className="border-secondary/50 bg-secondary/10">
+          <AlertTriangle className="h-4 w-4 text-secondary" />
+          <AlertTitle className="text-secondary">Pendentes de Validação</AlertTitle>
+          <AlertDescription className="text-secondary/80">
             <strong>{pendentesValidacao.length}</strong> serviço(s) concluído(s) aguardando validação.
           </AlertDescription>
         </Alert>
