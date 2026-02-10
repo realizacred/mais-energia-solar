@@ -29,6 +29,7 @@ import {
   PanelRightOpen,
   PanelRightClose,
   Upload,
+  MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -191,13 +192,13 @@ export function WaChatPanel({
 
   if (!conversation) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-muted/10">
-        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-          <Phone className="h-8 w-8 text-primary/50" />
+      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-muted/5 to-muted/20">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-success/15 to-success/5 border border-success/10 flex items-center justify-center mb-5 shadow-lg shadow-success/5">
+          <MessageCircle className="h-9 w-9 text-success/60" />
         </div>
-        <h3 className="text-lg font-semibold text-foreground/70">Central WhatsApp</h3>
-        <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-          Selecione uma conversa para visualizar as mensagens e interagir.
+        <h3 className="text-lg font-semibold text-foreground/70">Suas Conversas</h3>
+        <p className="text-sm text-muted-foreground mt-1.5 max-w-xs leading-relaxed">
+          Selecione uma conversa ao lado para começar a conversar.
         </p>
       </div>
     );
@@ -272,12 +273,12 @@ export function WaChatPanel({
           )}
 
           <div
-            className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+            className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm leading-relaxed shadow-sm ${
               isNote
                 ? "bg-warning/10 border border-warning/30 text-foreground italic"
                 : isOut
-                ? "bg-primary text-primary-foreground rounded-br-md"
-                : "bg-muted rounded-bl-md text-foreground"
+                ? "bg-primary text-primary-foreground rounded-br-md shadow-primary/10"
+                : "bg-card border border-border/30 rounded-bl-md text-foreground"
             }`}
           >
             {/* Quoted message */}
@@ -410,9 +411,9 @@ export function WaChatPanel({
     <div className="flex-1 flex min-w-0">
       <div className="flex-1 flex flex-col min-w-0">
         {/* Chat Header */}
-        <div className="px-4 py-3 border-b border-border/40 bg-card/50 flex items-center justify-between gap-3">
+        <div className="px-4 py-2.5 border-b border-border/30 bg-card flex items-center justify-between gap-3 shadow-xs">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-primary overflow-hidden">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-primary overflow-hidden shadow-sm">
               {conversation.profile_picture_url ? (
                 <img src={conversation.profile_picture_url} alt="" className="w-full h-full object-cover" />
               ) : conversation.is_group ? (
@@ -560,7 +561,7 @@ export function WaChatPanel({
 
         {/* Messages with virtualization */}
         <div
-          className="flex-1 relative"
+          className="flex-1 relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}

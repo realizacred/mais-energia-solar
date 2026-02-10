@@ -89,11 +89,11 @@ function SidebarItemButton({
             : item.title
         }
         className={`
-          transition-all duration-200 rounded-lg mx-1 my-px group/btn relative
+          transition-all duration-200 rounded-lg mx-1 my-px group/btn relative text-[13px]
           ${
             isActive
-              ? `${section.activeClass} shadow-sm`
-              : `text-sidebar-foreground/60 ${section.hoverClass} hover:text-sidebar-foreground`
+              ? `${section.activeClass} shadow-sm font-semibold`
+              : `text-sidebar-foreground/55 ${section.hoverClass} hover:text-sidebar-foreground/90`
           }
         `}
       >
@@ -236,14 +236,14 @@ function SidebarSectionGroup({
 
   return (
     <Collapsible defaultOpen={shouldBeOpen} className="group/collapsible">
-      <SidebarGroup className="mb-0 px-2 py-1">
+      <SidebarGroup className="mb-0 px-2 py-0.5">
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             className={`
-              text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2.5
+              text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2
               flex items-center gap-2 cursor-pointer select-none
               transition-all duration-200
-              hover:bg-accent/50 rounded-md
+              hover:bg-accent/40 rounded-lg
               ${section.labelClass}
             `}
           >
@@ -257,8 +257,8 @@ function SidebarSectionGroup({
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1 opacity-80">{section.label}</span>
-                <ChevronDown className="h-3 w-3 opacity-40 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                <span className="flex-1 opacity-70">{section.label}</span>
+                <ChevronDown className="h-3 w-3 opacity-30 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
           </SidebarGroupLabel>
@@ -436,8 +436,8 @@ export function AdminSidebar({
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/20">
-      <SidebarHeader className="border-b border-border/20 p-3">
+    <Sidebar collapsible="icon" className="border-r border-border/15 bg-sidebar-background/80 backdrop-blur-sm">
+      <SidebarHeader className="border-b border-border/15 px-3 py-3.5">
         <Link
           to="/"
           className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
@@ -450,7 +450,7 @@ export function AdminSidebar({
             <div className="flex items-center gap-3">
               <img src={logo} alt="Logo" className="h-8 w-auto" />
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">
                   Admin
                 </span>
               </div>
@@ -459,7 +459,7 @@ export function AdminSidebar({
         </Link>
       </SidebarHeader>
 
-      <SidebarContent className="scrollbar-thin py-1.5 space-y-0.5">
+      <SidebarContent className="scrollbar-thin py-2 space-y-0.5">
         {favorites.length > 0 && (
           <>
             <FavoritesSection
@@ -486,10 +486,10 @@ export function AdminSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/20 p-3 space-y-2">
+      <SidebarFooter className="border-t border-border/15 p-3 space-y-2">
         {!collapsed && userEmail && (
-          <div className="px-3 py-2 rounded-lg bg-muted/50 border border-border/20">
-            <p className="text-[11px] text-muted-foreground truncate font-medium">
+          <div className="px-3 py-2 rounded-lg bg-muted/30 border border-border/15">
+            <p className="text-[11px] text-muted-foreground/80 truncate font-medium">
               {userEmail}
             </p>
           </div>
