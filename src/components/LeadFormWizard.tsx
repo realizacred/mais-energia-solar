@@ -356,6 +356,23 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     vendedor: vendedorNome || "Site",
   });
 
+  // Handler for when form validation fails (fields have errors but user can't see them)
+  const onFormInvalid = (fieldErrors: Record<string, any>) => {
+    console.warn("[LeadFormWizard] Form validation failed:", Object.keys(fieldErrors));
+    // Mark ALL fields as touched so validation errors become visible
+    const allFieldNames = Object.keys(fieldErrors);
+    setTouchedFields(prev => {
+      const next = new Set(prev);
+      allFieldNames.forEach(f => next.add(f));
+      return next;
+    });
+    toast({
+      title: "Campos obrigatórios",
+      description: "Preencha todos os campos obrigatórios para enviar.",
+      variant: "destructive",
+    });
+  };
+
   const onSubmit = async (data: LeadFormData) => {
     // Check for bots
     const honeypotCheck = validateHoneypot();
@@ -742,7 +759,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           remainingAttempts={remainingAttempts}
         />
 
-        <form onSubmit={form.handleSubmit(onSubmit)} onKeyDown={handleKeyDown}>
+        <form onSubmit={form.handleSubmit(onSubmit, onFormInvalid)} onKeyDown={handleKeyDown}>
           {/* Honeypot field - invisible to users */}
           <HoneypotField value={honeypotValue} onChange={handleHoneypotChange} />
 
