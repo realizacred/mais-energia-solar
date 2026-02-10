@@ -250,7 +250,7 @@ export default function VendedorPortal() {
           </TabsContent>
 
           {/* WhatsApp Tab */}
-          <TabsContent value="whatsapp" className="space-y-4 sm:space-y-6 mt-4">
+          <TabsContent value="whatsapp" className="mt-4" style={{ height: "calc(100vh - 200px)", minHeight: "500px" }}>
             <WaInbox vendorMode vendorUserId={vendedor?.user_id || undefined} />
           </TabsContent>
 
