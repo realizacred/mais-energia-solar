@@ -311,35 +311,40 @@ export function WaInbox({ vendorMode = false, vendorUserId }: WaInboxProps) {
   };
 
   return (
-    <div className="space-y-4" data-wa-inbox-active>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-success/20 to-success/5 border border-success/10">
-            <MessageCircle className="h-6 w-6 text-success" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">
-              {vendorMode ? "Meu WhatsApp" : "Central WhatsApp"}
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {instances.length > 0 && `${instances.filter(i => i.status === "connected").length}/${instances.length} instâncias online`}
-            </p>
+    <div className={`${vendorMode ? "flex flex-col h-full" : "space-y-4"}`} data-wa-inbox-active>
+      {/* Header — hidden in vendor/standalone mode */}
+      {!vendorMode && (
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-success/20 to-success/5 border border-success/10">
+              <MessageCircle className="h-6 w-6 text-success" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-foreground">Central WhatsApp</h2>
+              <p className="text-sm text-muted-foreground">
+                {instances.length > 0 && `${instances.filter(i => i.status === "connected").length}/${instances.length} instâncias online`}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Stats - fetches its own global data */}
-      <WaInboxStats />
+      {/* Stats - only in admin mode */}
+      {!vendorMode && <WaInboxStats />}
 
       {/* Follow-up Widget */}
       {!vendorMode && <WaFollowupWidget />}
 
       {/* Chat Layout */}
-      <div className="bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden" style={{ height: "calc(100vh - 300px)", minHeight: "500px" }}>
+      <div
+        className={`bg-card rounded-xl border border-border/40 shadow-sm overflow-hidden ${
+          vendorMode ? "flex-1 min-h-0" : ""
+        }`}
+        style={vendorMode ? undefined : { height: "calc(100vh - 300px)", minHeight: "500px" }}
+      >
         <div className="flex h-full">
           {/* Sidebar - Conversations (Desktop) */}
-          <div className="w-[360px] shrink-0 hidden md:flex flex-col">
+          <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col`}>
             <WaConversationList
               conversations={filteredConvs}
               loading={convsLoading}

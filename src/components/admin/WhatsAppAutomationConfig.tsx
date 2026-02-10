@@ -220,7 +220,7 @@ export function WhatsAppAutomationConfig() {
           Automação WhatsApp
         </CardTitle>
         <CardDescription>
-          Configure mensagens automáticas e lembretes via WhatsApp
+          Configure integrações, templates e infraestrutura de mensagens automáticas
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -265,38 +265,11 @@ export function WhatsAppAutomationConfig() {
                   />
                 </div>
 
-                {/* Lembretes */}
-                <div className="space-y-4 p-4 rounded-lg border">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <Label className="text-base font-medium">Lembretes Automáticos</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Enviar lembrete após X dias sem contato
-                      </p>
-                    </div>
-                    <Switch
-                      checked={config.lembrete_ativo}
-                      onCheckedChange={(checked) => setConfig({ ...config, lembrete_ativo: checked })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Dias para lembrete</Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={config.lembrete_dias}
-                      onChange={(e) => setConfig({ ...config, lembrete_dias: parseInt(e.target.value) || 3 })}
-                    />
-                  </div>
-                </div>
-
-                {/* Templates */}
+                {/* Templates de Mensagem Padrão */}
                 <div className="space-y-4">
-                  <Label className="text-base font-medium">Templates de Mensagem</Label>
+                  <Label className="text-base font-medium">Template de Boas-Vindas</Label>
                   <p className="text-xs text-muted-foreground">
-                    Use {"{nome}"} para o nome do cliente e {"{vendedor}"} para o nome do vendedor
+                    Mensagem enviada automaticamente ao primeiro contato. Use {"{nome}"} e {"{vendedor}"} como variáveis.
                   </p>
 
                   <div className="space-y-2">
@@ -308,15 +281,14 @@ export function WhatsAppAutomationConfig() {
                       placeholder="Olá {nome}! Sou {vendedor}, da Mais Energia Solar..."
                     />
                   </div>
+                </div>
 
-                  <div className="space-y-2">
-                    <Label>Mensagem de Follow-up</Label>
-                    <Textarea
-                      value={config.mensagem_followup || ""}
-                      onChange={(e) => setConfig({ ...config, mensagem_followup: e.target.value })}
-                      rows={3}
-                      placeholder="Olá {nome}! Passando para saber se ainda tem interesse..."
-                    />
+                {/* Info box about follow-up */}
+                <div className="p-3 rounded-lg border border-info/30 bg-info/5 flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-info mt-0.5 shrink-0" />
+                  <div className="text-xs text-muted-foreground">
+                    <p className="font-medium text-foreground mb-0.5">Lembretes e Follow-up</p>
+                    Regras de lembrete automático (conversa parada, sem resposta, reativação) são gerenciadas exclusivamente na tela <strong>Follow-up WA</strong>, evitando duplicidade.
                   </div>
                 </div>
 

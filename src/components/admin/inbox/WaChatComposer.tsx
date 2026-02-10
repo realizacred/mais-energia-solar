@@ -265,7 +265,7 @@ export function WaChatComposer({
 
   return (
     <div
-      className="p-3 border-t border-border/40 bg-card/50"
+      className="p-3 border-t border-border/30 bg-card shadow-[0_-1px_3px_0_rgb(0_0_0/0.03)]"
       onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
       onDrop={(e) => {
         e.preventDefault();
@@ -541,14 +541,14 @@ export function WaChatComposer({
           autoCapitalize={spellCheckEnabled ? "sentences" : "off"}
           lang="pt-BR"
           placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite uma mensagem..."}
-          className={`flex-1 min-h-[36px] max-h-[120px] resize-none text-sm leading-snug py-2 ${isNoteMode ? "border-warning/30 bg-warning/5" : ""}`}
+          className={`flex-1 min-h-[40px] max-h-[120px] resize-none text-sm leading-snug py-2.5 rounded-xl ${isNoteMode ? "border-warning/30 bg-warning/5" : "bg-muted/30 border-border/30 focus:bg-background"}`}
           rows={1}
           disabled={busy}
         />
 
         <Button
           size="icon"
-          className={`h-9 w-9 shrink-0 ${isNoteMode ? "bg-warning hover:bg-warning/90" : ""}`}
+          className={`h-10 w-10 shrink-0 rounded-xl ${isNoteMode ? "bg-warning hover:bg-warning/90" : ""}`}
           onClick={handleSend}
           disabled={!inputValue.trim() || busy}
         >
