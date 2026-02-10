@@ -130,10 +130,15 @@ export function useWaConversations(filters?: {
       let filtered = data || [];
       if (filters?.vendor_user_id) {
         const vuid = filters.vendor_user_id;
-        filtered = filtered.filter((c: any) =>
-          c.assigned_to === vuid ||
-          c.wa_instances?.vendedores?.user_id === vuid
-        );
+        filtered = filtered.filter((c: any) => {
+          if (c.assigned_to === vuid) return true;
+          // vendedores can be an array (one instance → many vendors) or a single object
+          const vendArr = c.wa_instances?.vendedores;
+          if (Array.isArray(vendArr)) {
+            return vendArr.some((v: any) => v.user_id === vuid);
+          }
+          return vendArr?.user_id === vuid;
+        });
       }
 
       // Load tags
