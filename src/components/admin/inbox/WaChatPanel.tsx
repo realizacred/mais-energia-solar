@@ -681,7 +681,7 @@ export function WaChatPanel({
                 totalCount={visibleMessages.length}
                 itemContent={renderMessage}
                 initialTopMostItemIndex={visibleMessages.length - 1}
-                followOutput={atBottom ? "smooth" : false}
+                followOutput="smooth"
                 atBottomStateChange={setAtBottom}
                 startReached={() => {
                   if (hasOlderMessages && !isLoadingMore) onLoadOlder();
