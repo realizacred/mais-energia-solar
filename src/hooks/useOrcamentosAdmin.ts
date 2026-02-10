@@ -6,7 +6,21 @@ import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
 import type { VendedorFilter } from "@/hooks/useLeads";
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 25;
+
+// ⚠️ HARDENING: Explicit columns — never SELECT * on hot paths
+const ORC_ADMIN_SELECT = `
+  id, orc_code, lead_id, cep, estado, cidade, bairro, rua, numero, complemento,
+  area, tipo_telhado, rede_atendimento, media_consumo, consumo_previsto,
+  observacoes, arquivos_urls, vendedor, vendedor_id, visto, visto_admin,
+  status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
+  leads!inner (
+    id, lead_code, nome, telefone, telefone_normalized,
+    vendedor_id, vendedor,
+    vendedores:vendedor_id(id, nome)
+  ),
+  orc_vendedores:vendedor_id(id, nome)
+`;
 
 interface UseOrcamentosAdminOptions {
   autoFetch?: boolean;
@@ -27,30 +41,16 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       const from = page * pageSize;
       const to = from + pageSize - 1;
       
-      // Fetch orcamentos with lead data + vendedor join via lead.vendedor_id
       const [orcamentosRes, statusesRes] = await Promise.all([
         supabase
           .from("orcamentos")
-          .select(`
-            *,
-            leads!inner (
-              id,
-              lead_code,
-              nome,
-              telefone,
-              telefone_normalized,
-              vendedor_id,
-              vendedor,
-              vendedores:vendedor_id(id, nome)
-            ),
-            orc_vendedores:vendedor_id(id, nome)
-          `, { count: "exact" })
+          .select(ORC_ADMIN_SELECT, { count: "exact" })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .range(from, to),
         supabase
           .from("lead_status")
-          .select("*")
+          .select("id, nome, ordem, cor")
           .order("ordem"),
       ]);
 
@@ -174,19 +174,61 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
     }
   }, [autoFetch, fetchOrcamentos]);
 
+  // ⚠️ HARDENING: Realtime with debounce, local updates for UPDATE, no full refetch
   useEffect(() => {
     if (!autoFetch) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const channel = supabase
       .channel('orcamentos-admin-changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'orcamentos' },
-        () => { fetchOrcamentos(); }
+        { event: 'INSERT', schema: 'public', table: 'orcamentos' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchOrcamentos(), 500);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orcamentos' },
+        (payload) => {
+          if (payload.new) {
+            const updated = payload.new as any;
+            setOrcamentos(prev => prev.map(o =>
+              o.id === updated.id
+                ? {
+                    ...o,
+                    visto: updated.visto,
+                    visto_admin: updated.visto_admin,
+                    status_id: updated.status_id,
+                    ultimo_contato: updated.ultimo_contato,
+                    proxima_acao: updated.proxima_acao,
+                    data_proxima_acao: updated.data_proxima_acao,
+                  }
+                : o
+            ));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'orcamentos' },
+        (payload) => {
+          if (payload.old) {
+            const deletedId = (payload.old as any).id;
+            setOrcamentos(prev => prev.filter(o => o.id !== deletedId));
+            setTotalCount(prev => Math.max(0, prev - 1));
+          }
+        }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
   }, [autoFetch, fetchOrcamentos]);
 
   // Computed values — filter by vendedor_id

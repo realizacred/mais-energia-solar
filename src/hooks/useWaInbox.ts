@@ -86,9 +86,16 @@ export function useWaConversations(filters?: {
       // RLS handles vendor visibility (assigned_to OR instance ownership/vendedor link)
       // We only need to apply UI-level filters here.
 
+      // ⚠️ HARDENING: Explicit columns only — never SELECT * on hot paths
       let query = supabase
         .from("wa_conversations")
-        .select("*, wa_instances(nome, vendedores(nome)), leads(nome, telefone)")
+        .select(`
+          id, tenant_id, instance_id, remote_jid, cliente_nome, cliente_telefone,
+          status, assigned_to, lead_id, cliente_id, last_message_at, last_message_preview,
+          unread_count, canal, profile_picture_url, is_group, created_at, updated_at,
+          wa_instances(nome, vendedores(nome)),
+          leads(nome, telefone)
+        `)
         .order("last_message_at", { ascending: false });
 
       if (filters?.status && filters.status !== "all") {

@@ -41,32 +41,49 @@ interface UseOrcamentosVendedorOptions {
   filterByVendedor?: boolean; // Force filter even in admin mode (for "viewing as" feature)
 }
 
+const VENDEDOR_PAGE_SIZE = 25;
+
+// ⚠️ HARDENING: Only select columns needed for the vendedor UI
+const ORC_SELECT = `
+  id, orc_code, lead_id, cep, estado, cidade, bairro, rua, numero, complemento,
+  area, tipo_telhado, rede_atendimento, media_consumo, consumo_previsto,
+  observacoes, arquivos_urls, vendedor, vendedor_id, visto, visto_admin,
+  status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
+  leads!inner (id, lead_code, nome, telefone, telefone_normalized)
+`;
+
 export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filterByVendedor = false }: UseOrcamentosVendedorOptions) {
   const [orcamentos, setOrcamentos] = useState<OrcamentoVendedor[]>([]);
   const [statuses, setStatuses] = useState<LeadStatus[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   const { toast } = useToast();
 
-  const fetchOrcamentos = useCallback(async () => {
+  const fetchOrcamentos = useCallback(async (append = false) => {
     if (!vendedorNome && !isAdminMode) {
       setLoading(false);
       return;
     }
 
     try {
-      setLoading(true);
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
 
-      // Build query for orcamentos joined with leads
+      const from = append ? orcamentos.length : 0;
+      const to = from + VENDEDOR_PAGE_SIZE - 1;
+
       let query = supabase
         .from("orcamentos")
-        .select(`
-          *,
-          leads!inner (id, lead_code, nome, telefone, telefone_normalized)
-        `)
-        .order("created_at", { ascending: false });
+        .select(ORC_SELECT, { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
       // Filter by vendedor unless in admin mode viewing all
-      // If filterByVendedor is true, always filter even in admin mode
       if (filterByVendedor && vendedorNome) {
         query = query.eq("vendedor", vendedorNome);
       } else if (!isAdminMode && vendedorNome) {
@@ -75,16 +92,13 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
 
       const [orcRes, statusesRes] = await Promise.all([
         query,
-        supabase
-          .from("lead_status")
-          .select("*")
-          .order("ordem"),
+        // Only fetch statuses on initial load
+        ...(append ? [] : [supabase.from("lead_status").select("id, nome, ordem, cor").order("ordem")]),
       ]);
 
       if (orcRes.error) throw orcRes.error;
 
-      // Transform data to include lead info
-      const transformedData: OrcamentoVendedor[] = (orcRes.data || []).map((orc: any) => ({
+      const newData: OrcamentoVendedor[] = (orcRes.data || []).map((orc: any) => ({
         id: orc.id,
         orc_code: orc.orc_code,
         lead_id: orc.lead_id,
@@ -116,9 +130,18 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
         updated_at: orc.updated_at,
       }));
 
-      setOrcamentos(transformedData);
+      const count = orcRes.count || 0;
+      setTotalCount(count);
 
-      if (statusesRes.data) {
+      if (append) {
+        setOrcamentos(prev => [...prev, ...newData]);
+        setHasMore(orcamentos.length + newData.length < count);
+      } else {
+        setOrcamentos(newData);
+        setHasMore(newData.length < count);
+      }
+
+      if (!append && statusesRes?.data) {
         setStatuses(statusesRes.data);
       }
     } catch (error) {
@@ -130,8 +153,9 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
       });
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [vendedorNome, isAdminMode, filterByVendedor, toast]);
+  }, [vendedorNome, isAdminMode, filterByVendedor, orcamentos.length, toast]);
 
   const toggleVisto = useCallback(async (orcamento: OrcamentoVendedor) => {
     const newVisto = !orcamento.visto;
@@ -222,30 +246,38 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
     fetchOrcamentos();
   }, [fetchOrcamentos]);
 
-  // Realtime subscription for orcamentos updates
+  // ⚠️ HARDENING: Realtime with local updates only (no full refetch on UPDATE).
+  // INSERT/DELETE trigger a refetch of page 1 only.
   useEffect(() => {
     if (!vendedorNome && !isAdminMode) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const channel = supabase
       .channel(`orcamentos-vendedor-${vendedorNome || 'admin'}`)
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: 'INSERT',
+          schema: 'public',
+          table: 'orcamentos',
+        },
+        () => {
+          // Debounce INSERT refetch
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchOrcamentos(), 500);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
           schema: 'public',
           table: 'orcamentos',
         },
         (payload) => {
-          console.log('Realtime update received:', payload.eventType);
-          
-          // For INSERT/DELETE, refetch to get lead info via join
-          if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
-            fetchOrcamentos();
-            return;
-          }
-          
-          // For UPDATE, apply changes locally without refetch (optimistic updates already done)
-          if (payload.eventType === 'UPDATE' && payload.new) {
+          // Apply changes locally — no refetch
+          if (payload.new) {
             const updated = payload.new as any;
             setOrcamentos((prev) => 
               prev.map((o) => 
@@ -265,9 +297,25 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
           }
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'orcamentos',
+        },
+        (payload) => {
+          if (payload.old) {
+            const deletedId = (payload.old as any).id;
+            setOrcamentos(prev => prev.filter(o => o.id !== deletedId));
+            setTotalCount(prev => Math.max(0, prev - 1));
+          }
+        }
+      )
       .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [vendedorNome, isAdminMode, fetchOrcamentos]);
@@ -285,13 +333,23 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
 
   const estados = [...new Set(orcamentos.map((o) => o.estado))].sort();
 
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore) {
+      fetchOrcamentos(true);
+    }
+  }, [loadingMore, hasMore, fetchOrcamentos]);
+
   return {
     orcamentos,
     statuses,
     loading,
+    loadingMore,
+    hasMore,
+    totalCount,
     stats,
     estados,
-    fetchOrcamentos,
+    fetchOrcamentos: () => fetchOrcamentos(false),
+    loadMore,
     toggleVisto,
     updateStatus,
     deleteOrcamento,
