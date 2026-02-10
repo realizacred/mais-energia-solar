@@ -318,12 +318,12 @@ export function WaChatPanel({
         )}
 
         <div
-          className={`flex ${isOut ? "justify-end" : "justify-start"} mb-1 group/msg relative`}
+          className={`flex ${isOut ? "justify-end" : "justify-start"} mb-1 group/msg relative px-3`}
           onContextMenu={(e) => handleContextMenu(e, msg)}
         >
           {/* Hover actions */}
           {!isNote && (
-            <div className={`absolute ${isOut ? "left-0 -translate-x-full" : "right-0 translate-x-full"} top-1/2 -translate-y-1/2 px-1 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10 flex items-center gap-0.5`}>
+            <div className={`absolute ${isOut ? "left-1" : "right-1"} top-1/2 -translate-y-1/2 opacity-0 group-hover/msg:opacity-100 transition-opacity z-10 flex items-center gap-0.5`}>
               <button
                 onClick={() => handleReply(msg)}
                 className="p-1 rounded-full hover:bg-muted/80 text-muted-foreground hover:text-foreground transition-colors"
@@ -646,7 +646,7 @@ export function WaChatPanel({
 
         {/* Messages with virtualization */}
         <div
-          className="flex-1 relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10"
+          className="flex-1 relative bg-gradient-to-b from-muted/5 via-transparent to-muted/10 min-w-0 overflow-x-hidden"
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}

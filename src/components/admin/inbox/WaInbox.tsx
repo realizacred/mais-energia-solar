@@ -361,7 +361,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         }`}
         style={vendorMode ? undefined : { height: "calc(100vh - 300px)", minHeight: "500px" }}
       >
-        <div className="flex h-full">
+        <div className="flex h-full min-w-0 w-full max-w-full overflow-x-hidden">
           {/* Sidebar - Conversations (Desktop) */}
           <div className={`${vendorMode ? "w-[320px]" : "w-[360px]"} shrink-0 hidden md:flex flex-col`}>
             <WaConversationList
@@ -387,7 +387,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           </div>
 
           {/* Mobile */}
-          <div className="flex-1 flex flex-col md:hidden">
+          <div className="flex-1 flex flex-col md:hidden min-w-0 max-w-full overflow-x-hidden">
             {selectedConv ? (
               <>
                 <button
@@ -444,7 +444,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           </div>
 
           {/* Desktop: Chat Panel */}
-          <div className="hidden md:flex flex-1">
+          <div className="hidden md:flex flex-1 min-w-0 overflow-x-hidden">
             <WaChatPanel
               conversation={selectedConv}
               messages={messages}
