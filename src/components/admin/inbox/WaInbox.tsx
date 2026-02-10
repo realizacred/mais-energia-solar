@@ -65,10 +65,16 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   // RLS handles vendor visibility at DB level — do NOT filter by status in the query
   // so stats and list share the same data source (single source of truth)
+  // ⚠️ IMPORTANT: In vendor mode, we MUST filter by vendorUserId because an admin
+  // impersonating a vendor still has admin RLS (sees everything). The client-side
+  // filter ensures only the vendor's conversations are shown.
   const conversationFilters = {
-    assigned_to: !vendorMode && effectiveAssigned !== "all" && effectiveAssigned !== "unassigned" ? effectiveAssigned : undefined,
+    assigned_to: vendorMode && effectiveUserId
+      ? effectiveUserId
+      : (!vendorMode && effectiveAssigned !== "all" && effectiveAssigned !== "unassigned" ? effectiveAssigned : undefined),
     instance_id: filterInstance !== "all" ? filterInstance : undefined,
     search: search || undefined,
+    vendor_user_id: vendorMode ? effectiveUserId : undefined,
   };
 
   const {
