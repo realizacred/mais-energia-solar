@@ -62,11 +62,11 @@
  }
  
  const avaliacaoLabels: Record<string, { label: string; color: string; emoji: string }> = {
- otimo: { label: "Ótimo", color: "bg-green-500", emoji: "😄" },
- bom: { label: "Bom", color: "bg-blue-500", emoji: "🙂" },
- razoavel: { label: "Razoável", color: "bg-yellow-500", emoji: "😐" },
- ruim: { label: "Ruim", color: "bg-orange-500", emoji: "😕" },
- muito_ruim: { label: "Muito Ruim", color: "bg-red-500", emoji: "😞" },
+ otimo: { label: "Ótimo", color: "bg-success", emoji: "😄" },
+ bom: { label: "Bom", color: "bg-info", emoji: "🙂" },
+ razoavel: { label: "Razoável", color: "bg-warning", emoji: "😐" },
+ ruim: { label: "Ruim", color: "bg-warning", emoji: "😕" },
+ muito_ruim: { label: "Muito Ruim", color: "bg-destructive", emoji: "😞" },
  };
  
  export function ChecklistsManager() {
@@ -151,8 +151,8 @@
        <Card>
          <CardContent className="pt-4">
            <div className="flex items-center gap-3">
-             <div className="p-2 bg-green-500/10 rounded-lg">
-               <Star className="h-5 w-5 text-green-500" />
+             <div className="p-2 bg-success/10 rounded-lg">
+               <Star className="h-5 w-5 text-success" />
              </div>
              <div>
                <p className="text-2xl font-bold">{stats.otimo}</p>
@@ -164,8 +164,8 @@
        <Card>
          <CardContent className="pt-4">
            <div className="flex items-center gap-3">
-             <div className="p-2 bg-blue-500/10 rounded-lg">
-               <Star className="h-5 w-5 text-blue-500" />
+             <div className="p-2 bg-info/10 rounded-lg">
+               <Star className="h-5 w-5 text-info" />
              </div>
              <div>
                <p className="text-2xl font-bold">{stats.bom}</p>
@@ -177,8 +177,8 @@
        <Card>
          <CardContent className="pt-4">
            <div className="flex items-center gap-3">
-             <div className="p-2 bg-orange-500/10 rounded-lg">
-               <RefreshCw className="h-5 w-5 text-orange-500" />
+             <div className="p-2 bg-warning/10 rounded-lg">
+               <RefreshCw className="h-5 w-5 text-warning" />
              </div>
              <div>
                <p className="text-2xl font-bold">{stats.pendentesSync}</p>
@@ -259,9 +259,9 @@
                        </TableCell>
                        <TableCell>
                          {checklist.synced ? (
-                           <CheckCircle className="h-4 w-4 text-green-500" />
+                           <CheckCircle className="h-4 w-4 text-success" />
                          ) : (
-                           <RefreshCw className="h-4 w-4 text-orange-500" />
+                           <RefreshCw className="h-4 w-4 text-warning" />
                          )}
                        </TableCell>
                        <TableCell className="text-right">
@@ -357,9 +357,9 @@
                        className="flex items-center gap-2 p-2 bg-muted/30 rounded"
                      >
                        {item.value ? (
-                         <CheckCircle className="h-4 w-4 text-green-500" />
+                         <CheckCircle className="h-4 w-4 text-success" />
                        ) : (
-                         <XCircle className="h-4 w-4 text-red-500" />
+                         <XCircle className="h-4 w-4 text-destructive" />
                        )}
                        <span className="text-sm">{item.label}</span>
                      </div>

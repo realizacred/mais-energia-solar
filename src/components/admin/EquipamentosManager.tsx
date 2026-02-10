@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Trash2, Pencil, Zap, CircuitBoard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -245,15 +246,18 @@ export function EquipamentosManager() {
   };
 
   if (loading) {
-    return <div className="flex justify-center p-8">Carregando...</div>;
+    return <LoadingState />;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Equipamentos</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="space-y-6">
+      <PageHeader
+        icon={CircuitBoard}
+        title="Equipamentos"
+        description="Gerencie disjuntores e transformadores cadastrados"
+      />
+      <Card>
+        <CardContent className="pt-6">
         <Tabs defaultValue="disjuntores">
           <TabsList className="mb-4">
             <TabsTrigger value="disjuntores" className="gap-2">
@@ -534,5 +538,6 @@ export function EquipamentosManager() {
         </AlertDialog>
       </CardContent>
     </Card>
+    </div>
   );
 }

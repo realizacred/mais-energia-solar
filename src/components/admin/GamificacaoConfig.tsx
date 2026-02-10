@@ -259,7 +259,7 @@
                            <p className="font-semibold">{ranking[0].vendedor_nome}</p>
                            <p className="text-sm text-muted-foreground">{ranking[0].pontuacao_total} pts</p>
                          </div>
-                         <div className="w-24 h-24 bg-yellow-100 rounded-t-lg mt-2" />
+                         <div className="w-24 h-24 bg-warning/15 rounded-t-lg mt-2" />
                        </div>
                      )}
  
@@ -273,7 +273,7 @@
                            <p className="font-medium text-sm">{ranking[2].vendedor_nome}</p>
                            <p className="text-xs text-muted-foreground">{ranking[2].pontuacao_total} pts</p>
                          </div>
-                         <div className="w-16 h-12 bg-amber-100 rounded-t-lg mt-2" />
+                         <div className="w-16 h-12 bg-warning/10 rounded-t-lg mt-2" />
                        </div>
                      )}
                    </div>

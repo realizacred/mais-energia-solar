@@ -164,12 +164,12 @@ export default function FinancingSimulator({ investimento, economia }: Financing
           </div>
 
           {calculations.autoFinanciado ? (
-            <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 text-green-700 font-medium mb-1">
+            <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
+              <div className="flex items-center gap-2 text-success font-medium mb-1">
                 <Check className="w-4 h-4" />
                 Sistema se paga sozinho!
               </div>
-              <p className="text-sm text-green-600">
+              <p className="text-sm text-success/80">
                 Sua economia ({formatCurrency(economia)}/mês) é maior que a parcela. 
                 Você ganha {formatCurrency(economia - calculations.valorParcela)}/mês desde o primeiro dia!
               </p>
