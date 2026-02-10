@@ -253,9 +253,11 @@ async function handleMessageUpsert(
         profilePicUrl = await fetchProfilePicture(supabase, instanceId, remoteJid);
       } catch (_) { /* ignore for groups */ }
 
+      // ⚠️ HARDENING: Use upsert with onConflict to avoid duplicate key errors
+      // from concurrent webhook events for the same conversation
       const { data: newConv, error: convError } = await supabase
         .from("wa_conversations")
-        .insert({
+        .upsert({
           instance_id: instanceId,
           tenant_id: tenantId,
           remote_jid: remoteJid,
@@ -267,12 +269,12 @@ async function handleMessageUpsert(
           last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
           unread_count: fromMe ? 0 : 1,
           profile_picture_url: profilePicUrl,
-        })
+        }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: false })
         .select("id")
         .single();
 
       if (convError) {
-        console.error("[process-webhook-events] Error creating conversation:", convError);
+        console.error("[process-webhook-events] Error upserting conversation:", convError);
         throw convError;
       }
       conversationId = newConv.id;
@@ -297,20 +299,6 @@ async function handleMessageUpsert(
       }
     }
 
-    // Insert message (deduplicate by evolution_message_id)
-    if (evolutionMessageId) {
-      const { data: existingMsg } = await supabase
-        .from("wa_messages")
-        .select("id")
-        .eq("evolution_message_id", evolutionMessageId)
-        .maybeSingle();
-
-      if (existingMsg) {
-        console.log(`[process-webhook-events] Duplicate message skipped: ${evolutionMessageId}`);
-        continue;
-      }
-    }
-
     // ── Fetch media if applicable ──
     let mediaUrl: string | null = msg.mediaUrl || null;
     const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || null;
@@ -319,7 +307,9 @@ async function handleMessageUpsert(
       mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType, mediaMimeType, msg);
     }
 
-    await supabase.from("wa_messages").insert({
+    // ⚠️ HARDENING: Use upsert with ignoreDuplicates to prevent duplicate key errors
+    // from concurrent webhook processing of the same message
+    const { error: msgInsertError } = await supabase.from("wa_messages").upsert({
       conversation_id: conversationId,
       tenant_id: tenantId,
       evolution_message_id: evolutionMessageId,
@@ -332,7 +322,11 @@ async function handleMessageUpsert(
       participant_jid: participantJid,
       participant_name: participantName,
       metadata: { raw_key: key },
-    });
+    }, { onConflict: "evolution_message_id", ignoreDuplicates: true });
+
+    if (msgInsertError) {
+      console.warn(`[process-webhook-events] Message upsert warning: ${msgInsertError.message}`);
+    }
 
     // ── Send Web Push for inbound messages (fire-and-forget) ──
     if (!fromMe && evolutionMessageId) {
