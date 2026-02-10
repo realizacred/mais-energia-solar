@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     for (const rule of rules) {
       const statusFilter = rule.status_conversa || ["open"];
       const cutoffDate = new Date(
-        Date.now() - rule.prazo_horas * 60 * 60 * 1000
+        Date.now() - rule.prazo_minutos * 60 * 1000
       ).toISOString();
 
       // 2. Find conversations matching this rule's criteria

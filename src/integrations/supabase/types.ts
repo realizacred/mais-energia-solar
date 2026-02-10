@@ -5971,7 +5971,7 @@ export type Database = {
           mensagem_template: string | null
           nome: string
           ordem: number
-          prazo_horas: number
+          prazo_minutos: number
           prioridade: string
           status_conversa: string[] | null
           tenant_id: string
@@ -5988,7 +5988,7 @@ export type Database = {
           mensagem_template?: string | null
           nome: string
           ordem?: number
-          prazo_horas?: number
+          prazo_minutos?: number
           prioridade?: string
           status_conversa?: string[] | null
           tenant_id: string
@@ -6005,7 +6005,7 @@ export type Database = {
           mensagem_template?: string | null
           nome?: string
           ordem?: number
-          prazo_horas?: number
+          prazo_minutos?: number
           prioridade?: string
           status_conversa?: string[] | null
           tenant_id?: string
