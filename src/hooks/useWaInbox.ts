@@ -141,8 +141,8 @@ export function useWaConversations(filters?: {
         tags: tagsMap[c.id] || [],
       })) as WaConversation[];
     },
-    staleTime: 15 * 1000,
-    refetchInterval: 15 * 1000, // Fallback polling every 15s
+    staleTime: 5 * 1000,
+    refetchInterval: 5 * 1000, // Polling every 5s for faster updates
   });
 
   // ── Realtime: listen for conversation changes ──
@@ -336,7 +336,7 @@ export function useWaMessages(conversationId?: string) {
       return withNames;
     },
     enabled: !!conversationId,
-    staleTime: 30 * 1000,
+    staleTime: 5 * 1000,
   });
 
   // Reset on conversation change
