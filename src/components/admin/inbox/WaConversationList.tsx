@@ -224,9 +224,14 @@ export function WaConversationList({
                           {conv.cliente_nome || conv.cliente_telefone}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {conv.status === "resolved" && (
+                            <Badge variant="muted" size="sm" className="text-[9px] px-1.5 py-0">
+                              Resolvida
+                            </Badge>
+                          )}
                           {hasUnread && (
-                            <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1">
-                              {conv.unread_count}
+                            <span className="flex items-center justify-center min-w-[20px] h-[20px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1.5 shadow-sm">
+                              {conv.unread_count > 99 ? "99+" : conv.unread_count}
                             </span>
                           )}
                           <span className="text-[10px] text-muted-foreground">

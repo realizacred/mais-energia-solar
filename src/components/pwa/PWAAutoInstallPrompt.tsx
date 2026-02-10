@@ -21,8 +21,12 @@ export function PWAAutoInstallPrompt() {
     const isMobile = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
     if (!isMobile) return;
 
-    // Already shown the auto-prompt before? Don't nag.
-    if (localStorage.getItem(PWA_PROMPT_SHOWN_KEY)) return;
+    // Throttle: don't show more than once per 7 days
+    const lastShown = localStorage.getItem(PWA_PROMPT_SHOWN_KEY);
+    if (lastShown) {
+      const daysSince = (Date.now() - parseInt(lastShown, 10)) / (1000 * 60 * 60 * 24);
+      if (daysSince < 7) return;
+    }
 
     // Increment login count
     const count = parseInt(localStorage.getItem(PWA_LOGIN_COUNT_KEY) || "0", 10) + 1;
@@ -30,7 +34,7 @@ export function PWAAutoInstallPrompt() {
 
     if (count >= 2 && canInstall) {
       prompted.current = true;
-      localStorage.setItem(PWA_PROMPT_SHOWN_KEY, "1");
+      localStorage.setItem(PWA_PROMPT_SHOWN_KEY, Date.now().toString());
 
       // Small delay so the page is fully rendered before prompt
       const timer = setTimeout(() => {

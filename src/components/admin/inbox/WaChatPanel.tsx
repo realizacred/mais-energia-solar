@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
@@ -52,6 +53,7 @@ import type { WaConversation, WaMessage } from "@/hooks/useWaInbox";
 import { WaChatComposer } from "./WaChatComposer";
 import { WaLeadInfoCard } from "./WaLeadInfoCard";
 import { WaCRMSidebar } from "./WaCRMSidebar";
+import { WaForwardDialog } from "./WaForwardDialog";
 
 const MESSAGE_STATUS_CONFIG: Record<string, { icon: typeof Check; className: string; label: string }> = {
   pending: { icon: Clock, className: "text-primary-foreground/40", label: "Enviando..." },
@@ -119,8 +121,27 @@ export function WaChatPanel({
   const [isDragging, setIsDragging] = useState(false);
   const [deletedMsgIds, setDeletedMsgIds] = useState<Set<string>>(new Set());
   const [isRemoteTyping, setIsRemoteTyping] = useState(false);
+  const [forwardingMsg, setForwardingMsg] = useState<WaMessage | null>(null);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const dragCounter = useRef(0);
+
+  // Load hidden messages from DB on conversation change
+  useEffect(() => {
+    if (!conversation) return;
+    setDeletedMsgIds(new Set());
+    const loadHidden = async () => {
+      try {
+        const { data } = await supabase
+          .from("wa_message_hidden" as any)
+          .select("message_id")
+          .eq("user_id", (await supabase.auth.getUser()).data.user?.id || "");
+        if (data && data.length > 0) {
+          setDeletedMsgIds(new Set(data.map((d: any) => d.message_id)));
+        }
+      } catch {}
+    };
+    loadHidden();
+  }, [conversation?.id]);
 
   // Build a map for quoted message lookup
   const messagesMap = useMemo(() => {
@@ -172,20 +193,28 @@ export function WaChatPanel({
     setContextMenu(null);
   }, []);
 
-  const handleDeleteForMe = useCallback((msg: WaMessage) => {
+  const handleDeleteForMe = useCallback(async (msg: WaMessage) => {
     setDeletedMsgIds((prev) => new Set(prev).add(msg.id));
     setContextMenu(null);
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const { getCurrentTenantId } = await import("@/lib/storagePaths");
+        const tenantId = await getCurrentTenantId();
+        await supabase.from("wa_message_hidden" as any).insert({
+          user_id: currentUser.id,
+          message_id: msg.id,
+          tenant_id: tenantId,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to persist hidden message:", err);
+    }
   }, []);
 
   const handleForward = useCallback((msg: WaMessage) => {
-    // Copy content to composer for forwarding
-    const text = msg.content || (msg.media_url ? `[${msg.message_type}] ${msg.media_url}` : "");
-    if (text) navigator.clipboard.writeText(text);
+    setForwardingMsg(msg);
     setContextMenu(null);
-    // Toast feedback
-    import("@/hooks/use-toast").then(({ toast }) => {
-      toast({ title: "Mensagem copiada", description: "Cole em outra conversa para encaminhar." });
-    });
   }, []);
 
   // Drag & drop handlers
@@ -716,6 +745,14 @@ export function WaChatPanel({
 
         {/* Media Preview Modal */}
         <MediaPreviewModal mediaPreview={mediaPreview} onClose={() => setMediaPreview(null)} />
+
+        {/* Forward Dialog */}
+        <WaForwardDialog
+          open={!!forwardingMsg}
+          onOpenChange={(open) => { if (!open) setForwardingMsg(null); }}
+          message={forwardingMsg}
+          currentConversationId={conversation.id}
+        />
       </div>
 
       {/* CRM Sidebar */}

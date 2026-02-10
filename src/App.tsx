@@ -30,6 +30,7 @@ const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const MessagingApp = lazy(() => import("./pages/MessagingApp"));
+const AppDebug = lazy(() => import("./pages/AppDebug"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -97,6 +98,7 @@ const App = () => (
               <Route path="/ativar-conta" element={<AtivarConta />} />
               <Route path="/inbox" element={<Inbox />} />
               <Route path="/app" element={<MessagingApp />} />
+              <Route path="/app/debug" element={<AppDebug />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
