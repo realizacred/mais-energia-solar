@@ -518,11 +518,31 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   /**
    * Handle post-lead WhatsApp actions in the background (fire-and-forget).
    * 1) Sends auto welcome message via existing pipeline (creates REAL conversation)
-   * 2) Auto-assigns matching WA conversation to the vendor
+   * 2) Auto-assigns matching WA conversation to the vendor (with retry/backoff)
    * NEVER redirects. NEVER blocks UI. NEVER changes instance_id.
    */
+
+  /** Retry assign with exponential backoff — webhook may lag behind */
+  const retryAssignConversation = async (phoneDigits: string, maxRetries = 3): Promise<string | null> => {
+    const delays = [400, 1200, 2500];
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, delays[attempt - 1] || 2500));
+      }
+      try {
+        const { data: convId, error } = await supabase
+          .rpc("assign_wa_conversation_by_phone", { _phone_digits: phoneDigits });
+        console.log(`[retryAssign] attempt=${attempt + 1} convId=${convId} error=${error?.message || "none"}`);
+        if (!error && convId) return convId as string;
+      } catch (err) {
+        console.warn(`[retryAssign] attempt=${attempt + 1} exception:`, err);
+      }
+    }
+    return null;
+  };
+
   const handlePostLeadWhatsApp = (data: LeadFormData) => {
-    if (!user) return; // Only for authenticated users
+    if (!user) return;
     if (!isAutoMessageEnabled(user.id)) {
       console.log("[handlePostLeadWhatsApp] Auto-message disabled, skipping");
       return;
@@ -540,30 +560,26 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       consultor_nome: vendedorNome || undefined,
     });
 
-    // Fire-and-forget: send message (creates real conversation via Evolution API)
-    // then assign ownership — all in background, never blocking UI
+    // Fire-and-forget: send then assign with retry — never blocks UI
     sendAutoWelcomeMessage({
       telefone: data.telefone.trim(),
       mensagem,
       userId: user.id,
     }).then(async (sent) => {
+      console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", sent);
       if (sent) {
-        console.log("[handlePostLeadWhatsApp] Auto welcome message sent");
         toast({
-          title: "WhatsApp enviado ✅",
-          description: "Mensagem de boas-vindas enviada ao cliente.",
+          title: "WhatsApp encaminhado ✅",
+          description: "Mensagem de boas-vindas encaminhada para envio.",
         });
       }
 
-      // Assign conversation ownership (works whether message was just sent or conversation already existed)
-      try {
-        const { data: convId, error } = await supabase
-          .rpc("assign_wa_conversation_by_phone", { _phone_digits: phoneDigits });
-        if (!error && convId) {
-          console.log("[handlePostLeadWhatsApp] Conversation assigned:", convId);
-        }
-      } catch (err) {
-        console.warn("[handlePostLeadWhatsApp] Assign failed (non-blocking):", err);
+      // Retry assign with backoff (webhook may not have created conversation yet)
+      const convId = await retryAssignConversation(phoneDigits);
+      if (convId) {
+        console.log("[handlePostLeadWhatsApp] Conversation assigned after retry:", convId);
+      } else {
+        console.warn("[handlePostLeadWhatsApp] Assign failed after all retries — conversation may appear later via webhook");
       }
     }).catch((err) => {
       console.warn("[handlePostLeadWhatsApp] Background WA failed (non-blocking):", err);
