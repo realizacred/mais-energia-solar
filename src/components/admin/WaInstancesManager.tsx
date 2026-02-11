@@ -14,6 +14,7 @@ import {
   Link2,
   CheckCircle2,
   History,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,22 +29,23 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useWaInstances, type WaInstance } from "@/hooks/useWaInstances";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { WaSetupGuide } from "@/components/admin/wa/WaSetupGuide";
 
@@ -56,6 +58,7 @@ const STATUS_CONFIG: Record<string, { label: string; className: string; icon: ty
 
 export function WaInstancesManager() {
   const { instances, loading, createInstance, updateInstance, deleteInstance, checkStatus, checkingStatus, syncHistory } = useWaInstances();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [editInstance, setEditInstance] = useState<WaInstance | null>(null);
@@ -71,6 +74,19 @@ export function WaInstancesManager() {
     },
     staleTime: 5 * 60 * 1000,
   });
+
+  // Fetch junction table data for all instances
+  const { data: instanceVendedores = [] } = useQuery({
+    queryKey: ["wa-instance-vendedores"],
+    queryFn: async () => {
+      const { data } = await supabase.from("wa_instance_vendedores").select("instance_id, vendedor_id");
+      return data || [];
+    },
+    staleTime: 30 * 1000,
+  });
+
+  const getInstanceVendedorIds = (instanceId: string) =>
+    instanceVendedores.filter((iv) => iv.instance_id === instanceId).map((iv) => iv.vendedor_id);
 
   const webhookBaseUrl = `https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/evolution-webhook`;
 
@@ -149,7 +165,10 @@ export function WaInstancesManager() {
           {instances.map((inst) => {
             const st = STATUS_CONFIG[inst.status] || STATUS_CONFIG.disconnected;
             const StatusIcon = st.icon;
-            const vendedor = vendedores.find((v) => v.id === inst.vendedor_id);
+            const linkedVendedorIds = getInstanceVendedorIds(inst.id);
+            const linkedVendedorNames = linkedVendedorIds
+              .map((vid) => vendedores.find((v) => v.id === vid)?.nome)
+              .filter(Boolean);
 
             return (
               <Card key={inst.id} className="relative group">
@@ -218,10 +237,10 @@ export function WaInstancesManager() {
                     )}
                   </div>
 
-                  {vendedor && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Link2 className="h-3 w-3" />
-                      <span>{vendedor.nome}</span>
+                  {linkedVendedorNames.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
+                      <Link2 className="h-3 w-3 shrink-0" />
+                      <span>{linkedVendedorNames.join(", ")}</span>
                     </div>
                   )}
 
@@ -275,12 +294,39 @@ export function WaInstancesManager() {
         }}
         instance={editInstance}
         vendedores={vendedores}
-        onSave={async (data) => {
+        initialVendedorIds={editInstance ? getInstanceVendedorIds(editInstance.id) : []}
+        onSave={async (data, selectedVendedorIds) => {
+          let instanceId = editInstance?.id;
           if (editInstance) {
             updateInstance({ id: editInstance.id, updates: data });
           } else {
-            await createInstance(data as any);
+            const created = await createInstance(data as any);
+            instanceId = created?.id;
           }
+
+          // Sync junction table
+          if (instanceId) {
+            const tenantId = instances[0]?.tenant_id || editInstance?.tenant_id;
+            if (tenantId) {
+              // Delete existing links
+              await supabase.from("wa_instance_vendedores").delete().eq("instance_id", instanceId);
+              // Insert new links
+              if (selectedVendedorIds.length > 0) {
+                await supabase.from("wa_instance_vendedores").insert(
+                  selectedVendedorIds.map((vid) => ({
+                    instance_id: instanceId!,
+                    vendedor_id: vid,
+                    tenant_id: tenantId,
+                  }))
+                );
+              }
+              // Also update legacy vendedor_id for backward compat
+              const legacyVendedorId = selectedVendedorIds.length === 1 ? selectedVendedorIds[0] : null;
+              await supabase.from("wa_instances").update({ vendedor_id: legacyVendedorId }).eq("id", instanceId);
+            }
+            queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
+          }
+
           setShowCreate(false);
           setEditInstance(null);
         }}
@@ -359,19 +405,21 @@ function InstanceFormDialog({
   onOpenChange,
   instance,
   vendedores,
+  initialVendedorIds,
   onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   instance: WaInstance | null;
   vendedores: { id: string; nome: string; user_id: string | null }[];
-  onSave: (data: any) => Promise<void>;
+  initialVendedorIds: string[];
+  onSave: (data: any, selectedVendedorIds: string[]) => Promise<void>;
 }) {
   const [nome, setNome] = useState("");
   const [instanceKey, setInstanceKey] = useState("");
   const [apiUrl, setApiUrl] = useState("https://");
   const [apiKey, setApiKey] = useState("");
-  const [vendedorId, setVendedorId] = useState("none");
+  const [selectedVendedorIds, setSelectedVendedorIds] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   // Reset form when instance changes or dialog opens
@@ -381,24 +429,31 @@ function InstanceFormDialog({
       setInstanceKey(instance?.evolution_instance_key || "");
       setApiUrl(instance?.evolution_api_url || "https://");
       setApiKey((instance as any)?.api_key || "");
-      setVendedorId(instance?.vendedor_id || "none");
+      setSelectedVendedorIds(initialVendedorIds);
     }
-  }, [open, instance]);
+  }, [open, instance, initialVendedorIds]);
 
-  // Detect if value looks like a UUID (API Key) instead of an instance name
-  // No longer block UUIDs in instance key field since we have a dedicated API Key field
-  
+  const toggleVendedor = (vendedorId: string) => {
+    setSelectedVendedorIds((prev) =>
+      prev.includes(vendedorId)
+        ? prev.filter((id) => id !== vendedorId)
+        : [...prev, vendedorId]
+    );
+  };
+
   const handleSubmit = async () => {
     if (!nome.trim() || !instanceKey.trim() || !apiUrl.trim()) return;
     setSaving(true);
     try {
-      await onSave({
-        nome: nome.trim(),
-        evolution_instance_key: instanceKey.trim(),
-        evolution_api_url: apiUrl.trim(),
-        api_key: apiKey.trim() || null,
-        vendedor_id: vendedorId === "none" ? null : vendedorId,
-      });
+      await onSave(
+        {
+          nome: nome.trim(),
+          evolution_instance_key: instanceKey.trim(),
+          evolution_api_url: apiUrl.trim(),
+          api_key: apiKey.trim() || null,
+        },
+        selectedVendedorIds
+      );
     } finally {
       setSaving(false);
     }
@@ -450,18 +505,30 @@ function InstanceFormDialog({
             </p>
           </div>
           <div>
-            <Label>Vincular a Consultor (opcional)</Label>
-            <Select value={vendedorId} onValueChange={setVendedorId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Nenhum" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum (compartilhado)</SelectItem>
-                {vendedores.map((v) => (
-                  <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Vincular a Consultores (opcional)</Label>
+            <div className="mt-2 space-y-2 max-h-40 overflow-y-auto border rounded-lg p-3">
+              {vendedores.length === 0 ? (
+                <p className="text-xs text-muted-foreground">Nenhum consultor ativo encontrado.</p>
+              ) : (
+                vendedores.map((v) => (
+                  <label
+                    key={v.id}
+                    className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 rounded px-2 py-1.5 transition-colors"
+                  >
+                    <Checkbox
+                      checked={selectedVendedorIds.includes(v.id)}
+                      onCheckedChange={() => toggleVendedor(v.id)}
+                    />
+                    <span className="text-sm">{v.nome}</span>
+                  </label>
+                ))
+              )}
+            </div>
+            {selectedVendedorIds.length > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                {selectedVendedorIds.length} consultor(es) selecionado(s)
+              </p>
+            )}
           </div>
         </div>
         <DialogFooter>
