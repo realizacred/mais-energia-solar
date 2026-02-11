@@ -154,10 +154,15 @@ export async function sendAutoWelcomeMessage(params: {
 }): Promise<boolean> {
   const { telefone, leadId, mensagem, userId } = params;
   
-  // Idempotency check: prevent double-send in same session
-  const idempotencyKey = `wa_auto_msg_sent_${telefone.replace(/\D/g, "")}`;
-  if (sessionStorage.getItem(idempotencyKey)) {
-    console.log("[sendAutoWelcomeMessage] Already sent in this session, skipping");
+  // Idempotency check: prevent double-send per phone+lead combo (not just phone)
+  // Uses leadId when available so different leads for the same phone can still send
+  const phoneDigits = telefone.replace(/\D/g, "");
+  const idempotencyKey = leadId
+    ? `wa_auto_msg_sent_${phoneDigits}_${leadId}`
+    : `wa_auto_msg_sent_${phoneDigits}_${Date.now()}`;  // no leadId = always allow
+  
+  if (leadId && sessionStorage.getItem(idempotencyKey)) {
+    console.log("[sendAutoWelcomeMessage] Already sent for this lead in this session, skipping");
     return false;
   }
   
