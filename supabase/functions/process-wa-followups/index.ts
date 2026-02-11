@@ -140,13 +140,23 @@ async function processRule(
   if (instanceIds.length > 0) {
     const { data: instances } = await supabase
       .from("wa_instances")
-      .select("id, owner_user_id, vendedor_id, vendedores:vendedor_id(user_id)")
+      .select("id, owner_user_id")
       .in("id", instanceIds);
+
+    // Also fetch junction table links
+    const { data: instanceVendedores } = await supabase
+      .from("wa_instance_vendedores")
+      .select("instance_id, vendedor_id, vendedores:vendedor_id(user_id)")
+      .in("instance_id", instanceIds);
+
     if (instances) {
       for (const inst of instances) {
-        const userId = inst.owner_user_id
-          || (inst.vendedores as any)?.user_id
-          || null;
+        // Priority: owner_user_id > first linked vendedor's user_id
+        let userId = inst.owner_user_id || null;
+        if (!userId && instanceVendedores) {
+          const link = instanceVendedores.find((iv: any) => iv.instance_id === inst.id);
+          userId = (link?.vendedores as any)?.user_id || null;
+        }
         if (userId) instanceOwnerMap.set(inst.id, userId);
       }
     }

@@ -6254,6 +6254,52 @@ export type Database = {
           },
         ]
       }
+      wa_instance_vendedores: {
+        Row: {
+          created_at: string
+          id: string
+          instance_id: string
+          tenant_id: string
+          vendedor_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_id: string
+          tenant_id: string
+          vendedor_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_id?: string
+          tenant_id?: string
+          vendedor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_instance_vendedores_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "wa_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_instance_vendedores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_instance_vendedores_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "vendedores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_instances: {
         Row: {
           api_key: string | null
