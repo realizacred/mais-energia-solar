@@ -87,11 +87,12 @@ const ADMIN_PROFILE: VendedorProfile = {
    const [isConvertOpen, setIsConvertOpen] = useState(false);
    const [orcamentoToConvert, setOrcamentoToConvert] = useState<OrcamentoVendedor | null>(null);
  
-   // Gamification hook
-   const gamification = useGamification(vendedor?.id || null);
- 
-   // Advanced metrics hook
-   const advancedMetrics = useAdvancedMetrics(vendedor?.id || null, vendedor?.nome || null);
+    // Gamification hook — guard: only pass real UUID, never "admin" string
+    const safeVendedorId = vendedor?.id && vendedor.id !== "admin" ? vendedor.id : null;
+    const gamification = useGamification(safeVendedorId);
+
+    // Advanced metrics hook
+    const advancedMetrics = useAdvancedMetrics(safeVendedorId, vendedor?.nome || null);
  
   // Orcamentos hook - when viewing as specific vendor, filter by that vendor
   const orcamentosData = useOrcamentosVendedor({
