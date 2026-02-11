@@ -395,6 +395,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   };
 
   const nextStep = async () => {
+    // Force blur on the active element so Enter and Click behave identically.
+    // Without this, clicking "Próximo" triggers onBlur (marking fields touched),
+    // but pressing Enter does not — causing inconsistent error visibility.
+    const active = document.activeElement as HTMLElement | null;
+    if (active && active.tagName && /^(INPUT|TEXTAREA|SELECT)$/i.test(active.tagName)) {
+      active.blur();
+    }
+
     const isValid = await validateCurrentStep();
     if (!isValid) {
       toast({
