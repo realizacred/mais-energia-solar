@@ -400,36 +400,61 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   /**
    * Redirect authenticated vendor to WhatsApp inbox after lead creation.
-   * Stores lead data in sessionStorage so WaInbox can auto-open the conversation.
+   * 1) Auto-assigns the matching WA conversation to the vendor (DB function)
+   * 2) Stores lead data in sessionStorage so WaInbox can auto-open + prefill message
+   * 3) Redirects to WhatsApp tab
+   * NEVER changes instance_id.
    */
-  const redirectToInbox = (data: LeadFormData) => {
+  const redirectToInbox = async (data: LeadFormData) => {
     if (!user) return; // Only for authenticated users
 
+    // 1) Auto-assign conversation via SECURITY DEFINER function
+    const phoneDigits = data.telefone.replace(/\D/g, "");
+    let assignedConvId: string | null = null;
+    if (phoneDigits.length >= 10) {
+      try {
+        const { data: convId, error } = await supabase
+          .rpc("assign_wa_conversation_by_phone", { _phone_digits: phoneDigits });
+        if (!error && convId) {
+          assignedConvId = convId as string;
+          console.log("[redirectToInbox] Conversation assigned:", assignedConvId);
+        } else {
+          console.log("[redirectToInbox] No existing conversation found for", phoneDigits);
+        }
+      } catch (err) {
+        console.warn("[redirectToInbox] Failed to assign conversation:", err);
+      }
+    }
+
+    // 2) Store lead data for WaInbox auto-open + prefill
     const autoOpenData = {
       phone: data.telefone.trim(),
       nome: data.nome.trim(),
       cidade: data.cidade?.trim() || undefined,
+      estado: data.estado || undefined,
       consumo: data.media_consumo || undefined,
       tipo_telhado: data.tipo_telhado || undefined,
+      rede_atendimento: data.rede_atendimento || undefined,
       consultor_nome: vendedorNome || undefined,
+      assignedConvId: assignedConvId || undefined,
     };
     sessionStorage.setItem("wa_auto_open_lead", JSON.stringify(autoOpenData));
 
     toast({
       title: "Lead criado ✅",
-      description: "Abrindo conversa...",
+      description: assignedConvId
+        ? "Conversa atribuída. Abrindo..."
+        : "Abrindo conversa...",
     });
 
-    // Redirect: if on vendor portal use tab switch, otherwise go to /vendedor or /app
+    // 3) Redirect to WhatsApp tab
     setTimeout(() => {
       const currentPath = window.location.pathname;
       if (currentPath.startsWith("/vendedor")) {
-        // Already in vendor portal — switch to WhatsApp tab via URL param
         navigate("/vendedor?tab=whatsapp", { replace: true });
       } else if (currentPath.startsWith("/app")) {
         navigate("/app", { replace: true });
       } else {
-        // Default: go to vendor portal WhatsApp tab
         navigate("/vendedor?tab=whatsapp", { replace: true });
       }
     }, 300);

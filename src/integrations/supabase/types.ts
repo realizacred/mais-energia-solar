@@ -7110,6 +7110,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_wa_conversation_by_phone: {
+        Args: { _phone_digits: string }
+        Returns: string
+      }
       can_access_wa_conversation: {
         Args: { _conversation_id: string; _user_id?: string }
         Returns: boolean
