@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -74,7 +75,21 @@ export default function VendedorPortal() {
      leadsForAlerts,
    } = useVendedorPortal();
 
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    return searchParams.get("tab") || "dashboard";
+  });
+
+  // React to ?tab= changes (e.g. redirect from lead creation)
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab);
+      // Clean up the param so it doesn't persist
+      searchParams.delete("tab");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams]);
 
   if (loading) {
     return (

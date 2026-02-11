@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import {
   Send,
   StickyNote,
@@ -74,6 +74,7 @@ interface WaChatComposerProps {
   onNoteModeChange: (v: boolean) => void;
   replyingTo?: ReplyingTo | null;
   onCancelReply?: () => void;
+  prefillMessage?: string | null;
 }
 
 export function WaChatComposer({
@@ -84,8 +85,20 @@ export function WaChatComposer({
   onNoteModeChange,
   replyingTo,
   onCancelReply,
+  prefillMessage,
 }: WaChatComposerProps) {
   const [inputValue, setInputValue] = useState("");
+  const prefillAppliedRef = useRef(false);
+
+  // Apply prefill message once
+  useEffect(() => {
+    if (prefillMessage && !prefillAppliedRef.current) {
+      setInputValue(prefillMessage);
+      prefillAppliedRef.current = true;
+      // Focus the textarea
+      setTimeout(() => textareaRef.current?.focus(), 100);
+    }
+  }, [prefillMessage]);
   const [showEmoji, setShowEmoji] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [spellCheckEnabled, setSpellCheckEnabled] = useState(() => {

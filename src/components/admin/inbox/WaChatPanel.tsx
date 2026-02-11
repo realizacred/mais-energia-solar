@@ -79,6 +79,7 @@ interface WaChatPanelProps {
   isHidden?: boolean;
   onToggleMute?: () => void;
   onToggleHide?: () => void;
+  prefillMessage?: string | null;
 }
 
 export function WaChatPanel({
@@ -106,6 +107,7 @@ export function WaChatPanel({
   isHidden,
   onToggleMute,
   onToggleHide,
+  prefillMessage,
 }: WaChatPanelProps) {
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [showLeadInfo, setShowLeadInfo] = useState(false);
@@ -542,6 +544,7 @@ export function WaChatPanel({
           onNoteModeChange={setIsNoteMode}
           replyingTo={replyingTo}
           onCancelReply={() => setReplyingTo(null)}
+          prefillMessage={prefillMessage}
         />
 
         {/* Lead Info Card */}

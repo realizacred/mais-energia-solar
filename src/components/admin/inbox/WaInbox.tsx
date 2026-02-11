@@ -16,6 +16,15 @@ import { WaResolveDialog } from "./WaResolveDialog";
 import { WaFollowupWidget } from "@/components/admin/widgets/WaFollowupWidget";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
+interface LeadAutoOpenData {
+  phone: string;
+  nome?: string;
+  cidade?: string;
+  consumo?: number;
+  tipo_telhado?: string;
+  consultor_nome?: string;
+}
+
 interface WaInboxProps {
   vendorMode?: boolean;
   vendorUserId?: string | null;
@@ -41,6 +50,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [showTags, setShowTags] = useState(false);
   const [showLinkLead, setShowLinkLead] = useState(false);
   const [showResolve, setShowResolve] = useState(false);
+  const [prefillMessage, setPrefillMessage] = useState<string | null>(null);
+  const [preContactData, setPreContactData] = useState<LeadAutoOpenData | null>(null);
+  const autoOpenProcessedRef = useRef(false);
 
   // Notification sound
   const prevUnreadRef = useRef<number>(0);
@@ -185,6 +197,62 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     }
     prevUnreadRef.current = totalUnread;
   }, [allConversations]);
+
+  // 🚀 Auto-open conversation from lead creation (sessionStorage signal)
+  useEffect(() => {
+    if (autoOpenProcessedRef.current || convsLoading || allConversations.length === 0) return;
+
+    const raw = sessionStorage.getItem("wa_auto_open_lead");
+    if (!raw) return;
+
+    autoOpenProcessedRef.current = true;
+    sessionStorage.removeItem("wa_auto_open_lead");
+
+    try {
+      const data: LeadAutoOpenData = JSON.parse(raw);
+      const phoneDigits = data.phone.replace(/\D/g, "");
+      if (phoneDigits.length < 10) return;
+
+      // Match by remote_jid or cliente_telefone containing the phone digits
+      const match = allConversations.find((c) => {
+        const remoteDigits = c.remote_jid?.replace(/\D/g, "") || "";
+        const telDigits = c.cliente_telefone?.replace(/\D/g, "") || "";
+        return remoteDigits.includes(phoneDigits) || telDigits.includes(phoneDigits)
+          || phoneDigits.includes(remoteDigits.slice(-10)) || phoneDigits.includes(telDigits.slice(-10));
+      });
+
+      if (match) {
+        // Open existing conversation
+        handleSelectConversation(match);
+        // Ensure status filter shows this conversation
+        if (match.status !== filterStatus && filterStatus !== "all") {
+          setFilterStatus("all");
+        }
+      } else {
+        // No conversation found — show pre-contact card
+        setPreContactData(data);
+      }
+
+      // Build prefill message if toggle is enabled
+      const autoMsg = localStorage.getItem("wa_auto_message_enabled");
+      if (autoMsg !== "false") {
+        const parts: string[] = [];
+        parts.push(`Olá ${data.nome || ""}! 👋`);
+        parts.push(`Aqui é ${data.consultor_nome || "a equipe"} da Mais Energia Solar ☀️`);
+        parts.push("");
+        parts.push("Recebi sua solicitação e já estou preparando sua simulação.");
+        parts.push("");
+        if (data.cidade) parts.push(`📍 Cidade: ${data.cidade}`);
+        if (data.consumo) parts.push(`⚡ Consumo médio: ${data.consumo} kWh`);
+        if (data.tipo_telhado) parts.push(`🏠 Tipo de telhado: ${data.tipo_telhado}`);
+        parts.push("");
+        parts.push("Vou te fazer algumas perguntas rápidas e já te envio um estudo completo 🙂");
+        setPrefillMessage(parts.filter((p) => p !== undefined).join("\n"));
+      }
+    } catch (err) {
+      console.warn("[WaInbox] Failed to parse auto-open lead data:", err);
+    }
+  }, [allConversations, convsLoading]);
 
   // Single source of truth: filter client-side for status, unassigned, and tags
   const filteredConvs = allConversations.filter((c) => {
@@ -499,8 +567,32 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   isHidden={selectedConv ? isHidden(selectedConv.id) : false}
                   onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
                   onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
+                  prefillMessage={prefillMessage}
                 />
               </>
+            ) : preContactData ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-3">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-warning/15 to-warning/5 border border-warning/10 flex items-center justify-center">
+                  <MessageCircle className="h-7 w-7 text-warning/60" />
+                </div>
+                <h3 className="text-base font-semibold text-foreground/70">Pré-Contato</h3>
+                <p className="text-sm text-muted-foreground">
+                  <strong>{preContactData.nome}</strong> ainda não iniciou conversa.
+                </p>
+                <a
+                  href={`https://wa.me/${preContactData.phone.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-success/90 transition-colors"
+                  onClick={() => setPreContactData(null)}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Iniciar Conversa
+                </a>
+                <button onClick={() => setPreContactData(null)} className="text-xs text-muted-foreground hover:text-foreground">
+                  Voltar
+                </button>
+              </div>
             ) : (
               <WaConversationList
                 conversations={filteredConvs}
@@ -532,34 +624,64 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
             )}
           </div>
 
-          {/* Desktop: Chat Panel */}
+          {/* Desktop: Chat Panel or Pre-Contact Card */}
           <div className="hidden md:flex flex-1 min-w-0 overflow-x-hidden">
-            <WaChatPanel
-              conversation={selectedConv}
-              messages={messages}
-              loading={msgsLoading}
-              isSending={isSending}
-              initialLoadDone={initialLoadDone}
-              isLoadingMore={isLoadingMore}
-              hasOlderMessages={hasOlderMessages}
-              onLoadOlder={loadOlderMessages}
-              onSendMessage={handleSendMessage}
-              onSendMedia={handleSendMedia}
-              onSendReaction={handleSendReaction}
-              onResolve={openResolveDialog}
-              onReopen={handleReopen}
-              onOpenTransfer={() => setShowTransfer(true)}
-              onOpenTags={() => setShowTags(true)}
-              onOpenAssign={() => setShowAssign(true)}
-              onLinkLead={() => setShowLinkLead(true)}
-              vendedores={vendedores}
-              lastReadMessageId={lastReadMessageId}
-              onMarkAsRead={markAsRead}
-              isMuted={selectedConv ? isMuted(selectedConv.id) : false}
-              isHidden={selectedConv ? isHidden(selectedConv.id) : false}
-              onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
-              onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
-            />
+            {!selectedConv && preContactData ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-gradient-to-b from-muted/5 to-muted/20 gap-4">
+                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-warning/15 to-warning/5 border border-warning/10 flex items-center justify-center shadow-lg shadow-warning/5">
+                  <MessageCircle className="h-9 w-9 text-warning/60" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground/70">Novo Lead — Pré-Contato</h3>
+                <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                  <strong>{preContactData.nome}</strong> ainda não iniciou conversa no WhatsApp.
+                </p>
+                <p className="text-xs text-muted-foreground">{preContactData.phone}</p>
+                <a
+                  href={`https://wa.me/${preContactData.phone.replace(/\D/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-success text-white font-medium rounded-lg hover:bg-success/90 transition-colors shadow-md"
+                  onClick={() => setPreContactData(null)}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Iniciar Conversa no WhatsApp
+                </a>
+                <button
+                  onClick={() => setPreContactData(null)}
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            ) : (
+              <WaChatPanel
+                conversation={selectedConv}
+                messages={messages}
+                loading={msgsLoading}
+                isSending={isSending}
+                initialLoadDone={initialLoadDone}
+                isLoadingMore={isLoadingMore}
+                hasOlderMessages={hasOlderMessages}
+                onLoadOlder={loadOlderMessages}
+                onSendMessage={handleSendMessage}
+                onSendMedia={handleSendMedia}
+                onSendReaction={handleSendReaction}
+                onResolve={openResolveDialog}
+                onReopen={handleReopen}
+                onOpenTransfer={() => setShowTransfer(true)}
+                onOpenTags={() => setShowTags(true)}
+                onOpenAssign={() => setShowAssign(true)}
+                onLinkLead={() => setShowLinkLead(true)}
+                vendedores={vendedores}
+                lastReadMessageId={lastReadMessageId}
+                onMarkAsRead={markAsRead}
+                isMuted={selectedConv ? isMuted(selectedConv.id) : false}
+                isHidden={selectedConv ? isHidden(selectedConv.id) : false}
+                onToggleMute={selectedConv ? () => toggleMute(selectedConv.id) : undefined}
+                onToggleHide={selectedConv ? () => toggleHide(selectedConv.id) : undefined}
+                prefillMessage={prefillMessage}
+              />
+            )}
           </div>
         </div>
       </div>
