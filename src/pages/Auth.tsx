@@ -45,7 +45,7 @@ export default function Auth() {
     const redirectFrom = searchParams.get("from");
     if (redirectFrom) {
       const messages: Record<string, string> = {
-        vendedor: "Faça login para acessar o Portal do Vendedor",
+        vendedor: "Faça login para acessar o Portal do Consultor",
         admin: "Faça login para acessar o Painel Administrativo",
       };
       toast({

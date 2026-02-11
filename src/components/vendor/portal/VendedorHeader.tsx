@@ -22,7 +22,7 @@ export function VendedorHeader({ vendedorNome, isAdminMode, isViewingAsVendedor,
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-sm sm:text-base truncate">
-                Portal do Vendedor
+                Portal do Consultor
               </h1>
               {isAdminMode && (
                 <span className="text-[10px] sm:text-xs px-1.5 py-0.5 bg-primary/10 text-primary rounded-md font-medium">
