@@ -76,14 +76,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Idempotency: already sent
-    if (lead.wa_welcome_sent) {
-      console.log(`[send-wa-welcome] Already sent for lead=${lead_id}, skipping`);
-      return new Response(
-        JSON.stringify({ success: true, already_sent: true }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Track if this is a subsequent orcamento (welcome already sent)
+    const isNewOrcamento = lead.wa_welcome_sent === true;
 
     if (!lead.vendedor_id) {
       console.warn(`[send-wa-welcome] Lead ${lead_id} has no vendedor_id`);
@@ -128,7 +122,7 @@ Deno.serve(async (req) => {
     // ── FETCH ORCAMENTO (real data lives here, not in leads) ──
     const { data: orcamento } = await supabaseAdmin
       .from("orcamentos")
-      .select("cidade, estado, media_consumo, tipo_telhado")
+      .select("cidade, estado, media_consumo, tipo_telhado, orc_code")
       .eq("lead_id", lead.id)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -138,9 +132,10 @@ Deno.serve(async (req) => {
     const estado = orcamento?.estado || "";
     const mediaConsumo = orcamento?.media_consumo || null;
     const tipoTelhado = orcamento?.tipo_telhado || "";
+    const orcCode = orcamento?.orc_code || "";
 
     // ── BUILD MESSAGE ──
-    const defaultTemplate = `Olá, {nome}! 👋
+    const defaultWelcomeTemplate = `Olá, {nome}! 👋
 
 Aqui é {consultor} da *Mais Energia Solar*. Recebemos sua solicitação de orçamento e já estamos preparando uma proposta personalizada para você!
 
@@ -149,7 +144,24 @@ Aqui é {consultor} da *Mais Energia Solar*. Recebemos sua solicitação de orç
 
 Em breve enviaremos sua proposta com os melhores equipamentos e condições de pagamento. Qualquer dúvida, estou à disposição! ☀️`;
 
-    const template = (settings.wa_auto_message_template as string) || defaultTemplate;
+    const defaultNewOrcamentoTemplate = `Olá, {nome}! 👋
+
+Aqui é {consultor} da *Mais Energia Solar*. Recebemos um *novo pedido de orçamento* ({orc_code}) para você!
+
+📋 *Dados do novo orçamento:*
+{dados}
+
+Já estamos analisando e em breve enviaremos sua proposta atualizada. Qualquer dúvida, estou à disposição! ☀️`;
+
+    let template: string;
+    if (isNewOrcamento) {
+      template = (settings.wa_new_orcamento_template as string) || defaultNewOrcamentoTemplate;
+      console.log(`[send-wa-welcome] Sending NEW ORCAMENTO message for lead=${lead_id}`);
+    } else {
+      template = (settings.wa_auto_message_template as string) || defaultWelcomeTemplate;
+      console.log(`[send-wa-welcome] Sending WELCOME message for lead=${lead_id}`);
+    }
+
     const firstName = (lead.nome || "").split(" ")[0];
     const location = cidade && estado && cidade !== "N/A" && estado !== "N/A"
       ? `${cidade}/${estado}`
@@ -168,7 +180,8 @@ Em breve enviaremos sua proposta com os melhores equipamentos e condições de p
       .replace(/\{cidade\}/g, cidade !== "N/A" ? cidade : "")
       .replace(/\{estado\}/g, estado !== "N/A" ? estado : "")
       .replace(/\{consumo\}/g, mediaConsumo ? `${mediaConsumo}` : "")
-      .replace(/\{tipo_telhado\}/g, tipoTelhado !== "N/A" ? tipoTelhado : "");
+      .replace(/\{tipo_telhado\}/g, tipoTelhado !== "N/A" ? tipoTelhado : "")
+      .replace(/\{orc_code\}/g, orcCode);
 
     // ── CALL send-whatsapp-message with service_role ──
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -193,13 +206,16 @@ Em breve enviaremos sua proposta com os melhores equipamentos e condições de p
     console.log(`[send-wa-welcome] send-whatsapp-message response:`, JSON.stringify(sendResult));
 
     if (sendResult?.success) {
-      // Mark as sent (idempotency)
-      await supabaseAdmin
-        .from("leads")
-        .update({ wa_welcome_sent: true } as any)
-        .eq("id", lead_id);
+      // Mark as sent (only for first welcome)
+      if (!isNewOrcamento) {
+        await supabaseAdmin
+          .from("leads")
+          .update({ wa_welcome_sent: true } as any)
+          .eq("id", lead_id);
+      }
 
-      console.log(`[send-wa-welcome] ✅ Welcome sent for lead=${lead_id}`);
+      const msgType = isNewOrcamento ? "new_orcamento" : "welcome";
+      console.log(`[send-wa-welcome] ✅ ${msgType} sent for lead=${lead_id}`);
       return new Response(
         JSON.stringify({
           success: true,
