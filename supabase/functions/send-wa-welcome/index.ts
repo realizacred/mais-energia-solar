@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     // ── FETCH LEAD (validate + idempotency) ──
     const { data: lead, error: leadErr } = await supabaseAdmin
       .from("leads")
-      .select("id, nome, telefone, cidade, estado, media_consumo, tipo_telhado, vendedor_id, tenant_id, wa_welcome_sent")
+      .select("id, nome, telefone, vendedor_id, tenant_id, wa_welcome_sent")
       .eq("id", lead_id)
       .maybeSingle();
 
@@ -125,6 +125,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── FETCH ORCAMENTO (real data lives here, not in leads) ──
+    const { data: orcamento } = await supabaseAdmin
+      .from("orcamentos")
+      .select("cidade, estado, media_consumo, tipo_telhado")
+      .eq("lead_id", lead.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const cidade = orcamento?.cidade || "";
+    const estado = orcamento?.estado || "";
+    const mediaConsumo = orcamento?.media_consumo || null;
+    const tipoTelhado = orcamento?.tipo_telhado || "";
+
     // ── BUILD MESSAGE ──
     const defaultTemplate = `Olá, {nome}! 👋
 
@@ -137,24 +151,24 @@ Em breve enviaremos sua proposta com os melhores equipamentos e condições de p
 
     const template = (settings.wa_auto_message_template as string) || defaultTemplate;
     const firstName = (lead.nome || "").split(" ")[0];
-    const location = lead.cidade && lead.estado
-      ? `${lead.cidade}/${lead.estado}`
-      : lead.cidade || lead.estado || "";
+    const location = cidade && estado && cidade !== "N/A" && estado !== "N/A"
+      ? `${cidade}/${estado}`
+      : (cidade && cidade !== "N/A") ? cidade : (estado && estado !== "N/A") ? estado : "";
 
     const dadosParts: string[] = [];
     if (location) dadosParts.push(`📍 Localização: ${location}`);
-    if (lead.media_consumo) dadosParts.push(`⚡ Consumo médio: ${lead.media_consumo} kWh/mês`);
-    if (lead.tipo_telhado) dadosParts.push(`🏠 Tipo de telhado: ${lead.tipo_telhado}`);
+    if (mediaConsumo && mediaConsumo > 0) dadosParts.push(`⚡ Consumo médio: ${mediaConsumo} kWh/mês`);
+    if (tipoTelhado && tipoTelhado !== "N/A") dadosParts.push(`🏠 Tipo de telhado: ${tipoTelhado}`);
     const dadosStr = dadosParts.length > 0 ? dadosParts.join("\n") : "Dados em análise";
 
     const mensagem = template
       .replace(/\{nome\}/g, firstName)
       .replace(/\{consultor\}/g, vendedor.nome || "a equipe")
       .replace(/\{dados\}/g, dadosStr)
-      .replace(/\{cidade\}/g, lead.cidade || "")
-      .replace(/\{estado\}/g, lead.estado || "")
-      .replace(/\{consumo\}/g, lead.media_consumo ? `${lead.media_consumo}` : "")
-      .replace(/\{tipo_telhado\}/g, lead.tipo_telhado || "");
+      .replace(/\{cidade\}/g, cidade !== "N/A" ? cidade : "")
+      .replace(/\{estado\}/g, estado !== "N/A" ? estado : "")
+      .replace(/\{consumo\}/g, mediaConsumo ? `${mediaConsumo}` : "")
+      .replace(/\{tipo_telhado\}/g, tipoTelhado !== "N/A" ? tipoTelhado : "");
 
     // ── CALL send-whatsapp-message with service_role ──
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
