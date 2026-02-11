@@ -229,6 +229,7 @@ async function processRule(
         content: message,
         is_internal_note: false,
         status: "pending",
+        tenant_id: rule.tenant_id,
       })
       .select()
       .single();
@@ -242,6 +243,7 @@ async function processRule(
         message_type: "text",
         content: message,
         status: "pending",
+        tenant_id: rule.tenant_id,
       });
 
       await supabase

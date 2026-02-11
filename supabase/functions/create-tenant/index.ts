@@ -81,6 +81,7 @@ serve(async (req) => {
     const { error: roleErr } = await adminClient.from("user_roles").insert({
       user_id: userId,
       role: "admin",
+      tenant_id: tenant.id,
     });
 
     if (roleErr) {
