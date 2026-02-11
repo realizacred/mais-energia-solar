@@ -412,6 +412,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     if (currentStep < STEPS.length) {
       setDirection(1);
       const nextStepNum = currentStep + 1;
+      // Clear errors for the NEXT step so they don't show prematurely
+      const nextStepFields = getFieldsForStep(nextStepNum);
+      form.clearErrors(nextStepFields);
       setCurrentStep(nextStepNum);
       scrollToTop();
       // Auto-focus first field of next step
