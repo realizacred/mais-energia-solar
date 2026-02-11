@@ -84,7 +84,7 @@ export function ComissoesFilters({
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Buscar por descrição, vendedor ou projeto..."
+          placeholder="Buscar por descrição, consultor ou projeto..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="pl-10"
@@ -136,7 +136,7 @@ export function ComissoesFilters({
         </div>
 
         <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Vendedor</Label>
+          <Label className="text-xs text-muted-foreground">Consultor</Label>
           <Select value={filterVendedor} onValueChange={setFilterVendedor}>
             <SelectTrigger>
               <SelectValue />

@@ -90,7 +90,7 @@ export function VendorBalanceCard({ balances }: VendorBalanceCardProps) {
 
         {vendorsWithCredits.length === 0 && vendorsWithPending.length === 0 && (
           <p className="text-sm text-center text-muted-foreground py-2">
-            Todos os vendedores estão com saldo zerado
+            Todos os consultores estão com saldo zerado
           </p>
         )}
       </CardContent>

@@ -66,7 +66,7 @@ export default function Instalar() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button asChild className="w-full">
-                <a href="/vendedor">Acessar Portal do Vendedor</a>
+                <a href="/vendedor">Acessar Portal do Consultor</a>
               </Button>
               <Button variant="outline" asChild className="w-full">
                 <a href="/checklist">Acessar Checklist</a>

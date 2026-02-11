@@ -172,7 +172,7 @@ export function PropostaDetailDialog({
               <span className="font-medium">{formatCurrency(proposta.economia_mensal)}</span>
               <span className="text-muted-foreground">Distribuidora</span>
               <span className="font-medium">{proposta.distribuidora || "—"}</span>
-              <span className="text-muted-foreground">Vendedor</span>
+              <span className="text-muted-foreground">Consultor</span>
               <span className="font-medium">{proposta.vendedor?.nome || "—"}</span>
             </div>
           </div>

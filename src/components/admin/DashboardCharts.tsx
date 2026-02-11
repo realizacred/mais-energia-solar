@@ -72,7 +72,7 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
     const vendorData: Record<string, { leads: number; kwh: number }> = {};
     
     leads.forEach((lead) => {
-      const vendor = lead.vendedor || "Sem vendedor";
+      const vendor = lead.vendedor || "Sem consultor";
       if (!vendorData[vendor]) {
         vendorData[vendor] = { leads: 0, kwh: 0 };
       }
@@ -174,12 +174,12 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
         </CardContent>
       </Card>
 
-      {/* Performance por Vendedor */}
+      {/* Performance por Consultor */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="w-4 h-4 text-success" />
-            Performance por Vendedor
+            Performance por Consultor
           </CardTitle>
         </CardHeader>
         <CardContent>

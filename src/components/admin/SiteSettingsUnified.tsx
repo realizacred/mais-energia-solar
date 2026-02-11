@@ -656,7 +656,7 @@ export function SiteSettingsUnified() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  {["Sidebar do Admin", "Header do site", "Footer (logo branca)", "Tela de Login", "Portal do Vendedor", "Portal do Instalador", "Propostas e PDFs (futuro)"].map((item) => (
+                  {["Sidebar do Admin", "Header do site", "Footer (logo branca)", "Tela de Login", "Portal do Consultor", "Portal do Instalador", "Propostas e PDFs (futuro)"].map((item) => (
                     <li key={item} className="flex items-center gap-2">
                       <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                       {item}

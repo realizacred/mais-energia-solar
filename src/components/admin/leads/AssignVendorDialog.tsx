@@ -84,8 +84,8 @@ export function AssignVendorDialog({
   const handleAssign = async () => {
     if (!selectedVendedorId) {
       toast({
-        title: "Selecione um vendedor",
-        description: "Escolha um vendedor para atribuir este orçamento.",
+        title: "Selecione um consultor",
+        description: "Escolha um consultor para atribuir este orçamento.",
         variant: "destructive",
       });
       return;
@@ -117,7 +117,7 @@ export function AssignVendorDialog({
       if (leadError) throw leadError;
 
       toast({
-        title: "Vendedor atribuído!",
+        title: "Consultor atribuído!",
         description: `Orçamento transferido para ${vendedorNome}.`,
       });
 
@@ -127,7 +127,7 @@ export function AssignVendorDialog({
       console.error("Error assigning vendedor:", error);
       toast({
         title: "Erro ao atribuir",
-        description: "Não foi possível atribuir o vendedor. Tente novamente.",
+        description: "Não foi possível atribuir o consultor. Tente novamente.",
         variant: "destructive",
       });
     } finally {
@@ -149,7 +149,7 @@ export function AssignVendorDialog({
         .rpc("resolve_default_vendedor_id", { _tenant_id: leadData?.tenant_id });
 
       if (resolveError || !defaultVendedor) {
-        throw new Error("Não foi possível resolver vendedor padrão da fila");
+        throw new Error("Não foi possível resolver consultor padrão da fila");
       }
 
       // Get default vendedor name
@@ -175,7 +175,7 @@ export function AssignVendorDialog({
 
       toast({
         title: "Devolvido à fila",
-        description: "O lead foi reatribuído ao vendedor padrão.",
+        description: "O lead foi reatribuído ao consultor padrão.",
       });
 
       onOpenChange(false);
@@ -198,17 +198,17 @@ export function AssignVendorDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="w-5 h-5 text-primary" />
-            Atribuir Vendedor
+            Atribuir Consultor
           </DialogTitle>
           <DialogDescription>
-            Transfira o orçamento de <strong>{clienteNome}</strong> para um vendedor
+            Transfira o orçamento de <strong>{clienteNome}</strong> para um consultor
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {displayName && (
             <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm text-muted-foreground">Vendedor atual:</span>
+              <span className="text-sm text-muted-foreground">Consultor atual:</span>
               <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
                 {displayName}
               </Badge>
@@ -221,10 +221,10 @@ export function AssignVendorDialog({
             </div>
           ) : (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Novo vendedor</label>
+              <label className="text-sm font-medium">Novo consultor</label>
               <Select value={selectedVendedorId} onValueChange={setSelectedVendedorId}>
                 <SelectTrigger className="w-full bg-background">
-                  <SelectValue placeholder="Selecione um vendedor..." />
+                  <SelectValue placeholder="Selecione um consultor..." />
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-popover border border-border shadow-lg">
                   {vendedores.map((v) => (
@@ -251,7 +251,7 @@ export function AssignVendorDialog({
               disabled={saving}
               className="text-destructive hover:text-destructive"
             >
-              Remover Vendedor
+              Remover Consultor
             </Button>
           )}
           <div className="flex gap-2 ml-auto">

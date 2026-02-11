@@ -56,7 +56,7 @@ export function ComissoesExport({
     setExporting(true);
     try {
       const headers = [
-        "Vendedor",
+        "Consultor",
         "Descrição",
         "Cliente",
         "Projeto",
@@ -163,7 +163,7 @@ export function ComissoesExport({
           <table>
             <thead>
               <tr>
-                <th>Vendedor</th>
+                <th>Consultor</th>
                 <th>Descrição</th>
                 <th class="text-right">Valor Comissão</th>
                 <th class="text-right">Pago</th>

@@ -280,7 +280,7 @@ export function NovaPropostaDialog({
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Vendedor</Label>
+                <Label>Consultor</Label>
                 <Select
                   value={form.vendedor_id}
                   onValueChange={(v) => handleChange("vendedor_id", v)}

@@ -266,7 +266,7 @@ export function ValidacaoVendasManager() {
       const now = new Date();
       const percentual = parseFloat(percentualComissao);
       const selectedVendedor = vendedores.find((v) => v.id === selectedVendedorId);
-      const vendedorNome = selectedVendedor?.nome || "Vendedor";
+      const vendedorNome = selectedVendedor?.nome || "Consultor";
 
       const { error: comissaoError } = await supabase.from("comissoes").insert({
         vendedor_id: selectedVendedorId,
@@ -430,10 +430,10 @@ export function ValidacaoVendasManager() {
             </div>
             <Select value={filterVendedor} onValueChange={setFilterVendedor}>
               <SelectTrigger className="w-[180px] h-9">
-                <SelectValue placeholder="Vendedor" />
+                <SelectValue placeholder="Consultor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os vendedores</SelectItem>
+                <SelectItem value="all">Todos os consultores</SelectItem>
                 {vendedorNames.map((v) => (
                   <SelectItem key={v.id} value={v.id}>{v.nome}</SelectItem>
                 ))}

@@ -450,7 +450,7 @@ function InstanceFormDialog({
             </p>
           </div>
           <div>
-            <Label>Vincular a Vendedor (opcional)</Label>
+            <Label>Vincular a Consultor (opcional)</Label>
             <Select value={vendedorId} onValueChange={setVendedorId}>
               <SelectTrigger>
                 <SelectValue placeholder="Nenhum" />

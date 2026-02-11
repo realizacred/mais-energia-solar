@@ -96,7 +96,7 @@ const TAB_TITLES: Record<string, string> = {
   "site-servicos": "Serviços do Site",
   obras: "Portfólio de Obras",
   aprovacao: "Aprovações de Acesso",
-  vendedores: "Gestão de Vendedores",
+  vendedores: "Gestão de Consultores",
   usuarios: "Usuários & Permissões",
   gamificacao: "Gamificação",
   "lead-status": "Status de Leads",
