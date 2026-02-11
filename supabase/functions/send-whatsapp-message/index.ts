@@ -20,6 +20,12 @@ interface SendMessageRequest {
  * - Regular users: JWT validated via getClaims()
  * - Internal callers (automations): service_role key accepted, but tenant_id MUST be in body
  * 
+ * INSTANCE ROUTING (priority order):
+ * 1. body.instance_id (explicit — caller knows which instance)
+ * 2. Vendor's linked instance via wa_instance_vendedores junction table
+ * 3. config.evolution_instance (legacy fallback from whatsapp_automation_config)
+ * 4. First active instance of the tenant
+ * 
  * TENANT RESOLUTION (deterministic, no blind fallback):
  * 1. body.tenant_id (explicit — required for service_role)
  * 2. User profile (regular JWT)
@@ -42,7 +48,7 @@ Deno.serve(async (req) => {
       _function_name: "send-whatsapp-message",
       _identifier: identifier,
       _window_seconds: 60,
-      _max_requests: 60, // internal calls can be higher
+      _max_requests: 60,
     });
     if (allowed === false) {
       console.warn(`[send-wa] Rate limited: ${identifier}`);
@@ -125,7 +131,6 @@ Deno.serve(async (req) => {
 
     // Strategy 1: Explicit tenant_id in body (REQUIRED for service_role callers)
     if (body.tenant_id) {
-      // Validate that this tenant exists
       const { data: tenantRow } = await supabaseAdmin
         .from("tenants")
         .select("id")
@@ -136,7 +141,6 @@ Deno.serve(async (req) => {
         tenantId = tenantRow.id;
         tenantSource = "body.tenant_id";
       } else {
-        // HARD FAIL: explicit tenant_id was provided but is invalid — do NOT fallback
         console.error(`[send-wa] BLOCKED: body.tenant_id=${body.tenant_id} not found or inactive`);
         return new Response(
           JSON.stringify({ success: false, error: "Tenant inválido ou inativo" }),
@@ -171,9 +175,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // NO Strategy 4 — we do NOT blindly query wa_config without tenant filter
-    // service_role callers MUST pass tenant_id in body
-
     if (!tenantId) {
       const reason = isServiceRole
         ? "service_role call sem tenant_id no body — obrigatório"
@@ -185,7 +186,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`[send-wa] tenant=${tenantId} via ${tenantSource}`);
+    console.log(`[send-wa] tenant=${tenantId} via ${tenantSource}, userId=${userId || "service_role"}`);
 
     // ── FETCH CONFIG (scoped by resolved tenant) ──────────────
     const { data: config, error: configError } = await supabaseAdmin
@@ -216,6 +217,101 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // ── INSTANCE ROUTING (smart selection) ────────────────────
+    // Priority:
+    // 1. Explicit instance_id from request body
+    // 2. Vendor's linked instance (via wa_instance_vendedores junction)
+    // 3. config.evolution_instance (legacy)
+    // 4. First active instance of tenant
+    let resolvedInstance: { id: string; evolution_api_url: string; evolution_instance_key: string; api_key: string | null } | null = null;
+    let instanceSource = "";
+
+    // Priority 1: Explicit instance_id
+    if (instance_id) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instance_id);
+      let q = supabaseAdmin.from("wa_instances").select("id, evolution_api_url, evolution_instance_key, api_key").eq("tenant_id", tenantId);
+      if (isUuid) {
+        q = q.eq("id", instance_id);
+      } else {
+        q = q.eq("evolution_instance_key", instance_id);
+      }
+      const { data: inst } = await q.maybeSingle();
+      if (inst) {
+        resolvedInstance = inst;
+        instanceSource = "body.instance_id";
+      }
+    }
+
+    // Priority 2: Vendor's linked instance via junction table
+    if (!resolvedInstance && userId) {
+      // Find vendedor linked to this user
+      const { data: vendedor } = await supabaseAdmin
+        .from("vendedores")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("ativo", true)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (vendedor) {
+        // Check junction table for linked instances
+        const { data: links } = await supabaseAdmin
+          .from("wa_instance_vendedores")
+          .select("instance_id, wa_instances:instance_id(id, evolution_api_url, evolution_instance_key, api_key, status)")
+          .eq("vendedor_id", vendedor.id)
+          .eq("tenant_id", tenantId);
+
+        if (links && links.length > 0) {
+          // Prefer connected instance, fallback to first
+          const connected = links.find((l: any) => (l.wa_instances as any)?.status === "connected");
+          const chosen = connected || links[0];
+          const inst = (chosen as any).wa_instances;
+          if (inst) {
+            resolvedInstance = {
+              id: inst.id,
+              evolution_api_url: inst.evolution_api_url,
+              evolution_instance_key: inst.evolution_instance_key,
+              api_key: inst.api_key,
+            };
+            instanceSource = "vendor_junction";
+            console.log(`[send-wa] Routed to vendor's instance: ${inst.evolution_instance_key} (${connected ? "connected" : "first-link"})`);
+          }
+        }
+      }
+    }
+
+    // Priority 3: Legacy config.evolution_instance
+    if (!resolvedInstance && config.evolution_instance) {
+      const { data: inst } = await supabaseAdmin
+        .from("wa_instances")
+        .select("id, evolution_api_url, evolution_instance_key, api_key")
+        .eq("evolution_instance_key", config.evolution_instance)
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+      if (inst) {
+        resolvedInstance = inst;
+        instanceSource = "config.evolution_instance";
+      }
+    }
+
+    // Priority 4: First active instance of tenant
+    if (!resolvedInstance) {
+      const { data: inst } = await supabaseAdmin
+        .from("wa_instances")
+        .select("id, evolution_api_url, evolution_instance_key, api_key")
+        .eq("tenant_id", tenantId)
+        .eq("status", "connected")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (inst) {
+        resolvedInstance = inst;
+        instanceSource = "first_active_tenant_instance";
+      }
+    }
+
+    console.log(`[send-wa] Instance resolved: ${resolvedInstance?.evolution_instance_key || "NONE"} via ${instanceSource}`);
 
     // ── SEND MESSAGE ──────────────────────────────────────────
     let formattedPhone = telefone.replace(/\D/g, "");
@@ -259,91 +355,92 @@ Deno.serve(async (req) => {
 
     // Evolution API
     if (config.modo_envio === "evolution" || config.modo_envio === "ambos") {
-      let evoApiUrl = "";
-      let evoApiKey = globalApiKey;
-      let evoInstance = "";
+      if (resolvedInstance) {
+        const evoApiUrl = resolvedInstance.evolution_api_url?.replace(/\/$/, "") || "";
+        const evoInstance = resolvedInstance.evolution_instance_key;
+        const evoApiKey = resolvedInstance.api_key || globalApiKey;
 
-      const instanceKey = instance_id || config.evolution_instance;
-      if (instanceKey) {
-        let waQuery = supabaseAdmin.from("wa_instances").select("*");
-        
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instanceKey);
-        if (isUuid) {
-          waQuery = waQuery.eq("id", instanceKey);
-        } else {
-          waQuery = waQuery.eq("evolution_instance_key", instanceKey);
-        }
+        if (evoApiUrl && evoInstance) {
+          try {
+            const sendUrl = `${evoApiUrl}/message/sendText/${encodeURIComponent(evoInstance)}`;
+            console.log(`[send-wa] Sending to: ${sendUrl}`);
 
-        // CRITICAL: scope wa_instances by tenant
-        const { data: waInst } = await waQuery.eq("tenant_id", tenantId).maybeSingle();
+            const evoRes = await fetch(sendUrl, {
+              method: "POST",
+              headers: {
+                apikey: evoApiKey,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                number: formattedPhone,
+                text: mensagem,
+              }),
+            });
 
-        if (waInst) {
-          evoApiUrl = waInst.evolution_api_url?.replace(/\/$/, "") || "";
-          evoInstance = waInst.evolution_instance_key;
-          // Use instance-specific API key with global fallback
-          if (waInst.api_key) {
-            evoApiKey = waInst.api_key;
+            const evoText = await evoRes.text();
+
+            results.push({
+              method: "evolution",
+              success: evoRes.ok,
+              error: evoRes.ok ? undefined : evoText || `Status: ${evoRes.status}`,
+            });
+          } catch (e: any) {
+            console.error("[send-wa] Evolution error:", e);
+            results.push({ method: "evolution", success: false, error: e?.message || String(e) });
           }
-          console.log(`[send-wa] Using wa_instance: ${waInst.nome} (${evoInstance})`);
-        }
-      }
-
-      // Fallback to config fields
-      if (!evoApiUrl && config.evolution_api_url) {
-        evoApiUrl = config.evolution_api_url.replace(/\/$/, "");
-        evoInstance = config.evolution_instance || "";
-        if (config.evolution_api_key) {
-          evoApiKey = config.evolution_api_key;
-        }
-        console.log(`[send-wa] Fallback to config: instance=${evoInstance}`);
-      }
-
-      if (evoApiUrl && evoInstance) {
-        try {
-          const sendUrl = `${evoApiUrl}/message/sendText/${encodeURIComponent(evoInstance)}`;
-          console.log(`[send-wa] Sending to: ${sendUrl}`);
-
-          const evoRes = await fetch(sendUrl, {
-            method: "POST",
-            headers: {
-              apikey: evoApiKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              number: formattedPhone,
-              text: mensagem,
-            }),
-          });
-
-          const evoText = await evoRes.text();
-
-          results.push({
-            method: "evolution",
-            success: evoRes.ok,
-            error: evoRes.ok ? undefined : evoText || `Status: ${evoRes.status}`,
-          });
-        } catch (e: any) {
-          console.error("[send-wa] Evolution error:", e);
-          results.push({ method: "evolution", success: false, error: e?.message || String(e) });
+        } else {
+          console.warn("[send-wa] Instance resolved but missing API URL or key");
+          results.push({ method: "evolution", success: false, error: "Instância sem URL ou chave configurada" });
         }
       } else {
-        console.warn("[send-wa] Evolution API not configured");
-        results.push({ method: "evolution", success: false, error: "Instância não configurada" });
+        // Legacy fallback to config fields (no wa_instances match)
+        let evoApiUrl = "";
+        let evoApiKey = globalApiKey;
+        let evoInstance = "";
+
+        if (config.evolution_api_url) {
+          evoApiUrl = config.evolution_api_url.replace(/\/$/, "");
+          evoInstance = config.evolution_instance || "";
+          if (config.evolution_api_key) evoApiKey = config.evolution_api_key;
+          console.log(`[send-wa] Legacy config fallback: instance=${evoInstance}`);
+        }
+
+        if (evoApiUrl && evoInstance) {
+          try {
+            const sendUrl = `${evoApiUrl}/message/sendText/${encodeURIComponent(evoInstance)}`;
+            const evoRes = await fetch(sendUrl, {
+              method: "POST",
+              headers: { apikey: evoApiKey, "Content-Type": "application/json" },
+              body: JSON.stringify({ number: formattedPhone, text: mensagem }),
+            });
+            const evoText = await evoRes.text();
+            results.push({
+              method: "evolution",
+              success: evoRes.ok,
+              error: evoRes.ok ? undefined : evoText || `Status: ${evoRes.status}`,
+            });
+          } catch (e: any) {
+            results.push({ method: "evolution", success: false, error: e?.message || String(e) });
+          }
+        } else {
+          console.warn("[send-wa] Evolution API not configured");
+          results.push({ method: "evolution", success: false, error: "Instância não configurada" });
+        }
       }
     }
 
     const anySuccess = results.some((r) => r.success);
     const status = anySuccess ? "enviado" : "erro";
 
-    // ── LOG (explicit tenant_id) ──────────────────────────────
-    // Log to whatsapp_automation_logs (the correct log table)
+    // ── LOG (explicit tenant_id + instance_id) ────────────────
     const { error: logError } = await supabaseAdmin.from("whatsapp_automation_logs").insert({
       lead_id: lead_id || null,
       telefone: formattedPhone,
       mensagem_enviada: mensagem,
       status,
       erro_detalhes: anySuccess ? null : JSON.stringify(results),
-      tenant_id: tenantId, // ← EXPLICIT, deterministic
+      tenant_id: tenantId,
+      instance_id: resolvedInstance?.id || null,
     });
 
     if (logError) console.warn("[send-wa] Log insert failed (non-blocking):", logError);
@@ -355,12 +452,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[send-wa] Done tenant=${tenantId} src=${tenantSource}: ${results.length} methods, anySuccess=${anySuccess}`);
+    console.log(`[send-wa] Done tenant=${tenantId} src=${tenantSource} instance=${resolvedInstance?.evolution_instance_key || "NONE"} via=${instanceSource}: ${results.length} methods, anySuccess=${anySuccess}`);
 
     return new Response(
       JSON.stringify({
         success: anySuccess,
         results,
+        instance_used: resolvedInstance?.evolution_instance_key || null,
+        instance_source: instanceSource,
         message: anySuccess ? "Mensagem enviada com sucesso" : "Falha ao enviar mensagem",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

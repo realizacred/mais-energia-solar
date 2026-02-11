@@ -99,6 +99,20 @@ export default function AppDebug() {
             </div>
           </div>
 
+          {diag.instanceUsed && (
+            <div className="flex items-center justify-between p-3 rounded-lg bg-card border border-border/40">
+              <span className="text-sm font-medium text-foreground">Instance</span>
+              <div className="flex items-center gap-2">
+                <code className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">
+                  {diag.instanceUsed}
+                </code>
+                <code className="text-[10px] text-muted-foreground">
+                  via {diag.instanceSource || "?"}
+                </code>
+              </div>
+            </div>
+          )}
+
           {diag.sentError && (
             <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/30">
               <span className="text-xs text-destructive">{diag.sentError}</span>

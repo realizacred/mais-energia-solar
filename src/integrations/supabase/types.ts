@@ -7035,6 +7035,7 @@ export type Database = {
           created_at: string
           erro_detalhes: string | null
           id: string
+          instance_id: string | null
           lead_id: string | null
           mensagem_enviada: string
           servico_id: string | null
@@ -7048,6 +7049,7 @@ export type Database = {
           created_at?: string
           erro_detalhes?: string | null
           id?: string
+          instance_id?: string | null
           lead_id?: string | null
           mensagem_enviada: string
           servico_id?: string | null
@@ -7061,6 +7063,7 @@ export type Database = {
           created_at?: string
           erro_detalhes?: string | null
           id?: string
+          instance_id?: string | null
           lead_id?: string | null
           mensagem_enviada?: string
           servico_id?: string | null
@@ -7075,6 +7078,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_automation_logs_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "wa_instances"
             referencedColumns: ["id"]
           },
           {

@@ -280,7 +280,58 @@ async function handleMessageUpsert(
       conversationId = newConv.id;
     }
 
-    // For existing conversations, refresh profile picture periodically
+    // ── HARDENING: Auto-assign outbound conversations to instance owner ──
+    // When a message is sent FROM the instance (fromMe=true) and the conversation
+    // has no assigned_to, resolve the owner from the instance's linked vendedores
+    // or owner_user_id. This ensures the conversation is visible in the vendor's Inbox.
+    if (fromMe && !isGroup) {
+      // Check if conversation already has assigned_to
+      const { data: convCheck } = await supabase
+        .from("wa_conversations")
+        .select("assigned_to")
+        .eq("id", conversationId)
+        .maybeSingle();
+
+      if (convCheck && !convCheck.assigned_to) {
+        // Resolve owner from instance
+        let ownerId: string | null = null;
+
+        // 1. Check owner_user_id on the instance
+        const { data: instData } = await supabase
+          .from("wa_instances")
+          .select("owner_user_id")
+          .eq("id", instanceId)
+          .maybeSingle();
+
+        if (instData?.owner_user_id) {
+          ownerId = instData.owner_user_id;
+        }
+
+        // 2. Fallback: first linked vendedor via junction table
+        if (!ownerId) {
+          const { data: links } = await supabase
+            .from("wa_instance_vendedores")
+            .select("vendedor_id, vendedores:vendedor_id(user_id)")
+            .eq("instance_id", instanceId)
+            .limit(1);
+
+          if (links && links.length > 0) {
+            ownerId = (links[0].vendedores as any)?.user_id || null;
+          }
+        }
+
+        if (ownerId) {
+          await supabase
+            .from("wa_conversations")
+            .update({ assigned_to: ownerId, status: "open" })
+            .eq("id", conversationId);
+          console.log(`[process-webhook-events] Auto-assigned outbound conversation ${conversationId} to ${ownerId}`);
+        } else {
+          console.warn(`[process-webhook-events] Outbound conversation ${conversationId} has no assigned_to and no instance owner found`);
+        }
+      }
+    }
+
     if (existingConv && !fromMe && !isGroup) {
       const shouldRefresh = shouldRefreshProfilePic(existingConv);
       if (shouldRefresh) {
