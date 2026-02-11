@@ -568,7 +568,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     return null;
   };
 
-  const handlePostLeadWhatsApp = async (data: LeadFormData) => {
+  const handlePostLeadWhatsApp = async (data: LeadFormData, leadId?: string) => {
     // Fire-and-forget wrapper — never blocks UI
     try {
       const phoneDigits = normalizePhoneDigits(data.telefone);
@@ -576,6 +576,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
       // Initialize pipeline diagnostics
       const diag: WaPipelineDiag = {
+        leadId,
         phone: phoneDigits,
         assignAttempts: 0,
         assignResult: "pending",
@@ -615,13 +616,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         if (user) {
           const sent = await sendAutoWelcomeMessage({
             telefone: data.telefone.trim(),
+            leadId,
             mensagem,
             userId: user.id,
           });
           diag.sentAt = new Date().toISOString();
           diag.sentOk = sent;
           savePipelineDiag(diag);
-          console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", sent);
+          console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", sent, "leadId:", leadId);
           if (sent) {
             toast({
               title: "WhatsApp encaminhado ✅",
@@ -825,7 +827,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           setIsSubmitting(false);
           setIsSuccess(true);
           setDuplicateDecision(null);
-          handlePostLeadWhatsApp(data);
+          handlePostLeadWhatsApp(data, result.leadId);
           return;
         } else {
           toast({
@@ -872,7 +874,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         
         setIsSubmitting(false);
         setIsSuccess(true);
-        handlePostLeadWhatsApp(data);
+        handlePostLeadWhatsApp(data, result.leadId);
         return;
       } else {
         // Online submission failed — try offline fallback
@@ -938,7 +940,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     
     if (result.success) {
       setIsSuccess(true);
-      handlePostLeadWhatsApp(data);
+      handlePostLeadWhatsApp(data, result.leadId);
       clearDraft();
       resetHoneypot();
       resetRateLimit();
@@ -996,7 +998,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     
     if (result.success) {
       setIsSuccess(true);
-      handlePostLeadWhatsApp(data);
+      handlePostLeadWhatsApp(data, result.leadId);
       clearDraft();
       resetHoneypot();
       resetRateLimit();

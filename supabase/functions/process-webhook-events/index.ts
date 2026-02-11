@@ -280,11 +280,13 @@ async function handleMessageUpsert(
       conversationId = newConv.id;
     }
 
-    // ── HARDENING: Auto-assign outbound conversations to instance owner ──
-    // When a message is sent FROM the instance (fromMe=true) and the conversation
-    // has no assigned_to, resolve the owner from the instance's linked vendedores
-    // or owner_user_id. This ensures the conversation is visible in the vendor's Inbox.
-    if (fromMe && !isGroup) {
+    // ── HARDENING: Auto-assign conversations to instance owner ──
+    // For ANY non-group conversation (inbound or outbound) that has no assigned_to,
+    // resolve the owner from the instance's linked vendedores or owner_user_id.
+    // This ensures conversations are ALWAYS visible in the vendor's Inbox.
+    // For inbound: assigns to the instance's primary vendedor so they see new contacts.
+    // For outbound: assigns to the sender's instance owner.
+    if (!isGroup) {
       // Check if conversation already has assigned_to
       const { data: convCheck } = await supabase
         .from("wa_conversations")
@@ -325,9 +327,9 @@ async function handleMessageUpsert(
             .from("wa_conversations")
             .update({ assigned_to: ownerId, status: "open" })
             .eq("id", conversationId);
-          console.log(`[process-webhook-events] Auto-assigned outbound conversation ${conversationId} to ${ownerId}`);
+          console.log(`[process-webhook-events] Auto-assigned conversation ${conversationId} to ${ownerId} (direction=${direction})`);
         } else {
-          console.warn(`[process-webhook-events] Outbound conversation ${conversationId} has no assigned_to and no instance owner found`);
+          console.warn(`[process-webhook-events] Conversation ${conversationId} has no assigned_to and no instance owner found`);
         }
       }
     }
