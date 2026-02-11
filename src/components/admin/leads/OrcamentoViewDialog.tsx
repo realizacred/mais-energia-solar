@@ -4,6 +4,7 @@ import { ptBR } from "date-fns/locale";
 import { FileText, Image, ExternalLink, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useLeadOwnership } from "@/hooks/useLeadOwnership";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AssignVendorDialog } from "./AssignVendorDialog";
+import { LeadOwnershipCard } from "./LeadOwnershipCard";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 
 interface OrcamentoViewDialogProps {
@@ -25,6 +27,7 @@ interface OrcamentoViewDialogProps {
 export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }: OrcamentoViewDialogProps) {
   const { toast } = useToast();
   const [assignOpen, setAssignOpen] = useState(false);
+  const ownership = useLeadOwnership(open && orcamento ? orcamento.lead_id : null);
 
   const handleOpenFile = async (filePath: string) => {
     const { data, error } = await supabase.storage
@@ -105,7 +108,7 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
                 <p className="font-medium text-sm">{orcamento.numero || "-"}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Vendedor</p>
+                <p className="text-xs text-muted-foreground">Consultor</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   {(orcamento.vendedor_nome || orcamento.vendedor) ? (
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
@@ -127,6 +130,9 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
               </div>
             </div>
           </div>
+
+          {/* Ownership History */}
+          <LeadOwnershipCard ownership={ownership} />
 
           {/* Imóvel */}
           <div className="pt-2 border-t">

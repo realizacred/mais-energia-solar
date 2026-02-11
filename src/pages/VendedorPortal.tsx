@@ -16,6 +16,7 @@ import { ConvertLeadToClientDialog } from "@/components/leads/ConvertLeadToClien
 import { OfflineConversionsManager } from "@/components/leads/OfflineConversionsManager";
 import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateResolver";
 import NotificationSettings from "@/components/vendor/NotificationSettings";
+import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
 import { VendorTaskAgenda } from "@/components/vendor/VendorTaskAgenda";
 import { WaInbox } from "@/components/admin/inbox/WaInbox";
@@ -209,6 +210,9 @@ export default function VendedorPortal() {
               <SyncStatusWidget />
               {vendedor && <NotificationSettings vendedorNome={vendedor.nome} />}
             </div>
+
+            {/* Auto-message toggle */}
+            <WaAutoMessageToggle />
 
             {/* Push Notification Settings */}
             <Collapsible defaultOpen={false}>
