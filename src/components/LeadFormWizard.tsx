@@ -453,6 +453,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     if (currentStep > 1) {
       setDirection(-1);
       setCurrentStep(prev => prev - 1);
+      // Reset submitAttempted so Step 3 errors don't persist after going back
+      setSubmitAttempted(false);
       scrollToTop();
     }
   };
