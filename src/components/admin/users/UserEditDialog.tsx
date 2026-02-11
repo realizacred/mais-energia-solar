@@ -65,6 +65,11 @@ const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.El
   financeiro: { label: "Financeiro", color: "bg-warning/10 text-warning border-warning/30", icon: Users },
 };
 
+const FEATURE_LABELS: Record<string, { label: string; description: string }> = {
+  view_groups: { label: "Ver Grupos", description: "Permite visualizar conversas de grupo no Inbox" },
+  view_hidden: { label: "Ver Ocultas", description: "Permite visualizar conversas ocultas no Inbox" },
+};
+
 interface UserEditDialogProps {
   user: UserWithRoles | null;
   onClose: () => void;
@@ -92,11 +97,6 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
   const [localRoles, setLocalRoles] = useState<string[]>([]);
   const [linkedVendedor, setLinkedVendedor] = useState<{ id: string; nome: string; telefone: string; email: string; codigo: string } | null>(null);
 
-  // Feature permissions state
-  const FEATURE_LABELS: Record<string, { label: string; description: string }> = {
-    view_groups: { label: "Ver Grupos", description: "Permite visualizar conversas de grupo no Inbox" },
-    view_hidden: { label: "Ver Ocultas", description: "Permite visualizar conversas ocultas no Inbox" },
-  };
   const [featurePerms, setFeaturePerms] = useState<Record<string, boolean>>({});
   const [savingPerm, setSavingPerm] = useState<string | null>(null);
 
