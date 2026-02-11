@@ -45,7 +45,7 @@ export function StepConsumption({
           icon={<Home className="w-4 h-4" />}
           value={values.area}
           onValueChange={(value) => {
-            setValue("area", value as "Urbana" | "Rural", { shouldValidate: touchedFields.has("area") });
+            setValue("area", value as "Urbana" | "Rural");
           }}
           options={[
             { value: "Urbana", label: "Urbana" },
@@ -64,7 +64,7 @@ export function StepConsumption({
           icon={<Home className="w-4 h-4" />}
           value={values.tipo_telhado}
           onValueChange={(value) => {
-            setValue("tipo_telhado", value, { shouldValidate: touchedFields.has("tipo_telhado") });
+            setValue("tipo_telhado", value);
           }}
           options={TIPOS_TELHADO.map(t => ({ value: t, label: t }))}
           error={touchedFields.has("tipo_telhado") ? errors.tipo_telhado?.message : undefined}
@@ -80,7 +80,7 @@ export function StepConsumption({
           icon={<Zap className="w-4 h-4" />}
           value={values.rede_atendimento}
           onValueChange={(value) => {
-            setValue("rede_atendimento", value, { shouldValidate: touchedFields.has("rede_atendimento") });
+            setValue("rede_atendimento", value);
           }}
           options={REDES_ATENDIMENTO.map(r => ({ value: r, label: r }))}
           error={touchedFields.has("rede_atendimento") ? errors.rede_atendimento?.message : undefined}
@@ -95,8 +95,9 @@ export function StepConsumption({
           label="Média de Consumo (kWh) *"
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
+          autoComplete="off"
           value={values.media_consumo || ""}
-          onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined, { shouldValidate: touchedFields.has("media_consumo") })}
+          onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined)}
           error={touchedFields.has("media_consumo") ? errors.media_consumo?.message : undefined}
           success={isFieldValid("media_consumo")}
         />
@@ -106,8 +107,9 @@ export function StepConsumption({
           label="Consumo Previsto (kWh) *"
           icon={<BarChart3 className="w-4 h-4" />}
           type="number"
+          autoComplete="off"
           value={values.consumo_previsto || ""}
-          onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined, { shouldValidate: touchedFields.has("consumo_previsto") })}
+          onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined)}
           error={touchedFields.has("consumo_previsto") ? errors.consumo_previsto?.message : undefined}
           success={isFieldValid("consumo_previsto")}
         />
@@ -146,6 +148,7 @@ export function StepConsumption({
         </label>
         <Textarea
           placeholder="Informações adicionais..."
+          autoComplete="off"
           className="min-h-[80px] rounded-xl border-2 border-muted-foreground/25 focus:border-primary transition-colors"
           value={values.observacoes}
           onChange={(e) => setValue("observacoes", e.target.value)}

@@ -227,27 +227,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     return touchedFields.has(field) && !errors[field as keyof LeadFormData] && Boolean(value);
   };
 
-  const handleCEPBlur = async (cep: string) => {
-    const cleanCEP = cep.replace(/\D/g, "");
-    if (cleanCEP.length !== 8) return;
-
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
-      const data = await response.json();
-
-      if (!data.erro) {
-        setValue("estado", data.uf);
-        setValue("cidade", data.localidade);
-        setValue("bairro", data.bairro || "");
-        setValue("rua", data.logradouro || "");
-        markFieldTouched("estado");
-        markFieldTouched("cidade");
-        if (data.bairro) markFieldTouched("bairro");
-        if (data.logradouro) markFieldTouched("rua");
-      }
-    } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
-    }
+  // CEP blur — no auto-fill, just format
+  const handleCEPBlur = (_cep: string) => {
+    // No automatic data loading — each consultant fills manually
   };
 
   const getFieldsForStep = (step: number): (keyof LeadFormData)[] => {
@@ -888,7 +870,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           remainingAttempts={remainingAttempts}
         />
 
-        <form onSubmit={form.handleSubmit(onSubmit, onFormInvalid)} onKeyDown={handleKeyDown}>
+        <form onSubmit={form.handleSubmit(onSubmit, onFormInvalid)} onKeyDown={handleKeyDown} autoComplete="off">
           {/* Honeypot field - invisible to users */}
           <HoneypotField value={honeypotValue} onChange={handleHoneypotChange} />
 
@@ -986,8 +968,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                         success={isFieldValid("cidade")}
                       />
                     ) : (
-                      <FloatingInput
+                     <FloatingInput
                         label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
+                        autoComplete="off"
                         value={watchedValues.cidade}
                         onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
                         error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
@@ -998,8 +981,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                   </motion.div>
 
                   <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
-                    <FloatingInput
+                     <FloatingInput
                       label="Bairro (opcional)"
+                      autoComplete="off"
                       value={watchedValues.bairro}
                       onChange={(e) => setValue("bairro", e.target.value)}
                     />
@@ -1007,8 +991,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
                   <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-3 gap-4">
                     <div className="col-span-2">
-                      <FloatingInput
+                       <FloatingInput
                         label="Rua (opcional)"
+                        autoComplete="off"
                         value={watchedValues.rua}
                         onChange={(e) => setValue("rua", e.target.value)}
                       />
@@ -1016,6 +1001,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                     <FloatingInput
                       label="Nº"
                       icon={<Hash className="w-4 h-4" />}
+                      autoComplete="off"
                       value={watchedValues.numero}
                       onChange={(e) => setValue("numero", e.target.value)}
                     />
@@ -1024,6 +1010,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                   <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible">
                     <FloatingInput
                       label="Complemento (opcional)"
+                      autoComplete="off"
                       value={watchedValues.complemento}
                       onChange={(e) => setValue("complemento", e.target.value)}
                     />
@@ -1041,7 +1028,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       icon={<Home className="w-4 h-4" />}
                       value={watchedValues.area}
                       onValueChange={(value) => {
-                        setValue("area", value as "Urbana" | "Rural", { shouldValidate: touchedFields.has("area") });
+                        setValue("area", value as "Urbana" | "Rural");
                       }}
                       options={[
                         { value: "Urbana", label: "Urbana" },
@@ -1060,7 +1047,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       icon={<Home className="w-4 h-4" />}
                       value={watchedValues.tipo_telhado}
                       onValueChange={(value) => {
-                        setValue("tipo_telhado", value, { shouldValidate: touchedFields.has("tipo_telhado") });
+                        setValue("tipo_telhado", value);
                       }}
                       options={TIPOS_TELHADO.map(t => ({ value: t, label: t }))}
                       error={touchedFields.has("tipo_telhado") ? errors.tipo_telhado?.message : undefined}
@@ -1076,7 +1063,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       icon={<Zap className="w-4 h-4" />}
                       value={watchedValues.rede_atendimento}
                       onValueChange={(value) => {
-                        setValue("rede_atendimento", value, { shouldValidate: touchedFields.has("rede_atendimento") });
+                        setValue("rede_atendimento", value);
                       }}
                       options={REDES_ATENDIMENTO.map(r => ({ value: r, label: r }))}
                       error={touchedFields.has("rede_atendimento") ? errors.rede_atendimento?.message : undefined}
@@ -1091,8 +1078,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       label="Média de Consumo (kWh) *"
                       icon={<BarChart3 className="w-4 h-4" />}
                       type="number"
+                      autoComplete="off"
                       value={watchedValues.media_consumo || ""}
-                      onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined, { shouldValidate: touchedFields.has("media_consumo") })}
+                      onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined)}
                       error={touchedFields.has("media_consumo") ? errors.media_consumo?.message : undefined}
                       success={isFieldValid("media_consumo")}
                     />
@@ -1102,8 +1090,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       label="Consumo Previsto (kWh) *"
                       icon={<BarChart3 className="w-4 h-4" />}
                       type="number"
+                      autoComplete="off"
                       value={watchedValues.consumo_previsto || ""}
-                      onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined, { shouldValidate: touchedFields.has("consumo_previsto") })}
+                      onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined)}
                       error={touchedFields.has("consumo_previsto") ? errors.consumo_previsto?.message : undefined}
                       success={isFieldValid("consumo_previsto")}
                     />
@@ -1140,8 +1129,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                     <label className="flex items-center gap-2 text-sm font-medium mb-2">
                       <MessageSquare className="w-4 h-4 text-secondary" /> Observações (opcional)
                     </label>
-                    <Textarea
+                     <Textarea
                       placeholder="Informações adicionais..."
+                      autoComplete="off"
                       className="min-h-[80px] rounded-xl border-2 border-muted-foreground/25 focus:border-primary transition-colors"
                       value={watchedValues.observacoes}
                       onChange={(e) => setValue("observacoes", e.target.value)}

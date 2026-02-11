@@ -85,6 +85,7 @@ export function StepAddress({
         ) : (
           <FloatingInput
             label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
+            autoComplete="off"
             value={values.cidade}
             onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
             error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
@@ -97,6 +98,7 @@ export function StepAddress({
       <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
         <FloatingInput
           label="Bairro (opcional)"
+          autoComplete="off"
           value={values.bairro}
           onChange={(e) => setValue("bairro", e.target.value)}
         />
@@ -106,6 +108,7 @@ export function StepAddress({
         <div className="col-span-2">
           <FloatingInput
             label="Rua (opcional)"
+            autoComplete="off"
             value={values.rua}
             onChange={(e) => setValue("rua", e.target.value)}
           />
@@ -113,6 +116,7 @@ export function StepAddress({
         <FloatingInput
           label="Nº"
           icon={<Hash className="w-4 h-4" />}
+          autoComplete="off"
           value={values.numero}
           onChange={(e) => setValue("numero", e.target.value)}
         />
@@ -121,6 +125,7 @@ export function StepAddress({
       <motion.div custom={4} variants={fieldVariants} initial="hidden" animate="visible">
         <FloatingInput
           label="Complemento (opcional)"
+          autoComplete="off"
           value={values.complemento}
           onChange={(e) => setValue("complemento", e.target.value)}
         />
