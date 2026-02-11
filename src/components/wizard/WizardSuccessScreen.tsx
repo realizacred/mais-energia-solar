@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { CheckCircle, WifiOff, Loader2, RefreshCw } from "lucide-react";
+import { CheckCircle, WifiOff, Loader2, RefreshCw, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useState } from "react";
 
 interface WizardSuccessScreenProps {
   savedOffline: boolean;
@@ -10,6 +11,8 @@ interface WizardSuccessScreenProps {
   isSyncing: boolean;
   onReset: () => void;
   onRetrySync: () => void;
+  /** Handler for manual WhatsApp resend. Undefined = hide button (e.g. public form). */
+  onResendWhatsApp?: () => Promise<boolean>;
 }
 
 export function WizardSuccessScreen({
@@ -19,9 +22,26 @@ export function WizardSuccessScreen({
   isSyncing,
   onReset,
   onRetrySync,
+  onResendWhatsApp,
 }: WizardSuccessScreenProps) {
   const hasSynced = savedOffline && pendingCount === 0 && isOnline;
   const showOfflineState = savedOffline && !hasSynced;
+  const [resending, setResending] = useState(false);
+  const [resendResult, setResendResult] = useState<"idle" | "ok" | "fail">("idle");
+
+  const handleResend = async () => {
+    if (!onResendWhatsApp || resending) return;
+    setResending(true);
+    setResendResult("idle");
+    try {
+      const ok = await onResendWhatsApp();
+      setResendResult(ok ? "ok" : "fail");
+    } catch {
+      setResendResult("fail");
+    } finally {
+      setResending(false);
+    }
+  };
 
   return (
     <Card className="max-w-2xl mx-auto border-0 shadow-2xl overflow-hidden">
@@ -74,6 +94,27 @@ export function WizardSuccessScreen({
           <Button onClick={onReset} variant="outline" className="w-full sm:w-auto">
             Fazer novo cadastro
           </Button>
+          {onResendWhatsApp && (
+            <Button
+              onClick={handleResend}
+              disabled={resending}
+              variant={resendResult === "ok" ? "outline" : "default"}
+              className="gap-2 w-full sm:w-auto"
+            >
+              {resending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : resendResult === "ok" ? (
+                <CheckCircle className="w-4 h-4 text-primary" />
+              ) : (
+                <MessageCircle className="w-4 h-4" />
+              )}
+              {resendResult === "ok"
+                ? "Enviado!"
+                : resendResult === "fail"
+                  ? "Tentar novamente"
+                  : "Reenviar WhatsApp"}
+            </Button>
+          )}
           {showOfflineState && pendingCount > 0 && isOnline && (
             <Button 
               onClick={onRetrySync} 
