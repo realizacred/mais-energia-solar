@@ -164,7 +164,7 @@ export default function PortalSelector() {
                   <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-3 group-hover:bg-primary/20 transition-colors">
                     <Users className="w-6 h-6 text-primary" />
                   </div>
-                  <CardTitle className="text-xl">Portal do Vendedor</CardTitle>
+                  <CardTitle className="text-xl">Portal do Consultor</CardTitle>
                   <CardDescription>
                     Acompanhe seus leads e vendas
                   </CardDescription>

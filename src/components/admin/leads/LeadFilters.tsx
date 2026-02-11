@@ -73,11 +73,11 @@ export function LeadFilters({
 
         <Select value={filterVendedor} onValueChange={onFilterVendedorChange}>
           <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="Vendedor" />
+            <SelectValue placeholder="Consultor" />
           </SelectTrigger>
           <SelectContent className="z-50 bg-popover border border-border shadow-lg">
-            <SelectItem value="todos">Todos Vendedores</SelectItem>
-            <SelectItem value="sem_vendedor">⚠️ Sem Vendedor</SelectItem>
+            <SelectItem value="todos">Todos Consultores</SelectItem>
+            <SelectItem value="sem_vendedor">⚠️ Sem Consultor</SelectItem>
             {vendedores.map((v) => (
               <SelectItem key={v.id} value={v.id}>
                 {v.nome}

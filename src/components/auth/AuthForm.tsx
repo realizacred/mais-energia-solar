@@ -664,7 +664,7 @@ export function AuthForm() {
                         <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer hover:border-primary/50 transition-colors">
                           <RadioGroupItem value="vendedor" id="vendedor" />
                           <Label htmlFor="vendedor" className="cursor-pointer text-sm">
-                            Vendedor
+                            Consultor
                           </Label>
                         </div>
                         <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer hover:border-primary/50 transition-colors">

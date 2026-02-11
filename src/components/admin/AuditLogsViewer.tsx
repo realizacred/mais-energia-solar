@@ -57,7 +57,7 @@ const TABLE_LABELS: Record<string, string> = {
   parcelas: "Parcelas",
   pagamentos: "Pagamentos",
   comissoes: "Comissões",
-  vendedores: "Vendedores",
+  vendedores: "Consultores",
   checklists_instalador: "Checklists",
   checklists_instalacao: "Instalações",
   profiles: "Perfis",
