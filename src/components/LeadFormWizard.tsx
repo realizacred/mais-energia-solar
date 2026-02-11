@@ -609,9 +609,46 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         assignResult: "pending",
       };
 
-      // Resolve vendedor settings from DB (works for both auth and public contexts)
+      // Public form — no auth session: call server-side welcome immediately.
+      // IMPORTANT: this must not depend on vendedorId resolved on the client (RLS can block it).
+      if (!user) {
+        if (leadId) {
+          console.log("[handlePostLeadWhatsApp] No auth session — calling send-wa-welcome (public form)");
+          try {
+            const welcomeRes = await supabase.functions.invoke("send-wa-welcome", {
+              body: { lead_id: leadId },
+            });
+            const welcomeData = welcomeRes.data as
+              | { success?: boolean; conversation_id?: string; already_sent?: boolean }
+              | null;
+
+            if (welcomeData?.success) {
+              diag.sentOk = true;
+              diag.sentAt = new Date().toISOString();
+              if (welcomeData.conversation_id) {
+                diag.assignConvId = welcomeData.conversation_id;
+                diag.assignResult = "ok";
+              }
+              savePipelineDiag(diag);
+              console.log("[handlePostLeadWhatsApp] send-wa-welcome ✅", welcomeData);
+            } else {
+              console.warn(
+                "[handlePostLeadWhatsApp] send-wa-welcome failed:",
+                welcomeRes.error || welcomeData
+              );
+            }
+          } catch (welcErr) {
+            console.warn("[handlePostLeadWhatsApp] send-wa-welcome error (non-blocking):", welcErr);
+          }
+        } else {
+          console.warn("[handlePostLeadWhatsApp] Public form: missing leadId, skipping send-wa-welcome");
+        }
+        return;
+      }
+
+      // Authenticated flow — resolve vendedor settings from DB and send via existing pipeline
       let resolvedVendedorId = vendedorId;
-      if (!resolvedVendedorId && user) {
+      if (!resolvedVendedorId) {
         const { data: v } = await supabase
           .from("vendedores")
           .select("id")
@@ -639,62 +676,35 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           template: settings.wa_auto_message_template || undefined,
         });
 
-        // Send message — requires auth session
-        if (user) {
-          lastWaParamsRef.current = { telefone: data.telefone.trim(), leadId, mensagem, userId: user.id };
-          const result = await sendAutoWelcomeMessage({
-            telefone: data.telefone.trim(),
-            leadId,
-            mensagem,
-            userId: user.id,
-          });
-          diag.sentAt = new Date().toISOString();
-          diag.sentOk = result.sent;
-          savePipelineDiag(diag);
-          console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", result, "leadId:", leadId);
-          if (result.sent) {
-            if (result.conversation_id) {
-              diag.assignConvId = result.conversation_id;
-              diag.assignResult = "ok";
-              savePipelineDiag(diag);
-              toast({
-                title: "Conversa aberta no Inbox ✅",
-                description: "Mensagem enviada e conversa criada automaticamente.",
-              });
-            } else {
-              toast({
-                title: "WhatsApp encaminhado ✅",
-                description: "Mensagem de boas-vindas encaminhada para envio.",
-              });
-            }
-          } else if (result.blocked === "cooldown") {
-            console.log("[handlePostLeadWhatsApp] Bloqueado por cooldown:", result.reason);
+        lastWaParamsRef.current = { telefone: data.telefone.trim(), leadId, mensagem, userId: user.id };
+        const result = await sendAutoWelcomeMessage({
+          telefone: data.telefone.trim(),
+          leadId,
+          mensagem,
+          userId: user.id,
+        });
+        diag.sentAt = new Date().toISOString();
+        diag.sentOk = result.sent;
+        savePipelineDiag(diag);
+        console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", result, "leadId:", leadId);
+
+        if (result.sent) {
+          if (result.conversation_id) {
+            diag.assignConvId = result.conversation_id;
+            diag.assignResult = "ok";
+            savePipelineDiag(diag);
+            toast({
+              title: "Conversa aberta no Inbox ✅",
+              description: "Mensagem enviada e conversa criada automaticamente.",
+            });
+          } else {
+            toast({
+              title: "WhatsApp encaminhado ✅",
+              description: "Mensagem de boas-vindas encaminhada para envio.",
+            });
           }
-        } else {
-          // Public form — no auth session, call server-side welcome endpoint
-          console.log("[handlePostLeadWhatsApp] No auth session — calling send-wa-welcome (public form)");
-          if (leadId) {
-            try {
-              const welcomeRes = await supabase.functions.invoke("send-wa-welcome", {
-                body: { lead_id: leadId },
-              });
-              const welcomeData = welcomeRes.data as { success?: boolean; conversation_id?: string; already_sent?: boolean } | null;
-              if (welcomeData?.success) {
-                diag.sentOk = true;
-                diag.sentAt = new Date().toISOString();
-                if (welcomeData.conversation_id) {
-                  diag.assignConvId = welcomeData.conversation_id;
-                  diag.assignResult = "ok";
-                }
-                savePipelineDiag(diag);
-                console.log("[handlePostLeadWhatsApp] send-wa-welcome ✅", welcomeData);
-              } else {
-                console.warn("[handlePostLeadWhatsApp] send-wa-welcome failed:", welcomeRes.error || welcomeData);
-              }
-            } catch (welcErr) {
-              console.warn("[handlePostLeadWhatsApp] send-wa-welcome error (non-blocking):", welcErr);
-            }
-          }
+        } else if (result.blocked === "cooldown") {
+          console.log("[handlePostLeadWhatsApp] Bloqueado por cooldown:", result.reason);
         }
       } else {
         console.log("[handlePostLeadWhatsApp] No vendedor resolved — skipping auto-message");
