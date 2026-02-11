@@ -767,20 +767,38 @@ async function syncProjectSubResources(
   // Active Proposal
   try {
     const propData = await client.getActiveProposalByProject(smProjectId);
+    
+    // Debug: log raw response shape to understand API format
+    const propType = propData === null ? "null" : Array.isArray(propData) ? "array" : typeof propData;
+    const propKeys = propData && typeof propData === "object" && !Array.isArray(propData) ? Object.keys(propData).join(",") : "";
+    const dataField = propData?.data;
+    const dataType = dataField === undefined ? "undefined" : dataField === null ? "null" : Array.isArray(dataField) ? `array[${dataField.length}]` : typeof dataField;
+    console.log(`[SM] Proposals raw for project ${smProjectId}: type=${propType}, keys=${propKeys}, data=${dataType}, sample=${JSON.stringify(propData)?.slice(0, 300)}`);
+
     if (propData) {
-      // Normalize: API may return object, array, or {data: [...]}
+      // Normalize: API may return object, array, {data: [...]}, or {proposals: [...]}
       let proposals: any[] = [];
       if (Array.isArray(propData)) {
         proposals = propData;
       } else if (propData?.data && Array.isArray(propData.data)) {
         proposals = propData.data;
+      } else if (propData?.data && typeof propData.data === "object" && propData.data !== null && (propData.data.id || propData.data.proposalId)) {
+        // API returns {data: {id, ...}} — single proposal wrapped in data
+        proposals = [propData.data];
+      } else if (propData?.proposals && Array.isArray(propData.proposals)) {
+        proposals = propData.proposals;
       } else if (typeof propData === "object" && propData !== null && (propData.id || propData.proposalId)) {
         proposals = [propData];
       }
-      // Skip if not iterable (e.g. empty response or unexpected shape)
+
+      console.log(`[SM] Proposals parsed for project ${smProjectId}: ${proposals.length} proposals found`);
+
       for (const prop of proposals) {
         const propId = prop.id || prop.proposalId;
-        if (!propId) continue;
+        if (!propId) {
+          console.warn(`[SM] Proposal skipped for project ${smProjectId}: no id/proposalId in keys=[${Object.keys(prop).join(",")}]`);
+          continue;
+        }
 
         const { error } = await db
           .from("solar_market_proposals")
@@ -807,6 +825,8 @@ async function syncProjectSubResources(
           counts.proposals_synced++;
         }
       }
+    } else {
+      console.log(`[SM] No proposal data for project ${smProjectId} (null/undefined response)`);
     }
   } catch (err: any) {
     console.warn(`[SM] Proposals skipped for project ${smProjectId}: ${err.message}`);
@@ -1353,7 +1373,9 @@ Deno.serve(async (req) => {
 
     // ── If more chunks remain: save progress + self-invoke ──
     if (!result.done && syncLogId) {
+      // CRITICAL: Set status to "continuing" so the finally guard doesn't kill the chain
       await supabaseAdmin.from("solar_market_sync_logs").update({
+        status: "continuing",
         counts,
         error: counts.errors.length > 0 ? counts.errors.join("; ") : null,
       }).eq("id", syncLogId);
@@ -1429,7 +1451,7 @@ Deno.serve(async (req) => {
           .eq("id", syncLogId)
           .single();
 
-        // Only force-fail if still "running" AND no continuation was dispatched (done=true scenario that didn't finalize)
+        // Only force-fail if still "running" (not "continuing") AND no finished_at
         if (check?.status === "running" && check?.finished_at === null) {
           console.warn(`[SM] Finally guard: sync ${syncLogId} still running without finished_at, forcing fail`);
           await supabaseAdmin.from("solar_market_sync_logs").update({
@@ -1437,6 +1459,11 @@ Deno.serve(async (req) => {
             status: "fail",
             error: "forced-fail: finally guard (unexpected exit without status update)",
             counts,
+          }).eq("id", syncLogId);
+        } else if (check?.status === "continuing") {
+          // Continuation dispatched — reset status back to "running" for next invocation
+          await supabaseAdmin.from("solar_market_sync_logs").update({
+            status: "running",
           }).eq("id", syncLogId);
         }
       } catch (e: any) {
