@@ -1089,11 +1089,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       autoComplete="nope"
                       autoCorrect="off"
                       spellCheck={false}
-                      onChange={(e) => setValue("nome", formatName(e.target.value), { shouldValidate: touchedFields.has("nome") })}
+                      onChange={(e) => {
+                        setValue("nome", formatName(e.target.value));
+                        if (errors.nome) form.clearErrors("nome");
+                      }}
                       onBlur={() => {
                         const trimmed = watchedValues.nome?.replace(/\s+/g, " ").trim() || "";
                         if (trimmed !== watchedValues.nome) {
-                          setValue("nome", trimmed, { shouldValidate: true });
+                          setValue("nome", trimmed);
                         }
                         markFieldTouched("nome");
                       }}
@@ -1113,7 +1116,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       autoComplete="nope"
                       autoCorrect="off"
                       spellCheck={false}
-                      onChange={(e) => setValue("telefone", formatPhone(e.target.value), { shouldValidate: touchedFields.has("telefone") })}
+                      onChange={(e) => {
+                        setValue("telefone", formatPhone(e.target.value));
+                        if (errors.telefone) form.clearErrors("telefone");
+                      }}
                       error={touchedFields.has("telefone") ? errors.telefone?.message : undefined}
                       success={isFieldValid("telefone")}
                     />
@@ -1155,9 +1161,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                         // Only clear cidade if user manually changed estado (not CEP auto-fill)
                         const prevEstado = form.getValues("estado");
                         if (value !== prevEstado && !cepJustFilledRef.current) {
-                          setValue("cidade", "", { shouldValidate: false });
+                          setValue("cidade", "");
                         }
-                        setValue("estado", value, { shouldValidate: touchedFields.has("estado") });
+                        setValue("estado", value);
+                        if (errors.estado) form.clearErrors("estado");
                       }}
                       options={ESTADOS_BRASIL.map(e => ({ value: e.sigla, label: `${e.sigla} - ${e.nome}` }))}
                       error={touchedFields.has("estado") ? errors.estado?.message : undefined}
@@ -1170,7 +1177,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                         label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
                         value={watchedValues.cidade}
                         onValueChange={(value) => {
-                          setValue("cidade", value, { shouldValidate: touchedFields.has("cidade") });
+                          setValue("cidade", value);
+                          if (errors.cidade) form.clearErrors("cidade");
                         }}
                         options={cidades.map(c => ({ value: c, label: c }))}
                         error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
@@ -1181,7 +1189,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
                       autoComplete="nope"
                         value={watchedValues.cidade}
-                        onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
+                        onChange={(e) => {
+                          setValue("cidade", e.target.value);
+                          if (errors.cidade) form.clearErrors("cidade");
+                        }}
                         error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
                         success={isFieldValid("cidade")}
                       />
@@ -1242,6 +1253,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       value={watchedValues.area}
                       onValueChange={(value) => {
                         setValue("area", value as "Urbana" | "Rural");
+                        if (errors.area) form.clearErrors("area");
                       }}
                       options={[
                         { value: "Urbana", label: "Urbana" },
@@ -1261,6 +1273,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       value={watchedValues.tipo_telhado}
                       onValueChange={(value) => {
                         setValue("tipo_telhado", value);
+                        if (errors.tipo_telhado) form.clearErrors("tipo_telhado");
                       }}
                       options={TIPOS_TELHADO.map(t => ({ value: t, label: t }))}
                       error={submitAttempted ? errors.tipo_telhado?.message : undefined}
@@ -1277,6 +1290,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       value={watchedValues.rede_atendimento}
                       onValueChange={(value) => {
                         setValue("rede_atendimento", value);
+                        if (errors.rede_atendimento) form.clearErrors("rede_atendimento");
                       }}
                       options={REDES_ATENDIMENTO.map(r => ({ value: r, label: r }))}
                       error={submitAttempted ? errors.rede_atendimento?.message : undefined}
@@ -1293,7 +1307,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       type="number"
                       autoComplete="nope"
                       value={watchedValues.media_consumo || ""}
-                      onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined)}
+                      onChange={(e) => {
+                        setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined);
+                        if (errors.media_consumo) form.clearErrors("media_consumo");
+                      }}
                       error={submitAttempted ? errors.media_consumo?.message : undefined}
                       success={false}
                     />
@@ -1305,7 +1322,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       type="number"
                       autoComplete="nope"
                       value={watchedValues.consumo_previsto || ""}
-                      onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined)}
+                      onChange={(e) => {
+                        setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined);
+                        if (errors.consumo_previsto) form.clearErrors("consumo_previsto");
+                      }}
                       error={submitAttempted ? errors.consumo_previsto?.message : undefined}
                       success={false}
                     />
