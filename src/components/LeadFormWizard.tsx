@@ -38,9 +38,6 @@ import logo from "@/assets/logo.png";
 import {
   leadFormSchema,
   LeadFormData,
-  step1Schema,
-  step2Schema,
-  step3Schema,
   formatPhone,
   formatCEP,
   formatName,
@@ -326,68 +323,44 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     }
   };
 
+  // Canonical field arrays per step — single source of truth
+  const STEP_FIELDS: Record<number, (keyof LeadFormData)[]> = {
+    1: ["nome", "telefone"],
+    2: ["cep", "estado", "cidade", "bairro", "rua", "numero", "complemento"],
+    3: ["area", "tipo_telhado", "rede_atendimento", "media_consumo", "consumo_previsto", "observacoes"],
+  };
+
   const getFieldsForStep = (step: number): (keyof LeadFormData)[] => {
-    switch (step) {
-      case 1:
-        return ["nome", "telefone"];
-      case 2:
-        return ["estado", "cidade"];
-      case 3:
-        return ["area", "tipo_telhado", "rede_atendimento", "media_consumo", "consumo_previsto"];
-      default:
-        return [];
-    }
+    return STEP_FIELDS[step] || [];
+  };
+
+  // Clear errors from ALL steps EXCEPT the given one — prevents cross-step leakage
+  const clearOtherStepErrors = (keepStep: number) => {
+    Object.entries(STEP_FIELDS).forEach(([stepStr, fields]) => {
+      if (Number(stepStr) !== keepStep) {
+        form.clearErrors(fields);
+      }
+    });
   };
 
   const validateCurrentStep = async () => {
-    // Validate ONLY the current step's fields using step-specific Zod schemas.
-    // Uses safeParse + manual setError to avoid triggering the global schema
-    // which would pollute other steps' fields with errors.
-    const currentValues = form.getValues();
-    let stepSchema;
-    switch (currentStep) {
-      case 1: stepSchema = step1Schema; break;
-      case 2: stepSchema = step2Schema; break;
-      case 3: stepSchema = step3Schema; break;
-      default: return true;
-    }
-
-    const result = stepSchema.safeParse(currentValues);
-    
-    if (!result.success) {
-      // Clear any stale errors for this step first
-      const fields = getFieldsForStep(currentStep);
-      form.clearErrors(fields);
-
-      // Set errors only for fields that failed in THIS step
-      const fieldErrors = result.error.flatten().fieldErrors as Record<string, string[]>;
-      for (const [field, messages] of Object.entries(fieldErrors)) {
-        if (messages && messages.length > 0) {
-          form.setError(field as keyof LeadFormData, {
-            type: "manual",
-            message: messages[0],
-          });
-          markFieldTouched(field);
-        }
-      }
-      
-      // Scroll and focus the first invalid field
-      requestAnimationFrame(() => {
-        const firstError = document.querySelector('[data-field-error="true"]');
-        if (firstError) {
-          firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          const input = firstError.querySelector('input, select, textarea, [role="combobox"]') as HTMLElement;
-          input?.focus();
-        }
-      });
-      
-      return false;
-    }
-    
-    // Validation passed — clear any residual errors for this step
+    // Use RHF's trigger() which validates via the SAME resolver (zodResolver).
+    // trigger(fieldNames) validates ONLY those fields — no cross-step pollution.
     const fields = getFieldsForStep(currentStep);
-    form.clearErrors(fields);
-    return true;
+    if (fields.length === 0) return true;
+
+    // Clear errors from OTHER steps first to prevent leakage
+    clearOtherStepErrors(currentStep);
+
+    // trigger() returns true if all specified fields pass the resolver
+    const isValid = await form.trigger(fields, { shouldFocus: true });
+
+    if (!isValid) {
+      // Mark fields as touched so error messages become visible
+      fields.forEach(f => markFieldTouched(f));
+    }
+
+    return isValid;
   };
 
   const scrollToTop = () => {
@@ -437,9 +410,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     if (currentStep < STEPS.length) {
       setDirection(1);
       const nextStepNum = currentStep + 1;
-      // Clear errors for the NEXT step so they don't show prematurely
-      const nextStepFields = getFieldsForStep(nextStepNum);
-      form.clearErrors(nextStepFields);
+      // Clear errors for ALL other steps (especially the next one) to prevent leakage
+      clearOtherStepErrors(nextStepNum);
       setCurrentStep(nextStepNum);
       scrollToTop();
       // Auto-focus first field of next step
