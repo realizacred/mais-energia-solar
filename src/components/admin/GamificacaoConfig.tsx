@@ -205,7 +205,7 @@
            </TabsTrigger>
            <TabsTrigger value="individuais" className="gap-2">
              <User className="h-4 w-4" />
-             Por Vendedor
+             Por Consultor
            </TabsTrigger>
            <TabsTrigger value="conquistas" className="gap-2">
              <Medal className="h-4 w-4" />
@@ -222,7 +222,7 @@
                  Ranking do Mês - {format(new Date(), "MMMM yyyy", { locale: ptBR })}
                </CardTitle>
                <CardDescription>
-                 Classificação de vendedores baseada em pontuação total do mês
+                 Classificação de consultores baseada em pontuação total do mês
                </CardDescription>
              </CardHeader>
              <CardContent>
@@ -283,7 +283,7 @@
                      <TableHeader>
                        <TableRow>
                          <TableHead className="w-16">#</TableHead>
-                         <TableHead>Vendedor</TableHead>
+                         <TableHead>Consultor</TableHead>
                          <TableHead className="text-center">Orçamentos</TableHead>
                          <TableHead className="text-center">Conversões</TableHead>
                          <TableHead className="text-right">Valor Vendas</TableHead>
@@ -329,8 +329,8 @@
                  Configuração de Metas Globais
                </CardTitle>
                <CardDescription>
-                 Defina os valores padrão de metas mensais para todos os vendedores.
-                 Vendedores individuais podem ter metas personalizadas.
+                  Defina os valores padrão de metas mensais para todos os consultores.
+                  Consultores individuais podem ter metas personalizadas.
                </CardDescription>
              </CardHeader>
              <CardContent className="space-y-6">
@@ -400,7 +400,7 @@
                            }
                          />
                          <p className="text-xs text-muted-foreground">
-                           Adicional quando o vendedor atinge a meta
+                           Adicional quando o consultor atinge a meta
                          </p>
                        </div>
                      </div>

@@ -291,7 +291,7 @@ export function SolarMarketLinksView() {
                         <InfoRow label="Nome" value={selectedLink.lead.nome} />
                         <InfoRow label="Código" value={selectedLink.lead.lead_code} />
                         <InfoRow label="Telefone" value={selectedLink.lead.telefone} />
-                        <InfoRow label="Vendedor" value={selectedLink.lead.vendedor} />
+                        <InfoRow label="Consultor" value={selectedLink.lead.vendedor} />
                         <InfoRow label="Cidade" value={`${selectedLink.lead.cidade} - ${selectedLink.lead.estado}`} />
                         <InfoRow label="Consumo" value={`${selectedLink.lead.media_consumo} kWh`} />
                         <InfoRow label="Criado em" value={formatDate(selectedLink.lead.created_at)} />

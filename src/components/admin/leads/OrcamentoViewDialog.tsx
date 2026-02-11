@@ -112,7 +112,7 @@ export function OrcamentoViewDialog({ orcamento, open, onOpenChange, onRefresh }
                       {orcamento.vendedor_nome || orcamento.vendedor}
                     </Badge>
                   ) : (
-                    <span className="text-sm text-muted-foreground">Sem vendedor</span>
+                    <span className="text-sm text-muted-foreground">Sem consultor</span>
                   )}
                   <Button
                     variant="outline"

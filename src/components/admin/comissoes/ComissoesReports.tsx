@@ -202,11 +202,11 @@ export function ComissoesReports({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Table */}
               <div>
-                <h4 className="font-medium mb-4">Resumo por Vendedor</h4>
+                <h4 className="font-medium mb-4">Resumo por Consultor</h4>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Vendedor</TableHead>
+                      <TableHead>Consultor</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                       <TableHead className="text-right">Pago</TableHead>
                       <TableHead className="text-right">Pendente</TableHead>
@@ -239,7 +239,7 @@ export function ComissoesReports({
 
               {/* Chart */}
               <div>
-                <h4 className="font-medium mb-4">Distribuição por Vendedor</h4>
+                <h4 className="font-medium mb-4">Distribuição por Consultor</h4>
                 {vendorChartData.length > 0 ? (
                   <ChartContainer config={chartConfig} className="h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -288,7 +288,7 @@ export function ComissoesReports({
               <TableHeader>
                 <TableRow>
                   <TableHead>Data</TableHead>
-                  <TableHead>Vendedor</TableHead>
+                  <TableHead>Consultor</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead className="text-center">Status</TableHead>
                 </TableRow>

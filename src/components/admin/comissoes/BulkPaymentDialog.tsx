@@ -100,8 +100,8 @@ export function BulkPaymentDialog({
     
     if (isMultiVendor) {
       toast({ 
-        title: "Pagamento em lote apenas para mesmo vendedor", 
-        description: "Selecione comissões de um único vendedor",
+        title: "Pagamento em lote apenas para mesmo consultor", 
+        description: "Selecione comissões de um único consultor",
         variant: "destructive" 
       });
       return;
@@ -212,8 +212,8 @@ export function BulkPaymentDialog({
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                Não é possível pagar comissões de vendedores diferentes em lote. 
-                Selecione apenas comissões de <strong>um vendedor</strong>.
+                Não é possível pagar comissões de consultores diferentes em lote. 
+                Selecione apenas comissões de <strong>um consultor</strong>.
               </AlertDescription>
             </Alert>
           )}
@@ -223,9 +223,9 @@ export function BulkPaymentDialog({
             <CardContent className="pt-4">
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Vendedor:</span>
+                   <span className="text-sm text-muted-foreground">Consultor:</span>
                   <Badge variant={isMultiVendor ? "destructive" : "default"}>
-                    {isMultiVendor ? `${vendedorIds.length} vendedores diferentes` : vendedorNome}
+                    {isMultiVendor ? `${vendedorIds.length} consultores diferentes` : vendedorNome}
                   </Badge>
                 </div>
                 

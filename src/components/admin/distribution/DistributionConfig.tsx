@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 const TIPO_LABELS: Record<string, { label: string; icon: typeof RotateCcw; description: string }> = {
-  round_robin: { label: "Round Robin", icon: RotateCcw, description: "Distribui sequencialmente entre vendedores ativos" },
+  round_robin: { label: "Round Robin", icon: RotateCcw, description: "Distribui sequencialmente entre consultores ativos" },
   manual: { label: "Manual", icon: Users, description: "Admin atribui manualmente cada lead" },
   regiao: { label: "Por Região", icon: MapPin, description: "Distribui com base no estado/cidade do lead" },
 };
@@ -127,7 +127,7 @@ export function DistributionConfig() {
                       {log.lead?.lead_code && <span className="text-muted-foreground">({log.lead.lead_code})</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      → {log.vendedor?.nome || "Vendedor"} · {log.motivo}
+                      → {log.vendedor?.nome || "Consultor"} · {log.motivo}
                     </p>
                   </div>
                   {log.distribuido_em && (

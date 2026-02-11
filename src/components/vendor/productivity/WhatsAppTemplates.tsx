@@ -89,7 +89,7 @@ interface WhatsAppTemplatesProps {
   onSendToLead?: (mensagem: string, telefone: string, nome: string) => void;
 }
 
-export function WhatsAppTemplates({ vendedorNome = "Vendedor", onSendToLead }: WhatsAppTemplatesProps) {
+export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: WhatsAppTemplatesProps) {
   const STORAGE_KEY = `whatsapp_templates_${vendedorNome.toLowerCase().replace(/\s/g, "_")}`;
   
   const [templates, setTemplates] = useState<Template[]>(() => {

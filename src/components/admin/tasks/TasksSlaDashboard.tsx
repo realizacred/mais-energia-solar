@@ -335,7 +335,7 @@ function CreateTaskDialog({
           <div>
             <Label>Atribuir a</Label>
             <Select value={assignedTo} onValueChange={setAssignedTo}>
-              <SelectTrigger><SelectValue placeholder="Selecionar vendedor" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecionar consultor" /></SelectTrigger>
               <SelectContent>
                 {vendedores.map((v) => (
                   <SelectItem key={v.id} value={v.user_id || v.id}>{v.nome}</SelectItem>
@@ -466,7 +466,7 @@ function SlaDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Vendedor</TableHead>
+                  <TableHead>Consultor</TableHead>
                   <TableHead className="text-center">Total</TableHead>
                   <TableHead className="text-center">Vencidas</TableHead>
                   <TableHead className="text-center">SLA %</TableHead>

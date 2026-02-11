@@ -44,7 +44,7 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
     // Group leads by vendor
     const vendorMap: Record<string, Lead[]> = {};
     leads.forEach((lead) => {
-      const vendor = lead.vendedor || "Sem vendedor";
+      const vendor = lead.vendedor || "Sem consultor";
       if (!vendorMap[vendor]) {
         vendorMap[vendor] = [];
       }
@@ -119,7 +119,7 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Users className="w-4 h-4 text-primary" />
-          Performance por Vendedor
+          Performance por Consultor
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -179,7 +179,7 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
             <div className="grid grid-cols-2 gap-4 text-center">
               <div>
                 <p className="text-lg font-bold text-primary">{vendorStats.length}</p>
-                <p className="text-xs text-muted-foreground">Vendedores Ativos</p>
+                <p className="text-xs text-muted-foreground">Consultores Ativos</p>
               </div>
               <div>
                 <p className="text-lg font-bold text-green-600">
