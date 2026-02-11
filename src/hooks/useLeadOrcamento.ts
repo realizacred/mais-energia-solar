@@ -67,8 +67,7 @@ export function useLeadOrcamento() {
     if (normalized.length < 10) return null;
 
     try {
-      // For anonymous users: use secure RPC function that only returns boolean
-      // This prevents exposing lead data to unauthenticated users
+      // For anonymous users: use boolean-only RPC (no lead details exposed)
       if (!user) {
         const { data: hasDuplicate, error } = await supabase
           .rpc("check_phone_duplicate", { _telefone: telefone });
@@ -78,8 +77,6 @@ export function useLeadOrcamento() {
           return null;
         }
 
-        // RPC returns true if duplicate exists
-        // For anonymous users, we just signal duplicate without exposing lead details
         if (hasDuplicate) {
           return {
             leads: [],
@@ -90,15 +87,13 @@ export function useLeadOrcamento() {
         return null;
       }
 
-      // For authenticated users: fetch full lead details for selection
+      // For authenticated users: use SECURITY DEFINER RPC that bypasses RLS
+      // This ensures vendor B can see leads from vendor A for duplicate detection
       const { data: leads, error } = await supabase
-        .from("leads")
-        .select("id, lead_code, nome, telefone, telefone_normalized, created_at, updated_at")
-        .eq("telefone_normalized", normalized)
-        .order("created_at", { ascending: false });
+        .rpc("find_leads_by_phone", { _telefone: telefone });
 
       if (error) {
-        console.error("[checkExistingLeads] Query error:", error.message);
+        console.error("[checkExistingLeads] RPC error:", error.message);
         return null;
       }
 
@@ -107,10 +102,7 @@ export function useLeadOrcamento() {
         const normalizedNameMap = new Map<string, typeof leads[0]>();
 
         for (const lead of leads) {
-          // Normalize name: lowercase, trim, remove extra spaces
           const normalizedName = lead.nome.toLowerCase().trim().replace(/\s+/g, " ");
-
-          // Only keep the first (most recent) occurrence of each name
           if (!normalizedNameMap.has(normalizedName)) {
             normalizedNameMap.set(normalizedName, lead);
           }
