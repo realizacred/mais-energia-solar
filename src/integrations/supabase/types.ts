@@ -2431,6 +2431,7 @@ export type Database = {
           vendedor_id: string
           visto: boolean
           visto_admin: boolean
+          wa_welcome_sent: boolean
         }
         Insert: {
           area: string
@@ -2467,6 +2468,7 @@ export type Database = {
           vendedor_id?: string
           visto?: boolean
           visto_admin?: boolean
+          wa_welcome_sent?: boolean
         }
         Update: {
           area?: string
@@ -2503,6 +2505,7 @@ export type Database = {
           vendedor_id?: string
           visto?: boolean
           visto_admin?: boolean
+          wa_welcome_sent?: boolean
         }
         Relationships: [
           {

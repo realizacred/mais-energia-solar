@@ -1,0 +1,212 @@
+import { createClient } from "npm:@supabase/supabase-js@2.39.3";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+/**
+ * PUBLIC edge function — no auth required.
+ * Called by the public lead form (/v/slug) after lead creation.
+ *
+ * 1. Validates lead_id exists and wa_welcome_sent = false
+ * 2. Resolves vendedor settings (template, toggle)
+ * 3. Calls send-whatsapp-message internally with service_role
+ * 4. Sets wa_welcome_sent = true (idempotency)
+ *
+ * Rate limited to prevent abuse.
+ */
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
+  try {
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // ── RATE LIMITING ──
+    const identifier =
+      req.headers.get("x-forwarded-for") ||
+      req.headers.get("cf-connecting-ip") ||
+      "unknown";
+    const { data: allowed } = await supabaseAdmin.rpc("check_rate_limit", {
+      _function_name: "send-wa-welcome",
+      _identifier: identifier,
+      _window_seconds: 60,
+      _max_requests: 15,
+    });
+    if (allowed === false) {
+      console.warn(`[send-wa-welcome] Rate limited: ${identifier}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "Rate limit exceeded" }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
+        }
+      );
+    }
+
+    // ── PARSE BODY ──
+    const body = await req.json().catch(() => null);
+    if (!body?.lead_id) {
+      return new Response(
+        JSON.stringify({ success: false, error: "lead_id é obrigatório" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const { lead_id } = body as { lead_id: string };
+
+    // ── FETCH LEAD (validate + idempotency) ──
+    const { data: lead, error: leadErr } = await supabaseAdmin
+      .from("leads")
+      .select("id, nome, telefone, cidade, estado, media_consumo, tipo_telhado, vendedor_id, tenant_id, wa_welcome_sent")
+      .eq("id", lead_id)
+      .maybeSingle();
+
+    if (leadErr || !lead) {
+      console.warn(`[send-wa-welcome] Lead not found: ${lead_id}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "Lead não encontrado" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Idempotency: already sent
+    if (lead.wa_welcome_sent) {
+      console.log(`[send-wa-welcome] Already sent for lead=${lead_id}, skipping`);
+      return new Response(
+        JSON.stringify({ success: true, already_sent: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!lead.vendedor_id) {
+      console.warn(`[send-wa-welcome] Lead ${lead_id} has no vendedor_id`);
+      return new Response(
+        JSON.stringify({ success: false, error: "Lead sem vendedor associado" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!lead.tenant_id) {
+      console.error(`[send-wa-welcome] Lead ${lead_id} has no tenant_id`);
+      return new Response(
+        JSON.stringify({ success: false, error: "Lead sem tenant" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── VENDEDOR SETTINGS ──
+    const { data: vendedor } = await supabaseAdmin
+      .from("vendedores")
+      .select("id, nome, settings, user_id")
+      .eq("id", lead.vendedor_id)
+      .maybeSingle();
+
+    if (!vendedor) {
+      console.warn(`[send-wa-welcome] Vendedor ${lead.vendedor_id} not found`);
+      return new Response(
+        JSON.stringify({ success: false, error: "Vendedor não encontrado" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const settings = (vendedor.settings as Record<string, unknown>) || {};
+    if (settings.wa_auto_message_enabled === false) {
+      console.log(`[send-wa-welcome] Auto-message disabled for vendedor=${vendedor.id}`);
+      return new Response(
+        JSON.stringify({ success: true, skipped: true, reason: "auto_message_disabled" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── BUILD MESSAGE ──
+    const defaultTemplate = `Olá, {nome}! 👋
+
+Aqui é {consultor} da *Mais Energia Solar*. Recebemos sua solicitação de orçamento e já estamos preparando uma proposta personalizada para você!
+
+📋 *Dados recebidos:*
+{dados}
+
+Em breve enviaremos sua proposta com os melhores equipamentos e condições de pagamento. Qualquer dúvida, estou à disposição! ☀️`;
+
+    const template = (settings.wa_auto_message_template as string) || defaultTemplate;
+    const firstName = (lead.nome || "").split(" ")[0];
+    const location = lead.cidade && lead.estado
+      ? `${lead.cidade}/${lead.estado}`
+      : lead.cidade || lead.estado || "";
+
+    const dadosParts: string[] = [];
+    if (location) dadosParts.push(`📍 Localização: ${location}`);
+    if (lead.media_consumo) dadosParts.push(`⚡ Consumo médio: ${lead.media_consumo} kWh/mês`);
+    if (lead.tipo_telhado) dadosParts.push(`🏠 Tipo de telhado: ${lead.tipo_telhado}`);
+    const dadosStr = dadosParts.length > 0 ? dadosParts.join("\n") : "Dados em análise";
+
+    const mensagem = template
+      .replace(/\{nome\}/g, firstName)
+      .replace(/\{consultor\}/g, vendedor.nome || "a equipe")
+      .replace(/\{dados\}/g, dadosStr)
+      .replace(/\{cidade\}/g, lead.cidade || "")
+      .replace(/\{estado\}/g, lead.estado || "")
+      .replace(/\{consumo\}/g, lead.media_consumo ? `${lead.media_consumo}` : "")
+      .replace(/\{tipo_telhado\}/g, lead.tipo_telhado || "");
+
+    // ── CALL send-whatsapp-message with service_role ──
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    const sendRes = await fetch(`${supabaseUrl}/functions/v1/send-whatsapp-message`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+      },
+      body: JSON.stringify({
+        telefone: lead.telefone,
+        mensagem,
+        lead_id: lead.id,
+        tipo: "automatico",
+        tenant_id: lead.tenant_id,
+      }),
+    });
+
+    const sendResult = await sendRes.json().catch(() => null);
+    console.log(`[send-wa-welcome] send-whatsapp-message response:`, JSON.stringify(sendResult));
+
+    if (sendResult?.success) {
+      // Mark as sent (idempotency)
+      await supabaseAdmin
+        .from("leads")
+        .update({ wa_welcome_sent: true } as any)
+        .eq("id", lead_id);
+
+      console.log(`[send-wa-welcome] ✅ Welcome sent for lead=${lead_id}`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          conversation_id: sendResult.conversation_id || null,
+          message_saved: sendResult.message_saved || false,
+          tag_applied: sendResult.tag_applied || false,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.warn(`[send-wa-welcome] Send failed for lead=${lead_id}:`, sendResult);
+    return new Response(
+      JSON.stringify({ success: false, error: sendResult?.error || "Falha no envio" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error: any) {
+    console.error("[send-wa-welcome] Unhandled error:", error);
+    return new Response(
+      JSON.stringify({ success: false, error: error?.message || String(error) }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
