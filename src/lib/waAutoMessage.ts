@@ -173,8 +173,8 @@ export function setAutoMessageEnabled(userId: string, enabled: boolean): void {
 
 // ─── Cooldown-based idempotency ────────────────────────────────────
 
-const COOLDOWN_LEAD_MS = 30_000;   // 30s cooldown per leadId
-const COOLDOWN_PHONE_MS = 10_000;  // 10s cooldown per phone (no leadId)
+const COOLDOWN_LEAD_MS = 2_000;   // 2s cooldown per leadId (anti-double-click only)
+const COOLDOWN_PHONE_MS = 2_000;  // 2s cooldown per phone (anti-double-click only)
 
 interface CooldownEntry {
   ts: number;
