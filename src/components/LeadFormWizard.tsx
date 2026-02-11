@@ -13,7 +13,7 @@ import {
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { WizardSuccessScreen, StepPersonalData, StepAddress, StepConsumption } from "@/components/wizard";
 import { supabase } from "@/integrations/supabase/client";
-import { getVendedorWaSettings, buildAutoMessage, sendAutoWelcomeMessage } from "@/lib/waAutoMessage";
+import { getVendedorWaSettings, buildAutoMessage, sendAutoWelcomeMessage, normalizePhoneDigits, savePipelineDiag, type WaPipelineDiag } from "@/lib/waAutoMessage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -523,18 +523,48 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
    */
 
   /** Retry assign with exponential backoff — webhook may lag behind */
-  const retryAssignConversation = async (phoneDigits: string, maxRetries = 3): Promise<string | null> => {
-    const delays = [400, 1200, 2500];
+  const retryAssignConversation = async (phoneDigits: string, diag: WaPipelineDiag, maxRetries = 4): Promise<string | null> => {
+    const delays = [400, 1200, 2500, 5000];
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       if (attempt > 0) {
-        await new Promise(r => setTimeout(r, delays[attempt - 1] || 2500));
+        await new Promise(r => setTimeout(r, delays[attempt - 1] || 5000));
       }
       try {
         const { data: convId, error } = await supabase
           .rpc("assign_wa_conversation_by_phone", { _phone_digits: phoneDigits });
-        console.log(`[retryAssign] attempt=${attempt + 1} convId=${convId} error=${error?.message || "none"}`);
-        if (!error && convId) return convId as string;
-      } catch (err) {
+        
+        diag.assignAttempts = attempt + 1;
+
+        if (!error && convId) {
+          diag.assignResult = "ok";
+          diag.assignConvId = convId as string;
+          savePipelineDiag(diag);
+          console.log(`[retryAssign] attempt=${attempt + 1} ✅ convId=${convId}`);
+          return convId as string;
+        }
+
+        // Classify error
+        if (error) {
+          const msg = error.message || "";
+          if (msg.includes("permission") || msg.includes("RLS") || error.code === "42501") {
+            diag.assignResult = "permission_denied";
+            diag.assignError = msg;
+            savePipelineDiag(diag);
+            console.error(`[retryAssign] attempt=${attempt + 1} ❌ PERMISSION DENIED: ${msg}`);
+            return null; // Don't retry permission errors
+          }
+          console.log(`[retryAssign] attempt=${attempt + 1} not found (will retry): ${msg}`);
+        } else {
+          console.log(`[retryAssign] attempt=${attempt + 1} returned null (conversation not yet created)`);
+        }
+
+        diag.assignResult = "not_found";
+        savePipelineDiag(diag);
+      } catch (err: any) {
+        diag.assignAttempts = attempt + 1;
+        diag.assignResult = "error";
+        diag.assignError = err?.message || "unknown";
+        savePipelineDiag(diag);
         console.warn(`[retryAssign] attempt=${attempt + 1} exception:`, err);
       }
     }
@@ -544,8 +574,15 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const handlePostLeadWhatsApp = async (data: LeadFormData) => {
     // Fire-and-forget wrapper — never blocks UI
     try {
-      const phoneDigits = data.telefone.replace(/\D/g, "");
+      const phoneDigits = normalizePhoneDigits(data.telefone);
       if (phoneDigits.length < 10) return;
+
+      // Initialize pipeline diagnostics
+      const diag: WaPipelineDiag = {
+        phone: phoneDigits,
+        assignAttempts: 0,
+        assignResult: "pending",
+      };
 
       // Resolve vendedor settings from DB (works for both auth and public contexts)
       let resolvedVendedorId = vendedorId;
@@ -584,6 +621,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             mensagem,
             userId: user.id,
           });
+          diag.sentAt = new Date().toISOString();
+          diag.sentOk = sent;
+          savePipelineDiag(diag);
           console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", sent);
           if (sent) {
             toast({
@@ -600,7 +640,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
       // Retry assign with backoff (webhook may not have created conversation yet)
       if (user) {
-        const convId = await retryAssignConversation(phoneDigits);
+        const convId = await retryAssignConversation(phoneDigits, diag);
         if (convId) {
           console.log("[handlePostLeadWhatsApp] Conversation assigned after retry:", convId);
         } else {

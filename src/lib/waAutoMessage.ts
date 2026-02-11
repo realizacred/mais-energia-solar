@@ -1,5 +1,42 @@
 import { supabase } from "@/integrations/supabase/client";
 
+// ─── Phone normalization (single source of truth) ─────────────────
+
+/**
+ * Strip all non-digits from a phone string.
+ * Used everywhere: idempotency keys, assign RPC, logging.
+ */
+export function normalizePhoneDigits(phone: string): string {
+  return phone.replace(/\D/g, "");
+}
+
+// ─── Pipeline diagnostics (sessionStorage, per-lead) ──────────────
+
+export interface WaPipelineDiag {
+  leadId?: string;
+  phone: string;
+  sentAt?: string;
+  sentOk?: boolean;
+  sentError?: string;
+  assignAttempts: number;
+  assignResult: "ok" | "not_found" | "permission_denied" | "error" | "pending";
+  assignConvId?: string;
+  assignError?: string;
+}
+
+const DIAG_KEY = "wa_pipeline_last";
+
+export function savePipelineDiag(diag: WaPipelineDiag): void {
+  try { sessionStorage.setItem(DIAG_KEY, JSON.stringify(diag)); } catch {}
+}
+
+export function loadPipelineDiag(): WaPipelineDiag | null {
+  try {
+    const raw = sessionStorage.getItem(DIAG_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
 /**
  * Default welcome message template with placeholders.
  */
@@ -154,12 +191,11 @@ export async function sendAutoWelcomeMessage(params: {
 }): Promise<boolean> {
   const { telefone, leadId, mensagem, userId } = params;
   
-  // Idempotency check: prevent double-send per phone+lead combo (not just phone)
-  // Uses leadId when available so different leads for the same phone can still send
-  const phoneDigits = telefone.replace(/\D/g, "");
+  // Idempotency check: prevent double-send per phone+lead combo
+  const phoneDigits = normalizePhoneDigits(telefone);
   const idempotencyKey = leadId
     ? `wa_auto_msg_sent_${phoneDigits}_${leadId}`
-    : `wa_auto_msg_sent_${phoneDigits}_${Date.now()}`;  // no leadId = always allow
+    : `wa_auto_msg_sent_${phoneDigits}_${Date.now()}`;
   
   if (leadId && sessionStorage.getItem(idempotencyKey)) {
     console.log("[sendAutoWelcomeMessage] Already sent for this lead in this session, skipping");
