@@ -497,10 +497,16 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Fetch profile picture (best-effort, non-blocking for message delivery)
+        let profilePicUrl: string | null = null;
+        try {
+          profilePicUrl = await fetchProfilePicture(supabaseAdmin, resolvedInstance.id, remoteJid);
+        } catch (_) { /* ignore */ }
+
         // Check if conversation already exists (avoid overwriting assigned_to)
         const { data: existingConv } = await supabaseAdmin
           .from("wa_conversations")
-          .select("id, assigned_to")
+          .select("id, assigned_to, profile_picture_url")
           .eq("instance_id", resolvedInstance.id)
           .eq("remote_jid", remoteJid)
           .maybeSingle();
@@ -531,6 +537,9 @@ Deno.serve(async (req) => {
 
           if (lead_id) updates.lead_id = lead_id;
           if (clienteNome) updates.cliente_nome = clienteNome;
+          if (profilePicUrl && profilePicUrl !== existingConv.profile_picture_url) {
+            updates.profile_picture_url = profilePicUrl;
+          }
 
           await supabaseAdmin.from("wa_conversations").update(updates).eq("id", existingConv.id);
           console.log(`[send-wa] Conversation updated (existing): ${existingConv.id}`);
@@ -552,6 +561,7 @@ Deno.serve(async (req) => {
               last_message_preview: messagePreview,
               is_group: false,
               canal: "whatsapp",
+              profile_picture_url: profilePicUrl,
             })
             .select("id")
             .single();
@@ -673,3 +683,45 @@ Deno.serve(async (req) => {
     });
   }
 });
+
+// ── Fetch profile picture from Evolution API ──
+async function fetchProfilePicture(
+  supabase: any,
+  instanceId: string,
+  remoteJid: string,
+): Promise<string | null> {
+  try {
+    const { data: instance } = await supabase
+      .from("wa_instances")
+      .select("evolution_api_url, evolution_instance_key, api_key")
+      .eq("id", instanceId)
+      .maybeSingle();
+
+    if (!instance) return null;
+
+    const apiUrl = instance.evolution_api_url?.replace(/\/$/, "");
+    const apiKey = instance.api_key || Deno.env.get("EVOLUTION_API_KEY") || "";
+    const instanceKey = instance.evolution_instance_key;
+
+    if (!apiUrl || !instanceKey) return null;
+
+    const endpoint = `${apiUrl}/chat/fetchProfilePictureUrl/${encodeURIComponent(instanceKey)}`;
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: apiKey },
+      body: JSON.stringify({ number: remoteJid }),
+    });
+
+    if (!res.ok) return null;
+
+    const data = await res.json();
+    const picUrl = data?.profilePictureUrl || data?.data?.profilePictureUrl || data?.url || data?.profilePicUrl || null;
+    if (picUrl) {
+      console.log(`[send-wa] Profile picture fetched for ${remoteJid}`);
+    }
+    return picUrl;
+  } catch (err) {
+    console.warn("[send-wa] Failed to fetch profile picture:", err);
+    return null;
+  }
+}
