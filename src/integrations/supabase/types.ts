@@ -7144,6 +7144,18 @@ export type Database = {
         Args: { _delta?: number; _metric_key: string }
         Returns: undefined
       }
+      find_leads_by_phone: {
+        Args: { _telefone: string }
+        Returns: {
+          created_at: string
+          id: string
+          lead_code: string
+          nome: string
+          telefone: string
+          telefone_normalized: string
+          updated_at: string
+        }[]
+      }
       generate_vendedor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
         Args: never
