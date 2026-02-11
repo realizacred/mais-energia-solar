@@ -134,6 +134,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   // Store form data for duplicate handling
   const pendingFormDataRef = useRef<LeadFormData | null>(null);
 
+  // Store last WA params for resend button
+  const lastWaParamsRef = useRef<{ telefone: string; leadId?: string; mensagem: string; userId: string } | null>(null);
+
   // Honeypot anti-bot protection
   const { honeypotValue, handleHoneypotChange, validateHoneypot, resetHoneypot } = useHoneypot();
 
@@ -638,21 +641,24 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
         // Send message — requires auth session
         if (user) {
-          const sent = await sendAutoWelcomeMessage({
+          lastWaParamsRef.current = { telefone: data.telefone.trim(), leadId, mensagem, userId: user.id };
+          const result = await sendAutoWelcomeMessage({
             telefone: data.telefone.trim(),
             leadId,
             mensagem,
             userId: user.id,
           });
           diag.sentAt = new Date().toISOString();
-          diag.sentOk = sent;
+          diag.sentOk = result.sent;
           savePipelineDiag(diag);
-          console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", sent, "leadId:", leadId);
-          if (sent) {
+          console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", result, "leadId:", leadId);
+          if (result.sent) {
             toast({
               title: "WhatsApp encaminhado ✅",
               description: "Mensagem de boas-vindas encaminhada para envio.",
             });
+          } else if (result.blocked === "cooldown") {
+            console.log("[handlePostLeadWhatsApp] Bloqueado por cooldown:", result.reason);
           }
         } else {
           console.log("[handlePostLeadWhatsApp] No auth session — skipping send (public form)");
@@ -1068,7 +1074,20 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const hasSynced = savedOffline && pendingCount === 0 && isOnline;
   const showOfflineState = savedOffline && !hasSynced;
 
-  if (isSuccess) {
+   if (isSuccess) {
+    const handleResendWhatsApp = user && lastWaParamsRef.current
+      ? async (): Promise<boolean> => {
+          const params = lastWaParamsRef.current!;
+          const result = await sendAutoWelcomeMessage({ ...params, forceResend: true });
+          if (result.sent) {
+            toast({ title: "WhatsApp reenviado ✅", description: "Mensagem enviada com sucesso." });
+          } else {
+            toast({ title: "Falha no reenvio", description: result.reason || "Tente novamente.", variant: "destructive" });
+          }
+          return result.sent;
+        }
+      : undefined;
+
     return (
       <WizardSuccessScreen
         savedOffline={savedOffline}
@@ -1077,6 +1096,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         isSyncing={isSyncing}
         onReset={resetForm}
         onRetrySync={retrySync}
+        onResendWhatsApp={handleResendWhatsApp}
       />
     );
   }
