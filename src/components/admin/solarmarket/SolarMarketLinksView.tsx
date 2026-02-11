@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import {
   Eye, Link2, Users, Phone, Mail, MapPin, FileText,
   Loader2, RefreshCw, ExternalLink, Calendar,
@@ -66,6 +67,8 @@ interface EnrichedLink extends LeadLink {
   sm_proposals?: SmProposalData[];
 }
 
+const PAGE_SIZE = 25;
+
 function formatDate(d: string | null) {
   if (!d) return "—";
   try { return format(new Date(d), "dd/MM/yyyy HH:mm", { locale: ptBR }); }
@@ -75,25 +78,40 @@ function formatDate(d: string | null) {
 export function SolarMarketLinksView() {
   const [loading, setLoading] = useState(true);
   const [links, setLinks] = useState<EnrichedLink[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [isFetching, setIsFetching] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedLink, setSelectedLink] = useState<EnrichedLink | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const fetchLinks = useCallback(async () => {
-    setLoading(true);
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  const fetchLinks = useCallback(async (targetPage = 1) => {
+    if (targetPage === 1) setLoading(true);
+    else setIsFetching(true);
+
     try {
+      // Fetch count
+      const { count } = await supabase
+        .from("lead_links")
+        .select("id", { count: "exact", head: true });
+      setTotalCount(count ?? 0);
+
+      const from = (targetPage - 1) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+
       const { data: rawLinks, error } = await supabase
         .from("lead_links")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(100);
+        .range(from, to);
 
       if (error) throw error;
 
       const linkData = (rawLinks as LeadLink[]) || [];
       if (linkData.length === 0) {
         setLinks([]);
-        setLoading(false);
         return;
       }
 
@@ -122,15 +140,17 @@ export function SolarMarketLinksView() {
       }));
 
       setLinks(enriched);
+      setPage(targetPage);
     } catch (err) {
       console.error("Erro buscando vínculos:", err);
     } finally {
       setLoading(false);
+      setIsFetching(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchLinks();
+    fetchLinks(1);
   }, [fetchLinks]);
 
   const openDetail = async (link: EnrichedLink) => {
@@ -190,78 +210,93 @@ export function SolarMarketLinksView() {
                 Vínculos automáticos entre leads do CRM e clientes do SolarMarket (por telefone)
               </CardDescription>
             </div>
-            <Button variant="outline" size="icon" onClick={fetchLinks}>
+            <Button variant="outline" size="icon" onClick={() => fetchLinks(1)}>
               <RefreshCw className="h-4 w-4" />
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          {links.length === 0 ? (
+          {links.length === 0 && totalCount === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Link2 className="h-8 w-8 mx-auto mb-2 opacity-40" />
               <p>Nenhum vínculo encontrado</p>
               <p className="text-xs mt-1">Os vínculos são criados automaticamente durante a sincronização, quando o telefone do lead coincide com o do cliente SolarMarket.</p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Lead</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Cliente SM</TableHead>
-                    <TableHead>Projeto SM</TableHead>
-                    <TableHead>Motivo</TableHead>
-                    <TableHead>Vinculado em</TableHead>
-                    <TableHead className="w-[50px]" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {links.map((link) => (
-                    <TableRow key={link.id}>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <p className="font-medium text-sm">{link.lead?.nome || "—"}</p>
-                          {link.lead?.lead_code && (
-                            <Badge variant="outline" className="text-xs">{link.lead.lead_code}</Badge>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3 text-muted-foreground" />
-                          {link.lead?.telefone || "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-0.5">
-                          <p className="text-sm">{link.sm_client?.name || "—"}</p>
-                          <p className="text-xs text-muted-foreground font-mono">SM #{link.sm_client_id}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {link.sm_project_id ? (
-                          <Badge variant="secondary" className="font-mono text-xs">#{link.sm_project_id}</Badge>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">Sem projeto</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">{link.link_reason}</Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
-                        {formatDate(link.created_at)}
-                      </TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => openDetail(link)} title="Ver detalhes completos">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+            <>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Lead</TableHead>
+                      <TableHead>Telefone</TableHead>
+                      <TableHead>Cliente SM</TableHead>
+                      <TableHead>Projeto SM</TableHead>
+                      <TableHead>Motivo</TableHead>
+                      <TableHead>Vinculado em</TableHead>
+                      <TableHead className="w-[50px]" />
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {links.map((link) => (
+                      <TableRow key={link.id}>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="font-medium text-sm">{link.lead?.nome || "—"}</p>
+                            {link.lead?.lead_code && (
+                              <Badge variant="outline" className="text-xs">{link.lead.lead_code}</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3 text-muted-foreground" />
+                            {link.lead?.telefone || "—"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="space-y-0.5">
+                            <p className="text-sm">{link.sm_client?.name || "—"}</p>
+                            <p className="text-xs text-muted-foreground font-mono">SM #{link.sm_client_id}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {link.sm_project_id ? (
+                            <Badge variant="secondary" className="font-mono text-xs">#{link.sm_project_id}</Badge>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">Sem projeto</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">{link.link_reason}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {formatDate(link.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon" onClick={() => openDetail(link)} title="Ver detalhes completos">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <PaginationControls
+                page={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                pageSize={PAGE_SIZE}
+                isFetching={isFetching}
+                onGoToPage={(p) => fetchLinks(p)}
+                onNextPage={() => fetchLinks(page + 1)}
+                onPrevPage={() => fetchLinks(page - 1)}
+                hasNextPage={page < totalPages}
+                hasPrevPage={page > 1}
+              />
+            </>
           )}
         </CardContent>
       </Card>
