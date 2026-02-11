@@ -20,9 +20,12 @@ interface LeadAutoOpenData {
   phone: string;
   nome?: string;
   cidade?: string;
+  estado?: string;
   consumo?: number;
   tipo_telhado?: string;
+  rede_atendimento?: string;
   consultor_nome?: string;
+  assignedConvId?: string;
 }
 
 interface WaInboxProps {
@@ -213,16 +216,24 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       const phoneDigits = data.phone.replace(/\D/g, "");
       if (phoneDigits.length < 10) return;
 
-      // Match by remote_jid or cliente_telefone containing the phone digits
-      const match = allConversations.find((c) => {
-        const remoteDigits = c.remote_jid?.replace(/\D/g, "") || "";
-        const telDigits = c.cliente_telefone?.replace(/\D/g, "") || "";
-        return remoteDigits.includes(phoneDigits) || telDigits.includes(phoneDigits)
-          || phoneDigits.includes(remoteDigits.slice(-10)) || phoneDigits.includes(telDigits.slice(-10));
-      });
+      // Prefer direct match by assignedConvId (already assigned via DB function)
+      let match: WaConversation | undefined;
+      if (data.assignedConvId) {
+        match = allConversations.find((c) => c.id === data.assignedConvId);
+      }
+
+      // Fallback: match by phone digits
+      if (!match) {
+        match = allConversations.find((c) => {
+          const remoteDigits = c.remote_jid?.replace(/\D/g, "") || "";
+          const telDigits = c.cliente_telefone?.replace(/\D/g, "") || "";
+          return remoteDigits.includes(phoneDigits) || telDigits.includes(phoneDigits)
+            || phoneDigits.includes(remoteDigits.slice(-10)) || phoneDigits.includes(telDigits.slice(-10));
+        });
+      }
 
       if (match) {
-        // Open existing conversation
+        // Open existing conversation (already assigned to vendor via DB function)
         handleSelectConversation(match);
         // Ensure status filter shows this conversation
         if (match.status !== filterStatus && filterStatus !== "all") {
@@ -242,9 +253,14 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         parts.push("");
         parts.push("Recebi sua solicitação e já estou preparando sua simulação.");
         parts.push("");
-        if (data.cidade) parts.push(`📍 Cidade: ${data.cidade}`);
+        if (data.cidade && data.estado) {
+          parts.push(`📍 Localização: ${data.cidade}/${data.estado}`);
+        } else if (data.cidade) {
+          parts.push(`📍 Cidade: ${data.cidade}`);
+        }
         if (data.consumo) parts.push(`⚡ Consumo médio: ${data.consumo} kWh`);
         if (data.tipo_telhado) parts.push(`🏠 Tipo de telhado: ${data.tipo_telhado}`);
+        if (data.rede_atendimento) parts.push(`🔌 Rede: ${data.rede_atendimento}`);
         parts.push("");
         parts.push("Vou te fazer algumas perguntas rápidas e já te envio um estudo completo 🙂");
         setPrefillMessage(parts.filter((p) => p !== undefined).join("\n"));
