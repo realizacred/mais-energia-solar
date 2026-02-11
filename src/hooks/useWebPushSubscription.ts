@@ -37,7 +37,7 @@ export function useWebPushSubscription() {
         let isSubscribed = false;
 
         if (permission === "granted") {
-          const existingSub = await reg.pushManager.getSubscription();
+          const existingSub = await (reg as any).pushManager.getSubscription();
           isSubscribed = !!existingSub;
         }
 
@@ -99,7 +99,7 @@ export function useWebPushSubscription() {
 
       // Subscribe to push manager
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-      const pushSub = await reg.pushManager.subscribe({
+      const pushSub = await (reg as any).pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
       });
@@ -148,7 +148,7 @@ export function useWebPushSubscription() {
     try {
       const reg = swRegistrationRef.current || (await navigator.serviceWorker.getRegistration());
       if (reg) {
-        const sub = await reg.pushManager.getSubscription();
+        const sub = await (reg as any).pushManager.getSubscription();
         if (sub) {
           const endpoint = sub.endpoint;
           await sub.unsubscribe();
