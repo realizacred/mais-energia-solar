@@ -506,7 +506,9 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existingConv) {
-          // UPDATE: reopen, refresh preview, assign only if vacant
+          // UPDATE: reopen, refresh preview, assign
+          // For automatic lead messages, always ensure the conversation is assigned to the lead owner
+          // (so it shows up in the consultant's Inbox even if it existed with a stale assigned_to).
           createdConvId = existingConv.id;
           const updates: Record<string, unknown> = {
             status: "open",
@@ -514,7 +516,19 @@ Deno.serve(async (req) => {
             last_message_preview: messagePreview,
             updated_at: new Date().toISOString(),
           };
-          if (!existingConv.assigned_to && assignedTo) updates.assigned_to = assignedTo;
+
+          const shouldForceAssignToLeadOwner = tipo === "automatico" && !!lead_id && !!assignedTo;
+          if (shouldForceAssignToLeadOwner) {
+            if (existingConv.assigned_to !== assignedTo) {
+              updates.assigned_to = assignedTo;
+              console.log(
+                `[send-wa] Reassigned conversation ${existingConv.id} from ${existingConv.assigned_to || "(null)"} to ${assignedTo} (auto lead message)`
+              );
+            }
+          } else if (!existingConv.assigned_to && assignedTo) {
+            updates.assigned_to = assignedTo;
+          }
+
           if (lead_id) updates.lead_id = lead_id;
           if (clienteNome) updates.cliente_nome = clienteNome;
 
