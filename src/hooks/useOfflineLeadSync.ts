@@ -181,35 +181,41 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
           console.warn("[syncLead] File upload failed, continuing without files:", uploadError);
         }
       }
-      
-      const { data, error } = await supabase.from("leads").insert({
-        nome: lead.nome,
-        telefone: lead.telefone,
-        cep: lead.cep || null,
-        estado: lead.estado,
-        cidade: lead.cidade,
-        rua: lead.rua || null,
-        numero: lead.numero || null,
-        bairro: lead.bairro || null,
-        complemento: lead.complemento || null,
-        area: lead.area,
-        tipo_telhado: lead.tipo_telhado,
-        rede_atendimento: lead.rede_atendimento,
-        media_consumo: lead.media_consumo,
-        consumo_previsto: lead.consumo_previsto,
-        observacoes: lead.observacoes || null,
-        arquivos_urls: fileUrls,
-        vendedor: lead.vendedor || null,
-        // vendedor_id is auto-resolved by trigger if not provided
-      }).select();
 
-      if (error) {
-        console.error("[syncLead] Supabase error:", error.message, error.details);
-        return { success: false, error: error.message };
+      // Use unified public-create-lead Edge Function
+      // This creates lead + orcamento + sends WA welcome in one call
+      const response = await supabase.functions.invoke("public-create-lead", {
+        body: {
+          nome: lead.nome,
+          telefone: lead.telefone,
+          vendedor_codigo: lead.vendedor || undefined,
+          cep: lead.cep || null,
+          estado: lead.estado,
+          cidade: lead.cidade,
+          rua: lead.rua || null,
+          numero: lead.numero || null,
+          bairro: lead.bairro || null,
+          complemento: lead.complemento || null,
+          area: lead.area,
+          tipo_telhado: lead.tipo_telhado,
+          rede_atendimento: lead.rede_atendimento,
+          media_consumo: lead.media_consumo,
+          consumo_previsto: lead.consumo_previsto,
+          observacoes: lead.observacoes || null,
+          arquivos_urls: fileUrls.length > 0 ? fileUrls : undefined,
+        },
+      });
+
+      const result = response.data as { success?: boolean; error?: string; lead_id?: string; wa_sent?: boolean } | null;
+
+      if (result?.success) {
+        console.log("[syncLead] ✅ Synced via public-create-lead, lead_id:", result.lead_id, "wa_sent:", result.wa_sent);
+        return { success: true };
       }
-      
-      console.log("[syncLead] Successfully synced lead:", data);
-      return { success: true };
+
+      const errorMsg = result?.error || response.error?.message || "Falha no servidor";
+      console.error("[syncLead] public-create-lead failed:", errorMsg);
+      return { success: false, error: errorMsg };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
       console.error("[syncLead] Exception:", errorMessage);

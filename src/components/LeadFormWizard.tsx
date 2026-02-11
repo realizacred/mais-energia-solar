@@ -858,6 +858,124 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         return;
       }
 
+      // ── PUBLIC FORM (no auth): use unified server-side Edge Function ──
+      if (!user) {
+        console.log("[LeadFormWizard] Public form — using public-create-lead Edge Function");
+
+        // Upload files first if available
+        if (hasFiles) {
+          try {
+            fileUrls = await uploadOfflineFiles(uploadedFiles);
+          } catch (err) {
+            console.warn("[LeadFormWizard] File upload failed, continuing without files");
+          }
+        }
+
+        const payload: Record<string, unknown> = {
+          nome: data.nome.trim(),
+          telefone: data.telefone.trim(),
+          vendedor_codigo: vendedorCodigo || undefined,
+          vendedor_id: vendedorId || undefined,
+          cep: data.cep?.trim() || null,
+          estado: data.estado,
+          cidade: data.cidade.trim(),
+          rua: data.rua?.trim() || null,
+          numero: data.numero?.trim() || null,
+          bairro: data.bairro?.trim() || null,
+          complemento: data.complemento?.trim() || null,
+          area: data.area,
+          tipo_telhado: data.tipo_telhado,
+          rede_atendimento: data.rede_atendimento,
+          media_consumo: data.media_consumo,
+          consumo_previsto: data.consumo_previsto,
+          observacoes: data.observacoes?.trim() || null,
+          arquivos_urls: fileUrls.length > 0 ? fileUrls : undefined,
+        };
+
+        // Handle duplicate decision
+        if (duplicateDecision?.type === "use_existing") {
+          payload.existing_lead_id = duplicateDecision.leadId;
+        }
+
+        try {
+          const response = await supabase.functions.invoke("public-create-lead", {
+            body: payload,
+          });
+
+          const result = response.data as {
+            success?: boolean;
+            lead_id?: string;
+            orcamento_id?: string;
+            is_new_lead?: boolean;
+            wa_sent?: boolean;
+            wa_conversation_id?: string;
+            wa_skipped?: boolean;
+            error?: string;
+          } | null;
+
+          if (result?.success) {
+            clearDraft();
+            resetHoneypot();
+            resetRateLimit();
+            setSavedOffline(false);
+            triggerConfetti();
+
+            // Update pipeline diagnostics
+            const phoneDigits = normalizePhoneDigits(data.telefone);
+            const diag: WaPipelineDiag = {
+              leadId: result.lead_id,
+              phone: phoneDigits,
+              assignAttempts: 0,
+              assignResult: result.wa_conversation_id ? "ok" : "pending",
+              assignConvId: result.wa_conversation_id || undefined,
+              sentOk: result.wa_sent,
+              sentAt: result.wa_sent ? new Date().toISOString() : undefined,
+            };
+            savePipelineDiag(diag);
+
+            toast({
+              title: result.is_new_lead
+                ? "Cadastro enviado com sucesso! ☀️"
+                : "Novo orçamento vinculado! ☀️",
+              description: result.is_new_lead
+                ? "Entraremos em contato em breve."
+                : "Orçamento adicionado ao cliente existente.",
+            });
+
+            setIsSubmitting(false);
+            setIsSuccess(true);
+            setDuplicateDecision(null);
+            return;
+          }
+
+          // Server-side failed — try offline fallback
+          console.warn("[LeadFormWizard] public-create-lead failed:", result?.error || response.error);
+          const offlineSuccess = await saveOfflineFallback();
+          if (offlineSuccess) return;
+
+          toast({
+            title: "Erro ao enviar cadastro",
+            description: result?.error || "Ocorreu um erro. Tente novamente.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        } catch (publicErr) {
+          console.error("[LeadFormWizard] public-create-lead exception:", publicErr);
+          const offlineSuccess = await saveOfflineFallback();
+          if (offlineSuccess) return;
+
+          toast({
+            title: "Erro ao enviar cadastro",
+            description: "Falha na conexão. Tente novamente.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+      }
+
+      // ── AUTHENTICATED FLOW (existing logic) ──
       // Online: upload files first, then submit
       if (hasFiles) {
         try {

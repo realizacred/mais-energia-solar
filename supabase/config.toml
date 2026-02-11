@@ -92,3 +92,6 @@ verify_jwt = false
 
 [functions.send-wa-welcome]
 verify_jwt = false
+
+[functions.public-create-lead]
+verify_jwt = false
