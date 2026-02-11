@@ -335,18 +335,29 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   };
 
   const validateCurrentStep = async () => {
-    // Only validate REQUIRED fields for the current step
-    // This prevents optional fields (like CEP) or future step fields from blocking advancement
-    const fields = getFieldsForStep(currentStep);
+    // Validate ONLY the current step's fields using step-specific Zod schemas
+    // This prevents Step 3 fields from blocking Step 2 → Step 3 navigation
+    const currentValues = form.getValues();
+    let stepSchema;
+    switch (currentStep) {
+      case 1: stepSchema = step1Schema; break;
+      case 2: stepSchema = step2Schema; break;
+      case 3: stepSchema = step3Schema; break;
+      default: return true;
+    }
+
+    const result = stepSchema.safeParse(currentValues);
     
-    // Use trigger() with explicit field list — validates only those fields via zodResolver
-    const isValid = await trigger(fields);
-    
-    // Always mark step fields as touched so errors become visible
-    fields.forEach(field => markFieldTouched(field));
-    
-    // Scroll and focus the first invalid field
-    if (!isValid) {
+    if (!result.success) {
+      // Mark fields as touched so errors become visible
+      const errorFields = Object.keys(result.error.flatten().fieldErrors);
+      errorFields.forEach(field => markFieldTouched(field));
+      
+      // Also trigger react-hook-form errors for those specific fields only
+      const fields = getFieldsForStep(currentStep);
+      await trigger(fields);
+      
+      // Scroll and focus the first invalid field
       requestAnimationFrame(() => {
         const firstError = document.querySelector('[data-field-error="true"]');
         if (firstError) {
@@ -355,9 +366,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           input?.focus();
         }
       });
+      
+      return false;
     }
     
-    return isValid;
+    return true;
   };
 
   const scrollToTop = () => {
