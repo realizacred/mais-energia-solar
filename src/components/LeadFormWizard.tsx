@@ -984,6 +984,13 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       value={watchedValues.nome}
                       autoComplete="off"
                       onChange={(e) => setValue("nome", formatName(e.target.value), { shouldValidate: touchedFields.has("nome") })}
+                      onBlur={() => {
+                        const trimmed = watchedValues.nome?.replace(/\s+/g, " ").trim() || "";
+                        if (trimmed !== watchedValues.nome) {
+                          setValue("nome", trimmed, { shouldValidate: true });
+                        }
+                        markFieldTouched("nome");
+                      }}
                       error={touchedFields.has("nome") ? errors.nome?.message : undefined}
                       success={isFieldValid("nome")}
                     />
