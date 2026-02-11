@@ -200,6 +200,7 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
         observacoes: lead.observacoes || null,
         arquivos_urls: fileUrls,
         vendedor: lead.vendedor || null,
+        // vendedor_id is auto-resolved by trigger if not provided
       }).select();
 
       if (error) {

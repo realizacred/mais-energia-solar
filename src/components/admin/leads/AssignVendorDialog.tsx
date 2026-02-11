@@ -138,32 +138,53 @@ export function AssignVendorDialog({
   const handleRemoveVendor = async () => {
     setSaving(true);
     try {
+      // Get tenant_id from the lead itself
+      const { data: leadData } = await supabase
+        .from("leads")
+        .select("tenant_id")
+        .eq("id", leadId)
+        .single();
+
+      const { data: defaultVendedor, error: resolveError } = await supabase
+        .rpc("resolve_default_vendedor_id", { _tenant_id: leadData?.tenant_id });
+
+      if (resolveError || !defaultVendedor) {
+        throw new Error("Não foi possível resolver vendedor padrão da fila");
+      }
+
+      // Get default vendedor name
+      const { data: vendedorData } = await supabase
+        .from("vendedores")
+        .select("nome")
+        .eq("id", defaultVendedor)
+        .single();
+
       const { error: orcError } = await supabase
         .from("orcamentos")
-        .update({ vendedor: null })
+        .update({ vendedor: vendedorData?.nome || null })
         .eq("id", orcamentoId);
 
       if (orcError) throw orcError;
 
       const { error: leadError } = await supabase
         .from("leads")
-        .update({ vendedor: null, vendedor_id: null })
+        .update({ vendedor: vendedorData?.nome || null, vendedor_id: defaultVendedor })
         .eq("id", leadId);
 
       if (leadError) throw leadError;
 
       toast({
-        title: "Vendedor removido",
-        description: "O orçamento voltou a ficar sem vendedor atribuído.",
+        title: "Devolvido à fila",
+        description: "O lead foi reatribuído ao vendedor padrão.",
       });
 
       onOpenChange(false);
       onSuccess?.();
     } catch (error) {
-      console.error("Error removing vendedor:", error);
+      console.error("Error returning to queue:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível remover o vendedor.",
+        description: "Não foi possível devolver à fila.",
         variant: "destructive",
       });
     } finally {

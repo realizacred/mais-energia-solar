@@ -7,6 +7,7 @@ import { mapToUserMessage } from "@/lib/errorHandler";
 interface LeadData {
   nome: string;
   telefone: string;
+  vendedor_id?: string;
 }
 
 interface OrcamentoData {
@@ -146,6 +147,7 @@ export function useLeadOrcamento() {
           id: leadId,
           nome: data.nome,
           telefone: data.telefone,
+          vendedor_id: data.vendedor_id,
           // Minimal required fields with defaults
           estado: "N/A",
           cidade: "N/A",
@@ -291,7 +293,8 @@ export function useLeadOrcamento() {
   };
 
   /**
-   * Confirma o uso do lead selecionado e cria novo orçamento
+   * Confirma o uso do lead selecionado, reatribui vendedor e cria novo orçamento.
+   * Registra transferência em lead_distribution_log se vendedor mudou.
    */
   const confirmUseExistingLead = async (orcamentoData: OrcamentoData, leadOverride?: LeadSimplified): Promise<SubmitResult> => {
     const leadToUse = leadOverride || selectedLead;
@@ -302,9 +305,50 @@ export function useLeadOrcamento() {
     setShowDuplicateWarning(false);
     setMatchingLeads([]);
     setSelectedLead(null);
+
+    // Reatribuir vendedor_id se o orçamento tem um vendedor diferente
+    const newVendedorId = orcamentoData.vendedor_id;
+    if (newVendedorId) {
+      try {
+        // Fetch current vendedor_id from lead for distribution log
+        const { data: currentLead } = await supabase
+          .from("leads")
+          .select("vendedor_id")
+          .eq("id", leadToUse.id)
+          .single();
+
+        const oldVendedorId = currentLead?.vendedor_id;
+
+        // Update lead ownership
+        await supabase
+          .from("leads")
+          .update({
+            vendedor_id: newVendedorId,
+            vendedor: orcamentoData.vendedor || null,
+          })
+          .eq("id", leadToUse.id);
+
+        // Register transfer in lead_distribution_log if vendedor changed
+        if (oldVendedorId && oldVendedorId !== newVendedorId) {
+          await supabase
+            .from("lead_distribution_log")
+            .insert({
+              lead_id: leadToUse.id,
+              vendedor_id: newVendedorId,
+              vendedor_anterior_id: oldVendedorId,
+              motivo: "Reatribuição por novo orçamento",
+              distribuido_em: new Date().toISOString(),
+              distribuido_por: user?.id || null,
+            });
+        }
+      } catch (err) {
+        console.warn("[confirmUseExistingLead] Failed to update vendedor:", err);
+        // Continue anyway — the orçamento creation is more important
+      }
+    }
     
     return submitOrcamento(
-      { nome: leadToUse.nome, telefone: leadToUse.telefone },
+      { nome: leadToUse.nome, telefone: leadToUse.telefone, vendedor_id: newVendedorId },
       orcamentoData,
       { useExistingLeadId: leadToUse.id }
     );

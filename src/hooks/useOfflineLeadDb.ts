@@ -89,7 +89,8 @@ export function useOfflineLeadDb(options: UseOfflineLeadDbOptions = {}) {
         .from('leads')
         .insert({
           ...lead.data,
-          vendedor: lead.data.vendedor || vendedorNome || 'Admin'
+          vendedor: lead.data.vendedor || vendedorNome || 'Admin',
+          // vendedor_id is auto-resolved by trigger if not provided
         })
         .select('id, lead_code')
         .single();

@@ -652,7 +652,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           : { forceNew: true };
 
         const result = await submitOrcamento(
-          { nome: data.nome.trim(), telefone: data.telefone.trim() },
+          { nome: data.nome.trim(), telefone: data.telefone.trim(), vendedor_id: vendedorId || undefined },
           orcamentoData,
           opts
         );
@@ -692,7 +692,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
       // No prior decision — normal flow (will check for duplicates)
       const result = await submitOrcamento(
-        { nome: data.nome.trim(), telefone: data.telefone.trim() },
+        { nome: data.nome.trim(), telefone: data.telefone.trim(), vendedor_id: vendedorId || undefined },
         orcamentoData
       );
 
@@ -841,7 +841,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
     const orcamentoData = buildOrcamentoData(data, fileUrls);
     const result = await forceCreateNewLead(
-      { nome: data.nome.trim(), telefone: data.telefone.trim() },
+      { nome: data.nome.trim(), telefone: data.telefone.trim(), vendedor_id: vendedorId || undefined },
       orcamentoData
     );
     
