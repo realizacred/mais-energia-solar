@@ -37,6 +37,9 @@ import logo from "@/assets/logo.png";
 import {
   leadFormSchema,
   LeadFormData,
+  step1Schema,
+  step2Schema,
+  step3Schema,
   formatPhone,
   formatCEP,
   formatName,
@@ -262,7 +265,37 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   const validateCurrentStep = async () => {
     const fields = getFieldsForStep(currentStep);
-    const isValid = await trigger(fields);
+    const values = form.getValues();
+    
+    // Use step-specific schemas for reliable partial validation
+    // (avoids zodResolver validating the full schema and potentially returning false)
+    const stepSchemas: Record<number, { safeParse: (v: any) => { success: boolean; error?: { issues: { path: (string | number)[]; code: string; message: string }[] } } }> = {
+      1: step1Schema,
+      2: step2Schema,
+      3: step3Schema,
+    };
+    const schema = stepSchemas[currentStep];
+    
+    let isValid: boolean;
+    if (schema) {
+      const result = schema.safeParse(values);
+      isValid = result.success;
+      
+      if (!result.success) {
+        // Map zod errors to react-hook-form so UI shows them
+        for (const issue of result.error.issues) {
+          const fieldName = issue.path[0] as string;
+          if (fields.includes(fieldName as keyof LeadFormData)) {
+            form.setError(fieldName as any, { type: issue.code, message: issue.message });
+          }
+        }
+      } else {
+        // Clear errors for valid fields
+        fields.forEach(f => form.clearErrors(f));
+      }
+    } else {
+      isValid = await trigger(fields);
+    }
     
     // Always mark step fields as touched so errors become visible
     fields.forEach(field => markFieldTouched(field));
