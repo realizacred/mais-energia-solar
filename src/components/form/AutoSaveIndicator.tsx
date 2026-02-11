@@ -1,13 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Cloud, CloudOff, Check } from "lucide-react";
+import { Cloud, CloudOff, Check, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface AutoSaveIndicatorProps {
   hasDraft: boolean;
   isOnline: boolean;
+  onClear?: () => void;
 }
 
-export function AutoSaveIndicator({ hasDraft, isOnline }: AutoSaveIndicatorProps) {
+export function AutoSaveIndicator({ hasDraft, isOnline, onClear }: AutoSaveIndicatorProps) {
   const [showSaved, setShowSaved] = useState(false);
   const [prevHasDraft, setPrevHasDraft] = useState(hasDraft);
 
@@ -34,20 +35,24 @@ export function AutoSaveIndicator({ hasDraft, isOnline }: AutoSaveIndicatorProps
           <span>Rascunho salvo</span>
         </motion.div>
       ) : hasDraft ? (
-        <motion.div
+        <motion.button
           key="has-draft"
+          type="button"
+          onClick={onClear}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground"
+          className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 border border-primary/20 rounded-full px-3 py-1.5 hover:bg-primary/20 transition-colors cursor-pointer"
+          title="Clique para limpar o rascunho"
         >
           {isOnline ? (
-            <Cloud className="w-3 h-3" />
+            <Cloud className="w-3 h-3 text-primary" />
           ) : (
-            <CloudOff className="w-3 h-3" />
+            <CloudOff className="w-3 h-3 text-primary" />
           )}
-          <span>Rascunho disponível</span>
-        </motion.div>
+          <span>Rascunho</span>
+          <Trash2 className="w-3 h-3 ml-0.5 opacity-60" />
+        </motion.button>
       ) : null}
     </AnimatePresence>
   );
