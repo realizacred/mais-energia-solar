@@ -6,6 +6,7 @@ import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from 
 import { useWaInstances } from "@/hooks/useWaInstances";
 import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferences";
 import { useAuth } from "@/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useToast } from "@/hooks/use-toast";
 import { WaConversationList } from "./WaConversationList";
 import { WaChatPanel } from "./WaChatPanel";
@@ -41,6 +42,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [filterAssigned, setFilterAssigned] = useState("all");
   const [filterInstance, setFilterInstance] = useState("all");
   const [filterTag, setFilterTag] = useState("all");
+  const { hasPermission, isAdmin: isAdminUser } = useUserPermissions();
+  const canViewGroups = hasPermission("view_groups");
+  const canViewHidden = hasPermission("view_hidden");
   const [showGroups, setShowGroups] = useState(true);
   const [showHidden, setShowHidden] = useState(false);
 
@@ -281,10 +285,12 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       const hasTag = c.tags?.some((ct) => ct.tag_id === filterTag);
       if (!hasTag) return false;
     }
-    // Group filter
-    if (!showGroups && c.is_group) return false;
-    // Hidden filter
-    if (!showHidden && hiddenIds.has(c.id)) return false;
+    // Group filter - if user has no permission, always hide groups
+    if (!canViewGroups && c.is_group) return false;
+    if (canViewGroups && !showGroups && c.is_group) return false;
+    // Hidden filter - if user has no permission, always hide
+    if (!canViewHidden && hiddenIds.has(c.id)) return false;
+    if (canViewHidden && !showHidden && hiddenIds.has(c.id)) return false;
     return true;
   });
 
@@ -539,9 +545,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               tags={tags}
               hideAssignedFilter={vendorMode}
               showGroups={showGroups}
-              onShowGroupsChange={setShowGroups}
+              onShowGroupsChange={canViewGroups ? setShowGroups : undefined}
               showHidden={showHidden}
-              onShowHiddenChange={setShowHidden}
+              onShowHiddenChange={canViewHidden ? setShowHidden : undefined}
               mutedIds={mutedIds}
               hiddenIds={hiddenIds}
               followupConvIds={followupConvIds}
@@ -630,9 +636,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 tags={tags}
                 hideAssignedFilter={vendorMode}
                 showGroups={showGroups}
-                onShowGroupsChange={setShowGroups}
+                onShowGroupsChange={canViewGroups ? setShowGroups : undefined}
                 showHidden={showHidden}
-                onShowHiddenChange={setShowHidden}
+                onShowHiddenChange={canViewHidden ? setShowHidden : undefined}
                 mutedIds={mutedIds}
                 hiddenIds={hiddenIds}
                 followupConvIds={followupConvIds}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -46,6 +46,7 @@ import {
   UserPlus,
   Save,
   Link2,
+  Settings2,
 } from "lucide-react";
 
 interface UserWithRoles {
@@ -91,6 +92,14 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
   const [localRoles, setLocalRoles] = useState<string[]>([]);
   const [linkedVendedor, setLinkedVendedor] = useState<{ id: string; nome: string; telefone: string; email: string; codigo: string } | null>(null);
 
+  // Feature permissions state
+  const FEATURE_LABELS: Record<string, { label: string; description: string }> = {
+    view_groups: { label: "Ver Grupos", description: "Permite visualizar conversas de grupo no Inbox" },
+    view_hidden: { label: "Ver Ocultas", description: "Permite visualizar conversas ocultas no Inbox" },
+  };
+  const [featurePerms, setFeaturePerms] = useState<Record<string, boolean>>({});
+  const [savingPerm, setSavingPerm] = useState<string | null>(null);
+
   // Sync local state when user prop changes
   useEffect(() => {
     if (user) {
@@ -106,12 +115,45 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
         .eq("user_id", user.user_id)
         .maybeSingle()
         .then(({ data }) => setLinkedVendedor(data));
+      // Fetch feature permissions
+      supabase
+        .from("user_feature_permissions")
+        .select("feature, enabled")
+        .eq("user_id", user.user_id)
+        .then(({ data }) => {
+          const perms: Record<string, boolean> = {};
+          (data ?? []).forEach((p) => { perms[p.feature] = p.enabled; });
+          setFeaturePerms(perms);
+        });
     } else {
       setLinkedVendedor(null);
+      setFeaturePerms({});
     }
   }, [user]);
 
   if (!user) return null;
+
+  const handleToggleFeature = async (feature: string, enabled: boolean) => {
+    setSavingPerm(feature);
+    try {
+      // Upsert: insert or update
+      const { error } = await supabase
+        .from("user_feature_permissions")
+        .upsert(
+          { user_id: user.user_id, feature, enabled, granted_by: currentUserId },
+          { onConflict: "user_id,tenant_id,feature" }
+        );
+      if (error) throw error;
+      setFeaturePerms((prev) => ({ ...prev, [feature]: enabled }));
+      toast({ title: enabled ? "Permissão concedida" : "Permissão removida" });
+    } catch (error: any) {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    } finally {
+      setSavingPerm(null);
+    }
+  };
+
+  const isConsultant = localRoles.includes("vendedor") || localRoles.includes("instalador");
 
   const availableRoles = Object.keys(ROLE_LABELS).filter(r => !localRoles.includes(r));
   const isSelf = currentUserId === user.user_id;
@@ -449,6 +491,37 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                 </div>
               )}
             </div>
+
+            {/* Permissões de funcionalidades */}
+            {isConsultant && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-1.5">
+                    <Settings2 className="w-4 h-4 text-primary" />
+                    Permissões de Funcionalidade
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Controle quais funcionalidades este usuário pode acessar no Inbox.
+                  </p>
+                  <div className="space-y-2">
+                    {Object.entries(FEATURE_LABELS).map(([feature, info]) => (
+                      <div key={feature} className="flex items-center justify-between p-2.5 rounded-lg bg-muted/30 border border-border/40">
+                        <div>
+                          <p className="text-sm font-medium">{info.label}</p>
+                          <p className="text-[11px] text-muted-foreground">{info.description}</p>
+                        </div>
+                        <Switch
+                          checked={featurePerms[feature] ?? false}
+                          onCheckedChange={(checked) => handleToggleFeature(feature, checked)}
+                          disabled={savingPerm === feature}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             <Separator />
 
