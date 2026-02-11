@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import { BUILD_TIMESTAMP } from "@/lib/buildInfo";
 
 export default function AppDebug() {
   const [info, setInfo] = useState({
@@ -50,6 +51,7 @@ export default function AppDebug() {
     { label: "Manifest URL", value: info.manifestUrl, ok: info.manifestUrl.includes("manifest") },
     { label: "SW State", value: info.swState, ok: info.swState === "activated" },
     { label: "SW Scope", value: info.swScope, ok: true },
+    { label: "Build", value: BUILD_TIMESTAMP, ok: true },
   ];
 
   return (

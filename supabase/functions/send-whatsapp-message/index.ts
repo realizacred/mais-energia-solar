@@ -336,18 +336,17 @@ Deno.serve(async (req) => {
     const status = anySuccess ? "enviado" : "erro";
 
     // ── LOG (explicit tenant_id) ──────────────────────────────
-    const { error: logError } = await supabaseAdmin.from("whatsapp_messages").insert({
+    // Log to whatsapp_automation_logs (the correct log table)
+    const { error: logError } = await supabaseAdmin.from("whatsapp_automation_logs").insert({
       lead_id: lead_id || null,
-      tipo,
-      mensagem,
       telefone: formattedPhone,
+      mensagem_enviada: mensagem,
       status,
       erro_detalhes: anySuccess ? null : JSON.stringify(results),
-      enviado_por: userId || null,
       tenant_id: tenantId, // ← EXPLICIT, deterministic
     });
 
-    if (logError) console.warn("[send-wa] Log insert failed:", logError);
+    if (logError) console.warn("[send-wa] Log insert failed (non-blocking):", logError);
 
     if (results.length === 0) {
       return new Response(JSON.stringify({ success: false, error: "Nenhum método de envio configurado" }), {
