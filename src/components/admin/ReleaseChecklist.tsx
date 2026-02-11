@@ -58,7 +58,7 @@ const DEFAULT_CHECKLIST_ITEMS: Omit<ChecklistItem, "checked">[] = [
   { id: "data_integrity", label: "Dados de teste íntegros (FKs ok)", category: "Integridade", required: false },
   // UI / UX
   { id: "responsive", label: "Layout responsivo verificado", category: "UI / UX", required: false },
-  { id: "portal_vendedor", label: "Portal do vendedor funcional", category: "UI / UX", required: false },
+  { id: "portal_vendedor", label: "Portal do consultor funcional", category: "UI / UX", required: false },
   { id: "portal_instalador", label: "Portal do instalador funcional", category: "UI / UX", required: false },
 ];
 

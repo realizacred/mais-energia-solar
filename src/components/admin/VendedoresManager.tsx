@@ -820,7 +820,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                   />
                   <p className="text-xs text-muted-foreground">
                     <Mail className="w-3 h-3 inline mr-1" />
-                    Será usado para login no Portal do Vendedor.
+                    Será usado para login no Portal do Consultor.
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -923,7 +923,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                       <span className="text-sm font-medium">{getUserName(formData.user_id) || "Usuário vinculado"}</span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Este usuário pode acessar o Portal do Vendedor. Para alterar, primeiro desvincule.
+                      Este usuário pode acessar o Portal do Consultor. Para alterar, primeiro desvincule.
                     </p>
                   </div>
                 ) : (
@@ -946,7 +946,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                     </Select>
                     <p className="text-xs text-muted-foreground">
                       <UserCheck className="w-3 h-3 inline mr-1" />
-                      Vincular permite que o usuário acesse o Portal do Vendedor.
+                      Vincular permite que o usuário acesse o Portal do Consultor.
                     </p>
                   </div>
                 )}
