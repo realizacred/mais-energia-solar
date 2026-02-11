@@ -194,9 +194,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const form = useForm<LeadFormData>({
     resolver: zodResolver(leadFormSchema),
     // "onSubmit" prevents RHF from auto-validating ALL fields on every keystroke.
+    // "reValidateMode: onSubmit" prevents RHF from re-validating on change AFTER a failed submit.
     // Step-by-step validation is handled manually via validateCurrentStep() + safeParse.
     // This eliminates cross-step error leakage (e.g. Step 3 errors showing on Step 2).
     mode: "onSubmit",
+    reValidateMode: "onSubmit",
     defaultValues: {
       nome: "",
       telefone: "",
