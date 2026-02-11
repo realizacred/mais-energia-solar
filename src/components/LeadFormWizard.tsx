@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 import confetti from "canvas-confetti";
 import { 
   User, Phone, MapPin, Home, Zap, BarChart3, MessageSquare, 
@@ -83,6 +84,8 @@ interface LeadFormWizardProps {
 
 export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {}) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -362,6 +365,43 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   // Auto-save draft
   const { clearDraft, hasDraft } = useFormAutoSave(form, { key: "lead_wizard" });
 
+  /**
+   * Redirect authenticated vendor to WhatsApp inbox after lead creation.
+   * Stores lead data in sessionStorage so WaInbox can auto-open the conversation.
+   */
+  const redirectToInbox = (data: LeadFormData) => {
+    if (!user) return; // Only for authenticated users
+
+    const autoOpenData = {
+      phone: data.telefone.trim(),
+      nome: data.nome.trim(),
+      cidade: data.cidade?.trim() || undefined,
+      consumo: data.media_consumo || undefined,
+      tipo_telhado: data.tipo_telhado || undefined,
+      consultor_nome: vendedorNome || undefined,
+    };
+    sessionStorage.setItem("wa_auto_open_lead", JSON.stringify(autoOpenData));
+
+    toast({
+      title: "Lead criado ✅",
+      description: "Abrindo conversa...",
+    });
+
+    // Redirect: if on vendor portal use tab switch, otherwise go to /vendedor or /app
+    setTimeout(() => {
+      const currentPath = window.location.pathname;
+      if (currentPath.startsWith("/vendedor")) {
+        // Already in vendor portal — switch to WhatsApp tab via URL param
+        navigate("/vendedor?tab=whatsapp", { replace: true });
+      } else if (currentPath.startsWith("/app")) {
+        navigate("/app", { replace: true });
+      } else {
+        // Default: go to vendor portal WhatsApp tab
+        navigate("/vendedor?tab=whatsapp", { replace: true });
+      }
+    }, 300);
+  };
+
   // Helper to build orcamento payload from form data
   const buildOrcamentoData = (data: LeadFormData, urls: string[]) => ({
     cep: data.cep?.trim() || null,
@@ -533,6 +573,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           setIsSubmitting(false);
           setIsSuccess(true);
           setDuplicateDecision(null);
+          redirectToInbox(data);
           return;
         } else {
           toast({
@@ -579,6 +620,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         
         setIsSubmitting(false);
         setIsSuccess(true);
+        redirectToInbox(data);
         return;
       } else {
         // Online submission failed — try offline fallback
@@ -644,6 +686,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     
     if (result.success) {
       setIsSuccess(true);
+      redirectToInbox(data);
       clearDraft();
       resetHoneypot();
       resetRateLimit();
@@ -701,6 +744,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     
     if (result.success) {
       setIsSuccess(true);
+      redirectToInbox(data);
       clearDraft();
       resetHoneypot();
       resetRateLimit();
