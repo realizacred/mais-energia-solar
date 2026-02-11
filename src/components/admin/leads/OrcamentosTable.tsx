@@ -20,10 +20,12 @@ import { AssignVendorDialog } from "./AssignVendorDialog";
 import { useGroupedOrcamentos, type GroupedOrcamento } from "@/hooks/useGroupedOrcamentos";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { LeadStatus } from "@/types/lead";
+import type { OrcamentoSortOption } from "@/hooks/useOrcamentoSort";
 
 interface OrcamentosTableProps {
   orcamentos: OrcamentoDisplayItem[];
   statuses?: LeadStatus[];
+  sortOption?: OrcamentoSortOption;
   onToggleVisto: (orcamento: OrcamentoDisplayItem) => void;
   onView: (orcamento: OrcamentoDisplayItem) => void;
   onDelete: (orcamento: OrcamentoDisplayItem) => void;
@@ -34,6 +36,7 @@ interface OrcamentosTableProps {
 export function OrcamentosTable({ 
   orcamentos, 
   statuses = [], 
+  sortOption = "recent",
   onToggleVisto, 
   onView, 
   onDelete, 
@@ -47,7 +50,7 @@ export function OrcamentosTable({
   const [assignOpen, setAssignOpen] = useState(false);
   const [assignOrcamento, setAssignOrcamento] = useState<OrcamentoDisplayItem | null>(null);
 
-  const groupedOrcamentos = useGroupedOrcamentos(orcamentos);
+  const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
 
   const handleOpenWhatsApp = (orc: OrcamentoDisplayItem) => {
     setSelectedOrcamento(orc);
@@ -86,7 +89,7 @@ export function OrcamentosTable({
             <TableHead className="w-24">Cliente</TableHead>
             <TableHead>Nome</TableHead>
             <TableHead>Telefone</TableHead>
-            <TableHead>Vendedor</TableHead>
+            <TableHead>Consultor</TableHead>
             <TableHead>Localização</TableHead>
             <TableHead>Consumo</TableHead>
             <TableHead>Data</TableHead>

@@ -86,7 +86,7 @@ const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.El
   super_admin: { label: "Super Admin", color: "bg-primary/15 text-primary border-primary/30", icon: ShieldAlert },
   admin: { label: "Administrador", color: "bg-destructive/10 text-destructive border-destructive/30", icon: ShieldAlert },
   gerente: { label: "Gerente", color: "bg-accent text-accent-foreground border-border", icon: ShieldCheck },
-  vendedor: { label: "Vendedor", color: "bg-info/10 text-info border-info/30", icon: Users },
+  vendedor: { label: "Consultor", color: "bg-info/10 text-info border-info/30", icon: Users },
   instalador: { label: "Instalador", color: "bg-success/10 text-success border-success/30", icon: Users },
   financeiro: { label: "Financeiro", color: "bg-warning/10 text-warning border-warning/30", icon: Users },
 };

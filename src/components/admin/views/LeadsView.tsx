@@ -10,12 +10,15 @@ import {
 } from "@/components/admin/leads";
 import { ConvertLeadToClientDialog } from "@/components/leads/ConvertLeadToClientDialog";
 import { PendingDocumentationWidget, FollowUpNotifications } from "@/components/admin/widgets";
+import { OrcamentoSortSelector } from "@/components/ui/orcamento-sort-selector";
+import { useOrcamentoSort } from "@/hooks/useOrcamentoSort";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { Lead } from "@/types/lead";
 
 export function LeadsView() {
   const { orcamentos, statuses, toggleVisto, deleteOrcamento, filters, fetchOrcamentos, page, setPage, totalCount, totalPages } = useOrcamentosAdmin();
+  const { sortOption, updateSort } = useOrcamentoSort("admin_leads");
   const [filteredOrcamentos, setFilteredOrcamentos] = useState<OrcamentoDisplayItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterVisto, setFilterVisto] = useState("nao_visto");
@@ -132,6 +135,7 @@ export function LeadsView() {
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle className="text-brand-blue">Orçamentos Cadastrados</CardTitle>
+            <OrcamentoSortSelector value={sortOption} onChange={updateSort} />
           </div>
           <LeadFilters
             searchTerm={searchTerm}
@@ -151,6 +155,7 @@ export function LeadsView() {
           <OrcamentosTable
             orcamentos={filteredOrcamentos}
             statuses={statuses}
+            sortOption={sortOption}
             onToggleVisto={toggleVisto}
             onView={(orc) => {
               setSelectedOrcamento(orc);

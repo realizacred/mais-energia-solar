@@ -212,7 +212,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       console.error("Erro ao buscar vendedores:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível carregar os vendedores.",
+        description: "Não foi possível carregar os consultores.",
         variant: "destructive",
       });
     } finally {
@@ -286,7 +286,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           .eq("id", editingVendedor.id);
 
         if (error) throw error;
-        toast({ title: "Vendedor atualizado!" });
+        toast({ title: "Consultor atualizado!" });
       } else {
         // INVITE FLOW — create vendedor first, then generate invite
         if (isInviteFlow) {
@@ -308,8 +308,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           await generateInvite(newVendedor.id, formData.email, formData.telefone);
 
           toast({
-            title: "Vendedor cadastrado!",
-            description: "Convite gerado. Envie o link ao vendedor.",
+            title: "Consultor cadastrado!",
+            description: "Convite gerado. Envie o link ao consultor.",
           });
 
           fetchUsers();
@@ -328,8 +328,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           if (vendedorError) throw vendedorError;
 
           toast({
-            title: "Vendedor cadastrado!",
-            description: "Usuário existente vinculado ao Portal do Vendedor.",
+            title: "Consultor cadastrado!",
+            description: "Usuário existente vinculado ao Portal do Consultor.",
           });
 
           fetchUsers();
@@ -406,7 +406,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           if (vendedorError) throw vendedorError;
           
           toast({ 
-            title: "Vendedor cadastrado!", 
+            title: "Consultor cadastrado!", 
             description: `Acesso criado para ${formData.email}`,
           });
           
@@ -445,9 +445,9 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       );
       
       toast({
-        title: vendedor.ativo ? "Vendedor desativado" : "Vendedor ativado",
+        title: vendedor.ativo ? "Consultor desativado" : "Consultor ativado",
         description: vendedor.ativo 
-          ? "O link do vendedor não funcionará mais." 
+          ? "O link do consultor não funcionará mais." 
           : "O link do vendedor está ativo novamente.",
       });
     } catch (error) {
@@ -472,7 +472,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       if (error) throw error;
       
       setVendedores(prev => prev.filter(v => v.id !== vendedorToDelete.id));
-      toast({ title: "Vendedor excluído!" });
+      toast({ title: "Consultor excluído!" });
     } catch (error) {
       console.error("Erro ao excluir vendedor:", error);
       toast({
@@ -550,7 +550,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-brand-blue">
               <Users className="w-5 h-5" />
-              Vendedores ({vendedores.length})
+              Consultores ({vendedores.length})
             </CardTitle>
             <Button onClick={openNewDialog} className="gap-2">
               <Plus className="w-4 h-4" />
@@ -980,7 +980,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Excluir Vendedor</AlertDialogTitle>
+            <AlertDialogTitle>Excluir Consultor</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir {vendedorToDelete?.nome}? 
               O link deixará de funcionar. Esta ação não pode ser desfeita.

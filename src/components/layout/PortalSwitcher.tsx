@@ -205,19 +205,19 @@ export function PortalSwitcher() {
           <DropdownMenuLabel>Alternar Portal</DropdownMenuLabel>
           <DropdownMenuSeparator />
           
-          {/* Portal do Vendedor */}
+          {/* Portal do Consultor */}
           {(access.admin || access.vendedor) && (
             access.admin && vendedores.length > 0 ? (
               <DropdownMenuSub>
                 <DropdownMenuSubTrigger className={currentPortal === "vendedor" ? "bg-primary/10" : ""}>
                   <Users className="mr-2 h-4 w-4" />
-                  <span>Portal do Vendedor</span>
+                  <span>Portal do Consultor</span>
                   {currentPortal === "vendedor" && (
                     <span className="ml-auto text-xs text-muted-foreground">Atual</span>
                   )}
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent className="w-56">
-                  <DropdownMenuLabel className="text-xs">Selecionar Vendedor</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs">Selecionar Consultor</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <ScrollArea className="h-[200px]">
                     {vendedores.map((v) => (
@@ -239,7 +239,7 @@ export function PortalSwitcher() {
                 className={currentPortal === "vendedor" ? "bg-primary/10" : ""}
               >
                 <Users className="mr-2 h-4 w-4" />
-                <span>Portal do Vendedor</span>
+                <span>Portal do Consultor</span>
                 {currentPortal === "vendedor" && (
                   <span className="ml-auto text-xs text-muted-foreground">Atual</span>
                 )}

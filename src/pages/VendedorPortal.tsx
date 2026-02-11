@@ -24,6 +24,8 @@ import { lazy, Suspense } from "react";
 const PushNotificationSettings = lazy(() => import("@/components/admin/PushNotificationSettings").then(m => ({ default: m.PushNotificationSettings })));
 import { VendedorHeader, VendedorShareLink } from "@/components/vendor/portal";
 import { useVendedorPortal, orcamentoToLead } from "@/hooks/useVendedorPortal";
+import { OrcamentoSortSelector } from "@/components/ui/orcamento-sort-selector";
+import { useOrcamentoSort } from "@/hooks/useOrcamentoSort";
 
 export default function VendedorPortal() {
    const {
@@ -75,6 +77,7 @@ export default function VendedorPortal() {
      leadsForAlerts,
    } = useVendedorPortal();
 
+  const { sortOption, updateSort } = useOrcamentoSort("vendedor_portal");
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() => {
     return searchParams.get("tab") || "dashboard";
@@ -315,10 +318,15 @@ export default function VendedorPortal() {
             {/* Orcamentos Table */}
             <Card>
               <CardHeader>
-                <CardTitle>Meus Orçamentos</CardTitle>
-                <CardDescription>
-                  Lista de todos os orçamentos captados através do seu link
-                </CardDescription>
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <CardTitle>Meus Orçamentos</CardTitle>
+                    <CardDescription>
+                      Lista de todos os orçamentos captados através do seu link
+                    </CardDescription>
+                  </div>
+                  <OrcamentoSortSelector value={sortOption} onChange={updateSort} />
+                </div>
                 <VendorLeadFilters
                   searchTerm={searchTerm}
                   onSearchChange={setSearchTerm}
@@ -337,6 +345,7 @@ export default function VendedorPortal() {
                 <VendorOrcamentosTable
                   orcamentos={filteredOrcamentos}
                   statuses={statuses}
+                  sortOption={sortOption}
                   onToggleVisto={toggleVisto}
                   onView={(orc) => setSelectedOrcamento(orc)}
                   onStatusChange={updateStatus}

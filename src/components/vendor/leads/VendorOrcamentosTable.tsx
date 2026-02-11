@@ -32,10 +32,12 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { LeadStatus } from "@/types/lead";
 import type { OrcamentoVendedor } from "@/hooks/useOrcamentosVendedor";
 import type { OrcamentoDisplayItem } from "@/types/orcamento";
+import type { OrcamentoSortOption } from "@/hooks/useOrcamentoSort";
 
 interface VendorOrcamentosTableProps {
   orcamentos: OrcamentoVendedor[];
   statuses: LeadStatus[];
+  sortOption?: OrcamentoSortOption;
   onToggleVisto: (orcamento: OrcamentoVendedor) => void;
   onView: (orcamento: OrcamentoVendedor) => void;
   onStatusChange: (orcamentoId: string, newStatusId: string | null) => void;
@@ -46,6 +48,7 @@ interface VendorOrcamentosTableProps {
 export function VendorOrcamentosTable({ 
   orcamentos, 
   statuses, 
+  sortOption = "recent",
   onToggleVisto, 
   onView,
   onStatusChange,
@@ -58,7 +61,7 @@ export function VendorOrcamentosTable({
   const [selectedGroup, setSelectedGroup] = useState<GroupedOrcamento | null>(null);
   const isMobile = useIsMobile();
 
-  const groupedOrcamentos = useGroupedOrcamentos(orcamentos);
+  const groupedOrcamentos = useGroupedOrcamentos(orcamentos, sortOption);
 
   const getWhatsAppUrl = (telefone: string) =>
     `https://wa.me/55${telefone.replace(/\D/g, '')}`;
