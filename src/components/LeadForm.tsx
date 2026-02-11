@@ -83,6 +83,7 @@ export default function LeadForm() {
         consumo_previsto: data.consumo_previsto,
         observacoes: data.observacoes || null,
         arquivos_urls: uploadedFiles,
+        // vendedor_id is auto-resolved by trigger if not provided
       });
 
       if (error) throw error;

@@ -2428,7 +2428,7 @@ export type Database = {
           updated_at: string
           valor_estimado: number | null
           vendedor: string | null
-          vendedor_id: string | null
+          vendedor_id: string
           visto: boolean
           visto_admin: boolean
         }
@@ -2464,7 +2464,7 @@ export type Database = {
           updated_at?: string
           valor_estimado?: number | null
           vendedor?: string | null
-          vendedor_id?: string | null
+          vendedor_id?: string
           visto?: boolean
           visto_admin?: boolean
         }
@@ -2500,7 +2500,7 @@ export type Database = {
           updated_at?: string
           valor_estimado?: number | null
           vendedor?: string | null
-          vendedor_id?: string | null
+          vendedor_id?: string
           visto?: boolean
           visto_admin?: boolean
         }
@@ -7309,6 +7309,10 @@ export type Database = {
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       require_tenant_id: { Args: { _user_id?: string }; Returns: string }
+      resolve_default_vendedor_id: {
+        Args: { _tenant_id: string }
+        Returns: string
+      }
       resolve_phone_to_email: { Args: { _phone: string }; Returns: string }
       resolve_public_tenant_id: { Args: never; Returns: string }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
