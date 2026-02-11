@@ -474,7 +474,8 @@ Deno.serve(async (req) => {
           ? mensagem.substring(0, 100) + "…"
           : mensagem;
 
-        // Resolve assigned_to: caller userId (consultant), or lead's vendedor
+        // Resolve assigned_to: for automatic messages, ALWAYS use lead's vendedor (owner).
+        // For manual messages, use the caller (consultant who sent it).
         let assignedTo: string | null = userId;
         let clienteNome: string | null = null;
 
@@ -486,14 +487,19 @@ Deno.serve(async (req) => {
             .maybeSingle();
           clienteNome = leadInfo?.nome || null;
 
-          // If no userId (service_role call), resolve from lead's vendedor
-          if (!assignedTo && leadInfo?.vendedor_id) {
+          // For automatic messages OR when no caller userId: resolve from lead's vendedor
+          if (leadInfo?.vendedor_id && (tipo === "automatico" || !assignedTo)) {
             const { data: vend } = await supabaseAdmin
               .from("vendedores")
               .select("user_id")
               .eq("id", leadInfo.vendedor_id)
               .maybeSingle();
-            assignedTo = vend?.user_id || null;
+            if (vend?.user_id) {
+              if (tipo === "automatico" && assignedTo && assignedTo !== vend.user_id) {
+                console.log(`[send-wa] Auto message: overriding caller ${assignedTo} with lead owner ${vend.user_id}`);
+              }
+              assignedTo = vend.user_id;
+            }
           }
         }
 
