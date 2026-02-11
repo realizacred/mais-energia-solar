@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -37,6 +37,9 @@ import {
 import logo from "@/assets/logo.png";
 import {
   leadFormSchema,
+  step1Schema,
+  step2Schema,
+  step3Schema,
   LeadFormData,
   formatPhone,
   formatCEP,
@@ -188,12 +191,22 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     validateVendedor();
   }, [searchParams, vendorCode]);
 
+  // Dynamic resolver: validates ONLY the current step's schema.
+  // On step 3 (final submit), RHF's handleSubmit uses the full leadFormSchema.
+  const currentStepRef = useRef(1);
+  currentStepRef.current = currentStep;
+
+  const dynamicResolver = useCallback(
+    (values: any, context: any, options: any) => {
+      const step = currentStepRef.current;
+      const schema = step === 1 ? step1Schema : step === 2 ? step2Schema : leadFormSchema;
+      return zodResolver(schema)(values, context, options);
+    },
+    []
+  );
+
   const form = useForm<LeadFormData>({
-    resolver: zodResolver(leadFormSchema),
-    // "onSubmit" prevents RHF from auto-validating ALL fields on every keystroke.
-    // "reValidateMode: onSubmit" prevents RHF from re-validating on change AFTER a failed submit.
-    // Step-by-step validation is handled manually via validateCurrentStep() + safeParse.
-    // This eliminates cross-step error leakage (e.g. Step 3 errors showing on Step 2).
+    resolver: dynamicResolver,
     mode: "onSubmit",
     reValidateMode: "onSubmit",
     defaultValues: {
@@ -334,29 +347,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     return STEP_FIELDS[step] || [];
   };
 
-  // Clear errors from ALL steps EXCEPT the given one — prevents cross-step leakage
-  const clearOtherStepErrors = (keepStep: number) => {
-    Object.entries(STEP_FIELDS).forEach(([stepStr, fields]) => {
-      if (Number(stepStr) !== keepStep) {
-        form.clearErrors(fields);
-      }
-    });
-  };
-
   const validateCurrentStep = async () => {
-    // Use RHF's trigger() which validates via the SAME resolver (zodResolver).
-    // trigger(fieldNames) validates ONLY those fields — no cross-step pollution.
     const fields = getFieldsForStep(currentStep);
     if (fields.length === 0) return true;
 
-    // Clear errors from OTHER steps first to prevent leakage
-    clearOtherStepErrors(currentStep);
-
-    // trigger() returns true if all specified fields pass the resolver
+    // trigger() now uses the dynamic resolver which only knows about current step fields
     const isValid = await form.trigger(fields, { shouldFocus: true });
 
     if (!isValid) {
-      // Mark fields as touched so error messages become visible
       fields.forEach(f => markFieldTouched(f));
     }
 
@@ -410,8 +408,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     if (currentStep < STEPS.length) {
       setDirection(1);
       const nextStepNum = currentStep + 1;
-      // Clear errors for ALL other steps (especially the next one) to prevent leakage
-      clearOtherStepErrors(nextStepNum);
+      // Dynamic resolver handles scope — no need to clear other step errors
       setCurrentStep(nextStepNum);
       scrollToTop();
       // Auto-focus first field of next step
