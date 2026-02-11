@@ -1292,5 +1292,24 @@ Deno.serve(async (req) => {
     }
 
     return jsonRes({ error: err.message, counts }, 500);
+  } finally {
+    // Anti-zombie: se por qualquer razão o log ainda estiver "running", marca como fail
+    if (syncLogId) {
+      const { data: check } = await supabaseAdmin
+        .from("solar_market_sync_logs")
+        .select("status")
+        .eq("id", syncLogId)
+        .single();
+
+      if (check?.status === "running") {
+        console.warn(`[SM] Finally guard: sync ${syncLogId} still running, forcing fail`);
+        await supabaseAdmin.from("solar_market_sync_logs").update({
+          finished_at: new Date().toISOString(),
+          status: "fail",
+          error: "forced-fail: finally guard (unexpected exit without status update)",
+          counts,
+        }).eq("id", syncLogId);
+      }
+    }
   }
 });
