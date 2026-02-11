@@ -13,7 +13,7 @@ import {
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { WizardSuccessScreen, StepPersonalData, StepAddress, StepConsumption } from "@/components/wizard";
 import { supabase } from "@/integrations/supabase/client";
-import { isAutoMessageEnabled, buildAutoMessage, sendAutoWelcomeMessage } from "@/lib/waAutoMessage";
+import { getVendedorWaSettings, buildAutoMessage, sendAutoWelcomeMessage } from "@/lib/waAutoMessage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -561,53 +561,79 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     return null;
   };
 
-  const handlePostLeadWhatsApp = (data: LeadFormData) => {
-    if (!user) return;
-    if (!isAutoMessageEnabled(user.id)) {
-      console.log("[handlePostLeadWhatsApp] Auto-message disabled, skipping");
-      return;
-    }
+  const handlePostLeadWhatsApp = async (data: LeadFormData) => {
+    // Fire-and-forget wrapper — never blocks UI
+    try {
+      const phoneDigits = data.telefone.replace(/\D/g, "");
+      if (phoneDigits.length < 10) return;
 
-    const phoneDigits = data.telefone.replace(/\D/g, "");
-    if (phoneDigits.length < 10) return;
+      // Resolve vendedor settings from DB (works for both auth and public contexts)
+      let resolvedVendedorId = vendedorId;
+      if (!resolvedVendedorId && user) {
+        const { data: v } = await supabase
+          .from("vendedores")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("ativo", true)
+          .maybeSingle();
+        resolvedVendedorId = v?.id || null;
+      }
 
-    const mensagem = buildAutoMessage({
-      nome: data.nome.trim(),
-      cidade: data.cidade?.trim(),
-      estado: data.estado,
-      consumo: data.media_consumo,
-      tipo_telhado: data.tipo_telhado,
-      consultor_nome: vendedorNome || undefined,
-    });
+      // Check toggle from DB settings
+      if (resolvedVendedorId) {
+        const settings = await getVendedorWaSettings(resolvedVendedorId);
+        if (!settings.wa_auto_message_enabled) {
+          console.log("[handlePostLeadWhatsApp] Auto-message disabled in vendedor settings, skipping");
+          return;
+        }
 
-    // Fire-and-forget: send then assign with retry — never blocks UI
-    sendAutoWelcomeMessage({
-      telefone: data.telefone.trim(),
-      mensagem,
-      userId: user.id,
-    }).then(async (sent) => {
-      console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", sent);
-      if (sent) {
-        toast({
-          title: "WhatsApp encaminhado ✅",
-          description: "Mensagem de boas-vindas encaminhada para envio.",
+        const mensagem = buildAutoMessage({
+          nome: data.nome.trim(),
+          cidade: data.cidade?.trim(),
+          estado: data.estado,
+          consumo: data.media_consumo,
+          tipo_telhado: data.tipo_telhado,
+          consultor_nome: vendedorNome || undefined,
+          template: settings.wa_auto_message_template || undefined,
         });
+
+        // Send message — requires auth session
+        if (user) {
+          const sent = await sendAutoWelcomeMessage({
+            telefone: data.telefone.trim(),
+            mensagem,
+            userId: user.id,
+          });
+          console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", sent);
+          if (sent) {
+            toast({
+              title: "WhatsApp encaminhado ✅",
+              description: "Mensagem de boas-vindas encaminhada para envio.",
+            });
+          }
+        } else {
+          console.log("[handlePostLeadWhatsApp] No auth session — skipping send (public form)");
+        }
+      } else {
+        console.log("[handlePostLeadWhatsApp] No vendedor resolved — skipping auto-message");
       }
 
       // Retry assign with backoff (webhook may not have created conversation yet)
-      const convId = await retryAssignConversation(phoneDigits);
-      if (convId) {
-        console.log("[handlePostLeadWhatsApp] Conversation assigned after retry:", convId);
-      } else {
-        console.warn("[handlePostLeadWhatsApp] Assign failed after all retries — conversation may appear later via webhook");
+      if (user) {
+        const convId = await retryAssignConversation(phoneDigits);
+        if (convId) {
+          console.log("[handlePostLeadWhatsApp] Conversation assigned after retry:", convId);
+        } else {
+          console.warn("[handlePostLeadWhatsApp] Assign failed after all retries — conversation may appear later via webhook");
+        }
       }
-    }).catch((err) => {
+    } catch (err) {
       console.warn("[handlePostLeadWhatsApp] Background WA failed (non-blocking):", err);
       toast({
         title: "Lead salvo ✅",
         description: "WhatsApp não pôde ser enviado, mas o lead foi cadastrado.",
       });
-    });
+    }
   };
 
   // Helper to build orcamento payload from form data

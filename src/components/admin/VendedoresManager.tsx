@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatPhone, formatName } from "@/lib/validations";
@@ -958,6 +959,14 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                 <LinkIcon className="w-3 h-3 inline mr-1" />
                 O link único será gerado automaticamente após o cadastro.
               </p>
+            )}
+
+            {/* WhatsApp Auto-Message Settings (only when editing) */}
+            {editingVendedor && (
+              <div className="space-y-2 rounded-lg border p-3 bg-muted/30">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">WhatsApp Automático</p>
+                <WaAutoMessageToggle vendedorId={editingVendedor.id} />
+              </div>
             )}
           </div>
           <DialogFooter>
