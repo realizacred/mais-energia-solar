@@ -193,7 +193,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   const form = useForm<LeadFormData>({
     resolver: zodResolver(leadFormSchema),
-    mode: "onChange",
+    // "onSubmit" prevents RHF from auto-validating ALL fields on every keystroke.
+    // Step-by-step validation is handled manually via validateCurrentStep() + safeParse.
+    // This eliminates cross-step error leakage (e.g. Step 3 errors showing on Step 2).
+    mode: "onSubmit",
     defaultValues: {
       nome: "",
       telefone: "",
@@ -213,7 +216,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     },
   });
 
-  const { watch, setValue, trigger, formState: { errors } } = form;
+  const { watch, setValue, formState: { errors } } = form;
   const watchedValues = watch();
 
   // City dropdown by state (IBGE API)
@@ -335,8 +338,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   };
 
   const validateCurrentStep = async () => {
-    // Validate ONLY the current step's fields using step-specific Zod schemas
-    // This prevents Step 3 fields from blocking Step 2 → Step 3 navigation
+    // Validate ONLY the current step's fields using step-specific Zod schemas.
+    // Uses safeParse + manual setError to avoid triggering the global schema
+    // which would pollute other steps' fields with errors.
     const currentValues = form.getValues();
     let stepSchema;
     switch (currentStep) {
@@ -349,13 +353,21 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     const result = stepSchema.safeParse(currentValues);
     
     if (!result.success) {
-      // Mark fields as touched so errors become visible
-      const errorFields = Object.keys(result.error.flatten().fieldErrors);
-      errorFields.forEach(field => markFieldTouched(field));
-      
-      // Also trigger react-hook-form errors for those specific fields only
+      // Clear any stale errors for this step first
       const fields = getFieldsForStep(currentStep);
-      await trigger(fields);
+      form.clearErrors(fields);
+
+      // Set errors only for fields that failed in THIS step
+      const fieldErrors = result.error.flatten().fieldErrors as Record<string, string[]>;
+      for (const [field, messages] of Object.entries(fieldErrors)) {
+        if (messages && messages.length > 0) {
+          form.setError(field as keyof LeadFormData, {
+            type: "manual",
+            message: messages[0],
+          });
+          markFieldTouched(field);
+        }
+      }
       
       // Scroll and focus the first invalid field
       requestAnimationFrame(() => {
@@ -370,6 +382,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       return false;
     }
     
+    // Validation passed — clear any residual errors for this step
+    const fields = getFieldsForStep(currentStep);
+    form.clearErrors(fields);
     return true;
   };
 
@@ -455,6 +470,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const prevStep = () => {
     if (currentStep > 1) {
       setDirection(-1);
+      // Clear errors for the step being left so they don't persist
+      const leavingStepFields = getFieldsForStep(currentStep);
+      form.clearErrors(leavingStepFields);
       setCurrentStep(prev => prev - 1);
       // Reset submitAttempted so Step 3 errors don't persist after going back
       setSubmitAttempted(false);
