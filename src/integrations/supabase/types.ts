@@ -5115,6 +5115,7 @@ export type Database = {
           id: string
           name: string | null
           payload: Json
+          role: string | null
           sm_user_id: number
           tenant_id: string | null
           updated_at: string
@@ -5125,6 +5126,7 @@ export type Database = {
           id?: string
           name?: string | null
           payload?: Json
+          role?: string | null
           sm_user_id: number
           tenant_id?: string | null
           updated_at?: string
@@ -5135,6 +5137,7 @@ export type Database = {
           id?: string
           name?: string | null
           payload?: Json
+          role?: string | null
           sm_user_id?: number
           tenant_id?: string | null
           updated_at?: string

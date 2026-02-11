@@ -768,7 +768,16 @@ async function syncProjectSubResources(
   try {
     const propData = await client.getActiveProposalByProject(smProjectId);
     if (propData) {
-      const proposals = Array.isArray(propData) ? propData : propData?.data || [propData];
+      // Normalize: API may return object, array, or {data: [...]}
+      let proposals: any[] = [];
+      if (Array.isArray(propData)) {
+        proposals = propData;
+      } else if (propData?.data && Array.isArray(propData.data)) {
+        proposals = propData.data;
+      } else if (typeof propData === "object" && propData !== null && (propData.id || propData.proposalId)) {
+        proposals = [propData];
+      }
+      // Skip if not iterable (e.g. empty response or unexpected shape)
       for (const prop of proposals) {
         const propId = prop.id || prop.proposalId;
         if (!propId) continue;
@@ -1330,9 +1339,16 @@ Deno.serve(async (req) => {
       result = await runFullSync(supabaseAdmin, smClient, config, counts, syncLogId, phase, chunkOffset);
     }
 
-    // ── Merge counts if this is a continuation ──
-    if (syncLogId && existingSyncLogId) {
-      counts = await mergeSyncCounts(supabaseAdmin, syncLogId, counts);
+    // ── Merge counts (always, so first invocation also persists) ──
+    if (syncLogId) {
+      if (existingSyncLogId) {
+        counts = await mergeSyncCounts(supabaseAdmin, syncLogId, counts);
+      }
+      // Persist counts even on first invocation (intermediate save)
+      await supabaseAdmin.from("solar_market_sync_logs").update({
+        counts,
+        error: counts.errors.length > 0 ? counts.errors.join("; ") : null,
+      }).eq("id", syncLogId);
     }
 
     // ── If more chunks remain: save progress + self-invoke ──
@@ -1404,22 +1420,27 @@ Deno.serve(async (req) => {
 
     return jsonRes({ error: err.message, counts }, 500);
   } finally {
-    // Anti-zombie: only for non-continuation (continuation keeps "running")
-    if (syncLogId && !existingSyncLogId) {
-      const { data: check } = await supabaseAdmin
-        .from("solar_market_sync_logs")
-        .select("status")
-        .eq("id", syncLogId)
-        .single();
+    // Anti-zombie: check for ALL invocations (including continuations)
+    if (syncLogId) {
+      try {
+        const { data: check } = await supabaseAdmin
+          .from("solar_market_sync_logs")
+          .select("status, finished_at")
+          .eq("id", syncLogId)
+          .single();
 
-      if (check?.status === "running") {
-        console.warn(`[SM] Finally guard: sync ${syncLogId} still running, forcing fail`);
-        await supabaseAdmin.from("solar_market_sync_logs").update({
-          finished_at: new Date().toISOString(),
-          status: "fail",
-          error: "forced-fail: finally guard (unexpected exit without status update)",
-          counts,
-        }).eq("id", syncLogId);
+        // Only force-fail if still "running" AND no continuation was dispatched (done=true scenario that didn't finalize)
+        if (check?.status === "running" && check?.finished_at === null) {
+          console.warn(`[SM] Finally guard: sync ${syncLogId} still running without finished_at, forcing fail`);
+          await supabaseAdmin.from("solar_market_sync_logs").update({
+            finished_at: new Date().toISOString(),
+            status: "fail",
+            error: "forced-fail: finally guard (unexpected exit without status update)",
+            counts,
+          }).eq("id", syncLogId);
+        }
+      } catch (e: any) {
+        console.warn(`[SM] Finally guard error: ${e.message}`);
       }
     }
   }
