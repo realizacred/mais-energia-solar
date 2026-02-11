@@ -120,7 +120,8 @@ export function formatCEP(value: string): string {
 export function formatName(name: string): string {
   return name
     .toLowerCase()
-    .split(" ")
+    .split(/\s+/)
+    .filter(Boolean)
     .map((word) => {
       if (word.length <= 2) return word.toLowerCase();
       return word.charAt(0).toUpperCase() + word.slice(1);
