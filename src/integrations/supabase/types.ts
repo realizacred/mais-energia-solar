@@ -5561,7 +5561,7 @@ export type Database = {
           created_by: string | null
           id: string
           role: Database["public"]["Enums"]["app_role"]
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
@@ -5569,7 +5569,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           role: Database["public"]["Enums"]["app_role"]
-          tenant_id?: string | null
+          tenant_id?: string
           user_id: string
         }
         Update: {
@@ -5577,7 +5577,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -6432,7 +6432,7 @@ export type Database = {
           quoted_message_id: string | null
           sent_by_user_id: string | null
           status: string | null
-          tenant_id: string | null
+          tenant_id: string
         }
         Insert: {
           content?: string | null
@@ -6452,7 +6452,7 @@ export type Database = {
           quoted_message_id?: string | null
           sent_by_user_id?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Update: {
           content?: string | null
@@ -6472,7 +6472,7 @@ export type Database = {
           quoted_message_id?: string | null
           sent_by_user_id?: string | null
           status?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -6515,7 +6515,7 @@ export type Database = {
           scheduled_at: string | null
           sent_at: string | null
           status: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
         }
         Insert: {
@@ -6534,7 +6534,7 @@ export type Database = {
           scheduled_at?: string | null
           sent_at?: string | null
           status?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -6553,7 +6553,7 @@ export type Database = {
           scheduled_at?: string | null
           sent_at?: string | null
           status?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
         }
         Relationships: [
@@ -7356,7 +7356,7 @@ export type Database = {
           quoted_message_id: string | null
           sent_by_user_id: string | null
           status: string | null
-          tenant_id: string | null
+          tenant_id: string
         }[]
         SetofOptions: {
           from: "*"
