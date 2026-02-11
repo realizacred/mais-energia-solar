@@ -430,7 +430,151 @@ Deno.serve(async (req) => {
     }
 
     const anySuccess = results.some((r) => r.success);
+    const evolutionSuccess = results.some((r) => r.method === "evolution" && r.success);
     const status = anySuccess ? "enviado" : "erro";
+
+    // ── SERVER-SIDE CONVERSATION CREATION (after Evolution ACK) ───
+    // Only when Evolution send succeeded AND we have a resolved instance.
+    // This guarantees the conversation + outbound message exist in wa_*
+    // immediately — vendor sees it in Inbox without waiting for webhook.
+    let createdConvId: string | null = null;
+    if (evolutionSuccess && resolvedInstance) {
+      try {
+        const remoteJid = `${formattedPhone}@s.whatsapp.net`;
+        const messagePreview = mensagem.length > 100
+          ? mensagem.substring(0, 100) + "…"
+          : mensagem;
+
+        // Resolve assigned_to: caller userId (consultant), or lead's vendedor
+        let assignedTo: string | null = userId;
+        let clienteNome: string | null = null;
+
+        if (lead_id) {
+          const { data: leadInfo } = await supabaseAdmin
+            .from("leads")
+            .select("nome, vendedor_id")
+            .eq("id", lead_id)
+            .maybeSingle();
+          clienteNome = leadInfo?.nome || null;
+
+          // If no userId (service_role call), resolve from lead's vendedor
+          if (!assignedTo && leadInfo?.vendedor_id) {
+            const { data: vend } = await supabaseAdmin
+              .from("vendedores")
+              .select("user_id")
+              .eq("id", leadInfo.vendedor_id)
+              .maybeSingle();
+            assignedTo = vend?.user_id || null;
+          }
+        }
+
+        // Check if conversation already exists (avoid overwriting assigned_to)
+        const { data: existingConv } = await supabaseAdmin
+          .from("wa_conversations")
+          .select("id, assigned_to")
+          .eq("instance_id", resolvedInstance.id)
+          .eq("remote_jid", remoteJid)
+          .maybeSingle();
+
+        if (existingConv) {
+          // UPDATE: reopen, refresh preview, assign only if vacant
+          createdConvId = existingConv.id;
+          const updates: Record<string, unknown> = {
+            status: "open",
+            last_message_at: new Date().toISOString(),
+            last_message_preview: messagePreview,
+            updated_at: new Date().toISOString(),
+          };
+          if (!existingConv.assigned_to && assignedTo) updates.assigned_to = assignedTo;
+          if (lead_id) updates.lead_id = lead_id;
+          if (clienteNome) updates.cliente_nome = clienteNome;
+
+          await supabaseAdmin.from("wa_conversations").update(updates).eq("id", existingConv.id);
+          console.log(`[send-wa] Conversation updated (existing): ${existingConv.id}`);
+        } else {
+          // INSERT new conversation
+          const { data: newConv, error: convErr } = await supabaseAdmin
+            .from("wa_conversations")
+            .insert({
+              tenant_id: tenantId,
+              instance_id: resolvedInstance.id,
+              remote_jid: remoteJid,
+              cliente_telefone: formattedPhone,
+              cliente_nome: clienteNome,
+              assigned_to: assignedTo,
+              lead_id: lead_id || null,
+              status: "open",
+              last_message_at: new Date().toISOString(),
+              last_message_preview: messagePreview,
+              is_group: false,
+              canal: "whatsapp",
+            })
+            .select("id")
+            .single();
+
+          if (convErr) {
+            console.error("[send-wa] Conv insert failed:", convErr);
+          } else {
+            createdConvId = newConv!.id;
+            console.log(`[send-wa] Conversation created: ${createdConvId}`);
+          }
+        }
+
+        // Insert outbound message in wa_messages
+        if (createdConvId) {
+          const { error: msgErr } = await supabaseAdmin
+            .from("wa_messages")
+            .insert({
+              tenant_id: tenantId,
+              conversation_id: createdConvId,
+              direction: "out",
+              message_type: "text",
+              content: mensagem,
+              sent_by_user_id: assignedTo,
+              status: "sent",
+            });
+          if (msgErr) {
+            console.error("[send-wa] Message insert failed:", msgErr);
+          }
+        }
+
+        // Auto-tag "Aguardando orçamento" (only for automatic sends)
+        if (createdConvId && tipo === "automatico") {
+          try {
+            const { data: existingTag } = await supabaseAdmin
+              .from("wa_tags")
+              .select("id")
+              .eq("tenant_id", tenantId)
+              .eq("name", "Aguardando orçamento")
+              .maybeSingle();
+
+            let tagId = existingTag?.id;
+            if (!tagId) {
+              const { data: newTag } = await supabaseAdmin
+                .from("wa_tags")
+                .insert({ tenant_id: tenantId, name: "Aguardando orçamento", color: "#f59e0b" })
+                .select("id")
+                .single();
+              tagId = newTag?.id;
+            }
+
+            if (tagId) {
+              await supabaseAdmin
+                .from("wa_conversation_tags")
+                .upsert(
+                  { conversation_id: createdConvId, tag_id: tagId },
+                  { onConflict: "conversation_id,tag_id" }
+                );
+              console.log(`[send-wa] Tag "Aguardando orçamento" applied to conv ${createdConvId}`);
+            }
+          } catch (tagErr) {
+            console.warn("[send-wa] Tag assignment failed (non-blocking):", tagErr);
+          }
+        }
+      } catch (convErr) {
+        console.warn("[send-wa] Conversation creation failed (non-blocking):", convErr);
+      }
+    }
 
     // ── LOG (explicit tenant_id + instance_id) ────────────────
     const { error: logError } = await supabaseAdmin.from("whatsapp_automation_logs").insert({
