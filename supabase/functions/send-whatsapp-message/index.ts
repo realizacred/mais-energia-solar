@@ -224,13 +224,13 @@ Deno.serve(async (req) => {
     // 2. Vendor's linked instance (via wa_instance_vendedores junction)
     // 3. config.evolution_instance (legacy)
     // 4. First active instance of tenant
-    let resolvedInstance: { id: string; evolution_api_url: string; evolution_instance_key: string; api_key: string | null } | null = null;
+    let resolvedInstance: { id: string; evolution_api_url: string; evolution_instance_key: string; api_key: string | null; status?: string } | null = null;
     let instanceSource = "";
 
     // Priority 1: Explicit instance_id
     if (instance_id) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instance_id);
-      let q = supabaseAdmin.from("wa_instances").select("id, evolution_api_url, evolution_instance_key, api_key").eq("tenant_id", tenantId);
+      let q = supabaseAdmin.from("wa_instances").select("id, evolution_api_url, evolution_instance_key, api_key, status").eq("tenant_id", tenantId);
       if (isUuid) {
         q = q.eq("id", instance_id);
       } else {
@@ -273,6 +273,7 @@ Deno.serve(async (req) => {
               evolution_api_url: inst.evolution_api_url,
               evolution_instance_key: inst.evolution_instance_key,
               api_key: inst.api_key,
+              status: inst.status,
             };
             instanceSource = "vendor_junction";
             console.log(`[send-wa] Routed to vendor's instance: ${inst.evolution_instance_key} (${connected ? "connected" : "first-link"})`);
@@ -285,7 +286,7 @@ Deno.serve(async (req) => {
     if (!resolvedInstance && config.evolution_instance) {
       const { data: inst } = await supabaseAdmin
         .from("wa_instances")
-        .select("id, evolution_api_url, evolution_instance_key, api_key")
+        .select("id, evolution_api_url, evolution_instance_key, api_key, status")
         .eq("evolution_instance_key", config.evolution_instance)
         .eq("tenant_id", tenantId)
         .maybeSingle();
@@ -299,7 +300,7 @@ Deno.serve(async (req) => {
     if (!resolvedInstance) {
       const { data: inst } = await supabaseAdmin
         .from("wa_instances")
-        .select("id, evolution_api_url, evolution_instance_key, api_key")
+        .select("id, evolution_api_url, evolution_instance_key, api_key, status")
         .eq("tenant_id", tenantId)
         .eq("status", "connected")
         .order("created_at", { ascending: true })
@@ -311,7 +312,16 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[send-wa] Instance resolved: ${resolvedInstance?.evolution_instance_key || "NONE"} via ${instanceSource}`);
+    console.log(`[send-wa] Instance resolved: ${resolvedInstance?.evolution_instance_key || "NONE"} (status=${resolvedInstance?.status || "?"}) via ${instanceSource}`);
+
+    // ── INSTANCE HEALTH CHECK ─────────────────────────────────
+    // If instance is resolved but not "connected", warn loudly.
+    // We still ATTEMPT the send (Evolution may accept it), but log the risk.
+    let instanceHealthWarning: string | null = null;
+    if (resolvedInstance && resolvedInstance.status && resolvedInstance.status !== "connected") {
+      instanceHealthWarning = `Instância "${resolvedInstance.evolution_instance_key}" com status "${resolvedInstance.status}" — pode falhar no envio. Verifique a conexão na Evolution API.`;
+      console.warn(`[send-wa] ⚠️ HEALTH CHECK: ${instanceHealthWarning}`);
+    }
 
     // ── SEND MESSAGE ──────────────────────────────────────────
     let formattedPhone = telefone.replace(/\D/g, "");
@@ -577,12 +587,15 @@ Deno.serve(async (req) => {
     }
 
     // ── LOG (explicit tenant_id + instance_id) ────────────────
+    const logErroDetalhes = anySuccess
+      ? (instanceHealthWarning ? JSON.stringify({ warning: instanceHealthWarning }) : null)
+      : JSON.stringify(results);
     const { error: logError } = await supabaseAdmin.from("whatsapp_automation_logs").insert({
       lead_id: lead_id || null,
       telefone: formattedPhone,
       mensagem_enviada: mensagem,
       status,
-      erro_detalhes: anySuccess ? null : JSON.stringify(results),
+      erro_detalhes: logErroDetalhes,
       tenant_id: tenantId,
       instance_id: resolvedInstance?.id || null,
     });
@@ -604,6 +617,8 @@ Deno.serve(async (req) => {
         results,
         instance_used: resolvedInstance?.evolution_instance_key || null,
         instance_source: instanceSource,
+        instance_status: resolvedInstance?.status || null,
+        instance_health_warning: instanceHealthWarning,
         message: anySuccess ? "Mensagem enviada com sucesso" : "Falha ao enviar mensagem",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
