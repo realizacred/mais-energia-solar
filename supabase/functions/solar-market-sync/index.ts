@@ -522,6 +522,38 @@ function newCounts(): SyncCounts {
   };
 }
 
+// ── Chunked sync types & helpers ──
+
+interface SyncResult {
+  done: boolean;
+  nextPhase?: string;
+  nextOffset?: number;
+}
+
+const CHUNK_SIZE = 30;
+
+async function mergeSyncCounts(
+  db: ReturnType<typeof createClient>, syncLogId: string, localCounts: SyncCounts
+): Promise<SyncCounts> {
+  const { data } = await db
+    .from("solar_market_sync_logs")
+    .select("counts")
+    .eq("id", syncLogId)
+    .single();
+
+  const prev = (data?.counts || {}) as Partial<SyncCounts>;
+  return {
+    clients_synced: (prev.clients_synced || 0) + localCounts.clients_synced,
+    projects_synced: (prev.projects_synced || 0) + localCounts.projects_synced,
+    proposals_synced: (prev.proposals_synced || 0) + localCounts.proposals_synced,
+    funnels_synced: (prev.funnels_synced || 0) + localCounts.funnels_synced,
+    custom_fields_synced: (prev.custom_fields_synced || 0) + localCounts.custom_fields_synced,
+    users_synced: (prev.users_synced || 0) + localCounts.users_synced,
+    leads_linked: (prev.leads_linked || 0) + localCounts.leads_linked,
+    errors: [...(prev.errors || []), ...localCounts.errors],
+  };
+}
+
 // ── Log failed item to DB ──
 async function logFailedItem(
   db: ReturnType<typeof createClient>, tenantId: string, syncLogId: string | null,
@@ -578,7 +610,7 @@ async function syncUsers(
   }
 }
 
-// ── Sync Clients ──
+// ── Sync Clients (batched upsert for performance) ──
 async function syncClients(
   db: ReturnType<typeof createClient>, client: SolarMarketClient,
   config: SmConfig, counts: SyncCounts, syncLogId: string | null, createdAfter?: string
@@ -588,22 +620,21 @@ async function syncClients(
     const clients = await client.listClientsAll({ createdAfter });
     console.log(`[SM] Fetched ${clients.length} clients from SM`);
 
-    for (const c of clients) {
-      const smId = c.id || c.clientId;
-      if (!smId) continue;
-
-      const phone = c.primaryPhone || c.phone || c.telefone || "";
-      const phoneNorm = normalizePhone(phone);
-
-      const { error } = await db
-        .from("solar_market_clients")
-        .upsert({
+    // Batch upsert: 100 at a time instead of 1-by-1 (18 HTTP calls vs 1800)
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < clients.length; i += BATCH_SIZE) {
+      const batch = clients.slice(i, i + BATCH_SIZE);
+      const rows = batch.map((c: any) => {
+        const smId = c.id || c.clientId;
+        if (!smId) return null;
+        const phone = c.primaryPhone || c.phone || c.telefone || "";
+        return {
           tenant_id: config.tenant_id,
           sm_client_id: smId,
           name: c.name || c.nome || "",
           email: c.email || "",
-          phone: phone,
-          phone_normalized: phoneNorm,
+          phone,
+          phone_normalized: normalizePhone(phone),
           cnpj_cpf: c.cnpjCpf || c.cpf || c.cnpj || null,
           primary_phone: c.primaryPhone || null,
           secondary_phone: c.secondaryPhone || null,
@@ -611,13 +642,21 @@ async function syncClients(
           state: c.state ? String(c.state).slice(0, 2).toUpperCase() : null,
           payload: c,
           deleted_at: null,
-        }, { onConflict: "tenant_id,sm_client_id" });
+        };
+      }).filter(Boolean);
+
+      if (rows.length === 0) continue;
+
+      const { error } = await db
+        .from("solar_market_clients")
+        .upsert(rows as any[], { onConflict: "tenant_id,sm_client_id" });
 
       if (error) {
-        counts.errors.push(`client ${smId}: ${error.message}`);
-        await logFailedItem(db, config.tenant_id, syncLogId, "client", smId, error.message, c);
+        counts.errors.push(`clients batch ${i}: ${error.message}`);
+        await logFailedItem(db, config.tenant_id, syncLogId, "client_batch", i, error.message);
       } else {
-        counts.clients_synced++;
+        counts.clients_synced += rows.length;
+        console.log(`[SM] Clients batch ${i}-${i + rows.length}: upserted ${rows.length}`);
       }
     }
     return clients;
@@ -894,56 +933,72 @@ async function linkLeads(
   }
 }
 
-// ── Full Sync ──
+// ── Full Sync (chunked: init → projects in batches of CHUNK_SIZE) ──
 async function runFullSync(
   db: ReturnType<typeof createClient>, smClient: SolarMarketClient,
-  config: SmConfig, counts: SyncCounts, syncLogId: string | null
-) {
-  console.log("[SM] === FULL SYNC START ===");
+  config: SmConfig, counts: SyncCounts, syncLogId: string | null,
+  phase: string = "init", chunkOffset: number = 0
+): Promise<SyncResult> {
 
-  // 0. Sync users
-  await syncUsers(db, smClient, config, counts, syncLogId);
+  // ── Phase "init": users + clients (batched) + catalogs ──
+  if (phase === "init") {
+    console.log("[SM] === FULL SYNC (phase: init) ===");
 
-  // 1. Sync all clients
-  const clients = await syncClients(db, smClient, config, counts, syncLogId);
+    await syncUsers(db, smClient, config, counts, syncLogId);
+    await syncClients(db, smClient, config, counts, syncLogId);
+    await syncCatalogs(db, smClient, config, counts);
 
-  // 2. For each client: sync projects + sub-resources
-  for (let i = 0; i < clients.length; i++) {
-    // Check cancellation every 5 clients
-    if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
-      console.log("[SM] Sync cancelled by user");
-      counts.errors.push("Cancelado pelo usuário");
-      return;
-    }
-    const c = clients[i];
-    const smClientId = c.id || c.clientId;
-    if (!smClientId) continue;
-    await syncProjectsForClient(db, smClient, config, smClientId, counts, syncLogId);
-    await new Promise((r) => setTimeout(r, 200));
+    console.log("[SM] Init phase complete. Continuing with projects...");
+    return { done: false, nextPhase: "projects", nextOffset: 0 };
   }
 
-  // 3. Sync catalogs
-  await syncCatalogs(db, smClient, config, counts);
+  // ── Phase "projects": process CHUNK_SIZE clients per invocation ──
+  if (phase === "projects") {
+    console.log(`[SM] === FULL SYNC (phase: projects, offset: ${chunkOffset}) ===`);
 
-  // 4. Link leads
-  await linkLeads(db, config, counts);
+    const { data: dbClients } = await db
+      .from("solar_market_clients")
+      .select("sm_client_id")
+      .eq("tenant_id", config.tenant_id)
+      .is("deleted_at", null)
+      .order("sm_client_id", { ascending: true })
+      .range(chunkOffset, chunkOffset + CHUNK_SIZE - 1);
 
-  // Update last sync timestamps
-  await db.from("solar_market_config").update({
-    last_sync_clients_at: new Date().toISOString(),
-    last_sync_projects_at: new Date().toISOString(),
-  }).eq("id", config.id);
+    if (!dbClients?.length) {
+      // All clients processed — finalize
+      await linkLeads(db, config, counts);
+      await db.from("solar_market_config").update({
+        last_sync_clients_at: new Date().toISOString(),
+        last_sync_projects_at: new Date().toISOString(),
+      }).eq("id", config.id);
+      console.log("[SM] === FULL SYNC COMPLETE ===");
+      return { done: true };
+    }
 
-  console.log("[SM] === FULL SYNC END ===");
+    for (let i = 0; i < dbClients.length; i++) {
+      if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
+        console.log("[SM] Sync cancelled by user");
+        counts.errors.push("Cancelado pelo usuário");
+        return { done: true };
+      }
+      await syncProjectsForClient(db, smClient, config, dbClients[i].sm_client_id, counts, syncLogId);
+      await new Promise((r) => setTimeout(r, 200));
+    }
+
+    const nextOffset = chunkOffset + CHUNK_SIZE;
+    console.log(`[SM] Projects chunk done (${dbClients.length} clients). Next offset: ${nextOffset}`);
+    return { done: false, nextPhase: "projects", nextOffset };
+  }
+
+  return { done: true };
 }
 
 // ── Incremental Sync ──
 async function runIncrementalSync(
   db: ReturnType<typeof createClient>, smClient: SolarMarketClient,
-  config: SmConfig, counts: SyncCounts, syncLogId: string | null
-) {
-  console.log("[SM] === INCREMENTAL SYNC START ===");
-
+  config: SmConfig, counts: SyncCounts, syncLogId: string | null,
+  phase: string = "init", chunkOffset: number = 0
+): Promise<SyncResult> {
   const clientsAfter = config.last_sync_clients_at
     ? new Date(config.last_sync_clients_at).toISOString().split("T")[0]
     : undefined;
@@ -951,10 +1006,13 @@ async function runIncrementalSync(
     ? new Date(config.last_sync_projects_at).toISOString().split("T")[0]
     : undefined;
 
-  // If never synced, do full
+  // If never synced, delegate to chunked full sync
   if (!clientsAfter && !projectsAfter) {
-    return runFullSync(db, smClient, config, counts, syncLogId);
+    return runFullSync(db, smClient, config, counts, syncLogId, phase, chunkOffset);
   }
+
+  // Incremental with dates — smaller volume, single invocation
+  console.log("[SM] === INCREMENTAL SYNC START ===");
 
   // Sync users (always full, lightweight)
   await syncUsers(db, smClient, config, counts, syncLogId);
@@ -965,7 +1023,7 @@ async function runIncrementalSync(
     if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
       console.log("[SM] Incremental sync cancelled by user");
       counts.errors.push("Cancelado pelo usuário");
-      return;
+      return { done: true };
     }
     const c = newClients[i];
     const smClientId = c.id || c.clientId;
@@ -978,7 +1036,7 @@ async function runIncrementalSync(
   if (await isSyncCancelled(db, syncLogId)) {
     console.log("[SM] Incremental sync cancelled by user before projects phase");
     counts.errors.push("Cancelado pelo usuário");
-    return;
+    return { done: true };
   }
 
   // Sync new projects (may belong to existing clients)
@@ -988,7 +1046,7 @@ async function runIncrementalSync(
       if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
         console.log("[SM] Incremental projects sync cancelled by user");
         counts.errors.push("Cancelado pelo usuário");
-        return;
+        return { done: true };
       }
       const p = newProjects[i];
       const smProjId = p.id || p.projectId;
@@ -1020,6 +1078,7 @@ async function runIncrementalSync(
   }).eq("id", config.id);
 
   console.log("[SM] === INCREMENTAL SYNC END ===");
+  return { done: true };
 }
 
 // ── Delta Sync (single entity) ──
@@ -1153,6 +1212,9 @@ Deno.serve(async (req) => {
   let source = "manual";
   let triggeredBy: string | null = null;
   let deltaPayload: any = null;
+  let phase = "init";
+  let chunkOffset = 0;
+  let existingSyncLogId: string | null = null;
 
   try {
     if (req.method === "POST") {
@@ -1161,12 +1223,15 @@ Deno.serve(async (req) => {
       source = body.source || "manual";
       triggeredBy = body.triggered_by || null;
       deltaPayload = body.delta || null;
+      phase = body.phase || "init";
+      chunkOffset = body.chunk_offset || 0;
+      existingSyncLogId = body.sync_log_id || null;
     }
   } catch {
     // GET request or empty body = full sync
   }
 
-  // Auth check for manual triggers
+  // Auth check for manual triggers (skip for continuations & cron)
   if (source === "manual") {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -1230,35 +1295,76 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Create sync log
-  const { data: syncLog } = await supabaseAdmin
-    .from("solar_market_sync_logs")
-    .insert({
-      tenant_id: config.tenant_id,
-      status: "running",
-      triggered_by: triggeredBy,
-      source,
-      mode,
-    })
-    .select("id")
-    .single();
+  // ── Create or reuse sync log ──
+  let syncLogId: string | null = existingSyncLogId;
 
-  const syncLogId = syncLog?.id || null;
-  const counts = newCounts();
+  if (!syncLogId) {
+    const { data: syncLog } = await supabaseAdmin
+      .from("solar_market_sync_logs")
+      .insert({
+        tenant_id: config.tenant_id,
+        status: "running",
+        triggered_by: triggeredBy,
+        source,
+        mode,
+      })
+      .select("id")
+      .single();
+    syncLogId = syncLog?.id || null;
+  }
+
+  let counts = newCounts();
 
   try {
     const svc = new SolarMarketService(supabaseAdmin, config);
     const smClient = new SolarMarketClient(svc);
 
+    let result: SyncResult;
+
     if (mode === "delta" && deltaPayload) {
       await runDeltaSync(supabaseAdmin, smClient, config, counts, deltaPayload, syncLogId);
+      result = { done: true };
     } else if (mode === "incremental") {
-      await runIncrementalSync(supabaseAdmin, smClient, config, counts, syncLogId);
+      result = await runIncrementalSync(supabaseAdmin, smClient, config, counts, syncLogId, phase, chunkOffset);
     } else {
-      await runFullSync(supabaseAdmin, smClient, config, counts, syncLogId);
+      result = await runFullSync(supabaseAdmin, smClient, config, counts, syncLogId, phase, chunkOffset);
     }
 
-    // Check if sync was cancelled during execution
+    // ── Merge counts if this is a continuation ──
+    if (syncLogId && existingSyncLogId) {
+      counts = await mergeSyncCounts(supabaseAdmin, syncLogId, counts);
+    }
+
+    // ── If more chunks remain: save progress + self-invoke ──
+    if (!result.done && syncLogId) {
+      await supabaseAdmin.from("solar_market_sync_logs").update({
+        counts,
+        error: counts.errors.length > 0 ? counts.errors.join("; ") : null,
+      }).eq("id", syncLogId);
+
+      console.log(`[SM] Self-invoking: phase=${result.nextPhase}, offset=${result.nextOffset}`);
+
+      // Fire-and-forget self-invocation for next chunk
+      supabaseAdmin.functions.invoke("solar-market-sync", {
+        body: {
+          mode,
+          source: "continuation",
+          phase: result.nextPhase,
+          chunk_offset: result.nextOffset,
+          sync_log_id: syncLogId,
+        },
+      }).catch((err: any) => console.error("[SM] Self-invoke error:", err.message));
+
+      return jsonRes({
+        status: "continuing",
+        counts,
+        sync_log_id: syncLogId,
+        next_phase: result.nextPhase,
+        next_offset: result.nextOffset,
+      });
+    }
+
+    // ── Done — finalize ──
     const wasCancelled = await isSyncCancelled(supabaseAdmin, syncLogId);
     const hasCancelError = counts.errors.some(e => e.includes("Cancelado pelo usuário"));
     const finalStatus = wasCancelled || hasCancelError
@@ -1277,10 +1383,15 @@ Deno.serve(async (req) => {
     }
 
     console.log(`[SM] Sync finished: ${finalStatus}`, JSON.stringify(counts));
-
     return jsonRes({ status: finalStatus, counts, sync_log_id: syncLogId });
+
   } catch (err: any) {
     console.error("[SM] Sync fatal error:", err.message);
+
+    // Merge counts on error too (for continuations)
+    if (syncLogId && existingSyncLogId) {
+      try { counts = await mergeSyncCounts(supabaseAdmin, syncLogId, counts); } catch {}
+    }
 
     if (syncLogId) {
       await supabaseAdmin.from("solar_market_sync_logs").update({
@@ -1293,8 +1404,8 @@ Deno.serve(async (req) => {
 
     return jsonRes({ error: err.message, counts }, 500);
   } finally {
-    // Anti-zombie: se por qualquer razão o log ainda estiver "running", marca como fail
-    if (syncLogId) {
+    // Anti-zombie: only for non-continuation (continuation keeps "running")
+    if (syncLogId && !existingSyncLogId) {
       const { data: check } = await supabaseAdmin
         .from("solar_market_sync_logs")
         .select("status")
