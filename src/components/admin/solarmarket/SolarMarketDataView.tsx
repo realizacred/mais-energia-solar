@@ -11,7 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import {
   Eye, Users, FolderOpen, FileText, Search, Loader2,
-  RefreshCw, Phone, Mail, ExternalLink, Calendar,
+  RefreshCw, Phone, Mail, ExternalLink, ChevronDown,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -54,6 +54,8 @@ interface SmProposal {
   updated_at: string;
 }
 
+const PAGE_SIZE = 50;
+
 function formatDate(d: string | null) {
   if (!d) return "—";
   try {
@@ -91,10 +93,21 @@ export function SolarMarketDataView() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
 
+  // Real totals from count queries
+  const [totalClients, setTotalClients] = useState(0);
+  const [totalProjects, setTotalProjects] = useState(0);
+  const [totalProposals, setTotalProposals] = useState(0);
+
   // Data
   const [clients, setClients] = useState<SmClient[]>([]);
   const [projects, setProjects] = useState<SmProject[]>([]);
   const [proposals, setProposals] = useState<SmProposal[]>([]);
+
+  // "Load more" state
+  const [hasMoreClients, setHasMoreClients] = useState(false);
+  const [hasMoreProjects, setHasMoreProjects] = useState(false);
+  const [hasMoreProposals, setHasMoreProposals] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Detail dialog
   const [detailOpen, setDetailOpen] = useState(false);
@@ -106,14 +119,31 @@ export function SolarMarketDataView() {
   const [relatedProposals, setRelatedProposals] = useState<SmProposal[]>([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
 
-  const fetchClients = useCallback(async () => {
-    setLoading(true);
+  // ── Fetch totals (counts) ──
+  const fetchTotals = useCallback(async () => {
+    const [cRes, pRes, prRes] = await Promise.all([
+      supabase.from("solar_market_clients").select("id", { count: "exact", head: true }).is("deleted_at", null),
+      supabase.from("solar_market_projects").select("id", { count: "exact", head: true }).is("deleted_at", null),
+      supabase.from("solar_market_proposals").select("id", { count: "exact", head: true }),
+    ]);
+    setTotalClients(cRes.count ?? 0);
+    setTotalProjects(pRes.count ?? 0);
+    setTotalProposals(prRes.count ?? 0);
+  }, []);
+
+  useEffect(() => { fetchTotals(); }, [fetchTotals]);
+
+  const fetchClients = useCallback(async (append = false) => {
+    if (!append) setLoading(true);
+    else setLoadingMore(true);
     try {
+      const offset = append ? clients.length : 0;
       let query = supabase
         .from("solar_market_clients")
         .select("*")
+        .is("deleted_at", null)
         .order("updated_at", { ascending: false })
-        .limit(100);
+        .range(offset, offset + PAGE_SIZE - 1);
 
       if (search) {
         query = query.or(`name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`);
@@ -121,22 +151,32 @@ export function SolarMarketDataView() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setClients((data as SmClient[]) || []);
+      const items = (data as SmClient[]) || [];
+      if (append) {
+        setClients(prev => [...prev, ...items]);
+      } else {
+        setClients(items);
+      }
+      setHasMoreClients(items.length === PAGE_SIZE);
     } catch (err) {
       console.error("Erro buscando clientes SM:", err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [search]);
+  }, [search, clients.length]);
 
-  const fetchProjects = useCallback(async () => {
-    setLoading(true);
+  const fetchProjects = useCallback(async (append = false) => {
+    if (!append) setLoading(true);
+    else setLoadingMore(true);
     try {
+      const offset = append ? projects.length : 0;
       let query = supabase
         .from("solar_market_projects")
         .select("*")
+        .is("deleted_at", null)
         .order("updated_at", { ascending: false })
-        .limit(100);
+        .range(offset, offset + PAGE_SIZE - 1);
 
       if (search) {
         query = query.or(`status.ilike.%${search}%,sm_project_id.eq.${Number(search) || 0}`);
@@ -144,22 +184,31 @@ export function SolarMarketDataView() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setProjects((data as SmProject[]) || []);
+      const items = (data as SmProject[]) || [];
+      if (append) {
+        setProjects(prev => [...prev, ...items]);
+      } else {
+        setProjects(items);
+      }
+      setHasMoreProjects(items.length === PAGE_SIZE);
     } catch (err) {
       console.error("Erro buscando projetos SM:", err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [search]);
+  }, [search, projects.length]);
 
-  const fetchProposals = useCallback(async () => {
-    setLoading(true);
+  const fetchProposals = useCallback(async (append = false) => {
+    if (!append) setLoading(true);
+    else setLoadingMore(true);
     try {
+      const offset = append ? proposals.length : 0;
       let query = supabase
         .from("solar_market_proposals")
         .select("*")
         .order("updated_at", { ascending: false })
-        .limit(100);
+        .range(offset, offset + PAGE_SIZE - 1);
 
       if (search) {
         query = query.or(`status.ilike.%${search}%,sm_proposal_id.eq.${Number(search) || 0}`);
@@ -167,19 +216,46 @@ export function SolarMarketDataView() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setProposals((data as SmProposal[]) || []);
+      const items = (data as SmProposal[]) || [];
+      if (append) {
+        setProposals(prev => [...prev, ...items]);
+      } else {
+        setProposals(items);
+      }
+      setHasMoreProposals(items.length === PAGE_SIZE);
     } catch (err) {
       console.error("Erro buscando propostas SM:", err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [search]);
+  }, [search, proposals.length]);
 
   useEffect(() => {
     if (activeSubTab === "clients") fetchClients();
     else if (activeSubTab === "projects") fetchProjects();
     else if (activeSubTab === "proposals") fetchProposals();
-  }, [activeSubTab, fetchClients, fetchProjects, fetchProposals]);
+  }, [activeSubTab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Refetch on search change
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (activeSubTab === "clients") fetchClients();
+      else if (activeSubTab === "projects") fetchProjects();
+      else fetchProposals();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleLoadMore = () => {
+    if (activeSubTab === "clients") fetchClients(true);
+    else if (activeSubTab === "projects") fetchProjects(true);
+    else fetchProposals(true);
+  };
+
+  const hasMore = activeSubTab === "clients" ? hasMoreClients
+    : activeSubTab === "projects" ? hasMoreProjects
+    : hasMoreProposals;
 
   const openClientDetail = async (client: SmClient) => {
     setDetailType("client");
@@ -241,6 +317,13 @@ export function SolarMarketDataView() {
     setLoadingRelated(false);
   };
 
+  const handleRefresh = () => {
+    fetchTotals();
+    if (activeSubTab === "clients") fetchClients();
+    else if (activeSubTab === "projects") fetchProjects();
+    else fetchProposals();
+  };
+
   return (
     <>
       <Card>
@@ -260,15 +343,7 @@ export function SolarMarketDataView() {
                   className="pl-9 w-[200px]"
                 />
               </div>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  if (activeSubTab === "clients") fetchClients();
-                  else if (activeSubTab === "projects") fetchProjects();
-                  else fetchProposals();
-                }}
-              >
+              <Button variant="outline" size="icon" onClick={handleRefresh}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
@@ -279,15 +354,15 @@ export function SolarMarketDataView() {
             <TabsList className="mb-4">
               <TabsTrigger value="clients" className="gap-1.5">
                 <Users className="h-3.5 w-3.5" />
-                Clientes ({clients.length})
+                Clientes ({totalClients})
               </TabsTrigger>
               <TabsTrigger value="projects" className="gap-1.5">
                 <FolderOpen className="h-3.5 w-3.5" />
-                Projetos ({projects.length})
+                Projetos ({totalProjects})
               </TabsTrigger>
               <TabsTrigger value="proposals" className="gap-1.5">
                 <FileText className="h-3.5 w-3.5" />
-                Propostas ({proposals.length})
+                Propostas ({totalProposals})
               </TabsTrigger>
             </TabsList>
 
@@ -440,6 +515,16 @@ export function SolarMarketDataView() {
                     </div>
                   )}
                 </TabsContent>
+
+                {/* ── Load More ── */}
+                {hasMore && (
+                  <div className="flex justify-center mt-4">
+                    <Button variant="outline" onClick={handleLoadMore} disabled={loadingMore} className="gap-2">
+                      {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
+                      Carregar mais
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </Tabs>
@@ -451,159 +536,200 @@ export function SolarMarketDataView() {
         <DialogContent className="max-w-2xl max-h-[85vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5 text-primary" />
-              {detailType === "client" && `Cliente SM #${detailData?.sm_client_id}`}
-              {detailType === "project" && `Projeto SM #${detailData?.sm_project_id}`}
-              {detailType === "proposal" && `Proposta SM #${detailData?.sm_proposal_id}`}
+              {detailType === "client" && <><Users className="h-5 w-5 text-primary" />Detalhes do Cliente</>}
+              {detailType === "project" && <><FolderOpen className="h-5 w-5 text-primary" />Detalhes do Projeto</>}
+              {detailType === "proposal" && <><FileText className="h-5 w-5 text-primary" />Detalhes da Proposta</>}
             </DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[70vh] pr-4">
-            {detailData && (
-              <div className="space-y-5">
-                {/* ── Main Info ── */}
-                {detailType === "client" && (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados Cadastrais</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <InfoRow label="Nome" value={detailData.name} />
-                      <InfoRow label="E-mail" value={detailData.email} />
-                      <InfoRow label="Telefone" value={detailData.phone} />
-                      <InfoRow label="Tel. Normalizado" value={detailData.phone_normalized} />
-                      <InfoRow label="ID SolarMarket" value={String(detailData.sm_client_id)} />
-                      <InfoRow label="Sincronizado em" value={formatDate(detailData.updated_at)} />
-                    </div>
+          <ScrollArea className="max-h-[65vh] pr-4">
+            {detailType === "client" && detailData && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground">ID SolarMarket</span>
+                    <p className="font-mono text-sm">{detailData.sm_client_id}</p>
                   </div>
-                )}
-
-                {detailType === "project" && (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados do Projeto</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <InfoRow label="ID Projeto" value={String(detailData.sm_project_id)} />
-                      <InfoRow label="ID Cliente" value={String(detailData.sm_client_id)} />
-                      <InfoRow label="Status" value={detailData.status} />
-                      <InfoRow label="Sincronizado em" value={formatDate(detailData.updated_at)} />
-                    </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Nome</span>
+                    <p className="text-sm font-medium">{detailData.name || "—"}</p>
                   </div>
-                )}
-
-                {detailType === "proposal" && (
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados da Proposta</h4>
-                    <div className="grid grid-cols-2 gap-3">
-                      <InfoRow label="ID Proposta" value={String(detailData.sm_proposal_id)} />
-                      <InfoRow label="ID Projeto" value={String(detailData.sm_project_id)} />
-                      <InfoRow label="ID Cliente" value={String(detailData.sm_client_id)} />
-                      <InfoRow label="Status" value={detailData.status} />
-                      <InfoRow label="Gerada em" value={formatDate(detailData.generated_at)} />
-                      <InfoRow label="Aceita em" value={formatDate(detailData.acceptance_date)} />
-                      <InfoRow label="Rejeitada em" value={formatDate(detailData.rejection_date)} />
-                      <InfoRow label="Expira em" value={formatDate(detailData.expiration_date)} />
-                    </div>
-                    {detailData.link_pdf && (
-                      <a
-                        href={detailData.link_pdf}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-2"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Abrir PDF da Proposta
-                      </a>
-                    )}
+                  <div>
+                    <span className="text-xs text-muted-foreground">Telefone</span>
+                    <p className="text-sm">{detailData.phone || "—"}</p>
                   </div>
-                )}
+                  <div>
+                    <span className="text-xs text-muted-foreground">E-mail</span>
+                    <p className="text-sm">{detailData.email || "—"}</p>
+                  </div>
+                </div>
 
                 <Separator />
 
-                {/* ── Payload completo ── */}
-                <div className="space-y-2">
-                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Dados Completos (JSON)</h4>
-                  <div className="p-3 rounded-lg bg-muted/50 overflow-x-auto">
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Dados Completos (payload)</h4>
+                  <div className="bg-muted/50 rounded-md p-3">
                     <PayloadViewer data={detailData.payload} />
                   </div>
                 </div>
 
-                {/* ── Related data ── */}
-                {loadingRelated && (
+                {loadingRelated ? (
                   <div className="flex justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   </div>
-                )}
-
-                {!loadingRelated && detailType === "client" && relatedProjects.length > 0 && (
+                ) : (
                   <>
-                    <Separator />
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                        Projetos ({relatedProjects.length})
-                      </h4>
-                      <div className="space-y-2">
-                        {relatedProjects.map((p) => (
-                          <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                            <div>
-                              <span className="font-mono text-xs text-muted-foreground">#{p.sm_project_id}</span>
-                              {p.status && <Badge variant="outline" className="ml-2">{p.status}</Badge>}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">{formatDate(p.updated_at)}</span>
-                              <Button variant="ghost" size="icon" onClick={() => openProjectDetail(p)}>
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
+                    {relatedProjects.length > 0 && (
+                      <>
+                        <Separator />
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">
+                            Projetos ({relatedProjects.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {relatedProjects.map((p) => (
+                              <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded p-2">
+                                <span className="font-mono text-xs">Projeto #{p.sm_project_id}</span>
+                                {p.status && <Badge variant="outline" className="text-xs">{p.status}</Badge>}
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
+                        </div>
+                      </>
+                    )}
+
+                    {relatedProposals.length > 0 && (
+                      <>
+                        <Separator />
+                        <div>
+                          <h4 className="text-sm font-medium mb-2">
+                            Propostas ({relatedProposals.length})
+                          </h4>
+                          <div className="space-y-2">
+                            {relatedProposals.map((p) => (
+                              <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded p-2">
+                                <span className="font-mono text-xs">Proposta #{p.sm_proposal_id}</span>
+                                {p.status && <Badge variant="outline" className="text-xs">{p.status}</Badge>}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
+              </div>
+            )}
 
-                {!loadingRelated && (detailType === "client" || detailType === "project") && relatedProposals.length > 0 && (
+            {detailType === "project" && detailData && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground">ID Projeto</span>
+                    <p className="font-mono text-sm">{detailData.sm_project_id}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">ID Cliente</span>
+                    <p className="font-mono text-sm">{detailData.sm_client_id}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <p className="text-sm">{detailData.status || "—"}</p>
+                  </div>
+                </div>
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Dados Completos (payload)</h4>
+                  <div className="bg-muted/50 rounded-md p-3">
+                    <PayloadViewer data={detailData.payload} />
+                  </div>
+                </div>
+
+                {loadingRelated ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                ) : relatedProposals.length > 0 ? (
                   <>
                     <Separator />
-                    <div className="space-y-2">
-                      <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">
                         Propostas ({relatedProposals.length})
                       </h4>
                       <div className="space-y-2">
                         {relatedProposals.map((p) => (
-                          <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono text-xs text-muted-foreground">#{p.sm_proposal_id}</span>
-                              {p.status && <Badge variant="outline">{p.status}</Badge>}
-                              {p.link_pdf && (
-                                <a href={p.link_pdf} target="_blank" rel="noopener noreferrer" className="text-primary">
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                </a>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs text-muted-foreground">{formatDate(p.generated_at)}</span>
-                              <Button variant="ghost" size="icon" onClick={() => openProposalDetail(p)}>
-                                <Eye className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
+                          <div key={p.id} className="flex items-center justify-between bg-muted/30 rounded p-2">
+                            <span className="font-mono text-xs">Proposta #{p.sm_proposal_id}</span>
+                            {p.status && <Badge variant="outline" className="text-xs">{p.status}</Badge>}
                           </div>
                         ))}
                       </div>
                     </div>
                   </>
+                ) : null}
+              </div>
+            )}
+
+            {detailType === "proposal" && detailData && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <span className="text-xs text-muted-foreground">ID Proposta</span>
+                    <p className="font-mono text-sm">{detailData.sm_proposal_id}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">ID Projeto</span>
+                    <p className="font-mono text-sm">{detailData.sm_project_id}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Status</span>
+                    <p className="text-sm">{detailData.status || "—"}</p>
+                  </div>
+                  <div>
+                    <span className="text-xs text-muted-foreground">Gerada em</span>
+                    <p className="text-sm">{formatDate(detailData.generated_at)}</p>
+                  </div>
+                  {detailData.acceptance_date && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Aceita em</span>
+                      <p className="text-sm">{formatDate(detailData.acceptance_date)}</p>
+                    </div>
+                  )}
+                  {detailData.expiration_date && (
+                    <div>
+                      <span className="text-xs text-muted-foreground">Expira em</span>
+                      <p className="text-sm">{formatDate(detailData.expiration_date)}</p>
+                    </div>
+                  )}
+                </div>
+
+                {detailData.link_pdf && (
+                  <a
+                    href={detailData.link_pdf}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-primary hover:underline text-sm"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Ver PDF da Proposta
+                  </a>
                 )}
+
+                <Separator />
+
+                <div>
+                  <h4 className="text-sm font-medium mb-2">Dados Completos (payload)</h4>
+                  <div className="bg-muted/50 rounded-md p-3">
+                    <PayloadViewer data={detailData.payload} />
+                  </div>
+                </div>
               </div>
             )}
           </ScrollArea>
         </DialogContent>
       </Dialog>
     </>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string | null | undefined }) {
-  return (
-    <div className="space-y-0.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm font-medium">{value || "—"}</p>
-    </div>
   );
 }
