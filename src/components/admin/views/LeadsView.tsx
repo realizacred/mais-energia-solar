@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { useOrcamentosAdmin } from "@/hooks/useOrcamentosAdmin";
 import { 
   OrcamentosTable, 
@@ -17,7 +18,7 @@ import type { OrcamentoDisplayItem } from "@/types/orcamento";
 import type { Lead } from "@/types/lead";
 
 export function LeadsView() {
-  const { orcamentos, statuses, toggleVisto, deleteOrcamento, filters, fetchOrcamentos, page, setPage, totalCount, totalPages } = useOrcamentosAdmin();
+  const { orcamentos, statuses, loading, toggleVisto, deleteOrcamento, filters, fetchOrcamentos, page, setPage, totalCount, totalPages } = useOrcamentosAdmin();
   const { sortOption, updateSort } = useOrcamentoSort("admin_leads");
   const [filteredOrcamentos, setFilteredOrcamentos] = useState<OrcamentoDisplayItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -152,22 +153,29 @@ export function LeadsView() {
           />
         </CardHeader>
         <CardContent>
-          <OrcamentosTable
-            orcamentos={filteredOrcamentos}
-            statuses={statuses}
-            sortOption={sortOption}
-            onToggleVisto={toggleVisto}
-            onView={(orc) => {
-              setSelectedOrcamento(orc);
-              setIsViewOpen(true);
-            }}
-            onDelete={(orc) => {
-              setOrcamentoToDelete(orc);
-              setIsDeleteOpen(true);
-            }}
-            onConvert={handleConvertOrcamento}
-            onRefresh={fetchOrcamentos}
-          />
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="ml-3 text-muted-foreground">Carregando orçamentos...</span>
+            </div>
+          ) : (
+            <OrcamentosTable
+              orcamentos={filteredOrcamentos}
+              statuses={statuses}
+              sortOption={sortOption}
+              onToggleVisto={toggleVisto}
+              onView={(orc) => {
+                setSelectedOrcamento(orc);
+                setIsViewOpen(true);
+              }}
+              onDelete={(orc) => {
+                setOrcamentoToDelete(orc);
+                setIsDeleteOpen(true);
+              }}
+              onConvert={handleConvertOrcamento}
+              onRefresh={fetchOrcamentos}
+            />
+          )}
         </CardContent>
       </Card>
 
