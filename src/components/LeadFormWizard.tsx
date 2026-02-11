@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import confetti from "canvas-confetti";
 import { 
@@ -88,7 +88,6 @@ interface LeadFormWizardProps {
 
 export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {}) {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0);
@@ -514,88 +513,62 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   };
 
   /**
-   * Redirect authenticated vendor to WhatsApp inbox after lead creation.
-   * 1) Auto-assigns the matching WA conversation to the vendor (DB function)
-   * 2) Stores lead data in sessionStorage so WaInbox can auto-open + prefill message
-   * 3) Redirects to WhatsApp tab
-   * NEVER changes instance_id.
+   * Handle post-lead WhatsApp actions in the background (fire-and-forget).
+   * 1) Sends auto welcome message via existing pipeline (creates REAL conversation)
+   * 2) Auto-assigns matching WA conversation to the vendor
+   * NEVER redirects. NEVER blocks UI. NEVER changes instance_id.
    */
-  const redirectToInbox = async (data: LeadFormData) => {
+  const handlePostLeadWhatsApp = (data: LeadFormData) => {
     if (!user) return; // Only for authenticated users
+    if (!isAutoMessageEnabled(user.id)) {
+      console.log("[handlePostLeadWhatsApp] Auto-message disabled, skipping");
+      return;
+    }
 
-    // 1) Auto-assign conversation via SECURITY DEFINER function
     const phoneDigits = data.telefone.replace(/\D/g, "");
-    let assignedConvId: string | null = null;
-    if (phoneDigits.length >= 10) {
+    if (phoneDigits.length < 10) return;
+
+    const mensagem = buildAutoMessage({
+      nome: data.nome.trim(),
+      cidade: data.cidade?.trim(),
+      estado: data.estado,
+      consumo: data.media_consumo,
+      tipo_telhado: data.tipo_telhado,
+      consultor_nome: vendedorNome || undefined,
+    });
+
+    // Fire-and-forget: send message (creates real conversation via Evolution API)
+    // then assign ownership — all in background, never blocking UI
+    sendAutoWelcomeMessage({
+      telefone: data.telefone.trim(),
+      mensagem,
+      userId: user.id,
+    }).then(async (sent) => {
+      if (sent) {
+        console.log("[handlePostLeadWhatsApp] Auto welcome message sent");
+        toast({
+          title: "WhatsApp enviado ✅",
+          description: "Mensagem de boas-vindas enviada ao cliente.",
+        });
+      }
+
+      // Assign conversation ownership (works whether message was just sent or conversation already existed)
       try {
         const { data: convId, error } = await supabase
           .rpc("assign_wa_conversation_by_phone", { _phone_digits: phoneDigits });
         if (!error && convId) {
-          assignedConvId = convId as string;
-          console.log("[redirectToInbox] Conversation assigned:", assignedConvId);
-        } else {
-          console.log("[redirectToInbox] No existing conversation found for", phoneDigits);
+          console.log("[handlePostLeadWhatsApp] Conversation assigned:", convId);
         }
       } catch (err) {
-        console.warn("[redirectToInbox] Failed to assign conversation:", err);
+        console.warn("[handlePostLeadWhatsApp] Assign failed (non-blocking):", err);
       }
-    }
-
-    // 2) Send auto welcome message if enabled and conversation exists
-    if (assignedConvId && isAutoMessageEnabled(user.id)) {
-      const mensagem = buildAutoMessage({
-        nome: data.nome.trim(),
-        cidade: data.cidade?.trim(),
-        estado: data.estado,
-        consumo: data.media_consumo,
-        tipo_telhado: data.tipo_telhado,
-        consultor_nome: vendedorNome || undefined,
+    }).catch((err) => {
+      console.warn("[handlePostLeadWhatsApp] Background WA failed (non-blocking):", err);
+      toast({
+        title: "Lead salvo ✅",
+        description: "WhatsApp não pôde ser enviado, mas o lead foi cadastrado.",
       });
-
-      // Fire-and-forget: don't block redirect on message send
-      sendAutoWelcomeMessage({
-        telefone: data.telefone.trim(),
-        mensagem,
-        userId: user.id,
-      }).then(sent => {
-        if (sent) {
-          console.log("[redirectToInbox] Auto welcome message sent");
-        }
-      });
-    }
-
-    // 3) Store lead data for WaInbox auto-open + prefill
-    const autoOpenData = {
-      phone: data.telefone.trim(),
-      nome: data.nome.trim(),
-      cidade: data.cidade?.trim() || undefined,
-      estado: data.estado || undefined,
-      consumo: data.media_consumo || undefined,
-      tipo_telhado: data.tipo_telhado || undefined,
-      rede_atendimento: data.rede_atendimento || undefined,
-      consultor_nome: vendedorNome || undefined,
-      assignedConvId: assignedConvId || undefined,
-    };
-    sessionStorage.setItem("wa_auto_open_lead", JSON.stringify(autoOpenData));
-
-    toast({
-      title: "Lead criado ✅",
-      description: assignedConvId
-        ? "Conversa atribuída. Abrindo..."
-        : "Abrindo conversa...",
     });
-
-    // 3) Redirect to WhatsApp tab
-    setTimeout(() => {
-      const currentPath = window.location.pathname;
-      if (currentPath.startsWith("/vendedor")) {
-        navigate("/vendedor?tab=whatsapp", { replace: true });
-      } else if (currentPath.startsWith("/app")) {
-        navigate("/app", { replace: true });
-      } else {
-        navigate("/vendedor?tab=whatsapp", { replace: true });
-      }
-    }, 300);
   };
 
   // Helper to build orcamento payload from form data
@@ -770,7 +743,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           setIsSubmitting(false);
           setIsSuccess(true);
           setDuplicateDecision(null);
-          redirectToInbox(data);
+          handlePostLeadWhatsApp(data);
           return;
         } else {
           toast({
@@ -817,7 +790,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         
         setIsSubmitting(false);
         setIsSuccess(true);
-        redirectToInbox(data);
+        handlePostLeadWhatsApp(data);
         return;
       } else {
         // Online submission failed — try offline fallback
@@ -883,7 +856,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     
     if (result.success) {
       setIsSuccess(true);
-      redirectToInbox(data);
+      handlePostLeadWhatsApp(data);
       clearDraft();
       resetHoneypot();
       resetRateLimit();
@@ -941,7 +914,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     
     if (result.success) {
       setIsSuccess(true);
-      redirectToInbox(data);
+      handlePostLeadWhatsApp(data);
       clearDraft();
       resetHoneypot();
       resetRateLimit();
