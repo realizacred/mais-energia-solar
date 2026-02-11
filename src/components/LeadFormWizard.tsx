@@ -100,6 +100,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const [vendedorNome, setVendedorNome] = useState<string | null>(null);
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   // Store the user's duplicate decision so final submit skips re-check
   const [duplicateDecision, setDuplicateDecision] = useState<
     { type: "use_existing"; leadId: string } | { type: "create_new" } | null
@@ -229,24 +230,50 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   const handleCEPBlur = async (cep: string) => {
     const cleanCEP = cep.replace(/\D/g, "");
-    if (cleanCEP.length !== 8) return;
+    
+    // If empty, it's optional - no error
+    if (cleanCEP.length === 0) return;
+    
+    // If partially typed but not 8 digits, it's invalid
+    if (cleanCEP.length !== 8) {
+      toast({
+        title: "CEP inválido",
+        description: "O CEP deve ter 8 dígitos. Campo limpo para nova digitação.",
+        variant: "destructive",
+      });
+      setValue("cep", "");
+      return;
+    }
 
     try {
       const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
       const data = await response.json();
 
-      if (!data.erro) {
-        setValue("estado", data.uf);
-        setValue("cidade", data.localidade);
-        setValue("bairro", data.bairro || "");
-        setValue("rua", data.logradouro || "");
-        markFieldTouched("estado");
-        markFieldTouched("cidade");
-        if (data.bairro) markFieldTouched("bairro");
-        if (data.logradouro) markFieldTouched("rua");
+      if (data.erro) {
+        toast({
+          title: "CEP não encontrado",
+          description: "Verifique o CEP digitado. Campo limpo para nova digitação.",
+          variant: "destructive",
+        });
+        setValue("cep", "");
+        return;
       }
+
+      setValue("estado", data.uf);
+      setValue("cidade", data.localidade);
+      setValue("bairro", data.bairro || "");
+      setValue("rua", data.logradouro || "");
+      markFieldTouched("estado");
+      markFieldTouched("cidade");
+      if (data.bairro) markFieldTouched("bairro");
+      if (data.logradouro) markFieldTouched("rua");
     } catch (error) {
       console.error("Erro ao buscar CEP:", error);
+      toast({
+        title: "Erro ao buscar CEP",
+        description: "Não foi possível consultar o CEP. Preencha o endereço manualmente.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -483,6 +510,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   // Handler for when form validation fails (fields have errors but user can't see them)
   const onFormInvalid = (fieldErrors: Record<string, any>) => {
     console.warn("[LeadFormWizard] Form validation failed:", Object.keys(fieldErrors));
+    setSubmitAttempted(true);
     // Mark ALL fields as touched so validation errors become visible
     const allFieldNames = Object.keys(fieldErrors);
     setTouchedFields(prev => {
@@ -837,6 +865,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     setUploadedFiles([]);
     setTouchedFields(new Set());
     setDuplicateDecision(null);
+    setSubmitAttempted(false);
     clearDraft();
     resetHoneypot();
     refreshPendingCount();
@@ -1065,7 +1094,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
               {currentStep === 3 && (
                 <div className="space-y-5">
                   <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
-                    <div data-field-error={!!errors.area && touchedFields.has("area")}>
+                    <div data-field-error={!!errors.area && submitAttempted}>
                     <FloatingSelect
                       label="Área *"
                       icon={<Home className="w-4 h-4" />}
@@ -1077,14 +1106,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                         { value: "Urbana", label: "Urbana" },
                         { value: "Rural", label: "Rural" },
                       ]}
-                      error={touchedFields.has("area") ? errors.area?.message : undefined}
-                      success={isFieldValid("area")}
+                      error={submitAttempted ? errors.area?.message : undefined}
+                      success={false}
                     />
                     </div>
                   </motion.div>
 
                   <motion.div custom={1} variants={fieldVariants} initial="hidden" animate="visible">
-                    <div data-field-error={!!errors.tipo_telhado && touchedFields.has("tipo_telhado")}>
+                    <div data-field-error={!!errors.tipo_telhado && submitAttempted}>
                     <FloatingSelect
                       label="Tipo de Telhado *"
                       icon={<Home className="w-4 h-4" />}
@@ -1093,14 +1122,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                         setValue("tipo_telhado", value);
                       }}
                       options={TIPOS_TELHADO.map(t => ({ value: t, label: t }))}
-                      error={touchedFields.has("tipo_telhado") ? errors.tipo_telhado?.message : undefined}
-                      success={isFieldValid("tipo_telhado")}
+                      error={submitAttempted ? errors.tipo_telhado?.message : undefined}
+                      success={false}
                     />
                     </div>
                   </motion.div>
 
                   <motion.div custom={2} variants={fieldVariants} initial="hidden" animate="visible">
-                    <div data-field-error={!!errors.rede_atendimento && touchedFields.has("rede_atendimento")}>
+                    <div data-field-error={!!errors.rede_atendimento && submitAttempted}>
                     <FloatingSelect
                       label="Rede de Atendimento *"
                       icon={<Zap className="w-4 h-4" />}
@@ -1109,14 +1138,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                         setValue("rede_atendimento", value);
                       }}
                       options={REDES_ATENDIMENTO.map(r => ({ value: r, label: r }))}
-                      error={touchedFields.has("rede_atendimento") ? errors.rede_atendimento?.message : undefined}
-                      success={isFieldValid("rede_atendimento")}
+                      error={submitAttempted ? errors.rede_atendimento?.message : undefined}
+                      success={false}
                     />
                     </div>
                   </motion.div>
 
                   <motion.div custom={3} variants={fieldVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div data-field-error={!!errors.media_consumo && touchedFields.has("media_consumo")}>
+                    <div data-field-error={!!errors.media_consumo && submitAttempted}>
                     <FloatingInput
                       label="Média de Consumo (kWh) *"
                       icon={<BarChart3 className="w-4 h-4" />}
@@ -1124,11 +1153,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       autoComplete="off"
                       value={watchedValues.media_consumo || ""}
                       onChange={(e) => setValue("media_consumo", e.target.value ? Number(e.target.value) : undefined)}
-                      error={touchedFields.has("media_consumo") ? errors.media_consumo?.message : undefined}
-                      success={isFieldValid("media_consumo")}
+                      error={submitAttempted ? errors.media_consumo?.message : undefined}
+                      success={false}
                     />
                     </div>
-                    <div data-field-error={!!errors.consumo_previsto && touchedFields.has("consumo_previsto")}>
+                    <div data-field-error={!!errors.consumo_previsto && submitAttempted}>
                     <FloatingInput
                       label="Consumo Previsto (kWh) *"
                       icon={<BarChart3 className="w-4 h-4" />}
@@ -1136,8 +1165,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       autoComplete="off"
                       value={watchedValues.consumo_previsto || ""}
                       onChange={(e) => setValue("consumo_previsto", e.target.value ? Number(e.target.value) : undefined)}
-                      error={touchedFields.has("consumo_previsto") ? errors.consumo_previsto?.message : undefined}
-                      success={isFieldValid("consumo_previsto")}
+                      error={submitAttempted ? errors.consumo_previsto?.message : undefined}
+                      success={false}
                     />
                     </div>
                   </motion.div>
