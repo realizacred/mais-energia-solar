@@ -9,6 +9,7 @@ import {
   Send, Loader2, CheckCircle, FileText, ArrowLeft, ArrowRight,
   Building, Hash, WifiOff, RefreshCw, ShieldCheck
 } from "lucide-react";
+import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { WizardSuccessScreen, StepPersonalData, StepAddress, StepConsumption } from "@/components/wizard";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -207,6 +208,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   const { watch, setValue, trigger, formState: { errors } } = form;
   const watchedValues = watch();
+
+  // City dropdown by state (IBGE API)
+  const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(watchedValues.estado);
 
   const markFieldTouched = (field: string) => {
     setTouchedFields(prev => new Set(prev).add(field));
@@ -882,6 +886,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       value={watchedValues.estado}
                       onValueChange={(value) => {
                         setValue("estado", value, { shouldValidate: touchedFields.has("estado") });
+                        // Reset cidade when estado changes (unless set by CEP)
+                        if (value !== watchedValues.estado) {
+                          setValue("cidade", "", { shouldValidate: false });
+                        }
                       }}
                       options={ESTADOS_BRASIL.map(e => ({ value: e.sigla, label: `${e.sigla} - ${e.nome}` }))}
                       error={touchedFields.has("estado") ? errors.estado?.message : undefined}
@@ -889,13 +897,26 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                     />
                     </div>
                     <div data-field-error={!!errors.cidade && touchedFields.has("cidade")}>
-                    <FloatingInput
-                      label="Cidade *"
-                      value={watchedValues.cidade}
-                      onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
-                      error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
-                      success={isFieldValid("cidade")}
-                    />
+                    {cidades.length > 0 ? (
+                      <FloatingSelect
+                        label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
+                        value={watchedValues.cidade}
+                        onValueChange={(value) => {
+                          setValue("cidade", value, { shouldValidate: touchedFields.has("cidade") });
+                        }}
+                        options={cidades.map(c => ({ value: c, label: c }))}
+                        error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
+                        success={isFieldValid("cidade")}
+                      />
+                    ) : (
+                      <FloatingInput
+                        label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
+                        value={watchedValues.cidade}
+                        onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
+                        error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
+                        success={isFieldValid("cidade")}
+                      />
+                    )}
                     </div>
                   </motion.div>
 
