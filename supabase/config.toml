@@ -89,3 +89,6 @@ verify_jwt = false
 
 [functions.generate-vapid-keys]
 verify_jwt = false
+
+[functions.send-wa-welcome]
+verify_jwt = false

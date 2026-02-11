@@ -244,22 +244,38 @@ Deno.serve(async (req) => {
     }
 
     // Priority 2: Vendor's linked instance via junction table
-    if (!resolvedInstance && userId) {
-      // Find vendedor linked to this user
-      const { data: vendedor } = await supabaseAdmin
-        .from("vendedores")
-        .select("id")
-        .eq("user_id", userId)
-        .eq("ativo", true)
-        .eq("tenant_id", tenantId)
-        .maybeSingle();
+    // Works for both authenticated users (userId) and service_role calls (lead_id → vendedor_id)
+    if (!resolvedInstance) {
+      let vendedorId: string | null = null;
 
-      if (vendedor) {
+      // 2a: From authenticated user
+      if (userId) {
+        const { data: vendedor } = await supabaseAdmin
+          .from("vendedores")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("ativo", true)
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        vendedorId = vendedor?.id || null;
+      }
+
+      // 2b: From lead's vendedor_id (for service_role / public form calls)
+      if (!vendedorId && lead_id) {
+        const { data: leadVendedor } = await supabaseAdmin
+          .from("leads")
+          .select("vendedor_id")
+          .eq("id", lead_id)
+          .maybeSingle();
+        vendedorId = leadVendedor?.vendedor_id || null;
+      }
+
+      if (vendedorId) {
         // Check junction table for linked instances
         const { data: links } = await supabaseAdmin
           .from("wa_instance_vendedores")
           .select("instance_id, wa_instances:instance_id(id, evolution_api_url, evolution_instance_key, api_key, status)")
-          .eq("vendedor_id", vendedor.id)
+          .eq("vendedor_id", vendedorId)
           .eq("tenant_id", tenantId);
 
         if (links && links.length > 0) {
@@ -276,7 +292,7 @@ Deno.serve(async (req) => {
               status: inst.status,
             };
             instanceSource = "vendor_junction";
-            console.log(`[send-wa] Routed to vendor's instance: ${inst.evolution_instance_key} (${connected ? "connected" : "first-link"})`);
+            console.log(`[send-wa] Routed to vendor's instance: ${inst.evolution_instance_key} (${connected ? "connected" : "first-link"}) vendedorId=${vendedorId}`);
           }
         }
       }

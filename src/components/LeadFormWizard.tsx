@@ -671,7 +671,30 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             console.log("[handlePostLeadWhatsApp] Bloqueado por cooldown:", result.reason);
           }
         } else {
-          console.log("[handlePostLeadWhatsApp] No auth session — skipping send (public form)");
+          // Public form — no auth session, call server-side welcome endpoint
+          console.log("[handlePostLeadWhatsApp] No auth session — calling send-wa-welcome (public form)");
+          if (leadId) {
+            try {
+              const welcomeRes = await supabase.functions.invoke("send-wa-welcome", {
+                body: { lead_id: leadId },
+              });
+              const welcomeData = welcomeRes.data as { success?: boolean; conversation_id?: string; already_sent?: boolean } | null;
+              if (welcomeData?.success) {
+                diag.sentOk = true;
+                diag.sentAt = new Date().toISOString();
+                if (welcomeData.conversation_id) {
+                  diag.assignConvId = welcomeData.conversation_id;
+                  diag.assignResult = "ok";
+                }
+                savePipelineDiag(diag);
+                console.log("[handlePostLeadWhatsApp] send-wa-welcome ✅", welcomeData);
+              } else {
+                console.warn("[handlePostLeadWhatsApp] send-wa-welcome failed:", welcomeRes.error || welcomeData);
+              }
+            } catch (welcErr) {
+              console.warn("[handlePostLeadWhatsApp] send-wa-welcome error (non-blocking):", welcErr);
+            }
+          }
         }
       } else {
         console.log("[handlePostLeadWhatsApp] No vendedor resolved — skipping auto-message");
