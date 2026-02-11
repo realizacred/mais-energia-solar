@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import { UseFormReturn, FieldValues, Path } from "react-hook-form";
 
 const STORAGE_PREFIX = "lead_form_draft_";
@@ -17,6 +17,30 @@ export function useFormAutoSave<T extends FieldValues>(
   const storageKey = `${STORAGE_PREFIX}${key}`;
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitializedRef = useRef(false);
+  const suppressSaveRef = useRef(false);
+  const [hasDraftValue, setHasDraftValue] = useState(false);
+
+  // Check localStorage for existing draft
+  const checkHasDraft = useCallback(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed._savedAt && Date.now() - parsed._savedAt < 24 * 60 * 60 * 1000) {
+          // Check if draft has any meaningful data
+          const data = { ...parsed };
+          delete data._savedAt;
+          const hasData = Object.values(data).some(
+            (v) => v !== undefined && v !== null && v !== "" && v !== 0
+          );
+          return hasData;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  }, [storageKey]);
 
   // Load saved draft on mount
   useEffect(() => {
@@ -49,7 +73,8 @@ export function useFormAutoSave<T extends FieldValues>(
     }
     
     isInitializedRef.current = true;
-  }, [form, storageKey]);
+    setHasDraftValue(checkHasDraft());
+  }, [form, storageKey, checkHasDraft]);
 
   // Save draft with debounce
   const saveDraft = useCallback(
@@ -59,6 +84,21 @@ export function useFormAutoSave<T extends FieldValues>(
       }
 
       timeoutRef.current = setTimeout(() => {
+        // Skip save if suppressed (after clearDraft)
+        if (suppressSaveRef.current) {
+          suppressSaveRef.current = false;
+          return;
+        }
+
+        // Don't save empty drafts
+        const hasData = Object.entries(data).some(
+          ([k, v]) => k !== "_savedAt" && v !== undefined && v !== null && v !== "" && v !== 0
+        );
+        if (!hasData) {
+          setHasDraftValue(false);
+          return;
+        }
+
         try {
           const toSave = {
             ...data,
@@ -66,6 +106,7 @@ export function useFormAutoSave<T extends FieldValues>(
           };
           localStorage.setItem(storageKey, JSON.stringify(toSave));
           console.log("[AutoSave] Draft saved");
+          setHasDraftValue(true);
         } catch (error) {
           console.error("[AutoSave] Error saving draft:", error);
         }
@@ -87,23 +128,17 @@ export function useFormAutoSave<T extends FieldValues>(
 
   // Clear draft
   const clearDraft = useCallback(() => {
+    // Cancel any pending save
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    // Suppress the next auto-save triggered by form.reset()
+    suppressSaveRef.current = true;
     localStorage.removeItem(storageKey);
+    setHasDraftValue(false);
     console.log("[AutoSave] Draft cleared");
   }, [storageKey]);
 
-  // Check if there's a saved draft
-  const hasDraft = useCallback(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return parsed._savedAt && Date.now() - parsed._savedAt < 24 * 60 * 60 * 1000;
-      }
-    } catch {
-      return false;
-    }
-    return false;
-  }, [storageKey]);
-
-  return { clearDraft, hasDraft };
+  return { clearDraft, hasDraft: hasDraftValue };
 }
