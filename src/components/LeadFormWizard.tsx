@@ -227,9 +227,27 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     return touchedFields.has(field) && !errors[field as keyof LeadFormData] && Boolean(value);
   };
 
-  // CEP blur — no auto-fill, just format
-  const handleCEPBlur = (_cep: string) => {
-    // No automatic data loading — each consultant fills manually
+  const handleCEPBlur = async (cep: string) => {
+    const cleanCEP = cep.replace(/\D/g, "");
+    if (cleanCEP.length !== 8) return;
+
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
+      const data = await response.json();
+
+      if (!data.erro) {
+        setValue("estado", data.uf);
+        setValue("cidade", data.localidade);
+        setValue("bairro", data.bairro || "");
+        setValue("rua", data.logradouro || "");
+        markFieldTouched("estado");
+        markFieldTouched("cidade");
+        if (data.bairro) markFieldTouched("bairro");
+        if (data.logradouro) markFieldTouched("rua");
+      }
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+    }
   };
 
   const getFieldsForStep = (step: number): (keyof LeadFormData)[] => {
