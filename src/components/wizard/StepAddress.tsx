@@ -3,6 +3,7 @@ import { MapPin, Building, Hash } from "lucide-react";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { FloatingSelect } from "@/components/ui/floating-select";
 import { formatCEP, ESTADOS_BRASIL } from "@/lib/validations";
+import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import type { UseFormReturn } from "react-hook-form";
 import type { LeadFormData } from "@/lib/validations";
 
@@ -32,6 +33,7 @@ export function StepAddress({
 }: StepAddressProps) {
   const { watch, setValue, trigger, formState: { errors } } = form;
   const values = watch();
+  const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(values.estado);
 
   return (
     <div className="space-y-5">
@@ -58,6 +60,9 @@ export function StepAddress({
           icon={<Building className="w-4 h-4" />}
           value={values.estado}
           onValueChange={(value) => {
+            if (value !== values.estado) {
+              setValue("cidade", "", { shouldValidate: false });
+            }
             setValue("estado", value, { shouldValidate: touchedFields.has("estado") });
           }}
           options={ESTADOS_BRASIL.map(e => ({ value: e.sigla, label: `${e.sigla} - ${e.nome}` }))}
@@ -66,13 +71,26 @@ export function StepAddress({
         />
         </div>
         <div data-field-error={!!errors.cidade && touchedFields.has("cidade")}>
-        <FloatingInput
-          label="Cidade *"
-          value={values.cidade}
-          onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
-          error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
-          success={isFieldValid("cidade")}
-        />
+        {cidades.length > 0 ? (
+          <FloatingSelect
+            label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
+            value={values.cidade}
+            onValueChange={(value) => {
+              setValue("cidade", value, { shouldValidate: touchedFields.has("cidade") });
+            }}
+            options={cidades.map(c => ({ value: c, label: c }))}
+            error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
+            success={isFieldValid("cidade")}
+          />
+        ) : (
+          <FloatingInput
+            label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
+            value={values.cidade}
+            onChange={(e) => setValue("cidade", e.target.value, { shouldValidate: touchedFields.has("cidade") })}
+            error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
+            success={isFieldValid("cidade")}
+          />
+        )}
         </div>
       </motion.div>
 
