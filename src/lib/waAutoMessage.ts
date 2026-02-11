@@ -257,7 +257,7 @@ export async function sendAutoWelcomeMessage(params: {
   mensagem: string;
   userId: string;
   forceResend?: boolean;
-}): Promise<{ sent: boolean; blocked?: "cooldown"; reason?: string }> {
+}): Promise<{ sent: boolean; blocked?: "cooldown"; reason?: string; conversation_id?: string; message_saved?: boolean; tag_applied?: boolean }> {
   const { telefone, leadId, mensagem, userId, forceResend } = params;
   
   const phoneDigits = normalizePhoneDigits(telefone);
@@ -297,13 +297,21 @@ export async function sendAutoWelcomeMessage(params: {
       return { sent: false, reason: String(response.error) };
     }
 
-    const result = response.data as { success?: boolean; instance_used?: string; instance_source?: string } | null;
+    const result = response.data as {
+      success?: boolean;
+      instance_used?: string;
+      instance_source?: string;
+      conversation_id?: string;
+      created_or_updated?: boolean;
+      message_saved?: boolean;
+      tag_applied?: boolean;
+    } | null;
     if (result?.success) {
       // Set cooldown
       const cooldownKey = getCooldownKey(leadId, phoneDigits);
       setCooldown(cooldownKey);
       
-      console.log(`[sendAutoWelcomeMessage] ✅ Enviado via instance=${result.instance_used || "?"} (${result.instance_source || "?"})`);
+      console.log(`[sendAutoWelcomeMessage] ✅ Enviado via instance=${result.instance_used || "?"} (${result.instance_source || "?"}) conv=${result.conversation_id || "?"}`);
       
       // Store instance info for diagnostics
       try {
@@ -311,10 +319,17 @@ export async function sendAutoWelcomeMessage(params: {
         if (diag) {
           diag.instanceUsed = result.instance_used || undefined;
           diag.instanceSource = result.instance_source || undefined;
+          diag.assignConvId = result.conversation_id || undefined;
+          diag.assignResult = result.conversation_id ? "ok" : "pending";
           savePipelineDiag(diag);
         }
       } catch {}
-      return { sent: true };
+      return {
+        sent: true,
+        conversation_id: result.conversation_id || undefined,
+        message_saved: result.message_saved || false,
+        tag_applied: result.tag_applied || false,
+      };
     }
 
     console.warn("[sendAutoWelcomeMessage] Send failed:", result);

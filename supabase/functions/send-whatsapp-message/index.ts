@@ -448,6 +448,9 @@ Deno.serve(async (req) => {
     // This guarantees the conversation + outbound message exist in wa_*
     // immediately — vendor sees it in Inbox without waiting for webhook.
     let createdConvId: string | null = null;
+    let convCreatedOrUpdated = false;
+    let messageSaved = false;
+    let tagApplied = false;
     if (evolutionSuccess && resolvedInstance) {
       try {
         const remoteJid = `${formattedPhone}@s.whatsapp.net`;
@@ -501,6 +504,7 @@ Deno.serve(async (req) => {
 
           await supabaseAdmin.from("wa_conversations").update(updates).eq("id", existingConv.id);
           console.log(`[send-wa] Conversation updated (existing): ${existingConv.id}`);
+          convCreatedOrUpdated = true;
         } else {
           // INSERT new conversation
           const { data: newConv, error: convErr } = await supabaseAdmin
@@ -526,6 +530,7 @@ Deno.serve(async (req) => {
             console.error("[send-wa] Conv insert failed:", convErr);
           } else {
             createdConvId = newConv!.id;
+            convCreatedOrUpdated = true;
             console.log(`[send-wa] Conversation created: ${createdConvId}`);
           }
         }
@@ -545,6 +550,8 @@ Deno.serve(async (req) => {
             });
           if (msgErr) {
             console.error("[send-wa] Message insert failed:", msgErr);
+          } else {
+            messageSaved = true;
           }
         }
 
@@ -576,6 +583,7 @@ Deno.serve(async (req) => {
                   { onConflict: "conversation_id,tag_id" }
                 );
               console.log(`[send-wa] Tag "Aguardando orçamento" applied to conv ${createdConvId}`);
+              tagApplied = true;
             }
           } catch (tagErr) {
             console.warn("[send-wa] Tag assignment failed (non-blocking):", tagErr);
@@ -619,6 +627,10 @@ Deno.serve(async (req) => {
         instance_source: instanceSource,
         instance_status: resolvedInstance?.status || null,
         instance_health_warning: instanceHealthWarning,
+        conversation_id: createdConvId,
+        created_or_updated: convCreatedOrUpdated,
+        message_saved: messageSaved,
+        tag_applied: tagApplied,
         message: anySuccess ? "Mensagem enviada com sucesso" : "Falha ao enviar mensagem",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

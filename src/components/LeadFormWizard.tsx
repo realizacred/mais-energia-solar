@@ -653,10 +653,20 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           savePipelineDiag(diag);
           console.log("[handlePostLeadWhatsApp] sendAutoWelcomeMessage result:", result, "leadId:", leadId);
           if (result.sent) {
-            toast({
-              title: "WhatsApp encaminhado ✅",
-              description: "Mensagem de boas-vindas encaminhada para envio.",
-            });
+            if (result.conversation_id) {
+              diag.assignConvId = result.conversation_id;
+              diag.assignResult = "ok";
+              savePipelineDiag(diag);
+              toast({
+                title: "Conversa aberta no Inbox ✅",
+                description: "Mensagem enviada e conversa criada automaticamente.",
+              });
+            } else {
+              toast({
+                title: "WhatsApp encaminhado ✅",
+                description: "Mensagem de boas-vindas encaminhada para envio.",
+              });
+            }
           } else if (result.blocked === "cooldown") {
             console.log("[handlePostLeadWhatsApp] Bloqueado por cooldown:", result.reason);
           }
@@ -667,8 +677,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         console.log("[handlePostLeadWhatsApp] No vendedor resolved — skipping auto-message");
       }
 
-      // Retry assign with backoff (webhook may not have created conversation yet)
-      if (user) {
+      // Retry assign only if edge function didn't already create conversation
+      if (user && !diag.assignConvId) {
         const convId = await retryAssignConversation(phoneDigits, diag);
         if (convId) {
           console.log("[handlePostLeadWhatsApp] Conversation assigned after retry:", convId);
