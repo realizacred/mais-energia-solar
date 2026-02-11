@@ -470,6 +470,21 @@ Deno.serve(async (req) => {
     if (evolutionSuccess && resolvedInstance) {
       try {
         const remoteJid = `${formattedPhone}@s.whatsapp.net`;
+
+        // Build alternate JID formats to find existing conversations
+        // Evolution API sometimes strips/adds the 9th digit for BR numbers
+        const altJids: string[] = [remoteJid];
+        const digits = formattedPhone;
+        if (digits.startsWith("55") && digits.length === 13) {
+          // 55 + 2-digit DDD + 9 + 8 digits → try without the 9
+          const without9 = `55${digits.slice(2, 4)}${digits.slice(5)}`;
+          altJids.push(`${without9}@s.whatsapp.net`);
+        } else if (digits.startsWith("55") && digits.length === 12) {
+          // 55 + 2-digit DDD + 8 digits → try with 9 added
+          const with9 = `55${digits.slice(2, 4)}9${digits.slice(4)}`;
+          altJids.push(`${with9}@s.whatsapp.net`);
+        }
+
         const messagePreview = mensagem.length > 100
           ? mensagem.substring(0, 100) + "…"
           : mensagem;
@@ -509,12 +524,14 @@ Deno.serve(async (req) => {
           profilePicUrl = await fetchProfilePicture(supabaseAdmin, resolvedInstance.id, remoteJid);
         } catch (_) { /* ignore */ }
 
-        // Check if conversation already exists (avoid overwriting assigned_to)
+        // Check if conversation already exists using ALL possible JID formats
+        // This prevents duplicate conversations from phone number normalization differences
         const { data: existingConv } = await supabaseAdmin
           .from("wa_conversations")
-          .select("id, assigned_to, profile_picture_url")
+          .select("id, assigned_to, profile_picture_url, remote_jid")
           .eq("instance_id", resolvedInstance.id)
-          .eq("remote_jid", remoteJid)
+          .in("remote_jid", altJids)
+          .limit(1)
           .maybeSingle();
 
         if (existingConv) {
