@@ -5558,6 +5558,47 @@ export type Database = {
           },
         ]
       }
+      user_feature_permissions: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          feature: string
+          granted_by: string | null
+          id: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          feature: string
+          granted_by?: string | null
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          feature?: string
+          granted_by?: string | null
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_feature_permissions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -7367,6 +7408,10 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      has_feature_permission: {
+        Args: { _feature: string; _user_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
