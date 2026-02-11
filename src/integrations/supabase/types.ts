@@ -5842,6 +5842,7 @@ export type Database = {
           id: string
           nome: string
           percentual_comissao: number
+          settings: Json | null
           slug: string | null
           telefone: string
           tenant_id: string | null
@@ -5856,6 +5857,7 @@ export type Database = {
           id?: string
           nome: string
           percentual_comissao?: number
+          settings?: Json | null
           slug?: string | null
           telefone: string
           tenant_id?: string | null
@@ -5870,6 +5872,7 @@ export type Database = {
           id?: string
           nome?: string
           percentual_comissao?: number
+          settings?: Json | null
           slug?: string | null
           telefone?: string
           tenant_id?: string | null

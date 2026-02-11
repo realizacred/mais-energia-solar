@@ -1,16 +1,88 @@
 import { supabase } from "@/integrations/supabase/client";
 
-const STORAGE_KEY = "wa_auto_msg_enabled";
+/**
+ * Default welcome message template with placeholders.
+ */
+export const DEFAULT_AUTO_MESSAGE_TEMPLATE = `Olá, {nome}! 👋
+
+Aqui é {consultor} da *Mais Energia Solar*. Recebemos sua solicitação de orçamento e já estamos preparando uma proposta personalizada para você!
+
+📋 *Dados recebidos:*
+{dados}
+
+Em breve enviaremos sua proposta com os melhores equipamentos e condições de pagamento. Qualquer dúvida, estou à disposição! ☀️`;
+
+// ─── Settings from vendedores.settings (jsonb) ─────────────────────
+
+interface VendedorWaSettings {
+  wa_auto_message_enabled?: boolean;
+  wa_auto_message_template?: string;
+}
 
 /**
- * Check if auto-message is enabled for the current user.
- * Uses localStorage per user to avoid needing a DB column.
+ * Get WA auto-message settings from vendedores.settings jsonb.
+ * Falls back to defaults if not set.
  */
+export async function getVendedorWaSettings(vendedorId: string): Promise<VendedorWaSettings> {
+  try {
+    const { data, error } = await supabase
+      .from("vendedores")
+      .select("settings")
+      .eq("id", vendedorId)
+      .maybeSingle();
+
+    if (error || !data?.settings) {
+      return { wa_auto_message_enabled: true, wa_auto_message_template: DEFAULT_AUTO_MESSAGE_TEMPLATE };
+    }
+
+    const settings = data.settings as Record<string, unknown>;
+    return {
+      wa_auto_message_enabled: settings.wa_auto_message_enabled !== false, // default: true
+      wa_auto_message_template: (settings.wa_auto_message_template as string) || DEFAULT_AUTO_MESSAGE_TEMPLATE,
+    };
+  } catch {
+    return { wa_auto_message_enabled: true, wa_auto_message_template: DEFAULT_AUTO_MESSAGE_TEMPLATE };
+  }
+}
+
+/**
+ * Save WA auto-message settings to vendedores.settings jsonb.
+ * Merges with existing settings (does not overwrite other keys).
+ */
+export async function saveVendedorWaSettings(
+  vendedorId: string,
+  updates: Partial<VendedorWaSettings>
+): Promise<boolean> {
+  try {
+    // Read current settings first to merge
+    const { data: current } = await supabase
+      .from("vendedores")
+      .select("settings")
+      .eq("id", vendedorId)
+      .maybeSingle();
+
+    const currentSettings = (current?.settings as Record<string, unknown>) || {};
+    const merged = { ...currentSettings, ...updates };
+
+    const { error } = await supabase
+      .from("vendedores")
+      .update({ settings: merged } as any)
+      .eq("id", vendedorId);
+
+    return !error;
+  } catch {
+    return false;
+  }
+}
+
+// ─── Legacy localStorage helpers (kept for migration/fallback) ─────
+
+const STORAGE_KEY = "wa_auto_msg_enabled";
+
 export function isAutoMessageEnabled(userId: string): boolean {
   try {
     const key = `${STORAGE_KEY}_${userId}`;
     const val = localStorage.getItem(key);
-    // Default: enabled (opt-out model)
     return val !== "false";
   } catch {
     return true;
@@ -24,8 +96,10 @@ export function setAutoMessageEnabled(userId: string, enabled: boolean): void {
   } catch {}
 }
 
+// ─── Message building ──────────────────────────────────────────────
+
 /**
- * Build a professional welcome message based on lead data.
+ * Build a welcome message from a template string with placeholders.
  */
 export function buildAutoMessage(params: {
   nome: string;
@@ -34,26 +108,34 @@ export function buildAutoMessage(params: {
   consumo?: number;
   tipo_telhado?: string;
   consultor_nome?: string;
+  template?: string;
 }): string {
-  const { nome, cidade, estado, consumo, tipo_telhado, consultor_nome } = params;
+  const { nome, cidade, estado, consumo, tipo_telhado, consultor_nome, template } = params;
   
   const firstName = nome.split(" ")[0];
   const location = cidade && estado ? `${cidade}/${estado}` : cidade || estado || "";
   
-  let msg = `Olá, ${firstName}! 👋\n\n`;
-  msg += `Aqui é ${consultor_nome || "a equipe"} da *Mais Energia Solar*. `;
-  msg += `Recebemos sua solicitação de orçamento e já estamos preparando uma proposta personalizada para você!\n\n`;
+  // Build dados section
+  const dadosParts: string[] = [];
+  if (location) dadosParts.push(`📍 Localização: ${location}`);
+  if (consumo) dadosParts.push(`⚡ Consumo médio: ${consumo} kWh/mês`);
+  if (tipo_telhado) dadosParts.push(`🏠 Tipo de telhado: ${tipo_telhado}`);
+  const dadosStr = dadosParts.length > 0 ? dadosParts.join("\n") : "Dados em análise";
+
+  // Use custom template or default
+  const tpl = template || DEFAULT_AUTO_MESSAGE_TEMPLATE;
   
-  msg += `📋 *Dados recebidos:*\n`;
-  if (location) msg += `📍 Localização: ${location}\n`;
-  if (consumo) msg += `⚡ Consumo médio: ${consumo} kWh/mês\n`;
-  if (tipo_telhado) msg += `🏠 Tipo de telhado: ${tipo_telhado}\n`;
-  
-  msg += `\nEm breve enviaremos sua proposta com os melhores equipamentos e condições de pagamento. `;
-  msg += `Qualquer dúvida, estou à disposição! ☀️`;
-  
-  return msg;
+  return tpl
+    .replace(/\{nome\}/g, firstName)
+    .replace(/\{consultor\}/g, consultor_nome || "a equipe")
+    .replace(/\{dados\}/g, dadosStr)
+    .replace(/\{cidade\}/g, cidade || "")
+    .replace(/\{estado\}/g, estado || "")
+    .replace(/\{consumo\}/g, consumo ? `${consumo}` : "")
+    .replace(/\{tipo_telhado\}/g, tipo_telhado || "");
 }
+
+// ─── Sending ───────────────────────────────────────────────────────
 
 /**
  * Send the auto-message via the send-whatsapp-message edge function.
