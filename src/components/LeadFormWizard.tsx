@@ -249,7 +249,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     setTimeout(() => { cepJustFilledRef.current = false; }, 100);
   };
 
-  const handleCEPBlur = (cep: string) => {
+  const handleCEPBlur = async (cep: string) => {
     const cleanCEP = cep.replace(/\D/g, "");
 
     // Cancel any pending debounce
@@ -279,49 +279,46 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       return;
     }
 
-    // Abort only a previous in-flight request (not arbitrary aborts)
+    // Abort only a previous in-flight request
     if (cepAbortRef.current) cepAbortRef.current.abort();
 
-    // Debounce the fetch
-    cepDebounceRef.current = setTimeout(async () => {
-      const controller = new AbortController();
-      cepAbortRef.current = controller;
+    const controller = new AbortController();
+    cepAbortRef.current = controller;
 
-      try {
-        const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`, {
-          signal: controller.signal,
-        });
-        const data = await response.json();
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`, {
+        signal: controller.signal,
+      });
+      const data = await response.json();
 
-        if (data.erro) {
-          toast({
-            title: "CEP não encontrado",
-            description: "Verifique o CEP digitado. Campo limpo para nova digitação.",
-            variant: "destructive",
-          });
-          setValue("cep", "");
-          return;
-        }
-
-        // Cache the result
-        const cepData = {
-          uf: data.uf,
-          localidade: data.localidade,
-          bairro: data.bairro || "",
-          logradouro: data.logradouro || "",
-        };
-        cepCacheRef.current.set(cleanCEP, cepData);
-        applyCepData(cepData);
-      } catch (error: any) {
-        if (error?.name === "AbortError") return;
-        console.error("Erro ao buscar CEP:", error);
+      if (data.erro) {
         toast({
-          title: "Erro ao buscar CEP",
-          description: "Não foi possível consultar o CEP. Preencha o endereço manualmente.",
+          title: "CEP não encontrado",
+          description: "Verifique o CEP digitado. Campo limpo para nova digitação.",
           variant: "destructive",
         });
+        setValue("cep", "");
+        return;
       }
-    }, 350);
+
+      // Cache the result
+      const cepData = {
+        uf: data.uf,
+        localidade: data.localidade,
+        bairro: data.bairro || "",
+        logradouro: data.logradouro || "",
+      };
+      cepCacheRef.current.set(cleanCEP, cepData);
+      applyCepData(cepData);
+    } catch (error: any) {
+      if (error?.name === "AbortError") return;
+      console.error("Erro ao buscar CEP:", error);
+      toast({
+        title: "Erro ao buscar CEP",
+        description: "Não foi possível consultar o CEP. Preencha o endereço manualmente.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getFieldsForStep = (step: number): (keyof LeadFormData)[] => {
@@ -412,18 +409,24 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   // Auto-focus the primary field of each step
   const focusStepField = (step: number) => {
     setTimeout(() => {
-      let selector = "";
+      let el: HTMLElement | null = null;
       switch (step) {
-        case 1: selector = 'input[autocomplete="nope"]'; break; // Nome field (first input)
-        case 2: selector = '[data-field="cep"] input'; break;
-        case 3: selector = '[data-field="area"] [role="combobox"]'; break;
+        case 1:
+          // Focus the Nome input (first visible input in step 1)
+          el = document.querySelector('[data-field-error] input, form input') as HTMLElement;
+          break;
+        case 2:
+          el = document.querySelector('[data-field="cep"] input') as HTMLElement;
+          break;
+        case 3:
+          el = document.querySelector('[data-field="area"] [role="combobox"]') as HTMLElement;
+          break;
       }
-      if (selector) {
-        const el = document.querySelector(selector) as HTMLElement;
-        el?.focus();
-        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el) {
+        el.focus();
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-    }, 400); // Wait for AnimatePresence transition
+    }, 450); // Wait for AnimatePresence transition
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -486,6 +489,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       setDuplicateDecision(null);
       setCurrentStep(1);
       setDirection(-1);
+      toast({
+        title: "Rascunho apagado",
+        description: "Formulário limpo. Comece novamente.",
+      });
       focusStepField(1);
     }
   };
@@ -992,7 +999,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         
         {/* Auto-save indicator */}
         <div className="absolute top-3 sm:top-4 right-3 sm:right-4">
-          <AutoSaveIndicator hasDraft={hasDraft()} isOnline={isOnline} onClear={handleClearDraft} />
+          <AutoSaveIndicator hasDraft={hasDraft} isOnline={isOnline} onClear={handleClearDraft} />
         </div>
       </CardHeader>
 

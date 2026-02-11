@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Cloud, CloudOff, Check, Trash2 } from "lucide-react";
+import { Cloud, CloudOff, Check, Trash2, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 
 interface AutoSaveIndicatorProps {
@@ -29,7 +29,7 @@ export function AutoSaveIndicator({ hasDraft, isOnline, onClear }: AutoSaveIndic
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}
-          className="flex items-center gap-1.5 text-xs text-primary"
+          className="flex items-center gap-1.5 text-xs font-bold text-success"
         >
           <Check className="w-3 h-3" />
           <span>Rascunho salvo</span>
@@ -42,15 +42,11 @@ export function AutoSaveIndicator({ hasDraft, isOnline, onClear }: AutoSaveIndic
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 border border-primary/20 rounded-full px-3 py-1.5 hover:bg-primary/20 transition-colors cursor-pointer"
+          className="flex items-center gap-1.5 text-xs font-bold text-success bg-success/10 border border-success/30 rounded-full px-3 py-1.5 hover:bg-success/20 transition-colors cursor-pointer"
           title="Clique para limpar o rascunho"
         >
-          {isOnline ? (
-            <Cloud className="w-3 h-3 text-primary" />
-          ) : (
-            <CloudOff className="w-3 h-3 text-primary" />
-          )}
-          <span>Rascunho</span>
+          <Save className="w-3 h-3 text-success" />
+          <span>Rascunho salvo</span>
           <Trash2 className="w-3 h-3 ml-0.5 opacity-60" />
         </motion.button>
       ) : null}
