@@ -228,13 +228,25 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     return touchedFields.has(field) && !errors[field as keyof LeadFormData] && Boolean(value);
   };
 
-  const handleCEPBlur = async (cep: string) => {
+  // CEP lookup: debounce, AbortController, in-memory cache
+  const cepCacheRef = useRef<Map<string, { uf: string; localidade: string; bairro: string; logradouro: string }>>(new Map());
+  const cepAbortRef = useRef<AbortController | null>(null);
+  const cepDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCEPBlur = (cep: string) => {
     const cleanCEP = cep.replace(/\D/g, "");
-    
-    // If empty, it's optional - no error
-    if (cleanCEP.length === 0) return;
-    
-    // If partially typed but not 8 digits, it's invalid
+
+    // Cancel any pending debounce/request
+    if (cepDebounceRef.current) clearTimeout(cepDebounceRef.current);
+    if (cepAbortRef.current) cepAbortRef.current.abort();
+
+    // If empty, it's optional - no error, just clear
+    if (cleanCEP.length === 0) {
+      setValue("cep", "");
+      return;
+    }
+
+    // If partially typed but not 8 digits, clear the field
     if (cleanCEP.length !== 8) {
       toast({
         title: "CEP inválido",
@@ -245,36 +257,67 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       return;
     }
 
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`);
-      const data = await response.json();
-
-      if (data.erro) {
-        toast({
-          title: "CEP não encontrado",
-          description: "Verifique o CEP digitado. Campo limpo para nova digitação.",
-          variant: "destructive",
-        });
-        setValue("cep", "");
-        return;
-      }
-
-      setValue("estado", data.uf);
-      setValue("cidade", data.localidade);
-      setValue("bairro", data.bairro || "");
-      setValue("rua", data.logradouro || "");
+    // Check cache first
+    const cached = cepCacheRef.current.get(cleanCEP);
+    if (cached) {
+      setValue("estado", cached.uf);
+      setValue("cidade", cached.localidade);
+      setValue("bairro", cached.bairro || "");
+      setValue("rua", cached.logradouro || "");
       markFieldTouched("estado");
       markFieldTouched("cidade");
-      if (data.bairro) markFieldTouched("bairro");
-      if (data.logradouro) markFieldTouched("rua");
-    } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
-      toast({
-        title: "Erro ao buscar CEP",
-        description: "Não foi possível consultar o CEP. Preencha o endereço manualmente.",
-        variant: "destructive",
-      });
+      if (cached.bairro) markFieldTouched("bairro");
+      if (cached.logradouro) markFieldTouched("rua");
+      return;
     }
+
+    // Debounce the fetch
+    cepDebounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      cepAbortRef.current = controller;
+
+      try {
+        const response = await fetch(`https://viacep.com.br/ws/${cleanCEP}/json/`, {
+          signal: controller.signal,
+        });
+        const data = await response.json();
+
+        if (data.erro) {
+          toast({
+            title: "CEP não encontrado",
+            description: "Verifique o CEP digitado. Campo limpo para nova digitação.",
+            variant: "destructive",
+          });
+          setValue("cep", "");
+          return;
+        }
+
+        // Cache the result
+        cepCacheRef.current.set(cleanCEP, {
+          uf: data.uf,
+          localidade: data.localidade,
+          bairro: data.bairro || "",
+          logradouro: data.logradouro || "",
+        });
+
+        setValue("estado", data.uf);
+        setValue("cidade", data.localidade);
+        setValue("bairro", data.bairro || "");
+        setValue("rua", data.logradouro || "");
+        markFieldTouched("estado");
+        markFieldTouched("cidade");
+        if (data.bairro) markFieldTouched("bairro");
+        if (data.logradouro) markFieldTouched("rua");
+      } catch (error: any) {
+        if (error?.name === "AbortError") return; // Cancelled, ignore
+        console.error("Erro ao buscar CEP:", error);
+        toast({
+          title: "Erro ao buscar CEP",
+          description: "Não foi possível consultar o CEP. Preencha o endereço manualmente.",
+          variant: "destructive",
+        });
+      }
+    }, 350);
   };
 
   const getFieldsForStep = (step: number): (keyof LeadFormData)[] => {
@@ -291,38 +334,12 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   };
 
   const validateCurrentStep = async () => {
+    // Only validate REQUIRED fields for the current step
+    // This prevents optional fields (like CEP) or future step fields from blocking advancement
     const fields = getFieldsForStep(currentStep);
-    const values = form.getValues();
     
-    // Use step-specific schemas for reliable partial validation
-    // (avoids zodResolver validating the full schema and potentially returning false)
-    const stepSchemas: Record<number, { safeParse: (v: any) => { success: boolean; error?: { issues: { path: (string | number)[]; code: string; message: string }[] } } }> = {
-      1: step1Schema,
-      2: step2Schema,
-      3: step3Schema,
-    };
-    const schema = stepSchemas[currentStep];
-    
-    let isValid: boolean;
-    if (schema) {
-      const result = schema.safeParse(values);
-      isValid = result.success;
-      
-      if (!result.success) {
-        // Map zod errors to react-hook-form so UI shows them
-        for (const issue of result.error.issues) {
-          const fieldName = issue.path[0] as string;
-          if (fields.includes(fieldName as keyof LeadFormData)) {
-            form.setError(fieldName as any, { type: issue.code, message: issue.message });
-          }
-        }
-      } else {
-        // Clear errors for valid fields
-        fields.forEach(f => form.clearErrors(f));
-      }
-    } else {
-      isValid = await trigger(fields);
-    }
+    // Use trigger() with explicit field list — validates only those fields via zodResolver
+    const isValid = await trigger(fields);
     
     // Always mark step fields as touched so errors become visible
     fields.forEach(field => markFieldTouched(field));
