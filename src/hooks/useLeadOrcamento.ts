@@ -67,33 +67,21 @@ export function useLeadOrcamento() {
     if (normalized.length < 10) return null;
 
     try {
-      // For anonymous users: use boolean-only RPC (no lead details exposed)
-      if (!user) {
-        const { data: hasDuplicate, error } = await supabase
-          .rpc("check_phone_duplicate", { _telefone: telefone });
-
-        if (error) {
-          console.error("[checkExistingLeads] RPC error:", error.message);
-          return null;
-        }
-
-        if (hasDuplicate) {
-          return {
-            leads: [],
-            hasDuplicate: true,
-          };
-        }
-
-        return null;
-      }
-
-      // For authenticated users: use SECURITY DEFINER RPC that bypasses RLS
-      // This ensures vendor B can see leads from vendor A for duplicate detection
+      // Always use SECURITY DEFINER RPC that bypasses RLS
+      // This works for both authenticated and anonymous users
       const { data: leads, error } = await supabase
         .rpc("find_leads_by_phone", { _telefone: telefone });
 
       if (error) {
         console.error("[checkExistingLeads] RPC error:", error.message);
+        // Fallback: try boolean-only check for anonymous users
+        if (!user) {
+          const { data: hasDuplicate } = await supabase
+            .rpc("check_phone_duplicate", { _telefone: telefone });
+          if (hasDuplicate) {
+            return { leads: [], hasDuplicate: true };
+          }
+        }
         return null;
       }
 
