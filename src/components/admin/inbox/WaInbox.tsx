@@ -42,11 +42,19 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [filterAssigned, setFilterAssigned] = useState("all");
   const [filterInstance, setFilterInstance] = useState("all");
   const [filterTag, setFilterTag] = useState("all");
-  const { hasPermission, isAdmin: isAdminUser } = useUserPermissions();
+  const { hasPermission, isAdmin: isAdminUser, loading: permissionsLoading } = useUserPermissions();
   const canViewGroups = hasPermission("view_groups");
   const canViewHidden = hasPermission("view_hidden");
-  const [showGroups, setShowGroups] = useState(true);
+  // Default to false for non-admins to prevent flash of group content while loading
+  const [showGroups, setShowGroups] = useState(false);
   const [showHidden, setShowHidden] = useState(false);
+
+  // Once permissions load, if user can view groups, default toggle to ON
+  useEffect(() => {
+    if (!permissionsLoading && canViewGroups) {
+      setShowGroups(true);
+    }
+  }, [permissionsLoading, canViewGroups]);
 
   // Selected conversation
   const [selectedConv, setSelectedConv] = useState<WaConversation | null>(null);
