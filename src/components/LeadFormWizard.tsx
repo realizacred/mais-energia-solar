@@ -13,6 +13,7 @@ import {
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { WizardSuccessScreen, StepPersonalData, StepAddress, StepConsumption } from "@/components/wizard";
 import { supabase } from "@/integrations/supabase/client";
+import { isAutoMessageEnabled, buildAutoMessage, sendAutoWelcomeMessage } from "@/lib/waAutoMessage";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -540,7 +541,30 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       }
     }
 
-    // 2) Store lead data for WaInbox auto-open + prefill
+    // 2) Send auto welcome message if enabled and conversation exists
+    if (assignedConvId && isAutoMessageEnabled(user.id)) {
+      const mensagem = buildAutoMessage({
+        nome: data.nome.trim(),
+        cidade: data.cidade?.trim(),
+        estado: data.estado,
+        consumo: data.media_consumo,
+        tipo_telhado: data.tipo_telhado,
+        consultor_nome: vendedorNome || undefined,
+      });
+
+      // Fire-and-forget: don't block redirect on message send
+      sendAutoWelcomeMessage({
+        telefone: data.telefone.trim(),
+        mensagem,
+        userId: user.id,
+      }).then(sent => {
+        if (sent) {
+          console.log("[redirectToInbox] Auto welcome message sent");
+        }
+      });
+    }
+
+    // 3) Store lead data for WaInbox auto-open + prefill
     const autoOpenData = {
       phone: data.telefone.trim(),
       nome: data.nome.trim(),
