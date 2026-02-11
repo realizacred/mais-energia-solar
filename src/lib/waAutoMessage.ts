@@ -18,6 +18,8 @@ export interface WaPipelineDiag {
   sentAt?: string;
   sentOk?: boolean;
   sentError?: string;
+  instanceUsed?: string;
+  instanceSource?: string;
   assignAttempts: number;
   assignResult: "ok" | "not_found" | "permission_denied" | "error" | "pending";
   assignConvId?: string;
@@ -223,11 +225,20 @@ export async function sendAutoWelcomeMessage(params: {
       return false;
     }
 
-    const result = response.data as { success?: boolean } | null;
+    const result = response.data as { success?: boolean; instance_used?: string; instance_source?: string } | null;
     if (result?.success) {
       // Mark as sent in this session
       sessionStorage.setItem(idempotencyKey, Date.now().toString());
-      console.log("[sendAutoWelcomeMessage] Message sent successfully");
+      console.log(`[sendAutoWelcomeMessage] Message sent successfully via instance=${result.instance_used || "?"} (${result.instance_source || "?"})`);
+      // Store instance info for diagnostics
+      try {
+        const diag = loadPipelineDiag();
+        if (diag) {
+          diag.instanceUsed = result.instance_used || undefined;
+          diag.instanceSource = result.instance_source || undefined;
+          savePipelineDiag(diag);
+        }
+      } catch {}
       return true;
     }
 
