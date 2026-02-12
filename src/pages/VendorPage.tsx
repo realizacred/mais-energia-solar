@@ -75,7 +75,7 @@ export default function VendorPage() {
                 Link Inválido
               </h1>
               <p className="text-muted-foreground mb-4">
-                O código de vendedor "{codigo}" não foi encontrado ou não está mais ativo.
+                O código de consultor "{codigo}" não foi encontrado ou não está mais ativo.
               </p>
               <div className="bg-muted/50 rounded-lg p-4 mb-6 text-sm">
                 <p className="text-muted-foreground mb-2">
