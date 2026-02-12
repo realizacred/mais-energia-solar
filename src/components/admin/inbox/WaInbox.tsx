@@ -27,6 +27,8 @@ interface LeadAutoOpenData {
   rede_atendimento?: string;
   consultor_nome?: string;
   assignedConvId?: string;
+  /** Custom prefill message — skips default template when provided */
+  prefillMessage?: string;
 }
 
 interface WaInboxProps {
@@ -258,26 +260,30 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
         setPreContactData(data);
       }
 
-      // Build prefill message if toggle is enabled
-      const autoMsg = localStorage.getItem("wa_auto_message_enabled");
-      if (autoMsg !== "false") {
-        const parts: string[] = [];
-        parts.push(`Olá ${data.nome || ""}! 👋`);
-        parts.push(`Aqui é ${data.consultor_nome || "a equipe"} da Mais Energia Solar ☀️`);
-        parts.push("");
-        parts.push("Recebi sua solicitação e já estou preparando sua simulação.");
-        parts.push("");
-        if (data.cidade && data.estado) {
-          parts.push(`📍 Localização: ${data.cidade}/${data.estado}`);
-        } else if (data.cidade) {
-          parts.push(`📍 Cidade: ${data.cidade}`);
+      // Build prefill message: use custom if provided, otherwise build default
+      if (data.prefillMessage) {
+        setPrefillMessage(data.prefillMessage);
+      } else {
+        const autoMsg = localStorage.getItem("wa_auto_message_enabled");
+        if (autoMsg !== "false") {
+          const parts: string[] = [];
+          parts.push(`Olá ${data.nome || ""}! 👋`);
+          parts.push(`Aqui é ${data.consultor_nome || "a equipe"} da Mais Energia Solar ☀️`);
+          parts.push("");
+          parts.push("Recebi sua solicitação e já estou preparando sua simulação.");
+          parts.push("");
+          if (data.cidade && data.estado) {
+            parts.push(`📍 Localização: ${data.cidade}/${data.estado}`);
+          } else if (data.cidade) {
+            parts.push(`📍 Cidade: ${data.cidade}`);
+          }
+          if (data.consumo) parts.push(`⚡ Consumo médio: ${data.consumo} kWh`);
+          if (data.tipo_telhado) parts.push(`🏠 Tipo de telhado: ${data.tipo_telhado}`);
+          if (data.rede_atendimento) parts.push(`🔌 Rede: ${data.rede_atendimento}`);
+          parts.push("");
+          parts.push("Vou te fazer algumas perguntas rápidas e já te envio um estudo completo 🙂");
+          setPrefillMessage(parts.filter((p) => p !== undefined).join("\n"));
         }
-        if (data.consumo) parts.push(`⚡ Consumo médio: ${data.consumo} kWh`);
-        if (data.tipo_telhado) parts.push(`🏠 Tipo de telhado: ${data.tipo_telhado}`);
-        if (data.rede_atendimento) parts.push(`🔌 Rede: ${data.rede_atendimento}`);
-        parts.push("");
-        parts.push("Vou te fazer algumas perguntas rápidas e já te envio um estudo completo 🙂");
-        setPrefillMessage(parts.filter((p) => p !== undefined).join("\n"));
       }
     } catch (err) {
       console.warn("[WaInbox] Failed to parse auto-open lead data:", err);
