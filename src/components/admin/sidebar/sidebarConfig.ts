@@ -242,7 +242,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         description: "Análise inteligente",
         separator: true,
       },
-      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões" },
     ],
   },
 
@@ -330,6 +329,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles" },
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações" },
+      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", separator: true },
       {
         id: "data-reset",
         title: "Limpeza de Dados",
