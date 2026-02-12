@@ -5,17 +5,12 @@ interface Props {
 }
 
 export default function VendorLinksView({ portal }: Props) {
-  const { vendedor, isAdminMode, isViewingAsVendedor } = portal;
+  const { vendedor } = portal;
 
   if (!vendedor) return null;
 
-  // Admin without impersonation — show admin view with all vendors + instalador PWA
-  if (vendedor.id === "admin" && !isViewingAsVendedor) {
-    return <LinksInstalacaoPage isAdminView />;
-  }
-
-  // Real vendor OR admin viewing as specific vendor — show only that vendor's links
-  // No instalador PWA (this is the consultant context)
+  // Vendor portal ALWAYS shows individual vendor view (even for admins)
+  // Admin-only "all vendors" view is only in admin panel
   return (
     <LinksInstalacaoPage
       vendedor={{
