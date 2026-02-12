@@ -70,15 +70,18 @@ export interface SidebarSection {
 }
 
 /**
- * Sidebar architecture follows the natural business journey:
- * Dashboard → Comercial → Conversas → Clientes → Operações →
- * Financeiro → Gestão → IA → Integrações → Site → Configurações → Administração
+ * Sidebar reorganizado em 7 seções lógicas:
  *
- * Each section maps to a stage in the lifecycle, reducing
- * cognitive load and telling the story of the business.
+ * 1. Dashboard — Visão geral (sempre aberto)
+ * 2. Operação — Uso diário: leads, propostas, clientes, inteligência
+ * 3. Conversas — WhatsApp: inbox, follow-ups, templates
+ * 4. Pós-Venda — Instalação, avaliações, agenda técnica
+ * 5. Financeiro — Recebimentos, inadimplência, comissões
+ * 6. Cadastros — Catálogo técnico, configurações de engenharia
+ * 7. Administração — Usuários, integrações, site, auditoria, sistema
  */
 export const SIDEBAR_SECTIONS: SidebarSection[] = [
-  // ─── 1. DASHBOARD — Always visible ────────────────────────
+  // ─── 1. DASHBOARD ─────────────────────────────────────────
   {
     label: "Dashboard",
     labelIcon: BarChart3,
@@ -93,9 +96,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 2. COMERCIAL — Core CRM ──────────────────────────────
+  // ─── 2. OPERAÇÃO — Uso diário da equipe comercial ─────────
   {
-    label: "Comercial",
+    label: "Operação",
     labelIcon: TrendingUp,
     indicatorBg: "bg-sidebar-commercial",
     activeClass:
@@ -108,6 +111,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "pipeline", title: "Pipeline", icon: Kanban, description: "Funil de vendas visual" },
       { id: "propostas", title: "Propostas", icon: FileText, description: "Propostas comerciais" },
       { id: "followup", title: "Follow-ups", icon: Bell, description: "Acompanhamento de leads" },
+      { id: "clientes", title: "Gestão de Clientes", icon: UserCheck, description: "Cadastro e documentos", separator: true },
       {
         id: "lead-status",
         title: "Status de Leads",
@@ -140,10 +144,22 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         description: "Scoring & Previsão",
         separator: true,
       },
+      {
+        id: "gamificacao",
+        title: "Gamificação",
+        icon: Trophy,
+        description: "Metas e ranking",
+      },
+      {
+        id: "diretor",
+        title: "Copilot IA",
+        icon: Sparkles,
+        description: "Análise inteligente",
+      },
     ],
   },
 
-  // ─── 2. CONVERSAS — WhatsApp communication ────────────────
+  // ─── 3. CONVERSAS — WhatsApp ──────────────────────────────
   {
     label: "Conversas",
     labelIcon: MessageCircle,
@@ -183,27 +199,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 3. CLIENTES — Post-sale relationship ─────────────────
+  // ─── 4. PÓS-VENDA — Instalação, avaliações, agenda ───────
   {
-    label: "Clientes",
-    labelIcon: UserCheck,
-    indicatorBg: "bg-sidebar-clients",
-    activeClass:
-      "bg-sidebar-clients/12 text-sidebar-clients font-semibold border-l-2 border-sidebar-clients",
-    hoverClass: "hover:bg-sidebar-clients/6",
-    labelClass: "text-sidebar-clients",
-    defaultOpen: true,
-    items: [
-      { id: "clientes", title: "Gestão de Clientes", icon: UserCheck, description: "Cadastro e documentos" },
-      { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto" },
-      { id: "avaliacoes", title: "Avaliações", icon: Star, description: "Feedback dos clientes" },
-      { id: "servicos", title: "Agenda Técnica", icon: CalendarClock, description: "Agendamentos de serviço" },
-    ],
-  },
-
-  // ─── 4. OPERAÇÕES — Field execution ───────────────────────
-  {
-    label: "Operações",
+    label: "Pós-Venda",
     labelIcon: Wrench,
     indicatorBg: "bg-sidebar-operations",
     activeClass:
@@ -212,13 +210,16 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-operations",
     defaultOpen: false,
     items: [
-      { id: "instaladores", title: "Instaladores", icon: Wrench, description: "Equipe de campo" },
+      { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto" },
+      { id: "avaliacoes", title: "Avaliações", icon: Star, description: "Feedback dos clientes" },
+      { id: "servicos", title: "Agenda Técnica", icon: CalendarClock, description: "Agendamentos de serviço" },
+      { id: "instaladores", title: "Instaladores", icon: Wrench, description: "Equipe de campo", separator: true },
       { id: "validacao", title: "Validação", icon: ClipboardCheck, description: "Aprovar vendas realizadas" },
       { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList, description: "Prazos e pendências" },
     ],
   },
 
-  // ─── 5. FINANCEIRO — Revenue & trust ──────────────────────
+  // ─── 5. FINANCEIRO ────────────────────────────────────────
   {
     label: "Financeiro",
     labelIcon: Wallet,
@@ -235,77 +236,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 6. GESTÃO — Team, management & AI ────────────────────
+  // ─── 6. CADASTROS — Catálogo técnico e configurações ──────
   {
-    label: "Gestão",
-    labelIcon: Users,
-    indicatorBg: "bg-sidebar-cadastros",
-    activeClass:
-      "bg-sidebar-cadastros/12 text-sidebar-cadastros font-semibold border-l-2 border-sidebar-cadastros",
-    hoverClass: "hover:bg-sidebar-cadastros/6",
-    labelClass: "text-sidebar-cadastros",
-    defaultOpen: false,
-    items: [
-      { id: "vendedores", title: "Vendedores", icon: Users, description: "Cadastro de consultores" },
-      { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso" },
-      { id: "gamificacao", title: "Gamificação", icon: Trophy, description: "Metas e ranking" },
-      {
-        id: "diretor",
-        title: "Copilot IA",
-        icon: Sparkles,
-        description: "Análise inteligente",
-        separator: true,
-      },
-    ],
-  },
-
-  // ─── 7. INTEGRAÇÕES — External connections ────────────────
-  {
-    label: "Integrações",
-    labelIcon: Cable,
-    indicatorBg: "bg-sidebar-integrations",
-    activeClass:
-      "bg-sidebar-integrations/12 text-sidebar-integrations font-semibold border-l-2 border-sidebar-integrations",
-    hoverClass: "hover:bg-sidebar-integrations/6",
-    labelClass: "text-sidebar-integrations",
-    defaultOpen: false,
-    items: [
-      { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API" },
-      { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens" },
-      { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts" },
-      { id: "solarmarket", title: "SolarMarket", icon: Sun, description: "Marketplace solar" },
-      { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas" },
-      { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP" },
-      {
-        id: "links-instalacao",
-        title: "Links & Instalação",
-        icon: Smartphone,
-        description: "App PWA e links de vendedor",
-        separator: true,
-      },
-    ],
-  },
-
-  // ─── 8. SITE — White-label ready ──────────────────────────
-  {
-    label: "Site",
-    labelIcon: Globe,
-    indicatorBg: "bg-sidebar-marketing",
-    activeClass:
-      "bg-sidebar-marketing/12 text-sidebar-marketing font-semibold border-l-2 border-sidebar-marketing",
-    hoverClass: "hover:bg-sidebar-marketing/6",
-    labelClass: "text-sidebar-marketing",
-    defaultOpen: false,
-    items: [
-      { id: "site-config", title: "Conteúdo & Visual", icon: Settings, description: "Layout e textos do site" },
-      { id: "site-servicos", title: "Serviços", icon: Wrench, description: "Serviços oferecidos" },
-      { id: "obras", title: "Portfólio", icon: Sun, description: "Projetos realizados" },
-    ],
-  },
-
-  // ─── 9. CONFIGURAÇÕES — Master data & settings ────────────
-  {
-    label: "Configurações",
+    label: "Cadastros",
     labelIcon: Settings,
     indicatorBg: "bg-sidebar-cadastros",
     activeClass:
@@ -330,7 +263,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 10. ADMINISTRAÇÃO — System & logs ────────────────────
+  // ─── 7. ADMINISTRAÇÃO — Usuários, integrações, sistema ────
   {
     label: "Administração",
     labelIcon: Shield,
@@ -341,9 +274,25 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-settings",
     defaultOpen: false,
     items: [
+      // Gestão de equipe
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles" },
+      { id: "vendedores", title: "Vendedores", icon: Users, description: "Cadastro de consultores" },
+      { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso" },
+      // Integrações
+      { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", separator: true },
+      { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens" },
+      { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts" },
+      { id: "solarmarket", title: "SolarMarket", icon: Sun, description: "Marketplace solar" },
+      { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas" },
+      { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP" },
+      // Site
+      { id: "site-config", title: "Conteúdo & Visual", icon: Globe, description: "Layout e textos do site", separator: true },
+      { id: "site-servicos", title: "Serviços", icon: Wrench, description: "Serviços oferecidos" },
+      { id: "obras", title: "Portfólio", icon: Sun, description: "Projetos realizados" },
+      // Sistema
+      { id: "links-instalacao", title: "Links & Instalação", icon: Smartphone, description: "App PWA e links de vendedor", separator: true },
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações" },
-      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", separator: true },
+      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões" },
       {
         id: "data-reset",
         title: "Limpeza de Dados",
