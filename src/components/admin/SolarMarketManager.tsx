@@ -8,13 +8,12 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import {
-  RefreshCw, Settings, Plug, Zap, Clock, CheckCircle2, XCircle,
-  AlertTriangle, Loader2, Play, ExternalLink, Copy, Shield,
-  FolderOpen, Link2, Activity, StopCircle, Ban,
+  RefreshCw, Settings, Plug, Zap, CheckCircle2,
+  AlertTriangle, Loader2, Play, Copy,
+  FolderOpen, Link2, Shield,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -33,39 +32,11 @@ interface SmConfig {
   last_token_expires_at: string | null;
 }
 
-interface SyncLog {
-  id: string;
-  started_at: string;
-  finished_at: string | null;
-  status: string;
-  error: string | null;
-  counts: any;
-  source: string;
-  mode: string;
-  triggered_by: string | null;
-}
-
-interface IntegrationRequest {
-  id: string;
-  request_id: string;
-  method: string;
-  path: string;
-  params: any;
-  status_code: number | null;
-  duration_ms: number | null;
-  error: string | null;
-  created_at: string;
-}
-
 export function SolarMarketManager() {
   const [loading, setLoading] = useState(true);
   const [config, setConfig] = useState<SmConfig | null>(null);
-  const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
-  const [integrationRequests, setIntegrationRequests] = useState<IntegrationRequest[]>([]);
   const [syncing, setSyncing] = useState(false);
-  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
-  const [logsFilter, setLogsFilter] = useState("all");
 
   // Form state
   const [formAuthMode, setFormAuthMode] = useState("token");
@@ -96,9 +67,9 @@ export function SolarMarketManager() {
       if (data) {
         setConfig(data as SmConfig);
         setFormAuthMode(data.auth_mode || "token");
-        setFormApiToken(""); // never show token
+        setFormApiToken("");
         setFormEmail(data.auth_email || "");
-        setFormPassword(""); // never show password
+        setFormPassword("");
         setFormBaseUrl(data.base_url || "https://business.solarmarket.com.br/api/v2");
         setFormSiteUrl(data.site_url || "");
         setFormWebhookSecret(data.webhook_secret || "");
@@ -111,45 +82,9 @@ export function SolarMarketManager() {
     }
   }, []);
 
-  const fetchLogs = useCallback(async () => {
-    try {
-      let query = supabase
-        .from("solar_market_sync_logs")
-        .select("*")
-        .order("started_at", { ascending: false })
-        .limit(50);
-
-      if (logsFilter !== "all") {
-        query = query.eq("status", logsFilter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setSyncLogs((data as SyncLog[]) || []);
-    } catch (err: any) {
-      console.error("Error fetching SM logs:", err);
-    }
-  }, [logsFilter]);
-
-  const fetchIntegrationRequests = useCallback(async () => {
-    try {
-      const { data, error } = await supabase
-        .from("solar_market_integration_requests")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
-      if (error) throw error;
-      setIntegrationRequests((data as IntegrationRequest[]) || []);
-    } catch (err: any) {
-      console.error("Error fetching SM integration requests:", err);
-    }
-  }, []);
-
   useEffect(() => {
     fetchConfig();
-    fetchLogs();
-    fetchIntegrationRequests();
-  }, [fetchConfig, fetchLogs, fetchIntegrationRequests]);
+  }, [fetchConfig]);
 
   const saveConfig = async () => {
     setSaving(true);
@@ -162,12 +97,10 @@ export function SolarMarketManager() {
         webhook_secret: formWebhookSecret || null,
       };
 
-      // Token mode
       if (formAuthMode === "token" && formApiToken) {
         payload.api_token = formApiToken;
       }
 
-      // Credentials mode
       if (formAuthMode === "credentials") {
         payload.auth_email = formEmail;
         if (formPassword) {
@@ -203,7 +136,6 @@ export function SolarMarketManager() {
       const { data, error } = await supabase.functions.invoke("solar-market-auth");
 
       if (error) {
-        // Try to extract real error message from FunctionsHttpError
         const { parseInvokeError } = await import("@/lib/supabaseFunctionError");
         const parsed = await parseInvokeError(error);
         toast.error(`Falha na conexão: ${parsed.message}`);
@@ -238,9 +170,8 @@ export function SolarMarketManager() {
       } else {
         const c = data?.counts || {};
         toast.success(
-          `Sincronização concluída! ${c.clients_synced || 0} clientes, ${c.projects_synced || 0} projetos, ${c.proposals_synced || 0} propostas, ${c.leads_linked || 0} leads vinculados`
+          `Sincronização iniciada! ${c.clients_synced || 0} clientes processados na fase inicial.`
         );
-        fetchLogs();
       }
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);
@@ -272,7 +203,6 @@ export function SolarMarketManager() {
         toast.error(`Erro: ${data.error}`);
       } else {
         toast.success("Delta sync concluído!");
-        fetchLogs();
       }
     } catch (err: any) {
       toast.error(`Erro: ${err.message}`);
@@ -288,53 +218,6 @@ export function SolarMarketManager() {
     toast.success("URL copiada!");
   };
 
-  const statusIcon = (status: string) => {
-    switch (status) {
-      case "success": return <CheckCircle2 className="h-4 w-4 text-success" />;
-      case "fail": return <XCircle className="h-4 w-4 text-destructive" />;
-      case "partial": return <AlertTriangle className="h-4 w-4 text-warning" />;
-      case "running": return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
-      case "cancelled": return <Ban className="h-4 w-4 text-muted-foreground" />;
-      default: return <Clock className="h-4 w-4 text-muted-foreground" />;
-    }
-  };
-
-  const statusBadge = (status: string) => {
-    const variants: Record<string, "default" | "destructive" | "secondary" | "outline"> = {
-      success: "default",
-      fail: "destructive",
-      partial: "secondary",
-      running: "outline",
-      cancelled: "secondary",
-    };
-    return (
-      <Badge variant={variants[status] || "outline"} className="gap-1">
-        {statusIcon(status)}
-        {status}
-      </Badge>
-    );
-  };
-
-  const cancelSync = async (logId: string) => {
-    setCancellingId(logId);
-    try {
-      const { error } = await supabase
-        .from("solar_market_sync_logs")
-        .update({ status: "cancelled", finished_at: new Date().toISOString(), error: "Cancelado pelo usuário" })
-        .eq("id", logId)
-        .eq("status", "running");
-
-      if (error) throw error;
-
-      toast.success("Sincronização cancelada. O processo será interrompido em instantes.");
-      fetchLogs();
-    } catch (err: any) {
-      toast.error(`Erro ao cancelar: ${err.message}`);
-    } finally {
-      setCancellingId(null);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -345,12 +228,8 @@ export function SolarMarketManager() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="config" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 sm:grid-cols-7">
-          <TabsTrigger value="config" className="gap-1.5">
-            <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Config</span>
-          </TabsTrigger>
+      <Tabs defaultValue="dados" className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="dados" className="gap-1.5">
             <FolderOpen className="h-4 w-4" />
             <span className="hidden sm:inline">Dados</span>
@@ -367,180 +246,11 @@ export function SolarMarketManager() {
             <Zap className="h-4 w-4" />
             <span className="hidden sm:inline">Delta</span>
           </TabsTrigger>
-          <TabsTrigger value="logs" className="gap-1.5">
-            <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">Logs</span>
-          </TabsTrigger>
-          <TabsTrigger value="requests" className="gap-1.5">
-            <Activity className="h-4 w-4" />
-            <span className="hidden sm:inline">Requests</span>
+          <TabsTrigger value="config" className="gap-1.5">
+            <Settings className="h-4 w-4" />
+            <span className="hidden sm:inline">Config</span>
           </TabsTrigger>
         </TabsList>
-
-        {/* ── Config Tab ─────────────────────────── */}
-        <TabsContent value="config" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plug className="h-5 w-5 text-primary" />
-                Credenciais SolarMarket
-              </CardTitle>
-              <CardDescription>
-                Configure as credenciais de acesso à API do SolarMarket. Os dados são armazenados de forma segura e nunca expostos ao navegador.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base font-medium">Integração Ativa</Label>
-                  <p className="text-sm text-muted-foreground">Habilite para permitir sincronização</p>
-                </div>
-                <Switch checked={formEnabled} onCheckedChange={setFormEnabled} />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label>Modo de Autenticação</Label>
-                <Select value={formAuthMode} onValueChange={setFormAuthMode}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="token">Token direto (Bearer)</SelectItem>
-                    <SelectItem value="credentials">E-mail e Senha</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {formAuthMode === "token" ? (
-                <div className="space-y-2">
-                  <Label htmlFor="sm-token">Token da API SolarMarket</Label>
-                  <Input
-                    id="sm-token"
-                    type="password"
-                    placeholder={config?.api_token ? "Token configurado ✓ (deixe vazio para manter)" : "Cole o token aqui (ex: 12648:NSf5SJcvu...)"}
-                    value={formApiToken}
-                    onChange={(e) => setFormApiToken(e.target.value)}
-                  />
-                  {config?.api_token ? (
-                    <p className="text-xs text-success flex items-center gap-1">
-                      <CheckCircle2 className="h-3 w-3" />
-                      Token salvo. Deixe em branco para manter o atual.
-                    </p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      Cole o token do usuário SolarMarket (formato: ID:TOKEN). Não cole URLs.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="sm-email">E-mail SolarMarket</Label>
-                    <Input
-                      id="sm-email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={formEmail}
-                      onChange={(e) => setFormEmail(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sm-password">Senha SolarMarket</Label>
-                    <Input
-                      id="sm-password"
-                      type="password"
-                      placeholder={config?.auth_password_encrypted ? "••••••••" : "Digite a senha"}
-                      value={formPassword}
-                      onChange={(e) => setFormPassword(e.target.value)}
-                    />
-                    {config?.auth_password_encrypted && (
-                      <p className="text-xs text-muted-foreground">Deixe em branco para manter a senha atual</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="sm-url">URL Base da API</Label>
-                <Input
-                  id="sm-url"
-                  placeholder="https://business.solarmarket.com.br/api/v2"
-                  value={formBaseUrl}
-                  onChange={(e) => setFormBaseUrl(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sm-site-url">URL do Site (para n8n / integrações)</Label>
-                <Input
-                  id="sm-site-url"
-                  placeholder="https://meusite.com.br"
-                  value={formSiteUrl}
-                  onChange={(e) => setFormSiteUrl(e.target.value)}
-                />
-                <p className="text-xs text-muted-foreground">
-                  URL usada para configurar webhooks, n8n e integrações externas.
-                </p>
-              </div>
-
-              <Separator />
-
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  Webhook (opcional)
-                </Label>
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="sm-webhook-url" className="text-xs text-muted-foreground">URL do Webhook (para colar no SolarMarket)</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="sm-webhook-url"
-                        readOnly
-                        value={webhookUrl}
-                        className="font-mono text-xs"
-                      />
-                      <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="sm-webhook-secret" className="text-xs text-muted-foreground">Secret do Webhook (validação)</Label>
-                    <Input
-                      id="sm-webhook-secret"
-                      placeholder="Opcional: secret para validar webhooks"
-                      value={formWebhookSecret}
-                      onChange={(e) => setFormWebhookSecret(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {config?.last_token_expires_at && (
-                <div className="p-3 rounded-lg bg-muted/50 text-sm">
-                  <span className="text-muted-foreground">Token cacheado expira em: </span>
-                  <span className="font-medium">
-                    {format(new Date(config.last_token_expires_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
-                  </span>
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <Button onClick={saveConfig} disabled={saving}>
-                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Salvar Configuração
-                </Button>
-                <Button variant="outline" onClick={testConnection} disabled={testing || !config?.enabled}>
-                  {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plug className="mr-2 h-4 w-4" />}
-                  Testar Conexão
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* ── Dados Tab ──────────────────────────── */}
         <TabsContent value="dados" className="mt-4">
@@ -561,7 +271,7 @@ export function SolarMarketManager() {
                 Sincronização Completa
               </CardTitle>
               <CardDescription>
-                Busca todos os clientes, projetos, propostas e funis do SolarMarket e sincroniza com o sistema. Vincula automaticamente leads por telefone.
+                Busca todos os clientes, projetos e propostas do SolarMarket e sincroniza com o sistema.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -571,7 +281,7 @@ export function SolarMarketManager() {
                   <div className="text-sm">
                     <p className="font-medium text-foreground">Atenção</p>
                     <p className="text-muted-foreground">
-                      A sincronização completa pode levar vários minutos dependendo do volume de dados. Não feche esta página durante o processo.
+                      A sincronização completa pode levar vários minutos dependendo do volume de dados.
                     </p>
                   </div>
                 </div>
@@ -597,30 +307,20 @@ export function SolarMarketManager() {
 
               <Separator />
 
-              <div className="space-y-3">
-                <Label className="text-sm font-medium flex items-center gap-2">
-                  <Clock className="h-4 w-4" />
-                  Sync Programado (Cron / n8n)
-                </Label>
-                <p className="text-sm text-muted-foreground">
-                  Configure no n8n ou cron para rodar a sincronização completa automaticamente (recomendado: 1x por dia). 
-                  Use a URL abaixo como HTTP Request no n8n:
-                </p>
-                <div className="space-y-2">
-                  <Label className="text-xs text-muted-foreground">URL para Full Sync (POST)</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      readOnly
-                      value={`https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/solar-market-sync`}
-                      className="font-mono text-xs"
-                    />
-                    <Button variant="outline" size="icon" onClick={() => {
-                      navigator.clipboard.writeText(`https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/solar-market-sync`);
-                      toast.success("URL copiada!");
-                    }}>
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">URL para Full Sync (POST)</Label>
+                <div className="flex gap-2">
+                  <Input
+                    readOnly
+                    value={`https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/solar-market-sync`}
+                    className="font-mono text-xs"
+                  />
+                  <Button variant="outline" size="icon" onClick={() => {
+                    navigator.clipboard.writeText(`https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/solar-market-sync`);
+                    toast.success("URL copiada!");
+                  }}>
+                    <Copy className="h-4 w-4" />
+                  </Button>
                 </div>
                 <pre className="p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
 {`POST /functions/v1/solar-market-sync
@@ -631,10 +331,6 @@ Content-Type: application/json
   "source": "cron"
 }`}
                 </pre>
-                <p className="text-xs text-muted-foreground">
-                  💡 No campo <strong>source</strong> use "cron" ou "n8n" para pular a verificação de autenticação de usuário. 
-                  O endpoint é protegido por <code>apikey</code> do Supabase no header.
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -649,7 +345,7 @@ Content-Type: application/json
                 Sincronização Incremental (Delta)
               </CardTitle>
               <CardDescription>
-                Sincronize um item específico por ID do SolarMarket. Ideal para testes e atualizações pontuais via n8n.
+                Sincronize um item específico por ID do SolarMarket.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -686,215 +382,161 @@ Content-Type: application/json
                   </Button>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── Config Tab ─────────────────────────── */}
+        <TabsContent value="config" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Plug className="h-5 w-5 text-primary" />
+                Credenciais SolarMarket
+              </CardTitle>
+              <CardDescription>
+                Configure as credenciais de acesso à API do SolarMarket.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label className="text-base font-medium">Integração Ativa</Label>
+                  <p className="text-sm text-muted-foreground">Habilite para permitir sincronização</p>
+                </div>
+                <Switch checked={formEnabled} onCheckedChange={setFormEnabled} />
+              </div>
 
               <Separator />
 
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Exemplo de payload n8n / webhook:</Label>
-                <pre className="p-3 rounded-lg bg-muted text-xs font-mono overflow-x-auto">
-{`POST /functions/v1/solar-market-sync
-{
-  "mode": "delta",
-  "source": "n8n",
-  "delta": {
-    "type": "client",
-    "sm_client_id": 12345
-  }
-}`}
-                </pre>
+                <Label>Modo de Autenticação</Label>
+                <Select value={formAuthMode} onValueChange={setFormAuthMode}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="token">Token direto (Bearer)</SelectItem>
+                    <SelectItem value="credentials">E-mail e Senha</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* ── Logs Tab ───────────────────────────── */}
-        <TabsContent value="logs" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Clock className="h-5 w-5 text-primary" />
-                    Histórico de Sincronização
-                  </CardTitle>
-                  <CardDescription>Últimos 50 registros</CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Select value={logsFilter} onValueChange={setLogsFilter}>
-                    <SelectTrigger className="w-[130px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todos</SelectItem>
-                      <SelectItem value="success">Sucesso</SelectItem>
-                      <SelectItem value="fail">Falha</SelectItem>
-                      <SelectItem value="partial">Parcial</SelectItem>
-                      <SelectItem value="running">Rodando</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button variant="outline" size="icon" onClick={fetchLogs}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {syncLogs.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhum log de sincronização encontrado
+              {formAuthMode === "token" ? (
+                <div className="space-y-2">
+                  <Label htmlFor="sm-token">Token da API SolarMarket</Label>
+                  <Input
+                    id="sm-token"
+                    type="password"
+                    placeholder={config?.api_token ? "Token configurado ✓ (deixe vazio para manter)" : "Cole o token aqui"}
+                    value={formApiToken}
+                    onChange={(e) => setFormApiToken(e.target.value)}
+                  />
+                  {config?.api_token && (
+                    <p className="text-xs text-success flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />
+                      Token salvo. Deixe em branco para manter o atual.
+                    </p>
+                  )}
                 </div>
               ) : (
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Modo</TableHead>
-                        <TableHead>Fonte</TableHead>
-                        <TableHead>Início</TableHead>
-                        <TableHead>Duração</TableHead>
-                        <TableHead>Contagens</TableHead>
-                        <TableHead>Erro</TableHead>
-                        <TableHead className="w-[80px]">Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {syncLogs.map((log) => {
-                        const duration = log.finished_at && log.started_at
-                          ? Math.round((new Date(log.finished_at).getTime() - new Date(log.started_at).getTime()) / 1000)
-                          : null;
-                        const counts = log.counts || {};
-
-                        return (
-                          <TableRow key={log.id}>
-                            <TableCell>{statusBadge(log.status)}</TableCell>
-                            <TableCell>
-                              <Badge variant="outline">{log.mode}</Badge>
-                            </TableCell>
-                            <TableCell className="text-xs text-muted-foreground">{log.source}</TableCell>
-                            <TableCell className="text-xs">
-                              {format(new Date(log.started_at), "dd/MM HH:mm:ss", { locale: ptBR })}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {duration !== null ? `${duration}s` : "—"}
-                            </TableCell>
-                            <TableCell className="text-xs">
-                              {counts.clients_synced !== undefined ? (
-                                <span className="space-x-1">
-                                  <span title="Clientes">👤{counts.clients_synced}</span>
-                                  <span title="Projetos">📁{counts.projects_synced}</span>
-                                  <span title="Propostas">📄{counts.proposals_synced}</span>
-                                  <span title="Links">🔗{counts.leads_linked}</span>
-                                </span>
-                              ) : "—"}
-                            </TableCell>
-                            <TableCell className="text-xs max-w-[200px] truncate text-destructive">
-                              {log.error || "—"}
-                            </TableCell>
-                            <TableCell>
-                              {log.status === "running" && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 gap-1 text-destructive hover:text-destructive"
-                                  disabled={cancellingId === log.id}
-                                  onClick={() => cancelSync(log.id)}
-                                >
-                                  {cancellingId === log.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
-                                  ) : (
-                                    <StopCircle className="h-3 w-3" />
-                                  )}
-                                  Parar
-                                </Button>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="sm-email">E-mail SolarMarket</Label>
+                    <Input
+                      id="sm-email"
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={formEmail}
+                      onChange={(e) => setFormEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="sm-password">Senha SolarMarket</Label>
+                    <Input
+                      id="sm-password"
+                      type="password"
+                      placeholder={config?.auth_password_encrypted ? "••••••••" : "Digite a senha"}
+                      value={formPassword}
+                      onChange={(e) => setFormPassword(e.target.value)}
+                    />
+                  </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        {/* ── Requests Tab ────────────────────────── */}
-        <TabsContent value="requests" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Activity className="h-5 w-5 text-primary" />
-                    Requisições à API SolarMarket
-                  </CardTitle>
-                  <CardDescription>Últimas 100 requisições HTTP registradas (retenção: 30 dias)</CardDescription>
+              <div className="space-y-2">
+                <Label htmlFor="sm-url">URL Base da API</Label>
+                <Input
+                  id="sm-url"
+                  placeholder="https://business.solarmarket.com.br/api/v2"
+                  value={formBaseUrl}
+                  onChange={(e) => setFormBaseUrl(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="sm-site-url">URL do Site (para n8n / integrações)</Label>
+                <Input
+                  id="sm-site-url"
+                  placeholder="https://meusite.com.br"
+                  value={formSiteUrl}
+                  onChange={(e) => setFormSiteUrl(e.target.value)}
+                />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  Webhook (opcional)
+                </Label>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="sm-webhook-url" className="text-xs text-muted-foreground">URL do Webhook</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="sm-webhook-url"
+                        readOnly
+                        value={webhookUrl}
+                        className="font-mono text-xs"
+                      />
+                      <Button variant="outline" size="icon" onClick={copyWebhookUrl}>
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="sm-webhook-secret" className="text-xs text-muted-foreground">Secret do Webhook</Label>
+                    <Input
+                      id="sm-webhook-secret"
+                      placeholder="Opcional: secret para validar webhooks"
+                      value={formWebhookSecret}
+                      onChange={(e) => setFormWebhookSecret(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <Button variant="outline" size="icon" onClick={fetchIntegrationRequests}>
-                  <RefreshCw className="h-4 w-4" />
+              </div>
+
+              {config?.last_token_expires_at && (
+                <div className="p-3 rounded-lg bg-muted/50 text-sm">
+                  <span className="text-muted-foreground">Token cacheado expira em: </span>
+                  <span className="font-medium">
+                    {format(new Date(config.last_token_expires_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button onClick={saveConfig} disabled={saving}>
+                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Salvar Configuração
+                </Button>
+                <Button variant="outline" onClick={testConnection} disabled={testing || !config?.enabled}>
+                  {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plug className="mr-2 h-4 w-4" />}
+                  Testar Conexão
                 </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {integrationRequests.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  Nenhuma requisição registrada ainda. Execute uma sincronização para gerar logs.
-                </div>
-              ) : (
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Método</TableHead>
-                        <TableHead>Path</TableHead>
-                        <TableHead>Duração</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Erro</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {integrationRequests.map((req) => (
-                        <TableRow key={req.id}>
-                          <TableCell>
-                            <Badge
-                              variant={
-                                !req.status_code ? "outline" :
-                                req.status_code < 300 ? "default" :
-                                req.status_code < 400 ? "secondary" :
-                                "destructive"
-                              }
-                              className="font-mono text-xs"
-                            >
-                              {req.status_code || "—"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-mono text-xs">
-                              {req.method}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-xs font-mono max-w-[200px] truncate" title={req.path}>
-                            {req.path}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {req.duration_ms != null ? `${req.duration_ms}ms` : "—"}
-                          </TableCell>
-                          <TableCell className="text-xs">
-                            {format(new Date(req.created_at), "dd/MM HH:mm:ss", { locale: ptBR })}
-                          </TableCell>
-                          <TableCell className="text-xs max-w-[200px] truncate text-destructive" title={req.error || ""}>
-                            {req.error || "—"}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
