@@ -223,7 +223,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const dynamicResolver = useCallback(
     (values: any, context: any, options: any) => {
       const step = currentStepRef.current;
-      const schema = step === 1 ? step1Schema : step === 2 ? step2Schema : leadFormSchema;
+      const schema = step === 1 ? step1Schema : step === 2 ? step2Schema : step3Schema;
       return zodResolver(schema)(values, context, options);
     },
     []
