@@ -15,6 +15,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.9.1",
+    date: "2026-02-12",
+    title: "Configurações Globais de Notificações",
+    type: "feature",
+    description: "Admins podem ativar/desativar tipos de notificação (leads, orçamentos, WhatsApp, alertas) para toda a empresa.",
+    details: [
+      "Tabela notification_config com isolamento por tenant",
+      "Configuração por tipo: novos leads, orçamentos, mensagens WhatsApp, leads parados, conversas esquecidas",
+      "Edge Function send-push-notification consulta config antes de enviar",
+      "Acessível em Administração → Sistema → Notificações",
+    ],
+  },
+  {
     version: "2.9.0",
     date: "2026-02-12",
     title: "Sistema de Changelog Automático",
