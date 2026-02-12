@@ -1072,7 +1072,7 @@ export type Database = {
           simulacao_aceita_id: string | null
           telefone: string
           telefone_normalized: string | null
-          tenant_id: string | null
+          tenant_id: string
           transformador_id: string | null
           updated_at: string
           valor_projeto: number | null
@@ -1108,7 +1108,7 @@ export type Database = {
           simulacao_aceita_id?: string | null
           telefone: string
           telefone_normalized?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           transformador_id?: string | null
           updated_at?: string
           valor_projeto?: number | null
@@ -1144,7 +1144,7 @@ export type Database = {
           simulacao_aceita_id?: string | null
           telefone?: string
           telefone_normalized?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           transformador_id?: string | null
           updated_at?: string
           valor_projeto?: number | null
@@ -2466,7 +2466,7 @@ export type Database = {
           status_id: string | null
           telefone: string
           telefone_normalized: string | null
-          tenant_id: string | null
+          tenant_id: string
           tipo_telhado: string
           ultimo_contato: string | null
           updated_at: string
@@ -2503,7 +2503,7 @@ export type Database = {
           status_id?: string | null
           telefone: string
           telefone_normalized?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           tipo_telhado: string
           ultimo_contato?: string | null
           updated_at?: string
@@ -2540,7 +2540,7 @@ export type Database = {
           status_id?: string | null
           telefone?: string
           telefone_normalized?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           tipo_telhado?: string
           ultimo_contato?: string | null
           updated_at?: string
@@ -2875,7 +2875,7 @@ export type Database = {
           regime_compensacao: string | null
           rua: string | null
           status_id: string | null
-          tenant_id: string | null
+          tenant_id: string
           tipo_ligacao: string | null
           tipo_telhado: string
           ultimo_contato: string | null
@@ -2908,7 +2908,7 @@ export type Database = {
           regime_compensacao?: string | null
           rua?: string | null
           status_id?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           tipo_ligacao?: string | null
           tipo_telhado: string
           ultimo_contato?: string | null
@@ -2941,7 +2941,7 @@ export type Database = {
           regime_compensacao?: string | null
           rua?: string | null
           status_id?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           tipo_ligacao?: string | null
           tipo_telhado?: string
           ultimo_contato?: string | null
@@ -3311,7 +3311,7 @@ export type Database = {
           settings: Json | null
           status: string
           telefone: string | null
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
           user_id: string
         }
@@ -3325,7 +3325,7 @@ export type Database = {
           settings?: Json | null
           status?: string
           telefone?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           user_id: string
         }
@@ -3339,7 +3339,7 @@ export type Database = {
           settings?: Json | null
           status?: string
           telefone?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           user_id?: string
         }
@@ -3650,7 +3650,7 @@ export type Database = {
           sm_project_id: string | null
           sm_project_name: string | null
           status: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
           vendedor_id: string | null
         }
@@ -3687,7 +3687,7 @@ export type Database = {
           sm_project_id?: string | null
           sm_project_name?: string | null
           status?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           vendedor_id?: string | null
         }
@@ -3724,7 +3724,7 @@ export type Database = {
           sm_project_id?: string | null
           sm_project_name?: string | null
           status?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           vendedor_id?: string | null
         }
@@ -5939,7 +5939,7 @@ export type Database = {
           settings: Json | null
           slug: string | null
           telefone: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
           user_id: string | null
         }
@@ -5954,7 +5954,7 @@ export type Database = {
           settings?: Json | null
           slug?: string | null
           telefone: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -5969,7 +5969,7 @@ export type Database = {
           settings?: Json | null
           slug?: string | null
           telefone?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           user_id?: string | null
         }
@@ -6250,7 +6250,7 @@ export type Database = {
           profile_picture_url: string | null
           remote_jid: string
           status: string
-          tenant_id: string | null
+          tenant_id: string
           unread_count: number
           updated_at: string
         }
@@ -6271,7 +6271,7 @@ export type Database = {
           profile_picture_url?: string | null
           remote_jid: string
           status?: string
-          tenant_id?: string | null
+          tenant_id?: string
           unread_count?: number
           updated_at?: string
         }
@@ -6292,7 +6292,7 @@ export type Database = {
           profile_picture_url?: string | null
           remote_jid?: string
           status?: string
-          tenant_id?: string | null
+          tenant_id?: string
           unread_count?: number
           updated_at?: string
         }
@@ -6573,7 +6573,7 @@ export type Database = {
           profile_name: string | null
           profile_picture_url: string | null
           status: string
-          tenant_id: string | null
+          tenant_id: string
           updated_at: string
           vendedor_id: string | null
           webhook_secret: string
@@ -6594,7 +6594,7 @@ export type Database = {
           profile_name?: string | null
           profile_picture_url?: string | null
           status?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           vendedor_id?: string | null
           webhook_secret?: string
@@ -6615,7 +6615,7 @@ export type Database = {
           profile_name?: string | null
           profile_picture_url?: string | null
           status?: string
-          tenant_id?: string | null
+          tenant_id?: string
           updated_at?: string
           vendedor_id?: string | null
           webhook_secret?: string
@@ -6955,7 +6955,7 @@ export type Database = {
           id: string
           last_read_at: string
           last_read_message_id: string | null
-          tenant_id: string | null
+          tenant_id: string
           user_id: string
         }
         Insert: {
@@ -6963,7 +6963,7 @@ export type Database = {
           id?: string
           last_read_at?: string
           last_read_message_id?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           user_id: string
         }
         Update: {
@@ -6971,7 +6971,7 @@ export type Database = {
           id?: string
           last_read_at?: string
           last_read_message_id?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           user_id?: string
         }
         Relationships: [
@@ -7087,7 +7087,7 @@ export type Database = {
           from_user_id: string | null
           id: string
           reason: string | null
-          tenant_id: string | null
+          tenant_id: string
           to_user_id: string | null
         }
         Insert: {
@@ -7096,7 +7096,7 @@ export type Database = {
           from_user_id?: string | null
           id?: string
           reason?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           to_user_id?: string | null
         }
         Update: {
@@ -7105,7 +7105,7 @@ export type Database = {
           from_user_id?: string | null
           id?: string
           reason?: string | null
-          tenant_id?: string | null
+          tenant_id?: string
           to_user_id?: string | null
         }
         Relationships: [
@@ -7136,7 +7136,7 @@ export type Database = {
           processed: boolean
           processed_at: string | null
           retry_count: number
-          tenant_id: string | null
+          tenant_id: string
         }
         Insert: {
           created_at?: string
@@ -7148,7 +7148,7 @@ export type Database = {
           processed?: boolean
           processed_at?: string | null
           retry_count?: number
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Update: {
           created_at?: string
@@ -7160,7 +7160,7 @@ export type Database = {
           processed?: boolean
           processed_at?: string | null
           retry_count?: number
-          tenant_id?: string | null
+          tenant_id?: string
         }
         Relationships: [
           {
