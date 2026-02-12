@@ -43,6 +43,7 @@ import {
   FileSearch,
   Trash2,
   Activity,
+  History as HistoryIcon,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -236,7 +237,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       // ── Sistema ──
       { id: "links-instalacao", title: "Links & Instalação", icon: Smartphone, description: "App PWA e links de vendedor", keywords: ["PWA", "link", "instalação", "app"], subsectionLabel: "Sistema" },
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações", keywords: ["log", "auditoria", "histórico", "alteração"] },
-      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade", "changelog"] },
+      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade"] },
+      { id: "changelog", title: "Atualizações", icon: HistoryIcon, description: "Histórico de atualizações do sistema", keywords: ["changelog", "atualização", "novidade", "versão", "histórico"] },
       { id: "data-reset", title: "Limpeza de Dados", icon: Trash2, description: "Reset seletivo por segmento", keywords: ["reset", "limpeza", "deletar", "remover"] },
     ],
   },

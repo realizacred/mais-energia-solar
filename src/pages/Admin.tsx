@@ -43,6 +43,7 @@ const WhatsAppAutomationConfig = lazy(() => import("@/components/admin/WhatsAppA
 const AprovacaoUsuarios = lazy(() => import("@/components/admin/AprovacaoUsuarios").then(m => ({ default: m.AprovacaoUsuarios })));
 const AuditLogsViewer = lazy(() => import("@/components/admin/AuditLogsViewer").then(m => ({ default: m.AuditLogsViewer })));
 const ReleaseChecklist = lazy(() => import("@/components/admin/ReleaseChecklist").then(m => ({ default: m.ReleaseChecklist })));
+const ChangelogViewer = lazy(() => import("@/components/admin/ChangelogViewer").then(m => ({ default: m.ChangelogViewer })));
 const ObrasManager = lazy(() => import("@/components/admin/ObrasManager").then(m => ({ default: m.ObrasManager })));
 const SiteSettingsUnified = lazy(() => import("@/components/admin/SiteSettingsUnified").then(m => ({ default: m.SiteSettingsUnified })));
 const SiteServicosManager = lazy(() => import("@/components/admin/SiteServicosManager").then(m => ({ default: m.SiteServicosManager })));
@@ -124,6 +125,7 @@ const TAB_TITLES: Record<string, string> = {
   "data-reset": "Limpeza de Dados",
   "integracoes-status": "Status das Integrações",
   "google-calendar": "Google Calendar",
+  changelog: "Atualizações",
 };
 
 /** N8n placeholder component */
@@ -351,6 +353,7 @@ export default function Admin() {
                 <Route path="data-reset" element={<DataResetManager />} />
                 <Route path="integracoes-status" element={<IntegrationStatusPage />} />
                 <Route path="links-instalacao" element={<LinksInstalacaoPage />} />
+                <Route path="changelog" element={<ChangelogViewer />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
