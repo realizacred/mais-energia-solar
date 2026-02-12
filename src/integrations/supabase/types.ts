@@ -1613,6 +1613,56 @@ export type Database = {
           },
         ]
       }
+      google_calendar_tokens: {
+        Row: {
+          access_token: string
+          calendar_id: string | null
+          created_at: string
+          google_email: string | null
+          id: string
+          is_active: boolean
+          refresh_token: string
+          tenant_id: string
+          token_expires_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          calendar_id?: string | null
+          created_at?: string
+          google_email?: string | null
+          id?: string
+          is_active?: boolean
+          refresh_token: string
+          tenant_id: string
+          token_expires_at: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          calendar_id?: string | null
+          created_at?: string
+          google_email?: string | null
+          id?: string
+          is_active?: boolean
+          refresh_token?: string
+          tenant_id?: string
+          token_expires_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       instagram_config: {
         Row: {
           access_token: string | null
