@@ -98,3 +98,6 @@ verify_jwt = false
 
 [functions.admin-data-reset]
 verify_jwt = false
+
+[functions.integration-health-check]
+verify_jwt = false

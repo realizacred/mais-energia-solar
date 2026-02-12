@@ -42,6 +42,7 @@ import {
   Tag,
   FileSearch,
   Trash2,
+  Activity,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -220,6 +221,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "vendedores", title: "Vendedores", icon: Users, description: "Cadastro de consultores", keywords: ["consultor", "vendedor", "equipe", "cadastro"] },
       { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso", keywords: ["aprovação", "solicitação", "pendente"] },
       // ── Integrações ──
+      { id: "integracoes-status", title: "Status das Integrações", icon: Activity, description: "Health check de todas as APIs", keywords: ["status", "health", "integração", "API", "monitoramento"], subsectionLabel: "Integrações" },
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"], subsectionLabel: "Integrações" },
       { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens", keywords: ["API", "automação", "webhook", "bot"] },
       { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts", keywords: ["instagram", "post", "rede social", "feed"] },
