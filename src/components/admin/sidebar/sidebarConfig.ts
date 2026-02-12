@@ -218,13 +218,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "recebimentos", title: "Recebimentos", icon: DollarSign, description: "Controle de pagamentos" },
       { id: "inadimplencia", title: "Inadimplência", icon: AlertTriangle, description: "Parcelas atrasadas" },
       { id: "comissoes", title: "Comissões", icon: Wallet, description: "Comissões dos vendedores" },
-      {
-        id: "engenharia",
-        title: "Engenharia Financeira",
-        icon: Calculator,
-        description: "Fio B / ICMS / Payback",
-      },
-      { id: "financiamento", title: "Bancos", icon: Building2, description: "Taxas e financiamentos" },
     ],
   },
 
@@ -309,7 +302,14 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "config", title: "Calculadora Solar", icon: Calculator, description: "Parâmetros de geração e custo" },
-      { id: "equipamentos", title: "Disjuntores & Transf.", icon: Plug, description: "Cadastro de equipamentos elétricos" },
+      {
+        id: "engenharia",
+        title: "Engenharia Financeira",
+        icon: Calculator,
+        description: "Fio B / ICMS / Payback",
+      },
+      { id: "financiamento", title: "Bancos", icon: Building2, description: "Taxas e financiamentos" },
+      { id: "equipamentos", title: "Disjuntores & Transf.", icon: Plug, description: "Cadastro de equipamentos elétricos", separator: true },
       { id: "modulos", title: "Módulos Fotovoltaicos", icon: SunMedium, description: "Painéis solares disponíveis" },
       { id: "inversores-cadastro", title: "Inversores", icon: Cpu, description: "Inversores solares cadastrados" },
       { id: "baterias", title: "Baterias", icon: Battery, description: "Sistemas de armazenamento" },
