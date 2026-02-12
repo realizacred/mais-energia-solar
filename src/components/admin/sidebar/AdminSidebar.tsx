@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 import { useLogo } from "@/hooks/useLogo";
 import { useSidebarPreferences } from "@/hooks/useSidebarPreferences";
+import { SidebarSearch } from "./SidebarSearch";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -460,6 +461,7 @@ export function AdminSidebar({
       </SidebarHeader>
 
       <SidebarContent className="scrollbar-thin py-2 space-y-0.5">
+        <SidebarSearch />
         {favorites.length > 0 && (
           <>
             <FavoritesSection
