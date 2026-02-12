@@ -4085,6 +4085,7 @@ export type Database = {
           descricao: string | null
           endereco: string | null
           fotos_urls: string[] | null
+          google_calendar_event_id: string | null
           hora_fim: string | null
           hora_inicio: string | null
           id: string
@@ -4118,6 +4119,7 @@ export type Database = {
           descricao?: string | null
           endereco?: string | null
           fotos_urls?: string[] | null
+          google_calendar_event_id?: string | null
           hora_fim?: string | null
           hora_inicio?: string | null
           id?: string
@@ -4151,6 +4153,7 @@ export type Database = {
           descricao?: string | null
           endereco?: string | null
           fotos_urls?: string[] | null
+          google_calendar_event_id?: string | null
           hora_fim?: string | null
           hora_inicio?: string | null
           id?: string
@@ -6389,6 +6392,7 @@ export type Database = {
           assigned_to: string | null
           conversation_id: string
           created_at: string
+          google_calendar_event_id: string | null
           id: string
           mensagem_enviada: string | null
           responded_at: string | null
@@ -6404,6 +6408,7 @@ export type Database = {
           assigned_to?: string | null
           conversation_id: string
           created_at?: string
+          google_calendar_event_id?: string | null
           id?: string
           mensagem_enviada?: string | null
           responded_at?: string | null
@@ -6419,6 +6424,7 @@ export type Database = {
           assigned_to?: string | null
           conversation_id?: string
           created_at?: string
+          google_calendar_event_id?: string | null
           id?: string
           mensagem_enviada?: string | null
           responded_at?: string | null

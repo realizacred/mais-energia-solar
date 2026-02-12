@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { handleSupabaseError } from "@/lib/errorHandler";
+import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ export function ServicosManager() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [instaladores, setInstaladores] = useState<Instalador[]>([]);
   const [loading, setLoading] = useState(true);
+  const { syncServico } = useGoogleCalendarSync();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedServicoId, setSelectedServicoId] = useState<string | null>(null);
@@ -176,7 +178,7 @@ export function ServicosManager() {
 
     setSaving(true);
     try {
-      const { error } = await supabase.from("servicos_agendados").insert([{
+      const { data: inserted, error } = await supabase.from("servicos_agendados").insert([{
         instalador_id: formData.instalador_id,
         tipo: formData.tipo as "instalacao" | "manutencao" | "visita_tecnica" | "suporte",
         data_agendada: formData.data_agendada,
@@ -187,9 +189,23 @@ export function ServicosManager() {
         cidade: formData.cidade || null,
         descricao: formData.descricao || null,
         observacoes: formData.observacoes || null,
-      }]);
+      }]).select("id").single();
 
       if (error) throw error;
+
+      // Sync to Google Calendar (non-blocking)
+      if (inserted?.id) {
+        const clienteNome = clientes.find(c => c.id === formData.cliente_id)?.nome;
+        syncServico("create", inserted.id, {
+          tipo: formData.tipo,
+          data_agendada: formData.data_agendada,
+          hora_inicio: formData.hora_inicio,
+          endereco: formData.endereco,
+          bairro: formData.bairro,
+          cidade: formData.cidade,
+          cliente_nome: clienteNome,
+        });
+      }
 
       toast({ title: "Serviço agendado com sucesso!" });
       setDialogOpen(false);
