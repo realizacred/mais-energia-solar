@@ -20,8 +20,8 @@ export function PushActivationBanner() {
   useEffect(() => {
     if (!user || !isSupported) return;
 
-    // Already subscribed or permission denied — don't show
-    if (isSubscribed || permission === "denied") {
+    // Already subscribed, permission granted, or denied — don't show
+    if (isSubscribed || permission === "granted" || permission === "denied") {
       setDismissed(true);
       return;
     }
