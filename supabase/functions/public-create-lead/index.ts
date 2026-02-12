@@ -168,7 +168,7 @@ Deno.serve(async (req) => {
 
     console.log(`[public-create-lead] tenant=${tenantId}, consultor=${vendedorId} (${vendedorNome})`);
 
-    // ── CREATE OR USE EXISTING LEAD ──
+    // ── CHECK FOR DUPLICATE LEADS BY PHONE ──
     let leadId: string;
     let isNewLead = true;
 
@@ -199,35 +199,64 @@ Deno.serve(async (req) => {
           .eq("id", leadId);
       }
     } else {
-      // Create new lead (minimal — real data goes to orcamento)
-      const newLeadId = crypto.randomUUID();
-      const { error: leadErr } = await supabaseAdmin
-        .from("leads")
-        .insert({
-          id: newLeadId,
-          nome: nome.trim(),
-          telefone: telefone.trim(),
-          consultor_id: vendedorId,
-          consultor: vendedorNome || "Site",
-          tenant_id: tenantId,
-          estado: "N/A",
-          cidade: "N/A",
-          area: "N/A",
-          tipo_telhado: "N/A",
-          rede_atendimento: "N/A",
-          media_consumo: 0,
-          consumo_previsto: 0,
-        });
+      // Check for existing leads with the same phone number (duplicate detection)
+      const phoneNormalized = telefone.replace(/\D/g, "");
+      if (phoneNormalized.length >= 10) {
+        const { data: existingLeads } = await supabaseAdmin
+          .from("leads")
+          .select("id, nome, telefone, created_at")
+          .eq("tenant_id", tenantId)
+          .or(`telefone_normalized.eq.${phoneNormalized},telefone.eq.${telefone}`)
+          .order("created_at", { ascending: false })
+          .limit(5);
 
-      if (leadErr) {
-        console.error("[public-create-lead] Failed to create lead:", leadErr);
-        return new Response(
-          JSON.stringify({ success: false, error: leadErr.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        if (existingLeads && existingLeads.length > 0) {
+          console.log(`[public-create-lead] Duplicate detected: ${existingLeads.length} existing leads for phone ${phoneNormalized}`);
+          // Use the most recent existing lead — add new orcamento to it
+          leadId = existingLeads[0].id;
+          isNewLead = false;
+
+          // Update consultor if needed
+          if (vendedorId) {
+            await supabaseAdmin
+              .from("leads")
+              .update({ consultor_id: vendedorId, consultor: vendedorNome || "Site" })
+              .eq("id", leadId);
+          }
+        }
       }
 
-      leadId = newLeadId;
+      // Create new lead only if no duplicate found
+      if (isNewLead) {
+        const newLeadId = crypto.randomUUID();
+        const { error: leadErr } = await supabaseAdmin
+          .from("leads")
+          .insert({
+            id: newLeadId,
+            nome: nome.trim(),
+            telefone: telefone.trim(),
+            consultor_id: vendedorId,
+            consultor: vendedorNome || "Site",
+            tenant_id: tenantId,
+            estado: "N/A",
+            cidade: "N/A",
+            area: "N/A",
+            tipo_telhado: "N/A",
+            rede_atendimento: "N/A",
+            media_consumo: 0,
+            consumo_previsto: 0,
+          });
+
+        if (leadErr) {
+          console.error("[public-create-lead] Failed to create lead:", leadErr);
+          return new Response(
+            JSON.stringify({ success: false, error: leadErr.message }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        leadId = newLeadId;
+      }
     }
 
     // ── CREATE ORCAMENTO ──
