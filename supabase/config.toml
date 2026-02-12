@@ -104,3 +104,12 @@ verify_jwt = false
 
 [functions.save-integration-key]
 verify_jwt = false
+
+[functions.ai-suggest-message]
+verify_jwt = false
+
+[functions.ai-proposal-explainer]
+verify_jwt = false
+
+[functions.ai-followup-planner]
+verify_jwt = false

@@ -6037,6 +6037,117 @@ export type Database = {
           },
         ]
       }
+      wa_ai_settings: {
+        Row: {
+          created_at: string
+          id: string
+          max_sugestoes_dia: number | null
+          modelo_preferido: string | null
+          modo: string
+          templates: Json | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          max_sugestoes_dia?: number | null
+          modelo_preferido?: string | null
+          modo?: string
+          templates?: Json | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          max_sugestoes_dia?: number | null
+          modelo_preferido?: string | null
+          modo?: string
+          templates?: Json | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_ai_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_ai_tasks: {
+        Row: {
+          context: Json | null
+          conversation_id: string | null
+          created_at: string
+          generated_at: string | null
+          id: string
+          lead_id: string | null
+          requested_by: string | null
+          resolved_at: string | null
+          status: string
+          suggestion: string | null
+          tenant_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          context?: Json | null
+          conversation_id?: string | null
+          created_at?: string
+          generated_at?: string | null
+          id?: string
+          lead_id?: string | null
+          requested_by?: string | null
+          resolved_at?: string | null
+          status?: string
+          suggestion?: string | null
+          tenant_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          context?: Json | null
+          conversation_id?: string | null
+          created_at?: string
+          generated_at?: string | null
+          id?: string
+          lead_id?: string | null
+          requested_by?: string | null
+          resolved_at?: string | null
+          status?: string
+          suggestion?: string | null
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_ai_tasks_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_ai_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_ai_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversation_preferences: {
         Row: {
           conversation_id: string

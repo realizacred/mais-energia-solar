@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { WaAISidebar } from "./WaAISidebar";
 import {
+  Sparkles,
   StickyNote,
   User,
   Users,
@@ -112,6 +114,7 @@ export function WaChatPanel({
   const [isNoteMode, setIsNoteMode] = useState(false);
   const [showLeadInfo, setShowLeadInfo] = useState(false);
   const [showCRMSidebar, setShowCRMSidebar] = useState(false);
+  const [showAISidebar, setShowAISidebar] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ url: string; type: "image" | "video" | "audio" | "document"; caption?: string } | null>(null);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyingTo | null>(null);
@@ -365,9 +368,22 @@ export function WaChatPanel({
               <TooltipTrigger asChild>
                 <Button
                   size="icon"
+                  variant={showAISidebar ? "default" : "ghost"}
+                  className={`h-8 w-8 ${showAISidebar ? "bg-accent/20 text-accent-foreground" : ""}`}
+                  onClick={() => { setShowAISidebar(!showAISidebar); if (!showAISidebar) setShowCRMSidebar(false); }}
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Assistente IA</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
                   variant={showCRMSidebar ? "default" : "ghost"}
                   className={`h-8 w-8 ${showCRMSidebar ? "bg-primary/10 text-primary" : ""}`}
-                  onClick={() => setShowCRMSidebar(!showCRMSidebar)}
+                  onClick={() => { setShowCRMSidebar(!showCRMSidebar); if (!showCRMSidebar) setShowAISidebar(false); }}
                 >
                   {showCRMSidebar ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
                 </Button>
@@ -567,6 +583,36 @@ export function WaChatPanel({
           currentConversationId={conversation.id}
         />
       </div>
+
+      {/* AI Sidebar — Desktop: inline panel, Mobile: Sheet */}
+      {showAISidebar && !isMobileDevice && (
+        <WaAISidebar
+          conversation={conversation}
+          onClose={() => setShowAISidebar(false)}
+          onUseSuggestion={(text) => {
+            setShowAISidebar(false);
+            // Trigger prefill via a custom event the composer can listen to
+            window.dispatchEvent(new CustomEvent("wa-ai-suggestion", { detail: text }));
+          }}
+        />
+      )}
+      {isMobileDevice && (
+        <Sheet open={showAISidebar} onOpenChange={setShowAISidebar}>
+          <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
+            <SheetTitle className="sr-only">Assistente IA</SheetTitle>
+            {showAISidebar && (
+              <WaAISidebar
+                conversation={conversation}
+                onClose={() => setShowAISidebar(false)}
+                onUseSuggestion={(text) => {
+                  setShowAISidebar(false);
+                  window.dispatchEvent(new CustomEvent("wa-ai-suggestion", { detail: text }));
+                }}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+      )}
 
       {/* CRM Sidebar — Desktop: inline panel, Mobile: Sheet */}
       {showCRMSidebar && !isMobileDevice && (
