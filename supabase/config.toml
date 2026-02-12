@@ -122,3 +122,6 @@ verify_jwt = false
 
 [functions.google-calendar-sync]
 verify_jwt = false
+
+[functions.google-calendar-read]
+verify_jwt = false
