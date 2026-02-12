@@ -33,7 +33,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       const [leadsRes, statusesRes] = await Promise.all([
         supabase
           .from("leads")
-          .select("*, vendedores:vendedor_id(id, nome)", { count: "exact" })
+          .select("*, consultores:consultor_id(id, nome)", { count: "exact" })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .range(from, to),

@@ -29,7 +29,7 @@ interface InstanceHealth {
   last_webhook_at: string | null;
   last_send_ok_at: string | null;
   outbox_pending_count: number;
-  vendedores: { id: string; nome: string; codigo: string }[];
+  consultores: { id: string; nome: string; codigo: string }[];
 }
 
 Deno.serve(async (req) => {
@@ -140,22 +140,22 @@ Deno.serve(async (req) => {
               last_webhook_at: null,
               last_send_ok_at: null,
               outbox_pending_count: 0,
-              vendedores: [],
+              consultores: [],
             };
 
-            // Fetch vendedores linked to this instance
+            // Fetch consultores linked to this instance
             const { data: vendedorLinks } = await supabaseAdmin
-              .from("wa_instance_vendedores")
-              .select("vendedor_id")
+              .from("wa_instance_consultores")
+              .select("consultor_id")
               .eq("instance_id", inst.id);
 
             if (vendedorLinks && vendedorLinks.length > 0) {
-              const vIds = vendedorLinks.map((vl: { vendedor_id: string }) => vl.vendedor_id);
+              const vIds = vendedorLinks.map((vl: { consultor_id: string }) => vl.consultor_id);
               const { data: vendedores } = await supabaseAdmin
-                .from("vendedores")
+                .from("consultores")
                 .select("id, nome, codigo")
                 .in("id", vIds);
-              health.vendedores = (vendedores || []) as { id: string; nome: string; codigo: string }[];
+              health.consultores = (vendedores || []) as { id: string; nome: string; codigo: string }[];
             }
 
             // Fetch last webhook event for this instance

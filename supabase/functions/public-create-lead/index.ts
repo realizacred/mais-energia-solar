@@ -103,14 +103,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── RESOLVE VENDEDOR ──
+    // ── RESOLVE CONSULTOR ──
     let vendedorId: string | null = explicit_vendedor_id || null;
     let vendedorNome: string | null = null;
     let tenantId: string | null = null;
 
     if (vendedor_codigo && !vendedorId) {
       const { data: vendedor } = await supabaseAdmin
-        .from("vendedores")
+        .from("consultores")
         .select("id, nome, tenant_id")
         .or(`codigo.eq.${vendedor_codigo},slug.eq.${vendedor_codigo}`)
         .eq("ativo", true)
@@ -123,10 +123,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // If vendedorId was explicit, fetch tenant from vendedor
+    // If vendedorId was explicit, fetch tenant from consultor
     if (vendedorId && !tenantId) {
       const { data: vendedor } = await supabaseAdmin
-        .from("vendedores")
+        .from("consultores")
         .select("nome, tenant_id")
         .eq("id", vendedorId)
         .maybeSingle();
@@ -149,16 +149,16 @@ Deno.serve(async (req) => {
       tenantId = publicTenant;
     }
 
-    // Resolve default vendedor if none found
+    // Resolve default consultor if none found
     if (!vendedorId) {
       const { data: defaultVendedor, error: dvErr } = await supabaseAdmin.rpc(
-        "resolve_default_vendedor_id",
+        "resolve_default_consultor_id",
         { _tenant_id: tenantId }
       );
       if (!dvErr && defaultVendedor) {
         vendedorId = defaultVendedor;
         const { data: v } = await supabaseAdmin
-          .from("vendedores")
+          .from("consultores")
           .select("nome")
           .eq("id", vendedorId!)
           .maybeSingle();
@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[public-create-lead] tenant=${tenantId}, vendedor=${vendedorId} (${vendedorNome})`);
+    console.log(`[public-create-lead] tenant=${tenantId}, consultor=${vendedorId} (${vendedorNome})`);
 
     // ── CREATE OR USE EXISTING LEAD ──
     let leadId: string;
@@ -195,7 +195,7 @@ Deno.serve(async (req) => {
       if (vendedorId) {
         await supabaseAdmin
           .from("leads")
-          .update({ vendedor_id: vendedorId, vendedor: vendedorNome || "Site" })
+          .update({ consultor_id: vendedorId, consultor: vendedorNome || "Site" })
           .eq("id", leadId);
       }
     } else {
@@ -207,8 +207,8 @@ Deno.serve(async (req) => {
           id: newLeadId,
           nome: nome.trim(),
           telefone: telefone.trim(),
-          vendedor_id: vendedorId,
-          vendedor: vendedorNome || "Site",
+          consultor_id: vendedorId,
+          consultor: vendedorNome || "Site",
           tenant_id: tenantId,
           estado: "N/A",
           cidade: "N/A",
@@ -251,8 +251,8 @@ Deno.serve(async (req) => {
         consumo_previsto: consumo_previsto || 0,
         observacoes: observacoes || null,
         arquivos_urls: arquivos_urls || [],
-        vendedor: vendedorNome || "Site",
-        vendedor_id: vendedorId,
+        consultor: vendedorNome || "Site",
+        consultor_id: vendedorId,
         tenant_id: tenantId,
       });
 

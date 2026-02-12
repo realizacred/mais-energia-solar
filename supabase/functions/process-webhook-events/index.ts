@@ -309,16 +309,16 @@ async function handleMessageUpsert(
           ownerId = instData.owner_user_id;
         }
 
-        // 2. Fallback: first linked vendedor via junction table
+        // 2. Fallback: first linked consultor via junction table
         if (!ownerId) {
           const { data: links } = await supabase
-            .from("wa_instance_vendedores")
-            .select("vendedor_id, vendedores:vendedor_id(user_id)")
+            .from("wa_instance_consultores")
+            .select("consultor_id, consultores:consultor_id(user_id)")
             .eq("instance_id", instanceId)
             .limit(1);
 
           if (links && links.length > 0) {
-            ownerId = (links[0].vendedores as any)?.user_id || null;
+            ownerId = (links[0].consultores as any)?.user_id || null;
           }
         }
 

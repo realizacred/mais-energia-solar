@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // Look up invite token
     const { data: invite, error: inviteError } = await adminClient
       .from("vendor_invites")
-      .select("*, vendedores!inner(id, nome, telefone, email, tenant_id)")
+      .select("*, consultores!inner(id, nome, telefone, email, tenant_id)")
       .eq("token", token)
       .is("used_at", null)
       .is("revoked_at", null)
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const vendedor = invite.vendedores;
+    const vendedor = invite.consultores;
     const email = invite.email;
     const tenantId = invite.tenant_id;
 
@@ -124,12 +124,12 @@ Deno.serve(async (req) => {
       console.error("Profile creation error:", profileError.message);
     }
 
-    // Assign vendedor role
+    // Assign consultor role
     const { error: roleError } = await adminClient
       .from("user_roles")
       .insert({
         user_id: userId,
-        role: "vendedor",
+        role: "consultor",
         tenant_id: tenantId,
       });
 
@@ -137,14 +137,14 @@ Deno.serve(async (req) => {
       console.error("Role assignment error:", roleError.message);
     }
 
-    // Link user_id to vendedor
+    // Link user_id to consultor
     const { error: linkError } = await adminClient
-      .from("vendedores")
+      .from("consultores")
       .update({ user_id: userId })
       .eq("id", vendedor.id);
 
     if (linkError) {
-      console.error("Vendedor link error:", linkError.message);
+      console.error("Consultor link error:", linkError.message);
     }
 
     // Mark invite as used

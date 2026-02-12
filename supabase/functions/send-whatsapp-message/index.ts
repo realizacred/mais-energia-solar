@@ -251,7 +251,7 @@ Deno.serve(async (req) => {
       // 2a: From authenticated user
       if (userId) {
         const { data: vendedor } = await supabaseAdmin
-          .from("vendedores")
+          .from("consultores")
           .select("id")
           .eq("user_id", userId)
           .eq("ativo", true)
@@ -260,22 +260,22 @@ Deno.serve(async (req) => {
         vendedorId = vendedor?.id || null;
       }
 
-      // 2b: From lead's vendedor_id (for service_role / public form calls)
+      // 2b: From lead's consultor_id (for service_role / public form calls)
       if (!vendedorId && lead_id) {
         const { data: leadVendedor } = await supabaseAdmin
           .from("leads")
-          .select("vendedor_id")
+          .select("consultor_id")
           .eq("id", lead_id)
           .maybeSingle();
-        vendedorId = leadVendedor?.vendedor_id || null;
+        vendedorId = leadVendedor?.consultor_id || null;
       }
 
       if (vendedorId) {
         // Check junction table for linked instances
         const { data: links } = await supabaseAdmin
-          .from("wa_instance_vendedores")
+          .from("wa_instance_consultores")
           .select("instance_id, wa_instances:instance_id(id, evolution_api_url, evolution_instance_key, api_key, status)")
-          .eq("vendedor_id", vendedorId)
+          .eq("consultor_id", vendedorId)
           .eq("tenant_id", tenantId);
 
         if (links && links.length > 0) {
@@ -497,17 +497,17 @@ Deno.serve(async (req) => {
         if (lead_id) {
           const { data: leadInfo } = await supabaseAdmin
             .from("leads")
-            .select("nome, vendedor_id")
+            .select("nome, consultor_id")
             .eq("id", lead_id)
             .maybeSingle();
           clienteNome = leadInfo?.nome || null;
 
-          // For automatic messages OR when no caller userId: resolve from lead's vendedor
-          if (leadInfo?.vendedor_id && (tipo === "automatico" || !assignedTo)) {
+          // For automatic messages OR when no caller userId: resolve from lead's consultor
+          if (leadInfo?.consultor_id && (tipo === "automatico" || !assignedTo)) {
             const { data: vend } = await supabaseAdmin
-              .from("vendedores")
+              .from("consultores")
               .select("user_id")
-              .eq("id", leadInfo.vendedor_id)
+              .eq("id", leadInfo.consultor_id)
               .maybeSingle();
             if (vend?.user_id) {
               if (tipo === "automatico" && assignedTo && assignedTo !== vend.user_id) {
