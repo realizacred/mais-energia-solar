@@ -114,6 +114,9 @@ verify_jwt = false
 [functions.ai-followup-planner]
 verify_jwt = false
 
+[functions.ai-conversation-summary]
+verify_jwt = false
+
 [functions.google-calendar-auth]
 verify_jwt = false
 

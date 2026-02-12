@@ -6283,30 +6283,42 @@ export type Database = {
       wa_ai_settings: {
         Row: {
           created_at: string
+          followup_confidence_threshold: number
+          followup_cooldown_hours: number
           id: string
           max_sugestoes_dia: number | null
+          max_tokens: number
           modelo_preferido: string | null
           modo: string
+          temperature: number
           templates: Json | null
           tenant_id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          followup_confidence_threshold?: number
+          followup_cooldown_hours?: number
           id?: string
           max_sugestoes_dia?: number | null
+          max_tokens?: number
           modelo_preferido?: string | null
           modo?: string
+          temperature?: number
           templates?: Json | null
           tenant_id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          followup_confidence_threshold?: number
+          followup_cooldown_hours?: number
           id?: string
           max_sugestoes_dia?: number | null
+          max_tokens?: number
           modelo_preferido?: string | null
           modo?: string
+          temperature?: number
           templates?: Json | null
           tenant_id?: string
           updated_at?: string
@@ -6933,6 +6945,7 @@ export type Database = {
           participant_name: string | null
           quoted_message_id: string | null
           sent_by_user_id: string | null
+          source: string
           status: string | null
           tenant_id: string
         }
@@ -6953,6 +6966,7 @@ export type Database = {
           participant_name?: string | null
           quoted_message_id?: string | null
           sent_by_user_id?: string | null
+          source?: string
           status?: string | null
           tenant_id?: string
         }
@@ -6973,6 +6987,7 @@ export type Database = {
           participant_name?: string | null
           quoted_message_id?: string | null
           sent_by_user_id?: string | null
+          source?: string
           status?: string | null
           tenant_id?: string
         }
@@ -7863,6 +7878,7 @@ export type Database = {
           participant_name: string | null
           quoted_message_id: string | null
           sent_by_user_id: string | null
+          source: string
           status: string | null
           tenant_id: string
         }[]

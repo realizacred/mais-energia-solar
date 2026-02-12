@@ -29,6 +29,10 @@ interface AiSettings {
   modo: string;
   modelo_preferido: string;
   max_sugestoes_dia: number;
+  temperature: number;
+  max_tokens: number;
+  followup_cooldown_hours: number;
+  followup_confidence_threshold: number;
   templates: Record<string, any>;
 }
 
@@ -36,6 +40,10 @@ const DEFAULT_SETTINGS: AiSettings = {
   modo: "assistido",
   modelo_preferido: "gpt-4o-mini",
   max_sugestoes_dia: 100,
+  temperature: 0.7,
+  max_tokens: 500,
+  followup_cooldown_hours: 4,
+  followup_confidence_threshold: 60,
   templates: {},
 };
 
@@ -69,6 +77,10 @@ export function AiFollowupSettingsPanel() {
         modo: data.modo || "assistido",
         modelo_preferido: data.modelo_preferido || "gpt-4o-mini",
         max_sugestoes_dia: data.max_sugestoes_dia || 100,
+        temperature: (data as any).temperature ?? 0.7,
+        max_tokens: (data as any).max_tokens ?? 500,
+        followup_cooldown_hours: (data as any).followup_cooldown_hours ?? 4,
+        followup_confidence_threshold: (data as any).followup_confidence_threshold ?? 60,
         templates: (typeof data.templates === "object" && data.templates !== null)
           ? data.templates as Record<string, any>
           : {},
@@ -85,6 +97,10 @@ export function AiFollowupSettingsPanel() {
         modo: settings.modo,
         modelo_preferido: settings.modelo_preferido,
         max_sugestoes_dia: settings.max_sugestoes_dia,
+        temperature: settings.temperature,
+        max_tokens: settings.max_tokens,
+        followup_cooldown_hours: settings.followup_cooldown_hours,
+        followup_confidence_threshold: settings.followup_confidence_threshold,
         templates: settings.templates,
       };
 
@@ -235,6 +251,79 @@ export function AiFollowupSettingsPanel() {
                 }
               />
               <p className="text-xs text-muted-foreground">Máximo de sugestões por dia no tenant</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+            <div className="space-y-2">
+              <Label>Temperatura (criatividade)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={1}
+                step={0.1}
+                value={settings.temperature}
+                onChange={(e) =>
+                  setSettings({ ...settings, temperature: parseFloat(e.target.value) || 0.7 })
+                }
+              />
+              <p className="text-xs text-muted-foreground">0 = preciso, 1 = criativo</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Max Tokens</Label>
+              <Input
+                type="number"
+                min={100}
+                max={2000}
+                value={settings.max_tokens}
+                onChange={(e) =>
+                  setSettings({ ...settings, max_tokens: parseInt(e.target.value) || 500 })
+                }
+              />
+              <p className="text-xs text-muted-foreground">Tamanho máximo da resposta da IA</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Follow-up Gate */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Gate de Follow-up Inteligente</CardTitle>
+          <CardDescription>
+            Controles de segurança para follow-ups automáticos
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Cooldown (horas)</Label>
+              <Input
+                type="number"
+                min={1}
+                max={72}
+                value={settings.followup_cooldown_hours}
+                onChange={(e) =>
+                  setSettings({ ...settings, followup_cooldown_hours: parseInt(e.target.value) || 4 })
+                }
+              />
+              <p className="text-xs text-muted-foreground">Mínimo de horas entre a última msg e o envio de follow-up</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Threshold de Confiança (%)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={settings.followup_confidence_threshold}
+                onChange={(e) =>
+                  setSettings({ ...settings, followup_confidence_threshold: parseInt(e.target.value) || 60 })
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                Abaixo deste valor a IA bloqueia o envio automático (0-59 bloqueia, 60-84 sugere, 85+ envia)
+              </p>
             </div>
           </div>
         </CardContent>
