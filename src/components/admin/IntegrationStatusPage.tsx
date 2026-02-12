@@ -1,9 +1,11 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   RefreshCw,
   MessageCircle,
@@ -16,6 +18,10 @@ import {
   Activity,
   Clock,
   Zap,
+  Eye,
+  EyeOff,
+  Save,
+  Loader2,
 } from "lucide-react";
 
 interface IntegrationResult {
@@ -47,11 +53,92 @@ const INTEGRATION_META: Record<string, { icon: typeof MessageCircle; color: stri
 };
 
 const STATUS_CONFIG = {
-  online: { icon: CheckCircle2, label: "Online", variant: "default" as const, className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  offline: { icon: XCircle, label: "Offline", variant: "destructive" as const, className: "bg-destructive/10 text-destructive border-destructive/20" },
-  degraded: { icon: AlertTriangle, label: "Degradado", variant: "outline" as const, className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  not_configured: { icon: CircleDashed, label: "Não configurado", variant: "secondary" as const, className: "bg-muted text-muted-foreground" },
+  online: { icon: CheckCircle2, label: "Online", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  offline: { icon: XCircle, label: "Offline", className: "bg-destructive/10 text-destructive border-destructive/20" },
+  degraded: { icon: AlertTriangle, label: "Degradado", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  not_configured: { icon: CircleDashed, label: "Não configurado", className: "bg-muted text-muted-foreground" },
 };
+
+function ApiKeyInput({ onSaved }: { onSaved: () => void }) {
+  const { toast } = useToast();
+  const [apiKey, setApiKey] = useState("");
+  const [showKey, setShowKey] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!apiKey.trim()) return;
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("save-integration-key", {
+        body: { service_key: "openai", api_key: apiKey.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.details || data.error);
+
+      toast({ title: "Chave salva", description: "API key da OpenAI validada e salva com sucesso." });
+      setApiKey("");
+      onSaved();
+    } catch (err: any) {
+      toast({
+        title: "Erro ao salvar chave",
+        description: err.message || "Verifique a chave e tente novamente",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="border-dashed">
+      <CardContent className="p-5">
+        <div className="flex items-start gap-3">
+          <Brain className="h-5 w-5 text-violet-500 shrink-0 mt-1" />
+          <div className="flex-1 space-y-3">
+            <div>
+              <p className="font-medium text-sm">Configurar API Key — OpenAI</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                A chave é validada antes de salvar e nunca é exibida após o cadastro. Armazenada com isolamento por tenant.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="openai-key" className="text-xs">Nova API Key</Label>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="openai-key"
+                    type={showKey ? "text" : "password"}
+                    placeholder="sk-..."
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="pr-10 font-mono text-xs"
+                    autoComplete="off"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <Button
+                  onClick={handleSave}
+                  disabled={saving || !apiKey.trim()}
+                  size="default"
+                  className="gap-1.5 shrink-0"
+                >
+                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  {saving ? "Validando..." : "Salvar"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function IntegrationStatusPage() {
   const { toast } = useToast();
@@ -141,10 +228,10 @@ export function IntegrationStatusPage() {
       {/* Summary badges */}
       {hasChecked && results.length > 0 && (
         <div className="flex items-center gap-3">
-          {["online", "degraded", "offline", "not_configured"].map((status) => {
+          {(["online", "degraded", "offline", "not_configured"] as const).map((status) => {
             const count = results.filter((r) => r.status === status).length;
             if (count === 0) return null;
-            const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG];
+            const cfg = STATUS_CONFIG[status];
             const Icon = cfg.icon;
             return (
               <Badge key={status} variant="outline" className={`gap-1.5 ${cfg.className}`}>
@@ -156,7 +243,7 @@ export function IntegrationStatusPage() {
         </div>
       )}
 
-      {/* Cards */}
+      {/* Integration Cards */}
       <div className="grid gap-4">
         {(["whatsapp", "solarmarket", "openai"] as const).map((id) => {
           const meta = INTEGRATION_META[id];
@@ -176,7 +263,7 @@ export function IntegrationStatusPage() {
                     </div>
                     <div className="space-y-1">
                       <div className="flex items-center gap-3">
-                        <h3 className="font-semibold">{INTEGRATION_META[id]?.description?.split("—")[0]?.trim() || id}</h3>
+                        <h3 className="font-semibold">{meta.description.split("—")[0]?.trim()}</h3>
                         {statusCfg && StatusIcon && (
                           <Badge variant="outline" className={`gap-1 text-xs ${statusCfg.className}`}>
                             <StatusIcon className="h-3 w-3" />
@@ -234,21 +321,8 @@ export function IntegrationStatusPage() {
         })}
       </div>
 
-      {/* OpenAI note */}
-      <Card className="border-dashed">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Brain className="h-5 w-5 text-violet-500 shrink-0 mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium">Sobre a chave da OpenAI</p>
-              <p className="text-muted-foreground mt-1">
-                A chave é armazenada como <strong>Supabase Secret</strong> (OPENAI_API_KEY) e acessível apenas pelas Edge Functions.
-                Ela nunca é exposta ao frontend. Para substituí-la, acesse as configurações de Secrets do projeto no Supabase Dashboard.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* API Key Configuration */}
+      <ApiKeyInput onSaved={() => runHealthCheck("openai")} />
     </div>
   );
 }

@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.integration-health-check]
 verify_jwt = false
+
+[functions.save-integration-key]
+verify_jwt = false

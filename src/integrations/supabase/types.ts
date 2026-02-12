@@ -1851,6 +1851,50 @@ export type Database = {
           },
         ]
       }
+      integration_configs: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_validated_at: string | null
+          service_key: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_validated_at?: string | null
+          service_key: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_validated_at?: string | null
+          service_key?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inversores: {
         Row: {
           ativo: boolean
@@ -7352,6 +7396,10 @@ export type Database = {
           ano: number
           percentual_nao_compensado: number
         }[]
+      }
+      get_integration_key: {
+        Args: { _service_key: string; _tenant_id?: string }
+        Returns: string
       }
       get_payback_config: {
         Args: never
