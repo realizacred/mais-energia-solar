@@ -87,9 +87,9 @@ serve(async (req) => {
     // Get tags
     const { data: convTags = [] } = await adminClient
       .from("wa_conversation_tags")
-      .select("tag:wa_tags(nome)")
+      .select("tag:wa_tags(name)")
       .eq("conversation_id", conversation_id);
-    const tagNames = convTags.map((t: any) => t.tag?.nome).filter(Boolean);
+    const tagNames = (convTags ?? []).map((t: any) => t.tag?.name).filter(Boolean);
 
     // Get lead data
     let leadInfo = "";
