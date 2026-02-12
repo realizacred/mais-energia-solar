@@ -72,13 +72,9 @@ export async function resolvePublicTenantId(vendedorCode?: string | null): Promi
   if (vendedorCode) {
     const { data } = await supabase.rpc("validate_vendedor_code", { _codigo: vendedorCode });
     if (data && data.length > 0) {
-      // vendedores have tenant_id — but the RPC only returns codigo/nome
-      // For anon, we need to query vendedores directly
+      // Use secure RPC that only exposes safe fields (no telefone/email)
       const { data: vendedor } = await supabase
-        .from("vendedores")
-        .select("tenant_id")
-        .or(`codigo.eq.${vendedorCode},slug.eq.${vendedorCode}`)
-        .eq("ativo", true)
+        .rpc("resolve_vendedor_public", { _codigo: vendedorCode })
         .maybeSingle();
       if (vendedor?.tenant_id) return vendedor.tenant_id;
     }
