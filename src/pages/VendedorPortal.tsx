@@ -1,404 +1,117 @@
-import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Loader2, LayoutDashboard, FileText, ClipboardCheck, MessageCircle, ChevronDown, Trophy, Smartphone, Bell } from "lucide-react";
-import { LeadAlerts } from "@/components/vendor/LeadAlerts";
-import { FollowUpStatsCards } from "@/components/vendor/FollowUpStatsCards";
- import { VendorPersonalDashboard } from "@/components/vendor/VendorPersonalDashboard";
-import { VendorFollowUpManager } from "@/components/vendor/VendorFollowUpManager";
-import { VendorPendingDocumentation } from "@/components/vendor/VendorPendingDocumentation";
-import { WhatsAppTemplates, FollowUpCalendar, SmartReminders } from "@/components/vendor/productivity";
- import { VendorLeadFilters, VendorOrcamentosTable, VendorLeadViewDialog, LeadScoring } from "@/components/vendor/leads";
- import { VendorAchievements, VendorGoals, VendorLeaderboard, AdvancedMetricsCard, GoalProgressNotifications } from "@/components/vendor/gamification";
-import { ConvertLeadToClientDialog } from "@/components/leads/ConvertLeadToClientDialog";
-import { OfflineConversionsManager } from "@/components/leads/OfflineConversionsManager";
-import { OfflineDuplicateResolver } from "@/components/vendor/OfflineDuplicateResolver";
-import NotificationSettings from "@/components/vendor/NotificationSettings";
-import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
-import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
-import { VendorTaskAgenda } from "@/components/vendor/VendorTaskAgenda";
-import { WaInbox } from "@/components/admin/inbox/WaInbox";
-import { LinksInstalacaoPage } from "@/components/admin/LinksInstalacaoPage";
-import { lazy, Suspense } from "react";
-const PushNotificationSettings = lazy(() => import("@/components/admin/PushNotificationSettings").then(m => ({ default: m.PushNotificationSettings })));
-import { VendedorHeader, VendedorShareLink } from "@/components/vendor/portal";
-import { useVendedorPortal, orcamentoToLead } from "@/hooks/useVendedorPortal";
-import { useUserPermissions } from "@/hooks/useUserPermissions";
-import { OrcamentoSortSelector } from "@/components/ui/orcamento-sort-selector";
-import { useOrcamentoSort } from "@/hooks/useOrcamentoSort";
+import { lazy, Suspense, useState, useEffect, useMemo } from "react";
+import { useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Menu, Sun } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { VendorSidebar, VENDOR_TAB_TITLES } from "@/components/vendor/sidebar";
+import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { useVendedorPortal } from "@/hooks/useVendedorPortal";
+import Footer from "@/components/layout/Footer";
+
+// Lazy load sub-pages
+const VendorDashboardView = lazy(() => import("@/components/vendor/views/VendorDashboardView"));
+const VendorWhatsAppView = lazy(() => import("@/components/vendor/views/VendorWhatsAppView"));
+const VendorAgendaView = lazy(() => import("@/components/vendor/views/VendorAgendaView"));
+const VendorOrcamentosView = lazy(() => import("@/components/vendor/views/VendorOrcamentosView"));
+const VendorGamificacaoView = lazy(() => import("@/components/vendor/views/VendorGamificacaoView"));
+const VendorLinksView = lazy(() => import("@/components/vendor/views/VendorLinksView"));
+const VendorNotificacoesView = lazy(() => import("@/components/vendor/views/VendorNotificacoesView"));
 
 export default function VendedorPortal() {
-   const {
-     // Profile
-     vendedor,
-     isAdminMode,
-     isViewingAsVendedor,
-     loading,
-     // Filters
-     searchTerm,
-     setSearchTerm,
-     filterVisto,
-     setFilterVisto,
-     filterEstado,
-     setFilterEstado,
-     filterStatus,
-     setFilterStatus,
-     handleClearFilters,
-     // Dialogs
-     selectedOrcamento,
-     setSelectedOrcamento,
-     isConvertOpen,
-     setIsConvertOpen,
-     orcamentoToConvert,
-     setOrcamentoToConvert,
-     // Orcamentos
-    orcamentos,
-     filteredOrcamentos,
-    statuses,
-    estados,
-    fetchOrcamentos,
-    toggleVisto,
-    updateStatus,
-    deleteOrcamento,
-      // Gamification
-      achievements,
-      goals,
-      totalPoints,
-      ranking,
-      myRankPosition,
-     // Advanced Metrics
-     advancedMetrics,
-     metricsLoading,
-     goalNotifications,
-     markNotificationAsRead,
-     // Actions
-     handleSignOut,
-     copyLink,
-     leadsForAlerts,
-   } = useVendedorPortal();
+  const { user, loading: authLoading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const { sortOption, updateSort } = useOrcamentoSort("vendedor_portal");
-  const { hasPermission } = useUserPermissions();
-  const canDeleteLeads = hasPermission("delete_leads");
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(() => {
-    return searchParams.get("tab") || "dashboard";
-  });
+  const portal = useVendedorPortal();
 
-  // React to ?tab= changes (e.g. redirect from lead creation)
-  useEffect(() => {
-    const tab = searchParams.get("tab");
-    if (tab && tab !== activeTab) {
-      setActiveTab(tab);
-      // Clean up the param so it doesn't persist
-      searchParams.delete("tab");
-      setSearchParams(searchParams, { replace: true });
-    }
-  }, [searchParams]);
+  const activeTab = useMemo(() => {
+    const segments = location.pathname.replace("/vendedor", "").split("/").filter(Boolean);
+    return segments[0] || "dashboard";
+  }, [location.pathname]);
 
-  if (loading) {
+  const badgeCounts = useMemo(() => {
+    const unseenCount = portal.orcamentos.filter((o) => !o.visto).length;
+    return { orcamentos: unseenCount };
+  }, [portal.orcamentos]);
+
+  if (authLoading || portal.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen flex items-center justify-center bg-background gradient-mesh">
+        <div className="flex flex-col items-center gap-4 animate-pulse-soft">
+          <div className="p-4 rounded-2xl bg-primary/10">
+            <Sun className="w-8 h-8 text-primary animate-spin-slow" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium">Carregando portal...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-       <VendedorHeader
-         vendedorNome={vendedor?.nome || ""}
-         isAdminMode={isAdminMode}
-         isViewingAsVendedor={isViewingAsVendedor}
-         onSignOut={handleSignOut}
-       />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-muted/30">
+        <VendorSidebar
+          activeTab={activeTab}
+          vendedorNome={portal.vendedor?.nome || ""}
+          isAdminMode={portal.isAdminMode}
+          isViewingAsVendedor={portal.isViewingAsVendedor}
+          onSignOut={portal.handleSignOut}
+          badgeCounts={badgeCounts}
+        />
 
-      <main className="container mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        {/* Unseen badge count */}
-        {(() => {
-          const unseenCount = orcamentos.filter(o => !o.visto).length;
-          return (
-             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full max-w-3xl grid-cols-5">
-                <TabsTrigger value="dashboard" className="gap-2">
-                  <LayoutDashboard className="h-4 w-4" />
-                  <span className="hidden sm:inline">Dashboard</span>
-                </TabsTrigger>
-                <TabsTrigger value="whatsapp" className="gap-2">
-                  <MessageCircle className="h-4 w-4" />
-                  <span className="hidden sm:inline">WhatsApp</span>
-                </TabsTrigger>
-                <TabsTrigger value="agenda" className="gap-2">
-                  <ClipboardCheck className="h-4 w-4" />
-                  <span className="hidden sm:inline">Agenda</span>
-                </TabsTrigger>
-                <TabsTrigger value="orcamentos" className="gap-2 relative">
-                  <FileText className="h-4 w-4" />
-                  <span className="hidden sm:inline">Orçamentos</span>
-                  {unseenCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground text-xs font-bold px-1">
-                      {unseenCount}
-                    </span>
-                  )}
-                </TabsTrigger>
-                <TabsTrigger value="links" className="gap-2">
-                  <Smartphone className="h-4 w-4" />
-                  <span className="hidden sm:inline">Links</span>
-                </TabsTrigger>
-              </TabsList>
-
-          {/* Dashboard Tab */}
-          <TabsContent value="dashboard" className="space-y-4 sm:space-y-6 mt-4">
-            {/* Urgent Alerts at Top */}
-            <LeadAlerts leads={leadsForAlerts} diasAlerta={3} />
-
-            {/* Share Link Card */}
-            {(!isAdminMode || isViewingAsVendedor) && vendedor && (
-              <VendedorShareLink slug={vendedor.slug || vendedor.codigo} onCopy={copyLink} />
-            )}
-
-           {/* Goal Progress Notifications */}
-           {goalNotifications.length > 0 && (
-             <GoalProgressNotifications
-               notifications={goalNotifications}
-               onDismiss={markNotificationAsRead}
-             />
-           )}
-
-            {/* Personal Dashboard */}
-            {vendedor && (
-              <VendorPersonalDashboard
-                orcamentos={orcamentos}
-                statuses={statuses}
-                vendedorNome={vendedor.nome}
-              />
-            )}
-
-            {/* Gamification Section — Collapsible */}
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group">
-                <Trophy className="h-4 w-4" />
-                Gamificação & Ranking
-                <ChevronDown className="h-4 w-4 ml-auto transition-transform group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-4 pt-3">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  <VendorGoals goals={goals} />
-                  <VendorAchievements
-                    achievements={achievements}
-                    totalPoints={totalPoints}
-                  />
-                </div>
-
-                {/* Leaderboard */}
-                <VendorLeaderboard
-                  ranking={ranking}
-                  currentVendedorId={vendedor?.id || null}
-                  myRankPosition={myRankPosition}
-                />
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Advanced Performance Metrics */}
-            <AdvancedMetricsCard 
-              metrics={advancedMetrics} 
-              loading={metricsLoading} 
-            />
-
-            {/* Sync Status & Notifications Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <SyncStatusWidget />
-              {vendedor && <NotificationSettings vendedorNome={vendedor.nome} />}
+        <SidebarInset className="flex-1 min-w-0">
+          <header className="page-header">
+            <SidebarTrigger className="-ml-1 sm:-ml-2 h-9 w-9 sm:h-10 sm:w-10">
+              <Menu className="h-5 w-5" />
+            </SidebarTrigger>
+            <div className="h-5 w-px bg-border/50 hidden sm:block" />
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <h1 className="page-header-title">
+                {VENDOR_TAB_TITLES[activeTab] || activeTab}
+              </h1>
             </div>
+          </header>
 
-            {/* Auto-message toggle */}
-            <WaAutoMessageToggle />
-
-            {/* Push Notification Settings */}
-            <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors group">
-                <Bell className="h-4 w-4" />
-                Notificações Push
-                <ChevronDown className="h-4 w-4 ml-auto transition-transform group-data-[state=open]:rotate-180" />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-3">
-                <Suspense fallback={<Loader2 className="h-5 w-5 animate-spin" />}>
-                  <PushNotificationSettings />
-                </Suspense>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Productivity Tools Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
-              {vendedor && (
-                <div className="lg:col-span-1 flex lg:h-[560px] min-h-0 overflow-hidden">
-                  <SmartReminders 
-                    leads={leadsForAlerts} 
-                    orcamentos={orcamentos}
-                    vendedorNome={vendedor.nome}
-                  />
-                </div>
-              )}
-              {vendedor && (
-                <div className="lg:col-span-1 flex lg:h-[560px] min-h-0 overflow-hidden">
-                  <WhatsAppTemplates vendedorNome={vendedor.nome} />
-                </div>
-              )}
-            </div>
-
-            {/* Stats Cards */}
-            <div className="w-full">
-              <FollowUpStatsCards leads={leadsForAlerts} />
-            </div>
-
-            {/* Follow-Up Calendar */}
-            <FollowUpCalendar 
-              leads={leadsForAlerts}
-              onSelectLead={(lead) => {
-                const orc = orcamentos.find(o => o.lead_id === lead.id);
-                if (orc) setSelectedOrcamento(orc);
-              }}
-            />
-
-            {/* AI Lead Scoring */}
-            <LeadScoring
-              leads={leadsForAlerts}
-              statuses={statuses}
-              onSelectLead={(lead) => {
-                const orc = orcamentos.find(o => o.lead_id === lead.id);
-                if (orc) setSelectedOrcamento(orc);
-              }}
-            />
-          </TabsContent>
-
-          {/* WhatsApp Tab */}
-          <TabsContent value="whatsapp" className="mt-4" style={{ height: "calc(100vh - 200px)", minHeight: "500px" }}>
-            <WaInbox vendorMode vendorUserId={vendedor?.user_id || undefined} />
-          </TabsContent>
-
-          {/* Agenda Tab */}
-          <TabsContent value="agenda" className="space-y-4 sm:space-y-6 mt-4">
-            <VendorTaskAgenda />
-          </TabsContent>
-
-          {/* Orçamentos Tab */}
-          <TabsContent value="orcamentos" className="space-y-4 sm:space-y-6 mt-4">
-            {/* Follow-Up Manager — alerts already shown in dashboard */}
-
-            {/* Follow-Up Manager */}
-            <VendorFollowUpManager 
-              leads={leadsForAlerts} 
-              diasAlerta={3}
-              onViewLead={(lead) => {
-                const orc = orcamentos.find(o => o.lead_id === lead.id);
-                if (orc) setSelectedOrcamento(orc);
-              }}
-            />
-
-            {/* Pending Documentation Widget */}
-            <VendorPendingDocumentation 
-              leads={leadsForAlerts}
-              statuses={statuses}
-              onConvertClick={(lead) => {
-                const orc = orcamentos.find(o => o.lead_id === lead.id);
-                if (orc) {
-                  setOrcamentoToConvert(orc);
-                  setIsConvertOpen(true);
-                }
-              }}
-            />
-
-            {/* Offline Duplicate Resolver */}
-            <OfflineDuplicateResolver vendedorNome={vendedor?.nome} />
-
-            {/* Offline Conversions Manager */}
-            <OfflineConversionsManager />
-
-            {/* Share Link Card */}
-             {(!isAdminMode || isViewingAsVendedor) && vendedor && (
-               <VendedorShareLink slug={vendedor.slug || vendedor.codigo} onCopy={copyLink} />
-            )}
-
-            {/* Orcamentos Table */}
-            <Card>
-              <CardHeader>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <CardTitle>Meus Orçamentos</CardTitle>
-                    <CardDescription>
-                      Lista de todos os orçamentos captados através do seu link
-                    </CardDescription>
-                  </div>
-                  <OrcamentoSortSelector value={sortOption} onChange={updateSort} />
-                </div>
-                <VendorLeadFilters
-                  searchTerm={searchTerm}
-                  onSearchChange={setSearchTerm}
-                  filterVisto={filterVisto}
-                  onFilterVistoChange={setFilterVisto}
-                  filterEstado={filterEstado}
-                  onFilterEstadoChange={setFilterEstado}
-                  filterStatus={filterStatus}
-                  onFilterStatusChange={setFilterStatus}
-                  estados={estados}
-                  statuses={statuses}
-                  onClearFilters={handleClearFilters}
+          <main className="flex-1 p-4 md:p-6 space-y-5 overflow-x-hidden animate-fade-in">
+            <Suspense fallback={<LoadingSpinner />}>
+              <Routes>
+                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route
+                  path="dashboard"
+                  element={<VendorDashboardView portal={portal} />}
                 />
-              </CardHeader>
-              <CardContent>
-                <VendorOrcamentosTable
-                  orcamentos={filteredOrcamentos}
-                  statuses={statuses}
-                  sortOption={sortOption}
-                  onToggleVisto={toggleVisto}
-                  onView={(orc) => setSelectedOrcamento(orc)}
-                  onStatusChange={updateStatus}
-                  onDelete={canDeleteLeads ? (orc) => deleteOrcamento(orc.id) : undefined}
-                  onConvert={(orc) => {
-                    setOrcamentoToConvert(orc);
-                    setIsConvertOpen(true);
-                  }}
+                <Route
+                  path="whatsapp"
+                  element={<VendorWhatsAppView portal={portal} />}
                 />
-              </CardContent>
-            </Card>
-          </TabsContent>
+                <Route
+                  path="agenda"
+                  element={<VendorAgendaView />}
+                />
+                <Route
+                  path="orcamentos"
+                  element={<VendorOrcamentosView portal={portal} />}
+                />
+                <Route
+                  path="gamificacao"
+                  element={<VendorGamificacaoView portal={portal} />}
+                />
+                <Route
+                  path="links"
+                  element={<VendorLinksView portal={portal} />}
+                />
+                <Route
+                  path="notificacoes"
+                  element={<VendorNotificacoesView portal={portal} />}
+                />
+                <Route path="*" element={<Navigate to="dashboard" replace />} />
+              </Routes>
+            </Suspense>
+          </main>
 
-          {/* Links & Instalação Tab */}
-          <TabsContent value="links" className="mt-4">
-            {vendedor && (
-              <LinksInstalacaoPage
-                vendedor={{
-                  nome: vendedor.nome,
-                  slug: vendedor.slug || vendedor.codigo,
-                  codigo: vendedor.codigo,
-                }}
-              />
-            )}
-          </TabsContent>
-            </Tabs>
-          );
-        })()}
-      </main>
-
-      <ConvertLeadToClientDialog
-        lead={orcamentoToConvert ? orcamentoToLead(orcamentoToConvert) : null}
-        open={isConvertOpen}
-        onOpenChange={setIsConvertOpen}
-        orcamentoId={orcamentoToConvert?.id ?? null}
-        onSuccess={fetchOrcamentos}
-      />
-
-      {/* Detalhes (botão do olho) */}
-      <VendorLeadViewDialog
-        lead={selectedOrcamento ? orcamentoToLead(selectedOrcamento) : null}
-        open={!!selectedOrcamento}
-        onOpenChange={(open) => {
-          if (!open) setSelectedOrcamento(null);
-        }}
-      />
-    </div>
+          <Footer />
+        </SidebarInset>
+      </div>
+    </SidebarProvider>
   );
 }

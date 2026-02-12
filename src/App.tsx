@@ -88,7 +88,7 @@ const App = () => (
               <Route path="/portal" element={<PortalSelector />} />
               <Route path="/admin/*" element={<Admin />} />
               <Route path="/super-admin" element={<SuperAdmin />} />
-              <Route path="/vendedor" element={<VendedorPortal />} />
+              <Route path="/vendedor/*" element={<VendedorPortal />} />
               <Route path="/calculadora" element={<Calculadora />} />
               <Route path="/checklist" element={<Checklist />} />
               <Route path="/instalar" element={<Instalar />} />
