@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LogOut, Sun, ChevronDown, ChevronRight, Star, GripVertical, Building2,
@@ -24,6 +24,7 @@ import {
   type SidebarSection,
   type MenuItem,
 } from "./sidebarConfig";
+import { useMenuAccess, useCanAccessItem } from "@/hooks/useMenuAccess";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -422,6 +423,15 @@ export function AdminSidebar({
     getSectionOrder,
   } = useSidebarPreferences();
 
+  const filteredSections = useMenuAccess(SIDEBAR_SECTIONS);
+  const canAccessItem = useCanAccessItem();
+
+  // Filter favorites to only show accessible items
+  const accessibleFavorites = useMemo(
+    () => favorites.filter((id) => canAccessItem(id)),
+    [favorites, canAccessItem]
+  );
+
   const getOrderedItems = useCallback(
     (section: SidebarSection): MenuItem[] => {
       const customOrder = getSectionOrder(section.label);
@@ -470,10 +480,10 @@ export function AdminSidebar({
 
       <SidebarContent className="scrollbar-thin py-2 space-y-0.5">
         <SidebarSearch />
-        {favorites.length > 0 && (
+        {accessibleFavorites.length > 0 && (
           <>
             <FavoritesSection
-              favoriteIds={favorites}
+              favoriteIds={accessibleFavorites}
               activeTab={activeTab}
               badgeCounts={badgeCounts}
               onToggleFav={toggleFavorite}
@@ -482,7 +492,7 @@ export function AdminSidebar({
           </>
         )}
 
-        {SIDEBAR_SECTIONS.map((section) => (
+        {filteredSections.map((section) => (
           <SidebarSectionGroup
             key={section.label}
             section={section}
