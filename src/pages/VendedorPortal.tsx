@@ -25,6 +25,7 @@ import { lazy, Suspense } from "react";
 const PushNotificationSettings = lazy(() => import("@/components/admin/PushNotificationSettings").then(m => ({ default: m.PushNotificationSettings })));
 import { VendedorHeader, VendedorShareLink } from "@/components/vendor/portal";
 import { useVendedorPortal, orcamentoToLead } from "@/hooks/useVendedorPortal";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { OrcamentoSortSelector } from "@/components/ui/orcamento-sort-selector";
 import { useOrcamentoSort } from "@/hooks/useOrcamentoSort";
 
@@ -79,6 +80,8 @@ export default function VendedorPortal() {
    } = useVendedorPortal();
 
   const { sortOption, updateSort } = useOrcamentoSort("vendedor_portal");
+  const { hasPermission } = useUserPermissions();
+  const canDeleteLeads = hasPermission("delete_leads");
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() => {
     return searchParams.get("tab") || "dashboard";
@@ -353,7 +356,7 @@ export default function VendedorPortal() {
                   onToggleVisto={toggleVisto}
                   onView={(orc) => setSelectedOrcamento(orc)}
                   onStatusChange={updateStatus}
-                  onDelete={(orc) => deleteOrcamento(orc.id)}
+                  onDelete={canDeleteLeads ? (orc) => deleteOrcamento(orc.id) : undefined}
                   onConvert={(orc) => {
                     setOrcamentoToConvert(orc);
                     setIsConvertOpen(true);

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
-export type FeatureKey = "view_groups" | "view_hidden";
+export type FeatureKey = "view_groups" | "view_hidden" | "delete_leads" | "delete_clients";
 
 const ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 

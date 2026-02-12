@@ -68,6 +68,8 @@ const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.El
 const FEATURE_LABELS: Record<string, { label: string; description: string }> = {
   view_groups: { label: "Ver Grupos", description: "Permite visualizar conversas de grupo no Inbox" },
   view_hidden: { label: "Ver Ocultas", description: "Permite visualizar conversas ocultas no Inbox" },
+  delete_leads: { label: "Excluir Leads", description: "Permite excluir leads do sistema" },
+  delete_clients: { label: "Excluir Clientes", description: "Permite excluir clientes do sistema" },
 };
 
 interface UserEditDialogProps {
@@ -502,7 +504,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                     Permissões de Funcionalidade
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Controle quais funcionalidades este usuário pode acessar no Inbox.
+                    Controle quais funcionalidades este usuário pode acessar.
                   </p>
                   <div className="space-y-2">
                     {Object.entries(FEATURE_LABELS).map(([feature, info]) => (
