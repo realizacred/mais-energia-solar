@@ -68,6 +68,7 @@ const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalaca
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
 const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationStatusPage").then(m => ({ default: m.IntegrationStatusPage })));
 const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCalendarConfigPage").then(m => ({ default: m.GoogleCalendarConfigPage })));
+const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -126,6 +127,7 @@ const TAB_TITLES: Record<string, string> = {
   "data-reset": "Limpeza de Dados",
   "integracoes-status": "Status das Integrações",
   "google-calendar": "Google Calendar",
+  "ai-config": "Configuração de IA",
   changelog: "Atualizações",
   "notificacoes-config": "Notificações",
 };
@@ -343,6 +345,7 @@ export default function Admin() {
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
                 <Route path="google-calendar" element={<GoogleCalendarConfigPage />} />
+                <Route path="ai-config" element={<AiConfigPage />} />
                 
                 {/* Site */}
                 <Route path="site-config" element={<SiteSettingsUnified />} />
