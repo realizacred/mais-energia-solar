@@ -12,7 +12,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useLeadOrcamento } from "@/hooks/useLeadOrcamento";
 import { useFormRateLimit } from "@/hooks/useFormRateLimit";
 import { useHoneypot } from "@/hooks/useHoneypot";
 import { HoneypotField } from "@/components/form";
@@ -45,6 +44,7 @@ import {
   Send,
   Info,
   Sparkles,
+  MessageCircle,
 } from "lucide-react";
 import {
   Tooltip,
@@ -113,10 +113,11 @@ export default function Calculadora() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [paybackResult, setPaybackResult] = useState<PaybackResult | null>(null);
 
+  const [waSent, setWaSent] = useState(false);
+
   const { calcularPayback, loading: paybackLoading } = usePaybackEngine();
 
   const { toast } = useToast();
-  const { submitOrcamento } = useLeadOrcamento();
   const { honeypotValue, handleHoneypotChange, validateHoneypot, resetHoneypot } = useHoneypot();
   const { checkRateLimit, recordAttempt, isBlocked } = useFormRateLimit({
     maxAttempts: 5, windowMs: 60000, cooldownMs: 300000,
@@ -243,7 +244,6 @@ export default function Calculadora() {
   // ─── Submit ───────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!validateHoneypot().isBot === false) {
-      // silently fail for bots
       toast({ title: "Orçamento enviado! ☀️" });
       return;
     }
@@ -263,60 +263,43 @@ export default function Calculadora() {
     const s2 = step2Form.getValues();
 
     try {
-      const result = await submitOrcamento(
-        { nome: s1.nome.trim(), telefone: s1.telefone.trim() },
-        {
-          cep: s1.cep || null,
-          estado: s1.estado,
-          cidade: s1.cidade.trim(),
-          area: s2.area,
-          tipo_telhado: s2.tipo_telhado,
-          rede_atendimento: s2.rede_atendimento,
-          media_consumo: s2.consumoMensal,
-          consumo_previsto: s2.consumoMensal,
-          vendedor: "Calculadora",
-        },
-        { forceNew: false }
-      );
+      const payload = {
+        nome: s1.nome.trim(),
+        telefone: s1.telefone.trim(),
+        cep: s1.cep || null,
+        estado: s1.estado,
+        cidade: s1.cidade.trim(),
+        area: s2.area,
+        tipo_telhado: s2.tipo_telhado,
+        rede_atendimento: s2.rede_atendimento,
+        media_consumo: s2.consumoMensal,
+        consumo_previsto: s2.consumoMensal,
+        consultor: "Calculadora",
+        origem: "calculadora",
+      };
 
-      if (result.success) {
+      const response = await supabase.functions.invoke("public-create-lead", {
+        body: payload,
+      });
+
+      const result = response.data;
+
+      if (result?.success) {
         resetHoneypot();
         setIsSuccess(true);
+        setWaSent(!!result.wa_sent);
         confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
         toast({
           title: "Orçamento solicitado com sucesso! ☀️",
-          description: "Nossa equipe entrará em contato em breve.",
+          description: result.wa_sent
+            ? "Você receberá uma mensagem no WhatsApp em instantes!"
+            : "Nossa equipe entrará em contato em breve.",
         });
-      } else if (result.error === "DUPLICATE_DETECTED") {
-        // For calculator, just force create
-        const forceResult = await submitOrcamento(
-          { nome: s1.nome.trim(), telefone: s1.telefone.trim() },
-          {
-            cep: s1.cep || null,
-            estado: s1.estado,
-            cidade: s1.cidade.trim(),
-            area: s2.area,
-            tipo_telhado: s2.tipo_telhado,
-            rede_atendimento: s2.rede_atendimento,
-            media_consumo: s2.consumoMensal,
-            consumo_previsto: s2.consumoMensal,
-            vendedor: "Calculadora",
-          },
-          { forceNew: true }
-        );
-        if (forceResult.success) {
-          resetHoneypot();
-          setIsSuccess(true);
-          confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
-          toast({
-            title: "Orçamento solicitado com sucesso! ☀️",
-            description: "Nossa equipe entrará em contato em breve.",
-          });
-        }
       } else {
+        const errorMsg = result?.error || response.error?.message || "Erro ao enviar";
         toast({
           title: "Erro ao enviar",
-          description: result.error || "Tente novamente.",
+          description: errorMsg,
           variant: "destructive",
         });
       }
@@ -348,9 +331,18 @@ export default function Calculadora() {
             <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
               Orçamento Solicitado!
             </h1>
+            {waSent ? (
+              <div className="flex items-center justify-center gap-2 mb-4 p-3 bg-success/10 rounded-lg border border-success/20">
+                <MessageCircle className="w-5 h-5 text-success" />
+                <p className="text-sm font-medium text-success">
+                  Enviamos uma mensagem no seu WhatsApp!
+                </p>
+              </div>
+            ) : null}
             <p className="text-muted-foreground mb-8">
-              Recebemos seus dados e nossa equipe entrará em contato em breve
-              com um orçamento personalizado para o seu imóvel.
+              {waSent
+                ? "Confira seu WhatsApp — enviamos os detalhes da simulação. Nossa equipe entrará em contato em breve!"
+                : "Recebemos seus dados e nossa equipe entrará em contato em breve com um orçamento personalizado."}
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link to="/">
@@ -362,6 +354,7 @@ export default function Calculadora() {
               <Button
                 onClick={() => {
                   setIsSuccess(false);
+                  setWaSent(false);
                   setCurrentStep(1);
                   step1Form.reset();
                   step2Form.reset();
