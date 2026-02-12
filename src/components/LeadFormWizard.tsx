@@ -172,12 +172,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             const vendedor = data[0];
             setVendedorCodigo(vendedor.codigo);
             setVendedorNome(vendedor.nome);
-            // Resolve vendedor_id for proper attribution
+            // Resolve vendedor_id via secure RPC (no direct table access for anon)
             const { data: vendedorRecord } = await supabase
-              .from("vendedores")
-              .select("id")
-              .eq("codigo", vendedor.codigo)
-              .eq("ativo", true)
+              .rpc("resolve_vendedor_public", { _codigo: vendedor.codigo })
               .maybeSingle();
             if (vendedorRecord) {
               setVendedorId(vendedorRecord.id);

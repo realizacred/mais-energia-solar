@@ -7835,7 +7835,19 @@ export type Database = {
         Returns: string
       }
       resolve_phone_to_email: { Args: { _phone: string }; Returns: string }
-      resolve_public_tenant_id: { Args: never; Returns: string }
+      resolve_public_tenant_id:
+        | { Args: never; Returns: string }
+        | { Args: { _vendedor_code?: string }; Returns: string }
+      resolve_vendedor_public: {
+        Args: { _codigo: string }
+        Returns: {
+          codigo: string
+          id: string
+          nome: string
+          slug: string
+          tenant_id: string
+        }[]
+      }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
       validate_vendedor_code: {
