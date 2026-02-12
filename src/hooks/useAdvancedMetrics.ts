@@ -1,4 +1,4 @@
- import { useState, useCallback } from "react";
+ import { useState, useCallback, useRef } from "react";
  import { supabase } from "@/integrations/supabase/client";
  
  export interface AdvancedMetrics {
@@ -175,31 +175,32 @@
      setNotifications(prev => prev.filter(n => n.id !== notificationId));
    }, []);
  
-   const checkAndCreateProgressNotifications = useCallback(async (
-     goals: { type: string; percentage: number }[],
-     vendedorIdToUse: string
-   ) => {
-     const thresholds = [50, 80, 100];
- 
-     for (const goal of goals) {
-       for (const threshold of thresholds) {
-         if (goal.percentage >= threshold) {
-           // Try to insert (will fail silently if already exists due to unique constraint)
-           await supabase
-             .from("meta_notifications")
-             .insert({
-               vendedor_id: vendedorIdToUse,
-               mes: currentMonth,
-               ano: currentYear,
-               tipo_meta: goal.type,
-               percentual_atingido: threshold,
-             })
-             .select()
-             .maybeSingle();
-         }
-       }
-     }
-   }, [currentMonth, currentYear]);
+    const checkAndCreateProgressNotifications = useCallback(async (
+      goals: { type: string; percentage: number }[],
+      vendedorIdToUse: string
+    ) => {
+      const thresholds = [50, 80, 100];
+
+      for (const goal of goals) {
+        for (const threshold of thresholds) {
+          if (goal.percentage >= threshold) {
+            // Upsert: unique constraint prevents duplicates
+            await supabase
+              .from("meta_notifications")
+              .upsert(
+                {
+                  vendedor_id: vendedorIdToUse,
+                  mes: currentMonth,
+                  ano: currentYear,
+                  tipo_meta: goal.type,
+                  percentual_atingido: threshold,
+                },
+                { onConflict: "vendedor_id,mes,ano,tipo_meta,percentual_atingido", ignoreDuplicates: true }
+              );
+          }
+        }
+      }
+    }, [currentMonth, currentYear]);
  
    return {
      metrics,
