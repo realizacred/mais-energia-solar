@@ -323,7 +323,7 @@ class SolarMarketClient {
       all.push(...items);
       if (items.length < 100) break;
       page++;
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 1100)); // Rate limit: 60 req/min
     }
     return all;
   }
@@ -364,7 +364,7 @@ class SolarMarketClient {
       all.push(...items);
       if (items.length < 100) break;
       page++;
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 1100)); // Rate limit: 60 req/min
     }
     return all;
   }
@@ -412,7 +412,7 @@ class SolarMarketClient {
       all.push(...items);
       if (items.length < 100) break;
       page++;
-      await new Promise((r) => setTimeout(r, 300));
+      await new Promise((r) => setTimeout(r, 1100)); // Rate limit: 60 req/min
     }
     return all;
   }
@@ -699,6 +699,8 @@ async function syncProjectsForClient(
       }
 
       await syncProjectSubResources(db, client, config, smProjId, smClientId, counts, syncLogId);
+      // Rate limit: 1100ms between projects (each triggers ~3 API calls)
+      await new Promise((r) => setTimeout(r, 1100));
     }
   } catch (err: any) {
     counts.errors.push(`projects client ${smClientId}: ${err.message}`);
@@ -743,6 +745,9 @@ async function syncProjectSubResources(
     console.warn(`[SM] Custom fields skipped for project ${smProjectId}: ${err.message}`);
   }
 
+  // Rate limit delay between sub-resource calls
+  await new Promise((r) => setTimeout(r, 1100));
+
   // Funnels
   try {
     const fData = await client.listProjectFunnels(smProjectId);
@@ -763,6 +768,9 @@ async function syncProjectSubResources(
   } catch (err: any) {
     console.warn(`[SM] Funnels skipped for project ${smProjectId}: ${err.message}`);
   }
+
+  // Rate limit delay between sub-resource calls
+  await new Promise((r) => setTimeout(r, 1100));
 
   // Active Proposal
   try {
