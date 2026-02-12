@@ -1339,13 +1339,13 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       autoCorrect="off"
                       spellCheck={false}
                       onChange={(e) => {
-                        setValue("nome", formatName(e.target.value));
+                        setValue("nome", e.target.value);
                         if (errors.nome) form.clearErrors("nome");
                       }}
                       onBlur={() => {
-                        const trimmed = watchedValues.nome?.replace(/\s+/g, " ").trim() || "";
-                        if (trimmed !== watchedValues.nome) {
-                          setValue("nome", trimmed);
+                        const formatted = formatName(watchedValues.nome || "");
+                        if (formatted !== watchedValues.nome) {
+                          setValue("nome", formatted);
                         }
                         markFieldTouched("nome");
                       }}
