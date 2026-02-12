@@ -276,7 +276,15 @@ function SidebarSectionGroup({
 
                 return (
                   <React.Fragment key={item.id}>
-                    {item.separator && !dragId && (
+                    {item.subsectionLabel && !dragId && (
+                      <div className="mx-3 mt-2.5 mb-1 flex items-center gap-2">
+                        <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/45 select-none">
+                          {item.subsectionLabel}
+                        </span>
+                        <div className="flex-1 h-px bg-border/20" />
+                      </div>
+                    )}
+                    {item.separator && !item.subsectionLabel && !dragId && (
                       <div className="mx-4 my-1.5 h-px bg-border/30" />
                     )}
                     <div
