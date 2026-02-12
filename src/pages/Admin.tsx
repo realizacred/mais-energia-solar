@@ -197,7 +197,7 @@ export default function Admin() {
       if (!userHasAccess) {
         const isVendedor = roles?.some(r => r.role === "vendedor");
         if (isVendedor) {
-          navigate("/vendedor", { replace: true });
+          navigate("/consultor", { replace: true });
         } else {
           setHasAccess(false);
         }

@@ -27,7 +27,7 @@ export default function VendedorPortal() {
   const portal = useVendedorPortal();
 
   const activeTab = useMemo(() => {
-    const segments = location.pathname.replace("/vendedor", "").split("/").filter(Boolean);
+    const segments = location.pathname.replace(/^\/(consultor|vendedor)/, "").split("/").filter(Boolean);
     return segments[0] || "dashboard";
   }, [location.pathname]);
 
