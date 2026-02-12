@@ -22,6 +22,8 @@ import {
   EyeOff,
   Save,
   Loader2,
+  KeyRound,
+  Settings,
 } from "lucide-react";
 
 interface IntegrationResult {
@@ -34,21 +36,38 @@ interface IntegrationResult {
   checked_at: string;
 }
 
-const INTEGRATION_META: Record<string, { icon: typeof MessageCircle; color: string; description: string }> = {
+interface IntegrationMeta {
+  icon: typeof MessageCircle;
+  color: string;
+  description: string;
+  configurable: boolean;
+  placeholder?: string;
+  helpText?: string;
+}
+
+const INTEGRATION_META: Record<string, IntegrationMeta> = {
   whatsapp: {
     icon: MessageCircle,
     color: "text-green-500",
     description: "Evolution API — Envio e recebimento de mensagens",
+    configurable: false,
+    helpText: "Configuração gerenciada via instâncias WhatsApp.",
   },
   solarmarket: {
     icon: Sun,
     color: "text-amber-500",
     description: "Marketplace solar — Sync de clientes e projetos",
+    configurable: true,
+    placeholder: "Token de acesso...",
+    helpText: "Token fornecido pelo SolarMarket para integração.",
   },
   openai: {
     icon: Brain,
     color: "text-violet-500",
     description: "IA — Sugestões comerciais e análise de leads",
+    configurable: true,
+    placeholder: "sk-...",
+    helpText: "Chave da API OpenAI. Validada antes de salvar.",
   },
 };
 
@@ -59,12 +78,22 @@ const STATUS_CONFIG = {
   not_configured: { icon: CircleDashed, label: "Não configurado", className: "bg-muted text-muted-foreground" },
 };
 
-function ApiKeyInput({ onSaved, currentStatus }: { onSaved: () => void; currentStatus?: IntegrationResult }) {
+function InlineApiKeyConfig({
+  serviceKey,
+  meta,
+  currentStatus,
+  onSaved,
+}: {
+  serviceKey: string;
+  meta: IntegrationMeta;
+  currentStatus?: IntegrationResult;
+  onSaved: () => void;
+}) {
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editing, setEditing] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const isConfigured = currentStatus && currentStatus.status !== "not_configured";
 
@@ -73,14 +102,14 @@ function ApiKeyInput({ onSaved, currentStatus }: { onSaved: () => void; currentS
     setSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke("save-integration-key", {
-        body: { service_key: "openai", api_key: apiKey.trim() },
+        body: { service_key: serviceKey, api_key: apiKey.trim() },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.details || data.error);
 
-      toast({ title: "Chave salva", description: "API key da OpenAI validada e salva com sucesso." });
+      toast({ title: "Chave salva", description: `API key de ${serviceKey} validada e salva.` });
       setApiKey("");
-      setEditing(false);
+      setOpen(false);
       onSaved();
     } catch (err: any) {
       toast({
@@ -93,80 +122,71 @@ function ApiKeyInput({ onSaved, currentStatus }: { onSaved: () => void; currentS
     }
   };
 
-  return (
-    <Card className="border-dashed">
-      <CardContent className="p-5">
-        <div className="flex items-start gap-3">
-          <Brain className="h-5 w-5 text-violet-500 shrink-0 mt-1" />
-          <div className="flex-1 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium text-sm">API Key — OpenAI</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {isConfigured
-                    ? "Chave configurada. Você pode substituí-la a qualquer momento."
-                    : "Nenhuma chave configurada. Insira sua API key abaixo."}
-                </p>
-              </div>
-              {isConfigured && !editing && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline" className="gap-1 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
-                    <CheckCircle2 className="h-3 w-3" />
-                    Configurada
-                  </Badge>
-                  <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="gap-1.5">
-                    <Save className="h-3.5 w-3.5" />
-                    Alterar
-                  </Button>
-                </div>
-              )}
-            </div>
+  if (!open) {
+    return (
+      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
+        <KeyRound className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className="text-xs text-muted-foreground">
+          {isConfigured ? "Chave configurada" : "Chave não configurada"}
+        </span>
+        {isConfigured && (
+          <Badge variant="outline" className="gap-1 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 ml-1">
+            <CheckCircle2 className="h-2.5 w-2.5" />
+            Ativa
+          </Badge>
+        )}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setOpen(true)}
+          className="gap-1 ml-auto text-xs h-7"
+        >
+          <Settings className="h-3 w-3" />
+          {isConfigured ? "Alterar chave" : "Configurar"}
+        </Button>
+      </div>
+    );
+  }
 
-            {(!isConfigured || editing) && (
-              <div className="space-y-2">
-                <Label htmlFor="openai-key" className="text-xs">
-                  {isConfigured ? "Nova API Key (substituirá a atual)" : "API Key"}
-                </Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      id="openai-key"
-                      type={showKey ? "text" : "password"}
-                      placeholder="sk-..."
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                      className="pr-10 font-mono text-xs"
-                      autoComplete="off"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowKey(!showKey)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </button>
-                  </div>
-                  <Button
-                    onClick={handleSave}
-                    disabled={saving || !apiKey.trim()}
-                    size="default"
-                    className="gap-1.5 shrink-0"
-                  >
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    {saving ? "Validando..." : "Salvar"}
-                  </Button>
-                  {editing && (
-                    <Button variant="ghost" size="default" onClick={() => { setEditing(false); setApiKey(""); }}>
-                      Cancelar
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+  return (
+    <div className="mt-3 pt-3 border-t border-border/50 space-y-2">
+      <Label className="text-xs flex items-center gap-1.5">
+        <KeyRound className="h-3 w-3" />
+        {isConfigured ? "Substituir API Key" : "Configurar API Key"}
+      </Label>
+      <p className="text-xs text-muted-foreground">{meta.helpText}</p>
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Input
+            type={showKey ? "text" : "password"}
+            placeholder={meta.placeholder || "API key..."}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            className="pr-10 font-mono text-xs h-9"
+            autoComplete="off"
+          />
+          <button
+            type="button"
+            onClick={() => setShowKey(!showKey)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          </button>
         </div>
-      </CardContent>
-    </Card>
+        <Button
+          onClick={handleSave}
+          disabled={saving || !apiKey.trim()}
+          size="sm"
+          className="gap-1 h-9"
+        >
+          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          {saving ? "Validando..." : "Salvar"}
+        </Button>
+        <Button variant="ghost" size="sm" className="h-9" onClick={() => { setOpen(false); setApiKey(""); }}>
+          Cancelar
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -242,7 +262,7 @@ export function IntegrationStatusPage() {
             Status das Integrações
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Monitoramento em tempo real das APIs conectadas ao sistema
+            Monitoramento e configuração das APIs conectadas ao sistema
           </p>
         </div>
         <Button
@@ -273,7 +293,7 @@ export function IntegrationStatusPage() {
         </div>
       )}
 
-      {/* Integration Cards */}
+      {/* Integration Cards — each with inline config */}
       <div className="grid gap-4">
         {(["whatsapp", "solarmarket", "openai"] as const).map((id) => {
           const meta = INTEGRATION_META[id];
@@ -287,11 +307,11 @@ export function IntegrationStatusPage() {
             <Card key={id} className="transition-all hover:shadow-md">
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-4">
+                  <div className="flex items-start gap-4 flex-1">
                     <div className={`p-2.5 rounded-xl bg-muted/50 ${meta.color}`}>
                       <Icon className="h-5 w-5" />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-3">
                         <h3 className="font-semibold">{meta.description.split("—")[0]?.trim()}</h3>
                         {statusCfg && StatusIcon && (
@@ -331,6 +351,23 @@ export function IntegrationStatusPage() {
                           Clique em "Verificar" para checar o status
                         </p>
                       )}
+
+                      {/* Inline API Key Config */}
+                      {meta.configurable && (
+                        <InlineApiKeyConfig
+                          serviceKey={id}
+                          meta={meta}
+                          currentStatus={result}
+                          onSaved={() => runHealthCheck(id)}
+                        />
+                      )}
+
+                      {/* Non-configurable hint */}
+                      {!meta.configurable && meta.helpText && (
+                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50 italic">
+                          {meta.helpText}
+                        </p>
+                      )}
                     </div>
                   </div>
 
@@ -350,9 +387,6 @@ export function IntegrationStatusPage() {
           );
         })}
       </div>
-
-      {/* API Key Configuration */}
-      <ApiKeyInput onSaved={() => runHealthCheck("openai")} currentStatus={results.find((r) => r.id === "openai")} />
     </div>
   );
 }
