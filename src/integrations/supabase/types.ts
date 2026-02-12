@@ -754,6 +754,7 @@ export type Database = {
       checklists_cliente: {
         Row: {
           cliente_id: string | null
+          consultor_id: string | null
           created_at: string
           created_by: string | null
           data_envio: string | null
@@ -769,10 +770,10 @@ export type Database = {
           template_id: string | null
           tenant_id: string
           updated_at: string
-          vendedor_id: string | null
         }
         Insert: {
           cliente_id?: string | null
+          consultor_id?: string | null
           created_at?: string
           created_by?: string | null
           data_envio?: string | null
@@ -788,10 +789,10 @@ export type Database = {
           template_id?: string | null
           tenant_id?: string
           updated_at?: string
-          vendedor_id?: string | null
         }
         Update: {
           cliente_id?: string | null
+          consultor_id?: string | null
           created_at?: string
           created_by?: string | null
           data_envio?: string | null
@@ -807,7 +808,6 @@ export type Database = {
           template_id?: string | null
           tenant_id?: string
           updated_at?: string
-          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -1191,6 +1191,7 @@ export type Database = {
         Row: {
           ano_referencia: number
           cliente_id: string | null
+          consultor_id: string
           created_at: string
           descricao: string
           id: string
@@ -1203,11 +1204,11 @@ export type Database = {
           updated_at: string
           valor_base: number
           valor_comissao: number
-          vendedor_id: string
         }
         Insert: {
           ano_referencia: number
           cliente_id?: string | null
+          consultor_id: string
           created_at?: string
           descricao: string
           id?: string
@@ -1220,11 +1221,11 @@ export type Database = {
           updated_at?: string
           valor_base?: number
           valor_comissao?: number
-          vendedor_id: string
         }
         Update: {
           ano_referencia?: number
           cliente_id?: string | null
+          consultor_id?: string
           created_at?: string
           descricao?: string
           id?: string
@@ -1237,7 +1238,6 @@ export type Database = {
           updated_at?: string
           valor_base?: number
           valor_comissao?: number
-          vendedor_id?: string
         }
         Relationships: [
           {
@@ -1263,9 +1263,9 @@ export type Database = {
           },
           {
             foreignKeyName: "comissoes_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -1373,6 +1373,305 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      consultor_achievements: {
+        Row: {
+          achievement_type: Database["public"]["Enums"]["achievement_type"]
+          consultor_id: string
+          id: string
+          metadata: Json | null
+          tenant_id: string
+          unlocked_at: string
+        }
+        Insert: {
+          achievement_type: Database["public"]["Enums"]["achievement_type"]
+          consultor_id: string
+          id?: string
+          metadata?: Json | null
+          tenant_id?: string
+          unlocked_at?: string
+        }
+        Update: {
+          achievement_type?: Database["public"]["Enums"]["achievement_type"]
+          consultor_id?: string
+          id?: string
+          metadata?: Json | null
+          tenant_id?: string
+          unlocked_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_achievements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_achievements_vendedor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultor_metas: {
+        Row: {
+          ano: number
+          comissao_percent: number | null
+          consultor_id: string
+          created_at: string
+          id: string
+          mes: number
+          meta_conversoes: number | null
+          meta_orcamentos: number | null
+          meta_valor: number | null
+          observacoes: string | null
+          progresso_notificado: Json | null
+          tenant_id: string
+          updated_at: string
+          usa_meta_individual: boolean
+        }
+        Insert: {
+          ano: number
+          comissao_percent?: number | null
+          consultor_id: string
+          created_at?: string
+          id?: string
+          mes: number
+          meta_conversoes?: number | null
+          meta_orcamentos?: number | null
+          meta_valor?: number | null
+          observacoes?: string | null
+          progresso_notificado?: Json | null
+          tenant_id?: string
+          updated_at?: string
+          usa_meta_individual?: boolean
+        }
+        Update: {
+          ano?: number
+          comissao_percent?: number | null
+          consultor_id?: string
+          created_at?: string
+          id?: string
+          mes?: number
+          meta_conversoes?: number | null
+          meta_orcamentos?: number | null
+          meta_valor?: number | null
+          observacoes?: string | null
+          progresso_notificado?: Json | null
+          tenant_id?: string
+          updated_at?: string
+          usa_meta_individual?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_metas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_metas_vendedor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultor_metricas: {
+        Row: {
+          ano: number
+          consultor_id: string
+          created_at: string
+          id: string
+          leads_convertidos: number | null
+          leads_perdidos: number | null
+          leads_respondidos_24h: number | null
+          mes: number
+          taxa_resposta_rapida_percent: number | null
+          taxa_retencao_percent: number | null
+          tempo_medio_fechamento_dias: number | null
+          tenant_id: string
+          ticket_medio: number | null
+          total_leads_atendidos: number | null
+          updated_at: string
+          valor_total_vendas: number | null
+        }
+        Insert: {
+          ano: number
+          consultor_id: string
+          created_at?: string
+          id?: string
+          leads_convertidos?: number | null
+          leads_perdidos?: number | null
+          leads_respondidos_24h?: number | null
+          mes: number
+          taxa_resposta_rapida_percent?: number | null
+          taxa_retencao_percent?: number | null
+          tempo_medio_fechamento_dias?: number | null
+          tenant_id?: string
+          ticket_medio?: number | null
+          total_leads_atendidos?: number | null
+          updated_at?: string
+          valor_total_vendas?: number | null
+        }
+        Update: {
+          ano?: number
+          consultor_id?: string
+          created_at?: string
+          id?: string
+          leads_convertidos?: number | null
+          leads_perdidos?: number | null
+          leads_respondidos_24h?: number | null
+          mes?: number
+          taxa_resposta_rapida_percent?: number | null
+          taxa_retencao_percent?: number | null
+          tempo_medio_fechamento_dias?: number | null
+          tenant_id?: string
+          ticket_medio?: number | null
+          total_leads_atendidos?: number | null
+          updated_at?: string
+          valor_total_vendas?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_metricas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_metricas_vendedor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultor_performance_mensal: {
+        Row: {
+          ano: number
+          consultor_id: string
+          created_at: string
+          id: string
+          mes: number
+          pontuacao_total: number
+          posicao_ranking: number | null
+          tempo_medio_resposta_horas: number | null
+          tenant_id: string
+          total_conversoes: number
+          total_orcamentos: number
+          updated_at: string
+          valor_total_vendas: number
+        }
+        Insert: {
+          ano: number
+          consultor_id: string
+          created_at?: string
+          id?: string
+          mes: number
+          pontuacao_total?: number
+          posicao_ranking?: number | null
+          tempo_medio_resposta_horas?: number | null
+          tenant_id?: string
+          total_conversoes?: number
+          total_orcamentos?: number
+          updated_at?: string
+          valor_total_vendas?: number
+        }
+        Update: {
+          ano?: number
+          consultor_id?: string
+          created_at?: string
+          id?: string
+          mes?: number
+          pontuacao_total?: number
+          posicao_ranking?: number | null
+          tempo_medio_resposta_horas?: number | null
+          tenant_id?: string
+          total_conversoes?: number
+          total_orcamentos?: number
+          updated_at?: string
+          valor_total_vendas?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedor_performance_mensal_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vendedor_performance_mensal_vendedor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultores: {
+        Row: {
+          ativo: boolean
+          codigo: string
+          created_at: string
+          email: string | null
+          id: string
+          nome: string
+          percentual_comissao: number
+          settings: Json | null
+          slug: string | null
+          telefone: string
+          tenant_id: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          codigo: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome: string
+          percentual_comissao?: number
+          settings?: Json | null
+          slug?: string | null
+          telefone: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          codigo?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string
+          percentual_comissao?: number
+          settings?: Json | null
+          slug?: string | null
+          telefone?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vendedores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       dead_letter_queue: {
         Row: {
@@ -2288,6 +2587,8 @@ export type Database = {
       }
       lead_distribution_log: {
         Row: {
+          consultor_anterior_id: string | null
+          consultor_id: string
           distribuido_em: string | null
           distribuido_por: string | null
           id: string
@@ -2295,10 +2596,10 @@ export type Database = {
           motivo: string | null
           rule_id: string | null
           tenant_id: string
-          vendedor_anterior_id: string | null
-          vendedor_id: string
         }
         Insert: {
+          consultor_anterior_id?: string | null
+          consultor_id: string
           distribuido_em?: string | null
           distribuido_por?: string | null
           id?: string
@@ -2306,10 +2607,10 @@ export type Database = {
           motivo?: string | null
           rule_id?: string | null
           tenant_id?: string
-          vendedor_anterior_id?: string | null
-          vendedor_id: string
         }
         Update: {
+          consultor_anterior_id?: string | null
+          consultor_id?: string
           distribuido_em?: string | null
           distribuido_por?: string | null
           id?: string
@@ -2317,8 +2618,6 @@ export type Database = {
           motivo?: string | null
           rule_id?: string | null
           tenant_id?: string
-          vendedor_anterior_id?: string | null
-          vendedor_id?: string
         }
         Relationships: [
           {
@@ -2344,16 +2643,16 @@ export type Database = {
           },
           {
             foreignKeyName: "lead_distribution_log_vendedor_anterior_id_fkey"
-            columns: ["vendedor_anterior_id"]
+            columns: ["consultor_anterior_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "lead_distribution_log_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -2633,6 +2932,8 @@ export type Database = {
           cep: string | null
           cidade: string
           complemento: string | null
+          consultor: string | null
+          consultor_id: string
           consumo_previsto: number
           created_at: string
           data_proxima_acao: string | null
@@ -2657,8 +2958,6 @@ export type Database = {
           ultimo_contato: string | null
           updated_at: string
           valor_estimado: number | null
-          vendedor: string | null
-          vendedor_id: string
           visto: boolean
           visto_admin: boolean
           wa_welcome_sent: boolean
@@ -2670,6 +2969,8 @@ export type Database = {
           cep?: string | null
           cidade: string
           complemento?: string | null
+          consultor?: string | null
+          consultor_id?: string
           consumo_previsto: number
           created_at?: string
           data_proxima_acao?: string | null
@@ -2694,8 +2995,6 @@ export type Database = {
           ultimo_contato?: string | null
           updated_at?: string
           valor_estimado?: number | null
-          vendedor?: string | null
-          vendedor_id?: string
           visto?: boolean
           visto_admin?: boolean
           wa_welcome_sent?: boolean
@@ -2707,6 +3006,8 @@ export type Database = {
           cep?: string | null
           cidade?: string
           complemento?: string | null
+          consultor?: string | null
+          consultor_id?: string
           consumo_previsto?: number
           created_at?: string
           data_proxima_acao?: string | null
@@ -2731,8 +3032,6 @@ export type Database = {
           ultimo_contato?: string | null
           updated_at?: string
           valor_estimado?: number | null
-          vendedor?: string | null
-          vendedor_id?: string
           visto?: boolean
           visto_admin?: boolean
           wa_welcome_sent?: boolean
@@ -2761,9 +3060,9 @@ export type Database = {
           },
           {
             foreignKeyName: "leads_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -2771,6 +3070,7 @@ export type Database = {
       meta_notifications: {
         Row: {
           ano: number
+          consultor_id: string
           created_at: string
           id: string
           lida: boolean
@@ -2778,10 +3078,10 @@ export type Database = {
           percentual_atingido: number
           tenant_id: string
           tipo_meta: string
-          vendedor_id: string
         }
         Insert: {
           ano: number
+          consultor_id: string
           created_at?: string
           id?: string
           lida?: boolean
@@ -2789,10 +3089,10 @@ export type Database = {
           percentual_atingido: number
           tenant_id?: string
           tipo_meta: string
-          vendedor_id: string
         }
         Update: {
           ano?: number
+          consultor_id?: string
           created_at?: string
           id?: string
           lida?: boolean
@@ -2800,7 +3100,6 @@ export type Database = {
           percentual_atingido?: number
           tenant_id?: string
           tipo_meta?: string
-          vendedor_id?: string
         }
         Relationships: [
           {
@@ -2812,9 +3111,9 @@ export type Database = {
           },
           {
             foreignKeyName: "meta_notifications_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -3090,6 +3389,8 @@ export type Database = {
           cidade: string
           complemento: string | null
           concessionaria_id: string | null
+          consultor: string | null
+          consultor_id: string | null
           consumo_previsto: number
           created_at: string
           data_proxima_acao: string | null
@@ -3110,8 +3411,6 @@ export type Database = {
           tipo_telhado: string
           ultimo_contato: string | null
           updated_at: string
-          vendedor: string | null
-          vendedor_id: string | null
           visto: boolean
           visto_admin: boolean
         }
@@ -3123,6 +3422,8 @@ export type Database = {
           cidade: string
           complemento?: string | null
           concessionaria_id?: string | null
+          consultor?: string | null
+          consultor_id?: string | null
           consumo_previsto: number
           created_at?: string
           data_proxima_acao?: string | null
@@ -3143,8 +3444,6 @@ export type Database = {
           tipo_telhado: string
           ultimo_contato?: string | null
           updated_at?: string
-          vendedor?: string | null
-          vendedor_id?: string | null
           visto?: boolean
           visto_admin?: boolean
         }
@@ -3156,6 +3455,8 @@ export type Database = {
           cidade?: string
           complemento?: string | null
           concessionaria_id?: string | null
+          consultor?: string | null
+          consultor_id?: string | null
           consumo_previsto?: number
           created_at?: string
           data_proxima_acao?: string | null
@@ -3176,8 +3477,6 @@ export type Database = {
           tipo_telhado?: string
           ultimo_contato?: string | null
           updated_at?: string
-          vendedor?: string | null
-          vendedor_id?: string | null
           visto?: boolean
           visto_admin?: boolean
         }
@@ -3212,9 +3511,9 @@ export type Database = {
           },
           {
             foreignKeyName: "orcamentos_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -3587,6 +3886,7 @@ export type Database = {
         Row: {
           cliente_id: string | null
           codigo: string | null
+          consultor_id: string | null
           created_at: string
           created_by: string | null
           data_comissionamento: string | null
@@ -3608,11 +3908,11 @@ export type Database = {
           valor_equipamentos: number | null
           valor_mao_obra: number | null
           valor_total: number | null
-          vendedor_id: string | null
         }
         Insert: {
           cliente_id?: string | null
           codigo?: string | null
+          consultor_id?: string | null
           created_at?: string
           created_by?: string | null
           data_comissionamento?: string | null
@@ -3634,11 +3934,11 @@ export type Database = {
           valor_equipamentos?: number | null
           valor_mao_obra?: number | null
           valor_total?: number | null
-          vendedor_id?: string | null
         }
         Update: {
           cliente_id?: string | null
           codigo?: string | null
+          consultor_id?: string | null
           created_at?: string
           created_by?: string | null
           data_comissionamento?: string | null
@@ -3660,7 +3960,6 @@ export type Database = {
           valor_equipamentos?: number | null
           valor_mao_obra?: number | null
           valor_total?: number | null
-          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -3856,6 +4155,7 @@ export type Database = {
           cliente_endereco: string | null
           cliente_estado: string | null
           cliente_nome: string | null
+          consultor_id: string | null
           created_at: string
           created_at_sm: string | null
           distribuidora: string | null
@@ -3882,7 +4182,6 @@ export type Database = {
           status: string
           tenant_id: string
           updated_at: string
-          vendedor_id: string | null
         }
         Insert: {
           area_necessaria?: number | null
@@ -3893,6 +4192,7 @@ export type Database = {
           cliente_endereco?: string | null
           cliente_estado?: string | null
           cliente_nome?: string | null
+          consultor_id?: string | null
           created_at?: string
           created_at_sm?: string | null
           distribuidora?: string | null
@@ -3919,7 +4219,6 @@ export type Database = {
           status?: string
           tenant_id?: string
           updated_at?: string
-          vendedor_id?: string | null
         }
         Update: {
           area_necessaria?: number | null
@@ -3930,6 +4229,7 @@ export type Database = {
           cliente_endereco?: string | null
           cliente_estado?: string | null
           cliente_nome?: string | null
+          consultor_id?: string | null
           created_at?: string
           created_at_sm?: string | null
           distribuidora?: string | null
@@ -3956,7 +4256,6 @@ export type Database = {
           status?: string
           tenant_id?: string
           updated_at?: string
-          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -3968,9 +4267,9 @@ export type Database = {
           },
           {
             foreignKeyName: "propostas_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -4724,6 +5023,7 @@ export type Database = {
       }
       sla_breaches: {
         Row: {
+          consultor_id: string | null
           created_at: string | null
           escalado: boolean | null
           escalado_para: string | null
@@ -4736,9 +5036,9 @@ export type Database = {
           sla_rule_id: string | null
           tenant_id: string
           tipo: string
-          vendedor_id: string | null
         }
         Insert: {
+          consultor_id?: string | null
           created_at?: string | null
           escalado?: boolean | null
           escalado_para?: string | null
@@ -4751,9 +5051,9 @@ export type Database = {
           sla_rule_id?: string | null
           tenant_id?: string
           tipo: string
-          vendedor_id?: string | null
         }
         Update: {
+          consultor_id?: string | null
           created_at?: string | null
           escalado?: boolean | null
           escalado_para?: string | null
@@ -4766,7 +5066,6 @@ export type Database = {
           sla_rule_id?: string | null
           tenant_id?: string
           tipo?: string
-          vendedor_id?: string | null
         }
         Relationships: [
           {
@@ -4792,9 +5091,9 @@ export type Database = {
           },
           {
             foreignKeyName: "sla_breaches_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -5927,307 +6226,9 @@ export type Database = {
           },
         ]
       }
-      vendedor_achievements: {
-        Row: {
-          achievement_type: Database["public"]["Enums"]["achievement_type"]
-          id: string
-          metadata: Json | null
-          tenant_id: string
-          unlocked_at: string
-          vendedor_id: string
-        }
-        Insert: {
-          achievement_type: Database["public"]["Enums"]["achievement_type"]
-          id?: string
-          metadata?: Json | null
-          tenant_id?: string
-          unlocked_at?: string
-          vendedor_id: string
-        }
-        Update: {
-          achievement_type?: Database["public"]["Enums"]["achievement_type"]
-          id?: string
-          metadata?: Json | null
-          tenant_id?: string
-          unlocked_at?: string
-          vendedor_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendedor_achievements_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vendedor_achievements_vendedor_id_fkey"
-            columns: ["vendedor_id"]
-            isOneToOne: false
-            referencedRelation: "vendedores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vendedor_metas: {
-        Row: {
-          ano: number
-          comissao_percent: number | null
-          created_at: string
-          id: string
-          mes: number
-          meta_conversoes: number | null
-          meta_orcamentos: number | null
-          meta_valor: number | null
-          observacoes: string | null
-          progresso_notificado: Json | null
-          tenant_id: string
-          updated_at: string
-          usa_meta_individual: boolean
-          vendedor_id: string
-        }
-        Insert: {
-          ano: number
-          comissao_percent?: number | null
-          created_at?: string
-          id?: string
-          mes: number
-          meta_conversoes?: number | null
-          meta_orcamentos?: number | null
-          meta_valor?: number | null
-          observacoes?: string | null
-          progresso_notificado?: Json | null
-          tenant_id?: string
-          updated_at?: string
-          usa_meta_individual?: boolean
-          vendedor_id: string
-        }
-        Update: {
-          ano?: number
-          comissao_percent?: number | null
-          created_at?: string
-          id?: string
-          mes?: number
-          meta_conversoes?: number | null
-          meta_orcamentos?: number | null
-          meta_valor?: number | null
-          observacoes?: string | null
-          progresso_notificado?: Json | null
-          tenant_id?: string
-          updated_at?: string
-          usa_meta_individual?: boolean
-          vendedor_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendedor_metas_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vendedor_metas_vendedor_id_fkey"
-            columns: ["vendedor_id"]
-            isOneToOne: false
-            referencedRelation: "vendedores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vendedor_metricas: {
-        Row: {
-          ano: number
-          created_at: string
-          id: string
-          leads_convertidos: number | null
-          leads_perdidos: number | null
-          leads_respondidos_24h: number | null
-          mes: number
-          taxa_resposta_rapida_percent: number | null
-          taxa_retencao_percent: number | null
-          tempo_medio_fechamento_dias: number | null
-          tenant_id: string
-          ticket_medio: number | null
-          total_leads_atendidos: number | null
-          updated_at: string
-          valor_total_vendas: number | null
-          vendedor_id: string
-        }
-        Insert: {
-          ano: number
-          created_at?: string
-          id?: string
-          leads_convertidos?: number | null
-          leads_perdidos?: number | null
-          leads_respondidos_24h?: number | null
-          mes: number
-          taxa_resposta_rapida_percent?: number | null
-          taxa_retencao_percent?: number | null
-          tempo_medio_fechamento_dias?: number | null
-          tenant_id?: string
-          ticket_medio?: number | null
-          total_leads_atendidos?: number | null
-          updated_at?: string
-          valor_total_vendas?: number | null
-          vendedor_id: string
-        }
-        Update: {
-          ano?: number
-          created_at?: string
-          id?: string
-          leads_convertidos?: number | null
-          leads_perdidos?: number | null
-          leads_respondidos_24h?: number | null
-          mes?: number
-          taxa_resposta_rapida_percent?: number | null
-          taxa_retencao_percent?: number | null
-          tempo_medio_fechamento_dias?: number | null
-          tenant_id?: string
-          ticket_medio?: number | null
-          total_leads_atendidos?: number | null
-          updated_at?: string
-          valor_total_vendas?: number | null
-          vendedor_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendedor_metricas_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vendedor_metricas_vendedor_id_fkey"
-            columns: ["vendedor_id"]
-            isOneToOne: false
-            referencedRelation: "vendedores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vendedor_performance_mensal: {
-        Row: {
-          ano: number
-          created_at: string
-          id: string
-          mes: number
-          pontuacao_total: number
-          posicao_ranking: number | null
-          tempo_medio_resposta_horas: number | null
-          tenant_id: string
-          total_conversoes: number
-          total_orcamentos: number
-          updated_at: string
-          valor_total_vendas: number
-          vendedor_id: string
-        }
-        Insert: {
-          ano: number
-          created_at?: string
-          id?: string
-          mes: number
-          pontuacao_total?: number
-          posicao_ranking?: number | null
-          tempo_medio_resposta_horas?: number | null
-          tenant_id?: string
-          total_conversoes?: number
-          total_orcamentos?: number
-          updated_at?: string
-          valor_total_vendas?: number
-          vendedor_id: string
-        }
-        Update: {
-          ano?: number
-          created_at?: string
-          id?: string
-          mes?: number
-          pontuacao_total?: number
-          posicao_ranking?: number | null
-          tempo_medio_resposta_horas?: number | null
-          tenant_id?: string
-          total_conversoes?: number
-          total_orcamentos?: number
-          updated_at?: string
-          valor_total_vendas?: number
-          vendedor_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendedor_performance_mensal_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vendedor_performance_mensal_vendedor_id_fkey"
-            columns: ["vendedor_id"]
-            isOneToOne: false
-            referencedRelation: "vendedores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vendedores: {
-        Row: {
-          ativo: boolean
-          codigo: string
-          created_at: string
-          email: string | null
-          id: string
-          nome: string
-          percentual_comissao: number
-          settings: Json | null
-          slug: string | null
-          telefone: string
-          tenant_id: string
-          updated_at: string
-          user_id: string | null
-        }
-        Insert: {
-          ativo?: boolean
-          codigo: string
-          created_at?: string
-          email?: string | null
-          id?: string
-          nome: string
-          percentual_comissao?: number
-          settings?: Json | null
-          slug?: string | null
-          telefone: string
-          tenant_id?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Update: {
-          ativo?: boolean
-          codigo?: string
-          created_at?: string
-          email?: string | null
-          id?: string
-          nome?: string
-          percentual_comissao?: number
-          settings?: Json | null
-          slug?: string | null
-          telefone?: string
-          tenant_id?: string
-          updated_at?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vendedores_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       vendor_invites: {
         Row: {
+          consultor_id: string
           created_at: string
           created_by: string | null
           email: string
@@ -6237,9 +6238,9 @@ export type Database = {
           tenant_id: string
           token: string
           used_at: string | null
-          vendedor_id: string
         }
         Insert: {
+          consultor_id: string
           created_at?: string
           created_by?: string | null
           email: string
@@ -6249,9 +6250,9 @@ export type Database = {
           tenant_id: string
           token?: string
           used_at?: string | null
-          vendedor_id: string
         }
         Update: {
+          consultor_id?: string
           created_at?: string
           created_by?: string | null
           email?: string
@@ -6261,7 +6262,6 @@ export type Database = {
           tenant_id?: string
           token?: string
           used_at?: string | null
-          vendedor_id?: string
         }
         Relationships: [
           {
@@ -6273,9 +6273,9 @@ export type Database = {
           },
           {
             foreignKeyName: "vendor_invites_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -6756,27 +6756,27 @@ export type Database = {
           },
         ]
       }
-      wa_instance_vendedores: {
+      wa_instance_consultores: {
         Row: {
+          consultor_id: string
           created_at: string
           id: string
           instance_id: string
           tenant_id: string
-          vendedor_id: string
         }
         Insert: {
+          consultor_id: string
           created_at?: string
           id?: string
           instance_id: string
           tenant_id: string
-          vendedor_id: string
         }
         Update: {
+          consultor_id?: string
           created_at?: string
           id?: string
           instance_id?: string
           tenant_id?: string
-          vendedor_id?: string
         }
         Relationships: [
           {
@@ -6795,9 +6795,9 @@ export type Database = {
           },
           {
             foreignKeyName: "wa_instance_vendedores_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -6805,6 +6805,7 @@ export type Database = {
       wa_instances: {
         Row: {
           api_key: string | null
+          consultor_id: string | null
           created_at: string
           evolution_api_url: string
           evolution_instance_key: string
@@ -6821,11 +6822,11 @@ export type Database = {
           status: string
           tenant_id: string
           updated_at: string
-          vendedor_id: string | null
           webhook_secret: string
         }
         Insert: {
           api_key?: string | null
+          consultor_id?: string | null
           created_at?: string
           evolution_api_url?: string
           evolution_instance_key: string
@@ -6842,11 +6843,11 @@ export type Database = {
           status?: string
           tenant_id?: string
           updated_at?: string
-          vendedor_id?: string | null
           webhook_secret?: string
         }
         Update: {
           api_key?: string | null
+          consultor_id?: string | null
           created_at?: string
           evolution_api_url?: string
           evolution_instance_key?: string
@@ -6863,7 +6864,6 @@ export type Database = {
           status?: string
           tenant_id?: string
           updated_at?: string
-          vendedor_id?: string | null
           webhook_secret?: string
         }
         Relationships: [
@@ -6876,9 +6876,9 @@ export type Database = {
           },
           {
             foreignKeyName: "wa_instances_vendedor_id_fkey"
-            columns: ["vendedor_id"]
+            columns: ["consultor_id"]
             isOneToOne: false
-            referencedRelation: "vendedores"
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
         ]
@@ -7719,7 +7719,7 @@ export type Database = {
           updated_at: string
         }[]
       }
-      generate_vendedor_slug: { Args: { nome: string }; Returns: string }
+      generate_consultor_slug: { Args: { nome: string }; Returns: string }
       get_active_financing_banks: {
         Args: never
         Returns: {
@@ -7748,6 +7748,15 @@ export type Database = {
           possui_isencao_scee: boolean
         }[]
       }
+      get_dashboard_consultor_performance: {
+        Args: never
+        Returns: {
+          consultor: string
+          leads_com_status: number
+          total_kwh: number
+          total_leads: number
+        }[]
+      }
       get_dashboard_financeiro: {
         Args: never
         Returns: {
@@ -7772,12 +7781,12 @@ export type Database = {
       get_dashboard_leads_mensal: {
         Args: never
         Returns: {
+          consultores_ativos: number
           estados_unicos: number
           media_consumo: number
           mes: string
           total_kwh: number
           total_leads: number
-          vendedores_ativos: number
         }[]
       }
       get_dashboard_pipeline: {
@@ -7789,15 +7798,6 @@ export type Database = {
           status_ordem: number
           total_kwh: number
           total_leads: number
-        }[]
-      }
-      get_dashboard_vendedor_performance: {
-        Args: never
-        Returns: {
-          leads_com_status: number
-          total_kwh: number
-          total_leads: number
-          vendedor: string
         }[]
       }
       get_fio_b_atual: {
@@ -7892,15 +7892,7 @@ export type Database = {
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       require_tenant_id: { Args: { _user_id?: string }; Returns: string }
-      resolve_default_vendedor_id: {
-        Args: { _tenant_id: string }
-        Returns: string
-      }
-      resolve_phone_to_email: { Args: { _phone: string }; Returns: string }
-      resolve_public_tenant_id:
-        | { Args: never; Returns: string }
-        | { Args: { _vendedor_code?: string }; Returns: string }
-      resolve_vendedor_public: {
+      resolve_consultor_public: {
         Args: { _codigo: string }
         Returns: {
           codigo: string
@@ -7910,9 +7902,17 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      resolve_default_consultor_id: {
+        Args: { _tenant_id: string }
+        Returns: string
+      }
+      resolve_phone_to_email: { Args: { _phone: string }; Returns: string }
+      resolve_public_tenant_id:
+        | { Args: never; Returns: string }
+        | { Args: { _consultor_code?: string }; Returns: string }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
-      validate_vendedor_code: {
+      validate_consultor_code: {
         Args: { _codigo: string }
         Returns: {
           codigo: string
@@ -7933,7 +7933,7 @@ export type Database = {
       app_role:
         | "admin"
         | "gerente"
-        | "vendedor"
+        | "consultor"
         | "instalador"
         | "financeiro"
         | "super_admin"
@@ -8131,7 +8131,7 @@ export const Constants = {
       app_role: [
         "admin",
         "gerente",
-        "vendedor",
+        "consultor",
         "instalador",
         "financeiro",
         "super_admin",
