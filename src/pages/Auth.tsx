@@ -42,6 +42,7 @@ export default function Auth() {
 
   // Show message if redirected from protected route
   useEffect(() => {
+    if (user || loading) return; // Don't show if already logged in or still loading
     const redirectFrom = searchParams.get("from");
     if (redirectFrom) {
       const messages: Record<string, string> = {
@@ -53,7 +54,7 @@ export default function Auth() {
         description: messages[redirectFrom] || "Faça login para continuar",
       });
     }
-  }, [searchParams]);
+  }, [searchParams, user, loading]);
 
   useEffect(() => {
     const checkUserRoleAndRedirect = async () => {
