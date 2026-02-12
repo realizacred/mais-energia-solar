@@ -59,11 +59,14 @@ const STATUS_CONFIG = {
   not_configured: { icon: CircleDashed, label: "Não configurado", className: "bg-muted text-muted-foreground" },
 };
 
-function ApiKeyInput({ onSaved }: { onSaved: () => void }) {
+function ApiKeyInput({ onSaved, currentStatus }: { onSaved: () => void; currentStatus?: IntegrationResult }) {
   const { toast } = useToast();
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const isConfigured = currentStatus && currentStatus.status !== "not_configured";
 
   const handleSave = async () => {
     if (!apiKey.trim()) return;
@@ -77,6 +80,7 @@ function ApiKeyInput({ onSaved }: { onSaved: () => void }) {
 
       toast({ title: "Chave salva", description: "API key da OpenAI validada e salva com sucesso." });
       setApiKey("");
+      setEditing(false);
       onSaved();
     } catch (err: any) {
       toast({
@@ -95,44 +99,70 @@ function ApiKeyInput({ onSaved }: { onSaved: () => void }) {
         <div className="flex items-start gap-3">
           <Brain className="h-5 w-5 text-violet-500 shrink-0 mt-1" />
           <div className="flex-1 space-y-3">
-            <div>
-              <p className="font-medium text-sm">Configurar API Key — OpenAI</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                A chave é validada antes de salvar e nunca é exibida após o cadastro. Armazenada com isolamento por tenant.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="openai-key" className="text-xs">Nova API Key</Label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <Input
-                    id="openai-key"
-                    type={showKey ? "text" : "password"}
-                    placeholder="sk-..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    className="pr-10 font-mono text-xs"
-                    autoComplete="off"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKey(!showKey)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <Button
-                  onClick={handleSave}
-                  disabled={saving || !apiKey.trim()}
-                  size="default"
-                  className="gap-1.5 shrink-0"
-                >
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {saving ? "Validando..." : "Salvar"}
-                </Button>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-sm">API Key — OpenAI</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {isConfigured
+                    ? "Chave configurada. Você pode substituí-la a qualquer momento."
+                    : "Nenhuma chave configurada. Insira sua API key abaixo."}
+                </p>
               </div>
+              {isConfigured && !editing && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="gap-1 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                    <CheckCircle2 className="h-3 w-3" />
+                    Configurada
+                  </Badge>
+                  <Button variant="outline" size="sm" onClick={() => setEditing(true)} className="gap-1.5">
+                    <Save className="h-3.5 w-3.5" />
+                    Alterar
+                  </Button>
+                </div>
+              )}
             </div>
+
+            {(!isConfigured || editing) && (
+              <div className="space-y-2">
+                <Label htmlFor="openai-key" className="text-xs">
+                  {isConfigured ? "Nova API Key (substituirá a atual)" : "API Key"}
+                </Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Input
+                      id="openai-key"
+                      type={showKey ? "text" : "password"}
+                      placeholder="sk-..."
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="pr-10 font-mono text-xs"
+                      autoComplete="off"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowKey(!showKey)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  <Button
+                    onClick={handleSave}
+                    disabled={saving || !apiKey.trim()}
+                    size="default"
+                    className="gap-1.5 shrink-0"
+                  >
+                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {saving ? "Validando..." : "Salvar"}
+                  </Button>
+                  {editing && (
+                    <Button variant="ghost" size="default" onClick={() => { setEditing(false); setApiKey(""); }}>
+                      Cancelar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </CardContent>
@@ -322,7 +352,7 @@ export function IntegrationStatusPage() {
       </div>
 
       {/* API Key Configuration */}
-      <ApiKeyInput onSaved={() => runHealthCheck("openai")} />
+      <ApiKeyInput onSaved={() => runHealthCheck("openai")} currentStatus={results.find((r) => r.id === "openai")} />
     </div>
   );
 }
