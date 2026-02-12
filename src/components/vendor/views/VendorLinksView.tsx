@@ -9,6 +9,11 @@ export default function VendorLinksView({ portal }: Props) {
 
   if (!vendedor) return null;
 
+  // When admin accesses without impersonation, show all vendor links (admin view)
+  if (vendedor.id === "admin") {
+    return <LinksInstalacaoPage />;
+  }
+
   return (
     <LinksInstalacaoPage
       vendedor={{
