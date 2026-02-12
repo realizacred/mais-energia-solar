@@ -394,7 +394,27 @@ export function PushNotificationSettings() {
             <Switch
               id="push-enabled"
               checked={pushEnabled}
-              onCheckedChange={(v) => setPushEnabled(v)}
+              disabled={savingPrefs}
+              onCheckedChange={async (v) => {
+                setPushEnabled(v);
+                setSavingPrefs(true);
+                try {
+                  await supabase.functions.invoke("register-push-subscription", {
+                    body: {
+                      action: "update_preferences",
+                      enabled: v,
+                      quiet_hours_start: quietStart ? `${quietStart}:00` : null,
+                      quiet_hours_end: quietEnd ? `${quietEnd}:00` : null,
+                    },
+                  });
+                  toast({ title: v ? "Notificações ativadas ✅" : "Notificações desativadas 🔕" });
+                } catch {
+                  setPushEnabled(!v);
+                  toast({ title: "Erro ao salvar", description: "Tente novamente.", variant: "destructive" });
+                } finally {
+                  setSavingPrefs(false);
+                }
+              }}
             />
           </div>
 
