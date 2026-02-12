@@ -42,7 +42,9 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [filterAssigned, setFilterAssigned] = useState("all");
   const [filterInstance, setFilterInstance] = useState("all");
   const [filterTag, setFilterTag] = useState("all");
-  const { hasPermission, isAdmin: isAdminUser, loading: permissionsLoading } = useUserPermissions();
+  // In vendor mode with impersonation, check permissions of the target vendor, not the admin
+  const permissionTargetId = vendorMode && vendorUserId ? vendorUserId : undefined;
+  const { hasPermission, isAdmin: isAdminUser, loading: permissionsLoading } = useUserPermissions(permissionTargetId);
   const canViewGroups = hasPermission("view_groups");
   const canViewHidden = hasPermission("view_hidden");
   // Default to false for non-admins to prevent flash of group content while loading
