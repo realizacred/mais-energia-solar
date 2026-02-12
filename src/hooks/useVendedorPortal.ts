@@ -1,4 +1,4 @@
- import { useState, useEffect, useMemo, useCallback } from "react";
+ import { useState, useEffect, useMemo, useCallback, useRef } from "react";
  import { useNavigate, useSearchParams } from "react-router-dom";
  import { useAuth } from "@/hooks/useAuth";
  import { supabase } from "@/integrations/supabase/client";
@@ -237,16 +237,19 @@ const ADMIN_PROFILE: VendedorProfile = {
      }
    }, [vendedor, advancedMetrics.calculateMetrics, advancedMetrics.fetchNotifications]);
  
-   // Create progress notifications
-   useEffect(() => {
-     if (vendedor?.id && gamification.goals.length > 0) {
-       const goalsForNotification = gamification.goals.map(g => ({
-         type: g.type,
-         percentage: g.percentage,
-       }));
-       advancedMetrics.checkAndCreateProgressNotifications(goalsForNotification, vendedor.id);
-     }
-   }, [gamification.goals, vendedor?.id, advancedMetrics.checkAndCreateProgressNotifications]);
+    // Create progress notifications — run once when goals are available
+    const notifiedRef = useRef(false);
+    useEffect(() => {
+      if (notifiedRef.current) return;
+      if (vendedor?.id && gamification.goals.length > 0) {
+        notifiedRef.current = true;
+        const goalsForNotification = gamification.goals.map(g => ({
+          type: g.type,
+          percentage: g.percentage,
+        }));
+        advancedMetrics.checkAndCreateProgressNotifications(goalsForNotification, vendedor.id);
+      }
+    }, [gamification.goals, vendedor?.id, advancedMetrics.checkAndCreateProgressNotifications]);
  
    // Filtered orcamentos
    const filteredOrcamentos = useMemo(() => {
