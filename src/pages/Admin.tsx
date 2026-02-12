@@ -63,6 +63,7 @@ const WaInstancesManager = lazy(() => import("@/components/admin/WaInstancesMana
 const WaTagsManager = lazy(() => import("@/components/admin/inbox/WaTagsManager").then(m => ({ default: m.WaTagsManager })));
 const InstalarApp = lazy(() => import("@/pages/Instalar"));
 const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalacaoPage").then(m => ({ default: m.LinksInstalacaoPage })));
+const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -118,6 +119,7 @@ const TAB_TITLES: Record<string, string> = {
   "followup-queue": "Fila de Follow-ups",
   "wa-etiquetas": "Etiquetas WhatsApp",
   "links-instalacao": "Links & Instalação",
+  "data-reset": "Limpeza de Dados",
 };
 
 /** N8n placeholder component */
@@ -341,6 +343,7 @@ export default function Admin() {
                 
                 {/* Administração */}
                 <Route path="auditoria" element={<AuditLogsViewer />} />
+                <Route path="data-reset" element={<DataResetManager />} />
                 <Route path="links-instalacao" element={<LinksInstalacaoPage />} />
                 
                 {/* Catch-all */}
