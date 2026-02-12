@@ -111,7 +111,7 @@ export function WaFollowupWidget({ onOpenConversation, vendorUserId }: WaFollowu
   const { data: vendedores = [] } = useQuery({
     queryKey: ["wa-followup-vendedores"],
     queryFn: async () => {
-      const { data } = await supabase.from("vendedores").select("id, nome, user_id").eq("ativo", true);
+      const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
       return data || [];
     },
     staleTime: 5 * 60 * 1000,

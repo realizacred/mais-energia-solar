@@ -50,8 +50,8 @@ const ADMIN_PROFILE: VendedorProfile = {
    consumo_previsto: orc.consumo_previsto,
    observacoes: orc.observacoes,
    arquivos_urls: orc.arquivos_urls,
-    vendedor: orc.vendedor,
-    vendedor_id: null,
+    consultor: orc.vendedor,
+    consultor_id: null,
     visto: orc.visto,
     visto_admin: orc.visto_admin,
     status_id: orc.status_id,
@@ -123,12 +123,12 @@ const ADMIN_PROFILE: VendedorProfile = {
        const isAdmin = userRoles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
  
        // If admin is viewing as specific vendor (via ?as=codigo parameter)
-       if (isAdmin && adminAsVendedor) {
-         const { data: targetVendedor, error: targetError } = await supabase
-           .from("vendedores")
-           .select("*")
-           .eq("codigo", adminAsVendedor)
-           .eq("ativo", true)
+        if (isAdmin && adminAsVendedor) {
+          const { data: targetVendedor, error: targetError } = await (supabase as any)
+            .from("consultores")
+            .select("*")
+            .eq("codigo", adminAsVendedor)
+            .eq("ativo", true)
            .single();
  
          if (targetError || !targetVendedor) {
@@ -149,11 +149,11 @@ const ADMIN_PROFILE: VendedorProfile = {
       }
  
        // Normal flow: load user's own vendedor profile
-       const { data: vendedorData, error: vendedorError } = await supabase
-         .from("vendedores")
-         .select("*")
-         .eq("user_id", user.id)
-         .single();
+        const { data: vendedorData, error: vendedorError } = await (supabase as any)
+          .from("consultores")
+          .select("*")
+          .eq("user_id", user.id)
+          .single();
  
        if (vendedorError || !vendedorData) {
          if (isAdmin) {

@@ -17,8 +17,8 @@ export interface Lead {
   media_consumo: number;
   consumo_previsto: number;
   observacoes: string | null;
-  vendedor: string | null;
-  vendedor_id: string | null;
+  consultor: string | null;
+  consultor_id: string | null;
   arquivos_urls: string[] | null;
   status_id: string | null;
   visto: boolean;
@@ -32,10 +32,10 @@ export interface Lead {
   distribuido_em: string | null;
   created_at: string;
   updated_at: string;
-  /** Joined from vendedores table via vendedor_id */
-  vendedor_nome?: string;
-  /** @deprecated Use vendedor_id + vendedor_nome instead */
-  _vendedor_text_fallback?: string;
+  /** Joined from consultores table via consultor_id */
+  consultor_nome?: string;
+  /** @deprecated Use consultor_id + consultor_nome instead */
+  _consultor_text_fallback?: string;
 }
 
 export interface LeadStatus {

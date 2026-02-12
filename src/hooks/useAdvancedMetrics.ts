@@ -41,7 +41,7 @@
        const { data: orcamentos } = await supabase
          .from("orcamentos")
          .select("id, created_at, ultimo_contato, status_id")
-         .eq("vendedor", vendedorNome)
+         .eq("consultor", vendedorNome)
          .gte("created_at", startOfMonth)
          .lte("created_at", endOfMonth);
  
@@ -49,7 +49,7 @@
         const { data: leads } = await supabase
           .from("leads")
           .select("id, created_at")
-          .eq("vendedor", vendedorNome)
+          .eq("consultor", vendedorNome)
           .gte("created_at", startOfMonth)
           .lte("created_at", endOfMonth);
 
@@ -152,14 +152,14 @@
    const fetchNotifications = useCallback(async () => {
      if (!vendedorId) return;
  
-     const { data } = await supabase
-       .from("meta_notifications")
-       .select("*")
-       .eq("vendedor_id", vendedorId)
-       .eq("mes", currentMonth)
-       .eq("ano", currentYear)
-       .eq("lida", false)
-       .order("created_at", { ascending: false });
+      const { data } = await supabase
+        .from("meta_notifications")
+        .select("*")
+        .eq("consultor_id", vendedorId)
+        .eq("mes", currentMonth)
+        .eq("ano", currentYear)
+        .eq("lida", false)
+        .order("created_at", { ascending: false });
  
      if (data) {
        setNotifications(data);
@@ -189,13 +189,13 @@
               .from("meta_notifications")
               .upsert(
                 {
-                  vendedor_id: vendedorIdToUse,
+                  consultor_id: vendedorIdToUse,
                   mes: currentMonth,
                   ano: currentYear,
                   tipo_meta: goal.type,
                   percentual_atingido: threshold,
                 },
-                { onConflict: "vendedor_id,mes,ano,tipo_meta,percentual_atingido", ignoreDuplicates: true }
+                { onConflict: "consultor_id,mes,ano,tipo_meta,percentual_atingido", ignoreDuplicates: true }
               );
           }
         }

@@ -39,7 +39,7 @@
    cidade: string;
    estado: string;
    media_consumo: number;
-   vendedor: string | null;
+   consultor: string | null;
    status_id: string | null;
    created_at: string;
    ultimo_contato?: string | null;
@@ -206,12 +206,12 @@
              <Zap className="w-3 h-3 flex-shrink-0 text-warning" />
              <span className="font-medium">{lead.media_consumo} kWh</span>
            </div>
-           {lead.vendedor && (
-             <Badge variant="secondary" className="text-[10px] h-5 gap-1">
-               <User className="w-2.5 h-2.5" />
-               {lead.vendedor.split(" ")[0]}
-             </Badge>
-           )}
+          {lead.consultor && (
+            <Badge variant="secondary" className="text-[10px] h-5 gap-1">
+              <User className="w-2.5 h-2.5" />
+              {lead.consultor.split(" ")[0]}
+            </Badge>
+          )}
          </div>
        </div>
  

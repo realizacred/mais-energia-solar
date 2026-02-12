@@ -23,13 +23,13 @@ import { TrendingUp, TrendingDown, History, BarChart3, Target } from "lucide-rea
 
 interface Comissao {
   id: string;
-  vendedor_id: string;
+  consultor_id: string;
   valor_comissao: number;
   mes_referencia: number;
   ano_referencia: number;
   status: string;
   created_at: string;
-  vendedores?: { nome: string };
+  consultores?: { nome: string };
   pagamentos_comissao?: { valor_pago: number; data_pagamento: string }[];
 }
 
@@ -74,7 +74,7 @@ export function ComissoesReports({
   const resumoMensal = useMemo(() => {
     return vendedores
       .map((v) => {
-        const vendorComissoes = comissoes.filter((c) => c.vendedor_id === v.id);
+        const vendorComissoes = comissoes.filter((c) => c.consultor_id === v.id);
         const total = vendorComissoes.reduce((acc, c) => acc + c.valor_comissao, 0);
         const pago = vendorComissoes.reduce(
           (acc, c) =>
@@ -83,7 +83,7 @@ export function ComissoesReports({
         );
         return {
           vendedor: v.nome,
-          vendedor_id: v.id,
+          consultor_id: v.id,
           total,
           pago,
           pendente: Math.max(0, total - pago),
@@ -101,7 +101,7 @@ export function ComissoesReports({
       c.pagamentos_comissao?.forEach((p) => {
         pagamentos.push({
           data: p.data_pagamento,
-          vendedor: c.vendedores?.nome || "Desconhecido",
+          vendedor: c.consultores?.nome || "Desconhecido",
           valor: p.valor_pago,
           status: "pago",
         });
@@ -221,7 +221,7 @@ export function ComissoesReports({
                       </TableRow>
                     ) : (
                       resumoMensal.map((r) => (
-                        <TableRow key={r.vendedor_id}>
+                        <TableRow key={r.consultor_id}>
                           <TableCell className="font-medium">{r.vendedor}</TableCell>
                           <TableCell className="text-right">{formatCurrency(r.total)}</TableCell>
                           <TableCell className="text-right text-green-600">

@@ -127,7 +127,7 @@ export function DistributionConfig() {
                       {log.lead?.lead_code && <span className="text-muted-foreground">({log.lead.lead_code})</span>}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      → {log.vendedor?.nome || "Consultor"} · {log.motivo}
+                      → {log.consultor?.nome || "Consultor"} · {log.motivo}
                     </p>
                   </div>
                   {log.distribuido_em && (

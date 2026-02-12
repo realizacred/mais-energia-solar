@@ -192,7 +192,7 @@ export function ComissoesManager() {
         .from("comissoes")
         .select(`
           *,
-          vendedores(nome),
+          consultores(nome),
           pagamentos_comissao(valor_pago, data_pagamento)
         `)
         .order("created_at", { ascending: false });

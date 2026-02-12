@@ -85,9 +85,9 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
 
       // Filter by vendedor unless in admin mode viewing all
       if (filterByVendedor && vendedorNome) {
-        query = query.eq("vendedor", vendedorNome);
+        query = query.eq("consultor", vendedorNome);
       } else if (!isAdminMode && vendedorNome) {
-        query = query.eq("vendedor", vendedorNome);
+        query = query.eq("consultor", vendedorNome);
       }
 
       const [orcRes, statusesRes] = await Promise.all([

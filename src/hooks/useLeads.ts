@@ -139,8 +139,8 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
   // Build vendedor filter options from vendedor_id + resolved name
   const vendedorFilterMap = new Map<string, string>();
   leads.forEach((l) => {
-    if (l.vendedor_id && l.vendedor_nome) {
-      vendedorFilterMap.set(l.vendedor_id, l.vendedor_nome);
+    if (l.consultor_id && l.consultor_nome) {
+      vendedorFilterMap.set(l.consultor_id, l.consultor_nome);
     }
   });
   const uniqueVendedores: VendedorFilter[] = Array.from(vendedorFilterMap.entries())

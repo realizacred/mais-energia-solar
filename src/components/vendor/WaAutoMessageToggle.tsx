@@ -43,8 +43,8 @@ export function WaAutoMessageToggle({ vendedorId: propVendedorId, compact }: WaA
     if (!user) return;
 
     const resolve = async () => {
-      const { data } = await supabase
-        .from("vendedores")
+      const { data } = await (supabase as any)
+        .from("consultores")
         .select("id")
         .eq("user_id", user.id)
         .eq("ativo", true)

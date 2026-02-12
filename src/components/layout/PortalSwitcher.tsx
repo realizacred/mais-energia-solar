@@ -84,15 +84,15 @@ export function PortalSwitcher() {
         .select("role")
         .eq("user_id", user.id);
 
-      const isVendedor = roles?.some(r => r.role === "vendedor");
+      const isVendedor = roles?.some(r => r.role === "consultor" || r.role === ("vendedor" as any));
       const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
       const isInstalador = roles?.some(r => r.role === "instalador");
       const isSuperAdmin = roles?.some(r => r.role === "super_admin");
 
       let hasVendedorRecord = false;
       if (isVendedor) {
-        const { data: vendedorData } = await supabase
-          .from("vendedores")
+        const { data: vendedorData } = await (supabase as any)
+          .from("consultores")
           .select("id")
           .eq("user_id", user.id)
           .single();
@@ -102,8 +102,8 @@ export function PortalSwitcher() {
       // If admin, load all vendedores and instaladores for selection
       if (isAdmin) {
         const [vendedoresRes, instaladoresRes] = await Promise.all([
-          supabase
-            .from("vendedores")
+          (supabase as any)
+            .from("consultores")
             .select("id, nome, codigo, slug")
             .eq("ativo", true)
             .order("nome"),

@@ -11,7 +11,7 @@ interface Lead {
   estado: string;
   cidade: string;
   media_consumo: number;
-  vendedor: string | null;
+  consultor: string | null;
   created_at: string;
   status_id: string | null;
 }
@@ -72,7 +72,7 @@ export default function DashboardCharts({ leads }: DashboardChartsProps) {
     const vendorData: Record<string, { leads: number; kwh: number }> = {};
     
     leads.forEach((lead) => {
-      const vendor = lead.vendedor || "Sem consultor";
+      const vendor = lead.consultor || "Sem consultor";
       if (!vendorData[vendor]) {
         vendorData[vendor] = { leads: 0, kwh: 0 };
       }

@@ -29,7 +29,7 @@ export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
       if (!leadId) return null;
       const { data, error } = await supabase
         .from("leads")
-        .select("id, lead_code, nome, telefone, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, observacoes, status_id, vendedor, created_at, updated_at, lead_statuses(nome, cor, ordem)")
+        .select("id, lead_code, nome, telefone, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, observacoes, status_id, consultor, created_at, updated_at, lead_statuses(nome, cor, ordem)")
         .eq("id", leadId)
         .maybeSingle();
       if (error) throw error;
@@ -237,10 +237,10 @@ export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
                 <Clock className="h-2.5 w-2.5" />
                 <span>Atualizado: {format(new Date(lead.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
               </div>
-              {lead.vendedor && (
+            {lead.consultor && (
                 <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                   <User className="h-2.5 w-2.5" />
-                  <span>Vendedor: {lead.vendedor}</span>
+                  <span>Consultor: {lead.consultor}</span>
                 </div>
               )}
             </div>

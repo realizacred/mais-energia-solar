@@ -110,9 +110,9 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
       setLocalAtivo(user.ativo ?? true);
       setLocalRoles(user.roles || []);
       setSelectedNewRole("");
-      // Fetch linked vendedor
-      supabase
-        .from("vendedores")
+      // Fetch linked consultor
+      (supabase as any)
+        .from("consultores")
         .select("id, nome, telefone, email, codigo")
         .eq("user_id", user.user_id)
         .maybeSingle()
@@ -174,8 +174,8 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
 
       // Sync name to linked vendedor
       if (linkedVendedor) {
-        await supabase
-          .from("vendedores")
+        await (supabase as any)
+          .from("consultores")
           .update({ nome: editName.trim() })
           .eq("user_id", user.user_id);
         setLinkedVendedor({ ...linkedVendedor, nome: editName.trim() });
@@ -207,8 +207,8 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
 
       // Sync email to linked vendedor
       if (linkedVendedor) {
-        await supabase
-          .from("vendedores")
+        await (supabase as any)
+          .from("consultores")
           .update({ email: editEmail.trim() })
           .eq("user_id", user.user_id);
         setLinkedVendedor({ ...linkedVendedor, email: editEmail.trim() });

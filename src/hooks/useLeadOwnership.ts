@@ -73,11 +73,11 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
 
         // Collect all vendedor_ids to resolve names in one query
         const vendedorIds = new Set<string>();
-        if (lead?.vendedor_id) vendedorIds.add(lead.vendedor_id);
+        if (lead?.consultor_id) vendedorIds.add(lead.consultor_id);
 
         distLogs?.forEach(d => {
-          if (d.vendedor_id) vendedorIds.add(d.vendedor_id);
-          if (d.vendedor_anterior_id) vendedorIds.add(d.vendedor_anterior_id);
+          if (d.consultor_id) vendedorIds.add(d.consultor_id);
+          if (d.consultor_anterior_id) vendedorIds.add(d.consultor_anterior_id);
         });
 
         // Extract vendedor_id from audit logs
@@ -87,20 +87,20 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
           const novos = log.dados_novos as Record<string, any> | null;
           const anteriores = log.dados_anteriores as Record<string, any> | null;
 
-          if (log.acao === "INSERT" && novos?.vendedor_id) {
-            vendedorIds.add(novos.vendedor_id);
+          if (log.acao === "INSERT" && novos?.consultor_id) {
+            vendedorIds.add(novos.consultor_id);
             auditEntries.push({
-              vendedor_id: novos.vendedor_id,
+              vendedor_id: novos.consultor_id,
               vendedor_anterior_id: null,
               data: log.created_at,
               tipo: "criacao",
             });
-          } else if (log.acao === "UPDATE" && novos?.vendedor_id && anteriores?.vendedor_id && novos.vendedor_id !== anteriores.vendedor_id) {
-            vendedorIds.add(novos.vendedor_id);
-            vendedorIds.add(anteriores.vendedor_id);
+          } else if (log.acao === "UPDATE" && novos?.consultor_id && anteriores?.consultor_id && novos.consultor_id !== anteriores.consultor_id) {
+            vendedorIds.add(novos.consultor_id);
+            vendedorIds.add(anteriores.consultor_id);
             auditEntries.push({
-              vendedor_id: novos.vendedor_id,
-              vendedor_anterior_id: anteriores.vendedor_id,
+              vendedor_id: novos.consultor_id,
+              vendedor_anterior_id: anteriores.consultor_id,
               data: log.created_at,
               tipo: "reatribuicao",
             });
@@ -111,11 +111,11 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
         const vendedorIdsArr = Array.from(vendedorIds).filter(Boolean);
         let nameMap: Record<string, string> = {};
         if (vendedorIdsArr.length > 0) {
-          const { data: vendedores } = await supabase
-            .from("vendedores")
+          const { data: vendedores } = await (supabase as any)
+            .from("consultores")
             .select("id, nome")
             .in("id", vendedorIdsArr);
-          vendedores?.forEach(v => { nameMap[v.id] = v.nome; });
+          vendedores?.forEach((v: any) => { nameMap[v.id] = v.nome; });
         }
 
         if (cancelled) return;
@@ -140,16 +140,16 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
         distLogs?.forEach(d => {
           // Avoid duplicates with audit entries (within 5s window)
           const isDuplicate = historico.some(h =>
-            h.consultor_id === d.vendedor_id &&
+            h.consultor_id === d.consultor_id &&
             Math.abs(new Date(h.data).getTime() - new Date(d.distribuido_em).getTime()) < 5000
           );
           if (!isDuplicate) {
             historico.push({
               tipo: "distribuicao",
-              consultor_id: d.vendedor_id,
-              consultor_anterior_id: d.vendedor_anterior_id,
-              consultor_nome: d.vendedor_id ? nameMap[d.vendedor_id] || null : null,
-              consultor_anterior_nome: d.vendedor_anterior_id ? nameMap[d.vendedor_anterior_id] || null : null,
+              consultor_id: d.consultor_id,
+              consultor_anterior_id: d.consultor_anterior_id,
+              consultor_nome: d.consultor_id ? nameMap[d.consultor_id] || null : null,
+              consultor_anterior_nome: d.consultor_anterior_id ? nameMap[d.consultor_anterior_id] || null : null,
               data: d.distribuido_em,
               motivo: d.motivo || "Distribuição automática",
             });
@@ -167,8 +167,8 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
         const foi_reatribuido = historico.some(h => h.tipo === "reatribuicao" || h.tipo === "distribuicao");
 
         setData({
-          consultor_atual_id: lead?.vendedor_id || null,
-          consultor_atual_nome: lead?.vendedor_id ? nameMap[lead.vendedor_id] || lead?.vendedor || null : lead?.vendedor || null,
+          consultor_atual_id: lead?.consultor_id || null,
+          consultor_atual_nome: lead?.consultor_id ? nameMap[lead.consultor_id] || lead?.consultor || null : lead?.consultor || null,
           primeiro_consultor_nome,
           primeiro_consultor_data,
           foi_reatribuido,

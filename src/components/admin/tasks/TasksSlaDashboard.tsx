@@ -117,7 +117,7 @@ function TasksManager() {
   const { data: vendedores } = useQuery({
     queryKey: ["vendedores-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("vendedores").select("id, nome, user_id").eq("ativo", true);
+      const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
       return data || [];
     },
   });
@@ -369,7 +369,7 @@ function SlaDashboard() {
   const { data: vendedores } = useQuery({
     queryKey: ["vendedores-list"],
     queryFn: async () => {
-      const { data } = await supabase.from("vendedores").select("id, nome, user_id").eq("ativo", true);
+      const { data } = await (supabase as any).from("consultores").select("id, nome, user_id").eq("ativo", true);
       return data || [];
     },
   });
