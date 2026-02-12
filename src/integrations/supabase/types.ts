@@ -6348,6 +6348,57 @@ export type Database = {
           },
         ]
       }
+      wa_health_checks: {
+        Row: {
+          checked_at: string
+          created_at: string
+          error_message: string | null
+          evolution_state: string | null
+          id: string
+          instance_id: string
+          latency_ms: number | null
+          ok: boolean
+          tenant_id: string
+        }
+        Insert: {
+          checked_at?: string
+          created_at?: string
+          error_message?: string | null
+          evolution_state?: string | null
+          id?: string
+          instance_id: string
+          latency_ms?: number | null
+          ok?: boolean
+          tenant_id: string
+        }
+        Update: {
+          checked_at?: string
+          created_at?: string
+          error_message?: string | null
+          evolution_state?: string | null
+          id?: string
+          instance_id?: string
+          latency_ms?: number | null
+          ok?: boolean
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_health_checks_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "wa_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_health_checks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_instance_vendedores: {
         Row: {
           created_at: string
@@ -7292,6 +7343,7 @@ export type Database = {
       }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
       cleanup_sm_integration_requests: { Args: never; Returns: undefined }
+      cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
       enforce_limit_or_throw: {
         Args: { _delta?: number; _metric_key: string }

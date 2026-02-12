@@ -16,6 +16,22 @@ interface IntegrationResult {
   checked_at: string;
 }
 
+interface InstanceHealth {
+  instance_id: string;
+  instance_name: string;
+  phone_number: string | null;
+  profile_name: string | null;
+  ok: boolean;
+  evolution_state: string | null;
+  latency_ms: number | null;
+  error_message: string | null;
+  last_seen_at: string | null;
+  last_webhook_at: string | null;
+  last_send_ok_at: string | null;
+  outbox_pending_count: number;
+  vendedores: { id: string; nome: string; codigo: string }[];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -64,23 +80,33 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const integration = body.integration || "all"; // "whatsapp" | "solarmarket" | "openai" | "all"
+    const integration = body.integration || "all";
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Resolve tenant
+    const { data: profileData } = await supabaseAdmin
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", userId)
+      .single();
+    const tenantId = profileData?.tenant_id;
+
     const results: IntegrationResult[] = [];
     const now = new Date().toISOString();
+    let instanceHealthList: InstanceHealth[] = [];
 
-    // ── WhatsApp (Evolution API) ──
+    // ── WhatsApp (Evolution API) — per-instance health ──
     if (integration === "all" || integration === "whatsapp") {
       try {
         const { data: instances } = await supabaseAdmin
           .from("wa_instances")
-          .select("id, nome, status, evolution_api_url, evolution_instance_key, api_key, last_seen_at, updated_at")
-          .limit(10);
+          .select("id, nome, status, evolution_api_url, evolution_instance_key, api_key, last_seen_at, phone_number, profile_name, updated_at")
+          .eq("tenant_id", tenantId)
+          .limit(20);
 
         if (!instances || instances.length === 0) {
           results.push({
@@ -93,39 +119,123 @@ Deno.serve(async (req) => {
         } else {
           const globalApiKey = Deno.env.get("EVOLUTION_API_KEY") || "";
           let onlineCount = 0;
-          let totalCount = instances.length;
-          let latencies: number[] = [];
+          const totalCount = instances.length;
+          const latencies: number[] = [];
 
           for (const inst of instances) {
             const apiUrl = inst.evolution_api_url?.replace(/\/$/, "");
             const instanceKey = inst.evolution_instance_key;
             const apiKey = inst.api_key || globalApiKey;
 
-            if (!apiUrl || !instanceKey) continue;
+            const health: InstanceHealth = {
+              instance_id: inst.id,
+              instance_name: inst.nome,
+              phone_number: inst.phone_number,
+              profile_name: inst.profile_name,
+              ok: false,
+              evolution_state: null,
+              latency_ms: null,
+              error_message: null,
+              last_seen_at: inst.last_seen_at,
+              last_webhook_at: null,
+              last_send_ok_at: null,
+              outbox_pending_count: 0,
+              vendedores: [],
+            };
 
-            try {
-              const start = Date.now();
-              const encodedKey = encodeURIComponent(instanceKey);
-              const stateRes = await fetch(
-                `${apiUrl}/instance/connectionState/${encodedKey}`,
-                {
-                  method: "GET",
-                  headers: { apikey: apiKey, "Content-Type": "application/json" },
-                  signal: AbortSignal.timeout(10000),
+            // Fetch vendedores linked to this instance
+            const { data: vendedorLinks } = await supabaseAdmin
+              .from("wa_instance_vendedores")
+              .select("vendedor_id")
+              .eq("instance_id", inst.id);
+
+            if (vendedorLinks && vendedorLinks.length > 0) {
+              const vIds = vendedorLinks.map((vl: { vendedor_id: string }) => vl.vendedor_id);
+              const { data: vendedores } = await supabaseAdmin
+                .from("vendedores")
+                .select("id, nome, codigo")
+                .in("id", vIds);
+              health.vendedores = (vendedores || []) as { id: string; nome: string; codigo: string }[];
+            }
+
+            // Fetch last webhook event for this instance
+            const { data: lastWebhook } = await supabaseAdmin
+              .from("wa_webhook_events")
+              .select("created_at")
+              .eq("instance_id", inst.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            health.last_webhook_at = lastWebhook?.created_at || null;
+
+            // Fetch last successful send
+            const { data: lastSend } = await supabaseAdmin
+              .from("wa_messages")
+              .select("created_at")
+              .eq("instance_id", inst.id)
+              .eq("direction", "out")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            health.last_send_ok_at = lastSend?.created_at || null;
+
+            // Outbox pending count
+            const { count: pendingCount } = await supabaseAdmin
+              .from("wa_outbox")
+              .select("*", { count: "exact", head: true })
+              .eq("instance_id", inst.id)
+              .eq("status", "pending");
+            health.outbox_pending_count = pendingCount || 0;
+
+            // Check Evolution API connectivity
+            if (!apiUrl || !instanceKey) {
+              health.error_message = "URL ou chave da instância não configurada";
+            } else {
+              try {
+                const start = Date.now();
+                const encodedKey = encodeURIComponent(instanceKey);
+                const stateRes = await fetch(
+                  `${apiUrl}/instance/connectionState/${encodedKey}`,
+                  {
+                    method: "GET",
+                    headers: { apikey: apiKey, "Content-Type": "application/json" },
+                    signal: AbortSignal.timeout(10000),
+                  }
+                );
+                const latency = Date.now() - start;
+                health.latency_ms = latency;
+                latencies.push(latency);
+
+                if (stateRes.ok) {
+                  const stateJson = await stateRes.json();
+                  const state = stateJson?.instance?.state || stateJson?.state;
+                  health.evolution_state = state || "unknown";
+                  if (state === "open") {
+                    health.ok = true;
+                    onlineCount++;
+                  }
+                } else {
+                  const errText = await stateRes.text();
+                  health.error_message = `HTTP ${stateRes.status}: ${errText.slice(0, 150)}`;
                 }
-              );
-              const latency = Date.now() - start;
-              latencies.push(latency);
-
-              if (stateRes.ok) {
-                const stateJson = await stateRes.json();
-                const state = stateJson?.instance?.state || stateJson?.state;
-                if (state === "open") onlineCount++;
-              } else {
-                await stateRes.text(); // consume body
+              } catch (err: any) {
+                health.error_message = err.message || "Timeout ao conectar com Evolution API";
               }
-            } catch {
-              // Instance unreachable
+            }
+
+            instanceHealthList.push(health);
+
+            // Persist health check
+            if (tenantId) {
+              await supabaseAdmin.from("wa_health_checks").insert({
+                tenant_id: tenantId,
+                instance_id: inst.id,
+                ok: health.ok,
+                latency_ms: health.latency_ms,
+                evolution_state: health.evolution_state,
+                error_message: health.error_message,
+                checked_at: now,
+              });
             }
           }
 
@@ -182,16 +292,15 @@ Deno.serve(async (req) => {
           });
           const latency = Date.now() - start;
 
-          // Get last sync job
           const { data: lastJob } = await supabaseAdmin
-            .from("solar_market_sync_jobs")
-            .select("status, finished_at, error_message, created_at")
+            .from("solar_market_sync_logs")
+            .select("status, finished_at, error, created_at")
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
 
           if (smRes.ok) {
-            await smRes.text(); // consume body
+            await smRes.text();
             results.push({
               id: "solarmarket",
               name: "SolarMarket",
@@ -228,19 +337,12 @@ Deno.serve(async (req) => {
     // ── OpenAI ──
     if (integration === "all" || integration === "openai") {
       try {
-        // Try DB first (tenant-specific), fallback to env var
-        const { data: tenantProfile } = await supabaseAdmin
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", userId)
-          .single();
-
         let openaiKey: string | null = null;
-        if (tenantProfile?.tenant_id) {
+        if (tenantId) {
           const { data: configRow } = await supabaseAdmin
             .from("integration_configs")
             .select("api_key")
-            .eq("tenant_id", tenantProfile.tenant_id)
+            .eq("tenant_id", tenantId)
             .eq("service_key", "openai")
             .eq("is_active", true)
             .maybeSingle();
@@ -301,7 +403,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, results }),
+      JSON.stringify({ success: true, results, instance_health: instanceHealthList }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
