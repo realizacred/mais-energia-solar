@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Download, ExternalLink, MessageCircle, Share, Smartphone, MoreVertical, Users, Check } from "lucide-react";
+import { Copy, Download, ExternalLink, MessageCircle, Share, Smartphone, MoreVertical, Users, Check, Wrench } from "lucide-react";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ interface LinksInstalacaoPageProps {
 }
 
 export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
-  const { isInstalled, isIOS, isAndroid, canInstall, promptInstall } = usePWAInstall();
+  const { isInstalled, isIOS, canInstall, promptInstall } = usePWAInstall();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // In admin mode (no vendedor prop), load all vendedores
@@ -34,6 +34,8 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
 
   const appUrl = window.location.origin;
   const installUrl = `${appUrl}/instalar`;
+  const waAppUrl = `${appUrl}/app`;
+  const instaladorAppUrl = `${appUrl}/instalador`;
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
@@ -94,7 +96,63 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
           )}
 
           <p className="text-xs text-muted-foreground">
-            Envie o link acima para qualquer vendedor ou membro da equipe. Ao abrir no celular, poderão instalar o app.
+            Envie o link acima para qualquer consultor ou membro da equipe. Ao abrir no celular, poderão instalar o app.
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* PWA Apps Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Download className="h-5 w-5 text-primary" />
+            Apps PWA Independentes
+          </CardTitle>
+          <CardDescription>
+            Cada app pode ser instalado separadamente na tela inicial do celular.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {/* WhatsApp PWA */}
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20">
+            <div className="h-10 w-10 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
+              <MessageCircle className="h-5 w-5 text-emerald-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">📱 Mensagens WhatsApp</p>
+              <p className="text-xs text-muted-foreground font-mono truncate">{waAppUrl}</p>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleCopy(waAppUrl, "wa-pwa")}>
+                {copiedId === "wa-pwa" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.open(waAppUrl, "_blank")}>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Instalador PWA */}
+          <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20">
+            <div className="h-10 w-10 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+              <Wrench className="h-5 w-5 text-amber-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">🔧 Portal do Instalador</p>
+              <p className="text-xs text-muted-foreground font-mono truncate">{instaladorAppUrl}</p>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              <Button variant="outline" size="sm" onClick={() => handleCopy(instaladorAppUrl, "inst-pwa")}>
+                {copiedId === "inst-pwa" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.open(instaladorAppUrl, "_blank")}>
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Envie o link para o membro da equipe abrir no celular. No navegador, ele poderá instalar como app independente.
           </p>
         </CardContent>
       </Card>
@@ -107,7 +165,7 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
             Links de Cadastro de Leads
           </CardTitle>
           <CardDescription>
-            Cada vendedor tem um link único para captar leads. Compartilhe com clientes via WhatsApp ou redes sociais.
+            Cada consultor tem um link único para captar leads. Compartilhe com clientes via WhatsApp ou redes sociais.
           </CardDescription>
         </CardHeader>
         <CardContent>
