@@ -354,7 +354,7 @@ export default function Admin() {
                 <Route path="auditoria" element={<AuditLogsViewer />} />
                 <Route path="data-reset" element={<DataResetManager />} />
                 <Route path="integracoes-status" element={<IntegrationStatusPage />} />
-                <Route path="links-instalacao" element={<LinksInstalacaoPage />} />
+                <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
                 <Route path="changelog" element={<ChangelogViewer />} />
                 <Route path="notificacoes-config" element={<NotificationConfigAdmin />} />
                 

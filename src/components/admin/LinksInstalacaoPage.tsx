@@ -11,13 +11,15 @@ import { toast } from "sonner";
 interface LinksInstalacaoPageProps {
   /** Pass vendedor data to show only that vendor's link */
   vendedor?: { nome: string; slug: string; codigo: string } | null;
+  /** When true, shows admin-only sections (instalador PWA, all vendors list) */
+  isAdminView?: boolean;
 }
 
-export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
+export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInstalacaoPageProps) {
   const { isInstalled, isIOS, canInstall, promptInstall } = usePWAInstall();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  // In admin mode (no vendedor prop), load all vendedores
+  // In admin mode (no vendedor prop + admin view), load all vendedores
   const { data: vendedores = [] } = useQuery({
     queryKey: ["vendedores-links"],
     queryFn: async () => {
@@ -28,7 +30,7 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
         .order("nome");
       return data || [];
     },
-    enabled: !vendedor,
+    enabled: !vendedor && isAdminView,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -50,7 +52,8 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
     }
   };
 
-  const vendorList = vendedor ? [vendedor] : vendedores;
+  // Vendor list: specific vendor OR all (admin only)
+  const vendorList = vendedor ? [vendedor] : (isAdminView ? vendedores : []);
 
   return (
     <div className="space-y-6">
@@ -106,17 +109,20 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Download className="h-5 w-5 text-primary" />
-            Apps PWA Independentes
+            Apps PWA
           </CardTitle>
           <CardDescription>
-            Cada app pode ser instalado separadamente na tela inicial do celular.
+            {isAdminView
+              ? "Cada app pode ser instalado separadamente na tela inicial do celular."
+              : "Instale apps dedicados para acesso rápido."
+            }
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {/* WhatsApp PWA */}
           <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20">
-            <div className="h-10 w-10 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
-              <MessageCircle className="h-5 w-5 text-emerald-600" />
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+              <MessageCircle className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium">📱 Mensagens WhatsApp</p>
@@ -132,27 +138,29 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
             </div>
           </div>
 
-          {/* Instalador PWA */}
-          <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20">
-            <div className="h-10 w-10 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-              <Wrench className="h-5 w-5 text-amber-600" />
+          {/* Instalador PWA — only in admin view */}
+          {isAdminView && (
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20">
+              <div className="h-10 w-10 rounded-lg bg-accent/50 flex items-center justify-center shrink-0">
+                <Wrench className="h-5 w-5 text-accent-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">🔧 Portal do Instalador</p>
+                <p className="text-xs text-muted-foreground font-mono truncate">{instaladorAppUrl}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button variant="outline" size="sm" onClick={() => handleCopy(instaladorAppUrl, "inst-pwa")}>
+                  {copiedId === "inst-pwa" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => window.open(instaladorAppUrl, "_blank")}>
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Button>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium">🔧 Portal do Instalador</p>
-              <p className="text-xs text-muted-foreground font-mono truncate">{instaladorAppUrl}</p>
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <Button variant="outline" size="sm" onClick={() => handleCopy(instaladorAppUrl, "inst-pwa")}>
-                {copiedId === "inst-pwa" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => window.open(instaladorAppUrl, "_blank")}>
-                <ExternalLink className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          </div>
+          )}
 
           <p className="text-xs text-muted-foreground">
-            Envie o link para o membro da equipe abrir no celular. No navegador, ele poderá instalar como app independente.
+            Envie o link para abrir no celular. No navegador, poderá instalar como app independente.
           </p>
         </CardContent>
       </Card>
@@ -162,10 +170,13 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5 text-primary" />
-            Links de Cadastro de Leads
+            {vendedor ? "Meu Link de Cadastro de Leads" : "Links de Cadastro de Leads"}
           </CardTitle>
           <CardDescription>
-            Cada consultor tem um link único para captar leads. Compartilhe com clientes via WhatsApp ou redes sociais.
+            {vendedor
+              ? "Seu link único para captar leads. Compartilhe com clientes via WhatsApp ou redes sociais."
+              : "Cada consultor tem um link único para captar leads. Compartilhe com clientes via WhatsApp ou redes sociais."
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
