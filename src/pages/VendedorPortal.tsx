@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, useEffect, useMemo } from "react";
-import { useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Menu, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
@@ -21,6 +21,8 @@ export default function VendedorPortal() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const asParam = searchParams.get("as");
 
   const portal = useVendedorPortal();
 
@@ -28,6 +30,9 @@ export default function VendedorPortal() {
     const segments = location.pathname.replace("/vendedor", "").split("/").filter(Boolean);
     return segments[0] || "dashboard";
   }, [location.pathname]);
+
+  // Build redirect path preserving ?as= param
+  const dashboardRedirect = asParam ? `dashboard?as=${asParam}` : "dashboard";
 
   const badgeCounts = useMemo(() => {
     const unseenCount = portal.orcamentos.filter((o) => !o.visto).length;
@@ -75,7 +80,7 @@ export default function VendedorPortal() {
           <main className="flex-1 p-4 md:p-6 space-y-5 overflow-x-hidden animate-fade-in">
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
-                <Route index element={<Navigate to="dashboard" replace />} />
+                <Route index element={<Navigate to={dashboardRedirect} replace />} />
                 <Route
                   path="dashboard"
                   element={<VendorDashboardView portal={portal} />}
@@ -104,7 +109,7 @@ export default function VendedorPortal() {
                   path="notificacoes"
                   element={<VendorNotificacoesView portal={portal} />}
                 />
-                <Route path="*" element={<Navigate to="dashboard" replace />} />
+                <Route path="*" element={<Navigate to={dashboardRedirect} replace />} />
               </Routes>
             </Suspense>
           </main>
