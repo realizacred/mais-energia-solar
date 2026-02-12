@@ -603,7 +603,7 @@ export function WaFollowupRulesManager() {
                   rows={3}
                 />
                 <p className="text-[10px] text-muted-foreground">
-                  Use {"{nome}"} para o nome do cliente e {"{vendedor}"} para o vendedor
+                  Use {"{nome}"} para o nome do cliente e {"{vendedor}"} para o consultor
                 </p>
               </div>
             )}

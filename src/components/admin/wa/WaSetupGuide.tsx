@@ -163,7 +163,7 @@ export function WaSetupGuide() {
                     <code className="bg-muted px-1 rounded">https://evolution.suaempresa.com</code>
                   </li>
                   <li>
-                    <strong>Vendedor</strong> (opcional) — vincule a um vendedor para filtrar conversas
+                    <strong>Consultor</strong> (opcional) — vincule a um consultor para filtrar conversas
                     automaticamente
                   </li>
                 </ul>

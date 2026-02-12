@@ -436,7 +436,7 @@ export function ComissoesManager() {
                       required
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Selecione o vendedor" />
+                        <SelectValue placeholder="Selecione o consultor" />
                       </SelectTrigger>
                       <SelectContent>
                         {vendedores.map((v) => (
