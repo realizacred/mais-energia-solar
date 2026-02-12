@@ -47,8 +47,8 @@
  }
  
  interface RankingEntry {
-   vendedor_id: string;
-   vendedor_nome: string;
+   consultor_id: string;
+   consultor_nome: string;
    total_orcamentos: number;
    total_conversoes: number;
    valor_total_vendas: number;
@@ -113,9 +113,9 @@
  
        if (performanceData) {
          setRanking(
-           performanceData.map((p: any, idx) => ({
-              vendedor_id: p.vendedor_id,
-              vendedor_nome: p.consultor?.nome || "Desconhecido",
+            performanceData.map((p: any, idx) => ({
+               consultor_id: p.consultor_id,
+               consultor_nome: p.consultor?.nome || "Desconhecido",
              total_orcamentos: p.total_orcamentos,
              total_conversoes: p.total_conversoes,
              valor_total_vendas: p.valor_total_vendas,
@@ -241,7 +241,7 @@
                            2
                          </div>
                          <div className="mt-2 text-center">
-                           <p className="font-medium text-sm">{ranking[1].vendedor_nome}</p>
+                           <p className="font-medium text-sm">{ranking[1].consultor_nome}</p>
                            <p className="text-xs text-muted-foreground">{ranking[1].pontuacao_total} pts</p>
                          </div>
                          <div className="w-20 h-16 bg-gray-200 rounded-t-lg mt-2" />
@@ -256,7 +256,7 @@
                            1
                          </div>
                          <div className="mt-2 text-center">
-                           <p className="font-semibold">{ranking[0].vendedor_nome}</p>
+                           <p className="font-semibold">{ranking[0].consultor_nome}</p>
                            <p className="text-sm text-muted-foreground">{ranking[0].pontuacao_total} pts</p>
                          </div>
                          <div className="w-24 h-24 bg-warning/15 rounded-t-lg mt-2" />
@@ -270,7 +270,7 @@
                            3
                          </div>
                          <div className="mt-2 text-center">
-                           <p className="font-medium text-sm">{ranking[2].vendedor_nome}</p>
+                           <p className="font-medium text-sm">{ranking[2].consultor_nome}</p>
                            <p className="text-xs text-muted-foreground">{ranking[2].pontuacao_total} pts</p>
                          </div>
                          <div className="w-16 h-12 bg-warning/10 rounded-t-lg mt-2" />
@@ -292,13 +292,13 @@
                      </TableHeader>
                      <TableBody>
                        {ranking.map((entry) => (
-                         <TableRow key={entry.vendedor_id}>
+                         <TableRow key={entry.consultor_id}>
                            <TableCell>
                              <Badge variant={entry.posicao_ranking <= 3 ? "default" : "outline"}>
                                {entry.posicao_ranking}º
                              </Badge>
                            </TableCell>
-                           <TableCell className="font-medium">{entry.vendedor_nome}</TableCell>
+                           <TableCell className="font-medium">{entry.consultor_nome}</TableCell>
                            <TableCell className="text-center">{entry.total_orcamentos}</TableCell>
                            <TableCell className="text-center">{entry.total_conversoes}</TableCell>
                            <TableCell className="text-right">

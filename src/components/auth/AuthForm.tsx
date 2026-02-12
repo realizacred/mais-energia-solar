@@ -105,7 +105,7 @@ export function AuthForm() {
       nome: "",
       email: "",
       password: "",
-      cargo: "vendedor",
+      cargo: "consultor",
     },
   });
 
@@ -662,8 +662,8 @@ export function AuthForm() {
                         className="grid grid-cols-2 gap-3"
                       >
                         <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer hover:border-primary/50 transition-colors">
-                          <RadioGroupItem value="vendedor" id="vendedor" />
-                          <Label htmlFor="vendedor" className="cursor-pointer text-sm">
+                          <RadioGroupItem value="consultor" id="consultor" />
+                          <Label htmlFor="consultor" className="cursor-pointer text-sm">
                             Consultor
                           </Label>
                         </div>

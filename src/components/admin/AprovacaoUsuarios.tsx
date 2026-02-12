@@ -23,6 +23,7 @@ interface PendingUser {
 
 const CARGO_LABELS: Record<string, { label: string; color: string }> = {
   consultor: { label: "Consultor", color: "bg-info/10 text-info" },
+  vendedor: { label: "Consultor", color: "bg-info/10 text-info" }, // backward compat
   instalador: { label: "Instalador", color: "bg-success/10 text-success" },
   admin: { label: "Admin", color: "bg-destructive/10 text-destructive" },
   gerente: { label: "Gerente", color: "bg-accent text-accent-foreground" },
@@ -100,18 +101,19 @@ export function AprovacaoUsuarios() {
 
       if (profileError) throw profileError;
 
-      // 2. Assign role
+      // 2. Assign role — normalize "vendedor" → "consultor" for backward compat
+      const normalizedCargo = user.cargo_solicitado === "vendedor" ? "consultor" : user.cargo_solicitado;
       const { error: roleError } = await supabase
         .from("user_roles")
         .insert([{
           user_id: user.user_id,
-          role: user.cargo_solicitado as "admin" | "gerente" | "consultor" | "instalador" | "financeiro",
+          role: normalizedCargo as "admin" | "gerente" | "consultor" | "instalador" | "financeiro",
         }]);
 
       if (roleError) throw roleError;
 
-      // 3. If consultor, create consultores record
-      if (user.cargo_solicitado === "consultor") {
+      // 3. If consultor (or legacy "vendedor"), create consultores record
+      if (normalizedCargo === "consultor") {
         const codigo = `V${Date.now().toString(36).toUpperCase().slice(-6)}`;
         const { error: vendError } = await supabase.from("consultores").insert({
           nome: user.nome,

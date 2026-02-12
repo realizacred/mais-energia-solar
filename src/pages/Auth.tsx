@@ -245,7 +245,7 @@ export default function Auth() {
                 <span className="text-primary"> com eficiência.</span>
               </h1>
               <p className="text-secondary-foreground/60 text-base xl:text-lg max-w-md leading-relaxed">
-                Plataforma completa para vendedores, instaladores e administradores da Mais Energia Solar.
+                Plataforma completa para consultores, instaladores e administradores da Mais Energia Solar.
               </p>
             </div>
 
