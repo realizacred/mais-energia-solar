@@ -353,7 +353,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                 email: formData.email,
                 password: formData.senha,
                 nome: formData.nome,
-                role: "vendedor",
+                role: "consultor",
               },
             }
           );

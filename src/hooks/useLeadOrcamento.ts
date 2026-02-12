@@ -127,7 +127,7 @@ export function useLeadOrcamento() {
           id: leadId,
           nome: data.nome,
           telefone: data.telefone,
-          vendedor_id: data.vendedor_id,
+          consultor_id: data.vendedor_id,
           // Minimal required fields with defaults
           estado: "N/A",
           cidade: "N/A",
@@ -175,8 +175,8 @@ export function useLeadOrcamento() {
           consumo_previsto: data.consumo_previsto,
           observacoes: data.observacoes || null,
           arquivos_urls: data.arquivos_urls || [],
-          vendedor: data.vendedor || null,
-          vendedor_id: data.vendedor_id || null,
+          consultor: data.vendedor || null,
+          consultor_id: data.vendedor_id || null,
         });
 
       if (error) {
