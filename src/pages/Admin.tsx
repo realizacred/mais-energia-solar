@@ -65,6 +65,7 @@ const InstalarApp = lazy(() => import("@/pages/Instalar"));
 const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalacaoPage").then(m => ({ default: m.LinksInstalacaoPage })));
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
 const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationStatusPage").then(m => ({ default: m.IntegrationStatusPage })));
+const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCalendarConfigPage").then(m => ({ default: m.GoogleCalendarConfigPage })));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -122,6 +123,7 @@ const TAB_TITLES: Record<string, string> = {
   "links-instalacao": "Links & Instalação",
   "data-reset": "Limpeza de Dados",
   "integracoes-status": "Status das Integrações",
+  "google-calendar": "Google Calendar",
 };
 
 /** N8n placeholder component */
@@ -336,6 +338,7 @@ export default function Admin() {
                 <Route path="solarmarket" element={<SolarMarketManager />} />
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
+                <Route path="google-calendar" element={<GoogleCalendarConfigPage />} />
                 
                 {/* Site */}
                 <Route path="site-config" element={<SiteSettingsUnified />} />
