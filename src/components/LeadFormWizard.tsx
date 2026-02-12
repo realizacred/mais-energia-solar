@@ -101,6 +101,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const [vendedorId, setVendedorId] = useState<string | null>(null);
   const [isCheckingDuplicate, setIsCheckingDuplicate] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  // Ref to block accidental form submits during step transitions
+  const isTransitioningRef = useRef(false);
   // Store the user's duplicate decision so final submit skips re-check
   const [duplicateDecision, setDuplicateDecision] = useState<
     { type: "use_existing"; leadId: string } | { type: "create_new" } | null
@@ -430,13 +432,20 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     }
     
     if (currentStep < STEPS.length) {
+      // Block accidental form submits during step transition
+      isTransitioningRef.current = true;
       setDirection(1);
       const nextStepNum = currentStep + 1;
-      // Dynamic resolver handles scope — no need to clear other step errors
+      // Clear any lingering errors for the next step's fields to prevent premature display
+      const nextStepFields = getFieldsForStep(nextStepNum);
+      form.clearErrors(nextStepFields);
+      setSubmitAttempted(false);
       setCurrentStep(nextStepNum);
       scrollToTop();
       // Auto-focus first field of next step
       focusStepField(nextStepNum);
+      // Allow submits again after transition completes
+      setTimeout(() => { isTransitioningRef.current = false; }, 600);
     }
   };
 
@@ -747,6 +756,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
 
   // Handler for when form validation fails (fields have errors but user can't see them)
   const onFormInvalid = (fieldErrors: Record<string, any>) => {
+    // Guard: block during step transitions (race condition with Radix Select)
+    if (isTransitioningRef.current) {
+      console.warn("[LeadFormWizard] onFormInvalid during transition — ignoring");
+      return;
+    }
     console.warn("[LeadFormWizard] Form validation failed:", Object.keys(fieldErrors));
     setSubmitAttempted(true);
     // Mark ALL fields as touched so validation errors become visible
@@ -773,6 +787,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   };
 
   const onSubmit = async (data: LeadFormData) => {
+    // Guard: block during step transitions
+    if (isTransitioningRef.current) {
+      console.warn("[LeadFormWizard] onSubmit during transition — ignoring");
+      return;
+    }
     // Check for bots
     const honeypotCheck = validateHoneypot();
     if (honeypotCheck.isBot) {
