@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -34,7 +34,11 @@ import {
   Clock,
   ArrowRightLeft,
   RefreshCw,
+  Eye,
 } from "lucide-react";
+import { TemplateSearchBar } from "./wa-templates/TemplateSearchBar";
+import { WhatsAppPreview } from "./wa-templates/WhatsAppPreview";
+import { VariablesHelper } from "./wa-templates/VariablesHelper";
 
 interface AutomationTemplate {
   id: string;
@@ -66,12 +70,18 @@ export function WhatsAppAutomationTemplates() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<AutomationTemplate | null>(null);
   const [automacoesAtivas, setAutomacoesAtivas] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+
+  // Search & filter
+  const [search, setSearch] = useState("");
+  const [filterTipo, setFilterTipo] = useState("todos");
 
   // Form state
   const [formNome, setFormNome] = useState("");
   const [formTipo, setFormTipo] = useState("boas_vindas");
   const [formMensagem, setFormMensagem] = useState("");
   const [formGatilhoConfig, setFormGatilhoConfig] = useState<Record<string, any>>({});
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     fetchData();
@@ -102,12 +112,20 @@ export function WhatsAppAutomationTemplates() {
     setLoading(false);
   };
 
+  const filteredTemplates = useMemo(() => {
+    return templates.filter((t) => {
+      const matchSearch = !search || t.nome.toLowerCase().includes(search.toLowerCase()) || t.mensagem.toLowerCase().includes(search.toLowerCase());
+      const matchTipo = filterTipo === "todos" || t.tipo === filterTipo;
+      return matchSearch && matchTipo;
+    });
+  }, [templates, search, filterTipo]);
+
   const handleToggleAutomacoes = async () => {
     const newValue = !automacoesAtivas;
     const { error } = await supabase
       .from("whatsapp_automation_config")
       .update({ automacoes_ativas: newValue })
-      .neq("id", "00000000-0000-0000-0000-000000000000"); // Update all rows
+      .neq("id", "00000000-0000-0000-0000-000000000000");
 
     if (error) {
       toast({ title: "Erro", description: "Falha ao atualizar configuração", variant: "destructive" });
@@ -143,6 +161,7 @@ export function WhatsAppAutomationTemplates() {
     setFormTipo(template.tipo);
     setFormMensagem(template.mensagem);
     setFormGatilhoConfig(template.gatilho_config || {});
+    setShowPreview(true);
     setIsDialogOpen(true);
   };
 
@@ -152,6 +171,7 @@ export function WhatsAppAutomationTemplates() {
     setFormTipo("boas_vindas");
     setFormMensagem("");
     setFormGatilhoConfig({});
+    setShowPreview(false);
     setIsDialogOpen(true);
   };
 
@@ -204,6 +224,22 @@ export function WhatsAppAutomationTemplates() {
 
   const getTipoInfo = (tipo: string) => {
     return TIPO_OPTIONS.find((t) => t.value === tipo) || TIPO_OPTIONS[0];
+  };
+
+  const handleInsertVariable = (variable: string) => {
+    const el = textareaRef.current;
+    if (el) {
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const newMsg = formMensagem.substring(0, start) + variable + formMensagem.substring(end);
+      setFormMensagem(newMsg);
+      setTimeout(() => {
+        el.focus();
+        el.setSelectionRange(start + variable.length, start + variable.length);
+      }, 0);
+    } else {
+      setFormMensagem(formMensagem + variable);
+    }
   };
 
   const renderGatilhoConfig = () => {
@@ -301,7 +337,7 @@ export function WhatsAppAutomationTemplates() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <Zap className="h-5 w-5 text-primary" />
             <div>
@@ -309,7 +345,7 @@ export function WhatsAppAutomationTemplates() {
               <CardDescription>Configure mensagens automáticas para diferentes gatilhos</CardDescription>
             </div>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <Switch checked={automacoesAtivas} onCheckedChange={handleToggleAutomacoes} />
               <span className="text-sm font-medium">
@@ -322,18 +358,29 @@ export function WhatsAppAutomationTemplates() {
             </Button>
           </div>
         </div>
+        {/* Search & Filter */}
+        <div className="mt-4">
+          <TemplateSearchBar
+            search={search}
+            onSearchChange={setSearch}
+            filterTipo={filterTipo}
+            onFilterTipoChange={setFilterTipo}
+          />
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        {templates.length === 0 ? (
+        {filteredTemplates.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-50" />
-            <p>Nenhum template de automação configurado</p>
-            <Button variant="outline" className="mt-4" onClick={handleNewTemplate}>
-              Criar primeiro template
-            </Button>
+            <p>{search || filterTipo !== "todos" ? "Nenhum template encontrado com esses filtros" : "Nenhum template de automação configurado"}</p>
+            {!search && filterTipo === "todos" && (
+              <Button variant="outline" className="mt-4" onClick={handleNewTemplate}>
+                Criar primeiro template
+              </Button>
+            )}
           </div>
         ) : (
-          templates.map((template) => {
+          filteredTemplates.map((template) => {
             const tipoInfo = getTipoInfo(template.tipo);
             const TipoIcon = tipoInfo.icon;
 
@@ -397,7 +444,7 @@ export function WhatsAppAutomationTemplates() {
 
       {/* Dialog para criar/editar template */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingTemplate ? "Editar Template" : "Novo Template de Automação"}</DialogTitle>
             <DialogDescription>
@@ -405,48 +452,69 @@ export function WhatsAppAutomationTemplates() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Nome do template</Label>
-              <Input
-                value={formNome}
-                onChange={(e) => setFormNome(e.target.value)}
-                placeholder="Ex: Boas-vindas ao novo lead"
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
+            {/* Left: Form */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome do template</Label>
+                <Input
+                  value={formNome}
+                  onChange={(e) => setFormNome(e.target.value)}
+                  placeholder="Ex: Boas-vindas ao novo lead"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de gatilho</Label>
+                <Select value={formTipo} onValueChange={setFormTipo}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIPO_OPTIONS.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        <div className="flex items-center gap-2">
+                          <opt.icon className="h-4 w-4" />
+                          {opt.label}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {renderGatilhoConfig()}
+
+              <div className="space-y-2">
+                <Label>Mensagem</Label>
+                <Textarea
+                  ref={textareaRef}
+                  value={formMensagem}
+                  onChange={(e) => setFormMensagem(e.target.value)}
+                  placeholder="Digite a mensagem..."
+                  rows={5}
+                />
+                <VariablesHelper onInsert={handleInsertVariable} />
+              </div>
             </div>
 
+            {/* Right: Preview */}
             <div className="space-y-2">
-              <Label>Tipo de gatilho</Label>
-              <Select value={formTipo} onValueChange={setFormTipo}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPO_OPTIONS.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      <div className="flex items-center gap-2">
-                        <opt.icon className="h-4 w-4" />
-                        {opt.label}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {renderGatilhoConfig()}
-
-            <div className="space-y-2">
-              <Label>Mensagem</Label>
-              <Textarea
-                value={formMensagem}
-                onChange={(e) => setFormMensagem(e.target.value)}
-                placeholder="Digite a mensagem..."
-                rows={4}
-              />
-              <p className="text-xs text-muted-foreground">
-                Variáveis disponíveis: {"{nome}"}, {"{cidade}"}, {"{estado}"}, {"{consumo}"}, {"{vendedor}"}
-              </p>
+              <div className="flex items-center justify-between">
+                <Label className="flex items-center gap-1.5">
+                  <Eye className="h-3.5 w-3.5" />
+                  Preview
+                </Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs h-7"
+                  onClick={() => setShowPreview(!showPreview)}
+                >
+                  {showPreview ? "Ocultar" : "Mostrar"}
+                </Button>
+              </div>
+              {showPreview && <WhatsAppPreview message={formMensagem} />}
             </div>
           </div>
 

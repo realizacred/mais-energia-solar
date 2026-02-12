@@ -25,13 +25,15 @@ import {
   Smartphone,
   Wifi,
   WifiOff,
-  Bell
+  Bell,
+  Brain
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { WhatsAppAutomationTemplates } from "./WhatsAppAutomationTemplates";
 import { useWaInstances } from "@/hooks/useWaInstances";
 const PushNotificationSettings = lazy(() => import("./PushNotificationSettings").then(m => ({ default: m.PushNotificationSettings })));
+const AiFollowupSettingsPanel = lazy(() => import("./AiFollowupSettingsPanel").then(m => ({ default: m.AiFollowupSettingsPanel })));
 
 interface WhatsAppConfig {
   id: string;
@@ -225,7 +227,7 @@ export function WhatsAppAutomationConfig() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="config" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
               <span className="hidden sm:inline">Geral</span>
@@ -233,6 +235,10 @@ export function WhatsAppAutomationConfig() {
             <TabsTrigger value="automacoes" className="gap-2">
               <Bot className="h-4 w-4" />
               <span className="hidden sm:inline">Automações</span>
+            </TabsTrigger>
+            <TabsTrigger value="ia" className="gap-2">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">IA</span>
             </TabsTrigger>
             <TabsTrigger value="integracao" className="gap-2">
               <Plug className="h-4 w-4" />
@@ -311,6 +317,12 @@ export function WhatsAppAutomationConfig() {
 
           <TabsContent value="automacoes" className="mt-4">
             <WhatsAppAutomationTemplates />
+          </TabsContent>
+
+          <TabsContent value="ia" className="mt-4">
+            <Suspense fallback={<div className="flex items-center justify-center p-8"><Loader2 className="h-5 w-5 animate-spin mr-2" />Carregando...</div>}>
+              <AiFollowupSettingsPanel />
+            </Suspense>
           </TabsContent>
 
           <TabsContent value="integracao" className="space-y-6 mt-4">
