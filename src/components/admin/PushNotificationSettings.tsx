@@ -34,7 +34,7 @@ export function PushNotificationSettings() {
   const [loadingDevices, setLoadingDevices] = useState(false);
   const [quietStart, setQuietStart] = useState("");
   const [quietEnd, setQuietEnd] = useState("");
-  const [pushEnabled, setPushEnabled] = useState(true);
+  const [pushEnabled, setPushEnabled] = useState<boolean | null>(null); // null = loading
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [diagnostics, setDiagnostics] = useState<DiagnosticItem[]>([]);
   const [runningDiag, setRunningDiag] = useState(false);
@@ -212,6 +212,9 @@ export function PushNotificationSettings() {
       setPushEnabled(data.enabled);
       setQuietStart(data.quiet_hours_start?.substring(0, 5) || "");
       setQuietEnd(data.quiet_hours_end?.substring(0, 5) || "");
+    } else {
+      // No preferences saved yet — default to disabled until user explicitly activates
+      setPushEnabled(false);
     }
   };
 
@@ -393,8 +396,8 @@ export function PushNotificationSettings() {
             <Label htmlFor="push-enabled">Notificações habilitadas</Label>
             <Switch
               id="push-enabled"
-              checked={pushEnabled}
-              disabled={savingPrefs}
+              checked={pushEnabled === true}
+              disabled={savingPrefs || pushEnabled === null}
               onCheckedChange={async (v) => {
                 setPushEnabled(v);
                 setSavingPrefs(true);
