@@ -48,6 +48,7 @@ import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
 import { PageHeader, EmptyState, LoadingState, SearchInput } from "@/components/ui-kit";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 
 interface Cliente {
   id: string;
@@ -95,6 +96,8 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const { hasPermission } = useUserPermissions();
+  const canDeleteClients = hasPermission("delete_clients");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingCliente, setEditingCliente] = useState<Cliente | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -764,16 +767,18 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(cliente.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      {canDeleteClients && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(cliente.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>

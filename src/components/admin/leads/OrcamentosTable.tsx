@@ -28,7 +28,7 @@ interface OrcamentosTableProps {
   sortOption?: OrcamentoSortOption;
   onToggleVisto: (orcamento: OrcamentoDisplayItem) => void;
   onView: (orcamento: OrcamentoDisplayItem) => void;
-  onDelete: (orcamento: OrcamentoDisplayItem) => void;
+  onDelete?: (orcamento: OrcamentoDisplayItem) => void;
   onConvert?: (orcamento: OrcamentoDisplayItem) => void;
   onRefresh?: () => void;
 }
@@ -272,19 +272,21 @@ export function OrcamentosTable({
                           <TooltipContent>Já convertido em cliente</TooltipContent>
                         </Tooltip>
                       )}
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => onDelete(orc)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Excluir orçamento</TooltipContent>
-                      </Tooltip>
+                      {onDelete && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => onDelete(orc)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Excluir orçamento</TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
                   </TooltipProvider>
                 </TableCell>

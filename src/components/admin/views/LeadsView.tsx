@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
@@ -19,6 +20,8 @@ import type { Lead } from "@/types/lead";
 
 export function LeadsView() {
   const { orcamentos, statuses, loading, toggleVisto, deleteOrcamento, filters, fetchOrcamentos, page, setPage, totalCount, totalPages } = useOrcamentosAdmin();
+  const { hasPermission } = useUserPermissions();
+  const canDeleteLeads = hasPermission("delete_leads");
   const { sortOption, updateSort } = useOrcamentoSort("admin_leads");
   const [filteredOrcamentos, setFilteredOrcamentos] = useState<OrcamentoDisplayItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -168,10 +171,10 @@ export function LeadsView() {
                 setSelectedOrcamento(orc);
                 setIsViewOpen(true);
               }}
-              onDelete={(orc) => {
+              onDelete={canDeleteLeads ? (orc) => {
                 setOrcamentoToDelete(orc);
                 setIsDeleteOpen(true);
-              }}
+              } : undefined}
               onConvert={handleConvertOrcamento}
               onRefresh={fetchOrcamentos}
             />
