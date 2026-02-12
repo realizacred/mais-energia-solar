@@ -11,6 +11,8 @@ export interface Proposta {
   cliente_cidade: string | null;
   cliente_estado: string | null;
   cliente_email: string | null;
+  cliente_endereco: string | null;
+  cliente_cep: string | null;
   potencia_kwp: number | null;
   numero_modulos: number | null;
   modelo_modulo: string | null;
@@ -23,7 +25,9 @@ export interface Proposta {
   distribuidora: string | null;
   link_pdf: string | null;
   expiration_date: string | null;
+  generated_at: string | null;
   created_at: string;
+  raw_payload: Record<string, any> | null;
   vendedor_id: string | null;
   vendedor?: { nome: string } | null;
 }
