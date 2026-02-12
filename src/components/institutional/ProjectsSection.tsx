@@ -6,12 +6,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import obra1 from "@/assets/obra-exemplo-1.jpg";
-import obra2 from "@/assets/obra-exemplo-2.jpg";
-import obra3 from "@/assets/obra-exemplo-3.jpg";
-import obra4 from "@/assets/obra-exemplo-4.jpg";
-import obra5 from "@/assets/obra-exemplo-5.jpg";
-import obra6 from "@/assets/obra-exemplo-6.jpg";
+import obra1 from "@/assets/obra-demo-1.jpg";
+import obra2 from "@/assets/obra-demo-2.jpg";
+import obra3 from "@/assets/obra-demo-3.jpg";
+import obra4 from "@/assets/obra-demo-4.jpg";
+import obra5 from "@/assets/obra-demo-5.jpg";
+import obra6 from "@/assets/obra-demo-6.jpg";
 
 interface ObraPublic {
   id: string;
