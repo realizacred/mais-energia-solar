@@ -3958,18 +3958,21 @@ export type Database = {
           message_id: string
           sent_at: string
           subscription_id: string
+          tenant_id: string | null
         }
         Insert: {
           id?: string
           message_id: string
           sent_at?: string
           subscription_id: string
+          tenant_id?: string | null
         }
         Update: {
           id?: string
           message_id?: string
           sent_at?: string
           subscription_id?: string
+          tenant_id?: string | null
         }
         Relationships: [
           {
@@ -3977,6 +3980,13 @@ export type Database = {
             columns: ["subscription_id"]
             isOneToOne: false
             referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "push_sent_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
