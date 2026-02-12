@@ -13,11 +13,11 @@ import { Separator } from "@/components/ui/separator";
 import {
   RefreshCw, Settings, Plug, Zap, CheckCircle2,
   AlertTriangle, Loader2, Play, Copy,
-  FolderOpen, Link2, Shield,
+  FolderOpen, Link2, Shield, ClipboardList,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { SolarMarketDataView, SolarMarketLinksView } from "@/components/admin/solarmarket";
+import { SolarMarketDataView, SolarMarketLinksView, SolarMarketAuditView } from "@/components/admin/solarmarket";
 
 interface SmConfig {
   id: string;
@@ -229,7 +229,7 @@ export function SolarMarketManager() {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="dados" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="dados" className="gap-1.5">
             <FolderOpen className="h-4 w-4" />
             <span className="hidden sm:inline">Dados</span>
@@ -237,6 +237,10 @@ export function SolarMarketManager() {
           <TabsTrigger value="vinculos" className="gap-1.5">
             <Link2 className="h-4 w-4" />
             <span className="hidden sm:inline">Vínculos</span>
+          </TabsTrigger>
+          <TabsTrigger value="auditoria" className="gap-1.5">
+            <ClipboardList className="h-4 w-4" />
+            <span className="hidden sm:inline">Auditoria</span>
           </TabsTrigger>
           <TabsTrigger value="sync" className="gap-1.5">
             <RefreshCw className="h-4 w-4" />
@@ -260,6 +264,11 @@ export function SolarMarketManager() {
         {/* ── Vínculos Tab ───────────────────────── */}
         <TabsContent value="vinculos" className="mt-4">
           <SolarMarketLinksView />
+        </TabsContent>
+
+        {/* ── Auditoria Tab ──────────────────────── */}
+        <TabsContent value="auditoria" className="mt-4">
+          <SolarMarketAuditView />
         </TabsContent>
 
         {/* ── Full Sync Tab ──────────────────────── */}
