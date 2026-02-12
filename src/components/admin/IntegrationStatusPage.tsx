@@ -1,11 +1,12 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import {
   RefreshCw,
   MessageCircle,
@@ -24,7 +25,15 @@ import {
   Loader2,
   KeyRound,
   Settings,
+  Wifi,
+  WifiOff,
+  Users,
+  Send,
+  Inbox,
+  Phone,
 } from "lucide-react";
+
+// ── Types ──
 
 interface IntegrationResult {
   id: string;
@@ -34,6 +43,22 @@ interface IntegrationResult {
   details?: string;
   last_event?: string;
   checked_at: string;
+}
+
+interface InstanceHealth {
+  instance_id: string;
+  instance_name: string;
+  phone_number: string | null;
+  profile_name: string | null;
+  ok: boolean;
+  evolution_state: string | null;
+  latency_ms: number | null;
+  error_message: string | null;
+  last_seen_at: string | null;
+  last_webhook_at: string | null;
+  last_send_ok_at: string | null;
+  outbox_pending_count: number;
+  vendedores: { id: string; nome: string; codigo: string }[];
 }
 
 interface IntegrationMeta {
@@ -46,13 +71,6 @@ interface IntegrationMeta {
 }
 
 const INTEGRATION_META: Record<string, IntegrationMeta> = {
-  whatsapp: {
-    icon: MessageCircle,
-    color: "text-green-500",
-    description: "Evolution API — Envio e recebimento de mensagens",
-    configurable: false,
-    helpText: "Configuração gerenciada via instâncias WhatsApp.",
-  },
   solarmarket: {
     icon: Sun,
     color: "text-amber-500",
@@ -77,6 +95,38 @@ const STATUS_CONFIG = {
   degraded: { icon: AlertTriangle, label: "Degradado", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
   not_configured: { icon: CircleDashed, label: "Não configurado", className: "bg-muted text-muted-foreground" },
 };
+
+// ── Helpers ──
+
+function formatDate(iso?: string | null) {
+  if (!iso) return "—";
+  try {
+    return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return String(iso);
+  }
+}
+
+function formatLatency(ms?: number | null) {
+  if (ms == null) return null;
+  if (ms < 500) return <span className="text-emerald-600 font-medium">{ms}ms</span>;
+  if (ms < 2000) return <span className="text-amber-600 font-medium">{ms}ms</span>;
+  return <span className="text-destructive font-medium">{ms}ms</span>;
+}
+
+function timeSince(iso?: string | null): { text: string; warning: boolean } {
+  if (!iso) return { text: "Nunca", warning: true };
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 5) return { text: `${mins}min atrás`, warning: false };
+  if (mins < 60) return { text: `${mins}min atrás`, warning: mins > 30 };
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return { text: `${hours}h atrás`, warning: hours > 6 };
+  const days = Math.floor(hours / 24);
+  return { text: `${days}d atrás`, warning: true };
+}
+
+// ── Inline API Key Config ──
 
 function InlineApiKeyConfig({
   serviceKey,
@@ -106,17 +156,12 @@ function InlineApiKeyConfig({
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.details || data.error);
-
       toast({ title: "Chave salva", description: `API key de ${serviceKey} validada e salva.` });
       setApiKey("");
       setOpen(false);
       onSaved();
     } catch (err: any) {
-      toast({
-        title: "Erro ao salvar chave",
-        description: err.message || "Verifique a chave e tente novamente",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao salvar chave", description: err.message, variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -131,16 +176,10 @@ function InlineApiKeyConfig({
         </span>
         {isConfigured && (
           <Badge variant="outline" className="gap-1 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 ml-1">
-            <CheckCircle2 className="h-2.5 w-2.5" />
-            Ativa
+            <CheckCircle2 className="h-2.5 w-2.5" /> Ativa
           </Badge>
         )}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setOpen(true)}
-          className="gap-1 ml-auto text-xs h-7"
-        >
+        <Button variant="ghost" size="sm" onClick={() => setOpen(true)} className="gap-1 ml-auto text-xs h-7">
           <Settings className="h-3 w-3" />
           {isConfigured ? "Alterar chave" : "Configurar"}
         </Button>
@@ -173,12 +212,7 @@ function InlineApiKeyConfig({
             {showKey ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
           </button>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={saving || !apiKey.trim()}
-          size="sm"
-          className="gap-1 h-9"
-        >
+        <Button onClick={handleSave} disabled={saving || !apiKey.trim()} size="sm" className="gap-1 h-9">
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           {saving ? "Validando..." : "Salvar"}
         </Button>
@@ -190,9 +224,143 @@ function InlineApiKeyConfig({
   );
 }
 
+// ── WhatsApp Instance Health Card ──
+
+function InstanceHealthCard({ health }: { health: InstanceHealth }) {
+  const webhookAge = timeSince(health.last_webhook_at);
+  const sendAge = timeSince(health.last_send_ok_at);
+
+  return (
+    <div className={`p-4 rounded-xl border-2 transition-all ${
+      health.ok
+        ? "border-emerald-500/30 bg-emerald-500/5"
+        : "border-destructive/30 bg-destructive/5"
+    }`}>
+      {/* Instance header */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2.5">
+          {health.ok ? (
+            <Wifi className="h-5 w-5 text-emerald-600" />
+          ) : (
+            <WifiOff className="h-5 w-5 text-destructive" />
+          )}
+          <div>
+            <h4 className="font-semibold text-sm">{health.instance_name}</h4>
+            {health.phone_number && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Phone className="h-3 w-3" /> {health.phone_number}
+              </p>
+            )}
+          </div>
+        </div>
+        <Badge
+          variant="outline"
+          className={`text-xs gap-1 ${
+            health.ok
+              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+              : "bg-destructive/10 text-destructive border-destructive/20"
+          }`}
+        >
+          {health.ok ? <CheckCircle2 className="h-3 w-3" /> : <XCircle className="h-3 w-3" />}
+          {health.evolution_state === "open" ? "Conectado" : health.evolution_state || "Offline"}
+        </Badge>
+      </div>
+
+      {/* Metrics row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
+        <div className="space-y-0.5">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Latência</p>
+          <p className="text-sm font-medium">{health.latency_ms != null ? formatLatency(health.latency_ms) : "—"}</p>
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <Inbox className="h-3 w-3" /> Último Webhook
+          </p>
+          <p className={`text-sm font-medium ${webhookAge.warning ? "text-destructive" : ""}`}>
+            {webhookAge.text}
+          </p>
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+            <Send className="h-3 w-3" /> Último Envio
+          </p>
+          <p className={`text-sm font-medium ${sendAge.warning ? "text-amber-600" : ""}`}>
+            {sendAge.text}
+          </p>
+        </div>
+        <div className="space-y-0.5">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Outbox Pendente</p>
+          <p className={`text-sm font-medium ${health.outbox_pending_count > 0 ? "text-amber-600" : ""}`}>
+            {health.outbox_pending_count}
+          </p>
+        </div>
+      </div>
+
+      {/* Warnings */}
+      {webhookAge.warning && health.last_webhook_at && (
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-3">
+          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+          <p className="text-xs text-amber-700">
+            Webhooks parados há mais de 30 minutos. Verifique a URL de webhook na Evolution API.
+          </p>
+        </div>
+      )}
+
+      {health.error_message && (
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-destructive/10 border border-destructive/20 mb-3">
+          <XCircle className="h-4 w-4 text-destructive shrink-0" />
+          <p className="text-xs text-destructive break-all">{health.error_message}</p>
+        </div>
+      )}
+
+      {health.outbox_pending_count > 0 && (
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-3">
+          <Clock className="h-4 w-4 text-amber-600 shrink-0" />
+          <p className="text-xs text-amber-700">
+            {health.outbox_pending_count} mensagen(s) aguardando envio na fila.
+          </p>
+        </div>
+      )}
+
+      {/* Vendedores linked */}
+      {health.vendedores.length > 0 && (
+        <div className="pt-2 border-t border-border/50">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
+            <Users className="h-3 w-3" /> Consultores vinculados
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {health.vendedores.map((v) => (
+              <Badge
+                key={v.id}
+                variant="outline"
+                className={`text-[10px] gap-1 ${
+                  !health.ok
+                    ? "bg-destructive/10 text-destructive border-destructive/20"
+                    : "bg-muted"
+                }`}
+              >
+                {!health.ok && <AlertTriangle className="h-2.5 w-2.5" />}
+                {v.nome} ({v.codigo})
+              </Badge>
+            ))}
+          </div>
+          {!health.ok && health.vendedores.length > 0 && (
+            <p className="text-[10px] text-destructive mt-1.5">
+              ⚠ Estes consultores estão sem capacidade de envio/recebimento nesta instância.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main Page ──
+
 export function IntegrationStatusPage() {
   const { toast } = useToast();
   const [results, setResults] = useState<IntegrationResult[]>([]);
+  const [instanceHealth, setInstanceHealth] = useState<InstanceHealth[]>([]);
   const [loading, setLoading] = useState(false);
   const [checkingId, setCheckingId] = useState<string | null>(null);
   const [hasChecked, setHasChecked] = useState(false);
@@ -222,35 +390,24 @@ export function IntegrationStatusPage() {
         }
       }
 
+      if (data?.instance_health) {
+        setInstanceHealth(data.instance_health);
+      }
+
       setHasChecked(true);
     } catch (err: any) {
       console.error("Health check error:", err);
-      toast({
-        title: "Erro no health check",
-        description: err.message || "Falha ao verificar integrações",
-        variant: "destructive",
-      });
+      toast({ title: "Erro no health check", description: err.message, variant: "destructive" });
     } finally {
       setLoading(false);
       setCheckingId(null);
     }
   }, [toast]);
 
-  const formatLatency = (ms?: number) => {
-    if (!ms) return null;
-    if (ms < 500) return <span className="text-emerald-600">{ms}ms</span>;
-    if (ms < 2000) return <span className="text-amber-600">{ms}ms</span>;
-    return <span className="text-destructive">{ms}ms</span>;
-  };
-
-  const formatDate = (iso?: string) => {
-    if (!iso) return "—";
-    try {
-      return new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
-    } catch {
-      return iso;
-    }
-  };
+  const whatsappResult = results.find((r) => r.id === "whatsapp");
+  const otherResults = results.filter((r) => r.id !== "whatsapp");
+  const offlineInstances = instanceHealth.filter((h) => !h.ok);
+  const offlineVendedores = offlineInstances.flatMap((h) => h.vendedores);
 
   return (
     <div className="space-y-6">
@@ -262,14 +419,10 @@ export function IntegrationStatusPage() {
             Status das Integrações
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Monitoramento e configuração das APIs conectadas ao sistema
+            Monitoramento operacional e configuração das APIs conectadas
           </p>
         </div>
-        <Button
-          onClick={() => runHealthCheck("all")}
-          disabled={loading}
-          className="gap-2"
-        >
+        <Button onClick={() => runHealthCheck("all")} disabled={loading} className="gap-2">
           <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
           {loading ? "Verificando..." : "Verificar Tudo"}
         </Button>
@@ -277,7 +430,7 @@ export function IntegrationStatusPage() {
 
       {/* Summary badges */}
       {hasChecked && results.length > 0 && (
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
           {(["online", "degraded", "offline", "not_configured"] as const).map((status) => {
             const count = results.filter((r) => r.status === status).length;
             if (count === 0) return null;
@@ -290,14 +443,88 @@ export function IntegrationStatusPage() {
               </Badge>
             );
           })}
+          {offlineVendedores.length > 0 && (
+            <Badge variant="outline" className="gap-1.5 bg-destructive/10 text-destructive border-destructive/20">
+              <Users className="h-3.5 w-3.5" />
+              {offlineVendedores.length} consultor(es) impactado(s)
+            </Badge>
+          )}
         </div>
       )}
 
-      {/* Integration Cards — each with inline config */}
+      {/* ── WhatsApp — Per-Instance Health Panel ── */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+          <div className="space-y-1">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-green-500" />
+              WhatsApp (Evolution API)
+              {whatsappResult && (
+                <Badge variant="outline" className={`text-xs gap-1 ml-2 ${STATUS_CONFIG[whatsappResult.status].className}`}>
+                  {(() => { const I = STATUS_CONFIG[whatsappResult.status].icon; return <I className="h-3 w-3" />; })()}
+                  {STATUS_CONFIG[whatsappResult.status].label}
+                </Badge>
+              )}
+            </CardTitle>
+            <CardDescription>
+              Saúde operacional por instância — envio, recebimento e vendedores vinculados
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => runHealthCheck("whatsapp")}
+            disabled={checkingId === "whatsapp" || loading}
+            className="gap-1.5 shrink-0"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${checkingId === "whatsapp" ? "animate-spin" : ""}`} />
+            {checkingId === "whatsapp" ? "Testando..." : "Testar"}
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {!hasChecked ? (
+            <p className="text-sm text-muted-foreground text-center py-8 italic">
+              Clique em "Testar" ou "Verificar Tudo" para inspecionar as instâncias
+            </p>
+          ) : instanceHealth.length === 0 ? (
+            <div className="text-center py-8">
+              <WifiOff className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhuma instância configurada</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {instanceHealth.map((health) => (
+                <InstanceHealthCard key={health.instance_id} health={health} />
+              ))}
+            </div>
+          )}
+
+          {/* Global WhatsApp metrics */}
+          {whatsappResult && (
+            <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/50 text-xs text-muted-foreground">
+              {whatsappResult.latency_ms != null && (
+                <span className="flex items-center gap-1">
+                  <Zap className="h-3 w-3" /> Latência média: {formatLatency(whatsappResult.latency_ms)}
+                </span>
+              )}
+              {whatsappResult.details && (
+                <span className="flex items-center gap-1">
+                  <Activity className="h-3 w-3" /> {whatsappResult.details}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Clock className="h-3 w-3" /> Check: {formatDate(whatsappResult.checked_at)}
+              </span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── Other integrations (SolarMarket, OpenAI) ── */}
       <div className="grid gap-4">
-        {(["whatsapp", "solarmarket", "openai"] as const).map((id) => {
+        {(["solarmarket", "openai"] as const).map((id) => {
           const meta = INTEGRATION_META[id];
-          const result = results.find((r) => r.id === id);
+          const result = otherResults.find((r) => r.id === id);
           const Icon = meta.icon;
           const isChecking = checkingId === id;
           const statusCfg = result ? STATUS_CONFIG[result.status] : null;
@@ -327,20 +554,17 @@ export function IntegrationStatusPage() {
                         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
                           {result.latency_ms != null && (
                             <span className="flex items-center gap-1">
-                              <Zap className="h-3 w-3" />
-                              Latência: {formatLatency(result.latency_ms)}
+                              <Zap className="h-3 w-3" /> Latência: {formatLatency(result.latency_ms)}
                             </span>
                           )}
                           {result.details && (
                             <span className="flex items-center gap-1">
-                              <Activity className="h-3 w-3" />
-                              {result.details}
+                              <Activity className="h-3 w-3" /> {result.details}
                             </span>
                           )}
                           {result.last_event && (
                             <span className="flex items-center gap-1">
-                              <Clock className="h-3 w-3" />
-                              Último evento: {formatDate(result.last_event)}
+                              <Clock className="h-3 w-3" /> Último evento: {formatDate(result.last_event)}
                             </span>
                           )}
                         </div>
@@ -352,7 +576,6 @@ export function IntegrationStatusPage() {
                         </p>
                       )}
 
-                      {/* Inline API Key Config */}
                       {meta.configurable && (
                         <InlineApiKeyConfig
                           serviceKey={id}
@@ -360,13 +583,6 @@ export function IntegrationStatusPage() {
                           currentStatus={result}
                           onSaved={() => runHealthCheck(id)}
                         />
-                      )}
-
-                      {/* Non-configurable hint */}
-                      {!meta.configurable && meta.helpText && (
-                        <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50 italic">
-                          {meta.helpText}
-                        </p>
                       )}
                     </div>
                   </div>
