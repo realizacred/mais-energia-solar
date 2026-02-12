@@ -38,7 +38,9 @@ export function PushActivationBanner() {
       }
     }
 
-    setDismissed(false);
+    // Delay banner appearance so it's not intrusive on page load
+    const timer = setTimeout(() => setDismissed(false), 5000);
+    return () => clearTimeout(timer);
   }, [user, isReady, isSupported, isSubscribed, permission]);
 
   const handleDismiss = () => {
