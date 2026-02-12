@@ -208,7 +208,7 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageCircle className="h-5 w-5 text-success" />
-            <CardTitle className="text-base">Templates WhatsApp</CardTitle>
+            <CardTitle className="text-base">Respostas Rápidas</CardTitle>
           </div>
           <Badge variant="secondary" className="text-xs">
             {templates.length} templates
