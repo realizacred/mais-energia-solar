@@ -215,7 +215,7 @@ export default function PortalSelector() {
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-primary" />
-                      Configurar vendedores
+                      Configurar consultores
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-primary" />

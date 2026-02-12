@@ -328,9 +328,9 @@ export function PortalSwitcher() {
       <Dialog open={showVendedorDialog} onOpenChange={setShowVendedorDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Selecionar Vendedor</DialogTitle>
+            <DialogTitle>Selecionar Consultor</DialogTitle>
             <DialogDescription>
-              Escolha qual vendedor você deseja visualizar
+              Escolha qual consultor você deseja visualizar
             </DialogDescription>
           </DialogHeader>
           <ScrollArea className="max-h-[300px]">

@@ -467,7 +467,7 @@ export function IntegrationStatusPage() {
               )}
             </CardTitle>
             <CardDescription>
-              Saúde operacional por instância — envio, recebimento e vendedores vinculados
+              Saúde operacional por instância — envio, recebimento e consultores vinculados
             </CardDescription>
           </div>
           <Button

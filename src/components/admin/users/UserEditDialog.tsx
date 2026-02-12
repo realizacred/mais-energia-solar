@@ -532,7 +532,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
               <div className="space-y-2">
                 <Label className="flex items-center gap-1.5">
                   <Link2 className="w-4 h-4 text-primary" />
-                  Vendedor vinculado
+                  Consultor vinculado
                 </Label>
                 <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
                   <p><span className="text-muted-foreground">Código:</span> <span className="font-medium">{linkedVendedor.codigo}</span></p>

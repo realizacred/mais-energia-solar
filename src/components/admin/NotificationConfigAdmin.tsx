@@ -248,7 +248,7 @@ export function NotificationConfigAdmin() {
           <p className="text-xs text-muted-foreground mt-1">
             Estas configurações controlam quais eventos geram push notifications para a equipe.
             Cada membro pode ainda configurar seus próprios dispositivos e horários silenciosos
-            individualmente nas configurações de WhatsApp ou no portal do vendedor.
+            individualmente nas configurações de WhatsApp ou no portal do consultor.
           </p>
         </div>
       </div>
