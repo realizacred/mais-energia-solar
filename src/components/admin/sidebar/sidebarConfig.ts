@@ -236,6 +236,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "obras", title: "Portfólio", icon: Sun, description: "Projetos realizados", keywords: ["portfólio", "obra", "projeto", "foto"] },
       // ── Sistema ──
       { id: "links-instalacao", title: "Links & Instalação", icon: Smartphone, description: "App PWA e links de vendedor", keywords: ["PWA", "link", "instalação", "app"], subsectionLabel: "Sistema" },
+      { id: "notificacoes-config", title: "Notificações", icon: Bell, description: "Configurar tipos de notificação da empresa", keywords: ["notificação", "push", "alerta", "configurar", "ativar"] },
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações", keywords: ["log", "auditoria", "histórico", "alteração"] },
       { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade"] },
       { id: "changelog", title: "Atualizações", icon: HistoryIcon, description: "Histórico de atualizações do sistema", keywords: ["changelog", "atualização", "novidade", "versão", "histórico"] },

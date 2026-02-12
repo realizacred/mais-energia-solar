@@ -47,6 +47,20 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Check tenant-level notification config
+    const { data: notifConfig } = await supabase
+      .from("notification_config")
+      .select("notify_wa_message")
+      .eq("tenant_id", tenantId)
+      .maybeSingle();
+
+    // If config exists and wa_message is disabled, skip
+    if (notifConfig && !notifConfig.notify_wa_message) {
+      return new Response(JSON.stringify({ skipped: "wa_notifications_disabled" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Get conversation details to find assigned user
     const { data: conversation } = await supabase
       .from("wa_conversations")

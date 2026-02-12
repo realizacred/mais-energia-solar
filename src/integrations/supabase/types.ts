@@ -2863,6 +2863,50 @@ export type Database = {
           },
         ]
       }
+      notification_config: {
+        Row: {
+          created_at: string
+          id: string
+          notify_conversation_idle: boolean
+          notify_lead_idle: boolean
+          notify_new_lead: boolean
+          notify_new_orcamento: boolean
+          notify_wa_message: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notify_conversation_idle?: boolean
+          notify_lead_idle?: boolean
+          notify_new_lead?: boolean
+          notify_new_orcamento?: boolean
+          notify_wa_message?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notify_conversation_idle?: boolean
+          notify_lead_idle?: boolean
+          notify_new_lead?: boolean
+          notify_new_orcamento?: boolean
+          notify_wa_message?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       obras: {
         Row: {
           ativo: boolean
