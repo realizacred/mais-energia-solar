@@ -1,21 +1,18 @@
-import { useState } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   MessageCircle, 
   Copy, 
   Send, 
-  Edit2, 
-  Trash2, 
-  Check,
-  X,
   Loader2,
   Zap,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Search,
+  X
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,12 +61,15 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewTemplate, setPreviewTemplate] = useState<QuickReply | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const [selectedCategoria, setSelectedCategoria] = useState<string | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [previewData, setPreviewData] = useState({
-    nome: "João",
+    nome: "",
     telefone: "",
-    consumo: "350",
-    cidade: "São Paulo",
-    potencia: "4.5",
+    consumo: "",
+    cidade: "",
+    potencia: "",
   });
 
   const { data: templates = [], isLoading } = useQuery({
@@ -85,6 +85,72 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
       return (data || []) as QuickReply[];
     },
   });
+
+  // Auto-search lead by phone number
+  const searchByPhone = useCallback(async (phone: string) => {
+    const cleaned = phone.replace(/\D/g, "");
+    if (cleaned.length < 10) return;
+
+    setIsSearching(true);
+    try {
+      // Search leads by phone (normalized or raw)
+      const { data: leads } = await supabase
+        .from("leads")
+        .select("id, nome, cidade, media_consumo")
+        .or(`telefone.ilike.%${cleaned}%,telefone_normalized.eq.${cleaned}`)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      if (leads && leads.length > 0) {
+        const lead = leads[0];
+
+        // Fetch latest orcamento for this lead
+        const { data: orcamentos } = await supabase
+          .from("orcamentos")
+          .select("cidade, media_consumo, consumo_previsto")
+          .eq("lead_id", lead.id)
+          .order("created_at", { ascending: false })
+          .limit(1);
+
+        const orc = orcamentos?.[0];
+
+        setPreviewData(prev => ({
+          ...prev,
+          nome: lead.nome?.split(" ")[0] || prev.nome,
+          cidade: orc?.cidade || lead.cidade || prev.cidade,
+          consumo: String(orc?.media_consumo || lead.media_consumo || prev.consumo),
+          potencia: orc?.consumo_previsto ? String((orc.consumo_previsto / 1000).toFixed(1)) : prev.potencia,
+        }));
+
+        toast({
+          title: "Cliente encontrado ✅",
+          description: `${lead.nome} — dados preenchidos automaticamente`,
+        });
+      }
+    } catch (err) {
+      console.error("Error searching lead by phone:", err);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  const handlePhoneChange = (value: string) => {
+    setPreviewData(prev => ({ ...prev, telefone: value }));
+
+    // Debounce search
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    const cleaned = value.replace(/\D/g, "");
+    if (cleaned.length >= 10) {
+      searchTimeoutRef.current = setTimeout(() => searchByPhone(value), 600);
+    }
+  };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, []);
 
   const replaceVariables = (mensagem: string, data: Record<string, string> = {}) => {
     let result = mensagem;
@@ -180,8 +246,16 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
     }
   };
 
-  // Group templates by category
-  const groupedTemplates = templates.reduce((acc, template) => {
+  // Get unique categories
+  const categories = [...new Set(templates.map(t => t.categoria || "Outros"))];
+
+  // Filter templates by selected category
+  const filteredTemplates = selectedCategoria
+    ? templates.filter(t => (t.categoria || "Outros") === selectedCategoria)
+    : templates;
+
+  // Group filtered templates by category
+  const groupedTemplates = filteredTemplates.reduce((acc, template) => {
     const cat = template.categoria || "Outros";
     if (!acc[cat]) acc[cat] = [];
     acc[cat].push(template);
@@ -211,19 +285,48 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
             <CardTitle className="text-base">Respostas Rápidas</CardTitle>
           </div>
           <Badge variant="secondary" className="text-xs">
-            {templates.length} templates
+            {filteredTemplates.length} templates
           </Badge>
         </div>
         <CardDescription>
           Mensagens prontas para agilizar seu atendimento
         </CardDescription>
+
+        {/* Category filter buttons */}
+        {categories.length > 1 && (
+          <div className="flex flex-wrap gap-1.5 pt-2">
+            <Badge
+              variant={selectedCategoria === null ? "default" : "outline"}
+              className="cursor-pointer text-xs transition-colors"
+              onClick={() => setSelectedCategoria(null)}
+            >
+              Todas
+            </Badge>
+            {categories.map(cat => (
+              <Badge
+                key={cat}
+                variant="outline"
+                className={`cursor-pointer text-xs transition-colors ${
+                  selectedCategoria === cat
+                    ? getCategoriaColor(cat) + " ring-1 ring-offset-1"
+                    : "hover:bg-muted"
+                }`}
+                onClick={() => setSelectedCategoria(selectedCategoria === cat ? null : cat)}
+              >
+                {cat}
+              </Badge>
+            ))}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="flex-1 space-y-4 overflow-y-auto pr-1 min-h-0">
         {Object.entries(groupedTemplates).map(([categoria, categoryTemplates]) => (
           <div key={categoria} className="space-y-2">
-            <Badge variant="outline" className={getCategoriaColor(categoria)}>
-              {categoria}
-            </Badge>
+            {!selectedCategoria && (
+              <Badge variant="outline" className={getCategoriaColor(categoria)}>
+                {categoria}
+              </Badge>
+            )}
             <div className="space-y-2">
               {categoryTemplates.map((template) => (
                 <div
@@ -266,11 +369,27 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
           </div>
         ))}
 
-        {templates.length === 0 && (
+        {filteredTemplates.length === 0 && (
           <div className="text-center py-8 text-muted-foreground">
             <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-20" />
-            <p className="text-sm">Nenhum template cadastrado</p>
-            <p className="text-xs mt-1">Templates são gerenciados pelo administrador</p>
+            <p className="text-sm">
+              {selectedCategoria
+                ? `Nenhum template em "${selectedCategoria}"`
+                : "Nenhum template cadastrado"}
+            </p>
+            {selectedCategoria && (
+              <Button
+                variant="link"
+                size="sm"
+                className="mt-1 text-xs"
+                onClick={() => setSelectedCategoria(null)}
+              >
+                Ver todas as categorias
+              </Button>
+            )}
+            {!selectedCategoria && (
+              <p className="text-xs mt-1">Templates são gerenciados pelo administrador</p>
+            )}
           </div>
         )}
       </CardContent>
@@ -287,14 +406,20 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
           <div className="space-y-4">
             <div className="p-3 bg-muted/50 rounded-lg border">
               <label className="text-xs font-medium text-muted-foreground">Telefone do cliente *</label>
-              <Input
-                placeholder="(11) 99999-9999"
-                value={previewData.telefone}
-                onChange={(e) => setPreviewData({ ...previewData, telefone: e.target.value })}
-                className="mt-1"
-              />
+              <div className="relative mt-1">
+                <Input
+                  placeholder="(11) 99999-9999"
+                  value={previewData.telefone}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                />
+                {isSearching && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground mt-1">
-                Obrigatório para envio direto via API
+                Obrigatório para envio direto via API — dados preenchidos automaticamente ao digitar
               </p>
             </div>
 
