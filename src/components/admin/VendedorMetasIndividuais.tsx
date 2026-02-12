@@ -219,10 +219,10 @@
          <CardHeader>
            <CardTitle className="flex items-center gap-2">
              <User className="h-5 w-5 text-primary" />
-             Metas Individuais por Vendedor
-           </CardTitle>
-           <CardDescription>
-             Configure metas personalizadas para cada vendedor. Vendedores sem meta individual usarão as metas globais.
+              Metas Individuais por Consultor
+            </CardTitle>
+            <CardDescription>
+              Configure metas personalizadas para cada consultor. Consultores sem meta individual usarão as metas globais.
            </CardDescription>
          </CardHeader>
          <CardContent>
@@ -234,7 +234,7 @@
              <Table>
                <TableHeader>
                  <TableRow>
-                   <TableHead>Vendedor</TableHead>
+                   <TableHead>Consultor</TableHead>
                    <TableHead className="text-center">Tipo</TableHead>
                    <TableHead className="text-center">Meta Orçamentos</TableHead>
                    <TableHead className="text-center">Meta Conversões</TableHead>

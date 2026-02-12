@@ -121,7 +121,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
     });
 
     allItems.forEach(item => {
-      const vendedor = item.vendedor || "Sem vendedor";
+      const vendedor = item.vendedor || "Sem consultor";
       if (!statsMap.has(vendedor)) {
         statsMap.set(vendedor, { nome: vendedor, telefone: null, total: 0, urgentes: 0, pendentes: 0, emDia: 0, tempoMedioResposta: 0 });
       }

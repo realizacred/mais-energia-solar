@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   LogOut,
   Sun,
@@ -56,11 +56,13 @@ function VendorSidebarItem({
   badgeCount: number;
 }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const asParam = searchParams.get("as");
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
-        onClick={() => navigate(`/vendedor/${item.id}`)}
+        onClick={() => navigate(`/vendedor/${item.id}${asParam ? `?as=${asParam}` : ""}`)}
         isActive={isActive}
         tooltip={
           item.description

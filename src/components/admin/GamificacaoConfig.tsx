@@ -430,7 +430,7 @@
                  Pontuação de Conquistas
                </CardTitle>
                <CardDescription>
-                 Configure quantos pontos cada tipo de conquista concede aos vendedores
+                 Configure quantos pontos cada tipo de conquista concede aos consultores
                </CardDescription>
              </CardHeader>
              <CardContent>

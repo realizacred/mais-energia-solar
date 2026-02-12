@@ -64,7 +64,7 @@ export function WaTransferDialog({
           <div>
             <Label>Transferir para *</Label>
             <Select value={toUser} onValueChange={setToUser}>
-              <SelectTrigger><SelectValue placeholder="Selecionar vendedor" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecionar consultor" /></SelectTrigger>
               <SelectContent>
                 {availableVendedores.map((v) => (
                   <SelectItem key={v.id} value={v.user_id!}>{v.nome}</SelectItem>

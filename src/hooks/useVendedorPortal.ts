@@ -132,9 +132,9 @@ const ADMIN_PROFILE: VendedorProfile = {
            .single();
  
          if (targetError || !targetVendedor) {
-           toast({
-             title: "Vendedor não encontrado",
-             description: `Código "${adminAsVendedor}" não existe ou está inativo.`,
+            toast({
+              title: "Consultor não encontrado",
+              description: `Código "${adminAsVendedor}" não existe ou está inativo.`,
              variant: "destructive",
            });
            navigate("/admin", { replace: true });
@@ -162,7 +162,7 @@ const ADMIN_PROFILE: VendedorProfile = {
          } else {
            toast({
              title: "Acesso negado",
-             description: "Seu usuário não está vinculado a um vendedor.",
+             description: "Seu usuário não está vinculado a um consultor.",
              variant: "destructive",
            });
            await signOut();
@@ -193,10 +193,10 @@ const ADMIN_PROFILE: VendedorProfile = {
       if (!vendedor) return;
       const link = `${window.location.origin}/v/${vendedor.slug || vendedor.codigo}`;
       navigator.clipboard.writeText(link);
-      toast({
-        title: "Link copiado!",
-        description: "Seu link de vendedor foi copiado para a área de transferência.",
-      });
+       toast({
+         title: "Link copiado!",
+         description: "Seu link de consultor foi copiado para a área de transferência.",
+       });
    }, [vendedor]);
  
    const handleClearFilters = useCallback(() => {

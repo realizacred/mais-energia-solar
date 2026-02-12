@@ -82,7 +82,7 @@ export default function VendorPage() {
                   Se você acredita que isso é um erro, entre em contato:
                 </p>
                 <a 
-                  href={`https://wa.me/5532998437675?text=Olá! Estou tentando acessar o link de vendedor com código: ${codigo}, mas aparece como inválido.`}
+                  href={`https://wa.me/5532998437675?text=Olá! Estou tentando acessar o link de consultor com código: ${codigo}, mas aparece como inválido.`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 text-primary hover:underline font-medium"

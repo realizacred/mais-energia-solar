@@ -212,14 +212,14 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
               <CardHeader>
                 <CardTitle className="text-base">Ranking de Leads</CardTitle>
                 <CardDescription>
-                  Top 10 vendedores por quantidade de leads
+                  Top 10 consultores por quantidade de leads
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   {Object.entries(
                     leads.reduce((acc: Record<string, number>, l) => {
-                      const v = l.vendedor || "Sem vendedor";
+                      const v = l.vendedor || "Sem consultor";
                       acc[v] = (acc[v] || 0) + 1;
                       return acc;
                     }, {})
