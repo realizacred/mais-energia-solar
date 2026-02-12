@@ -89,6 +89,10 @@ interface LeadFormWizardProps {
 export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {}) {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  // Detect if this is a public vendor form (/v/slug) — always use Edge Function path
+  const isPublicVendorForm = Boolean(
+    vendorCode || searchParams.get("v") || searchParams.get("vendedor") || window.location.pathname.startsWith("/v/")
+  );
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -874,9 +878,9 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         return;
       }
 
-      // ── PUBLIC FORM (no auth): use unified server-side Edge Function ──
-      if (!user) {
-        console.log("[LeadFormWizard] Public form — using public-create-lead Edge Function");
+      // ── PUBLIC FORM (no auth or vendor landing page): use unified server-side Edge Function ──
+      if (!user || isPublicVendorForm) {
+        console.log("[LeadFormWizard] Public form — using public-create-lead Edge Function (user:", !!user, "isPublicVendorForm:", isPublicVendorForm, ")");
 
         // Upload files first if available
         if (hasFiles) {
@@ -914,10 +918,16 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         }
 
         try {
+          console.log("[LeadFormWizard] Calling public-create-lead with payload:", JSON.stringify(payload));
           const response = await supabase.functions.invoke("public-create-lead", {
             body: payload,
           });
 
+          console.log("[LeadFormWizard] public-create-lead response.data:", JSON.stringify(response.data));
+          console.log("[LeadFormWizard] public-create-lead response.error:", response.error);
+
+          // supabase.functions.invoke may set response.error even on 200 in some edge cases.
+          // Prioritize checking response.data.success over response.error.
           const result = response.data as {
             success?: boolean;
             lead_id?: string;
@@ -965,7 +975,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           }
 
           // Server-side failed — try offline fallback
-          console.warn("[LeadFormWizard] public-create-lead failed:", result?.error || response.error);
+          const errorDetail = result?.error || (response.error ? String(response.error) : "Unknown error");
+          console.warn("[LeadFormWizard] public-create-lead failed:", errorDetail);
           const offlineSuccess = await saveOfflineFallback();
           if (offlineSuccess) return;
 
