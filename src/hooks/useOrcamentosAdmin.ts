@@ -12,14 +12,14 @@ const PAGE_SIZE = 25;
 const ORC_ADMIN_SELECT = `
   id, orc_code, lead_id, cep, estado, cidade, bairro, rua, numero, complemento,
   area, tipo_telhado, rede_atendimento, media_consumo, consumo_previsto,
-  observacoes, arquivos_urls, vendedor, vendedor_id, visto, visto_admin,
+  observacoes, arquivos_urls, consultor, consultor_id, visto, visto_admin,
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
   leads!inner (
     id, lead_code, nome, telefone, telefone_normalized,
-    vendedor_id, vendedor,
-    vendedores:vendedor_id(id, nome)
+    consultor_id, consultor,
+    consultores:consultor_id(id, nome)
   ),
-  orc_vendedores:vendedor_id(id, nome)
+  orc_consultores:consultor_id(id, nome)
 `;
 
 interface UseOrcamentosAdminOptions {
@@ -58,8 +58,8 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
       
       // Transform to flat display format
       const displayItems: OrcamentoDisplayItem[] = (orcamentosRes.data || []).map((orc: any) => {
-        const leadVendedorNome = orc.orc_vendedores?.nome || orc.leads?.vendedores?.nome || orc.leads?.vendedor || orc.vendedor || null;
-        const leadVendedorId = orc.vendedor_id || orc.leads?.vendedor_id || null;
+        const leadVendedorNome = orc.orc_consultores?.nome || orc.leads?.consultores?.nome || orc.leads?.consultor || orc.consultor || null;
+        const leadVendedorId = orc.consultor_id || orc.leads?.consultor_id || null;
 
         return {
           id: orc.id,
@@ -82,7 +82,7 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
           consumo_previsto: orc.consumo_previsto,
           arquivos_urls: orc.arquivos_urls,
           observacoes: orc.observacoes,
-          vendedor: orc.vendedor, // keep text for backward compat
+          vendedor: orc.consultor, // keep text for backward compat
           vendedor_id: leadVendedorId,
           vendedor_nome: leadVendedorNome,
           status_id: orc.status_id,

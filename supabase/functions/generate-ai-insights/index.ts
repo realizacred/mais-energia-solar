@@ -78,14 +78,14 @@ Deno.serve(async (req) => {
       comissoesResult,
       recebimentosResult,
     ] = await Promise.all([
-      supabase.from("leads").select("id, nome, telefone, cidade, estado, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, vendedor, status_id, created_at, updated_at, ultimo_contato, visto, visto_admin, data_proxima_acao, proxima_acao, area").order("created_at", { ascending: false }).limit(500),
-      supabase.from("leads").select("id, nome, media_consumo, vendedor, created_at, status_id").gte("created_at", sevenDaysAgo).order("created_at", { ascending: false }),
+      supabase.from("leads").select("id, nome, telefone, cidade, estado, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, consultor, status_id, created_at, updated_at, ultimo_contato, visto, visto_admin, data_proxima_acao, proxima_acao, area").order("created_at", { ascending: false }).limit(500),
+      supabase.from("leads").select("id, nome, media_consumo, consultor, created_at, status_id").gte("created_at", sevenDaysAgo).order("created_at", { ascending: false }),
       supabase.from("lead_status").select("id, nome, cor, ordem").order("ordem"),
-      supabase.from("vendedores").select("id, nome, user_id, ativo, created_at"),
+      supabase.from("consultores").select("id, nome, user_id, ativo, created_at"),
       supabase.from("lead_scores").select("lead_id, score, nivel, probabilidade_fechamento, valor_estimado, recomendacao, calculado_em").order("score", { ascending: false }),
       supabase.from("clientes").select("id, nome, valor_projeto, potencia_kwp, lead_id, created_at").gte("created_at", thirtyDaysAgo),
       supabase.from("lead_atividades").select("id, lead_id, tipo, descricao, data_agendada, concluido, created_at, created_by").gte("created_at", thirtyDaysAgo).order("created_at", { ascending: false }).limit(200),
-      supabase.from("comissoes").select("id, vendedor_id, valor_comissao, valor_base, status, mes_referencia, ano_referencia").limit(100),
+      supabase.from("comissoes").select("id, consultor_id, valor_comissao, valor_base, status, mes_referencia, ano_referencia").limit(100),
       supabase.from("parcelas_recebimento").select("id, valor, status, data_vencimento, data_pagamento").limit(200),
     ]);
 

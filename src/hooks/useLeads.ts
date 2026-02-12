@@ -48,8 +48,8 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       // Resolve vendedor_nome from join, fallback to vendedor text
       const enrichedLeads: Lead[] = (leadsRes.data || []).map((l: any) => ({
         ...l,
-        vendedor_nome: l.vendedores?.nome || l.vendedor || null,
-        vendedores: undefined, // clean up join artifact
+        consultor_nome: l.consultores?.nome || l.consultor || null,
+        consultores: undefined, // clean up join artifact
       }));
 
       setLeads(enrichedLeads);

@@ -61,7 +61,7 @@ export function usePropostas() {
     try {
       const { data, error } = await supabase
         .from("propostas")
-        .select("*, vendedor:vendedores(nome)")
+        .select("*, consultor_ref:consultores(nome)")
         .order("created_at", { ascending: false })
         .limit(200);
 
@@ -103,7 +103,7 @@ export function usePropostas() {
           geracao_mensal_kwh: data.geracao_mensal_kwh || null,
           payback_anos: data.payback_anos || null,
           distribuidora: data.distribuidora || null,
-          vendedor_id: data.vendedor_id || null,
+          consultor_id: data.vendedor_id || null,
           status: "rascunho",
         });
 

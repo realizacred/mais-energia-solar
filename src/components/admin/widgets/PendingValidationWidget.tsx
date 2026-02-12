@@ -68,7 +68,7 @@ export function PendingValidationWidget({ onNavigate }: PendingValidationWidgetP
                   <p className="text-sm font-medium truncate">{item.nome}</p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <User className="h-3 w-3" />
-                    <span className="truncate">{item.leads?.vendedor || "-"}</span>
+                    <span className="truncate">{item.leads?.consultor || "-"}</span>
                     <span>•</span>
                     <span>{format(new Date(item.created_at), "dd/MM", { locale: ptBR })}</span>
                   </div>

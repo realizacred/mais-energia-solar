@@ -33,7 +33,7 @@ interface LeadData {
   cidade: string;
   lead_code: string | null;
   media_consumo: number;
-  vendedor: string | null;
+  consultor: string | null;
   created_at: string;
   status_id: string | null;
 }
@@ -122,7 +122,7 @@ export function SolarMarketLinksView() {
       const [leadsRes, smClientsRes] = await Promise.all([
         supabase
           .from("leads")
-          .select("id, nome, telefone, estado, cidade, lead_code, media_consumo, vendedor, created_at, status_id")
+          .select("id, nome, telefone, estado, cidade, lead_code, media_consumo, consultor, created_at, status_id")
           .in("id", leadIds),
         supabase
           .from("solar_market_clients")
@@ -326,7 +326,7 @@ export function SolarMarketLinksView() {
                         <InfoRow label="Nome" value={selectedLink.lead.nome} />
                         <InfoRow label="Código" value={selectedLink.lead.lead_code} />
                         <InfoRow label="Telefone" value={selectedLink.lead.telefone} />
-                        <InfoRow label="Consultor" value={selectedLink.lead.vendedor} />
+                        <InfoRow label="Consultor" value={selectedLink.lead.consultor} />
                         <InfoRow label="Cidade" value={`${selectedLink.lead.cidade} - ${selectedLink.lead.estado}`} />
                         <InfoRow label="Consumo" value={`${selectedLink.lead.media_consumo} kWh`} />
                         <InfoRow label="Criado em" value={formatDate(selectedLink.lead.created_at)} />
