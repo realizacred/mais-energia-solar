@@ -12,7 +12,7 @@ interface Lead {
   estado: string;
   cidade: string;
   media_consumo: number;
-  vendedor: string | null;
+  consultor: string | null;
   created_at: string;
   status_id: string | null;
 }
@@ -38,7 +38,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
     if (!propLeads || !propStatuses) {
       const fetchData = async () => {
         const [leadsRes, statusesRes] = await Promise.all([
-          supabase.from("leads").select("id, nome, estado, cidade, media_consumo, vendedor, created_at, status_id").order("created_at", { ascending: false }),
+          supabase.from("leads").select("id, nome, estado, cidade, media_consumo, consultor, created_at, status_id").order("created_at", { ascending: false }),
           supabase.from("lead_status").select("*").order("ordem"),
         ]);
         if (leadsRes.data) setFetchedLeads(leadsRes.data);
@@ -73,7 +73,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
     const closedLeads = leads.filter(l => closedStatuses.includes(l.status_id || "")).length;
     const conversionRate = leads.length > 0 ? Math.round((closedLeads / leads.length) * 100) : 0;
     
-    const uniqueVendors = new Set(leads.map(l => l.vendedor).filter(Boolean)).size;
+    const uniqueVendors = new Set(leads.map(l => l.consultor).filter(Boolean)).size;
     
     return {
       total: leads.length,
@@ -219,7 +219,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
                 <div className="space-y-2">
                   {Object.entries(
                     leads.reduce((acc: Record<string, number>, l) => {
-                      const v = l.vendedor || "Sem consultor";
+                      const v = l.consultor || "Sem consultor";
                       acc[v] = (acc[v] || 0) + 1;
                       return acc;
                     }, {})

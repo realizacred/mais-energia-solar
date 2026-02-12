@@ -29,7 +29,7 @@ export default function VendorPage() {
       try {
         // Use secure RPC that allows public access (no auth required)
         const { data, error } = await supabase
-          .rpc("validate_vendedor_code", { _codigo: codigo });
+          .rpc("validate_consultor_code", { _codigo: codigo });
 
         if (error) {
           console.error("Error validating vendor:", error);

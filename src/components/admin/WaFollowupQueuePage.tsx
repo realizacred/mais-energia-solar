@@ -101,7 +101,7 @@ export function WaFollowupQueuePage() {
   const { data: vendedores = [] } = useQuery({
     queryKey: ["wa-followup-vendedores-page"],
     queryFn: async () => {
-      const { data } = await supabase.from("vendedores").select("id, nome, user_id").eq("ativo", true);
+      const { data } = await supabase.from("consultores").select("id, nome, user_id").eq("ativo", true);
       return data || [];
     },
     staleTime: 60_000,

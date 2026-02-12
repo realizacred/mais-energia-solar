@@ -53,7 +53,7 @@ import {
   ComissoesExport,
 } from "./comissoes";
 
-interface Vendedor {
+interface Consultor {
   id: string;
   nome: string;
 }
@@ -65,7 +65,7 @@ interface Cliente {
 
 interface Comissao {
   id: string;
-  vendedor_id: string;
+  consultor_id: string;
   projeto_id: string | null;
   cliente_id: string | null;
   descricao: string;
@@ -77,7 +77,7 @@ interface Comissao {
   status: string;
   observacoes: string | null;
   created_at: string;
-  vendedores?: { nome: string };
+  consultores?: { nome: string };
   clientes?: { nome: string } | null;
   projetos?: { codigo: string } | null;
   pagamentos_comissao?: { valor_pago: number; data_pagamento: string }[];
@@ -101,7 +101,7 @@ const MESES = [
 export function ComissoesManager() {
   const [comissoes, setComissoes] = useState<Comissao[]>([]);
   const [allComissoes, setAllComissoes] = useState<Comissao[]>([]); // For reports
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [vendedores, setVendedores] = useState<Consultor[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -122,7 +122,7 @@ export function ComissoesManager() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState({
-    vendedor_id: "",
+    consultor_id: "",
     descricao: "",
     valor_base: "",
     percentual_comissao: "2.0",
@@ -138,9 +138,9 @@ export function ComissoesManager() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch vendedores
+      // Fetch consultores
       const { data: vendedoresData } = await supabase
-        .from("vendedores")
+        .from("consultores")
         .select("id, nome")
         .eq("ativo", true)
         .order("nome");
@@ -161,7 +161,7 @@ export function ComissoesManager() {
         .from("comissoes")
         .select(`
           *,
-          vendedores(nome),
+          consultores(nome),
           clientes(nome),
           projetos(codigo),
           pagamentos_comissao(valor_pago, data_pagamento)
@@ -171,7 +171,7 @@ export function ComissoesManager() {
         .order("created_at", { ascending: false });
 
       if (filterVendedor !== "all") {
-        query = query.eq("vendedor_id", filterVendedor);
+        query = query.eq("consultor_id", filterVendedor);
       }
 
       if (filterStatus !== "all") {
@@ -213,7 +213,7 @@ export function ComissoesManager() {
     return comissoes.filter(
       (c) =>
         c.descricao.toLowerCase().includes(term) ||
-        c.vendedores?.nome.toLowerCase().includes(term) ||
+        c.consultores?.nome.toLowerCase().includes(term) ||
         c.projetos?.codigo?.toLowerCase().includes(term) ||
         c.clientes?.nome?.toLowerCase().includes(term)
     );
@@ -229,7 +229,7 @@ export function ComissoesManager() {
       const valorComissao = (valorBase * percentual) / 100;
 
       const { error } = await supabase.from("comissoes").insert({
-        vendedor_id: formData.vendedor_id,
+        consultor_id: formData.consultor_id,
         descricao: formData.descricao,
         valor_base: valorBase,
         percentual_comissao: percentual,
@@ -268,7 +268,7 @@ export function ComissoesManager() {
 
   const resetForm = () => {
     setFormData({
-      vendedor_id: "",
+      consultor_id: "",
       descricao: "",
       valor_base: "",
       percentual_comissao: "2.0",
@@ -349,7 +349,7 @@ export function ComissoesManager() {
   // Calculate vendor balances
   const vendorBalances = vendedores
     .map((v) => {
-      const vendorComissoes = filteredComissoes.filter((c) => c.vendedor_id === v.id);
+      const vendorComissoes = filteredComissoes.filter((c) => c.consultor_id === v.id);
       const totalVendorComissoes = vendorComissoes.reduce((acc, c) => acc + c.valor_comissao, 0);
       const totalVendorPago = vendorComissoes.reduce((acc, c) => acc + calcularValorPago(c), 0);
       return {
@@ -429,10 +429,10 @@ export function ComissoesManager() {
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Vendedor *</Label>
+                    <Label>Consultor *</Label>
                     <Select
-                      value={formData.vendedor_id}
-                      onValueChange={(value) => setFormData({ ...formData, vendedor_id: value })}
+                      value={formData.consultor_id}
+                      onValueChange={(value) => setFormData({ ...formData, consultor_id: value })}
                       required
                     >
                       <SelectTrigger>
@@ -623,7 +623,7 @@ export function ComissoesManager() {
                                 onCheckedChange={() => toggleSelect(comissao.id)}
                               />
                             </TableCell>
-                            <TableCell className="font-medium">{comissao.vendedores?.nome}</TableCell>
+                            <TableCell className="font-medium">{comissao.consultores?.nome}</TableCell>
                             <TableCell>
                               <div>
                                 <p className="truncate max-w-48">{comissao.descricao}</p>

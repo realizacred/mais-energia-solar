@@ -22,7 +22,7 @@ interface PendingUser {
 }
 
 const CARGO_LABELS: Record<string, { label: string; color: string }> = {
-  vendedor: { label: "Consultor", color: "bg-info/10 text-info" },
+  consultor: { label: "Consultor", color: "bg-info/10 text-info" },
   instalador: { label: "Instalador", color: "bg-success/10 text-success" },
   admin: { label: "Admin", color: "bg-destructive/10 text-destructive" },
   gerente: { label: "Gerente", color: "bg-accent text-accent-foreground" },
@@ -105,15 +105,15 @@ export function AprovacaoUsuarios() {
         .from("user_roles")
         .insert([{
           user_id: user.user_id,
-          role: user.cargo_solicitado as "admin" | "gerente" | "vendedor" | "instalador" | "financeiro",
+          role: user.cargo_solicitado as "admin" | "gerente" | "consultor" | "instalador" | "financeiro",
         }]);
 
       if (roleError) throw roleError;
 
-      // 3. If vendedor, create vendedores record
-      if (user.cargo_solicitado === "vendedor") {
+      // 3. If consultor, create consultores record
+      if (user.cargo_solicitado === "consultor") {
         const codigo = `V${Date.now().toString(36).toUpperCase().slice(-6)}`;
-        const { error: vendError } = await supabase.from("vendedores").insert({
+        const { error: vendError } = await supabase.from("consultores").insert({
           nome: user.nome,
           telefone: user.telefone || "",
           email: user.email || "",
@@ -123,7 +123,7 @@ export function AprovacaoUsuarios() {
         } as any);
 
         if (vendError) {
-          console.error("Error creating vendedor record:", vendError);
+          console.error("Error creating consultor record:", vendError);
         }
       }
 

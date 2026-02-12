@@ -72,7 +72,7 @@ export function ValidacaoVendasManager() {
   useEffect(() => {
     const fetchVendedores = async () => {
       const { data } = await supabase
-        .from("vendedores")
+        .from("consultores")
         .select("id, nome, percentual_comissao")
         .eq("ativo", true)
         .order("nome");
@@ -269,7 +269,7 @@ export function ValidacaoVendasManager() {
       const vendedorNome = selectedVendedor?.nome || "Consultor";
 
       const { error: comissaoError } = await supabase.from("comissoes").insert({
-        vendedor_id: selectedVendedorId,
+        consultor_id: selectedVendedorId,
         cliente_id: selectedCliente.id,
         descricao: `Venda - ${selectedCliente.nome} (${selectedCliente.simulacoes?.potencia_recomendada_kwp || selectedCliente.potencia_kwp || 0}kWp)`,
         valor_base: valorBase,

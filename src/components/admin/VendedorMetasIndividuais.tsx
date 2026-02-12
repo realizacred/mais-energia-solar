@@ -88,7 +88,7 @@
  
        // Fetch vendedores
        const { data: vendedoresData } = await supabase
-         .from("vendedores")
+         .from("consultores")
          .select("id, nome, ativo")
          .eq("ativo", true)
          .order("nome");
@@ -99,7 +99,7 @@
  
        // Fetch metas for current month
        const { data: metasData } = await supabase
-         .from("vendedor_metas")
+         .from("consultor_metas")
          .select("*")
          .eq("mes", currentMonth)
          .eq("ano", currentYear);
@@ -107,9 +107,9 @@
        if (metasData) {
          const metasMap = new Map<string, VendedorMeta>();
          for (const meta of metasData) {
-           metasMap.set(meta.vendedor_id, {
+           metasMap.set((meta as any).consultor_id, {
              id: meta.id,
-             vendedor_id: meta.vendedor_id,
+             vendedor_id: (meta as any).consultor_id,
              mes: meta.mes,
              ano: meta.ano,
              meta_orcamentos: meta.meta_orcamentos,
@@ -158,8 +158,8 @@
  
        if (existingMeta) {
          // Update
-         const { error } = await supabase
-           .from("vendedor_metas")
+          const { error } = await supabase
+            .from("consultor_metas")
            .update({
              meta_orcamentos: editingMeta.meta_orcamentos,
              meta_conversoes: editingMeta.meta_conversoes,
@@ -172,8 +172,8 @@
          if (error) throw error;
        } else {
          // Insert
-         const { error } = await supabase.from("vendedor_metas").insert({
-           vendedor_id: editingVendedor.id,
+          const { error } = await supabase.from("consultor_metas").insert({
+            consultor_id: editingVendedor.id,
            mes: currentMonth,
            ano: currentYear,
            meta_orcamentos: editingMeta.meta_orcamentos,

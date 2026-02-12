@@ -83,7 +83,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       await supabase
         .from("vendor_invites")
         .update({ revoked_at: new Date().toISOString() })
-        .eq("vendedor_id", vendedorId)
+        .eq("consultor_id", vendedorId)
         .is("used_at", null)
         .is("revoked_at", null);
 
@@ -91,7 +91,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       const { data: invite, error } = await supabase
         .from("vendor_invites")
         .insert({
-          vendedor_id: vendedorId,
+          consultor_id: vendedorId,
           tenant_id: profile.tenant_id,
           email: vendedorEmail,
           created_by: user.id,
@@ -203,12 +203,12 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const fetchVendedores = async () => {
     try {
       const { data, error } = await supabase
-        .from("vendedores")
+        .from("consultores")
         .select("*")
         .order("nome");
 
       if (error) throw error;
-      setVendedores(data || []);
+      setVendedores(data as any || []);
     } catch (error) {
       console.error("Erro ao buscar vendedores:", error);
       toast({
@@ -276,7 +276,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       if (editingVendedor) {
         // Update
         const { error } = await supabase
-          .from("vendedores")
+          .from("consultores")
           .update({
             nome: formData.nome,
             telefone: formData.telefone,
@@ -292,7 +292,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
         // INVITE FLOW — create vendedor first, then generate invite
         if (isInviteFlow) {
           const { data: newVendedor, error: vendedorError } = await supabase
-            .from("vendedores")
+            .from("consultores")
             .insert({
               nome: formData.nome,
               telefone: formData.telefone,
@@ -316,7 +316,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           fetchUsers();
         } else if (isLinkingExistingUser) {
           const { error: vendedorError } = await supabase
-            .from("vendedores")
+            .from("consultores")
             .insert({
               nome: formData.nome,
               telefone: formData.telefone,
@@ -394,7 +394,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           const newUserId = userResult?.user_id;
           
           const { error: vendedorError } = await supabase
-            .from("vendedores")
+            .from("consultores")
             .insert({
               nome: formData.nome,
               telefone: formData.telefone,
@@ -435,7 +435,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const handleToggleAtivo = async (vendedor: Vendedor) => {
     try {
       const { error } = await supabase
-        .from("vendedores")
+        .from("consultores")
         .update({ ativo: !vendedor.ativo })
         .eq("id", vendedor.id);
 
@@ -466,7 +466,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
     try {
       const { error } = await supabase
-        .from("vendedores")
+        .from("consultores")
         .delete()
         .eq("id", vendedorToDelete.id);
 
