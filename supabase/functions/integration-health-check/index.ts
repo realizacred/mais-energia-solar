@@ -168,11 +168,11 @@ Deno.serve(async (req) => {
               .maybeSingle();
             health.last_webhook_at = lastWebhook?.created_at || null;
 
-            // Fetch last successful send
+            // Fetch last successful send (wa_messages has no instance_id — join via conversation)
             const { data: lastSend } = await supabaseAdmin
               .from("wa_messages")
-              .select("created_at")
-              .eq("instance_id", inst.id)
+              .select("created_at, conversation_id!inner(instance_id)")
+              .eq("conversation_id.instance_id", inst.id)
               .eq("direction", "out")
               .order("created_at", { ascending: false })
               .limit(1)
