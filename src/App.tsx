@@ -9,6 +9,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { BrandSettingsProvider } from "@/components/BrandSettingsProvider";
 import { SiteSettingsProvider } from "@/hooks/useSiteSettings";
 import { WaNotificationProvider } from "@/components/notifications/WaNotificationProvider";
+import { PushActivationBanner } from "@/components/notifications/PushActivationBanner";
 import { consumePWAReturnUrl } from "@/hooks/usePWAInstall";
 import { PWAAutoInstallPrompt } from "@/components/pwa/PWAAutoInstallPrompt";
 
@@ -80,6 +81,7 @@ const App = () => (
           <PWAReturnRedirect />
           <PWAAutoInstallPrompt />
           <WaNotificationProvider />
+          <PushActivationBanner />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
               <Route path="/" element={<Index />} />
