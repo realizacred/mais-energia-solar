@@ -30,7 +30,6 @@ import {
   Rocket,
   TrendingUp,
   FileText,
-  Headphones,
   Database,
   Bot,
   Cable,
@@ -41,6 +40,8 @@ import {
   RotateCcw,
   XCircle,
   Tag,
+  FileSearch,
+  Trash2,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -77,22 +78,7 @@ export interface SidebarSection {
  * cognitive load and telling the story of the business.
  */
 export const SIDEBAR_SECTIONS: SidebarSection[] = [
-  // ─── 1. DASHBOARD — Always visible ────────────────────────
-  {
-    label: "Dashboard",
-    labelIcon: BarChart3,
-    indicatorBg: "bg-sidebar-intelligence",
-    activeClass:
-      "bg-sidebar-intelligence/12 text-sidebar-intelligence font-semibold border-l-2 border-sidebar-intelligence",
-    hoverClass: "hover:bg-sidebar-intelligence/6",
-    labelClass: "text-sidebar-intelligence",
-    defaultOpen: true,
-    items: [
-      { id: "dashboard", title: "Dashboard", icon: BarChart3, description: "Visão geral do negócio" },
-    ],
-  },
-
-  // ─── 2. COMERCIAL — Core CRM ──────────────────────────────
+  // ─── 1. COMERCIAL — Core CRM (includes Dashboard) ─────────
   {
     label: "Comercial",
     labelIcon: TrendingUp,
@@ -103,7 +89,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-commercial",
     defaultOpen: true,
     items: [
-      { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads" },
+      { id: "dashboard", title: "Dashboard", icon: BarChart3, description: "Visão geral do negócio" },
+      { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads", separator: true },
       { id: "pipeline", title: "Pipeline", icon: Kanban, description: "Funil de vendas visual" },
       { id: "propostas", title: "Propostas", icon: FileText, description: "Propostas comerciais" },
       { id: "followup", title: "Follow-ups", icon: Bell, description: "Acompanhamento de leads" },
@@ -112,6 +99,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         title: "Status de Leads",
         icon: Kanban,
         description: "Personalizar etapas do funil",
+        separator: true,
       },
       {
         id: "motivos-perda",
@@ -124,7 +112,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         title: "Distribuição",
         icon: RotateCcw,
         description: "Regras & fila de leads",
-        separator: true,
       },
       {
         id: "sla-breaches",
@@ -142,7 +129,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 3. CONVERSAS — WhatsApp communication ────────────────
+  // ─── 2. CONVERSAS — WhatsApp communication ────────────────
   {
     label: "Conversas",
     labelIcon: MessageCircle,
@@ -182,7 +169,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 4. CLIENTES — Post-sale relationship ─────────────────
+  // ─── 3. CLIENTES — Post-sale relationship ─────────────────
   {
     label: "Clientes",
     labelIcon: UserCheck,
@@ -200,7 +187,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 5. OPERAÇÕES — Field execution ───────────────────────
+  // ─── 4. OPERAÇÕES — Field execution ───────────────────────
   {
     label: "Operações",
     labelIcon: Wrench,
@@ -217,7 +204,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 6. FINANCEIRO — Revenue & trust ──────────────────────
+  // ─── 5. FINANCEIRO — Revenue & trust ──────────────────────
   {
     label: "Financeiro",
     labelIcon: Wallet,
@@ -241,7 +228,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 7. GESTÃO — Team & management ────────────────────────
+  // ─── 6. GESTÃO — Team, management & AI ────────────────────
   {
     label: "Gestão",
     labelIcon: Users,
@@ -255,31 +242,18 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "vendedores", title: "Vendedores", icon: Users, description: "Cadastro de consultores" },
       { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso" },
       { id: "gamificacao", title: "Gamificação", icon: Trophy, description: "Metas e ranking" },
-      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões" },
-    ],
-  },
-
-  // ─── 8. IA — Artificial Intelligence tools ────────────────
-  {
-    label: "IA",
-    labelIcon: Bot,
-    indicatorBg: "bg-sidebar-ai",
-    activeClass:
-      "bg-sidebar-ai/12 text-sidebar-ai font-semibold border-l-2 border-sidebar-ai",
-    hoverClass: "hover:bg-sidebar-ai/6",
-    labelClass: "text-sidebar-ai",
-    defaultOpen: false,
-    items: [
       {
         id: "diretor",
         title: "Copilot IA",
         icon: Sparkles,
         description: "Análise inteligente",
+        separator: true,
       },
+      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões" },
     ],
   },
 
-  // ─── 9. INTEGRAÇÕES — External connections ────────────────
+  // ─── 7. INTEGRAÇÕES — External connections ────────────────
   {
     label: "Integrações",
     labelIcon: Cable,
@@ -296,10 +270,17 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "solarmarket", title: "SolarMarket", icon: Sun, description: "Marketplace solar" },
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas" },
       { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP" },
+      {
+        id: "links-instalacao",
+        title: "Links & Instalação",
+        icon: Smartphone,
+        description: "App PWA e links de vendedor",
+        separator: true,
+      },
     ],
   },
 
-  // ─── 10. SITE — White-label ready ─────────────────────────
+  // ─── 8. SITE — White-label ready ──────────────────────────
   {
     label: "Site",
     labelIcon: Globe,
@@ -316,7 +297,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 11. CONFIGURAÇÕES — Master data & settings ───────────
+  // ─── 9. CONFIGURAÇÕES — Master data & settings ────────────
   {
     label: "Configurações",
     labelIcon: Settings,
@@ -336,7 +317,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 12. ADMINISTRAÇÃO — System & logs ────────────────────
+  // ─── 10. ADMINISTRAÇÃO — System & logs ────────────────────
   {
     label: "Administração",
     labelIcon: Shield,
@@ -348,19 +329,13 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles" },
-      { id: "auditoria", title: "Auditoria (Logs)", icon: Shield, description: "Histórico de alterações" },
+      { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações" },
       {
         id: "data-reset",
         title: "Limpeza de Dados",
-        icon: Database,
+        icon: Trash2,
         description: "Reset seletivo por segmento",
         separator: true,
-      },
-      {
-        id: "links-instalacao",
-        title: "Links & Instalação",
-        icon: Smartphone,
-        description: "App PWA e links de vendedor",
       },
     ],
   },
