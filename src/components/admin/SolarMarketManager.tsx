@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { SolarMarketDataView, SolarMarketLinksView, SolarMarketAuditView } from "@/components/admin/solarmarket";
+import { SolarMarketDataView, SolarMarketLinksView, SolarMarketAuditView, SyncProgressTracker } from "@/components/admin/solarmarket";
 
 interface SmConfig {
   id: string;
@@ -273,6 +273,9 @@ export function SolarMarketManager() {
 
         {/* ── Full Sync Tab ──────────────────────── */}
         <TabsContent value="sync" className="space-y-4 mt-4">
+          {/* Live Progress Tracker */}
+          <SyncProgressTracker />
+
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

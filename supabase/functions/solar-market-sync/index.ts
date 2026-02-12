@@ -565,7 +565,7 @@ interface SyncResult {
   nextOffset?: number;
 }
 
-const CHUNK_SIZE = 50; // Projects per chunk (sub-resources phase)
+const CHUNK_SIZE = 10; // Projects per chunk (~35s per invocation, safe for 60s timeout)
 
 async function mergeSyncCounts(
   db: ReturnType<typeof createClient>, syncLogId: string, localCounts: SyncCounts
@@ -1054,7 +1054,21 @@ async function runFullSync(
 
     await syncCatalogs(db, smClient, config, counts);
 
-    console.log("[SM] Init phase complete. Continuing with sub-resources...");
+    // Count total projects for progress tracking
+    const { count: totalProjects } = await db
+      .from("solar_market_projects")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", config.tenant_id)
+      .is("deleted_at", null);
+
+    // Save total_projects to sync log for UI progress
+    if (syncLogId) {
+      await db.from("solar_market_sync_logs").update({
+        counts: { ...counts, total_projects: totalProjects || 0 },
+      }).eq("id", syncLogId);
+    }
+
+    console.log(`[SM] Init phase complete. ${totalProjects} projects to process sub-resources...`);
     return { done: false, nextPhase: "sub_resources", nextOffset: 0 };
   }
 
@@ -1461,7 +1475,10 @@ Deno.serve(async (req) => {
         error: counts.errors.length > 0 ? counts.errors.join("; ") : null,
       }).eq("id", syncLogId);
 
-      console.log(`[SM] Self-invoking: phase=${result.nextPhase}, offset=${result.nextOffset}`);
+      console.log(`[SM] Pausing 3s before next chunk: phase=${result.nextPhase}, offset=${result.nextOffset}`);
+      
+      // Pause before self-invocation to let the system breathe
+      await new Promise((r) => setTimeout(r, 3000));
 
       // Fire-and-forget self-invocation for next chunk
       supabaseAdmin.functions.invoke("solar-market-sync", {
