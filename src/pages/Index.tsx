@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import CookieConsent from "@/components/CookieConsent";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import {
@@ -42,6 +43,7 @@ export default function Index() {
       <ContactSection />
       <Footer />
       <WhatsAppButton />
+      <CookieConsent />
     </div>
   );
 }
