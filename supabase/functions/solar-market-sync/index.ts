@@ -530,7 +530,7 @@ interface SyncResult {
   nextOffset?: number;
 }
 
-const CHUNK_SIZE = 60;
+const CHUNK_SIZE = 10;
 
 async function mergeSyncCounts(
   db: ReturnType<typeof createClient>, syncLogId: string, localCounts: SyncCounts
