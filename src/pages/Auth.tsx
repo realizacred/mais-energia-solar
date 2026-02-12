@@ -68,18 +68,32 @@ export default function Auth() {
         }
 
         setCheckingRole(true);
+        
+        // Timeout safety: never leave user stuck on spinner
+        const timeoutId = setTimeout(() => {
+          console.warn("[auth] Role check timed out, forcing navigation");
+          setCheckingRole(false);
+          toast({
+            title: "Conexão lenta",
+            description: "O servidor demorou para responder. Tente novamente.",
+            variant: "destructive",
+          });
+        }, 12_000);
+
         try {
           const { data: profile } = await supabase
             .from("profiles")
             .select("status, cargo_solicitado")
             .eq("user_id", user.id)
-            .single();
+            .maybeSingle();
 
           if (profile?.status === "pendente") {
+            clearTimeout(timeoutId);
             navigate("/aguardando-aprovacao", { replace: true });
             return;
           }
           if (profile?.status === "rejeitado") {
+            clearTimeout(timeoutId);
             toast({
               title: "Acesso negado",
               description: "Sua solicitação de acesso foi rejeitada. Contate o administrador.",
@@ -100,6 +114,7 @@ export default function Auth() {
           const isInstalador = roles?.some(r => r.role === "instalador");
 
           if (!isVendedor && !isAdmin && !isInstalador) {
+            clearTimeout(timeoutId);
             setCheckingRole(false);
             if (profile) {
               navigate("/aguardando-aprovacao", { replace: true });
@@ -119,9 +134,11 @@ export default function Auth() {
               .from("consultores")
               .select("id")
               .eq("user_id", user.id)
-              .single();
+              .maybeSingle();
             hasVendedorRecord = !!vendedorData;
           }
+
+          clearTimeout(timeoutId);
 
           if (isVendedor && isAdmin && hasVendedorRecord) {
             if (savedPreference === "vendedor") {
@@ -142,8 +159,13 @@ export default function Auth() {
             navigate("/admin", { replace: true });
           }
         } catch (error) {
+          clearTimeout(timeoutId);
           console.error("Error checking user role:", error);
-          navigate("/admin", { replace: true });
+          toast({
+            title: "Erro de conexão",
+            description: "Não foi possível verificar suas permissões. Tente novamente.",
+            variant: "destructive",
+          });
         } finally {
           setCheckingRole(false);
         }
