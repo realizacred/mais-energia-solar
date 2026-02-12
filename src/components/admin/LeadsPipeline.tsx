@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 const LEADS_PAGE_SIZE = 25;
 
 // ⚠️ HARDENING: Only select columns actually used in the pipeline UI
-const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consumo, vendedor, status_id, created_at, ultimo_contato, visto";
+const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consumo, consultor, status_id, created_at, ultimo_contato, visto";
 
  interface LeadStatus {
    id: string;
@@ -32,7 +32,7 @@ const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consu
    cidade: string;
    estado: string;
    media_consumo: number;
-   vendedor: string | null;
+   consultor: string | null;
    status_id: string | null;
    created_at: string;
    ultimo_contato?: string | null;
@@ -114,7 +114,7 @@ const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consu
  
    // Extract unique vendedores and estados for filters
    const vendedores = useMemo(() => {
-     const unique = [...new Set(leads.map((l) => l.vendedor).filter(Boolean))];
+     const unique = [...new Set(leads.map((l) => l.consultor).filter(Boolean))];
      return unique.map((nome) => ({ nome: nome as string }));
    }, [leads]);
  
@@ -134,7 +134,7 @@ const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consu
          if (!matchesSearch) return false;
        }
  
-       if (selectedVendedor !== "all" && lead.vendedor !== selectedVendedor) return false;
+       if (selectedVendedor !== "all" && lead.consultor !== selectedVendedor) return false;
        if (selectedEstado !== "all" && lead.estado !== selectedEstado) return false;
  
        if (consumoRange !== "all") {
@@ -478,7 +478,7 @@ const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consu
                               </p>
                               <p className="text-[10px] text-muted-foreground mt-0.5">
                                 {lead.lead_code}
-                                {lead.vendedor && ` · ${lead.vendedor}`}
+                                {lead.consultor && ` · ${lead.consultor}`}
                               </p>
                             </div>
                             <Badge variant="destructive" className="text-[10px] shrink-0">

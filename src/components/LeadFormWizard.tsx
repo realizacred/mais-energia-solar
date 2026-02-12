@@ -161,7 +161,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         try {
           // Use secure RPC function that exposes only code and name
           const { data, error } = await supabase
-            .rpc("validate_vendedor_code", { _codigo: codigo });
+            .rpc("validate_consultor_code", { _codigo: codigo });
 
           if (error) {
             console.log("Erro ao validar vendedor:", error.message);
@@ -172,14 +172,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             const vendedor = data[0];
             setVendedorCodigo(vendedor.codigo);
             setVendedorNome(vendedor.nome);
-            // Resolve vendedor_id via secure RPC (no direct table access for anon)
-            const { data: vendedorRecord } = await supabase
-              .rpc("resolve_vendedor_public", { _codigo: vendedor.codigo })
+            // Resolve consultor_id via secure RPC (no direct table access for anon)
+            const { data: consultorRecord } = await supabase
+              .rpc("resolve_consultor_public", { _codigo: vendedor.codigo })
               .maybeSingle();
-            if (vendedorRecord) {
-              setVendedorId(vendedorRecord.id);
+            if (consultorRecord) {
+              setVendedorId((consultorRecord as any).id);
             }
-            console.log("Vendedor validado:", vendedor.nome);
+            console.log("Consultor validado:", vendedor.nome);
           } else {
             console.log("Vendedor não encontrado ou inativo:", codigo);
           }
@@ -194,7 +194,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       if (user) {
         try {
           const { data: vendedorRecord } = await supabase
-            .from("vendedores")
+            .from("consultores")
             .select("id, nome, codigo")
             .eq("user_id", user.id)
             .eq("ativo", true)
@@ -647,12 +647,12 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
       let resolvedVendedorId = vendedorId;
       if (!resolvedVendedorId) {
         const { data: v } = await supabase
-          .from("vendedores")
+          .from("consultores")
           .select("id")
           .eq("user_id", user.id)
           .eq("ativo", true)
           .maybeSingle();
-        resolvedVendedorId = v?.id || null;
+        resolvedVendedorId = (v as any)?.id || null;
       }
 
       // Check toggle from DB settings

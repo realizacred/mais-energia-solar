@@ -304,7 +304,7 @@ export function UsuariosManager() {
         .from("user_roles")
         .delete()
         .eq("user_id", userId)
-        .eq("role", role as "admin" | "gerente" | "vendedor" | "instalador" | "financeiro");
+        .eq("role", role as "admin" | "gerente" | "consultor" | "instalador" | "financeiro");
 
       if (error) throw error;
 

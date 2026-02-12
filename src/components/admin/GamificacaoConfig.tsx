@@ -100,10 +100,10 @@
        // Fetch ranking for current month
        const now = new Date();
        const { data: performanceData, error: perfError } = await supabase
-         .from("vendedor_performance_mensal")
+         .from("consultor_performance_mensal")
          .select(`
            *,
-           vendedor:vendedores(nome)
+           consultor:consultores(nome)
          `)
          .eq("mes", now.getMonth() + 1)
          .eq("ano", now.getFullYear())
@@ -114,8 +114,8 @@
        if (performanceData) {
          setRanking(
            performanceData.map((p: any, idx) => ({
-             vendedor_id: p.vendedor_id,
-             vendedor_nome: p.vendedor?.nome || "Desconhecido",
+              vendedor_id: p.vendedor_id,
+              vendedor_nome: p.consultor?.nome || "Desconhecido",
              total_orcamentos: p.total_orcamentos,
              total_conversoes: p.total_conversoes,
              valor_total_vendas: p.valor_total_vendas,

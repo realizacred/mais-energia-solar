@@ -24,7 +24,7 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
     queryKey: ["vendedores-links"],
     queryFn: async () => {
       const { data } = await supabase
-        .from("vendedores")
+        .from("consultores")
         .select("id, nome, slug, codigo")
         .eq("ativo", true)
         .order("nome");

@@ -69,7 +69,7 @@ export function WaInstancesManager() {
   const { data: vendedores = [] } = useQuery({
     queryKey: ["vendedores-wa-instances"],
     queryFn: async () => {
-      const { data } = await supabase.from("vendedores").select("id, nome, user_id").eq("ativo", true);
+      const { data } = await supabase.from("consultores").select("id, nome, user_id").eq("ativo", true);
       return data || [];
     },
     staleTime: 5 * 60 * 1000,
@@ -79,14 +79,14 @@ export function WaInstancesManager() {
   const { data: instanceVendedores = [] } = useQuery({
     queryKey: ["wa-instance-vendedores"],
     queryFn: async () => {
-      const { data } = await supabase.from("wa_instance_vendedores").select("instance_id, vendedor_id");
+      const { data } = await supabase.from("wa_instance_consultores").select("instance_id, consultor_id");
       return data || [];
     },
     staleTime: 30 * 1000,
   });
 
   const getInstanceVendedorIds = (instanceId: string) =>
-    instanceVendedores.filter((iv) => iv.instance_id === instanceId).map((iv) => iv.vendedor_id);
+    instanceVendedores.filter((iv: any) => iv.instance_id === instanceId).map((iv: any) => iv.consultor_id);
 
   const webhookBaseUrl = `https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/evolution-webhook`;
 
@@ -167,7 +167,7 @@ export function WaInstancesManager() {
             const StatusIcon = st.icon;
             const linkedVendedorIds = getInstanceVendedorIds(inst.id);
             const linkedVendedorNames = linkedVendedorIds
-              .map((vid) => vendedores.find((v) => v.id === vid)?.nome)
+              .map((vid: string) => (vendedores as any[]).find((v) => v.id === vid)?.nome)
               .filter(Boolean);
 
             return (
@@ -293,7 +293,7 @@ export function WaInstancesManager() {
           }
         }}
         instance={editInstance}
-        vendedores={vendedores}
+        vendedores={vendedores as any}
         initialVendedorIds={editInstance ? getInstanceVendedorIds(editInstance.id) : []}
         onSave={async (data, selectedVendedorIds) => {
           let instanceId = editInstance?.id;
@@ -309,22 +309,22 @@ export function WaInstancesManager() {
             const tenantId = instances[0]?.tenant_id || editInstance?.tenant_id;
             if (tenantId) {
               // Delete existing links
-              await supabase.from("wa_instance_vendedores").delete().eq("instance_id", instanceId);
+              await supabase.from("wa_instance_consultores").delete().eq("instance_id", instanceId);
               // Insert new links
               if (selectedVendedorIds.length > 0) {
-                await supabase.from("wa_instance_vendedores").insert(
+                await supabase.from("wa_instance_consultores").insert(
                   selectedVendedorIds.map((vid) => ({
                     instance_id: instanceId!,
-                    vendedor_id: vid,
+                    consultor_id: vid,
                     tenant_id: tenantId,
                   }))
                 );
               }
               // Also update legacy vendedor_id for backward compat
               const legacyVendedorId = selectedVendedorIds.length === 1 ? selectedVendedorIds[0] : null;
-              await supabase.from("wa_instances").update({ vendedor_id: legacyVendedorId }).eq("id", instanceId);
+              await supabase.from("wa_instances").update({ consultor_id: legacyVendedorId } as any).eq("id", instanceId);
             }
-            queryClient.invalidateQueries({ queryKey: ["wa-instance-vendedores"] });
+            queryClient.invalidateQueries({ queryKey: ["wa-instance-consultores"] });
           }
 
           setShowCreate(false);

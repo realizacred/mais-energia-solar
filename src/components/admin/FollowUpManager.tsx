@@ -20,7 +20,7 @@ interface FollowUpItem {
   telefone: string;
   cidade: string;
   estado: string;
-  vendedor: string | null;
+  consultor: string | null;
   ultimo_contato: string | null;
   proxima_acao: string | null;
   data_proxima_acao: string | null;
@@ -62,9 +62,9 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
     setLoading(true);
     try {
       const [leadsRes, orcamentosRes, vendedoresRes] = await Promise.all([
-        supabase.from("leads").select("id, lead_code, nome, telefone, cidade, estado, vendedor, ultimo_contato, proxima_acao, data_proxima_acao, created_at"),
-        supabase.from("orcamentos").select("id, orc_code, cidade, estado, vendedor, ultimo_contato, proxima_acao, data_proxima_acao, created_at, lead:leads!inner(nome, telefone)"),
-        supabase.from("vendedores").select("nome, telefone").eq("ativo", true)
+        supabase.from("leads").select("id, lead_code, nome, telefone, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at"),
+        supabase.from("orcamentos").select("id, orc_code, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at, lead:leads!inner(nome, telefone)"),
+        supabase.from("consultores").select("nome, telefone").eq("ativo", true)
       ]);
 
       setLeads((leadsRes.data || []).map(l => ({ ...l, code: l.lead_code, type: 'lead' as const })));
@@ -75,7 +75,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
         telefone: (o.lead as any)?.telefone || "",
         cidade: o.cidade,
         estado: o.estado,
-        vendedor: o.vendedor,
+        consultor: o.consultor,
         ultimo_contato: o.ultimo_contato,
         proxima_acao: o.proxima_acao,
         data_proxima_acao: o.data_proxima_acao,
@@ -121,7 +121,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
     });
 
     allItems.forEach(item => {
-      const vendedor = item.vendedor || "Sem consultor";
+      const vendedor = item.consultor || "Sem consultor";
       if (!statsMap.has(vendedor)) {
         statsMap.set(vendedor, { nome: vendedor, telefone: null, total: 0, urgentes: 0, pendentes: 0, emDia: 0, tempoMedioResposta: 0 });
       }
@@ -252,7 +252,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
                         <Phone className="w-3 h-3" />{item.telefone}
                       </a>
                     </TableCell>
-                    <TableCell>{item.vendedor || "-"}</TableCell>
+                    <TableCell>{item.consultor || "-"}</TableCell>
                     <TableCell>{getStatusBadge(item)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
