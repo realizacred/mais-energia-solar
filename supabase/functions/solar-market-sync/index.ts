@@ -530,7 +530,7 @@ interface SyncResult {
   nextOffset?: number;
 }
 
-const CHUNK_SIZE = 10;
+const CHUNK_SIZE = 25; // Projects per chunk (sub-resources phase)
 
 async function mergeSyncCounts(
   db: ReturnType<typeof createClient>, syncLogId: string, localCounts: SyncCounts
@@ -667,44 +667,64 @@ async function syncClients(
   }
 }
 
-// ── Sync Projects for a Client ──
-async function syncProjectsForClient(
+// ── Sync ALL Projects in bulk (replaces per-client N+1 pattern) ──
+async function syncAllProjectsBulk(
   db: ReturnType<typeof createClient>, client: SolarMarketClient,
-  config: SmConfig, smClientId: number, counts: SyncCounts, syncLogId: string | null
-) {
+  config: SmConfig, counts: SyncCounts, syncLogId: string | null,
+  createdAfter?: string
+): Promise<any[]> {
   try {
-    const data = await client.listProjects({ clientId: smClientId });
-    const projects = Array.isArray(data) ? data : data?.data || data?.projects || [];
+    console.log(`[SM] Bulk fetching ALL projects${createdAfter ? ` (after ${createdAfter})` : ""}...`);
+    const projects = await client.listProjectsAll({ createdAfter });
+    console.log(`[SM] Fetched ${projects.length} projects from SM in bulk`);
 
-    for (const p of projects) {
-      const smProjId = p.id || p.projectId;
-      if (!smProjId) continue;
-
-      const { error } = await db
-        .from("solar_market_projects")
-        .upsert({
+    // Batch upsert projects (100 at a time)
+    const BATCH_SIZE = 100;
+    for (let i = 0; i < projects.length; i += BATCH_SIZE) {
+      const batch = projects.slice(i, i + BATCH_SIZE);
+      const rows = batch.map((p: any) => {
+        const smProjId = p.id || p.projectId;
+        const smCliId = p.clientId || p.client_id || 0;
+        if (!smProjId) return null;
+        return {
           tenant_id: config.tenant_id,
           sm_project_id: smProjId,
-          sm_client_id: smClientId,
+          sm_client_id: smCliId,
           status: p.status || p.situacao || null,
           payload: p,
           deleted_at: null,
-        }, { onConflict: "tenant_id,sm_project_id" });
+        };
+      }).filter(Boolean);
+
+      if (rows.length === 0) continue;
+
+      const { error } = await db
+        .from("solar_market_projects")
+        .upsert(rows as any[], { onConflict: "tenant_id,sm_project_id" });
 
       if (error) {
-        counts.errors.push(`project ${smProjId}: ${error.message}`);
-        await logFailedItem(db, config.tenant_id, syncLogId, "project", smProjId, error.message, p);
+        counts.errors.push(`projects batch ${i}: ${error.message}`);
+        await logFailedItem(db, config.tenant_id, syncLogId, "project_batch", i, error.message);
       } else {
-        counts.projects_synced++;
+        counts.projects_synced += rows.length;
+        console.log(`[SM] Projects batch ${i}-${i + rows.length}: upserted ${rows.length}`);
       }
-
-      await syncProjectSubResources(db, client, config, smProjId, smClientId, counts, syncLogId);
-      // Rate limit: 1100ms between projects (each triggers ~3 API calls)
-      await new Promise((r) => setTimeout(r, 1100));
     }
+    return projects;
   } catch (err: any) {
-    counts.errors.push(`projects client ${smClientId}: ${err.message}`);
+    console.error("[SM] Bulk projects error:", err.message);
+    counts.errors.push(`projects_bulk: ${err.message}`);
+    return [];
   }
+}
+
+// ── Sync sub-resources for a single project ──
+async function syncProjectSubResourcesById(
+  db: ReturnType<typeof createClient>, client: SolarMarketClient,
+  config: SmConfig, smProjectId: number, smClientId: number,
+  counts: SyncCounts, syncLogId: string | null
+) {
+  await syncProjectSubResources(db, client, config, smProjectId, smClientId, counts, syncLogId);
 }
 
 // ── Sync project sub-resources: custom fields, funnels, proposals ──
@@ -977,58 +997,74 @@ async function runFullSync(
   phase: string = "init", chunkOffset: number = 0
 ): Promise<SyncResult> {
 
-  // ── Phase "init": users + clients (batched) + catalogs ──
+  // ── Phase "init": users + clients (batched) + projects (bulk) + catalogs ──
   if (phase === "init") {
     console.log("[SM] === FULL SYNC (phase: init) ===");
 
     await syncUsers(db, smClient, config, counts, syncLogId);
     await syncClients(db, smClient, config, counts, syncLogId);
+
+    // Save clients timestamp early so crash doesn't restart from zero
+    await db.from("solar_market_config").update({
+      last_sync_clients_at: new Date().toISOString(),
+    }).eq("id", config.id);
+
+    // Bulk fetch ALL projects (replaces N+1 per-client pattern)
+    await syncAllProjectsBulk(db, smClient, config, counts, syncLogId);
+
+    // Save projects timestamp early
+    await db.from("solar_market_config").update({
+      last_sync_projects_at: new Date().toISOString(),
+    }).eq("id", config.id);
+
     await syncCatalogs(db, smClient, config, counts);
 
-    console.log("[SM] Init phase complete. Continuing with projects...");
-    return { done: false, nextPhase: "projects", nextOffset: 0 };
+    console.log("[SM] Init phase complete. Continuing with sub-resources...");
+    return { done: false, nextPhase: "sub_resources", nextOffset: 0 };
   }
 
-  // ── Phase "projects": process CHUNK_SIZE clients per invocation ──
-  if (phase === "projects") {
-    console.log(`[SM] === FULL SYNC (phase: projects, offset: ${chunkOffset}) ===`);
+  // ── Phase "sub_resources": process CHUNK_SIZE projects per invocation ──
+  if (phase === "sub_resources") {
+    console.log(`[SM] === FULL SYNC (phase: sub_resources, offset: ${chunkOffset}) ===`);
 
-    const { data: dbClients } = await db
-      .from("solar_market_clients")
-      .select("sm_client_id")
+    // Fetch projects from DB (already bulk-synced in init phase)
+    const { data: dbProjects } = await db
+      .from("solar_market_projects")
+      .select("sm_project_id, sm_client_id")
       .eq("tenant_id", config.tenant_id)
       .is("deleted_at", null)
-      .order("sm_client_id", { ascending: true })
+      .order("sm_project_id", { ascending: true })
       .range(chunkOffset, chunkOffset + CHUNK_SIZE - 1);
 
-    if (!dbClients?.length) {
-      // All clients processed — finalize
+    if (!dbProjects?.length) {
+      // All projects processed — finalize
       await linkLeads(db, config, counts);
-      await db.from("solar_market_config").update({
-        last_sync_clients_at: new Date().toISOString(),
-        last_sync_projects_at: new Date().toISOString(),
-      }).eq("id", config.id);
       console.log("[SM] === FULL SYNC COMPLETE ===");
       return { done: true };
     }
 
-    for (let i = 0; i < dbClients.length; i++) {
+    for (let i = 0; i < dbProjects.length; i++) {
       if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
         console.log("[SM] Sync cancelled by user");
         counts.errors.push("Cancelado pelo usuário");
         return { done: true };
       }
-      await syncProjectsForClient(db, smClient, config, dbClients[i].sm_client_id, counts, syncLogId);
+      const proj = dbProjects[i];
+      await syncProjectSubResources(db, smClient, config, proj.sm_project_id, proj.sm_client_id, counts, syncLogId);
+      // Small delay between projects (sub-resources already have 1100ms delays internally)
       await new Promise((r) => setTimeout(r, 200));
     }
 
     const nextOffset = chunkOffset + CHUNK_SIZE;
-    console.log(`[SM] Projects chunk done (${dbClients.length} clients). Next offset: ${nextOffset}`);
-    return { done: false, nextPhase: "projects", nextOffset };
+    console.log(`[SM] Sub-resources chunk done (${dbProjects.length} projects). Next offset: ${nextOffset}`);
+    return { done: false, nextPhase: "sub_resources", nextOffset };
   }
 
   return { done: true };
 }
+
+
+
 
 // ── Incremental Sync ──
 async function runIncrementalSync(
@@ -1050,65 +1086,49 @@ async function runIncrementalSync(
 
   // Incremental with dates — smaller volume, single invocation
   console.log("[SM] === INCREMENTAL SYNC START ===");
+  console.log(`[SM] Filters: clientsAfter=${clientsAfter}, projectsAfter=${projectsAfter}`);
 
   // Sync users (always full, lightweight)
   await syncUsers(db, smClient, config, counts, syncLogId);
 
-  // Sync new clients
-  const newClients = await syncClients(db, smClient, config, counts, syncLogId, clientsAfter);
-  for (let i = 0; i < newClients.length; i++) {
-    if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
-      console.log("[SM] Incremental sync cancelled by user");
-      counts.errors.push("Cancelado pelo usuário");
-      return { done: true };
-    }
-    const c = newClients[i];
-    const smClientId = c.id || c.clientId;
-    if (!smClientId) continue;
-    await syncProjectsForClient(db, smClient, config, smClientId, counts, syncLogId);
-    await new Promise((r) => setTimeout(r, 200));
-  }
+  // Sync new clients (bulk)
+  await syncClients(db, smClient, config, counts, syncLogId, clientsAfter);
 
-  // Check cancellation before projects phase
+  // Sync new projects (bulk) — replaces per-client N+1
+  await syncAllProjectsBulk(db, smClient, config, counts, syncLogId, projectsAfter);
+
+  // Check cancellation before sub-resources
   if (await isSyncCancelled(db, syncLogId)) {
-    console.log("[SM] Incremental sync cancelled by user before projects phase");
+    console.log("[SM] Incremental sync cancelled by user");
     counts.errors.push("Cancelado pelo usuário");
     return { done: true };
   }
 
-  // Sync new projects (may belong to existing clients)
-  try {
-    const newProjects = await smClient.listProjectsAll({ createdAfter: projectsAfter });
+  // Sub-resources for NEW projects only (fetched with createdAfter)
+  const { data: newProjects } = await db
+    .from("solar_market_projects")
+    .select("sm_project_id, sm_client_id")
+    .eq("tenant_id", config.tenant_id)
+    .is("deleted_at", null)
+    .gte("updated_at", config.last_sync_projects_at || "2000-01-01")
+    .order("sm_project_id", { ascending: true });
+
+  if (newProjects?.length) {
+    console.log(`[SM] Fetching sub-resources for ${newProjects.length} new/updated projects`);
     for (let i = 0; i < newProjects.length; i++) {
       if (i % 5 === 0 && await isSyncCancelled(db, syncLogId)) {
-        console.log("[SM] Incremental projects sync cancelled by user");
         counts.errors.push("Cancelado pelo usuário");
         return { done: true };
       }
-      const p = newProjects[i];
-      const smProjId = p.id || p.projectId;
-      const smCliId = p.clientId || p.client_id;
-      if (!smProjId) continue;
-
-      await db.from("solar_market_projects").upsert({
-        tenant_id: config.tenant_id,
-        sm_project_id: smProjId,
-        sm_client_id: smCliId || 0,
-        status: p.status || null,
-        payload: p,
-        deleted_at: null,
-      }, { onConflict: "tenant_id,sm_project_id" });
-      counts.projects_synced++;
-
-      await syncProjectSubResources(db, smClient, config, smProjId, smCliId || 0, counts, syncLogId);
+      const proj = newProjects[i];
+      await syncProjectSubResources(db, smClient, config, proj.sm_project_id, proj.sm_client_id, counts, syncLogId);
       await new Promise((r) => setTimeout(r, 200));
     }
-  } catch (err: any) {
-    counts.errors.push(`incremental projects: ${err.message}`);
   }
 
   await linkLeads(db, config, counts);
 
+  // Save timestamps
   await db.from("solar_market_config").update({
     last_sync_clients_at: new Date().toISOString(),
     last_sync_projects_at: new Date().toISOString(),
@@ -1154,7 +1174,25 @@ async function runDeltaSync(
       await logFailedItem(db, config.tenant_id, syncLogId, "client", delta.sm_client_id, err.message);
     }
 
-    await syncProjectsForClient(db, smClient, config, delta.sm_client_id, counts, syncLogId);
+    // Fetch projects for this client and sync sub-resources
+    try {
+      const projData = await smClient.listProjects({ clientId: delta.sm_client_id });
+      const projects = Array.isArray(projData) ? projData : projData?.data || projData?.projects || [];
+      for (const p of projects) {
+        const smProjId = p.id || p.projectId;
+        if (!smProjId) continue;
+        await db.from("solar_market_projects").upsert({
+          tenant_id: config.tenant_id, sm_project_id: smProjId,
+          sm_client_id: delta.sm_client_id, status: p.status || null,
+          payload: p, deleted_at: null,
+        }, { onConflict: "tenant_id,sm_project_id" });
+        counts.projects_synced++;
+        await syncProjectSubResources(db, smClient, config, smProjId, delta.sm_client_id, counts, syncLogId);
+        await new Promise((r) => setTimeout(r, 1100));
+      }
+    } catch (err: any) {
+      counts.errors.push(`delta client projects ${delta.sm_client_id}: ${err.message}`);
+    }
   }
 
   if (delta.type === "project" && delta.sm_project_id) {
