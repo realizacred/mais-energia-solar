@@ -15,6 +15,54 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.10.2",
+    date: "2026-02-12",
+    title: "Correção: Banner de Push e Toast de Login",
+    type: "bugfix",
+    description: "Banner de ativação push não aparece mais para quem já tem notificações ativas. Toast 'Login necessário' não exibe mais após login bem-sucedido.",
+    details: [
+      "Hook useWebPushSubscription agora expõe 'isReady' para evitar flash do banner",
+      "Leitura síncrona de Notification.permission antes da verificação async do SW",
+      "Toast de redirect só aparece quando usuário NÃO está logado",
+    ],
+  },
+  {
+    version: "2.10.1",
+    date: "2026-02-12",
+    title: "Feedback ao Ativar/Desativar Notificações",
+    type: "improvement",
+    description: "Switch de notificações agora salva automaticamente no servidor e mostra confirmação visual (toast) de sucesso ou erro.",
+    details: [
+      "Auto-save ao alternar switch com rollback em caso de erro",
+      "Toast diferenciado: 'Notificações ativadas ✅' ou 'Notificações desativadas 🔕'",
+    ],
+  },
+  {
+    version: "2.10.0",
+    date: "2026-02-12",
+    title: "Links & PWA: Correções e Melhorias",
+    type: "bugfix",
+    description: "Correção de links exibindo código 'admin' no portal do consultor. Portal do Instalador removido da view de consultor. PWA do WhatsApp visível para consultores.",
+    details: [
+      "VendorLinksView agora passa dados corretos do vendedor logado",
+      "Prop isAdminView controla visibilidade do Portal do Instalador",
+      "Link de cadastro de leads mostra slug real do consultor",
+      "Seção 'Meu Link de Cadastro de Leads' personalizada para consultores",
+    ],
+  },
+  {
+    version: "2.9.2",
+    date: "2026-02-12",
+    title: "Diagnóstico de Push Notifications",
+    type: "feature",
+    description: "Painel de saúde que verifica 6 camadas do sistema de push: browser, permissão, SW, PushManager, backend e config global.",
+    details: [
+      "Verificação automática ao abrir configurações",
+      "Status visual por camada: OK, ERRO, ATENÇÃO",
+      "Botão manual para re-executar diagnóstico",
+    ],
+  },
+  {
     version: "2.9.1",
     date: "2026-02-12",
     title: "Configurações Globais de Notificações",
