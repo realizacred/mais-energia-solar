@@ -78,7 +78,22 @@ export interface SidebarSection {
  * cognitive load and telling the story of the business.
  */
 export const SIDEBAR_SECTIONS: SidebarSection[] = [
-  // ─── 1. COMERCIAL — Core CRM (includes Dashboard) ─────────
+  // ─── 1. DASHBOARD — Always visible ────────────────────────
+  {
+    label: "Dashboard",
+    labelIcon: BarChart3,
+    indicatorBg: "bg-sidebar-intelligence",
+    activeClass:
+      "bg-sidebar-intelligence/12 text-sidebar-intelligence font-semibold border-l-2 border-sidebar-intelligence",
+    hoverClass: "hover:bg-sidebar-intelligence/6",
+    labelClass: "text-sidebar-intelligence",
+    defaultOpen: true,
+    items: [
+      { id: "dashboard", title: "Dashboard", icon: BarChart3, description: "Visão geral do negócio" },
+    ],
+  },
+
+  // ─── 2. COMERCIAL — Core CRM ──────────────────────────────
   {
     label: "Comercial",
     labelIcon: TrendingUp,
@@ -89,8 +104,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-commercial",
     defaultOpen: true,
     items: [
-      { id: "dashboard", title: "Dashboard", icon: BarChart3, description: "Visão geral do negócio" },
-      { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads", separator: true },
+      { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads" },
       { id: "pipeline", title: "Pipeline", icon: Kanban, description: "Funil de vendas visual" },
       { id: "propostas", title: "Propostas", icon: FileText, description: "Propostas comerciais" },
       { id: "followup", title: "Follow-ups", icon: Bell, description: "Acompanhamento de leads" },
