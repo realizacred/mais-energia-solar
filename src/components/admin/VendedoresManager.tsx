@@ -107,7 +107,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
       toast({
         title: "Convite gerado!",
-        description: "Copie o link e envie ao vendedor.",
+        description: "Copie o link e envie ao consultor.",
       });
 
       return link;
@@ -255,7 +255,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
         if (!formData.email.trim() || !formData.senha.trim()) {
           toast({
             title: "Campos obrigatórios",
-            description: "Preencha email e senha para criar o acesso do vendedor.",
+            description: "Preencha email e senha para criar o acesso do consultor.",
             variant: "destructive",
           });
           return;
@@ -423,7 +423,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       console.error("Erro ao salvar vendedor:", error);
       toast({
         title: "Erro",
-        description: error.message || "Não foi possível salvar o vendedor.",
+        description: error.message || "Não foi possível salvar o consultor.",
         variant: "destructive",
       });
     } finally {
@@ -449,7 +449,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
         title: vendedor.ativo ? "Consultor desativado" : "Consultor ativado",
         description: vendedor.ativo 
           ? "O link do consultor não funcionará mais." 
-          : "O link do vendedor está ativo novamente.",
+          : "O link do consultor está ativo novamente.",
       });
     } catch (error) {
       console.error("Erro ao atualizar status:", error);
@@ -478,7 +478,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
       console.error("Erro ao excluir vendedor:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível excluir o vendedor.",
+        description: "Não foi possível excluir o consultor.",
         variant: "destructive",
       });
     } finally {
@@ -555,7 +555,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             </CardTitle>
             <Button onClick={openNewDialog} className="gap-2">
               <Plus className="w-4 h-4" />
-              Novo Vendedor
+              Novo Consultor
             </Button>
           </div>
         </CardHeader>
@@ -563,9 +563,9 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           {vendedores.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
-              <p>Nenhum vendedor cadastrado</p>
-              <Button onClick={openNewDialog} variant="outline" className="mt-4">
-                Cadastrar primeiro vendedor
+               <p>Nenhum consultor cadastrado</p>
+               <Button onClick={openNewDialog} variant="outline" className="mt-4">
+                Cadastrar primeiro consultor
               </Button>
             </div>
           ) : (
@@ -699,7 +699,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editingVendedor ? "Editar Vendedor" : "Novo Vendedor"}
+              {editingVendedor ? "Editar Consultor" : "Novo Consultor"}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -709,7 +709,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                 id="nome"
                 value={formData.nome}
                 onChange={(e) => setFormData(prev => ({ ...prev, nome: formatName(e.target.value) }))}
-                placeholder="Nome do vendedor"
+                placeholder="Nome do consultor"
                 maxLength={100}
               />
             </div>
@@ -792,7 +792,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
             {/* Email para convite */}
             {isNewVendedor && formData.tipoAcesso === "convite" && (
               <div className="space-y-2">
-                <Label htmlFor="email">Email do vendedor *</Label>
+                <Label htmlFor="email">Email do consultor *</Label>
                 <Input
                   id="email"
                   type="email"
@@ -851,7 +851,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                   </div>
                   <p className="text-xs text-muted-foreground">
                     <KeyRound className="w-3 h-3 inline mr-1" />
-                    Senha padrão que o vendedor usará para acessar.
+                    Senha padrão que o consultor usará para acessar.
                   </p>
                 </div>
               </>
@@ -1018,7 +1018,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
           </DialogHeader>
           <div className="space-y-4 py-2">
             <p className="text-sm text-muted-foreground">
-              Envie este link ao vendedor para que ele ative sua conta. O link expira em 48 horas.
+              Envie este link ao consultor para que ele ative sua conta. O link expira em 48 horas.
             </p>
             <div className="flex gap-2">
               <Input value={inviteLink || ""} readOnly className="text-xs font-mono" />

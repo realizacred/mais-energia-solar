@@ -229,8 +229,8 @@ export function ValidacaoVendasManager() {
     // Validate required fields
     if (!selectedVendedorId) {
       toast({
-        title: "Vendedor obrigatório",
-        description: "Selecione o vendedor para gerar a comissão.",
+        title: "Consultor obrigatório",
+        description: "Selecione o consultor para gerar a comissão.",
         variant: "destructive",
       });
       return;
@@ -715,7 +715,7 @@ export function ValidacaoVendasManager() {
                 </Label>
                 <Select value={selectedVendedorId} onValueChange={handleVendedorChange}>
                   <SelectTrigger className={!selectedVendedorId ? "border-destructive" : ""}>
-                    <SelectValue placeholder="Selecione o vendedor" />
+                    <SelectValue placeholder="Selecione o consultor" />
                   </SelectTrigger>
                   <SelectContent>
                     {vendedores.map((v) => (

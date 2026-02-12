@@ -215,10 +215,10 @@ export function WaFollowupQueuePage() {
             </Select>
             <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Vendedor" />
+                <SelectValue placeholder="Consultor" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos vendedores</SelectItem>
+                <SelectItem value="all">Todos consultores</SelectItem>
                 <SelectItem value="unassigned">Não atribuídos</SelectItem>
                 {vendedores.filter((v) => v.user_id).map((v) => (
                   <SelectItem key={v.user_id!} value={v.user_id!}>

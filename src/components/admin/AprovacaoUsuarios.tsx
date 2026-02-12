@@ -22,7 +22,7 @@ interface PendingUser {
 }
 
 const CARGO_LABELS: Record<string, { label: string; color: string }> = {
-  vendedor: { label: "Vendedor", color: "bg-info/10 text-info" },
+  vendedor: { label: "Consultor", color: "bg-info/10 text-info" },
   instalador: { label: "Instalador", color: "bg-success/10 text-success" },
   admin: { label: "Admin", color: "bg-destructive/10 text-destructive" },
   gerente: { label: "Gerente", color: "bg-accent text-accent-foreground" },

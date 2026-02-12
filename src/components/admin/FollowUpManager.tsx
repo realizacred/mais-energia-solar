@@ -333,7 +333,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
         </CardHeader>
         <CardContent>
           {vendorStats.length === 0 ? (
-            <p className="text-muted-foreground text-center py-4">Nenhum vendedor com leads/orçamentos.</p>
+            <p className="text-muted-foreground text-center py-4">Nenhum consultor com leads/orçamentos.</p>
           ) : (
             <div className="space-y-4">
               {vendorStats.map((vendedor, index) => {

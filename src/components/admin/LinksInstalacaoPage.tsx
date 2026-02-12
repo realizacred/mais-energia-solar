@@ -112,7 +112,7 @@ export function LinksInstalacaoPage({ vendedor }: LinksInstalacaoPageProps) {
         </CardHeader>
         <CardContent>
           {vendorList.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum vendedor ativo encontrado.</p>
+            <p className="text-sm text-muted-foreground">Nenhum consultor ativo encontrado.</p>
           ) : (
             <div className="space-y-3">
               {vendorList.map((v) => {

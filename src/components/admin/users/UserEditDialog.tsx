@@ -544,8 +544,8 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
 
             {!linkedVendedor && localRoles.includes("vendedor") && (
               <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 text-sm text-warning">
-                <p className="font-medium">⚠️ Vendedor não vinculado</p>
-                <p className="text-xs mt-1">Este usuário tem perfil vendedor mas não está vinculado a um registro de vendedor.</p>
+                <p className="font-medium">⚠️ Consultor não vinculado</p>
+                <p className="text-xs mt-1">Este usuário tem perfil de consultor mas não está vinculado a um registro de consultor.</p>
               </div>
             )}
 

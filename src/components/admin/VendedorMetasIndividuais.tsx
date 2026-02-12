@@ -228,7 +228,7 @@
          <CardContent>
            {vendedores.length === 0 ? (
              <div className="text-center py-8 text-muted-foreground">
-               Nenhum vendedor ativo encontrado.
+               Nenhum consultor ativo encontrado.
              </div>
            ) : (
              <Table>

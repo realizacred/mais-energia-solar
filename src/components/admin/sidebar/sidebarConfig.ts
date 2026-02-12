@@ -218,7 +218,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       // ── Equipe ──
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles", keywords: ["usuário", "permissão", "role", "acesso"], subsectionLabel: "Equipe" },
-      { id: "vendedores", title: "Vendedores", icon: Users, description: "Cadastro de consultores", keywords: ["consultor", "vendedor", "equipe", "cadastro"] },
+      { id: "vendedores", title: "Consultores", icon: Users, description: "Cadastro de consultores", keywords: ["consultor", "vendedor", "equipe", "cadastro"] },
       { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso", keywords: ["aprovação", "solicitação", "pendente"] },
       // ── Integrações ──
       { id: "integracoes-status", title: "Status das Integrações", icon: Activity, description: "Health check de todas as APIs", keywords: ["status", "health", "integração", "API", "monitoramento"], subsectionLabel: "Integrações" },

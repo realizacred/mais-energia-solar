@@ -16,7 +16,7 @@ export function VendedorShareLink({ slug, onCopy }: VendedorShareLinkProps) {
        <CardHeader className="pb-2">
          <CardTitle className="text-base flex items-center gap-2">
            <ExternalLink className="h-4 w-4" />
-           Seu Link de Vendedor
+           Seu Link de Consultor
          </CardTitle>
          <CardDescription>
            Compartilhe este link com seus clientes para captar orçamentos
