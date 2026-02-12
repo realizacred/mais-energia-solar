@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { SyncProgressTracker } from "./SyncProgressTracker";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,6 +138,9 @@ export function SolarMarketAuditView() {
 
   return (
     <div className="space-y-6">
+      {/* Live Sync Progress */}
+      <SyncProgressTracker />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
