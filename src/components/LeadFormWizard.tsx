@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import confetti from "canvas-confetti";
@@ -1346,18 +1346,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           {/* Honeypot field - invisible to users */}
           <HoneypotField value={honeypotValue} onChange={handleHoneypotChange} />
 
-          <AnimatePresence mode="wait" custom={direction}>
-            <motion.div
-              key={currentStep}
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
+          {/* All steps are always mounted to prevent Radix Select portal crashes.
+              Only the active step is visible; others are hidden with CSS. */}
               {/* Step 1: Dados Pessoais */}
-              {currentStep === 1 && (
+              <motion.div
+                animate={{ opacity: currentStep === 1 ? 1 : 0, x: currentStep === 1 ? 0 : (currentStep > 1 ? -20 : 20) }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ display: currentStep === 1 ? "block" : "none" }}
+              >
                 <div className="space-y-5">
                   <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
                   <div data-field-error={!!errors.nome && touchedFields.has("nome")} className="space-y-0">
@@ -1405,10 +1401,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                   </div>
                   </motion.div>
                 </div>
-              )}
+              </motion.div>
 
               {/* Step 2: Endereço */}
-              {currentStep === 2 && (
+              <motion.div
+                animate={{ opacity: currentStep === 2 ? 1 : 0, x: currentStep === 2 ? 0 : (currentStep > 2 ? -20 : 20) }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ display: currentStep === 2 ? "block" : "none" }}
+              >
                 <div className="space-y-5">
                   <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
                     <div data-field="cep">
@@ -1437,7 +1437,6 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                       icon={<Building className="w-4 h-4" />}
                       value={watchedValues.estado}
                       onValueChange={(value) => {
-                        // Only clear cidade if user manually changed estado (not CEP auto-fill)
                         const prevEstado = form.getValues("estado");
                         if (value !== prevEstado && !cepJustFilledRef.current) {
                           setValue("cidade", "");
@@ -1451,22 +1450,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                     />
                     </div>
                     <div data-field-error={!!errors.cidade && touchedFields.has("cidade")}>
-                    {cidades.length > 0 ? (
-                      <FloatingSelect
+                      <FloatingInput
                         label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
-                        value={watchedValues.cidade}
-                        onValueChange={(value) => {
-                          setValue("cidade", value);
-                          if (errors.cidade) form.clearErrors("cidade");
-                        }}
-                        options={cidades.map(c => ({ value: c, label: c }))}
-                        error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
-                        success={isFieldValid("cidade")}
-                      />
-                    ) : (
-                   <FloatingInput
-                      label={cidadesLoading ? "Carregando cidades..." : "Cidade *"}
-                      autoComplete="nope"
+                        autoComplete="nope"
+                        list={cidades.length > 0 ? "cidades-datalist" : undefined}
                         value={watchedValues.cidade}
                         onChange={(e) => {
                           setValue("cidade", e.target.value);
@@ -1475,7 +1462,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                         error={touchedFields.has("cidade") ? errors.cidade?.message : undefined}
                         success={isFieldValid("cidade")}
                       />
-                    )}
+                      {cidades.length > 0 && (
+                        <datalist id="cidades-datalist">
+                          {cidades.map(c => <option key={c} value={c} />)}
+                        </datalist>
+                      )}
                     </div>
                   </motion.div>
 
@@ -1519,10 +1510,14 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                     />
                   </motion.div>
                 </div>
-              )}
+              </motion.div>
 
               {/* Step 3: Imóvel e Consumo */}
-              {currentStep === 3 && (
+              <motion.div
+                animate={{ opacity: currentStep === 3 ? 1 : 0, x: currentStep === 3 ? 0 : 20 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                style={{ display: currentStep === 3 ? "block" : "none" }}
+              >
                 <div className="space-y-5">
                   <motion.div custom={0} variants={fieldVariants} initial="hidden" animate="visible">
                     <div data-field="area" data-field-error={!!errors.area && submitAttempted}>
@@ -1650,9 +1645,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                     />
                   </motion.div>
                 </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+              </motion.div>
 
           {/* Navigation Buttons */}
           <div className="flex justify-between mt-8 pt-6 border-t">
