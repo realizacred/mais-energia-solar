@@ -88,7 +88,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-intelligence",
     defaultOpen: true,
     items: [
-      { id: "dashboard", title: "Dashboard", icon: BarChart3 },
+      { id: "dashboard", title: "Dashboard", icon: BarChart3, description: "Visão geral do negócio" },
     ],
   },
 
@@ -103,15 +103,28 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-commercial",
     defaultOpen: true,
     items: [
-      { id: "leads", title: "Leads", icon: Users },
-      { id: "pipeline", title: "Pipeline", icon: Kanban },
+      { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads" },
+      { id: "pipeline", title: "Pipeline", icon: Kanban, description: "Funil de vendas visual" },
       { id: "propostas", title: "Propostas", icon: FileText, description: "Propostas comerciais" },
-      { id: "followup", title: "Follow-ups", icon: Bell },
+      { id: "followup", title: "Follow-ups", icon: Bell, description: "Acompanhamento de leads" },
+      {
+        id: "lead-status",
+        title: "Status de Leads",
+        icon: Kanban,
+        description: "Personalizar etapas do funil",
+      },
+      {
+        id: "motivos-perda",
+        title: "Motivos de Perda",
+        icon: XCircle,
+        description: "Razões de perda de negócios",
+      },
       {
         id: "distribuicao",
         title: "Distribuição",
         icon: RotateCcw,
         description: "Regras & fila de leads",
+        separator: true,
       },
       {
         id: "sla-breaches",
@@ -159,6 +172,13 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
         description: "Configurar regras de acompanhamento",
       },
       { id: "wa-etiquetas", title: "Etiquetas WhatsApp", icon: Tag, description: "Tags para conversas" },
+      {
+        id: "respostas-rapidas",
+        title: "Respostas Rápidas",
+        icon: Sparkles,
+        description: "Templates de mensagens rápidas",
+        separator: true,
+      },
     ],
   },
 
@@ -173,10 +193,10 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-clients",
     defaultOpen: true,
     items: [
-      { id: "clientes", title: "Gestão de Clientes", icon: UserCheck },
-      { id: "checklists", title: "Documentação", icon: ClipboardList },
-      { id: "avaliacoes", title: "Avaliações", icon: Star },
-      { id: "servicos", title: "Agenda Técnica", icon: CalendarClock },
+      { id: "clientes", title: "Gestão de Clientes", icon: UserCheck, description: "Cadastro e documentos" },
+      { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto" },
+      { id: "avaliacoes", title: "Avaliações", icon: Star, description: "Feedback dos clientes" },
+      { id: "servicos", title: "Agenda Técnica", icon: CalendarClock, description: "Agendamentos de serviço" },
     ],
   },
 
@@ -191,9 +211,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-operations",
     defaultOpen: false,
     items: [
-      { id: "instaladores", title: "Instaladores", icon: Wrench },
-      { id: "validacao", title: "Validação", icon: ClipboardCheck },
-      { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList },
+      { id: "instaladores", title: "Instaladores", icon: Wrench, description: "Equipe de campo" },
+      { id: "validacao", title: "Validação", icon: ClipboardCheck, description: "Aprovar vendas realizadas" },
+      { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList, description: "Prazos e pendências" },
     ],
   },
 
@@ -208,16 +228,16 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-finance",
     defaultOpen: false,
     items: [
-      { id: "recebimentos", title: "Recebimentos", icon: DollarSign },
-      { id: "inadimplencia", title: "Inadimplência", icon: AlertTriangle },
-      { id: "comissoes", title: "Comissões", icon: Wallet },
+      { id: "recebimentos", title: "Recebimentos", icon: DollarSign, description: "Controle de pagamentos" },
+      { id: "inadimplencia", title: "Inadimplência", icon: AlertTriangle, description: "Parcelas atrasadas" },
+      { id: "comissoes", title: "Comissões", icon: Wallet, description: "Comissões dos vendedores" },
       {
         id: "engenharia",
         title: "Engenharia Financeira",
         icon: Calculator,
         description: "Fio B / ICMS / Payback",
       },
-      { id: "financiamento", title: "Bancos", icon: Building2 },
+      { id: "financiamento", title: "Bancos", icon: Building2, description: "Taxas e financiamentos" },
     ],
   },
 
@@ -232,10 +252,10 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-cadastros",
     defaultOpen: false,
     items: [
-      { id: "vendedores", title: "Vendedores", icon: Users },
-      { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck },
-      { id: "gamificacao", title: "Gamificação", icon: Trophy },
-      { id: "release", title: "Release Notes", icon: Rocket },
+      { id: "vendedores", title: "Vendedores", icon: Users, description: "Cadastro de consultores" },
+      { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso" },
+      { id: "gamificacao", title: "Gamificação", icon: Trophy, description: "Metas e ranking" },
+      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões" },
     ],
   },
 
@@ -271,11 +291,11 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API" },
-      { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle },
-      { id: "instagram", title: "Instagram", icon: Instagram },
-      { id: "solarmarket", title: "SolarMarket", icon: Sun },
-      { id: "webhooks", title: "Webhooks", icon: Webhook },
-      { id: "n8n", title: "Automações", icon: Workflow },
+      { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens" },
+      { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts" },
+      { id: "solarmarket", title: "SolarMarket", icon: Sun, description: "Marketplace solar" },
+      { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas" },
+      { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP" },
     ],
   },
 
@@ -290,9 +310,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-marketing",
     defaultOpen: false,
     items: [
-      { id: "site-config", title: "Conteúdo & Visual", icon: Settings },
-      { id: "site-servicos", title: "Serviços", icon: Wrench },
-      { id: "obras", title: "Portfólio", icon: Sun },
+      { id: "site-config", title: "Conteúdo & Visual", icon: Settings, description: "Layout e textos do site" },
+      { id: "site-servicos", title: "Serviços", icon: Wrench, description: "Serviços oferecidos" },
+      { id: "obras", title: "Portfólio", icon: Sun, description: "Projetos realizados" },
     ],
   },
 
@@ -307,21 +327,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-cadastros",
     defaultOpen: false,
     items: [
-      { id: "config", title: "Calculadora Solar", icon: Calculator },
-      { id: "lead-status", title: "Status de Leads", icon: Kanban },
-      { id: "motivos-perda", title: "Motivos de Perda", icon: XCircle },
-      {
-        id: "respostas-rapidas",
-        title: "Respostas Rápidas",
-        icon: Sparkles,
-        description: "Templates de mensagens",
-        separator: true,
-      },
-      { id: "equipamentos", title: "Disjuntores & Transf.", icon: Plug },
-      { id: "modulos", title: "Módulos Fotovoltaicos", icon: SunMedium },
-      { id: "inversores-cadastro", title: "Inversores", icon: Cpu },
-      { id: "baterias", title: "Baterias", icon: Battery },
-      { id: "concessionarias", title: "Concessionárias", icon: Lightbulb },
+      { id: "config", title: "Calculadora Solar", icon: Calculator, description: "Parâmetros de geração e custo" },
+      { id: "equipamentos", title: "Disjuntores & Transf.", icon: Plug, description: "Cadastro de equipamentos elétricos" },
+      { id: "modulos", title: "Módulos Fotovoltaicos", icon: SunMedium, description: "Painéis solares disponíveis" },
+      { id: "inversores-cadastro", title: "Inversores", icon: Cpu, description: "Inversores solares cadastrados" },
+      { id: "baterias", title: "Baterias", icon: Battery, description: "Sistemas de armazenamento" },
+      { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas e distribuidoras" },
     ],
   },
 
@@ -336,8 +347,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-settings",
     defaultOpen: false,
     items: [
-      { id: "usuarios", title: "Usuários & Permissões", icon: Shield },
-      { id: "auditoria", title: "Auditoria (Logs)", icon: Shield },
+      { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles" },
+      { id: "auditoria", title: "Auditoria (Logs)", icon: Shield, description: "Histórico de alterações" },
       {
         id: "data-reset",
         title: "Limpeza de Dados",
