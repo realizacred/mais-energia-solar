@@ -161,11 +161,11 @@ export function PortalSwitcher() {
   };
 
   const handleSwitchToVendedor = () => {
-    // If user is admin and not a vendedor themselves, show selection dialog
-    if (access.admin && !access.vendedorRecord && vendedores.length > 0) {
+    // Admin always gets the vendor selection dialog
+    if (access.admin && vendedores.length > 0) {
       setShowVendedorDialog(true);
     } else {
-      // User is a vendedor, go to their portal
+      // User is a vendedor (non-admin), go to their portal
       navigate("/vendedor");
     }
   };
