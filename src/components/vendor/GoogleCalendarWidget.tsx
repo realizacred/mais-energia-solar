@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Calendar,
-  Clock,
   MapPin,
   ExternalLink,
   CalendarPlus,
@@ -15,41 +14,51 @@ import {
 import { format, isToday, isTomorrow, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-interface CalendarEvent {
-  id: string;
-  summary: string;
-  description: string;
-  location: string;
-  start: string;
-  end: string;
-  htmlLink: string;
-  status: string;
-}
-
 /**
- * Widget that displays upcoming Google Calendar events.
+ * Widget that displays upcoming Google Calendar events from local DB mirror.
  * Shows a connect prompt if the user hasn't linked their calendar.
  */
 export function GoogleCalendarWidget() {
   const { user } = useAuth();
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["google_calendar_events", user?.id],
+  // Check if user has connected calendar
+  const { data: calToken } = useQuery({
+    queryKey: ["my_google_calendar", user?.id],
     enabled: !!user?.id,
-    refetchInterval: 5 * 60 * 1000, // 5 min
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke("google-calendar-read", {
-        body: null,
-        method: "GET",
-      });
-      if (error) throw error;
-      return data as { connected: boolean; events: CalendarEvent[]; google_email?: string };
+      const { data } = await supabase
+        .from("google_calendar_tokens")
+        .select("id, google_email, is_active, last_synced_at")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return data;
     },
   });
 
-  const connected = data?.connected;
-  const events = data?.events || [];
+  // Read events from local mirror table
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ["google_calendar_events_local", user?.id],
+    enabled: !!user?.id && !!calToken?.is_active,
+    refetchInterval: 5 * 60 * 1000,
+    staleTime: 2 * 60 * 1000,
+    queryFn: async () => {
+      const now = new Date().toISOString();
+      const maxDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from("google_calendar_events")
+        .select("id, google_event_id, summary, description, location, start_at, end_at, status, html_link")
+        .eq("user_id", user!.id)
+        .gte("start_at", now)
+        .lte("start_at", maxDate)
+        .eq("status", "confirmed")
+        .order("start_at", { ascending: true })
+        .limit(20);
+      return data || [];
+    },
+  });
+
+  const connected = calToken?.is_active;
 
   const handleConnect = async () => {
     try {
@@ -116,9 +125,9 @@ export function GoogleCalendarWidget() {
             <Calendar className="h-4 w-4 text-primary" />
             Agenda
           </CardTitle>
-          {data?.google_email && (
+          {calToken?.google_email && (
             <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground">
-              {data.google_email}
+              {calToken.google_email}
             </Badge>
           )}
         </div>
@@ -131,7 +140,7 @@ export function GoogleCalendarWidget() {
           </div>
         ) : (
           events.map((event) => {
-            const startDate = event.start ? parseISO(event.start) : null;
+            const startDate = event.start_at ? parseISO(event.start_at) : null;
             const dayLabel = startDate
               ? isToday(startDate)
                 ? "Hoje"
@@ -139,7 +148,7 @@ export function GoogleCalendarWidget() {
                 ? "Amanhã"
                 : format(startDate, "EEE, dd/MM", { locale: ptBR })
               : "";
-            const timeLabel = startDate && event.start.includes("T")
+            const timeLabel = startDate && event.start_at.includes("T")
               ? format(startDate, "HH:mm")
               : "Dia todo";
 
@@ -148,7 +157,6 @@ export function GoogleCalendarWidget() {
                 key={event.id}
                 className="flex items-start gap-3 p-2.5 rounded-lg border border-border/40 hover:bg-muted/30 transition-colors group"
               >
-                {/* Time block */}
                 <div className="shrink-0 w-14 text-center">
                   <p className="text-[10px] font-medium text-muted-foreground uppercase">
                     {dayLabel}
@@ -157,8 +165,6 @@ export function GoogleCalendarWidget() {
                     {timeLabel}
                   </p>
                 </div>
-
-                {/* Event details */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{event.summary}</p>
                   {event.location && (
@@ -168,11 +174,9 @@ export function GoogleCalendarWidget() {
                     </p>
                   )}
                 </div>
-
-                {/* External link */}
-                {event.htmlLink && (
+                {event.html_link && (
                   <a
-                    href={event.htmlLink}
+                    href={event.html_link}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"

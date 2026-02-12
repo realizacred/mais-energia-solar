@@ -1613,6 +1613,65 @@ export type Database = {
           },
         ]
       }
+      google_calendar_events: {
+        Row: {
+          created_at: string
+          description: string | null
+          end_at: string | null
+          google_event_id: string
+          html_link: string | null
+          id: string
+          location: string | null
+          start_at: string
+          status: string | null
+          summary: string
+          synced_at: string
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          end_at?: string | null
+          google_event_id: string
+          html_link?: string | null
+          id?: string
+          location?: string | null
+          start_at: string
+          status?: string | null
+          summary?: string
+          synced_at?: string
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          end_at?: string | null
+          google_event_id?: string
+          html_link?: string | null
+          id?: string
+          location?: string | null
+          start_at?: string
+          status?: string | null
+          summary?: string
+          synced_at?: string
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "google_calendar_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       google_calendar_tokens: {
         Row: {
           access_token: string
@@ -1621,7 +1680,9 @@ export type Database = {
           google_email: string | null
           id: string
           is_active: boolean
+          last_synced_at: string | null
           refresh_token: string
+          sync_token: string | null
           tenant_id: string
           token_expires_at: string
           updated_at: string
@@ -1634,7 +1695,9 @@ export type Database = {
           google_email?: string | null
           id?: string
           is_active?: boolean
+          last_synced_at?: string | null
           refresh_token: string
+          sync_token?: string | null
           tenant_id: string
           token_expires_at: string
           updated_at?: string
@@ -1647,7 +1710,9 @@ export type Database = {
           google_email?: string | null
           id?: string
           is_active?: boolean
+          last_synced_at?: string | null
           refresh_token?: string
+          sync_token?: string | null
           tenant_id?: string
           token_expires_at?: string
           updated_at?: string
