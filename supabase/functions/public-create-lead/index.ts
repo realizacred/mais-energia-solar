@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
 
     // Fallback: resolve public tenant
     if (!tenantId) {
-      const { data: publicTenant, error: ptErr } = await supabaseAdmin.rpc("resolve_public_tenant_id");
+      const { data: publicTenant, error: ptErr } = await supabaseAdmin.rpc("resolve_public_tenant_id", { _consultor_code: vendedor_codigo || null });
       if (ptErr || !publicTenant) {
         console.error("[public-create-lead] Cannot resolve tenant:", ptErr);
         return new Response(
