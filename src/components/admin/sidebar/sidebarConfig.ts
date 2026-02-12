@@ -339,11 +339,17 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield },
       { id: "auditoria", title: "Auditoria (Logs)", icon: Shield },
       {
+        id: "data-reset",
+        title: "Limpeza de Dados",
+        icon: Database,
+        description: "Reset seletivo por segmento",
+        separator: true,
+      },
+      {
         id: "links-instalacao",
         title: "Links & Instalação",
         icon: Smartphone,
         description: "App PWA e links de vendedor",
-        separator: true,
       },
     ],
   },

@@ -95,3 +95,6 @@ verify_jwt = false
 
 [functions.public-create-lead]
 verify_jwt = false
+
+[functions.admin-data-reset]
+verify_jwt = false
