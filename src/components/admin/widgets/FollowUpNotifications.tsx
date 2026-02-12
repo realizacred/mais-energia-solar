@@ -195,8 +195,8 @@ export function FollowUpNotifications({
                         <Phone className="h-3 w-3" />
                         {lead.telefone}
                       </span>
-                      {lead.vendedor && (
-                        <span className="truncate">• {lead.vendedor}</span>
+                      {lead.consultor && (
+                        <span className="truncate">• {lead.consultor}</span>
                       )}
                     </div>
                   </div>

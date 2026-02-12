@@ -25,10 +25,10 @@ import { Loader2, DollarSign, AlertTriangle, TrendingUp, TrendingDown } from "lu
 
 interface Comissao {
   id: string;
-  vendedor_id: string;
+  consultor_id: string;
   descricao: string;
   valor_comissao: number;
-  vendedores?: { nome: string };
+  consultores?: { nome: string };
   pagamentos_comissao?: { valor_pago: number }[];
 }
 
@@ -69,9 +69,9 @@ export function BulkPaymentDialog({
   });
 
   // Check if all commissions are from the same vendor
-  const vendedorIds = [...new Set(comissoes.map(c => c.vendedor_id))];
+  const vendedorIds = [...new Set(comissoes.map(c => c.consultor_id))];
   const isMultiVendor = vendedorIds.length > 1;
-  const vendedorNome = comissoes[0]?.vendedores?.nome || "Desconhecido";
+  const vendedorNome = comissoes[0]?.consultores?.nome || "Desconhecido";
 
   // Calculate totals
   const calcularSaldoRestante = (comissao: Comissao) => {

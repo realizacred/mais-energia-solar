@@ -7,7 +7,7 @@ import { subMonths, isAfter } from "date-fns";
 
 interface Lead {
   id: string;
-  vendedor: string | null;
+  consultor: string | null;
   created_at: string;
   status_id: string | null;
   media_consumo: number;
@@ -44,7 +44,7 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
     // Group leads by vendor
     const vendorMap: Record<string, Lead[]> = {};
     leads.forEach((lead) => {
-      const vendor = lead.vendedor || "Sem consultor";
+      const vendor = lead.consultor || "Sem consultor";
       if (!vendorMap[vendor]) {
         vendorMap[vendor] = [];
       }

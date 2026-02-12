@@ -42,7 +42,7 @@
  
  interface Comissao {
    id: string;
-   vendedor_id: string;
+   consultor_id: string;
    descricao: string;
    valor_base: number;
    percentual_comissao: number;
@@ -50,7 +50,7 @@
    mes_referencia: number;
    ano_referencia: number;
    status: string;
-   vendedores?: { nome: string };
+   consultores?: { nome: string };
    pagamentos_comissao?: { valor_pago: number }[];
  }
  
@@ -189,7 +189,7 @@
          <DialogHeader>
            <DialogTitle className="flex items-center gap-2">
              <DollarSign className="h-5 w-5" />
-             Pagamentos - {comissao.vendedores?.nome}
+             Pagamentos - {comissao.consultores?.nome}
            </DialogTitle>
          </DialogHeader>
  

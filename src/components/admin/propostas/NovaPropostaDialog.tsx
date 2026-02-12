@@ -66,12 +66,12 @@ export function NovaPropostaDialog({
 
   useEffect(() => {
     if (open) {
-      supabase
-        .from("vendedores")
+      (supabase as any)
+        .from("consultores")
         .select("id, nome")
         .eq("ativo", true)
         .order("nome")
-        .then(({ data }) => setVendedores(data || []));
+        .then(({ data }: any) => setVendedores(data || []));
     }
   }, [open]);
 

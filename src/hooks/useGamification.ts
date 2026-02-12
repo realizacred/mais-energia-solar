@@ -125,13 +125,13 @@
    const fetchVendedorMeta = useCallback(async () => {
      if (!vendedorId) return;
  
-     const { data } = await supabase
-       .from("vendedor_metas")
-       .select("*")
-       .eq("vendedor_id", vendedorId)
-       .eq("ano", currentYear)
-       .eq("mes", currentMonth)
-       .maybeSingle();
+      const { data } = await (supabase as any)
+        .from("consultor_metas")
+        .select("*")
+        .eq("consultor_id", vendedorId)
+        .eq("ano", currentYear)
+        .eq("mes", currentMonth)
+        .maybeSingle();
  
      if (data) {
        setVendedorMeta({
@@ -147,10 +147,10 @@
    const fetchAchievements = useCallback(async () => {
      if (!vendedorId || !config) return;
  
-     const { data: unlockedAchievements } = await supabase
-       .from("vendedor_achievements")
-       .select("*")
-       .eq("vendedor_id", vendedorId);
+      const { data: unlockedAchievements } = await (supabase as any)
+        .from("consultor_achievements")
+        .select("*")
+        .eq("consultor_id", vendedorId);
  
      const unlockedMap = new Map<string, string>(
        (unlockedAchievements || []).map((a) => [a.achievement_type as string, a.unlocked_at])
@@ -180,26 +180,26 @@
  
    const fetchRanking = useCallback(async () => {
      // Get performance data joined with vendedor names
-     const { data: performanceData } = await supabase
-       .from("vendedor_performance_mensal")
-       .select(`
-         vendedor_id,
-         total_orcamentos,
-         total_conversoes,
-         valor_total_vendas,
-         pontuacao_total,
-         posicao_ranking
-       `)
-       .eq("ano", currentYear)
-       .eq("mes", currentMonth)
-       .order("pontuacao_total", { ascending: false });
+      const { data: performanceData } = await (supabase as any)
+        .from("consultor_performance_mensal")
+        .select(`
+          consultor_id,
+          total_orcamentos,
+          total_conversoes,
+          valor_total_vendas,
+          pontuacao_total,
+          posicao_ranking
+        `)
+        .eq("ano", currentYear)
+        .eq("mes", currentMonth)
+        .order("pontuacao_total", { ascending: false });
  
      if (!performanceData || performanceData.length === 0) {
        // If no performance data, fetch from vendedores and calculate from orcamentos
-       const { data: vendedores } = await supabase
-         .from("vendedores")
-         .select("id, nome")
-         .eq("ativo", true);
+        const { data: vendedores } = await (supabase as any)
+          .from("consultores")
+          .select("id, nome")
+          .eq("ativo", true);
  
        if (vendedores) {
          const startOfMonth = new Date(currentYear, currentMonth - 1, 1).toISOString();
@@ -212,7 +212,7 @@
             const { count: orcamentosCount } = await supabase
               .from("orcamentos")
               .select("*", { count: "exact", head: true })
-              .eq("vendedor", v.nome)
+               .eq("consultor", v.nome)
               .gte("created_at", startOfMonth)
               .lte("created_at", endOfMonth);
 
@@ -220,7 +220,7 @@
             const { data: vendorLeads } = await supabase
               .from("leads")
               .select("id")
-              .eq("vendedor", v.nome);
+              .eq("consultor", v.nome);
             
             const vendorLeadIds = vendorLeads?.map(l => l.id) || [];
             
@@ -264,23 +264,23 @@
      }
  
      // Fetch vendedor names
-     const vendedorIds = performanceData.map((p) => p.vendedor_id);
-     const { data: vendedores } = await supabase
-       .from("vendedores")
-       .select("id, nome")
-       .in("id", vendedorIds);
- 
-     const nameMap = new Map((vendedores || []).map((v) => [v.id, v.nome]));
- 
-     const rankingData = performanceData.map((p, idx) => ({
-       vendedor_id: p.vendedor_id,
-       vendedor_nome: nameMap.get(p.vendedor_id) || "Desconhecido",
-       total_orcamentos: p.total_orcamentos,
-       total_conversoes: p.total_conversoes,
-       valor_total_vendas: Number(p.valor_total_vendas),
-       pontuacao_total: p.pontuacao_total,
-       posicao_ranking: p.posicao_ranking || idx + 1,
-     }));
+      const vendedorIds = performanceData.map((p: any) => p.consultor_id);
+      const { data: vendedores } = await (supabase as any)
+        .from("consultores")
+        .select("id, nome")
+        .in("id", vendedorIds);
+
+      const nameMap = new Map((vendedores || []).map((v: any) => [v.id, v.nome]));
+
+      const rankingData = performanceData.map((p: any, idx: number) => ({
+        vendedor_id: p.consultor_id,
+        vendedor_nome: nameMap.get(p.consultor_id) || "Desconhecido",
+        total_orcamentos: p.total_orcamentos,
+        total_conversoes: p.total_conversoes,
+        valor_total_vendas: Number(p.valor_total_vendas),
+        pontuacao_total: p.pontuacao_total,
+        posicao_ranking: p.posicao_ranking || idx + 1,
+      }));
  
      setRanking(rankingData);
  

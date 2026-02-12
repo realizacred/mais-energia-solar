@@ -31,7 +31,7 @@ export function useDashboardStats() {
   const vendedorPerformance = useQuery({
     queryKey: ["dashboard", "vendedor-performance"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_dashboard_vendedor_performance");
+      const { data, error } = await supabase.rpc("get_dashboard_consultor_performance");
       if (error) throw error;
       return data ?? [];
     },

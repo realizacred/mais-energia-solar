@@ -35,7 +35,7 @@ interface UserProfile {
 }
 
 interface VendedoresManagerProps {
-  leads?: { vendedor: string | null }[];
+  leads?: { consultor: string | null }[];
 }
 
 export default function VendedoresManager({ leads: propLeads }: VendedoresManagerProps = {}) {
@@ -51,7 +51,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   const [showPassword, setShowPassword] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [fetchedLeads, setFetchedLeads] = useState<{ vendedor: string | null }[]>([]);
+  const [fetchedLeads, setFetchedLeads] = useState<{ consultor: string | null }[]>([]);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
@@ -147,7 +147,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   // Fetch leads if not provided via props
   useEffect(() => {
     if (!propLeads) {
-      supabase.from("leads").select("vendedor").then(({ data }) => {
+      supabase.from("leads").select("consultor").then(({ data }) => {
         if (data) setFetchedLeads(data);
       });
     }
@@ -155,12 +155,12 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
   const leads = propLeads || fetchedLeads;
 
-  // Count leads per vendedor (by nome, case-insensitive)
+  // Count leads per consultor (by nome, case-insensitive)
   const leadCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     leads.forEach(lead => {
-      if (lead.vendedor) {
-        const normalizedName = lead.vendedor.toLowerCase();
+      if (lead.consultor) {
+        const normalizedName = lead.consultor.toLowerCase();
         counts[normalizedName] = (counts[normalizedName] || 0) + 1;
       }
     });

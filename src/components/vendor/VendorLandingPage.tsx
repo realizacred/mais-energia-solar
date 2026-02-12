@@ -17,8 +17,8 @@ export function VendorLandingPage() {
     const loadVendedorNome = async () => {
       if (!codigo) return;
       
-      const { data } = await supabase
-        .from("vendedores")
+      const { data } = await (supabase as any)
+        .from("consultores")
         .select("nome")
         .eq("codigo", codigo)
         .eq("ativo", true)

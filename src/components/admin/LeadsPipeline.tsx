@@ -32,7 +32,7 @@ const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consu
    cidade: string;
    estado: string;
    media_consumo: number;
-   consultor: string | null;
+  consultor: string | null;
    status_id: string | null;
    created_at: string;
    ultimo_contato?: string | null;

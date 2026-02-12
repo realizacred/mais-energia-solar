@@ -293,18 +293,18 @@ export function useLeadOrcamento() {
         // Fetch current vendedor_id from lead for distribution log
         const { data: currentLead } = await supabase
           .from("leads")
-          .select("vendedor_id")
+          .select("consultor_id")
           .eq("id", leadToUse.id)
           .single();
 
-        const oldVendedorId = currentLead?.vendedor_id;
+        const oldVendedorId = currentLead?.consultor_id;
 
         // Update lead ownership
         await supabase
           .from("leads")
           .update({
-            vendedor_id: newVendedorId,
-            vendedor: orcamentoData.vendedor || null,
+            consultor_id: newVendedorId,
+            consultor: orcamentoData.vendedor || null,
           })
           .eq("id", leadToUse.id);
 
@@ -314,8 +314,8 @@ export function useLeadOrcamento() {
             .from("lead_distribution_log")
             .insert({
               lead_id: leadToUse.id,
-              vendedor_id: newVendedorId,
-              vendedor_anterior_id: oldVendedorId,
+              consultor_id: newVendedorId,
+              consultor_anterior_id: oldVendedorId,
               motivo: "Reatribuição por novo orçamento",
               distribuido_em: new Date().toISOString(),
               distribuido_por: user?.id || null,

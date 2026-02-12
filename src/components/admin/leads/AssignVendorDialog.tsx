@@ -64,7 +64,7 @@ export function AssignVendorDialog({
 
     setLoading(true);
     supabase
-      .from("vendedores")
+      .from("consultores" as any)
       .select("id, nome, codigo, ativo")
       .eq("ativo", true)
       .order("nome")
@@ -99,7 +99,7 @@ export function AssignVendorDialog({
       // Update the orcamento's vendedor (text) for backward compat
       const { error: orcError } = await supabase
         .from("orcamentos")
-        .update({ vendedor: vendedorNome })
+        .update({ consultor: vendedorNome })
         .eq("id", orcamentoId);
 
       if (orcError) throw orcError;
@@ -108,8 +108,8 @@ export function AssignVendorDialog({
       const { error: leadError } = await supabase
         .from("leads")
         .update({
-          vendedor_id: selectedVendedorId,
-          vendedor: vendedorNome,
+          consultor_id: selectedVendedorId,
+          consultor: vendedorNome,
           distribuido_em: new Date().toISOString(),
         })
         .eq("id", leadId);
@@ -146,7 +146,7 @@ export function AssignVendorDialog({
         .single();
 
       const { data: defaultVendedor, error: resolveError } = await supabase
-        .rpc("resolve_default_vendedor_id", { _tenant_id: leadData?.tenant_id });
+        .rpc("resolve_default_consultor_id", { _tenant_id: leadData?.tenant_id });
 
       if (resolveError || !defaultVendedor) {
         throw new Error("Não foi possível resolver consultor padrão da fila");
@@ -154,21 +154,21 @@ export function AssignVendorDialog({
 
       // Get default vendedor name
       const { data: vendedorData } = await supabase
-        .from("vendedores")
+        .from("consultores" as any)
         .select("nome")
         .eq("id", defaultVendedor)
         .single();
 
       const { error: orcError } = await supabase
         .from("orcamentos")
-        .update({ vendedor: vendedorData?.nome || null })
+        .update({ consultor: (vendedorData as any)?.nome || null })
         .eq("id", orcamentoId);
 
       if (orcError) throw orcError;
 
       const { error: leadError } = await supabase
         .from("leads")
-        .update({ vendedor: vendedorData?.nome || null, vendedor_id: defaultVendedor })
+        .update({ consultor: (vendedorData as any)?.nome || null, consultor_id: defaultVendedor })
         .eq("id", leadId);
 
       if (leadError) throw leadError;

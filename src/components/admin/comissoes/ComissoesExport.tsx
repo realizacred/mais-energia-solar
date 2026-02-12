@@ -13,7 +13,7 @@ import { ptBR } from "date-fns/locale";
 
 interface Comissao {
   id: string;
-  vendedor_id: string;
+  consultor_id: string;
   valor_comissao: number;
   valor_base: number;
   percentual_comissao: number;
@@ -22,7 +22,7 @@ interface Comissao {
   status: string;
   descricao: string;
   created_at: string;
-  vendedores?: { nome: string };
+  consultores?: { nome: string };
   clientes?: { nome: string } | null;
   projetos?: { codigo: string } | null;
   pagamentos_comissao?: { valor_pago: number }[];

@@ -19,21 +19,21 @@ export interface DistributionLog {
   id: string;
   tenant_id: string | null;
   lead_id: string;
-  vendedor_id: string;
-  vendedor_anterior_id: string | null;
+  consultor_id: string;
+  consultor_anterior_id: string | null;
   rule_id: string | null;
   motivo: string | null;
   distribuido_em: string | null;
   distribuido_por: string | null;
   lead?: { nome: string; lead_code: string | null };
-  vendedor?: { nome: string };
+  consultor?: { nome: string };
 }
 
 export interface SlaBreach {
   id: string;
   tenant_id: string | null;
   lead_id: string;
-  vendedor_id: string | null;
+  consultor_id: string | null;
   sla_rule_id: string | null;
   tipo: string;
   minutos_limite: number;
@@ -125,11 +125,11 @@ export function useDistributionLog(limit = 50) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lead_distribution_log")
-        .select("*, lead:leads(nome, lead_code), vendedor:vendedores!lead_distribution_log_vendedor_id_fkey(nome)")
+        .select("*, lead:leads(nome, lead_code), consultor:consultores(nome)")
         .order("distribuido_em", { ascending: false })
         .limit(limit);
       if (error) throw error;
-      return (data || []) as DistributionLog[];
+      return (data || []) as unknown as DistributionLog[];
     },
     staleTime: 30 * 1000,
   });
@@ -142,12 +142,12 @@ export function useSlaBreaches() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sla_breaches")
-        .select("*, lead:leads(nome, lead_code, telefone), vendedor:vendedores!sla_breaches_vendedor_id_fkey(nome)")
+        .select("*, lead:leads(nome, lead_code, telefone), consultor:consultores(nome)")
         .eq("resolvido", false)
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
-      return (data || []) as SlaBreach[];
+      return (data || []) as unknown as SlaBreach[];
     },
     staleTime: 30 * 1000,
   });
@@ -175,12 +175,12 @@ export function useAssignLead() {
       ruleId?: string;
       vendedorAnteriorId?: string | null;
     }) => {
-      // 1. Update lead with vendedor_id + vendedor (name for backwards compat)
+      // 1. Update lead with consultor_id + consultor (name for backwards compat)
       const { error: leadErr } = await supabase
         .from("leads")
         .update({
-          vendedor_id: vendedorId,
-          vendedor: vendedorNome,
+          consultor_id: vendedorId,
+          consultor: vendedorNome,
           distribuido_em: new Date().toISOString(),
         })
         .eq("id", leadId);
@@ -191,8 +191,8 @@ export function useAssignLead() {
         .from("lead_distribution_log")
         .insert({
           lead_id: leadId,
-          vendedor_id: vendedorId,
-          vendedor_anterior_id: vendedorAnteriorId || null,
+          consultor_id: vendedorId,
+          consultor_anterior_id: vendedorAnteriorId || null,
           rule_id: ruleId || null,
           motivo: motivo || "manual",
           distribuido_por: user?.id || null,
