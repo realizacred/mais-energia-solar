@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,10 +32,27 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 export function GoogleCalendarConfigPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Handle OAuth callback result
+  useEffect(() => {
+    if (searchParams.get("success") === "true") {
+      toast({ title: "Google Calendar conectado com sucesso ✅" });
+      queryClient.invalidateQueries({ queryKey: ["google_calendar_connected_users"] });
+      setSearchParams({}, { replace: true });
+    } else if (searchParams.get("error")) {
+      toast({
+        title: "Erro na conexão",
+        description: `Erro: ${searchParams.get("error")}`,
+        variant: "destructive",
+      });
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams]);
 
   // Check if credentials are already configured
   const { data: configStatus, isLoading: loadingConfig } = useQuery({
