@@ -46,16 +46,16 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
 
       try {
         // 1) Get current lead info
-        const { data: lead } = await supabase
+        const { data: lead } = await (supabase as any)
           .from("leads")
-          .select("vendedor_id, vendedor, created_at")
+          .select("consultor_id, consultor, created_at")
           .eq("id", leadId)
           .single();
 
         // 2) Get distribution log entries
-        const { data: distLogs } = await supabase
+        const { data: distLogs } = await (supabase as any)
           .from("lead_distribution_log")
-          .select("vendedor_id, vendedor_anterior_id, motivo, distribuido_em")
+          .select("consultor_id, consultor_anterior_id, motivo, distribuido_em")
           .eq("lead_id", leadId)
           .order("distribuido_em", { ascending: true });
 
