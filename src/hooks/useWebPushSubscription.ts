@@ -10,6 +10,7 @@ interface PushState {
   permission: NotificationPermission | "unsupported";
   isSubscribed: boolean;
   isLoading: boolean;
+  isReady: boolean;
 }
 
 export function useWebPushSubscription() {
@@ -19,6 +20,7 @@ export function useWebPushSubscription() {
     permission: "unsupported",
     isSubscribed: false,
     isLoading: false,
+    isReady: false,
   });
   const swRegistrationRef = useRef<ServiceWorkerRegistration | null>(null);
 
@@ -26,30 +28,39 @@ export function useWebPushSubscription() {
   useEffect(() => {
     const check = async () => {
       const supported = "Notification" in window && "serviceWorker" in navigator && "PushManager" in window;
-      if (!supported) return;
+      if (!supported) {
+        setState(prev => ({ ...prev, isReady: true }));
+        return;
+      }
+
+      // Synchronous early read — prevents banner flash
+      const earlyPermission = Notification.permission;
+      setState(prev => ({
+        ...prev,
+        isSupported: true,
+        permission: earlyPermission,
+      }));
 
       try {
-        // Register the push service worker
         const reg = await navigator.serviceWorker.register("/push-sw.js", { scope: "/" });
         swRegistrationRef.current = reg;
 
-        const permission = Notification.permission;
         let isSubscribed = false;
-
-        if (permission === "granted") {
+        if (earlyPermission === "granted") {
           const existingSub = await (reg as any).pushManager.getSubscription();
           isSubscribed = !!existingSub;
         }
 
         setState({
           isSupported: true,
-          permission,
+          permission: earlyPermission,
           isSubscribed,
           isLoading: false,
+          isReady: true,
         });
       } catch (e) {
         console.warn("[useWebPushSubscription] SW registration failed:", e);
-        setState((prev) => ({ ...prev, isSupported: true, permission: Notification.permission }));
+        setState(prev => ({ ...prev, isSupported: true, permission: Notification.permission, isReady: true }));
       }
     };
 
