@@ -1619,9 +1619,12 @@ export type Database = {
           description: string | null
           end_at: string | null
           google_event_id: string
+          google_updated_at: string | null
           html_link: string | null
           id: string
+          is_all_day: boolean
           location: string | null
+          source: string
           start_at: string
           status: string | null
           summary: string
@@ -1635,9 +1638,12 @@ export type Database = {
           description?: string | null
           end_at?: string | null
           google_event_id: string
+          google_updated_at?: string | null
           html_link?: string | null
           id?: string
+          is_all_day?: boolean
           location?: string | null
+          source?: string
           start_at: string
           status?: string | null
           summary?: string
@@ -1651,9 +1657,12 @@ export type Database = {
           description?: string | null
           end_at?: string | null
           google_event_id?: string
+          google_updated_at?: string | null
           html_link?: string | null
           id?: string
+          is_all_day?: boolean
           location?: string | null
+          source?: string
           start_at?: string
           status?: string | null
           summary?: string
@@ -7574,6 +7583,7 @@ export type Database = {
         }[]
       }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
+      cleanup_old_gcal_events: { Args: never; Returns: undefined }
       cleanup_sm_integration_requests: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }

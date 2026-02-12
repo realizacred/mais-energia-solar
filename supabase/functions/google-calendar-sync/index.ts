@@ -8,13 +8,15 @@ const corsHeaders = {
 
 /**
  * Google Calendar Sync — creates, updates or deletes calendar events.
- * 
+ * Anti-loop: After creating/updating in Google, upserts to local mirror
+ * with source='crm' so the poll function won't re-import it.
+ *
  * Body:
  *  - action: "create" | "update" | "delete"
  *  - event_type: "servico" | "followup"
  *  - record_id: UUID of servicos_agendados or wa_followup_queue
  *  - event_data: { summary, description, start, end, location? }
- *  - user_id?: optional, defaults to assigned user
+ *  - user_id?: optional, defaults to authenticated user
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,7 +39,8 @@ Deno.serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    const { data: claimsData, error: claimsError } =
+      await supabase.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -51,10 +54,15 @@ Deno.serve(async (req) => {
     const { action, event_type, record_id, event_data, user_id } = body;
 
     if (!action || !event_type || !record_id) {
-      return new Response(JSON.stringify({ error: "action, event_type, record_id required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "action, event_type, record_id required",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     const supabaseAdmin = createClient(
@@ -62,7 +70,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Determine which user's calendar to use
     const targetUserId = user_id || callerUserId;
 
     // Get calendar token for the target user
@@ -75,57 +82,82 @@ Deno.serve(async (req) => {
 
     if (!calToken) {
       return new Response(
-        JSON.stringify({ error: "User has no connected Google Calendar", skipped: true }),
+        JSON.stringify({
+          error: "User has no connected Google Calendar",
+          skipped: true,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Get tenant's OAuth credentials for token refresh
+    // Get tenant's OAuth credentials
     const { data: configs } = await supabaseAdmin
       .from("integration_configs")
       .select("service_key, api_key")
       .eq("tenant_id", calToken.tenant_id)
-      .in("service_key", ["google_calendar_client_id", "google_calendar_client_secret"])
+      .in("service_key", [
+        "google_calendar_client_id",
+        "google_calendar_client_secret",
+      ])
       .eq("is_active", true);
 
-    const clientId = configs?.find(c => c.service_key === "google_calendar_client_id")?.api_key;
-    const clientSecret = configs?.find(c => c.service_key === "google_calendar_client_secret")?.api_key;
+    const clientId = configs?.find(
+      (c) => c.service_key === "google_calendar_client_id"
+    )?.api_key;
+    const clientSecret = configs?.find(
+      (c) => c.service_key === "google_calendar_client_secret"
+    )?.api_key;
 
     if (!clientId || !clientSecret) {
       return new Response(
-        JSON.stringify({ error: "Google Calendar OAuth not configured for tenant" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Google Calendar OAuth not configured for tenant",
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
     // Refresh token if expired
     let accessToken = calToken.access_token;
     if (new Date(calToken.token_expires_at) <= new Date()) {
-      const refreshed = await refreshAccessToken(clientId, clientSecret, calToken.refresh_token);
+      const refreshed = await refreshAccessToken(
+        clientId,
+        clientSecret,
+        calToken.refresh_token
+      );
       if (!refreshed) {
-        // Mark token as inactive
         await supabaseAdmin
           .from("google_calendar_tokens")
           .update({ is_active: false })
           .eq("id", calToken.id);
         return new Response(
-          JSON.stringify({ error: "Failed to refresh Google token. User must reconnect." }),
-          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({
+            error: "Failed to refresh Google token. User must reconnect.",
+          }),
+          {
+            status: 401,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
         );
       }
       accessToken = refreshed.access_token;
-      // Update stored token
       await supabaseAdmin
         .from("google_calendar_tokens")
         .update({
           access_token: refreshed.access_token,
-          token_expires_at: new Date(Date.now() + (refreshed.expires_in || 3600) * 1000).toISOString(),
+          token_expires_at: new Date(
+            Date.now() + (refreshed.expires_in || 3600) * 1000
+          ).toISOString(),
         })
         .eq("id", calToken.id);
     }
 
     const calendarId = calToken.calendar_id || "primary";
-    const table = event_type === "servico" ? "servicos_agendados" : "wa_followup_queue";
+    const table =
+      event_type === "servico" ? "servicos_agendados" : "wa_followup_queue";
 
     // Get existing event ID
     const { data: record } = await supabaseAdmin
@@ -138,7 +170,18 @@ Deno.serve(async (req) => {
 
     if (action === "delete") {
       if (record?.google_calendar_event_id) {
-        await deleteCalendarEvent(accessToken, calendarId, record.google_calendar_event_id);
+        await deleteCalendarEvent(
+          accessToken,
+          calendarId,
+          record.google_calendar_event_id
+        );
+        // Remove from local mirror
+        await supabaseAdmin
+          .from("google_calendar_events")
+          .delete()
+          .eq("user_id", targetUserId)
+          .eq("google_event_id", record.google_calendar_event_id);
+
         await supabaseAdmin
           .from(table)
           .update({ google_calendar_event_id: null })
@@ -147,10 +190,15 @@ Deno.serve(async (req) => {
       result = { deleted: true };
     } else if (action === "create" || action === "update") {
       if (!event_data?.summary || !event_data?.start) {
-        return new Response(JSON.stringify({ error: "event_data.summary and event_data.start required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        return new Response(
+          JSON.stringify({
+            error: "event_data.summary and event_data.start required",
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
       }
 
       const gcalEvent = {
@@ -162,55 +210,99 @@ Deno.serve(async (req) => {
           timeZone: "America/Sao_Paulo",
         },
         end: {
-          dateTime: event_data.end || new Date(new Date(event_data.start).getTime() + 60 * 60 * 1000).toISOString(),
+          dateTime:
+            event_data.end ||
+            new Date(
+              new Date(event_data.start).getTime() + 60 * 60 * 1000
+            ).toISOString(),
           timeZone: "America/Sao_Paulo",
         },
         reminders: {
           useDefault: false,
-          overrides: [
-            { method: "popup", minutes: 30 },
-          ],
+          overrides: [{ method: "popup", minutes: 30 }],
         },
       };
 
       let eventId: string;
+      let googleResponse: any;
 
       if (record?.google_calendar_event_id && action === "update") {
-        // Update existing event
-        const updated = await updateCalendarEvent(accessToken, calendarId, record.google_calendar_event_id, gcalEvent);
-        eventId = updated?.id || record.google_calendar_event_id;
+        googleResponse = await updateCalendarEvent(
+          accessToken,
+          calendarId,
+          record.google_calendar_event_id,
+          gcalEvent
+        );
+        eventId = googleResponse?.id || record.google_calendar_event_id;
       } else {
-        // Create new event
-        const created = await createCalendarEvent(accessToken, calendarId, gcalEvent);
-        eventId = created?.id;
+        googleResponse = await createCalendarEvent(
+          accessToken,
+          calendarId,
+          gcalEvent
+        );
+        eventId = googleResponse?.id;
       }
 
       if (eventId) {
+        // Save to source table
         await supabaseAdmin
           .from(table)
           .update({ google_calendar_event_id: eventId })
           .eq("id", record_id);
+
+        // ── Anti-loop: upsert to local mirror with source='crm' ──
+        // This prevents the poll function from re-importing this event
+        await supabaseAdmin.from("google_calendar_events").upsert(
+          {
+            user_id: targetUserId,
+            tenant_id: calToken.tenant_id,
+            google_event_id: eventId,
+            summary: event_data.summary,
+            description: (event_data.description || "").slice(0, 2000),
+            location: event_data.location || "",
+            start_at: event_data.start,
+            end_at:
+              event_data.end ||
+              new Date(
+                new Date(event_data.start).getTime() + 60 * 60 * 1000
+              ).toISOString(),
+            status: "confirmed",
+            html_link: googleResponse?.htmlLink || "",
+            source: "crm",
+            is_all_day: false,
+            google_updated_at: googleResponse?.updated || null,
+            synced_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,google_event_id" }
+        );
       }
 
       result = { event_id: eventId, action };
     }
 
-    return new Response(
-      JSON.stringify({ success: true, ...result }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ success: true, ...result }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error: any) {
     console.error("google-calendar-sync error:", error);
     return new Response(
       JSON.stringify({ error: error?.message || String(error) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
   }
 });
 
 // ─── Google Calendar API helpers ───
 
-async function refreshAccessToken(clientId: string, clientSecret: string, refreshToken: string) {
+async function refreshAccessToken(
+  clientId: string,
+  clientSecret: string,
+  refreshToken: string
+) {
   try {
     const res = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -233,7 +325,11 @@ async function refreshAccessToken(clientId: string, clientSecret: string, refres
   }
 }
 
-async function createCalendarEvent(accessToken: string, calendarId: string, event: any) {
+async function createCalendarEvent(
+  accessToken: string,
+  calendarId: string,
+  event: any
+) {
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
     {
@@ -253,7 +349,12 @@ async function createCalendarEvent(accessToken: string, calendarId: string, even
   return await res.json();
 }
 
-async function updateCalendarEvent(accessToken: string, calendarId: string, eventId: string, event: any) {
+async function updateCalendarEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string,
+  event: any
+) {
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
     {
@@ -268,7 +369,6 @@ async function updateCalendarEvent(accessToken: string, calendarId: string, even
   if (!res.ok) {
     const err = await res.text();
     console.error("Update event error:", err);
-    // If event not found, create a new one
     if (res.status === 404) {
       return await createCalendarEvent(accessToken, calendarId, event);
     }
@@ -277,7 +377,11 @@ async function updateCalendarEvent(accessToken: string, calendarId: string, even
   return await res.json();
 }
 
-async function deleteCalendarEvent(accessToken: string, calendarId: string, eventId: string) {
+async function deleteCalendarEvent(
+  accessToken: string,
+  calendarId: string,
+  eventId: string
+) {
   const res = await fetch(
     `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}`,
     {
