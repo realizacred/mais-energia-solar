@@ -3264,6 +3264,7 @@ export type Database = {
           created_at: string
           id: string
           nome: string
+          settings: Json | null
           status: string
           telefone: string | null
           tenant_id: string | null
@@ -3277,6 +3278,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome: string
+          settings?: Json | null
           status?: string
           telefone?: string | null
           tenant_id?: string | null
@@ -3290,6 +3292,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome?: string
+          settings?: Json | null
           status?: string
           telefone?: string | null
           tenant_id?: string | null

@@ -49,6 +49,8 @@ export interface MenuItem {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   description?: string;
+  /** Search keywords for sidebar search */
+  keywords?: string[];
   /** Renders a thin divider above this item */
   separator?: boolean;
 }
@@ -92,7 +94,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-intelligence",
     defaultOpen: true,
     items: [
-      { id: "dashboard", title: "Dashboard", icon: BarChart3, description: "Visão geral do negócio" },
+      { id: "dashboard", title: "Dashboard", icon: BarChart3, description: "Visão geral do negócio", keywords: ["resumo", "métricas", "KPI", "overview", "indicadores"] },
     ],
   },
 
@@ -107,55 +109,18 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-commercial",
     defaultOpen: true,
     items: [
-      { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads" },
-      { id: "pipeline", title: "Pipeline", icon: Kanban, description: "Funil de vendas visual" },
-      { id: "propostas", title: "Propostas", icon: FileText, description: "Propostas comerciais" },
-      { id: "followup", title: "Follow-ups", icon: Bell, description: "Acompanhamento de leads" },
-      { id: "clientes", title: "Gestão de Clientes", icon: UserCheck, description: "Cadastro e documentos", separator: true },
-      {
-        id: "lead-status",
-        title: "Status de Leads",
-        icon: Kanban,
-        description: "Personalizar etapas do funil",
-        separator: true,
-      },
-      {
-        id: "motivos-perda",
-        title: "Motivos de Perda",
-        icon: XCircle,
-        description: "Razões de perda de negócios",
-      },
-      {
-        id: "distribuicao",
-        title: "Distribuição",
-        icon: RotateCcw,
-        description: "Regras & fila de leads",
-      },
-      {
-        id: "sla-breaches",
-        title: "SLA & Breaches",
-        icon: AlertTriangle,
-        description: "Violações de prazo",
-      },
-      {
-        id: "inteligencia",
-        title: "Inteligência Comercial",
-        icon: Brain,
-        description: "Scoring & Previsão",
-        separator: true,
-      },
-      {
-        id: "gamificacao",
-        title: "Gamificação",
-        icon: Trophy,
-        description: "Metas e ranking",
-      },
-      {
-        id: "diretor",
-        title: "Copilot IA",
-        icon: Sparkles,
-        description: "Análise inteligente",
-      },
+      { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads", keywords: ["contato", "prospect", "captura", "formulário"] },
+      { id: "pipeline", title: "Pipeline", icon: Kanban, description: "Funil de vendas visual", keywords: ["kanban", "etapas", "funil", "conversão"] },
+      { id: "propostas", title: "Propostas", icon: FileText, description: "Propostas comerciais", keywords: ["orçamento", "cotação", "simulação", "preço"] },
+      { id: "followup", title: "Follow-ups", icon: Bell, description: "Acompanhamento de leads", keywords: ["lembrete", "retorno", "agendamento", "tarefa"] },
+      { id: "clientes", title: "Gestão de Clientes", icon: UserCheck, description: "Cadastro e documentos", keywords: ["cliente", "contrato", "documentação", "CPF"], separator: true },
+      { id: "lead-status", title: "Status de Leads", icon: Kanban, description: "Personalizar etapas do funil", keywords: ["etapa", "funil", "personalizar", "status"], separator: true },
+      { id: "motivos-perda", title: "Motivos de Perda", icon: XCircle, description: "Razões de perda de negócios", keywords: ["perda", "motivo", "relatório", "análise"] },
+      { id: "distribuicao", title: "Distribuição", icon: RotateCcw, description: "Regras & fila de leads", keywords: ["fila", "round-robin", "atribuição", "regras"] },
+      { id: "sla-breaches", title: "SLA & Breaches", icon: AlertTriangle, description: "Violações de prazo", keywords: ["prazo", "atraso", "violação", "alerta"] },
+      { id: "inteligencia", title: "Inteligência Comercial", icon: Brain, description: "Scoring & Previsão", keywords: ["score", "previsão", "IA", "análise", "ranking"], separator: true },
+      { id: "gamificacao", title: "Gamificação", icon: Trophy, description: "Metas e ranking", keywords: ["meta", "ranking", "conquista", "pontuação", "competição"] },
+      { id: "diretor", title: "Copilot IA", icon: Sparkles, description: "Análise inteligente", keywords: ["IA", "copilot", "sugestão", "automático"] },
     ],
   },
 
@@ -170,32 +135,11 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-atendimento",
     defaultOpen: true,
     items: [
-      {
-        id: "inbox",
-        title: "Central WhatsApp",
-        icon: MessageCircle,
-        description: "Inbox de atendimento",
-      },
-      {
-        id: "followup-queue",
-        title: "Fila de Follow-ups",
-        icon: CalendarClock,
-        description: "Acompanhar follow-ups pendentes",
-      },
-      {
-        id: "followup-wa",
-        title: "Regras de Follow-up",
-        icon: Bell,
-        description: "Configurar regras de acompanhamento",
-      },
-      { id: "wa-etiquetas", title: "Etiquetas WhatsApp", icon: Tag, description: "Tags para conversas" },
-      {
-        id: "respostas-rapidas",
-        title: "Respostas Rápidas",
-        icon: Sparkles,
-        description: "Templates de mensagens rápidas",
-        separator: true,
-      },
+      { id: "inbox", title: "Central WhatsApp", icon: MessageCircle, description: "Inbox de atendimento", keywords: ["chat", "mensagem", "conversa", "WhatsApp"] },
+      { id: "followup-queue", title: "Fila de Follow-ups", icon: CalendarClock, description: "Acompanhar follow-ups pendentes", keywords: ["pendente", "fila", "aguardando", "retorno"] },
+      { id: "followup-wa", title: "Regras de Follow-up", icon: Bell, description: "Configurar regras de acompanhamento", keywords: ["automação", "regra", "configurar", "agendamento"] },
+      { id: "wa-etiquetas", title: "Etiquetas WhatsApp", icon: Tag, description: "Tags para conversas", keywords: ["tag", "etiqueta", "classificação", "organizar"] },
+      { id: "respostas-rapidas", title: "Respostas Rápidas", icon: Sparkles, description: "Templates de mensagens rápidas", keywords: ["template", "atalho", "mensagem", "rápida"], separator: true },
     ],
   },
 
@@ -210,12 +154,12 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-operations",
     defaultOpen: false,
     items: [
-      { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto" },
-      { id: "avaliacoes", title: "Avaliações", icon: Star, description: "Feedback dos clientes" },
-      { id: "servicos", title: "Agenda Técnica", icon: CalendarClock, description: "Agendamentos de serviço" },
-      { id: "instaladores", title: "Instaladores", icon: Wrench, description: "Equipe de campo", separator: true },
-      { id: "validacao", title: "Validação", icon: ClipboardCheck, description: "Aprovar vendas realizadas" },
-      { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList, description: "Prazos e pendências" },
+      { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto", keywords: ["checklist", "documento", "verificação", "projeto"] },
+      { id: "avaliacoes", title: "Avaliações", icon: Star, description: "Feedback dos clientes", keywords: ["NPS", "feedback", "satisfação", "nota", "indicação"] },
+      { id: "servicos", title: "Agenda Técnica", icon: CalendarClock, description: "Agendamentos de serviço", keywords: ["agenda", "visita", "instalação", "técnico"] },
+      { id: "instaladores", title: "Instaladores", icon: Wrench, description: "Equipe de campo", keywords: ["técnico", "instalador", "equipe", "campo"], separator: true },
+      { id: "validacao", title: "Validação", icon: ClipboardCheck, description: "Aprovar vendas realizadas", keywords: ["aprovação", "validar", "conferência"] },
+      { id: "tarefas", title: "Tarefas & SLA", icon: ClipboardList, description: "Prazos e pendências", keywords: ["tarefa", "prazo", "SLA", "pendência"] },
     ],
   },
 
@@ -230,9 +174,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-finance",
     defaultOpen: false,
     items: [
-      { id: "recebimentos", title: "Recebimentos", icon: DollarSign, description: "Controle de pagamentos" },
-      { id: "inadimplencia", title: "Inadimplência", icon: AlertTriangle, description: "Parcelas atrasadas" },
-      { id: "comissoes", title: "Comissões", icon: Wallet, description: "Comissões dos vendedores" },
+      { id: "recebimentos", title: "Recebimentos", icon: DollarSign, description: "Controle de pagamentos", keywords: ["pagamento", "parcela", "receber", "financeiro"] },
+      { id: "inadimplencia", title: "Inadimplência", icon: AlertTriangle, description: "Parcelas atrasadas", keywords: ["atraso", "devedor", "cobrança", "inadimplente"] },
+      { id: "comissoes", title: "Comissões", icon: Wallet, description: "Comissões dos vendedores", keywords: ["comissão", "vendedor", "bonificação", "percentual"] },
     ],
   },
 
@@ -247,19 +191,14 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-cadastros",
     defaultOpen: false,
     items: [
-      { id: "config", title: "Calculadora Solar", icon: Calculator, description: "Parâmetros de geração e custo" },
-      {
-        id: "engenharia",
-        title: "Engenharia Financeira",
-        icon: Calculator,
-        description: "Fio B / ICMS / Payback",
-      },
-      { id: "financiamento", title: "Bancos", icon: Building2, description: "Taxas e financiamentos" },
-      { id: "equipamentos", title: "Disjuntores & Transf.", icon: Plug, description: "Cadastro de equipamentos elétricos", separator: true },
-      { id: "modulos", title: "Módulos Fotovoltaicos", icon: SunMedium, description: "Painéis solares disponíveis" },
-      { id: "inversores-cadastro", title: "Inversores", icon: Cpu, description: "Inversores solares cadastrados" },
-      { id: "baterias", title: "Baterias", icon: Battery, description: "Sistemas de armazenamento" },
-      { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas e distribuidoras" },
+      { id: "config", title: "Calculadora Solar", icon: Calculator, description: "Parâmetros de geração e custo", keywords: ["cálculo", "geração", "kWp", "tarifa", "custo"] },
+      { id: "engenharia", title: "Engenharia Financeira", icon: Calculator, description: "Regras de cálculo: ICMS, fio B, payback", keywords: ["ICMS", "fio B", "payback", "retorno", "tributo"] },
+      { id: "financiamento", title: "Bancos", icon: Building2, description: "Taxas e financiamentos", keywords: ["banco", "taxa", "parcela", "crédito", "financiar"] },
+      { id: "equipamentos", title: "Disjuntores & Transf.", icon: Plug, description: "Cadastro de equipamentos elétricos", keywords: ["disjuntor", "transformador", "proteção", "elétrico"], separator: true },
+      { id: "modulos", title: "Módulos Fotovoltaicos", icon: SunMedium, description: "Painéis solares disponíveis", keywords: ["painel", "módulo", "solar", "fotovoltaico", "placa"] },
+      { id: "inversores-cadastro", title: "Inversores", icon: Cpu, description: "Inversores solares cadastrados", keywords: ["inversor", "potência", "micro-inversor", "string"] },
+      { id: "baterias", title: "Baterias", icon: Battery, description: "Sistemas de armazenamento", keywords: ["bateria", "armazenamento", "lítio", "energia"] },
+      { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas por distribuidora (impacta proposta)", keywords: ["tarifa", "distribuidora", "concessionária", "ANEEL"] },
     ],
   },
 
@@ -274,32 +213,22 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-settings",
     defaultOpen: false,
     items: [
-      // Gestão de equipe
-      { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles" },
-      { id: "vendedores", title: "Vendedores", icon: Users, description: "Cadastro de consultores" },
-      { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso" },
-      // Integrações
-      { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", separator: true },
-      { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens" },
-      { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts" },
-      { id: "solarmarket", title: "SolarMarket", icon: Sun, description: "Marketplace solar" },
-      { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas" },
-      { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP" },
-      // Site
-      { id: "site-config", title: "Conteúdo & Visual", icon: Globe, description: "Layout e textos do site", separator: true },
-      { id: "site-servicos", title: "Serviços", icon: Wrench, description: "Serviços oferecidos" },
-      { id: "obras", title: "Portfólio", icon: Sun, description: "Projetos realizados" },
-      // Sistema
-      { id: "links-instalacao", title: "Links & Instalação", icon: Smartphone, description: "App PWA e links de vendedor", separator: true },
-      { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações" },
-      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões" },
-      {
-        id: "data-reset",
-        title: "Limpeza de Dados",
-        icon: Trash2,
-        description: "Reset seletivo por segmento",
-        separator: true,
-      },
+      { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles", keywords: ["usuário", "permissão", "role", "acesso"] },
+      { id: "vendedores", title: "Vendedores", icon: Users, description: "Cadastro de consultores", keywords: ["consultor", "vendedor", "equipe", "cadastro"] },
+      { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso", keywords: ["aprovação", "solicitação", "pendente"] },
+      { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"], separator: true },
+      { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens", keywords: ["API", "automação", "webhook", "bot"] },
+      { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts", keywords: ["instagram", "post", "rede social", "feed"] },
+      { id: "solarmarket", title: "SolarMarket", icon: Sun, description: "Marketplace solar", keywords: ["marketplace", "solar", "integração"] },
+      { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"] },
+      { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP", keywords: ["n8n", "automação", "workflow", "MCP"] },
+      { id: "site-config", title: "Conteúdo & Visual", icon: Globe, description: "Layout e textos do site", keywords: ["site", "landing", "visual", "layout", "marca"], separator: true },
+      { id: "site-servicos", title: "Serviços", icon: Wrench, description: "Serviços oferecidos", keywords: ["serviço", "oferta", "landing"] },
+      { id: "obras", title: "Portfólio", icon: Sun, description: "Projetos realizados", keywords: ["portfólio", "obra", "projeto", "foto"] },
+      { id: "links-instalacao", title: "Links & Instalação", icon: Smartphone, description: "App PWA e links de vendedor", keywords: ["PWA", "link", "instalação", "app"], separator: true },
+      { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações", keywords: ["log", "auditoria", "histórico", "alteração"] },
+      { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade", "changelog"] },
+      { id: "data-reset", title: "Limpeza de Dados", icon: Trash2, description: "Reset seletivo por segmento", keywords: ["reset", "limpeza", "deletar", "remover"], separator: true },
     ],
   },
 ];
