@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
     // Get active subscriptions for target users
     const { data: subscriptions } = await supabase
       .from("push_subscriptions")
-      .select("id, user_id, endpoint, p256dh, auth")
+      .select("id, user_id, endpoint, p256dh, auth, tenant_id")
       .in("user_id", unmutedUserIds)
       .eq("is_active", true)
       .eq("tenant_id", tenantId);
@@ -225,6 +225,8 @@ async function sendPushToSubscriptions(
     return { error: "VAPID keys not configured", sent: 0 };
   }
 
+  const tenantIdForLog = subscriptions[0]?.tenant_id || null;
+
   const notificationPayload = JSON.stringify({
     title: `💬 ${payload.contactName || "Nova mensagem"}`,
     body: payload.messagePreview || "Nova mensagem recebida",
@@ -253,7 +255,7 @@ async function sendPushToSubscriptions(
         if (messageId) {
           await supabase
             .from("push_sent_log")
-            .insert({ message_id: messageId, subscription_id: sub.id })
+            .insert({ message_id: messageId, subscription_id: sub.id, tenant_id: tenantIdForLog })
             .catch(() => {}); // ignore dedup conflicts
         }
       } else {
