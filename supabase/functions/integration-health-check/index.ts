@@ -228,7 +228,28 @@ Deno.serve(async (req) => {
     // ── OpenAI ──
     if (integration === "all" || integration === "openai") {
       try {
-        const openaiKey = Deno.env.get("OPENAI_API_KEY");
+        // Try DB first (tenant-specific), fallback to env var
+        const { data: tenantProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("tenant_id")
+          .eq("user_id", userId)
+          .single();
+
+        let openaiKey: string | null = null;
+        if (tenantProfile?.tenant_id) {
+          const { data: configRow } = await supabaseAdmin
+            .from("integration_configs")
+            .select("api_key")
+            .eq("tenant_id", tenantProfile.tenant_id)
+            .eq("service_key", "openai")
+            .eq("is_active", true)
+            .maybeSingle();
+          openaiKey = configRow?.api_key || null;
+        }
+        if (!openaiKey) {
+          openaiKey = Deno.env.get("OPENAI_API_KEY") || null;
+        }
+
         if (!openaiKey) {
           results.push({
             id: "openai",
@@ -241,15 +262,13 @@ Deno.serve(async (req) => {
           const start = Date.now();
           const oaiRes = await fetch("https://api.openai.com/v1/models", {
             method: "GET",
-            headers: {
-              Authorization: `Bearer ${openaiKey}`,
-            },
+            headers: { Authorization: `Bearer ${openaiKey}` },
             signal: AbortSignal.timeout(10000),
           });
           const latency = Date.now() - start;
 
           if (oaiRes.ok) {
-            await oaiRes.text(); // consume body
+            await oaiRes.text();
             results.push({
               id: "openai",
               name: "OpenAI",
