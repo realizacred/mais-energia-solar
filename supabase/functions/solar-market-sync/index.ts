@@ -358,14 +358,32 @@ class SolarMarketClient {
     const all: any[] = [];
     let page = 1;
     const limit = "100";
+    let totalFromApi: number | null = null;
+    let lastPageFromApi: number | null = null;
     while (true) {
       const data = await this.listClients({ ...filters, limit, page: String(page) });
       const items = Array.isArray(data) ? data : data?.data || data?.clients || [];
+
+      // Extract pagination metadata from API response (common formats)
+      if (page === 1 && data && typeof data === "object" && !Array.isArray(data)) {
+        totalFromApi = data.total ?? data.totalItems ?? data.meta?.total ?? null;
+        lastPageFromApi = data.lastPage ?? data.totalPages ?? data.meta?.lastPage ?? data.meta?.totalPages ?? null;
+        console.log(`[SM] Clients pagination metadata: total=${totalFromApi}, lastPage=${lastPageFromApi}, itemsPage1=${items.length}`);
+      }
+
       all.push(...items);
-      if (items.length < 100) break;
+      console.log(`[SM] Clients page ${page}: ${items.length} items (accumulated: ${all.length}${totalFromApi ? `/${totalFromApi}` : ""})`);
+
+      // Stop conditions: empty page, less than limit, or reached last page
+      if (items.length === 0) break;
+      if (items.length < 100 && !lastPageFromApi) break;
+      if (lastPageFromApi && page >= lastPageFromApi) break;
+      if (totalFromApi && all.length >= totalFromApi) break;
+
       page++;
       await new Promise((r) => setTimeout(r, 1100)); // Rate limit: 60 req/min
     }
+    console.log(`[SM] Clients total fetched: ${all.length} (pages: ${page})`);
     return all;
   }
 
@@ -406,14 +424,31 @@ class SolarMarketClient {
   async listProjectsAll(filters: { createdAfter?: string } = {}): Promise<any[]> {
     const all: any[] = [];
     let page = 1;
+    let totalFromApi: number | null = null;
+    let lastPageFromApi: number | null = null;
     while (true) {
       const data = await this.listProjects({ ...filters, limit: "100", page: String(page) });
       const items = Array.isArray(data) ? data : data?.data || data?.projects || [];
+
+      // Extract pagination metadata
+      if (page === 1 && data && typeof data === "object" && !Array.isArray(data)) {
+        totalFromApi = data.total ?? data.totalItems ?? data.meta?.total ?? null;
+        lastPageFromApi = data.lastPage ?? data.totalPages ?? data.meta?.lastPage ?? data.meta?.totalPages ?? null;
+        console.log(`[SM] Projects pagination metadata: total=${totalFromApi}, lastPage=${lastPageFromApi}, itemsPage1=${items.length}`);
+      }
+
       all.push(...items);
-      if (items.length < 100) break;
+      console.log(`[SM] Projects page ${page}: ${items.length} items (accumulated: ${all.length}${totalFromApi ? `/${totalFromApi}` : ""})`);
+
+      if (items.length === 0) break;
+      if (items.length < 100 && !lastPageFromApi) break;
+      if (lastPageFromApi && page >= lastPageFromApi) break;
+      if (totalFromApi && all.length >= totalFromApi) break;
+
       page++;
-      await new Promise((r) => setTimeout(r, 1100)); // Rate limit: 60 req/min
+      await new Promise((r) => setTimeout(r, 1100));
     }
+    console.log(`[SM] Projects total fetched: ${all.length} (pages: ${page})`);
     return all;
   }
 
