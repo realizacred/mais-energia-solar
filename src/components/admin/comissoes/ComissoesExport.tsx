@@ -73,7 +73,7 @@ export function ComissoesExport({
       const rows = comissoes.map((c) => {
         const pago = calcularValorPago(c);
         return [
-          c.vendedores?.nome || "",
+          (c as any).consultores?.nome || "",
           c.descricao,
           c.clientes?.nome || "",
           c.projetos?.codigo || "",
@@ -178,7 +178,7 @@ export function ComissoesExport({
                   const saldo = Math.max(0, c.valor_comissao - pago);
                   return `
                     <tr>
-                      <td>${c.vendedores?.nome || ""}</td>
+                      <td>${(c as any).consultores?.nome || ""}</td>
                       <td>${c.descricao}</td>
                       <td class="text-right">${formatCurrency(c.valor_comissao)}</td>
                       <td class="text-right" style="color: #16a34a">${formatCurrency(pago)}</td>

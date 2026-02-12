@@ -72,7 +72,7 @@ export function AssignVendorDialog({
         if (error) {
           console.error("Error fetching vendedores:", error);
         } else {
-          setVendedores(data || []);
+          setVendedores((data || []) as any as Vendedor[]);
         }
         setLoading(false);
       });

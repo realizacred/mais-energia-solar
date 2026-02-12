@@ -70,13 +70,13 @@ export async function buildStoragePath(...segments: string[]): Promise<string> {
 export async function resolvePublicTenantId(vendedorCode?: string | null): Promise<string | null> {
   // If we have a vendedor code, resolve through the validate function
   if (vendedorCode) {
-    const { data } = await supabase.rpc("validate_vendedor_code", { _codigo: vendedorCode });
+    const { data } = await supabase.rpc("validate_consultor_code", { _codigo: vendedorCode });
     if (data && data.length > 0) {
       // Use secure RPC that only exposes safe fields (no telefone/email)
       const { data: vendedor } = await supabase
-        .rpc("resolve_vendedor_public", { _codigo: vendedorCode })
+        .rpc("resolve_consultor_public", { _codigo: vendedorCode })
         .maybeSingle();
-      if (vendedor?.tenant_id) return vendedor.tenant_id;
+      if ((vendedor as any)?.tenant_id) return (vendedor as any).tenant_id;
     }
   }
 

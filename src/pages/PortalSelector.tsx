@@ -52,14 +52,14 @@ export default function PortalSelector() {
         .select("role")
         .eq("user_id", user.id);
 
-      const isVendedor = roles?.some(r => r.role === "vendedor");
+      const isVendedor = roles?.some(r => r.role === "consultor" || (r.role as string) === "vendedor");
       const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
       const isInstalador = roles?.some(r => r.role === "instalador");
 
       // Check if user has vendedor record (required to access vendor portal)
       let hasVendedorRecord = false;
-      const { data: vendedorData } = await supabase
-        .from("vendedores")
+      const { data: vendedorData } = await (supabase as any)
+        .from("consultores")
         .select("id")
         .eq("user_id", user.id)
         .single();

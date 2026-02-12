@@ -101,8 +101,8 @@ interface VendedorWaSettings {
  */
 export async function getVendedorWaSettings(vendedorId: string): Promise<VendedorWaSettings> {
   try {
-    const { data, error } = await supabase
-      .from("vendedores")
+    const { data, error } = await (supabase as any)
+      .from("consultores")
       .select("settings")
       .eq("id", vendedorId)
       .maybeSingle();
@@ -130,8 +130,8 @@ export async function saveVendedorWaSettings(
   updates: Partial<VendedorWaSettings>
 ): Promise<boolean> {
   try {
-    const { data: current } = await supabase
-      .from("vendedores")
+    const { data: current } = await (supabase as any)
+      .from("consultores")
       .select("settings")
       .eq("id", vendedorId)
       .maybeSingle();
@@ -139,8 +139,8 @@ export async function saveVendedorWaSettings(
     const currentSettings = (current?.settings as Record<string, unknown>) || {};
     const merged = { ...currentSettings, ...updates };
 
-    const { error } = await supabase
-      .from("vendedores")
+    const { error } = await (supabase as any)
+      .from("consultores")
       .update({ settings: merged } as any)
       .eq("id", vendedorId);
 

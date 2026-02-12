@@ -10,7 +10,7 @@ import { useLogo } from "@/hooks/useLogo";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 
 const PORTAL_PREFERENCE_KEY = "preferred_portal";
-const ALLOWED_ROLES = ["admin", "gerente", "financeiro", "vendedor", "instalador"];
+const ALLOWED_ROLES = ["admin", "gerente", "financeiro", "consultor", "instalador"];
 
 const features = [
   {
@@ -95,7 +95,7 @@ export default function Auth() {
             .select("role")
             .eq("user_id", user.id);
 
-          const isVendedor = roles?.some(r => r.role === "vendedor");
+          const isVendedor = roles?.some(r => r.role === "consultor" || (r.role as string) === "vendedor");
           const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
           const isInstalador = roles?.some(r => r.role === "instalador");
 
@@ -115,8 +115,8 @@ export default function Auth() {
 
           let hasVendedorRecord = false;
           if (isVendedor) {
-            const { data: vendedorData } = await supabase
-              .from("vendedores")
+            const { data: vendedorData } = await (supabase as any)
+              .from("consultores")
               .select("id")
               .eq("user_id", user.id)
               .single();

@@ -9,7 +9,7 @@ export interface WaInstance {
   evolution_instance_key: string;
   evolution_api_url: string;
   owner_user_id: string | null;
-  vendedor_id: string | null;
+  consultor_id: string | null;
   webhook_secret: string;
   api_key: string | null;
   status: "connected" | "disconnected" | "connecting" | "error";
