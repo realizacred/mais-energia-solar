@@ -565,7 +565,7 @@ interface SyncResult {
   nextOffset?: number;
 }
 
-const CHUNK_SIZE = 25; // Projects per chunk (sub-resources phase)
+const CHUNK_SIZE = 50; // Projects per chunk (sub-resources phase)
 
 async function mergeSyncCounts(
   db: ReturnType<typeof createClient>, syncLogId: string, localCounts: SyncCounts
