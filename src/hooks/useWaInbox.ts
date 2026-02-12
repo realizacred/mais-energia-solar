@@ -96,7 +96,7 @@ export function useWaConversations(filters?: {
           id, tenant_id, instance_id, remote_jid, cliente_nome, cliente_telefone,
           status, assigned_to, lead_id, cliente_id, last_message_at, last_message_preview,
           unread_count, canal, profile_picture_url, is_group, created_at, updated_at,
-          wa_instances(nome, vendedores(nome, user_id)),
+          wa_instances(nome, consultores(nome, user_id)),
           leads(nome, telefone)
         `)
         .order("last_message_at", { ascending: false });
@@ -133,7 +133,7 @@ export function useWaConversations(filters?: {
         filtered = filtered.filter((c: any) => {
           if (c.assigned_to === vuid) return true;
           // vendedores can be an array (one instance → many vendors) or a single object
-          const vendArr = c.wa_instances?.vendedores;
+          const vendArr = c.wa_instances?.consultores;
           if (Array.isArray(vendArr)) {
             return vendArr.some((v: any) => v.user_id === vuid);
           }
@@ -165,7 +165,7 @@ export function useWaConversations(filters?: {
       return filtered.map((c: any) => ({
         ...c,
         instance_name: c.wa_instances?.nome || "—",
-        vendedor_nome: c.wa_instances?.vendedores?.nome || null,
+        vendedor_nome: c.wa_instances?.consultores?.nome || null,
         lead_nome: c.leads?.nome || null,
         lead_telefone: c.leads?.telefone || null,
         tags: tagsMap[c.id] || [],
