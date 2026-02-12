@@ -99,6 +99,20 @@ export function WaChatComposer({
       setTimeout(() => textareaRef.current?.focus(), 100);
     }
   }, [prefillMessage]);
+
+  // Listen for AI suggestion events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const text = (e as CustomEvent).detail;
+      if (text) {
+        setInputValue(text);
+        setTimeout(() => textareaRef.current?.focus(), 100);
+      }
+    };
+    window.addEventListener("wa-ai-suggestion", handler);
+    return () => window.removeEventListener("wa-ai-suggestion", handler);
+  }, []);
+
   const [showEmoji, setShowEmoji] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [spellCheckEnabled, setSpellCheckEnabled] = useState(() => {
