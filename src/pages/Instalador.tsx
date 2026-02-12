@@ -13,6 +13,7 @@
  import { InstaladorHeader } from "@/components/instalador/InstaladorHeader";
  import { InstaladorStatsCards } from "@/components/instalador/InstaladorStatsCards";
  import { ServicoCard, type ServicoAgendado } from "@/components/instalador/ServicoCard";
+ import { InstaladorInstallBanner } from "@/components/pwa/InstaladorInstallBanner";
  import Footer from "@/components/layout/Footer";
  
  export default function Instalador() {
@@ -32,16 +33,45 @@
    const [targetInstaladorId, setTargetInstaladorId] = useState<string | null>(null);
    const [instaladorName, setInstaladorName] = useState<string | null>(null);
  
-   useEffect(() => {
-     if (!authLoading && !user) {
-       navigate("/auth?from=instalador", { replace: true });
-       return;
-     }
- 
-    if (user && !accessChecked) {
-       checkAccess();
-     }
-  }, [user, authLoading, navigate, accessChecked]);
+    // Swap manifest to dedicated instalador manifest
+    useEffect(() => {
+      const existing = document.querySelector('link[rel="manifest"]');
+      const originalHref = existing?.getAttribute("href") || "";
+
+      if (existing) {
+        existing.setAttribute("href", "/instalador-manifest.json");
+      } else {
+        const link = document.createElement("link");
+        link.rel = "manifest";
+        link.href = "/instalador-manifest.json";
+        document.head.appendChild(link);
+      }
+
+      // Update theme-color for instalador
+      let themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (!themeMeta) {
+        themeMeta = document.createElement("meta");
+        themeMeta.setAttribute("name", "theme-color");
+        document.head.appendChild(themeMeta);
+      }
+      themeMeta.setAttribute("content", "#f59e0b");
+
+      return () => {
+        const el = document.querySelector('link[rel="manifest"]');
+        if (el && originalHref) el.setAttribute("href", originalHref);
+      };
+    }, []);
+
+    useEffect(() => {
+      if (!authLoading && !user) {
+        navigate("/auth?from=instalador", { replace: true });
+        return;
+      }
+
+     if (user && !accessChecked) {
+        checkAccess();
+      }
+   }, [user, authLoading, navigate, accessChecked]);
  
    const checkAccess = async () => {
      if (!user) return;
@@ -227,12 +257,14 @@
            isAdminMode={isAdminMode}
          />
  
-         <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl space-y-6">
-           <InstaladorStatsCards
-             servicosHoje={servicosHoje.length}
-             servicosEmAndamento={servicos.filter(s => s.status === "em_andamento").length}
-             servicosConcluidos={servicos.filter(s => s.status === "concluido").length}
-           />
+          <InstaladorInstallBanner />
+
+          <main className="flex-1 container mx-auto px-4 py-6 max-w-4xl space-y-6">
+            <InstaladorStatsCards
+              servicosHoje={servicosHoje.length}
+              servicosEmAndamento={servicos.filter(s => s.status === "em_andamento").length}
+              servicosConcluidos={servicos.filter(s => s.status === "concluido").length}
+            />
  
            <Tabs value={view} onValueChange={(v) => setView(v as "lista" | "calendario")} className="space-y-6">
              <TabsList className="grid w-full grid-cols-2 h-11 p-1 bg-card shadow-sm border">
