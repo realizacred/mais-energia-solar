@@ -165,7 +165,7 @@ describe("signupSchema", () => {
       nome: "João Vendedor",
       email: "joao@empresa.com",
       password: "Senha123",
-      cargo: "vendedor",
+      cargo: "consultor",
     });
     expect(result.success).toBe(true);
   });
@@ -175,7 +175,7 @@ describe("signupSchema", () => {
       nome: "João",
       email: "joao@empresa.com",
       password: "senha123",
-      cargo: "vendedor",
+      cargo: "consultor",
     });
     expect(result.success).toBe(false);
   });
@@ -185,7 +185,7 @@ describe("signupSchema", () => {
       nome: "João",
       email: "joao@empresa.com",
       password: "Abc1",
-      cargo: "vendedor",
+      cargo: "consultor",
     });
     expect(result.success).toBe(false);
   });

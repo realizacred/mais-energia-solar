@@ -98,7 +98,7 @@ export const signupSchema = z.object({
   nome: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(100, "Nome muito longo"),
   email: z.string().email("Email inválido"),
   password: passwordSchema,
-  cargo: z.enum(["vendedor", "instalador"], { required_error: "Selecione um cargo" }),
+  cargo: z.enum(["consultor", "instalador"], { required_error: "Selecione um cargo" }),
 });
 
 export type SignupData = z.infer<typeof signupSchema>;
