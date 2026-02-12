@@ -47,6 +47,7 @@ export default function Auth() {
     if (redirectFrom) {
       const messages: Record<string, string> = {
         vendedor: "Faça login para acessar o Portal do Consultor",
+        consultor: "Faça login para acessar o Portal do Consultor",
         admin: "Faça login para acessar o Painel Administrativo",
       };
       toast({
@@ -124,7 +125,7 @@ export default function Auth() {
 
           if (isVendedor && isAdmin && hasVendedorRecord) {
             if (savedPreference === "vendedor") {
-              navigate("/vendedor", { replace: true });
+              navigate("/consultor", { replace: true });
             } else if (savedPreference === "admin") {
               navigate("/admin", { replace: true });
             } else {
@@ -136,7 +137,7 @@ export default function Auth() {
           if (isInstalador && !isAdmin && !isVendedor) {
             navigate("/instalador", { replace: true });
           } else if (isVendedor && !isAdmin && hasVendedorRecord) {
-            navigate("/vendedor", { replace: true });
+            navigate("/consultor", { replace: true });
           } else if (isAdmin) {
             navigate("/admin", { replace: true });
           }

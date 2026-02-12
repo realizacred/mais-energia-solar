@@ -63,7 +63,7 @@ export function PortalSwitcher() {
   const [showVendedorDialog, setShowVendedorDialog] = useState(false);
   const [showInstaladorDialog, setShowInstaladorDialog] = useState(false);
 
-  const currentPortal = location.pathname.startsWith("/vendedor") 
+  const currentPortal = (location.pathname.startsWith("/consultor") || location.pathname.startsWith("/vendedor"))
     ? "vendedor" 
     : location.pathname.startsWith("/instalador") || location.pathname.startsWith("/checklist")
     ? "instalador"
@@ -166,14 +166,14 @@ export function PortalSwitcher() {
       setShowVendedorDialog(true);
     } else {
       // User is a vendedor (non-admin), go to their portal
-      navigate("/vendedor");
+      navigate("/consultor");
     }
   };
 
   const handleSelectVendedor = (codigo: string) => {
     setShowVendedorDialog(false);
     // Navigate to vendor portal with admin mode (viewing as specific vendor)
-    navigate(`/vendedor?as=${codigo}`);
+    navigate(`/consultor?as=${codigo}`);
   };
 
   const handleResetPreference = () => {

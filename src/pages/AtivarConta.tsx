@@ -147,7 +147,7 @@ export default function AtivarConta() {
       // Redirect to vendor portal after brief delay
       setTimeout(() => {
         if (data?.auto_login) {
-          navigate("/vendedor", { replace: true });
+          navigate("/consultor", { replace: true });
         } else {
           navigate("/auth", { replace: true });
         }

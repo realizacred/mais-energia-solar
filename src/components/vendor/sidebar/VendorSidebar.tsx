@@ -62,7 +62,7 @@ function VendorSidebarItem({
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
-        onClick={() => navigate(`/vendedor/${item.id}${asParam ? `?as=${asParam}` : ""}`)}
+        onClick={() => navigate(`/consultor/${item.id}${asParam ? `?as=${asParam}` : ""}`)}
         isActive={isActive}
         tooltip={
           item.description

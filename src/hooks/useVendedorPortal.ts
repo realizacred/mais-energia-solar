@@ -104,7 +104,7 @@ const ADMIN_PROFILE: VendedorProfile = {
    // Load vendedor profile
    useEffect(() => {
      if (!user) {
-       navigate("/auth?from=vendedor", { replace: true });
+       navigate("/auth?from=consultor", { replace: true });
        return;
      }
  

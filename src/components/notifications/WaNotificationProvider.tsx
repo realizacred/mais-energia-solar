@@ -32,7 +32,7 @@ export function WaNotificationProvider() {
   // by looking at the URL path
   useEffect(() => {
     const isAdmin = location.pathname === "/admin";
-    const isVendedor = location.pathname === "/vendedor";
+    const isVendedor = location.pathname.startsWith("/consultor") || location.pathname.startsWith("/vendedor");
     // We can't easily detect the active tab from URL, so we'll use a global flag
     // that the inbox components set
     const onInbox = document.querySelector("[data-wa-inbox-active]") !== null;

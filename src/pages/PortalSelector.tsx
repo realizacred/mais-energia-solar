@@ -94,7 +94,7 @@ export default function PortalSelector() {
         if (canAccessAdmin) {
           navigate("/admin", { replace: true });
         } else if (canAccessVendor) {
-          navigate("/vendedor", { replace: true });
+          navigate("/consultor", { replace: true });
         } else if (canAccessInstaller) {
           navigate("/instalador", { replace: true });
         }
@@ -104,7 +104,7 @@ export default function PortalSelector() {
       // If saved preference exists and valid, redirect
       if (savedPreference) {
         if (savedPreference === "vendedor" && canAccessVendor) {
-          navigate("/vendedor", { replace: true });
+          navigate("/consultor", { replace: true });
           return;
         }
         if (savedPreference === "admin" && canAccessAdmin) {

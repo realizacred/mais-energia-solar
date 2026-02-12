@@ -90,6 +90,8 @@ const App = () => (
               <Route path="/portal" element={<PortalSelector />} />
               <Route path="/admin/*" element={<Admin />} />
               <Route path="/super-admin" element={<SuperAdmin />} />
+              <Route path="/consultor/*" element={<VendedorPortal />} />
+              {/* Redirect legado para não quebrar links antigos */}
               <Route path="/vendedor/*" element={<VendedorPortal />} />
               <Route path="/calculadora" element={<Calculadora />} />
               <Route path="/checklist" element={<Checklist />} />

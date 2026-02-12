@@ -66,7 +66,7 @@ export default function Instalar() {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button asChild className="w-full">
-                <a href="/vendedor">Acessar Portal do Consultor</a>
+                <a href="/consultor">Acessar Portal do Consultor</a>
               </Button>
               <Button variant="outline" asChild className="w-full">
                 <a href="/checklist">Acessar Checklist</a>
@@ -102,7 +102,7 @@ export default function Instalar() {
 
             {/* Skip Link */}
             <p className="text-center text-sm text-muted-foreground mt-6">
-              <a href="/vendedor" className="hover:text-primary underline underline-offset-4">
+              <a href="/consultor" className="hover:text-primary underline underline-offset-4">
                 Continuar no navegador →
               </a>
             </p>
