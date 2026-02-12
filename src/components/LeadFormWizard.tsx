@@ -229,7 +229,10 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const dynamicResolver = useCallback(
     (values: any, context: any, options: any) => {
       const step = currentStepRef.current;
-      const schema = step === 1 ? step1Schema : step === 2 ? step2Schema : step3Schema;
+      // CRITICAL: Step 3 must use the FULL schema so all fields (cidade, estado, etc.)
+      // are included in the validated data passed to onSubmit. Using step3Schema would
+      // cause Zod to strip fields from other steps, resulting in undefined values.
+      const schema = step === 1 ? step1Schema : step === 2 ? step2Schema : leadFormSchema;
       return zodResolver(schema)(values, context, options);
     },
     []
@@ -738,18 +741,18 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     }
   };
 
-  // Helper to build orcamento payload from form data
+  // Helper to build orcamento payload from form data (defensive: all .trim() calls are null-safe)
   const buildOrcamentoData = (data: LeadFormData, urls: string[]) => ({
     cep: data.cep?.trim() || null,
-    estado: data.estado,
-    cidade: data.cidade.trim(),
+    estado: data.estado || "",
+    cidade: (data.cidade || "").trim(),
     rua: data.rua?.trim() || null,
     numero: data.numero?.trim() || null,
     bairro: data.bairro?.trim() || null,
     complemento: data.complemento?.trim() || null,
-    area: data.area,
-    tipo_telhado: data.tipo_telhado,
-    rede_atendimento: data.rede_atendimento,
+    area: data.area || "",
+    tipo_telhado: data.tipo_telhado || "",
+    rede_atendimento: data.rede_atendimento || "",
     media_consumo: data.media_consumo,
     consumo_previsto: data.consumo_previsto,
     observacoes: data.observacoes?.trim() || null,
@@ -892,20 +895,20 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
         }
 
         const payload: Record<string, unknown> = {
-          nome: data.nome.trim(),
-          telefone: data.telefone.trim(),
+          nome: (data.nome || "").trim(),
+          telefone: (data.telefone || "").trim(),
           vendedor_codigo: vendedorCodigo || undefined,
           vendedor_id: vendedorId || undefined,
           cep: data.cep?.trim() || null,
-          estado: data.estado,
-          cidade: data.cidade.trim(),
+          estado: data.estado || "",
+          cidade: (data.cidade || "").trim(),
           rua: data.rua?.trim() || null,
           numero: data.numero?.trim() || null,
           bairro: data.bairro?.trim() || null,
           complemento: data.complemento?.trim() || null,
-          area: data.area,
-          tipo_telhado: data.tipo_telhado,
-          rede_atendimento: data.rede_atendimento,
+          area: data.area || "",
+          tipo_telhado: data.tipo_telhado || "",
+          rede_atendimento: data.rede_atendimento || "",
           media_consumo: data.media_consumo,
           consumo_previsto: data.consumo_previsto,
           observacoes: data.observacoes?.trim() || null,
