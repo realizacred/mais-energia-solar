@@ -13,12 +13,13 @@ const DISMISS_DAYS = 7;
  */
 export function PushActivationBanner() {
   const { user } = useAuth();
-  const { isSupported, permission, isSubscribed, isLoading, subscribe } =
+  const { isSupported, permission, isSubscribed, isLoading, isReady, subscribe } =
     useWebPushSubscription();
   const [dismissed, setDismissed] = useState(true); // start hidden
 
   useEffect(() => {
-    if (!user || !isSupported) return;
+    // Wait until the hook has finished its async check
+    if (!user || !isReady || !isSupported) return;
 
     // Already subscribed, permission granted, or denied — don't show
     if (isSubscribed || permission === "granted" || permission === "denied") {
@@ -38,7 +39,7 @@ export function PushActivationBanner() {
     }
 
     setDismissed(false);
-  }, [user, isSupported, isSubscribed, permission]);
+  }, [user, isReady, isSupported, isSubscribed, permission]);
 
   const handleDismiss = () => {
     localStorage.setItem(DISMISS_KEY, Date.now().toString());
