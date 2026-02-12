@@ -35,13 +35,37 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── Load AI settings per tenant for cooldown + confidence ──
+    const tenantIds = [...new Set(rules.map((r: any) => r.tenant_id))];
+    const aiSettingsMap = new Map<string, any>();
+    for (const tid of tenantIds) {
+      const { data: settings } = await supabase
+        .from("wa_ai_settings")
+        .select("modo, modelo_preferido, temperature, max_tokens, followup_cooldown_hours, followup_confidence_threshold")
+        .eq("tenant_id", tid)
+        .maybeSingle();
+      aiSettingsMap.set(tid, settings || {
+        modo: "assistido",
+        followup_cooldown_hours: 4,
+        followup_confidence_threshold: 60,
+        modelo_preferido: "gpt-4o-mini",
+        temperature: 0.5,
+      });
+    }
+
     let totalCreated = 0;
     let totalSent = 0;
+    let totalBlocked = 0;
 
     for (const rule of rules) {
-      const result = await processRule(supabase, rule);
+      const aiSettings = aiSettingsMap.get(rule.tenant_id);
+      // If AI mode is disabled, skip all follow-up processing for this tenant
+      if (aiSettings?.modo === "desativado") continue;
+
+      const result = await processRule(supabase, rule, aiSettings);
       totalCreated += result.created;
       totalSent += result.sent;
+      totalBlocked += result.blocked;
     }
 
     // ── Trigger outbox if messages were sent ──
@@ -54,6 +78,7 @@ Deno.serve(async (req) => {
         success: true,
         created: totalCreated,
         sent: totalSent,
+        blocked: totalBlocked,
         reconciled,
         rules_processed: rules.length,
       }),
@@ -69,13 +94,15 @@ Deno.serve(async (req) => {
 });
 
 // ─────────────────────────────────────────────────────
-// Process a single rule
+// Process a single rule with cooldown + AI gate
 // ─────────────────────────────────────────────────────
 async function processRule(
   supabase: any,
-  rule: any
-): Promise<{ created: number; sent: number }> {
+  rule: any,
+  aiSettings: any
+): Promise<{ created: number; sent: number; blocked: number }> {
   const statusFilter = rule.status_conversa || ["open"];
+  const cooldownHours = aiSettings?.followup_cooldown_hours ?? 4;
   const cutoffDate = new Date(
     Date.now() - rule.prazo_minutos * 60 * 1000
   ).toISOString();
@@ -90,9 +117,9 @@ async function processRule(
 
   if (convError) {
     console.error(`Error fetching convs for rule ${rule.id}:`, convError);
-    return { created: 0, sent: 0 };
+    return { created: 0, sent: 0, blocked: 0 };
   }
-  if (!conversations || conversations.length === 0) return { created: 0, sent: 0 };
+  if (!conversations || conversations.length === 0) return { created: 0, sent: 0, blocked: 0 };
 
   const convIds = conversations.map((c: any) => c.id);
 
@@ -143,7 +170,6 @@ async function processRule(
       .select("id, owner_user_id")
       .in("id", instanceIds);
 
-    // Also fetch junction table links
     const { data: instanceVendedores } = await supabase
       .from("wa_instance_consultores")
       .select("instance_id, consultor_id, consultores:consultor_id(user_id)")
@@ -151,7 +177,6 @@ async function processRule(
 
     if (instances) {
       for (const inst of instances) {
-        // Priority: owner_user_id > first linked vendedor's user_id
         let userId = inst.owner_user_id || null;
         if (!userId && instanceVendedores) {
           const link = instanceVendedores.find((iv: any) => iv.instance_id === inst.id);
@@ -162,11 +187,22 @@ async function processRule(
     }
   }
 
+  // ── COOLDOWN CHECK: filter out conversations with recent activity ──
+  const cooldownCutoff = new Date(Date.now() - cooldownHours * 60 * 60 * 1000).toISOString();
+  const eligibleConversations = conversations.filter((conv: any) => {
+    // If last message is MORE RECENT than cooldown cutoff, BLOCK
+    if (conv.last_message_at && conv.last_message_at > cooldownCutoff) {
+      return false; // Too recent — cooldown active
+    }
+    return true;
+  });
+
   // ── Build insert list ──
   const toInsert: any[] = [];
-  const autoSendList: { conv: any; attempt: number }[] = [];
+  const autoSendCandidates: { conv: any; attempt: number }[] = [];
+  let blocked = 0;
 
-  for (const conv of conversations) {
+  for (const conv of eligibleConversations) {
     // Scenario-specific direction check
     if (rule.cenario === "equipe_sem_resposta") {
       const lastDir = lastMsgMap.get(conv.id);
@@ -181,7 +217,6 @@ async function processRule(
     const pastAttempts = attemptCountMap.get(conv.id) || 0;
     if (pastAttempts >= rule.max_tentativas) continue;
 
-    // Resolve the responsible user
     const resolvedAssignedTo =
       conv.assigned_to || instanceOwnerMap.get(conv.instance_id) || null;
 
@@ -197,9 +232,12 @@ async function processRule(
     });
 
     if (rule.envio_automatico && rule.mensagem_template) {
-      autoSendList.push({ conv, attempt });
+      autoSendCandidates.push({ conv, attempt });
     }
   }
+
+  // Count blocked by cooldown
+  blocked = conversations.length - eligibleConversations.length;
 
   // ── Batch insert ──
   if (toInsert.length > 0) {
@@ -209,27 +247,64 @@ async function processRule(
 
     if (insertError) {
       console.error(`Error inserting followups for rule ${rule.id}:`, insertError);
-      return { created: 0, sent: 0 };
+      return { created: 0, sent: 0, blocked };
     }
   }
 
-  // ── Auto-send messages ──
+  // ── AI Gate for auto-send ──
   let sent = 0;
-  for (const { conv } of autoSendList) {
-    const message = rule.mensagem_template!
-      .replace(/\{nome\}/g, conv.cliente_nome || "")
-      .replace(/\{vendedor\}/g, "");
+  const confidenceThreshold = aiSettings?.followup_confidence_threshold ?? 60;
 
+  for (const { conv } of autoSendCandidates) {
+    const baseMessage = rule.mensagem_template!
+      .replace(/\{nome\}/g, conv.cliente_nome || "")
+      .replace(/\{vendedor\}/g, "")
+      .replace(/\{consultor\}/g, "");
+
+    // ── AI GATE: Validate if follow-up makes sense ──
+    let finalMessage = baseMessage;
+    let shouldSend = true;
+
+    // Only call AI gate if tenant has OpenAI configured and mode is not "desativado"
+    if (aiSettings?.modo !== "desativado") {
+      const gateResult = await aiGateCheck(supabase, conv, baseMessage, rule, aiSettings);
+      
+      if (gateResult.confidence < confidenceThreshold) {
+        // Below threshold → save as suggestion only, don't send
+        console.log(`[followup-gate] Blocked for conv ${conv.id}: confidence=${gateResult.confidence}, threshold=${confidenceThreshold}`);
+        
+        await supabase
+          .from("wa_followup_queue")
+          .update({
+            status: "bloqueado_ia",
+            mensagem_enviada: `[IA bloqueou: ${gateResult.reason}] ${gateResult.adjustedMessage || baseMessage}`,
+          })
+          .eq("conversation_id", conv.id)
+          .eq("rule_id", rule.id)
+          .eq("status", "pendente");
+        
+        blocked++;
+        continue;
+      }
+
+      // AI approved — use adjusted message if provided
+      if (gateResult.adjustedMessage) {
+        finalMessage = gateResult.adjustedMessage;
+      }
+    }
+
+    // ── Send the message ──
     const { data: msg } = await supabase
       .from("wa_messages")
       .insert({
         conversation_id: conv.id,
         direction: "out",
         message_type: "text",
-        content: message,
+        content: finalMessage,
         is_internal_note: false,
         status: "pending",
         tenant_id: rule.tenant_id,
+        source: "followup",
       })
       .select()
       .single();
@@ -241,7 +316,7 @@ async function processRule(
         message_id: msg.id,
         remote_jid: conv.remote_jid,
         message_type: "text",
-        content: message,
+        content: finalMessage,
         status: "pending",
         tenant_id: rule.tenant_id,
       });
@@ -251,7 +326,7 @@ async function processRule(
         .update({
           status: "enviado",
           sent_at: new Date().toISOString(),
-          mensagem_enviada: message,
+          mensagem_enviada: finalMessage,
         })
         .eq("conversation_id", conv.id)
         .eq("rule_id", rule.id)
@@ -261,7 +336,139 @@ async function processRule(
     }
   }
 
-  return { created: toInsert.length, sent };
+  return { created: toInsert.length, sent, blocked };
+}
+
+// ─────────────────────────────────────────────────────
+// AI Gate: Validate follow-up context before sending
+// Returns confidence (0-100) and optionally adjusted message
+// ─────────────────────────────────────────────────────
+async function aiGateCheck(
+  supabase: any,
+  conv: any,
+  proposedMessage: string,
+  rule: any,
+  aiSettings: any
+): Promise<{ confidence: number; reason: string; adjustedMessage?: string }> {
+  try {
+    // Get OpenAI key for this tenant
+    const { data: keyRow } = await supabase
+      .from("integration_configs")
+      .select("api_key")
+      .eq("tenant_id", conv.tenant_id)
+      .eq("service_key", "openai")
+      .eq("is_active", true)
+      .single();
+
+    if (!keyRow?.api_key) {
+      // No AI key → allow with default confidence
+      return { confidence: 75, reason: "Sem chave OpenAI configurada — envio padrão" };
+    }
+
+    // Get last 10 messages for context
+    const { data: messages = [] } = await supabase
+      .from("wa_messages")
+      .select("direction, content, created_at, source")
+      .eq("conversation_id", conv.id)
+      .eq("is_internal_note", false)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const chatHistory = messages
+      .reverse()
+      .map((m: any) => `[${m.direction === "in" ? "cliente" : "consultor"}${m.source !== "human" ? ` (${m.source})` : ""}]: ${m.content || "(mídia)"}`)
+      .join("\n");
+
+    const lastMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+    const lastMsgDir = lastMsg?.direction || "unknown";
+    const hoursSinceLast = lastMsg
+      ? Math.round((Date.now() - new Date(lastMsg.created_at).getTime()) / (1000 * 60 * 60))
+      : null;
+
+    const systemPrompt = `Você é um auditor de follow-up para energia solar. Analise o contexto e decida se o follow-up proposto é adequado.
+
+Retorne APENAS um JSON:
+{
+  "confidence": 0-100,
+  "reason": "justificativa curta",
+  "adjusted_message": "mensagem ajustada (ou null se a original está boa)"
+}
+
+REGRAS DE BLOQUEIO (confidence < 30):
+- Se o cliente acabou de responder e está aguardando resposta humana
+- Se a conversa parece encerrada naturalmente (cliente recusou, desistiu)
+- Se já foram enviados muitos follow-ups automáticos consecutivos
+- Se o tom do cliente indica irritação com mensagens anteriores
+
+REGRAS DE CAUTELA (confidence 30-70):
+- Se o contexto é ambíguo
+- Se o cliente não respondeu mas a mensagem proposta é genérica demais
+- Se seria melhor esperar mais tempo
+
+REGRAS DE APROVAÇÃO (confidence > 70):
+- Se o cliente demonstrou interesse mas não finalizou
+- Se há proposta pendente sem retorno
+- Se o timing é adequado`;
+
+    const userPrompt = `CONTEXTO:
+- Cliente: ${conv.cliente_nome || "Desconhecido"}
+- Última mensagem: ${lastMsgDir === "in" ? "do cliente" : "do consultor"} há ${hoursSinceLast ?? "?"} horas
+- Cenário da regra: ${rule.cenario}
+- Tentativa: ${rule.max_tentativas}
+
+HISTÓRICO:
+${chatHistory || "(sem mensagens)"}
+
+MENSAGEM PROPOSTA:
+${proposedMessage}
+
+Avalie e retorne o JSON.`;
+
+    const model = aiSettings?.modelo_preferido || "gpt-4o-mini";
+    const temperature = aiSettings?.temperature ?? 0.3;
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${keyRow.api_key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: 300,
+        temperature,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`[ai-gate] OpenAI error: ${response.status}`);
+      // On API failure, allow with moderate confidence
+      return { confidence: 65, reason: "Erro na API — envio com cautela" };
+    }
+
+    const data = await response.json();
+    const raw = data.choices?.[0]?.message?.content?.trim();
+    if (!raw) return { confidence: 65, reason: "Resposta vazia da IA" };
+
+    try {
+      const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+      const parsed = JSON.parse(cleaned);
+      return {
+        confidence: Math.min(100, Math.max(0, parsed.confidence || 50)),
+        reason: parsed.reason || "Sem justificativa",
+        adjustedMessage: parsed.adjusted_message || undefined,
+      };
+    } catch {
+      return { confidence: 60, reason: "Resposta da IA não parseável" };
+    }
+  } catch (err: any) {
+    console.error("[ai-gate] Error:", err.message);
+    return { confidence: 65, reason: `Erro: ${err.message}` };
+  }
 }
 
 // ─────────────────────────────────────────────────────
@@ -272,7 +479,6 @@ async function reconcilePendingFollowups(
   supabase: any,
   now: string
 ): Promise<number> {
-  // Get all pending/sent follow-ups WITH rule cenario
   const { data: pendingFollowups } = await supabase
     .from("wa_followup_queue")
     .select("id, conversation_id, created_at, rule_id, rule:wa_followup_rules(cenario)")
@@ -282,7 +488,6 @@ async function reconcilePendingFollowups(
 
   const pendingConvIds = [...new Set(pendingFollowups.map((fu: any) => fu.conversation_id))];
 
-  // Get recent messages (both directions) for all pending conversations
   const { data: recentMessages } = await supabase
     .from("wa_messages")
     .select("conversation_id, created_at, direction")
@@ -292,7 +497,6 @@ async function reconcilePendingFollowups(
 
   if (!recentMessages) return 0;
 
-  // Build maps: conversation_id -> latest message date per direction
   const latestIncoming = new Map<string, string>();
   const latestOutgoing = new Map<string, string>();
   for (const msg of recentMessages) {
@@ -308,7 +512,6 @@ async function reconcilePendingFollowups(
   for (const fu of pendingFollowups) {
     const cenario = (fu.rule as any)?.cenario;
 
-    // For "equipe_sem_resposta": resolved when team sends a message
     if (cenario === "equipe_sem_resposta") {
       const latestOut = latestOutgoing.get(fu.conversation_id);
       if (latestOut && latestOut > fu.created_at) {
@@ -317,7 +520,6 @@ async function reconcilePendingFollowups(
       }
     }
 
-    // For all scenarios: resolved when client responds
     const latestIn = latestIncoming.get(fu.conversation_id);
     if (latestIn && latestIn > fu.created_at) {
       toMarkResponded.push(fu.id);
