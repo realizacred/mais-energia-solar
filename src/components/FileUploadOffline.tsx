@@ -168,7 +168,14 @@ export default function FileUploadOffline({
   };
 
   const handleCameraCapture = () => {
-    cameraInputRef.current?.click();
+    // On iOS Safari, using a separate input with capture="environment" can fail silently.
+    // Instead, we use the same input with accept="image/*" which triggers iOS's native
+    // "Take Photo or Choose from Library" action sheet.
+    if (cameraInputRef.current) {
+      // Reset value to allow re-selecting the same file
+      cameraInputRef.current.value = '';
+      cameraInputRef.current.click();
+    }
   };
 
   return (
@@ -243,7 +250,7 @@ export default function FileUploadOffline({
           </>
         )}
         
-        {/* Input para galeria/arquivos */}
+        {/* Input para galeria/arquivos (PDF, imagens) */}
         <input
           ref={fileInputRef}
           type="file"
@@ -253,12 +260,11 @@ export default function FileUploadOffline({
           className="sr-only"
         />
         
-        {/* Input para câmera (mobile) */}
+        {/* Input para câmera (mobile) — NO capture attribute for iOS compatibility */}
         <input
           ref={cameraInputRef}
           type="file"
-          accept="image/*"
-          capture="environment"
+          accept="image/jpeg,image/png,image/*"
           onChange={handleInputChange}
           className="sr-only"
         />
