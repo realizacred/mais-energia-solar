@@ -58,7 +58,7 @@ interface InstanceHealth {
   last_webhook_at: string | null;
   last_send_ok_at: string | null;
   outbox_pending_count: number;
-  vendedores: { id: string; nome: string; codigo: string }[];
+  consultores: { id: string; nome: string; codigo: string }[];
 }
 
 interface IntegrationMeta {
@@ -323,13 +323,13 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
       )}
 
       {/* Vendedores linked */}
-      {health.vendedores.length > 0 && (
+      {health.consultores.length > 0 && (
         <div className="pt-2 border-t border-border/50">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
             <Users className="h-3 w-3" /> Consultores vinculados
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {health.vendedores.map((v) => (
+            {health.consultores.map((v) => (
               <Badge
                 key={v.id}
                 variant="outline"
@@ -344,7 +344,7 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
               </Badge>
             ))}
           </div>
-          {!health.ok && health.vendedores.length > 0 && (
+          {!health.ok && health.consultores.length > 0 && (
             <p className="text-[10px] text-destructive mt-1.5">
               ⚠ Estes consultores estão sem capacidade de envio/recebimento nesta instância.
             </p>
@@ -407,7 +407,7 @@ export function IntegrationStatusPage() {
   const whatsappResult = results.find((r) => r.id === "whatsapp");
   const otherResults = results.filter((r) => r.id !== "whatsapp");
   const offlineInstances = instanceHealth.filter((h) => !h.ok);
-  const offlineVendedores = offlineInstances.flatMap((h) => h.vendedores);
+  const offlineVendedores = offlineInstances.flatMap((h) => h.consultores);
 
   return (
     <div className="space-y-6">

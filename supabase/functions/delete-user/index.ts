@@ -129,14 +129,14 @@ Deno.serve(async (req) => {
       // Continue anyway
     }
 
-    // Delete vendedor link if exists
-    const { error: vendedorUpdateError } = await adminClient
-      .from("vendedores")
+    // Delete consultor link if exists
+    const { error: consultorUpdateError } = await adminClient
+      .from("consultores")
       .update({ user_id: null })
       .eq("user_id", user_id);
 
-    if (vendedorUpdateError) {
-      console.error("Error unlinking vendedor:", vendedorUpdateError.message);
+    if (consultorUpdateError) {
+      console.error("Error unlinking consultor:", consultorUpdateError.message);
       // Continue anyway
     }
 

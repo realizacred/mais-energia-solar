@@ -58,7 +58,7 @@ export function useWaInstances() {
       evolution_instance_key: string;
       evolution_api_url: string;
       owner_user_id?: string;
-      vendedor_id?: string;
+      consultor_id?: string;
     }) => {
       const { data, error } = await supabase
         .from("wa_instances")

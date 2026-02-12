@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     // ── FETCH LEAD (validate + idempotency) ──
     const { data: lead, error: leadErr } = await supabaseAdmin
       .from("leads")
-      .select("id, nome, telefone, vendedor_id, tenant_id, wa_welcome_sent")
+      .select("id, nome, telefone, consultor_id, tenant_id, wa_welcome_sent")
       .eq("id", lead_id)
       .maybeSingle();
 
@@ -79,10 +79,10 @@ Deno.serve(async (req) => {
     // Track if this is a subsequent orcamento (welcome already sent)
     const isNewOrcamento = lead.wa_welcome_sent === true;
 
-    if (!lead.vendedor_id) {
-      console.warn(`[send-wa-welcome] Lead ${lead_id} has no vendedor_id`);
+    if (!lead.consultor_id) {
+      console.warn(`[send-wa-welcome] Lead ${lead_id} has no consultor_id`);
       return new Response(
-        JSON.stringify({ success: false, error: "Lead sem vendedor associado" }),
+        JSON.stringify({ success: false, error: "Lead sem consultor associado" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -95,24 +95,24 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── VENDEDOR SETTINGS ──
+    // ── CONSULTOR SETTINGS ──
     const { data: vendedor } = await supabaseAdmin
-      .from("vendedores")
+      .from("consultores")
       .select("id, nome, settings, user_id")
-      .eq("id", lead.vendedor_id)
+      .eq("id", lead.consultor_id)
       .maybeSingle();
 
     if (!vendedor) {
-      console.warn(`[send-wa-welcome] Vendedor ${lead.vendedor_id} not found`);
+      console.warn(`[send-wa-welcome] Consultor ${lead.consultor_id} not found`);
       return new Response(
-        JSON.stringify({ success: false, error: "Vendedor não encontrado" }),
+        JSON.stringify({ success: false, error: "Consultor não encontrado" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const settings = (vendedor.settings as Record<string, unknown>) || {};
     if (settings.wa_auto_message_enabled === false) {
-      console.log(`[send-wa-welcome] Auto-message disabled for vendedor=${vendedor.id}`);
+      console.log(`[send-wa-welcome] Auto-message disabled for consultor=${vendedor.id}`);
       return new Response(
         JSON.stringify({ success: true, skipped: true, reason: "auto_message_disabled" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

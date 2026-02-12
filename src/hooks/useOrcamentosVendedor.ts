@@ -47,7 +47,7 @@ const VENDEDOR_PAGE_SIZE = 25;
 const ORC_SELECT = `
   id, orc_code, lead_id, cep, estado, cidade, bairro, rua, numero, complemento,
   area, tipo_telhado, rede_atendimento, media_consumo, consumo_previsto,
-  observacoes, arquivos_urls, vendedor, vendedor_id, visto, visto_admin,
+  observacoes, arquivos_urls, consultor, consultor_id, visto, visto_admin,
   status_id, ultimo_contato, proxima_acao, data_proxima_acao, created_at, updated_at,
   leads!inner (id, lead_code, nome, telefone, telefone_normalized)
 `;

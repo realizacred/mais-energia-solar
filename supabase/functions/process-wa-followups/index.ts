@@ -145,8 +145,8 @@ async function processRule(
 
     // Also fetch junction table links
     const { data: instanceVendedores } = await supabase
-      .from("wa_instance_vendedores")
-      .select("instance_id, vendedor_id, vendedores:vendedor_id(user_id)")
+      .from("wa_instance_consultores")
+      .select("instance_id, consultor_id, consultores:consultor_id(user_id)")
       .in("instance_id", instanceIds);
 
     if (instances) {
@@ -155,7 +155,7 @@ async function processRule(
         let userId = inst.owner_user_id || null;
         if (!userId && instanceVendedores) {
           const link = instanceVendedores.find((iv: any) => iv.instance_id === inst.id);
-          userId = (link?.vendedores as any)?.user_id || null;
+          userId = (link?.consultores as any)?.user_id || null;
         }
         if (userId) instanceOwnerMap.set(inst.id, userId);
       }

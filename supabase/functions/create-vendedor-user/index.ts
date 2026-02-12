@@ -10,7 +10,7 @@ interface CreateUserRequest {
   email: string;
   password: string;
   nome: string;
-  role?: "admin" | "gerente" | "vendedor" | "instalador" | "financeiro";
+  role?: "admin" | "gerente" | "consultor" | "instalador" | "financeiro";
 }
 
 Deno.serve(async (req) => {
@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
     console.log("Resolved tenant_id:", tenantId);
 
     // Parse request body
-    const { email, password, nome, role = "vendedor" }: CreateUserRequest = await req.json();
+    const { email, password, nome, role = "consultor" }: CreateUserRequest = await req.json();
 
     if (!email || !password || !nome) {
       return new Response(
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
     }
 
     // Validate role
-    const validRoles = ["admin", "gerente", "vendedor", "instalador", "financeiro"];
+    const validRoles = ["admin", "gerente", "consultor", "instalador", "financeiro"];
     if (!validRoles.includes(role)) {
       return new Response(
         JSON.stringify({ error: `Invalid role: ${role}` }),
@@ -174,10 +174,10 @@ Deno.serve(async (req) => {
       console.error("Role assignment error:", roleAssignError.message);
     }
 
-    // If role is vendedor, auto-create vendedores record linked to this user
-    if (role === "vendedor") {
-      const { error: vendedorError } = await adminClient
-        .from("vendedores")
+    // If role is consultor, auto-create consultores record linked to this user
+    if (role === "consultor") {
+      const { error: consultorError } = await adminClient
+        .from("consultores")
         .insert({
           nome,
           email,
@@ -186,10 +186,10 @@ Deno.serve(async (req) => {
           ativo: true,
         });
 
-      if (vendedorError) {
-        console.error("Vendedor record creation error:", vendedorError.message);
+      if (consultorError) {
+        console.error("Consultor record creation error:", consultorError.message);
       } else {
-        console.log("Vendedor record auto-created for user:", newUser.user.id);
+        console.log("Consultor record auto-created for user:", newUser.user.id);
       }
     }
 
