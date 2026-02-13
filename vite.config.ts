@@ -55,21 +55,21 @@ export default defineConfig(({ mode }) => ({
         ],
         screenshots: [
           {
-            src: "temp-menu-screenshot.png",
+            src: "pwa-screenshot-menu.png",
             sizes: "1080x1920",
             type: "image/png",
             form_factor: "narrow",
             label: "Portal do Vendedor",
           },
           {
-            src: "temp-calc-screenshot.png",
+            src: "pwa-screenshot-calc.png",
             sizes: "1080x1920",
             type: "image/png",
             form_factor: "narrow",
             label: "Calculadora Solar",
           },
           {
-            src: "temp-menu-screenshot.png",
+            src: "pwa-screenshot-menu.png",
             sizes: "1920x1080",
             type: "image/png",
             form_factor: "wide",
