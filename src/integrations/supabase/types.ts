@@ -2492,6 +2492,86 @@ export type Database = {
           },
         ]
       }
+      inversores_catalogo: {
+        Row: {
+          ativo: boolean
+          corrente_entrada_max_a: number | null
+          created_at: string
+          dimensoes_mm: string | null
+          eficiencia_max_percent: number | null
+          fabricante: string
+          fases: string
+          garantia_anos: number | null
+          id: string
+          ip_protection: string | null
+          modelo: string
+          mppt_count: number | null
+          peso_kg: number | null
+          potencia_nominal_kw: number
+          strings_por_mppt: number | null
+          tenant_id: string | null
+          tensao_entrada_max_v: number | null
+          tensao_saida_v: number | null
+          tipo: string
+          updated_at: string
+          wifi_integrado: boolean | null
+        }
+        Insert: {
+          ativo?: boolean
+          corrente_entrada_max_a?: number | null
+          created_at?: string
+          dimensoes_mm?: string | null
+          eficiencia_max_percent?: number | null
+          fabricante: string
+          fases?: string
+          garantia_anos?: number | null
+          id?: string
+          ip_protection?: string | null
+          modelo: string
+          mppt_count?: number | null
+          peso_kg?: number | null
+          potencia_nominal_kw: number
+          strings_por_mppt?: number | null
+          tenant_id?: string | null
+          tensao_entrada_max_v?: number | null
+          tensao_saida_v?: number | null
+          tipo?: string
+          updated_at?: string
+          wifi_integrado?: boolean | null
+        }
+        Update: {
+          ativo?: boolean
+          corrente_entrada_max_a?: number | null
+          created_at?: string
+          dimensoes_mm?: string | null
+          eficiencia_max_percent?: number | null
+          fabricante?: string
+          fases?: string
+          garantia_anos?: number | null
+          id?: string
+          ip_protection?: string | null
+          modelo?: string
+          mppt_count?: number | null
+          peso_kg?: number | null
+          potencia_nominal_kw?: number
+          strings_por_mppt?: number | null
+          tenant_id?: string | null
+          tensao_entrada_max_v?: number | null
+          tensao_saida_v?: number | null
+          tipo?: string
+          updated_at?: string
+          wifi_integrado?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inversores_catalogo_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       irradiacao_por_estado: {
         Row: {
           created_at: string
@@ -3329,6 +3409,80 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "modulos_fotovoltaicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modulos_solares: {
+        Row: {
+          ativo: boolean
+          comprimento_mm: number | null
+          created_at: string
+          eficiencia_percent: number | null
+          fabricante: string
+          garantia_performance_anos: number | null
+          garantia_produto_anos: number | null
+          id: string
+          imp_a: number | null
+          isc_a: number | null
+          largura_mm: number | null
+          modelo: string
+          peso_kg: number | null
+          potencia_wp: number
+          tenant_id: string | null
+          tipo_celula: string
+          updated_at: string
+          vmp_v: number | null
+          voc_v: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          comprimento_mm?: number | null
+          created_at?: string
+          eficiencia_percent?: number | null
+          fabricante: string
+          garantia_performance_anos?: number | null
+          garantia_produto_anos?: number | null
+          id?: string
+          imp_a?: number | null
+          isc_a?: number | null
+          largura_mm?: number | null
+          modelo: string
+          peso_kg?: number | null
+          potencia_wp: number
+          tenant_id?: string | null
+          tipo_celula?: string
+          updated_at?: string
+          vmp_v?: number | null
+          voc_v?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          comprimento_mm?: number | null
+          created_at?: string
+          eficiencia_percent?: number | null
+          fabricante?: string
+          garantia_performance_anos?: number | null
+          garantia_produto_anos?: number | null
+          id?: string
+          imp_a?: number | null
+          isc_a?: number | null
+          largura_mm?: number | null
+          modelo?: string
+          peso_kg?: number | null
+          potencia_wp?: number
+          tenant_id?: string | null
+          tipo_celula?: string
+          updated_at?: string
+          vmp_v?: number | null
+          voc_v?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "modulos_solares_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
