@@ -3157,6 +3157,7 @@ export type Database = {
           ai_timeout_ms: number
           created_at: string
           id: string
+          loader_theme: string
           messages_catalog: Json
           overlay_delay_ms: number
           overlay_min_duration_ms: number
@@ -3173,6 +3174,7 @@ export type Database = {
           ai_timeout_ms?: number
           created_at?: string
           id?: string
+          loader_theme?: string
           messages_catalog?: Json
           overlay_delay_ms?: number
           overlay_min_duration_ms?: number
@@ -3189,6 +3191,7 @@ export type Database = {
           ai_timeout_ms?: number
           created_at?: string
           id?: string
+          loader_theme?: string
           messages_catalog?: Json
           overlay_delay_ms?: number
           overlay_min_duration_ms?: number
