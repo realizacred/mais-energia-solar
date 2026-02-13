@@ -17,11 +17,11 @@
    const getRankIcon = (position: number) => {
      switch (position) {
        case 1:
-         return <Trophy className="h-5 w-5 text-yellow-500" />;
-       case 2:
-         return <Medal className="h-5 w-5 text-gray-400" />;
-       case 3:
-         return <Award className="h-5 w-5 text-amber-600" />;
+          return <Trophy className="h-5 w-5 text-warning" />;
+        case 2:
+          return <Medal className="h-5 w-5 text-muted-foreground" />;
+        case 3:
+          return <Award className="h-5 w-5 text-warning/80" />;
        default:
          return <span className="text-muted-foreground font-medium">{position}º</span>;
      }
@@ -30,11 +30,11 @@
    const getRankBadge = (position: number) => {
      switch (position) {
        case 1:
-         return "bg-gradient-to-r from-yellow-400 to-yellow-600 text-white";
-       case 2:
-         return "bg-gradient-to-r from-gray-300 to-gray-500 text-white";
-       case 3:
-         return "bg-gradient-to-r from-amber-500 to-amber-700 text-white";
+          return "bg-gradient-to-r from-warning to-warning/70 text-warning-foreground";
+        case 2:
+          return "bg-gradient-to-r from-muted-foreground/40 to-muted-foreground/60 text-primary-foreground";
+        case 3:
+          return "bg-gradient-to-r from-warning/70 to-warning text-warning-foreground";
        default:
          return "";
      }
@@ -48,7 +48,7 @@
        <CardHeader className="pb-3">
          <div className="flex items-center justify-between">
            <CardTitle className="text-lg flex items-center gap-2">
-             <Trophy className="h-5 w-5 text-yellow-500" />
+             <Trophy className="h-5 w-5 text-warning" />
              Ranking do Mês
            </CardTitle>
            {myRankPosition && (

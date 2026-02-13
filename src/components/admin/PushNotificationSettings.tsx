@@ -304,8 +304,8 @@ export function PushNotificationSettings() {
                         <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
                       </div>
                     ) : (
-                      <div className="h-5 w-5 rounded-full bg-amber-500/15 flex items-center justify-center">
-                        <ShieldAlert className="h-3.5 w-3.5 text-amber-600" />
+                      <div className="h-5 w-5 rounded-full bg-warning/15 flex items-center justify-center">
+                        <ShieldAlert className="h-3.5 w-3.5 text-warning" />
                       </div>
                     )}
                   </div>

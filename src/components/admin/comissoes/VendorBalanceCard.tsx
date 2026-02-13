@@ -44,11 +44,11 @@ export function VendorBalanceCard({ balances }: VendorBalanceCardProps) {
         <div className="grid grid-cols-2 gap-4 pb-3 border-b">
           <div className="text-center">
             <p className="text-xs text-muted-foreground">Total Créditos</p>
-            <p className="text-lg font-bold text-green-600">{formatCurrency(totalCredits)}</p>
+            <p className="text-lg font-bold text-success">{formatCurrency(totalCredits)}</p>
           </div>
           <div className="text-center">
             <p className="text-xs text-muted-foreground">Total Pendente</p>
-            <p className="text-lg font-bold text-orange-600">{formatCurrency(totalPending)}</p>
+            <p className="text-lg font-bold text-warning">{formatCurrency(totalPending)}</p>
           </div>
         </div>
 

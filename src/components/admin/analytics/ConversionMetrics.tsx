@@ -203,7 +203,7 @@ export default function ConversionMetrics({ leads, statuses }: ConversionMetrics
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm flex items-center gap-2">
-            <Percent className="w-4 h-4 text-green-600" />
+            <Percent className="w-4 h-4 text-success" />
             Taxa de Conversão Mensal
           </CardTitle>
         </CardHeader>

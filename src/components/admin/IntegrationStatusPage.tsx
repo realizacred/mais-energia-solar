@@ -73,7 +73,7 @@ interface IntegrationMeta {
 const INTEGRATION_META: Record<string, IntegrationMeta> = {
   solarmarket: {
     icon: Sun,
-    color: "text-amber-500",
+    color: "text-warning",
     description: "Marketplace solar — Sync de clientes e projetos",
     configurable: true,
     placeholder: "Token de acesso...",
@@ -81,7 +81,7 @@ const INTEGRATION_META: Record<string, IntegrationMeta> = {
   },
   openai: {
     icon: Brain,
-    color: "text-violet-500",
+    color: "text-secondary",
     description: "IA — Sugestões comerciais e análise de leads",
     configurable: true,
     placeholder: "sk-...",
@@ -90,9 +90,9 @@ const INTEGRATION_META: Record<string, IntegrationMeta> = {
 };
 
 const STATUS_CONFIG = {
-  online: { icon: CheckCircle2, label: "Online", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+  online: { icon: CheckCircle2, label: "Online", className: "bg-success/10 text-success border-success/20" },
   offline: { icon: XCircle, label: "Offline", className: "bg-destructive/10 text-destructive border-destructive/20" },
-  degraded: { icon: AlertTriangle, label: "Degradado", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+  degraded: { icon: AlertTriangle, label: "Degradado", className: "bg-warning/10 text-warning border-warning/20" },
   not_configured: { icon: CircleDashed, label: "Não configurado", className: "bg-muted text-muted-foreground" },
 };
 
@@ -109,8 +109,8 @@ function formatDate(iso?: string | null) {
 
 function formatLatency(ms?: number | null) {
   if (ms == null) return null;
-  if (ms < 500) return <span className="text-emerald-600 font-medium">{ms}ms</span>;
-  if (ms < 2000) return <span className="text-amber-600 font-medium">{ms}ms</span>;
+  if (ms < 500) return <span className="text-success font-medium">{ms}ms</span>;
+  if (ms < 2000) return <span className="text-warning font-medium">{ms}ms</span>;
   return <span className="text-destructive font-medium">{ms}ms</span>;
 }
 

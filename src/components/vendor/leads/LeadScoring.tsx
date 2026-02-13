@@ -114,11 +114,11 @@
    const getLevelIcon = (level: ScoreResult["level"]) => {
      switch (level) {
        case "hot":
-         return <Flame className="h-4 w-4 text-orange-500" />;
-       case "warm":
-         return <ThermometerSun className="h-4 w-4 text-yellow-500" />;
-       case "cold":
-         return <Snowflake className="h-4 w-4 text-blue-400" />;
+          return <Flame className="h-4 w-4 text-primary" />;
+        case "warm":
+          return <ThermometerSun className="h-4 w-4 text-warning" />;
+        case "cold":
+          return <Snowflake className="h-4 w-4 text-info" />;
      }
    };
  
@@ -126,29 +126,29 @@
      switch (level) {
        case "hot":
          return (
-           <Badge className="bg-orange-100 text-orange-700 border-orange-200">
-             🔥 Quente
-           </Badge>
-         );
-       case "warm":
-         return (
-           <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
-             ☀️ Morno
-           </Badge>
-         );
-       case "cold":
-         return (
-           <Badge className="bg-blue-100 text-blue-700 border-blue-200">
-             ❄️ Frio
-           </Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/20">
+              🔥 Quente
+            </Badge>
+          );
+        case "warm":
+          return (
+            <Badge className="bg-warning/10 text-warning border-warning/20">
+              ☀️ Morno
+            </Badge>
+          );
+        case "cold":
+          return (
+            <Badge className="bg-info/10 text-info border-info/20">
+              ❄️ Frio
+            </Badge>
          );
      }
    };
  
    const getScoreColor = (score: number) => {
-     if (score >= 70) return "bg-orange-500";
-     if (score >= 40) return "bg-yellow-500";
-     return "bg-blue-400";
+      if (score >= 70) return "bg-primary";
+      if (score >= 40) return "bg-warning";
+      return "bg-info";
    };
  
    // Get top scored leads
@@ -230,35 +230,35 @@
              <div className="space-y-4">
                {/* Summary Stats */}
                <div className="grid grid-cols-3 gap-3">
-                 <div className="p-3 rounded-lg bg-orange-50 border border-orange-200 text-center">
-                   <Flame className="h-5 w-5 text-orange-500 mx-auto mb-1" />
-                   <p className="text-2xl font-bold text-orange-600">{hotLeads.length}</p>
-                   <p className="text-xs text-orange-600/80">Quentes</p>
-                 </div>
-                 <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-center">
-                   <ThermometerSun className="h-5 w-5 text-yellow-500 mx-auto mb-1" />
-                   <p className="text-2xl font-bold text-yellow-600">{warmLeads.length}</p>
-                   <p className="text-xs text-yellow-600/80">Mornos</p>
-                 </div>
-                 <div className="p-3 rounded-lg bg-blue-50 border border-blue-200 text-center">
-                   <Snowflake className="h-5 w-5 text-blue-400 mx-auto mb-1" />
-                   <p className="text-2xl font-bold text-blue-500">{coldLeads.length}</p>
-                   <p className="text-xs text-blue-500/80">Frios</p>
-                 </div>
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-center">
+                    <Flame className="h-5 w-5 text-primary mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-primary">{hotLeads.length}</p>
+                    <p className="text-xs text-primary/80">Quentes</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-warning/10 border border-warning/20 text-center">
+                    <ThermometerSun className="h-5 w-5 text-warning mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-warning">{warmLeads.length}</p>
+                    <p className="text-xs text-warning/80">Mornos</p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-info/10 border border-info/20 text-center">
+                    <Snowflake className="h-5 w-5 text-info mx-auto mb-1" />
+                    <p className="text-2xl font-bold text-info">{coldLeads.length}</p>
+                    <p className="text-xs text-info/80">Frios</p>
+                  </div>
                </div>
  
                {/* Top Leads */}
                {hotLeads.length > 0 && (
                  <div>
                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                     <Flame className="h-4 w-4 text-orange-500" />
+                      <Flame className="h-4 w-4 text-primary" />
                      Prioridade Máxima
                    </h4>
                    <div className="space-y-2">
                      {hotLeads.slice(0, 5).map(({ lead, score }) => (
                        <div
                          key={lead.id}
-                         className="p-3 rounded-lg border bg-orange-50/50 border-orange-200/50"
+                         className="p-3 rounded-lg border bg-primary/5 border-primary/20"
                        >
                          <div className="flex items-start justify-between gap-2">
                            <div className="flex-1 min-w-0">
@@ -273,7 +273,7 @@
                                  value={score!.score}
                                  className={cn("h-2 flex-1", getScoreColor(score!.score))}
                                />
-                               <span className="text-xs font-bold text-orange-600">
+                               <span className="text-xs font-bold text-primary">
                                  {score!.score}
                                </span>
                              </div>
@@ -295,7 +295,7 @@
                             <div className="flex flex-col gap-1 shrink-0">
                               <Button
                                 size="sm"
-                                className="gap-1 h-8 bg-green-600 hover:bg-green-700"
+                                className="gap-1 h-8 bg-success hover:bg-success/90"
                                 onClick={() => openWhatsAppDialog(lead)}
                               >
                                 <MessageCircle className="h-3 w-3" />
@@ -323,21 +323,21 @@
                {warmLeads.length > 0 && (
                  <div>
                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                     <ThermometerSun className="h-4 w-4 text-yellow-500" />
+                      <ThermometerSun className="h-4 w-4 text-warning" />
                      Acompanhar ({warmLeads.length})
                    </h4>
                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                      {warmLeads.slice(0, 6).map(({ lead, score }) => (
                        <div
                          key={lead.id}
-                         className="p-2 rounded border bg-yellow-50/30 cursor-pointer hover:bg-yellow-50 transition-colors"
+                         className="p-2 rounded border bg-warning/5 cursor-pointer hover:bg-warning/10 transition-colors"
                          onClick={() => onSelectLead?.(lead)}
                        >
                          <div className="flex items-center justify-between">
                            <span className="text-sm font-medium truncate">
                              {lead.nome.split(" ")[0]}
                            </span>
-                           <span className="text-xs font-bold text-yellow-600">
+                           <span className="text-xs font-bold text-warning">
                              {score!.score}
                            </span>
                          </div>

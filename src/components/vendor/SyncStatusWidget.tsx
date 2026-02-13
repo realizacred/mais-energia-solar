@@ -22,17 +22,17 @@ export default function SyncStatusWidget() {
   };
 
   return (
-    <Card className={!isOnline ? "border-yellow-200 bg-yellow-50/50" : undefined}>
+    <Card className={!isOnline ? "border-warning/30 bg-warning/5" : undefined}>
       <CardContent className="p-3 sm:pt-4 sm:px-6">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             {isOnline ? (
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                <Cloud className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+                <Cloud className="w-4 h-4 sm:w-5 sm:h-5 text-success" />
               </div>
             ) : (
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-yellow-100 flex items-center justify-center shrink-0">
-                <CloudOff className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
+                <CloudOff className="w-4 h-4 sm:w-5 sm:h-5 text-warning" />
               </div>
             )}
             <div className="min-w-0">
@@ -46,7 +46,7 @@ export default function SyncStatusWidget() {
                   </Badge>
                 )}
                 {pendingCount === 0 && isOnline && (
-                  <Badge variant="outline" className="text-xs text-green-600 border-green-200 px-1.5 py-0">
+                  <Badge variant="outline" className="text-xs text-success border-success/30 px-1.5 py-0">
                     <Check className="w-3 h-3 mr-0.5" />
                     Sync
                   </Badge>
@@ -77,12 +77,12 @@ export default function SyncStatusWidget() {
 
         {/* Sync Errors */}
         {syncErrors.length > 0 && (
-          <div className="mt-3 p-2 bg-red-50 rounded-lg border border-red-200">
+          <div className="mt-3 p-2 bg-destructive/5 rounded-lg border border-destructive/20">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5" />
+              <AlertTriangle className="w-4 h-4 text-destructive mt-0.5" />
               <div className="flex-1">
-                <p className="text-xs font-medium text-red-700">Erros de sincronização:</p>
-                <ul className="text-xs text-red-600 mt-1 space-y-0.5">
+                <p className="text-xs font-medium text-destructive">Erros de sincronização:</p>
+                <ul className="text-xs text-destructive/80 mt-1 space-y-0.5">
                   {syncErrors.slice(0, 3).map((error, i) => (
                     <li key={i}>• {error}</li>
                   ))}
@@ -91,7 +91,7 @@ export default function SyncStatusWidget() {
                   variant="link" 
                   size="sm" 
                   onClick={clearFailedItems}
-                  className="text-xs text-red-600 p-0 h-auto mt-1"
+                  className="text-xs text-destructive p-0 h-auto mt-1"
                 >
                   Limpar itens com falha
                 </Button>
@@ -102,7 +102,7 @@ export default function SyncStatusWidget() {
 
         {/* Offline Message */}
         {!isOnline && (
-          <p className="text-xs text-yellow-700 mt-2">
+          <p className="text-xs text-warning mt-2">
             Você está offline. As alterações serão sincronizadas automaticamente quando a conexão for restaurada.
           </p>
         )}

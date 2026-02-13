@@ -311,41 +311,41 @@ export function InstaladorManager() {
                   <div className="flex items-end justify-center gap-4 mb-8">
                     {performance[1] && (
                       <div className="flex flex-col items-center">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-muted-foreground/40 to-muted-foreground/60 flex items-center justify-center text-primary-foreground font-bold text-xl shadow-sm">
                           2
                         </div>
                         <div className="mt-2 text-center">
                           <p className="font-medium text-sm">{performance[1].nome}</p>
                           <p className="text-xs text-muted-foreground">{performance[1].pontuacao_total} pts</p>
                         </div>
-                        <div className="w-20 h-16 bg-gray-200 rounded-t-lg mt-2" />
+                        <div className="w-20 h-16 bg-muted rounded-t-lg mt-2" />
                       </div>
                     )}
 
                     {performance[0] && (
                       <div className="flex flex-col items-center">
                         <Crown className="h-6 w-6 text-warning mb-1" />
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-warning to-primary flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-warning to-primary flex items-center justify-center text-primary-foreground font-bold text-2xl shadow-sm">
                           1
                         </div>
                         <div className="mt-2 text-center">
                           <p className="font-semibold">{performance[0].nome}</p>
                           <p className="text-sm text-muted-foreground">{performance[0].pontuacao_total} pts</p>
                         </div>
-                        <div className="w-24 h-24 bg-yellow-100 rounded-t-lg mt-2" />
+                        <div className="w-24 h-24 bg-warning/10 rounded-t-lg mt-2" />
                       </div>
                     )}
 
                     {performance[2] && (
                       <div className="flex flex-col items-center">
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-warning/80 to-warning flex items-center justify-center text-primary-foreground font-bold text-lg shadow-sm">
                           3
                         </div>
                         <div className="mt-2 text-center">
                           <p className="font-medium text-sm">{performance[2].nome}</p>
                           <p className="text-xs text-muted-foreground">{performance[2].pontuacao_total} pts</p>
                         </div>
-                        <div className="w-16 h-12 bg-amber-100 rounded-t-lg mt-2" />
+                        <div className="w-16 h-12 bg-warning/10 rounded-t-lg mt-2" />
                       </div>
                     )}
                   </div>

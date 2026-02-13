@@ -224,10 +224,10 @@ export function ComissoesReports({
                         <TableRow key={r.consultor_id}>
                           <TableCell className="font-medium">{r.vendedor}</TableCell>
                           <TableCell className="text-right">{formatCurrency(r.total)}</TableCell>
-                          <TableCell className="text-right text-green-600">
+                          <TableCell className="text-right text-success">
                             {formatCurrency(r.pago)}
                           </TableCell>
-                          <TableCell className="text-right text-orange-600">
+                          <TableCell className="text-right text-warning">
                             {formatCurrency(r.pendente)}
                           </TableCell>
                         </TableRow>
@@ -307,7 +307,7 @@ export function ComissoesReports({
                         {format(parseISO(p.data), "dd/MM/yyyy", { locale: ptBR })}
                       </TableCell>
                       <TableCell>{p.vendedor}</TableCell>
-                      <TableCell className="text-right text-green-600">
+                      <TableCell className="text-right text-success">
                         {formatCurrency(p.valor)}
                       </TableCell>
                       <TableCell className="text-center">
@@ -340,11 +340,11 @@ export function ComissoesReports({
                     <p className="text-sm text-muted-foreground">Tendência</p>
                     <div className="flex items-center gap-2">
                       {projecao.tendencia >= 0 ? (
-                        <TrendingUp className="h-5 w-5 text-green-600" />
+                        <TrendingUp className="h-5 w-5 text-success" />
                       ) : (
-                        <TrendingDown className="h-5 w-5 text-red-600" />
+                        <TrendingDown className="h-5 w-5 text-destructive" />
                       )}
-                      <p className={`text-2xl font-bold ${projecao.tendencia >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      <p className={`text-2xl font-bold ${projecao.tendencia >= 0 ? "text-success" : "text-destructive"}`}>
                         {projecao.tendencia >= 0 ? "+" : ""}
                         {formatCurrency(projecao.tendencia)}
                       </p>
@@ -416,16 +416,16 @@ export function ComissoesReports({
                     </p>
                   </CardContent>
                 </Card>
-                <Card className={comparativoPeriodos.variacao >= 0 ? "border-green-200" : "border-red-200"}>
+                <Card className={comparativoPeriodos.variacao >= 0 ? "border-success/30" : "border-destructive/30"}>
                   <CardContent className="pt-6">
                     <p className="text-sm text-muted-foreground">Variação</p>
                     <div className="flex items-center gap-2">
                       {comparativoPeriodos.variacao >= 0 ? (
-                        <TrendingUp className="h-5 w-5 text-green-600" />
+                        <TrendingUp className="h-5 w-5 text-success" />
                       ) : (
-                        <TrendingDown className="h-5 w-5 text-red-600" />
+                        <TrendingDown className="h-5 w-5 text-destructive" />
                       )}
-                      <p className={`text-2xl font-bold ${comparativoPeriodos.variacao >= 0 ? "text-green-600" : "text-red-600"}`}>
+                      <p className={`text-2xl font-bold ${comparativoPeriodos.variacao >= 0 ? "text-success" : "text-destructive"}`}>
                         {comparativoPeriodos.variacao >= 0 ? "+" : ""}
                         {comparativoPeriodos.variacao.toFixed(1)}%
                       </p>

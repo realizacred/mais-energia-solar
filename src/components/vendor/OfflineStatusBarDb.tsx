@@ -14,8 +14,8 @@ export function OfflineStatusBarDb({ vendedorNome }: OfflineStatusBarDbProps = {
     <div 
       className={`py-2 px-4 ${
         isOnline 
-          ? "bg-emerald-50 border-b border-emerald-200" 
-          : "bg-amber-50 border-b border-amber-200"
+          ? "bg-success/5 border-b border-success/20" 
+          : "bg-warning/5 border-b border-warning/20"
       }`}
     >
       <div className="container mx-auto flex flex-wrap items-center justify-between gap-3">
@@ -24,15 +24,15 @@ export function OfflineStatusBarDb({ vendedorNome }: OfflineStatusBarDbProps = {
           {/* Ícone de Antena + Status */}
           <div className="flex items-center gap-2">
             <Radio 
-              className={`w-5 h-5 ${isOnline ? "text-emerald-600" : "text-amber-600"}`} 
+              className={`w-5 h-5 ${isOnline ? "text-success" : "text-warning"}`} 
             />
-            <span className={`text-sm font-semibold ${isOnline ? "text-emerald-700" : "text-amber-700"}`}>
+            <span className={`text-sm font-semibold ${isOnline ? "text-success" : "text-warning"}`}>
               {isOnline ? "Online" : "Offline"}
             </span>
           </div>
 
           {/* Separador */}
-          <div className="w-px h-5 bg-gray-300" />
+          <div className="w-px h-5 bg-border" />
 
           {/* Badge IndexedDB */}
           <div className="flex items-center gap-1.5">
@@ -41,18 +41,18 @@ export function OfflineStatusBarDb({ vendedorNome }: OfflineStatusBarDbProps = {
           </div>
 
           {/* Separador */}
-          <div className="w-px h-5 bg-gray-300" />
+          <div className="w-px h-5 bg-border" />
 
           {/* Contador de Leads Pendentes */}
           <div className="flex items-center gap-2">
-            <span className={`text-sm ${isOnline ? "text-emerald-700" : "text-amber-700"}`}>
+            <span className={`text-sm ${isOnline ? "text-success" : "text-warning"}`}>
               Leads a sincronizar:
             </span>
             <span 
               className={`inline-flex items-center justify-center min-w-[24px] h-6 px-2 rounded-full text-sm font-bold ${
                 pendingCount > 0 
-                  ? "bg-amber-500 text-white" 
-                  : "bg-emerald-500 text-white"
+                  ? "bg-warning text-warning-foreground" 
+                  : "bg-success text-success-foreground"
               }`}
             >
               {pendingCount}
@@ -84,7 +84,7 @@ export function OfflineStatusBarDb({ vendedorNome }: OfflineStatusBarDbProps = {
 
         {/* Mensagem quando offline com pendentes */}
         {!isOnline && pendingCount > 0 && (
-          <span className="text-xs text-amber-600">
+          <span className="text-xs text-warning">
             Será enviado quando a conexão voltar
           </span>
         )}
