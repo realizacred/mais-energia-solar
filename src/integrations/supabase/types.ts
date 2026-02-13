@@ -7059,6 +7059,7 @@ export type Database = {
           instance_id: string
           is_group: boolean
           last_message_at: string | null
+          last_message_direction: string | null
           last_message_id: string | null
           last_message_preview: string | null
           lead_id: string | null
@@ -7080,6 +7081,7 @@ export type Database = {
           instance_id: string
           is_group?: boolean
           last_message_at?: string | null
+          last_message_direction?: string | null
           last_message_id?: string | null
           last_message_preview?: string | null
           lead_id?: string | null
@@ -7101,6 +7103,7 @@ export type Database = {
           instance_id?: string
           is_group?: boolean
           last_message_at?: string | null
+          last_message_direction?: string | null
           last_message_id?: string | null
           last_message_preview?: string | null
           lead_id?: string | null

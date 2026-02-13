@@ -19,6 +19,7 @@ export interface WaConversation {
   cliente_id: string | null;
   last_message_at: string | null;
   last_message_preview: string | null;
+  last_message_direction: "in" | "out" | null;
   unread_count: number;
   canal: string;
   profile_picture_url: string | null;
@@ -95,6 +96,7 @@ export function useWaConversations(filters?: {
         .select(`
           id, tenant_id, instance_id, remote_jid, cliente_nome, cliente_telefone,
           status, assigned_to, lead_id, cliente_id, last_message_at, last_message_preview,
+          last_message_direction,
           unread_count, canal, profile_picture_url, is_group, created_at, updated_at,
           wa_instances(nome, consultores(nome, user_id)),
           leads(nome, telefone)

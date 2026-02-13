@@ -191,6 +191,7 @@ async function handleMessageUpsert(
       const updates: any = {
         last_message_at: new Date().toISOString(),
         last_message_preview: preview,
+        last_message_direction: direction,
       };
       
       // Update group name if we got it from payload (always update, even if already set with fallback)
@@ -267,6 +268,7 @@ async function handleMessageUpsert(
           status: "open",
           last_message_at: new Date().toISOString(),
           last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
+          last_message_direction: direction,
           unread_count: fromMe ? 0 : 1,
           profile_picture_url: profilePicUrl,
         }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: false })
