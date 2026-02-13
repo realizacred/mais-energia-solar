@@ -211,7 +211,7 @@ export default function FileUpload({
       >
         {isUploading ? (
           <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            <Spinner size="md" />
             <p className="text-muted-foreground font-medium">Enviando arquivos...</p>
           </div>
         ) : (
