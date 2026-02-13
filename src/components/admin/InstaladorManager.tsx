@@ -24,7 +24,7 @@ import {
   Trophy,
   Target,
   Users,
-  Loader2,
+  // Loader2 removed
   Save,
   Crown,
   Star,
@@ -33,6 +33,7 @@ import {
   BarChart3,
   TrendingUp,
 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface Instalador {
   id: string;
@@ -264,7 +265,7 @@ export function InstaladorManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -493,7 +494,7 @@ export function InstaladorManager() {
                   </div>
 
                   <Button onClick={handleSaveConfig} disabled={saving} className="gap-2">
-                    {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
                     Salvar Configurações
                   </Button>
                 </>

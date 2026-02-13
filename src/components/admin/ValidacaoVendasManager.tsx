@@ -18,9 +18,10 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Loader2, CheckCircle, XCircle, Eye, Clock, DollarSign, User, MapPin,
+  CheckCircle, XCircle, Eye, Clock, DollarSign, User, MapPin,
   TrendingUp, Zap, AlertTriangle, History, Filter, FileText,
 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { usePendingValidations, type PendingValidation } from "@/hooks/usePendingValidations";
@@ -350,7 +351,7 @@ export function ValidacaoVendasManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -572,7 +573,7 @@ export function ValidacaoVendasManager() {
             <CardContent>
               {historyLoading ? (
                 <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                  <Spinner size="md" />
                 </div>
               ) : historyItems.length === 0 ? (
                 <div className="empty-state py-12">
@@ -747,7 +748,7 @@ export function ValidacaoVendasManager() {
               {/* Simulação selector */}
               {loadingVendedor ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                  <Spinner size="sm" />
                   <span className="ml-2 text-sm text-muted-foreground">Carregando propostas...</span>
                 </div>
               ) : leadSimulacoes.length > 0 ? (
@@ -814,7 +815,7 @@ export function ValidacaoVendasManager() {
                 <Label htmlFor="percentual">
                   Percentual de Comissão (%)
                   {loadingVendedor && (
-                    <Loader2 className="h-3 w-3 ml-1.5 animate-spin inline" />
+                    <Spinner size="sm" />
                   )}
                 </Label>
                 <Input
@@ -847,7 +848,7 @@ export function ValidacaoVendasManager() {
               disabled={approving === selectedCliente?.id || !isApprovalValid}
               className="bg-success hover:bg-success/90 text-success-foreground"
             >
-              {approving === selectedCliente?.id && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {approving === selectedCliente?.id && <Spinner size="sm" />}
               Confirmar Aprovação
             </Button>
           </DialogFooter>
@@ -895,7 +896,7 @@ export function ValidacaoVendasManager() {
               onClick={handleReject}
               disabled={rejecting || !motivoRejeicao.trim()}
             >
-              {rejecting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {rejecting && <Spinner size="sm" />}
               Confirmar Rejeição
             </Button>
           </DialogFooter>

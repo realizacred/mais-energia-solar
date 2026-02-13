@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +9,6 @@ import { Label } from "@/components/ui/label";
 import {
   Settings2,
   Save,
-  Loader2,
   DollarSign,
   Zap,
   TrendingUp,
@@ -96,7 +96,7 @@ export function PaybackGeneralConfig() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Spinner size="md" />
         </CardContent>
       </Card>
     );
@@ -257,7 +257,7 @@ export function PaybackGeneralConfig() {
 
         <div className="flex justify-end pt-2">
           <Button onClick={handleSave} disabled={saving} className="gap-2">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
             Salvar Configuração
           </Button>
         </div>

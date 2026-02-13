@@ -3,7 +3,6 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { 
   RefreshCw, 
-  Loader2, 
   Trash2, 
   CloudUpload, 
   WifiOff, 
@@ -14,6 +13,7 @@ import {
   MapPin
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -84,7 +84,7 @@ export function OfflineConversionsManager() {
           >
             {isSyncing ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" />
                 Sincronizando...
               </>
             ) : (
@@ -188,7 +188,7 @@ export function OfflineConversionsManager() {
                     >
                       {syncingId === conversion.leadId ? (
                         <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Spinner size="sm" />
                           Enviando...
                         </>
                       ) : (

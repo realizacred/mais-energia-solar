@@ -12,9 +12,10 @@
    MessageCircle,
    ChevronDown,
    ChevronUp,
-   Loader2
+    // Loader2 removed – using Spinner
  } from "lucide-react";
  import { supabase } from "@/integrations/supabase/client";
+ import { Spinner } from "@/components/ui-kit/Spinner";
  import { toast } from "@/hooks/use-toast";
  import type { Lead } from "@/types/lead";
  import { cn } from "@/lib/utils";
@@ -185,7 +186,7 @@
                className="gap-1"
              >
                {loading ? (
-                 <Loader2 className="h-4 w-4 animate-spin" />
+                 <Spinner size="sm" />
                ) : (
                  <RefreshCw className="h-4 w-4" />
                )}

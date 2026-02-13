@@ -43,7 +43,7 @@ import {
   Shield, 
   UserPlus, 
   Trash2, 
-  Loader2,
+  // Loader2 removed
   Users,
   ShieldCheck,
   ShieldAlert,
@@ -52,6 +52,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { UserEditDialog } from "./users/UserEditDialog";
 
 interface UserRole {
@@ -610,7 +611,7 @@ export function UsuariosManager() {
               Cancelar
             </Button>
             <Button onClick={handleAddRole} disabled={!selectedRole || saving}>
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {saving && <Spinner size="sm" />}
               Adicionar
             </Button>
           </DialogFooter>
@@ -686,7 +687,7 @@ export function UsuariosManager() {
               Cancelar
             </Button>
             <Button onClick={handleCreateUser} disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {saving && <Spinner size="sm" />}
               Criar Usuário
             </Button>
           </DialogFooter>

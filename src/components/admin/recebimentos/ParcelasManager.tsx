@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Calendar, CheckCircle, AlertTriangle, Clock, Zap, CreditCard } from "lucide-react";
+import { Calendar, CheckCircle, AlertTriangle, Clock, Zap, CreditCard } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { format, addMonths } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -213,7 +214,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
               )}
             </div>
             <Button onClick={gerarParcelas} disabled={generating} variant="outline" className="gap-2">
-              {generating && <Loader2 className="h-4 w-4 animate-spin" />}
+              {generating && <Spinner size="sm" />}
               {parcelas.length > 0 ? "Regenerar Parcelas" : "Gerar Parcelas"}
             </Button>
           </div>
@@ -232,7 +233,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
 
           {loading ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
+              <Spinner size="md" />
             </div>
           ) : parcelas.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">

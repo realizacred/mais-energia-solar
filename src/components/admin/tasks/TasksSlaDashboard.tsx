@@ -8,7 +8,7 @@ import {
   TrendingUp,
   Plus,
   RefreshCw,
-  Loader2,
+  // Loader2 removed – using Spinner
   Trash2,
   CheckCircle2,
   Clock,
@@ -19,6 +19,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -173,7 +174,7 @@ function TasksManager() {
       {loading ? (
         <Card>
           <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Spinner size="lg" />
           </CardContent>
         </Card>
       ) : filtered.length === 0 ? (
@@ -346,7 +347,7 @@ function CreateTaskDialog({
         </div>
         <DialogFooter>
           <Button onClick={handleSubmit} disabled={isSubmitting || !title.trim()} className="gap-2">
-            {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isSubmitting && <Spinner size="sm" />}
             Criar Tarefa
           </Button>
         </DialogFooter>
@@ -384,7 +385,7 @@ function SlaDashboard() {
   if (loading) {
     return (
       <Card><CardContent className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Spinner size="lg" />
       </CardContent></Card>
     );
   }
@@ -576,7 +577,7 @@ function SlaRulesManager() {
 
       {loading ? (
         <Card><CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Spinner size="md" />
         </CardContent></Card>
       ) : rules.length === 0 ? (
         <Card className="border-dashed border-2 border-muted-foreground/20">

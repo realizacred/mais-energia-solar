@@ -7,7 +7,6 @@ import {
   MessageCircle, 
   Copy, 
   Send, 
-  Loader2,
   Zap,
   ExternalLink,
   RefreshCw,
@@ -16,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -414,7 +414,7 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
                 />
                 {isSearching && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                    <Spinner size="sm" />
                   </div>
                 )}
               </div>
@@ -483,7 +483,7 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
               disabled={isSending || !previewData.telefone}
             >
               {isSending ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="sm" />
               ) : (
                 <Zap className="h-4 w-4" />
               )}

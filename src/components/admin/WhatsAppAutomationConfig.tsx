@@ -15,7 +15,7 @@ import {
   Clock, 
   CheckCircle2, 
   AlertCircle,
-  Loader2,
+  // Loader2 removed
   Save,
   RefreshCw,
   Plug,
@@ -29,6 +29,7 @@ import {
   Brain
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { toast } from "@/hooks/use-toast";
 import { WhatsAppAutomationTemplates } from "./WhatsAppAutomationTemplates";
 import { useWaInstances } from "@/hooks/useWaInstances";
@@ -207,7 +208,7 @@ export function WhatsAppAutomationConfig() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Spinner size="md" />
         </CardContent>
       </Card>
     );
@@ -300,7 +301,7 @@ export function WhatsAppAutomationConfig() {
                   disabled={saving}
                 >
                   {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner size="sm" />
                   ) : (
                     <Save className="h-4 w-4" />
                   )}
@@ -466,7 +467,7 @@ export function WhatsAppAutomationConfig() {
                             disabled={testingConnection || !config.evolution_instance}
                           >
                             {testingConnection ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Spinner size="sm" />
                             ) : (
                               <Zap className="h-4 w-4" />
                             )}
@@ -504,7 +505,7 @@ export function WhatsAppAutomationConfig() {
                   disabled={saving}
                 >
                   {saving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner size="sm" />
                   ) : (
                     <Save className="h-4 w-4" />
                   )}
@@ -515,7 +516,7 @@ export function WhatsAppAutomationConfig() {
           </TabsContent>
 
           <TabsContent value="push" className="mt-4">
-            <Suspense fallback={<div className="flex items-center gap-2 p-8 justify-center text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Carregando...</div>}>
+            <Suspense fallback={<div className="flex items-center gap-2 p-8 justify-center text-muted-foreground"><Spinner size="sm" /> Carregando...</div>}>
               <PushNotificationSettings />
             </Suspense>
           </TabsContent>

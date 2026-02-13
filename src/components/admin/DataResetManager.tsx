@@ -23,13 +23,14 @@ import {
   Bell,
   ClipboardList,
   Shield,
-  Loader2,
+  // Loader2 removed
   Trash2,
   AlertTriangle,
   Database,
   RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface SegmentInfo {
   key: string;
@@ -148,7 +149,7 @@ export function DataResetManager() {
       {/* Segments Grid */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Spinner size="md" />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -298,7 +299,7 @@ export function DataResetManager() {
               className="gap-2"
             >
               {resetting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="sm" />
               ) : (
                 <Trash2 className="h-4 w-4" />
               )}

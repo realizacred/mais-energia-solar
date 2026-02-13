@@ -3,7 +3,7 @@ import { ptBR } from "date-fns/locale";
 import {
   ClipboardList,
   RefreshCw,
-  Loader2,
+  // Loader2 removed – using Spinner
   Phone,
   MessageCircle,
   MapPin,
@@ -13,6 +13,7 @@ import {
   User,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -62,7 +63,7 @@ export function DirectorActionPlan({ insights }: Props) {
           size="sm"
           className="gap-2"
         >
-          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {isGenerating ? <Spinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
           {isGenerating ? "Gerando plano..." : "Gerar Plano de Ação"}
         </Button>
       </div>
@@ -70,7 +71,7 @@ export function DirectorActionPlan({ insights }: Props) {
       {isGenerating && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-10 w-10 text-info animate-spin mb-4" />
+            <Spinner size="lg" />
             <p className="text-sm font-medium text-muted-foreground">Criando plano de ação...</p>
           </CardContent>
         </Card>

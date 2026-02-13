@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Separator } from "@/components/ui/separator";
 import {
-  Users, FolderOpen, FileText, Search, Loader2,
+  Users, FolderOpen, FileText, Search,
   RefreshCw, Phone, Mail, ExternalLink, ChevronDown, ChevronRight,
   Calendar, Hash,
 } from "lucide-react";
 import { format } from "date-fns";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { ptBR } from "date-fns/locale";
 
 interface SmClient {
@@ -336,7 +337,7 @@ function ClientCard({ client }: { client: SmClient }) {
             {/* Loading */}
             {loadingRelated && (
               <div className="flex justify-center py-4">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <Spinner size="sm" />
               </div>
             )}
 
@@ -496,7 +497,7 @@ export function SolarMarketDataView() {
       <CardContent>
         {loading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <Spinner size="md" />
           </div>
         ) : clients.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
@@ -512,7 +513,7 @@ export function SolarMarketDataView() {
             {hasMore && (
               <div className="flex justify-center pt-2">
                 <Button variant="outline" onClick={() => fetchClients(true)} disabled={loadingMore} className="gap-2">
-                  {loadingMore ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChevronDown className="h-4 w-4" />}
+                  {loadingMore ? <Spinner size="sm" /> : <ChevronDown className="h-4 w-4" />}
                   Carregar mais
                 </Button>
               </div>
