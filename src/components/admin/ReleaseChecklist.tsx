@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
@@ -331,7 +332,7 @@ export function ReleaseChecklist() {
               disabled={saving || !versao.trim()}
               className="flex-1 gap-2"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
+              {saving ? <Spinner size="sm" /> : <Clock className="h-4 w-4" />}
               Salvar Progresso
             </Button>
             <Button
@@ -382,7 +383,7 @@ export function ReleaseChecklist() {
         <CardContent>
           {loadingHistory ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Spinner size="sm" />
             </div>
           ) : history.length === 0 ? (
             <div className="empty-state py-8">
@@ -474,7 +475,7 @@ export function ReleaseChecklist() {
               disabled={saving}
               className="bg-success hover:bg-success/90 text-success-foreground gap-2"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
+              {saving ? <Spinner size="sm" /> : <Rocket className="h-4 w-4" />}
               Aprovar Release
             </Button>
           </DialogFooter>

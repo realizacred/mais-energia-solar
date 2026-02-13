@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -17,7 +18,7 @@ import {
 import {
   Brain,
   Save,
-  Loader2,
+  
   RefreshCw,
   ShieldCheck,
   Zap,
@@ -331,7 +332,7 @@ export function AiFollowupSettingsPanel() {
 
       {/* Save */}
       <Button onClick={handleSave} disabled={saving} className="gap-2">
-        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+        {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
         Salvar Configurações de IA
       </Button>
     </div>

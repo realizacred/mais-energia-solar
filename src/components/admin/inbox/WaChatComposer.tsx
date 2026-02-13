@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import {
   Send,
   StickyNote,
-  Loader2,
+  
   X,
   Bold,
   Italic,
@@ -580,7 +581,7 @@ export function WaChatComposer({
           disabled={!inputValue.trim() || busy}
         >
           {busy ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner size="sm" />
           ) : (
             <Send className="h-4 w-4" />
           )}

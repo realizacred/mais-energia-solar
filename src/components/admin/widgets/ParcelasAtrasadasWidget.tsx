@@ -3,7 +3,8 @@
  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  import { Badge } from "@/components/ui/badge";
  import { ScrollArea } from "@/components/ui/scroll-area";
- import { AlertTriangle, Loader2, DollarSign } from "lucide-react";
+ import { AlertTriangle, DollarSign } from "lucide-react";
+ import { Spinner } from "@/components/ui-kit/Spinner";
  import { format, differenceInDays } from "date-fns";
  import { ptBR } from "date-fns/locale";
  
@@ -85,7 +86,7 @@
            </CardTitle>
          </CardHeader>
          <CardContent className="flex justify-center py-4">
-           <Loader2 className="h-5 w-5 animate-spin" />
+           <Spinner size="sm" />
          </CardContent>
        </Card>
      );

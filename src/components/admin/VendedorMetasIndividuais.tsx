@@ -23,7 +23,8 @@
    DialogHeader,
    DialogTitle,
  } from "@/components/ui/dialog";
- import { User, Edit2, Save, Loader2, Target, TrendingUp } from "lucide-react";
+ import { User, Edit2, Save, Target, TrendingUp } from "lucide-react";
+ import { Spinner } from "@/components/ui-kit/Spinner";
  
  interface Vendedor {
    id: string;
@@ -208,7 +209,7 @@
    if (loading) {
      return (
        <div className="flex items-center justify-center py-12">
-         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <Spinner size="md" />
        </div>
      );
    }
@@ -398,7 +399,7 @@
                Cancelar
              </Button>
              <Button onClick={handleSaveMeta} disabled={saving} className="gap-2">
-               {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+               {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
                Salvar
              </Button>
            </DialogFooter>

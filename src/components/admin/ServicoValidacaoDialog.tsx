@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -17,7 +18,7 @@ import { ptBR } from "date-fns/locale";
 import {
   CheckCircle2,
   XCircle,
-  Loader2,
+  
   User,
   MapPin,
   CalendarDays,
@@ -318,7 +319,7 @@ export function ServicoValidacaoDialog({
                 className="gap-2"
               >
                 {validando ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Spinner size="sm" />
                 ) : (
                   <CheckCircle2 className="h-4 w-4" />
                 )}

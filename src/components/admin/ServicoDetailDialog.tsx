@@ -1,4 +1,5 @@
  import { useState, useEffect } from "react";
+ import { Spinner } from "@/components/ui-kit/Spinner";
  import { supabase } from "@/integrations/supabase/client";
  import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
  import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,7 @@
    Volume2,
    Grid3X3,
    FileText,
-   Loader2,
+   
    ExternalLink,
    X,
  } from "lucide-react";
@@ -135,7 +136,7 @@
  
            {loading ? (
              <div className="flex justify-center py-12">
-               <Loader2 className="h-8 w-8 animate-spin text-primary" />
+               <Spinner size="md" />
              </div>
            ) : servico ? (
              <div className="flex-1 overflow-auto space-y-6">

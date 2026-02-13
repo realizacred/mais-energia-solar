@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +8,6 @@ import {
   FileText,
   Image,
   Upload,
-  Loader2,
   Eye,
   X,
 } from "lucide-react";
@@ -45,7 +45,7 @@ function DocThumbnail({ path, onPreview, onRemove }: { path: string; onPreview: 
   if (loading) {
     return (
       <div className="w-20 h-20 rounded-lg border bg-muted flex items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <Spinner size="sm" />
       </div>
     );
   }
@@ -199,7 +199,7 @@ export function ClienteDocumentUpload({ clienteId, documents, onDocumentsChange 
                   disabled={uploadingField === cat.key}
                 >
                   {uploadingField === cat.key ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <Spinner size="sm" />
                   ) : (
                     <Upload className="h-3 w-3" />
                   )}

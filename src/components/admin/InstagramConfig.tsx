@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Instagram, RefreshCw, ExternalLink, CheckCircle, XCircle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,7 +174,7 @@ export function InstagramConfig() {
       <Card>
         <CardContent className="p-6">
           <div className="flex items-center justify-center">
-            <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+            <Spinner size="md" />
           </div>
         </CardContent>
       </Card>
@@ -284,7 +285,7 @@ export function InstagramConfig() {
             <Button onClick={handleSave} disabled={saving}>
               {saving ? (
                 <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  <Spinner size="sm" />
                   Salvando...
                 </>
               ) : (
@@ -299,7 +300,7 @@ export function InstagramConfig() {
             >
               {syncing ? (
                 <>
-                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  <Spinner size="sm" />
                   Sincronizando...
                 </>
               ) : (

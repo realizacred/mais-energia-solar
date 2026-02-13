@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import {
   RefreshCw, Settings, Plug, Zap, CheckCircle2,
-  AlertTriangle, Loader2, Play, Copy,
+  AlertTriangle, Loader2 as _L2, Play, Copy,
   FolderOpen, Link2, Shield, ClipboardList,
 } from "lucide-react";
 import { format } from "date-fns";
@@ -221,7 +222,7 @@ export function SolarMarketManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -306,7 +307,7 @@ export function SolarMarketManager() {
                 className="w-full sm:w-auto"
               >
                 {syncing ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <Spinner size="sm" />
                 ) : (
                   <Play className="mr-2 h-5 w-5" />
                 )}
@@ -389,7 +390,7 @@ Content-Type: application/json
                     disabled={syncing || !config?.enabled || !deltaId}
                     className="w-full"
                   >
-                    {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Zap className="mr-2 h-4 w-4" />}
+                    {syncing ? <Spinner size="sm" /> : <Zap className="mr-2 h-4 w-4" />}
                     Sincronizar
                   </Button>
                 </div>
@@ -541,11 +542,11 @@ Content-Type: application/json
 
               <div className="flex gap-3 pt-2">
                 <Button onClick={saveConfig} disabled={saving}>
-                  {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {saving && <Spinner size="sm" />}
                   Salvar Configuração
                 </Button>
                 <Button variant="outline" onClick={testConnection} disabled={testing || !config?.enabled}>
-                  {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plug className="mr-2 h-4 w-4" />}
+                  {testing ? <Spinner size="sm" /> : <Plug className="mr-2 h-4 w-4" />}
                   Testar Conexão
                 </Button>
               </div>

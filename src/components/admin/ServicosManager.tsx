@@ -23,10 +23,10 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { parseISO } from "date-fns";
 import {
   Plus,
-  Loader2,
   RefreshCw,
   Wrench,
   Table2,
@@ -287,7 +287,7 @@ export function ServicosManager() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -469,7 +469,7 @@ export function ServicosManager() {
                 </div>
 
                 <Button onClick={handleSubmit} disabled={saving} className="w-full">
-                  {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  {saving ? <Spinner size="sm" /> : null}
                   Agendar Serviço
                 </Button>
               </div>

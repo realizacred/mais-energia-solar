@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
+import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -1055,7 +1056,7 @@ export function ConvertLeadToClientDialog({
                           className="shrink-0"
                         >
                           {gettingLocation ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <Spinner size="sm" />
                           ) : (
                             <Navigation className="h-4 w-4" />
                           )}
@@ -1122,7 +1123,7 @@ export function ConvertLeadToClientDialog({
               >
                 {savingAsLead ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner size="sm" />
                     Salvando...
                   </>
                 ) : (
@@ -1136,7 +1137,7 @@ export function ConvertLeadToClientDialog({
               <Button type="submit" disabled={loading || savingAsLead}>
                 {loading ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Spinner size="sm" />
                     Convertendo...
                   </>
                 ) : (

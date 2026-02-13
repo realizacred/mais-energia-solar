@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
  import { motion, AnimatePresence } from "framer-motion";
  import { Button } from "@/components/ui/button";
  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -528,7 +529,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
                     className="w-full bg-success hover:bg-success/90 text-success-foreground h-14 text-lg gap-3 rounded-xl shadow-lg"
                   >
                     {isSubmitting ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <Spinner size="sm" />
                     ) : (
                       <Play className="h-5 w-5" />
                     )}
@@ -934,7 +935,7 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
               className="flex-1 h-11 bg-success hover:bg-success/90 text-success-foreground font-medium"
             >
               {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <Spinner size="sm" />
               ) : (
                 <CheckCircle2 className="h-4 w-4 mr-2" />
               )}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { SyncProgressTracker } from "./SyncProgressTracker";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -6,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { StatCard } from "@/components/ui-kit";
 import {
-  Users, FolderOpen, FileText, Loader2, RefreshCw,
+  Users, FolderOpen, FileText, RefreshCw,
   CheckCircle2, XCircle, Clock, AlertTriangle,
   Filter, Layers, UserCheck, GitBranch
 } from "lucide-react";
@@ -104,7 +105,7 @@ export function SolarMarketAuditView() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -112,7 +113,7 @@ export function SolarMarketAuditView() {
   const statusIcon = (status: string) => {
     switch (status) {
       case "completed": return <CheckCircle2 className="h-4 w-4 text-success" />;
-      case "running": return <Loader2 className="h-4 w-4 text-info animate-spin" />;
+      case "running": return <Spinner size="sm" />;
       case "failed": return <XCircle className="h-4 w-4 text-destructive" />;
       default: return <Clock className="h-4 w-4 text-muted-foreground" />;
     }

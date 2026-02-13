@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import {
-  Sparkles, Send, Copy, RefreshCw, Loader2, X, MessageCircle,
+  Sparkles, Send, Copy, RefreshCw, X, MessageCircle,
   Clock, AlertTriangle, CheckCircle2, FileText, Brain, Zap,
   ClipboardList, TrendingUp, ShieldAlert, Target,
 } from "lucide-react";
@@ -279,7 +280,7 @@ export function WaAISidebar({ conversation, onClose, onUseSuggestion }: WaAISide
           >
             {loading ? (
               <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Spinner size="sm" />
                 Gerando...
               </>
             ) : (
