@@ -68,7 +68,7 @@ export function LeadsToAttack({ leads, scores, onLeadClick }: LeadsToAttackProps
               <div
                 key={lead.id}
                 onClick={() => onLeadClick?.(lead)}
-                className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-card/80 hover:bg-accent/50 cursor-pointer transition-all group"
+                className="flex items-center gap-3 p-3 rounded-xl border border-border/60 bg-card hover:bg-accent/50 cursor-pointer transition-all duration-200 group"
               >
                 {/* Score badge */}
                 <div className="flex flex-col items-center min-w-[48px]">

@@ -42,9 +42,9 @@ export function FollowUpStatsCards({ leads }: FollowUpStatsCardsProps) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
       {/* Urgentes (6+ dias) */}
-      <Card className="border-destructive/30 bg-destructive/5">
+      <Card className="border-l-[3px] border-l-destructive border-border/60">
         <CardContent className="flex items-center gap-3 p-3 sm:p-4">
-          <div className="rounded-full border-2 border-destructive p-1.5 sm:p-2 shrink-0">
+          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
             <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
           </div>
           <div className="min-w-0">
@@ -55,9 +55,9 @@ export function FollowUpStatsCards({ leads }: FollowUpStatsCardsProps) {
       </Card>
 
       {/* Pendentes (3+ dias) */}
-      <Card className="border-warning/30 bg-warning/5">
+      <Card className="border-l-[3px] border-l-warning border-border/60">
         <CardContent className="flex items-center gap-3 p-3 sm:p-4">
-          <div className="rounded-full border-2 border-warning p-1.5 sm:p-2 shrink-0">
+          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
             <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-warning" />
           </div>
           <div className="min-w-0">
@@ -68,9 +68,9 @@ export function FollowUpStatsCards({ leads }: FollowUpStatsCardsProps) {
       </Card>
 
       {/* Em dia */}
-      <Card className="border-success/30 bg-success/5">
+      <Card className="border-l-[3px] border-l-success border-border/60">
         <CardContent className="flex items-center gap-3 p-3 sm:p-4">
-          <div className="rounded-full border-2 border-success p-1.5 sm:p-2 shrink-0">
+          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
             <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-success" />
           </div>
           <div className="min-w-0">

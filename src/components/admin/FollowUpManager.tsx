@@ -343,7 +343,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
                 const okPercent = (vendedor.emDia / total) * 100;
 
                 return (
-                  <div key={vendedor.nome} className="p-4 rounded-lg border bg-card">
+                  <div key={vendedor.nome} className="p-4 rounded-xl border border-border/60 bg-card" style={{ boxShadow: "var(--shadow-xs)" }}>
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <span className="text-lg font-bold text-muted-foreground">#{index + 1}</span>

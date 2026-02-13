@@ -1,4 +1,4 @@
-import { Users, Zap, MapPin, TrendingUp, ArrowUpRight } from "lucide-react";
+import { Users, Zap, MapPin } from "lucide-react";
 import { motion } from "framer-motion";
 
 interface StatsCardsProps {
@@ -59,16 +59,14 @@ export function StatsCards({ totalLeads, totalKwh, uniqueEstados }: StatsCardsPr
           initial="hidden"
           animate="visible"
           variants={cardVariants}
-          className={`group relative overflow-hidden rounded-2xl border bg-card p-5 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${stat.borderColor}`}
+          className={`group relative overflow-hidden rounded-xl border border-border/60 border-l-[3px] bg-card p-5 transition-all duration-200 ease-out hover:border-border/80 ${stat.borderColor}`}
+          style={{ boxShadow: "var(--shadow-sm)" }}
+          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-md)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "translateY(0)"; }}
         >
-          {/* Top accent bar */}
-          <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${stat.accentFrom} ${stat.accentTo} rounded-t-2xl`} />
 
-          {/* Decorative glow */}
-          <div className={`absolute -top-8 -right-8 w-24 h-24 ${stat.iconBg} rounded-full blur-2xl opacity-0 group-hover:opacity-60 transition-opacity duration-500`} />
-
-          <div className="relative flex items-center gap-4">
-            <div className={`stat-card-icon ${stat.iconBg}`}>
+          <div className="flex items-center gap-4">
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${stat.iconBg}`}>
               <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
             </div>
             <div className="min-w-0 flex-1">
@@ -77,7 +75,7 @@ export function StatsCards({ totalLeads, totalKwh, uniqueEstados }: StatsCardsPr
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
             </div>
-            <ArrowUpRight className="w-4 h-4 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors" />
+            
           </div>
         </motion.div>
       ))}
