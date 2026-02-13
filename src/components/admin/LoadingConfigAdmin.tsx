@@ -337,6 +337,7 @@ export function LoadingConfigAdmin() {
                 <SelectItem value="pulse">Pulsar</SelectItem>
                 <SelectItem value="spin">Girar</SelectItem>
                 <SelectItem value="breathe">Respirar</SelectItem>
+                <SelectItem value="none">Parado (sem animação)</SelectItem>
               </SelectContent>
             </Select>
           </div>
