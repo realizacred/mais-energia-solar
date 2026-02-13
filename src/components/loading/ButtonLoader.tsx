@@ -1,4 +1,5 @@
-import { SunLoader } from "./SunLoader";
+import { ThemeLoader } from "./ThemeLoader";
+import type { LoaderTheme, LoaderAnimation } from "./ThemeLoader";
 import { useLoadingConfig } from "@/hooks/useLoadingConfig";
 
 interface ButtonLoaderProps {
@@ -7,17 +8,18 @@ interface ButtonLoaderProps {
 
 /**
  * Micro-loader para dentro de botões.
- * Substitui o Loader2 padrão.
+ * Usa o tema configurado pelo admin.
  */
 export function ButtonLoader({ className = "" }: ButtonLoaderProps) {
   const { config } = useLoadingConfig();
-  const useSun = config?.sun_loader_enabled ?? true;
-
-  if (useSun) {
-    return <SunLoader size="sm" style="spin" className={className} />;
-  }
+  const theme = (config?.loader_theme as LoaderTheme) ?? "sun";
 
   return (
-    <div className={`h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin ${className}`} />
+    <ThemeLoader
+      theme={theme}
+      animation="spin"
+      size="sm"
+      className={className}
+    />
   );
 }

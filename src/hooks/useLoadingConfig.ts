@@ -7,6 +7,8 @@ export interface LoadingConfig {
   tenant_id: string;
   sun_loader_enabled: boolean;
   sun_loader_style: string;
+  loader_theme: string;
+  custom_loader_url: string | null;
   show_messages: boolean;
   overlay_delay_ms: number;
   overlay_min_duration_ms: number;
@@ -20,6 +22,8 @@ export interface LoadingConfig {
 const DEFAULT_CONFIG: Omit<LoadingConfig, "id" | "tenant_id"> = {
   sun_loader_enabled: true,
   sun_loader_style: "pulse",
+  loader_theme: "sun",
+  custom_loader_url: null,
   show_messages: true,
   overlay_delay_ms: 400,
   overlay_min_duration_ms: 300,
@@ -58,11 +62,10 @@ export function useLoadingConfig() {
       return data as LoadingConfig | null;
     },
     enabled: !!user,
-    staleTime: 5 * 60 * 1000, // 5 min cache
+    staleTime: 5 * 60 * 1000,
     gcTime: 10 * 60 * 1000,
   });
 
-  // Merge with defaults — always works even without DB config
   const mergedConfig: Omit<LoadingConfig, "id" | "tenant_id"> = config
     ? { ...DEFAULT_CONFIG, ...config, messages_catalog: { ...DEFAULT_CONFIG.messages_catalog, ...(config.messages_catalog || {}) } }
     : DEFAULT_CONFIG;
