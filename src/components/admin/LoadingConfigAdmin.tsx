@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 import { useLoadingConfig, type LoadingConfig } from "@/hooks/useLoadingConfig";
 import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -117,7 +118,6 @@ export function LoadingConfigAdmin() {
     try {
       // Force session refresh to prevent expired JWT causing RLS failures
       await supabase.auth.refreshSession();
-      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
       const tid = await getCurrentTenantId();
       if (!tid) throw new Error("Tenant não encontrado. Faça login novamente.");
       const ext = file.name.split(".").pop() || "png";
