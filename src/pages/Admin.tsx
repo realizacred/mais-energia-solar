@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { Loader2, Menu, ShieldAlert, Sun } from "lucide-react";
+import { Menu, ShieldAlert, Sun } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { usePendingValidations } from "@/hooks/usePendingValidations";
 import { supabase } from "@/integrations/supabase/client";

@@ -10,7 +10,8 @@
    SelectValue,
  } from "@/components/ui/select";
  import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
- import { Download, FileSpreadsheet, Loader2, TrendingUp } from "lucide-react";
+import { Download, FileSpreadsheet, TrendingUp } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
  import { format, startOfMonth, endOfMonth, subMonths } from "date-fns";
  import { ptBR } from "date-fns/locale";
  
@@ -164,11 +165,7 @@
    };
  
    if (loading) {
-     return (
-       <div className="flex justify-center py-12">
-         <Loader2 className="h-8 w-8 animate-spin" />
-       </div>
-     );
+     return <InlineLoader context="data_load" />;
    }
  
    return (

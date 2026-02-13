@@ -36,7 +36,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Calculator,
-  Loader2,
   CheckCircle,
   User,
   MapPin,
@@ -53,6 +52,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Link } from "react-router-dom";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 // ─── Schemas ────────────────────────────────────────────────────
 const phoneRegex = /^\(\d{2}\) \d{4,5}-\d{4}$/;
@@ -775,7 +775,7 @@ export default function Calculadora() {
                     size="lg"
                   >
                     {isSubmitting ? (
-                      <><Loader2 className="w-5 h-5 animate-spin" /> Enviando...</>
+                      <><Spinner size="sm" /> Enviando...</>
                     ) : (
                       <><Send className="w-5 h-5" /> Receber Orçamento Detalhado</>
                     )}

@@ -4,7 +4,8 @@
  import { Button } from "@/components/ui/button";
  import { Badge } from "@/components/ui/badge";
  import { ScrollArea } from "@/components/ui/scroll-area";
- import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
  import {
    format,
    startOfMonth,
@@ -139,10 +140,8 @@
            </div>
          </CardHeader>
          <CardContent>
-           {loading ? (
-             <div className="flex justify-center py-12">
-               <Loader2 className="h-6 w-6 animate-spin" />
-             </div>
+          {loading ? (
+             <InlineLoader context="data_load" />
            ) : (
              <div className="grid grid-cols-7 gap-1">
                {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((dia) => (

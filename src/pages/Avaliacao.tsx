@@ -5,7 +5,8 @@
  import { Textarea } from "@/components/ui/textarea";
  import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
  import { toast } from "@/hooks/use-toast";
- import { Loader2, CheckCircle2, Sun, Sparkles } from "lucide-react";
+ import { CheckCircle2, Sun, Sparkles } from "lucide-react";
+ import { Spinner } from "@/components/ui-kit/Spinner";
  import { StarRating } from "@/components/ui/star-rating";
  import { useLogo } from "@/hooks/useLogo";
  
@@ -189,7 +190,7 @@
                >
                  {submitting ? (
                    <>
-                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                     <Spinner size="sm" className="mr-2" />
                      Enviando...
                    </>
                  ) : (

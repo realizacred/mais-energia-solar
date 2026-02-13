@@ -20,18 +20,19 @@
    Target,
    Medal,
    Star,
-   Loader2,
    Save,
    Crown,
    Zap,
    TrendingUp,
    Clock,
    CheckCircle2,
-   Award,
    Flame,
    Calendar,
+   Award,
+   User,
  } from "lucide-react";
- import { User } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
  import { format, startOfMonth, endOfMonth } from "date-fns";
  import { ptBR } from "date-fns/locale";
  import { VendedorMetasIndividuais } from "./VendedorMetasIndividuais";
@@ -184,11 +185,7 @@
    };
  
    if (loading) {
-     return (
-       <div className="flex items-center justify-center py-12">
-         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-       </div>
-     );
+     return <InlineLoader context="data_load" />;
    }
  
    return (
@@ -406,10 +403,10 @@
                      </div>
                    </div>
  
-                   <Button onClick={handleSaveConfig} disabled={saving} className="gap-2">
-                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                     Salvar Configurações
-                   </Button>
+                  <Button onClick={handleSaveConfig} disabled={saving} className="gap-2">
+                    {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+                    Salvar Configurações
+                  </Button>
                  </>
                )}
              </CardContent>
@@ -452,10 +449,10 @@
                      ))}
                    </div>
  
-                   <Button onClick={handleSaveConfig} disabled={saving} className="gap-2">
-                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                     Salvar Pontuações
-                   </Button>
+                  <Button onClick={handleSaveConfig} disabled={saving} className="gap-2">
+                    {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+                    Salvar Pontuações
+                  </Button>
                  </div>
                )}
              </CardContent>

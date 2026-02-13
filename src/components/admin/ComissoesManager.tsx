@@ -33,7 +33,6 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus,
-  Loader2,
   Trash2,
   DollarSign,
   Eye,
@@ -41,6 +40,8 @@ import {
   BarChart3,
   List,
 } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PagamentosComissaoDialog } from "./PagamentosComissaoDialog";
@@ -365,11 +366,7 @@ export function ComissoesManager() {
   const anos = Array.from({ length: 5 }, (_, i) => currentDate.getFullYear() - i);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <InlineLoader context="data_load" />;
   }
 
   return (
@@ -548,8 +545,8 @@ export function ComissoesManager() {
                     <Button type="button" variant="outline" onClick={resetForm}>
                       Cancelar
                     </Button>
-                    <Button type="submit" disabled={saving}>
-                      {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  <Button type="submit" disabled={saving}>
+                      {saving && <Spinner size="sm" className="mr-2" />}
                       Registrar
                     </Button>
                   </div>

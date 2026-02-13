@@ -43,6 +43,26 @@ const DEFAULT_CONFIG: Omit<LoadingConfig, "id" | "tenant_id"> = {
   ai_max_calls_per_flow: 1,
 };
 
+const CACHE_KEY = "loading-config-cache";
+
+function getCachedConfig(): LoadingConfig | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as LoadingConfig;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedConfig(config: LoadingConfig) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(config));
+  } catch {
+    // localStorage full or unavailable — ignore
+  }
+}
+
 export function useLoadingConfig() {
   const { user } = useAuth();
 
@@ -59,6 +79,10 @@ export function useLoadingConfig() {
         return null;
       }
 
+      if (data) {
+        setCachedConfig(data as LoadingConfig);
+      }
+
       return data as LoadingConfig | null;
     },
     enabled: !!user,
@@ -66,8 +90,11 @@ export function useLoadingConfig() {
     gcTime: 10 * 60 * 1000,
   });
 
-  const mergedConfig: Omit<LoadingConfig, "id" | "tenant_id"> = config
-    ? { ...DEFAULT_CONFIG, ...config, messages_catalog: { ...DEFAULT_CONFIG.messages_catalog, ...(config.messages_catalog || {}) } }
+  // Use cached config instantly while DB fetch is in-flight
+  const effectiveConfig = config ?? getCachedConfig();
+
+  const mergedConfig: Omit<LoadingConfig, "id" | "tenant_id"> = effectiveConfig
+    ? { ...DEFAULT_CONFIG, ...effectiveConfig, messages_catalog: { ...DEFAULT_CONFIG.messages_catalog, ...(effectiveConfig.messages_catalog || {}) } }
     : DEFAULT_CONFIG;
 
   return {
