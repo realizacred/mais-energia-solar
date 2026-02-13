@@ -35,7 +35,7 @@ import {
   AutoSaveIndicator,
   DuplicateLeadWarning,
 } from "@/components/form";
-import logo from "@/assets/logo.png";
+import { useLogo } from "@/hooks/useLogo";
 import {
   leadFormSchema,
   step1Schema,
@@ -90,6 +90,7 @@ interface LeadFormWizardProps {
 export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {}) {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
+  const logo = useLogo();
   // Detect if this is a public vendor form (/v/slug) — always use Edge Function path
   const isPublicVendorForm = Boolean(
     vendorCode || searchParams.get("v") || searchParams.get("vendedor") || window.location.pathname.startsWith("/v/")

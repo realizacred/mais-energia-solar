@@ -23,9 +23,10 @@ import {
 } from "@/lib/validations";
 import ConsumptionChart from "./ConsumptionChart";
 import FileUpload from "./FileUpload";
-import logo from "@/assets/logo.png";
+import { useLogo } from "@/hooks/useLogo";
 
 export default function LeadForm() {
+  const logo = useLogo();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
