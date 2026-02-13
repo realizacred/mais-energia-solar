@@ -33,32 +33,18 @@
    const [targetInstaladorId, setTargetInstaladorId] = useState<string | null>(null);
    const [instaladorName, setInstaladorName] = useState<string | null>(null);
  
-    // Swap manifest to dedicated instalador manifest
+    // Theme-color for instalador context (no manifest swap — single manifest strategy)
     useEffect(() => {
-      const existing = document.querySelector('link[rel="manifest"]');
-      const originalHref = existing?.getAttribute("href") || "";
-
-      if (existing) {
-        existing.setAttribute("href", "/instalador-manifest.json");
-      } else {
-        const link = document.createElement("link");
-        link.rel = "manifest";
-        link.href = "/instalador-manifest.json";
-        document.head.appendChild(link);
-      }
-
-      // Update theme-color for instalador
       let themeMeta = document.querySelector('meta[name="theme-color"]');
       if (!themeMeta) {
         themeMeta = document.createElement("meta");
         themeMeta.setAttribute("name", "theme-color");
         document.head.appendChild(themeMeta);
       }
+      const original = themeMeta.getAttribute("content") || "#e8760d";
       themeMeta.setAttribute("content", "#f59e0b");
-
       return () => {
-        const el = document.querySelector('link[rel="manifest"]');
-        if (el && originalHref) el.setAttribute("href", originalHref);
+        themeMeta?.setAttribute("content", original);
       };
     }, []);
 

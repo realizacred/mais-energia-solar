@@ -3,55 +3,79 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Download, X, Share, MoreVertical, Smartphone } from "lucide-react";
 import { usePWAInstall, savePWAReturnUrl } from "@/hooks/usePWAInstall";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 interface InstallAppBannerProps {
   vendedorNome?: string | null;
 }
 
+const DISMISS_KEY = "pwa-banner-dismissed";
+const DISMISS_HOURS = 24;
+
 export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
   const { isInstalled, isIOS, isAndroid, canInstall, promptInstall } = usePWAInstall();
   const [isDismissed, setIsDismissed] = useState(() => {
-    const dismissed = localStorage.getItem("pwa-banner-dismissed");
+    const dismissed = localStorage.getItem(DISMISS_KEY);
     if (!dismissed) return false;
-    // Reset after 24h so it shows again
     const ts = parseInt(dismissed, 10);
-    if (Date.now() - ts > 24 * 60 * 60 * 1000) {
-      localStorage.removeItem("pwa-banner-dismissed");
+    if (Date.now() - ts > DISMISS_HOURS * 60 * 60 * 1000) {
+      localStorage.removeItem(DISMISS_KEY);
       return false;
     }
     return true;
   });
-  const [showInstructions, setShowInstructions] = useState(false);
 
   const handleDismiss = () => {
     setIsDismissed(true);
-    localStorage.setItem("pwa-banner-dismissed", Date.now().toString());
+    localStorage.setItem(DISMISS_KEY, Date.now().toString());
   };
 
   const handleInstallClick = async () => {
-    // Save current URL so PWA opens on this page after install
     savePWAReturnUrl();
     if (canInstall) {
-      await promptInstall();
-    } else if (isIOS || isAndroid) {
-      setShowInstructions(true);
+      const ok = await promptInstall();
+      if (ok) handleDismiss();
     }
   };
 
   // Don't show if installed or dismissed
-  if (isInstalled || isDismissed) {
-    return null;
+  if (isInstalled || isDismissed) return null;
+
+  // iOS: show inline A2HS instructions (no fake "Instalar" button)
+  if (isIOS) {
+    return (
+      <Card className="mx-4 mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
+        <CardContent className="p-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">
+                Adicione à Tela Inicial 📲
+              </p>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                <span>Toque em</span>
+                <Share className="w-3.5 h-3.5 flex-shrink-0" />
+                <span><strong>Compartilhar</strong> → <strong>Adicionar à Tela de Início</strong></span>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 flex-shrink-0"
+              onClick={handleDismiss}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
-  return (
-    <>
+  // Android/Desktop with native install available
+  if (canInstall) {
+    return (
       <Card className="mx-4 mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
         <CardContent className="p-3">
           <div className="flex items-center gap-3">
@@ -83,82 +107,42 @@ export function InstallAppBanner({ vendedorNome }: InstallAppBannerProps) {
           </div>
         </CardContent>
       </Card>
+    );
+  }
 
-      {/* Instructions Dialog for iOS/Android */}
-      <Dialog open={showInstructions} onOpenChange={setShowInstructions}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Instalar Aplicativo</DialogTitle>
-            <DialogDescription>
-              Siga os passos abaixo para adicionar à tela inicial
-            </DialogDescription>
-          </DialogHeader>
-
-          {isIOS ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                  1
-                </div>
-                <div className="flex items-center gap-2 text-sm pt-1">
-                  <span>Toque no botão</span>
-                  <Share className="w-4 h-4" />
-                  <span className="font-medium">Compartilhar</span>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                  2
-                </div>
-                <div className="text-sm pt-1">
-                  Deslize e toque em <span className="font-medium">"Adicionar à Tela Inicial"</span>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                  3
-                </div>
-                <div className="text-sm pt-1">
-                  Toque em <span className="font-medium">Adicionar</span>
-                </div>
+  // Android without native prompt: show manual instructions
+  if (isAndroid) {
+    return (
+      <Card className="mx-4 mt-4 border-primary/30 bg-gradient-to-r from-primary/5 to-primary/10">
+        <CardContent className="p-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
+              <Smartphone className="w-5 h-5 text-primary-foreground" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">
+                Instale o App 📲
+              </p>
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1">
+                <span>No menu</span>
+                <MoreVertical className="w-3.5 h-3.5 flex-shrink-0" />
+                <span>toque em <strong>"Instalar app"</strong></span>
               </div>
             </div>
-          ) : isAndroid ? (
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                  1
-                </div>
-                <div className="flex items-center gap-2 text-sm pt-1">
-                  <span>Toque no menu</span>
-                  <MoreVertical className="w-4 h-4" />
-                  <span className="font-medium">(3 pontos)</span>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                  2
-                </div>
-                <div className="text-sm pt-1">
-                  Toque em <span className="font-medium">"Instalar app"</span> ou <span className="font-medium">"Adicionar à tela inicial"</span>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary flex-shrink-0">
-                  3
-                </div>
-                <div className="text-sm pt-1">
-                  Confirme tocando em <span className="font-medium">Instalar</span>
-                </div>
-              </div>
-            </div>
-          ) : null}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 flex-shrink-0"
+              onClick={handleDismiss}
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
-          <Button variant="outline" onClick={() => setShowInstructions(false)} className="mt-2">
-            Entendi
-          </Button>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
+  // Desktop without native prompt: don't show banner
+  return null;
 }

@@ -22,34 +22,18 @@ export default function MessagingApp() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("messages");
 
-  // Swap manifest link to the dedicated messaging manifest
+  // Theme-color for messaging context (no manifest swap — single manifest strategy)
   useEffect(() => {
-    const existing = document.querySelector('link[rel="manifest"]');
-    const originalHref = existing?.getAttribute("href") || "";
-
-    // Remove existing VitePWA manifest and add dedicated one
-    if (existing) {
-      existing.setAttribute("href", "/app-manifest.json");
-    } else {
-      const link = document.createElement("link");
-      link.rel = "manifest";
-      link.href = "/app-manifest.json";
-      document.head.appendChild(link);
-    }
-
-    // Update theme-color meta
     let themeMeta = document.querySelector('meta[name="theme-color"]');
     if (!themeMeta) {
       themeMeta = document.createElement("meta");
       themeMeta.setAttribute("name", "theme-color");
       document.head.appendChild(themeMeta);
     }
+    const original = themeMeta.getAttribute("content") || "#e8760d";
     themeMeta.setAttribute("content", "#16a34a");
-
     return () => {
-      // Restore original manifest when leaving /app
-      const el = document.querySelector('link[rel="manifest"]');
-      if (el && originalHref) el.setAttribute("href", originalHref);
+      themeMeta?.setAttribute("content", original);
     };
   }, []);
 

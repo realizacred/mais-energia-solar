@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Download, X, Wrench, Share } from "lucide-react";
+import { Download, X, Wrench, Share, MoreVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 
@@ -8,10 +8,10 @@ const DISMISS_DAYS = 7;
 
 /**
  * Install prompt banner for the Instalador PWA.
- * Shows when the app is not installed and user hasn't dismissed recently.
+ * Shows platform-appropriate install instructions inline.
  */
 export function InstaladorInstallBanner() {
-  const { isInstalled, canInstall, promptInstall, isIOS } = usePWAInstall();
+  const { isInstalled, canInstall, promptInstall, isIOS, isAndroid } = usePWAInstall();
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
@@ -86,10 +86,17 @@ export function InstaladorInstallBanner() {
                 </Button>
               ) : isIOS ? (
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Share className="h-3.5 w-3.5" />
+                  <Share className="h-3.5 w-3.5 flex-shrink-0" />
                   <span>
                     Toque em <strong>Compartilhar</strong> →{" "}
-                    <strong>Adicionar à Tela Inicial</strong>
+                    <strong>Adicionar à Tela de Início</strong>
+                  </span>
+                </div>
+              ) : isAndroid ? (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <MoreVertical className="h-3.5 w-3.5 flex-shrink-0" />
+                  <span>
+                    No menu, toque em <strong>"Instalar app"</strong>
                   </span>
                 </div>
               ) : (

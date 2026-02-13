@@ -1,4 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import {
+  getDeferredPrompt,
+  clearDeferredPrompt,
+  onPromptChange,
+} from "@/lib/pwa-install-prompt";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -25,59 +30,51 @@ export function consumePWAReturnUrl(): string | null {
 }
 
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(() => {
-    return window.matchMedia("(display-mode: standalone)").matches ||
-      (navigator as any).standalone === true;
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (navigator as any).standalone === true
+    );
   });
+
   const ua = navigator.userAgent.toLowerCase();
   const [isIOS] = useState(() => /iphone|ipad|ipod/.test(ua));
   const [isAndroid] = useState(() => /android/.test(ua));
-  const [canInstall, setCanInstall] = useState(false);
+
+  // Derive canInstall from the global singleton
+  const [canInstall, setCanInstall] = useState(() => !!getDeferredPrompt());
 
   useEffect(() => {
-    // Listen for install prompt
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setCanInstall(true);
-    };
+    // Subscribe to changes from the global singleton
+    const unsub = onPromptChange((e) => {
+      setCanInstall(!!e);
+      if (!e) setIsInstalled(true);
+    });
 
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    // Sync initial state (prompt may have arrived before mount)
+    setCanInstall(!!getDeferredPrompt());
 
-    // Listen for app installed
-    const handleAppInstalled = () => {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
-      setCanInstall(false);
-    };
-
-    window.addEventListener("appinstalled", handleAppInstalled);
-
-    return () => {
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-      window.removeEventListener("appinstalled", handleAppInstalled);
-    };
+    return unsub;
   }, []);
 
   const promptInstall = useCallback(async () => {
-    if (!deferredPrompt) return false;
+    const prompt = getDeferredPrompt();
+    if (!prompt) return false;
 
-    // Save current URL before triggering install
     savePWAReturnUrl();
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+
     if (outcome === "accepted") {
       setIsInstalled(true);
-      setDeferredPrompt(null);
       setCanInstall(false);
+      clearDeferredPrompt();
       return true;
     }
-    
+
     return false;
-  }, [deferredPrompt]);
+  }, []);
 
   return {
     isInstalled,
