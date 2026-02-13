@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Webhook, Plus, Trash2, Loader2, ExternalLink, Copy } from "lucide-react";
+import { Webhook, Plus, Trash2, ExternalLink, Copy } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface WebhookConfig {
   id: string;
@@ -122,7 +123,7 @@ export default function WebhookManager() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Spinner size="md" />
         </CardContent>
       </Card>
     );
@@ -167,7 +168,7 @@ export default function WebhookManager() {
                   />
                 </div>
                 <Button onClick={handleCreate} disabled={saving} className="w-full">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {saving ? <Spinner size="sm" /> : null}
                   Salvar Webhook
                 </Button>
               </div>

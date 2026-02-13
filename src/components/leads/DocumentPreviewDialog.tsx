@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { X, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText, Loader2 } from "lucide-react";
+import { X, Download, ZoomIn, ZoomOut, ChevronLeft, ChevronRight, FileText } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -146,7 +147,7 @@ export function DocumentPreviewDialog({
           {/* Loading indicator */}
           {loading && isImage && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/50">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <Spinner size="lg" />
             </div>
           )}
 

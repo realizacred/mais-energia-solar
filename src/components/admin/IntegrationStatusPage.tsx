@@ -22,7 +22,6 @@ import {
   Eye,
   EyeOff,
   Save,
-  Loader2,
   KeyRound,
   Settings,
   Wifi,
@@ -32,6 +31,7 @@ import {
   Inbox,
   Phone,
 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 // ── Types ──
 
@@ -213,7 +213,7 @@ function InlineApiKeyConfig({
           </button>
         </div>
         <Button onClick={handleSave} disabled={saving || !apiKey.trim()} size="sm" className="gap-1 h-9">
-          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          {saving ? <Spinner size="sm" /> : <Save className="h-3.5 w-3.5" />}
           {saving ? "Validando..." : "Salvar"}
         </Button>
         <Button variant="ghost" size="sm" className="h-9" onClick={() => { setOpen(false); setApiKey(""); }}>

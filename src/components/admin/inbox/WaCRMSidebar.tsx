@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  User, Phone, MapPin, Zap, ExternalLink, Loader2,
+  User, Phone, MapPin, Zap, ExternalLink,
   DollarSign, Target, Calendar, Clock, Plus, ArrowRight,
   FileText, TrendingUp, X, ChevronRight,
 } from "lucide-react";
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
 interface WaCRMSidebarProps {
@@ -111,7 +112,7 @@ export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
       <ScrollArea className="flex-1">
         {leadLoading ? (
           <div className="flex items-center justify-center py-16">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <Spinner size="sm" />
           </div>
         ) : !lead ? (
           <div className="p-4 text-center text-xs text-muted-foreground">Lead não encontrado</div>

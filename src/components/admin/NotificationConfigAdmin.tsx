@@ -14,10 +14,11 @@ import {
   MessageCircle,
   Clock,
   MessageSquare,
-  Loader2,
+  // Loader2 removed
   Save,
   Info,
 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface NotificationConfig {
   id?: string;
@@ -173,7 +174,7 @@ export function NotificationConfigAdmin() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        <Spinner size="sm" />
       </div>
     );
   }
@@ -257,7 +258,7 @@ export function NotificationConfigAdmin() {
       {hasChanges && (
         <div className="sticky bottom-4 flex justify-end">
           <Button onClick={handleSave} disabled={saving} className="gap-2 shadow-lg">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar configurações
           </Button>
         </div>

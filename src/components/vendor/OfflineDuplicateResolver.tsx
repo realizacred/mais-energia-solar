@@ -8,11 +8,11 @@ import {
   Check,
   Plus,
   Link2,
-  Loader2,
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -202,7 +202,7 @@ export function OfflineDuplicateResolver({ vendedorNome }: OfflineDuplicateResol
                         className="gap-2 flex-1"
                       >
                         {resolvingId === duplicate.leadId ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Spinner size="sm" />
                         ) : (
                           <Plus className="w-4 h-4" />
                         )}
@@ -215,7 +215,7 @@ export function OfflineDuplicateResolver({ vendedorNome }: OfflineDuplicateResol
                         className="gap-2 flex-1"
                       >
                         {resolvingId === duplicate.leadId ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <Spinner size="sm" />
                         ) : (
                           <Link2 className="w-4 h-4" />
                         )}

@@ -10,9 +10,10 @@ import {
   MessageCircle,
   AlertTriangle,
   Filter,
-  Loader2,
+  // Loader2 removed – using Spinner
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -68,7 +69,7 @@ export function VendorTaskAgenda() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Spinner size="lg" />
         </CardContent>
       </Card>
     );

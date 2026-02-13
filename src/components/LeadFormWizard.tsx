@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import confetti from "canvas-confetti";
 import { 
   User, Phone, MapPin, Home, Zap, BarChart3, MessageSquare, 
-  Send, Loader2, CheckCircle, FileText, ArrowLeft, ArrowRight,
+  Send, CheckCircle, FileText, ArrowLeft, ArrowRight,
   Building, Hash, WifiOff, RefreshCw, ShieldCheck
 } from "lucide-react";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { FloatingInput } from "@/components/ui/floating-input";
 import { FloatingSelect } from "@/components/ui/floating-select";
 import ConsumptionChart from "./ConsumptionChart";
@@ -1672,7 +1673,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
               >
                 {isCheckingDuplicate ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Spinner size="sm" />
                     Verificando...
                   </>
                 ) : (
@@ -1690,7 +1691,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Spinner size="sm" />
                     Enviando...
                   </>
                 ) : (

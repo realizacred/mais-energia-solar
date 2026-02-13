@@ -12,7 +12,6 @@ import {
   Calendar,
   KeyRound,
   Save,
-  Loader2,
   Eye,
   EyeOff,
   CheckCircle2,
@@ -24,6 +23,7 @@ import {
   Unplug,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 /**
  * Admin page: configure Google Calendar OAuth credentials (Client ID + Secret)
@@ -234,7 +234,7 @@ export function GoogleCalendarConfigPage() {
               disabled={saving || !clientId.trim() || !clientSecret.trim()}
               className="gap-2"
             >
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
               {saving ? "Salvando..." : isConfigured ? "Atualizar Credenciais" : "Salvar Credenciais"}
             </Button>
           </div>
@@ -257,8 +257,8 @@ export function GoogleCalendarConfigPage() {
         </CardHeader>
         <CardContent>
           {loadingUsers ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            <div className="flex items-center justify-center py-8 gap-2">
+              <Spinner size="sm" />
               <span className="text-sm text-muted-foreground">Carregando...</span>
             </div>
           ) : connectedUsers.length === 0 ? (
