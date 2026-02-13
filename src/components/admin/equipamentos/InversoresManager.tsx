@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2, Search, Cpu } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Pencil, Trash2, Search, Cpu, Globe, Building2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,37 +22,37 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-
-type TipoSistema = "ON_GRID" | "HIBRIDO" | "OFF_GRID";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 
 interface Inversor {
   id: string;
   fabricante: string;
   modelo: string;
-  potencia_nominal_w: number;
-  potencia_maxima_w: number | null;
-  mppts: number | null;
-  tensao_max_v: number | null;
-  tensao_min_mppt_v: number | null;
-  tensao_max_mppt_v: number | null;
-  corrente_max_mppt_a: number | null;
-  tensao_linha_v: number | null;
-  eficiencia_percent: string | null;
-  tipo_sistema: TipoSistema;
+  potencia_nominal_kw: number;
+  tipo: string;
+  tensao_entrada_max_v: number | null;
+  corrente_entrada_max_a: number | null;
+  mppt_count: number | null;
+  strings_por_mppt: number | null;
+  fases: string;
+  tensao_saida_v: number | null;
+  eficiencia_max_percent: number | null;
+  garantia_anos: number | null;
+  peso_kg: number | null;
+  dimensoes_mm: string | null;
+  wifi_integrado: boolean | null;
+  ip_protection: string | null;
   ativo: boolean;
+  tenant_id: string | null;
 }
 
 const EMPTY_FORM = {
-  fabricante: "", modelo: "", potencia_nominal_w: "", potencia_maxima_w: "",
-  mppts: "", tensao_max_v: "", tensao_min_mppt_v: "", tensao_max_mppt_v: "",
-  corrente_max_mppt_a: "", tensao_linha_v: "", eficiencia_percent: "",
-  tipo_sistema: "ON_GRID" as TipoSistema,
-};
-
-const TIPO_LABELS: Record<TipoSistema, string> = {
-  ON_GRID: "On-Grid",
-  HIBRIDO: "Híbrido",
-  OFF_GRID: "Off-Grid",
+  fabricante: "", modelo: "", potencia_nominal_kw: "", tipo: "String",
+  tensao_entrada_max_v: "", corrente_entrada_max_a: "",
+  mppt_count: "2", strings_por_mppt: "1", fases: "Monofásico",
+  tensao_saida_v: "220", eficiencia_max_percent: "",
+  garantia_anos: "5", peso_kg: "", dimensoes_mm: "",
+  wifi_integrado: true, ip_protection: "IP65",
 };
 
 export function InversoresManager() {
@@ -60,43 +60,54 @@ export function InversoresManager() {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [filterAtivo, setFilterAtivo] = useState("all");
+  const [filterFabricante, setFilterFabricante] = useState("all");
+  const [filterTipo, setFilterTipo] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Inversor | null>(null);
   const [deleting, setDeleting] = useState<Inversor | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
 
   const { data: inversores = [], isLoading } = useQuery({
-    queryKey: ["inversores"],
+    queryKey: ["inversores-catalogo"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("inversores")
+        .from("inversores_catalogo")
         .select("*")
         .order("fabricante")
-        .order("modelo");
+        .order("potencia_nominal_kw");
       if (error) throw error;
       return data as Inversor[];
     },
   });
 
+  const fabricantes = useMemo(() => {
+    const set = new Set(inversores.map((i) => i.fabricante));
+    return Array.from(set).sort();
+  }, [inversores]);
+
   const filtered = inversores.filter((i) => {
     const matchSearch = !search ||
       `${i.fabricante} ${i.modelo}`.toLowerCase().includes(search.toLowerCase());
     const matchAtivo = filterAtivo === "all" || (filterAtivo === "ativo" ? i.ativo : !i.ativo);
-    return matchSearch && matchAtivo;
+    const matchFab = filterFabricante === "all" || i.fabricante === filterFabricante;
+    const matchTipo = filterTipo === "all" || i.tipo === filterTipo;
+    return matchSearch && matchAtivo && matchFab && matchTipo;
   });
+
+  const isGlobal = (i: Inversor) => i.tenant_id === null;
 
   const saveMutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
       if (editing) {
-        const { error } = await supabase.from("inversores").update(payload).eq("id", editing.id);
+        const { error } = await supabase.from("inversores_catalogo").update(payload).eq("id", editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("inversores").insert(payload as any);
+        const { error } = await supabase.from("inversores_catalogo").insert(payload as any);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inversores"] });
+      qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
       toast({ title: editing ? "Inversor atualizado" : "Inversor cadastrado" });
       setDialogOpen(false);
     },
@@ -105,11 +116,11 @@ export function InversoresManager() {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("inversores").delete().eq("id", id);
+      const { error } = await supabase.from("inversores_catalogo").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["inversores"] });
+      qc.invalidateQueries({ queryKey: ["inversores-catalogo"] });
       toast({ title: "Inversor excluído" });
       setDeleting(null);
     },
@@ -118,10 +129,10 @@ export function InversoresManager() {
 
   const toggleMutation = useMutation({
     mutationFn: async ({ id, ativo }: { id: string; ativo: boolean }) => {
-      const { error } = await supabase.from("inversores").update({ ativo }).eq("id", id);
+      const { error } = await supabase.from("inversores_catalogo").update({ ativo }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["inversores"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["inversores-catalogo"] }),
   });
 
   const openDialog = (inv?: Inversor) => {
@@ -129,16 +140,20 @@ export function InversoresManager() {
       setEditing(inv);
       setForm({
         fabricante: inv.fabricante, modelo: inv.modelo,
-        potencia_nominal_w: String(inv.potencia_nominal_w),
-        potencia_maxima_w: inv.potencia_maxima_w ? String(inv.potencia_maxima_w) : "",
-        mppts: inv.mppts ? String(inv.mppts) : "",
-        tensao_max_v: inv.tensao_max_v ? String(inv.tensao_max_v) : "",
-        tensao_min_mppt_v: inv.tensao_min_mppt_v ? String(inv.tensao_min_mppt_v) : "",
-        tensao_max_mppt_v: inv.tensao_max_mppt_v ? String(inv.tensao_max_mppt_v) : "",
-        corrente_max_mppt_a: inv.corrente_max_mppt_a ? String(inv.corrente_max_mppt_a) : "",
-        tensao_linha_v: inv.tensao_linha_v ? String(inv.tensao_linha_v) : "",
-        eficiencia_percent: inv.eficiencia_percent || "",
-        tipo_sistema: inv.tipo_sistema,
+        potencia_nominal_kw: String(inv.potencia_nominal_kw),
+        tipo: inv.tipo,
+        tensao_entrada_max_v: inv.tensao_entrada_max_v ? String(inv.tensao_entrada_max_v) : "",
+        corrente_entrada_max_a: inv.corrente_entrada_max_a ? String(inv.corrente_entrada_max_a) : "",
+        mppt_count: inv.mppt_count ? String(inv.mppt_count) : "2",
+        strings_por_mppt: inv.strings_por_mppt ? String(inv.strings_por_mppt) : "1",
+        fases: inv.fases,
+        tensao_saida_v: inv.tensao_saida_v ? String(inv.tensao_saida_v) : "220",
+        eficiencia_max_percent: inv.eficiencia_max_percent ? String(inv.eficiencia_max_percent) : "",
+        garantia_anos: inv.garantia_anos ? String(inv.garantia_anos) : "5",
+        peso_kg: inv.peso_kg ? String(inv.peso_kg) : "",
+        dimensoes_mm: inv.dimensoes_mm || "",
+        wifi_integrado: inv.wifi_integrado ?? true,
+        ip_protection: inv.ip_protection || "IP65",
       });
     } else {
       setEditing(null);
@@ -148,29 +163,33 @@ export function InversoresManager() {
   };
 
   const handleSave = () => {
-    if (!form.fabricante.trim() || !form.modelo.trim() || !form.potencia_nominal_w) {
-      toast({ title: "Preencha fabricante, modelo e potência nominal", variant: "destructive" });
+    if (!form.fabricante.trim() || !form.modelo.trim() || !form.potencia_nominal_kw) {
+      toast({ title: "Preencha fabricante, modelo e potência", variant: "destructive" });
       return;
     }
     saveMutation.mutate({
       fabricante: form.fabricante.trim(),
       modelo: form.modelo.trim(),
-      potencia_nominal_w: parseFloat(form.potencia_nominal_w),
-      potencia_maxima_w: form.potencia_maxima_w ? parseFloat(form.potencia_maxima_w) : null,
-      mppts: form.mppts ? parseInt(form.mppts) : null,
-      tensao_max_v: form.tensao_max_v ? parseFloat(form.tensao_max_v) : null,
-      tensao_min_mppt_v: form.tensao_min_mppt_v ? parseFloat(form.tensao_min_mppt_v) : null,
-      tensao_max_mppt_v: form.tensao_max_mppt_v ? parseFloat(form.tensao_max_mppt_v) : null,
-      corrente_max_mppt_a: form.corrente_max_mppt_a ? parseFloat(form.corrente_max_mppt_a) : null,
-      tensao_linha_v: form.tensao_linha_v ? parseFloat(form.tensao_linha_v) : null,
-      eficiencia_percent: form.eficiencia_percent || null,
-      tipo_sistema: form.tipo_sistema,
+      potencia_nominal_kw: parseFloat(form.potencia_nominal_kw),
+      tipo: form.tipo,
+      tensao_entrada_max_v: form.tensao_entrada_max_v ? parseInt(form.tensao_entrada_max_v) : null,
+      corrente_entrada_max_a: form.corrente_entrada_max_a ? parseFloat(form.corrente_entrada_max_a) : null,
+      mppt_count: form.mppt_count ? parseInt(form.mppt_count) : null,
+      strings_por_mppt: form.strings_por_mppt ? parseInt(form.strings_por_mppt) : null,
+      fases: form.fases,
+      tensao_saida_v: form.tensao_saida_v ? parseInt(form.tensao_saida_v) : null,
+      eficiencia_max_percent: form.eficiencia_max_percent ? parseFloat(form.eficiencia_max_percent) : null,
+      garantia_anos: form.garantia_anos ? parseInt(form.garantia_anos) : null,
+      peso_kg: form.peso_kg ? parseFloat(form.peso_kg) : null,
+      dimensoes_mm: form.dimensoes_mm || null,
+      wifi_integrado: form.wifi_integrado,
+      ip_protection: form.ip_protection || null,
     });
   };
 
-  const set = (key: string, val: string) => setForm((p) => ({ ...p, [key]: val }));
+  const set = (key: string, val: string | boolean) => setForm((p) => ({ ...p, [key]: val }));
 
-  const formatPotencia = (w: number) => w >= 1000 ? `${(w / 1000).toFixed(1)} kW` : `${w} W`;
+  const formatPotencia = (kw: number) => kw < 1 ? `${(kw * 1000).toFixed(0)} W` : `${kw} kW`;
 
   return (
     <Card>
@@ -180,7 +199,8 @@ export function InversoresManager() {
             <Cpu className="w-5 h-5" /> Inversores
           </CardTitle>
           <CardDescription className="mt-1">
-            Cadastro de inversores solares com dados elétricos e MPPT.
+            {inversores.length} inversores cadastrados ({fabricantes.length} fabricantes).
+            Registros globais são compartilhados — adicione customizados para sua empresa.
           </CardDescription>
         </div>
         <Button onClick={() => openDialog()} className="gap-2">
@@ -188,14 +208,32 @@ export function InversoresManager() {
         </Button>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+        <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input placeholder="Buscar fabricante, modelo..." className="pl-9"
               value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
+          <Select value={filterFabricante} onValueChange={setFilterFabricante}>
+            <SelectTrigger className="w-48"><SelectValue placeholder="Fabricante" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os fabricantes</SelectItem>
+              {fabricantes.map((f) => (
+                <SelectItem key={f} value={f}>{f}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={filterTipo} onValueChange={setFilterTipo}>
+            <SelectTrigger className="w-40"><SelectValue placeholder="Tipo" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os tipos</SelectItem>
+              <SelectItem value="String">String</SelectItem>
+              <SelectItem value="Microinversor">Microinversor</SelectItem>
+              <SelectItem value="Híbrido">Híbrido</SelectItem>
+            </SelectContent>
+          </Select>
           <Select value={filterAtivo} onValueChange={setFilterAtivo}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="ativo">Ativos</SelectItem>
@@ -212,40 +250,66 @@ export function InversoresManager() {
                 <TableHead>Modelo</TableHead>
                 <TableHead>Potência</TableHead>
                 <TableHead>Tipo</TableHead>
+                <TableHead>Fases</TableHead>
                 <TableHead>MPPTs</TableHead>
                 <TableHead>Eficiência</TableHead>
+                <TableHead>Garantia</TableHead>
+                <TableHead>Origem</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8">Carregando...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={11} className="py-8"><LoadingState message="Carregando inversores..." /></TableCell></TableRow>
               ) : filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableRow><TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                   Nenhum inversor encontrado.
                 </TableCell></TableRow>
               ) : filtered.map((inv) => (
                 <TableRow key={inv.id}>
                   <TableCell className="font-medium">{inv.fabricante}</TableCell>
-                  <TableCell className="max-w-[200px] truncate">{inv.modelo}</TableCell>
-                  <TableCell><Badge variant="outline">{formatPotencia(inv.potencia_nominal_w)}</Badge></TableCell>
-                  <TableCell><Badge variant="secondary">{TIPO_LABELS[inv.tipo_sistema]}</Badge></TableCell>
-                  <TableCell>{inv.mppts || "—"}</TableCell>
-                  <TableCell>{inv.eficiencia_percent || "—"}</TableCell>
+                  <TableCell className="max-w-[180px] truncate">{inv.modelo}</TableCell>
+                  <TableCell><Badge variant="outline">{formatPotencia(inv.potencia_nominal_kw)}</Badge></TableCell>
                   <TableCell>
-                    <Switch checked={inv.ativo} onCheckedChange={(v) => toggleMutation.mutate({ id: inv.id, ativo: v })} />
+                    <Badge variant="secondary" className="text-xs">{inv.tipo}</Badge>
+                  </TableCell>
+                  <TableCell className="text-xs">{inv.fases}</TableCell>
+                  <TableCell>{inv.mppt_count || "—"}</TableCell>
+                  <TableCell>{inv.eficiencia_max_percent ? `${inv.eficiencia_max_percent}%` : "—"}</TableCell>
+                  <TableCell className="text-xs">{inv.garantia_anos ? `${inv.garantia_anos}a` : "—"}</TableCell>
+                  <TableCell>
+                    {isGlobal(inv) ? (
+                      <Badge variant="secondary" className="gap-1 text-xs">
+                        <Globe className="w-3 h-3" /> Global
+                      </Badge>
+                    ) : (
+                      <Badge variant="default" className="gap-1 text-xs">
+                        <Building2 className="w-3 h-3" /> Custom
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={inv.ativo}
+                      disabled={isGlobal(inv)}
+                      onCheckedChange={(v) => toggleMutation.mutate({ id: inv.id, ativo: v })}
+                    />
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(inv)}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => setDeleting(inv)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
+                    {isGlobal(inv) ? (
+                      <span className="text-xs text-muted-foreground">—</span>
+                    ) : (
+                      <div className="flex justify-end gap-1">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(inv)}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => setDeleting(inv)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}
@@ -262,58 +326,72 @@ export function InversoresManager() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1 sm:col-span-2">
                 <Label>Fabricante *</Label>
-                <Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: ABB" />
+                <Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: Growatt" />
               </div>
               <div className="space-y-1 sm:col-span-2">
                 <Label>Modelo *</Label>
-                <Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: ABB PRO 33.0-TL..." />
+                <Input value={form.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Ex: MOD 10KTL3-XH" />
               </div>
               <div className="space-y-1">
-                <Label>Potência Nominal (W) *</Label>
-                <Input type="number" value={form.potencia_nominal_w} onChange={(e) => set("potencia_nominal_w", e.target.value)} placeholder="33000" />
+                <Label>Potência Nominal (kW) *</Label>
+                <Input type="number" step="0.01" value={form.potencia_nominal_kw} onChange={(e) => set("potencia_nominal_kw", e.target.value)} placeholder="10.00" />
               </div>
               <div className="space-y-1">
-                <Label>Potência Máxima (W)</Label>
-                <Input type="number" value={form.potencia_maxima_w} onChange={(e) => set("potencia_maxima_w", e.target.value)} placeholder="33000" />
-              </div>
-              <div className="space-y-1">
-                <Label>Tipo Sistema *</Label>
-                <Select value={form.tipo_sistema} onValueChange={(v) => set("tipo_sistema", v)}>
+                <Label>Tipo *</Label>
+                <Select value={form.tipo} onValueChange={(v) => set("tipo", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ON_GRID">On-Grid</SelectItem>
-                    <SelectItem value="HIBRIDO">Híbrido</SelectItem>
-                    <SelectItem value="OFF_GRID">Off-Grid</SelectItem>
+                    <SelectItem value="String">String</SelectItem>
+                    <SelectItem value="Microinversor">Microinversor</SelectItem>
+                    <SelectItem value="Híbrido">Híbrido</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Fases *</Label>
+                <Select value={form.fases} onValueChange={(v) => set("fases", v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Monofásico">Monofásico</SelectItem>
+                    <SelectItem value="Trifásico">Trifásico</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-1">
                 <Label>MPPTs</Label>
-                <Input type="number" value={form.mppts} onChange={(e) => set("mppts", e.target.value)} placeholder="1" />
+                <Input type="number" value={form.mppt_count} onChange={(e) => set("mppt_count", e.target.value)} placeholder="2" />
               </div>
               <div className="space-y-1">
-                <Label>Tensão Máx. (V)</Label>
-                <Input type="number" value={form.tensao_max_v} onChange={(e) => set("tensao_max_v", e.target.value)} placeholder="1100" />
+                <Label>Strings por MPPT</Label>
+                <Input type="number" value={form.strings_por_mppt} onChange={(e) => set("strings_por_mppt", e.target.value)} placeholder="1" />
               </div>
               <div className="space-y-1">
-                <Label>Tensão Mín. MPPT (V)</Label>
-                <Input type="number" value={form.tensao_min_mppt_v} onChange={(e) => set("tensao_min_mppt_v", e.target.value)} placeholder="580" />
+                <Label>Tensão Entrada Máx (V)</Label>
+                <Input type="number" value={form.tensao_entrada_max_v} onChange={(e) => set("tensao_entrada_max_v", e.target.value)} placeholder="1100" />
               </div>
               <div className="space-y-1">
-                <Label>Tensão Máx. MPPT (V)</Label>
-                <Input type="number" value={form.tensao_max_mppt_v} onChange={(e) => set("tensao_max_mppt_v", e.target.value)} placeholder="950" />
+                <Label>Corrente Entrada Máx (A)</Label>
+                <Input type="number" step="0.1" value={form.corrente_entrada_max_a} onChange={(e) => set("corrente_entrada_max_a", e.target.value)} />
               </div>
               <div className="space-y-1">
-                <Label>Corrente Máx. MPPT (A)</Label>
-                <Input type="number" value={form.corrente_max_mppt_a} onChange={(e) => set("corrente_max_mppt_a", e.target.value)} placeholder="80" />
+                <Label>Tensão Saída (V)</Label>
+                <Input type="number" value={form.tensao_saida_v} onChange={(e) => set("tensao_saida_v", e.target.value)} placeholder="220" />
               </div>
               <div className="space-y-1">
-                <Label>Tensão Linha (V)</Label>
-                <Input type="number" value={form.tensao_linha_v} onChange={(e) => set("tensao_linha_v", e.target.value)} placeholder="380" />
+                <Label>Eficiência Máx (%)</Label>
+                <Input type="number" step="0.01" value={form.eficiencia_max_percent} onChange={(e) => set("eficiencia_max_percent", e.target.value)} placeholder="98.40" />
               </div>
               <div className="space-y-1">
-                <Label>Eficiência (%)</Label>
-                <Input value={form.eficiencia_percent} onChange={(e) => set("eficiencia_percent", e.target.value)} placeholder="98,30%" />
+                <Label>Garantia (anos)</Label>
+                <Input type="number" value={form.garantia_anos} onChange={(e) => set("garantia_anos", e.target.value)} placeholder="5" />
+              </div>
+              <div className="space-y-1">
+                <Label>Peso (kg)</Label>
+                <Input type="number" step="0.1" value={form.peso_kg} onChange={(e) => set("peso_kg", e.target.value)} />
+              </div>
+              <div className="space-y-1">
+                <Label>Proteção IP</Label>
+                <Input value={form.ip_protection as string} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" />
               </div>
             </div>
             <DialogFooter>
