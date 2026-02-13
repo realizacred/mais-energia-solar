@@ -102,7 +102,7 @@ export function LoadingConfigAdmin() {
       // Upsert
       const { data: existing } = await supabase
         .from("loading_config")
-        .select("id")
+        .select("id, tenant_id")
         .maybeSingle();
 
       if (existing) {
@@ -112,9 +112,15 @@ export function LoadingConfigAdmin() {
           .eq("id", existing.id);
         if (error) throw error;
       } else {
+        // tenant_id is set by DB default (get_user_tenant_id), but RLS requires it explicitly
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .maybeSingle();
+        
         const { error } = await supabase
           .from("loading_config")
-          .insert(payload as any);
+          .insert({ ...payload, tenant_id: profile?.tenant_id } as any);
         if (error) throw error;
       }
 
