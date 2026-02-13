@@ -70,6 +70,7 @@ const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationS
 const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCalendarConfigPage").then(m => ({ default: m.GoogleCalendarConfigPage })));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
+const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -131,6 +132,7 @@ const TAB_TITLES: Record<string, string> = {
   "ai-config": "Configuração de IA",
   changelog: "Atualizações",
   "notificacoes-config": "Notificações",
+  "loading-config": "Loading & Mensagens",
 };
 
 /** N8n placeholder component */
@@ -334,6 +336,7 @@ export default function Admin() {
                 <Route path="concessionarias" element={<ConcessionariasManager />} />
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
+                <Route path="loading-config" element={<LoadingConfigAdmin />} />
                 
                 {/* IA */}
                 <Route path="diretor" element={<CommercialDirectorDashboard />} />

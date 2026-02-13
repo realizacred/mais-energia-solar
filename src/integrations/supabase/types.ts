@@ -3149,6 +3149,65 @@ export type Database = {
           },
         ]
       }
+      loading_config: {
+        Row: {
+          ai_max_calls_per_flow: number
+          ai_messages_enabled: boolean
+          ai_min_duration_seconds: number
+          ai_timeout_ms: number
+          created_at: string
+          id: string
+          messages_catalog: Json
+          overlay_delay_ms: number
+          overlay_min_duration_ms: number
+          show_messages: boolean
+          sun_loader_enabled: boolean
+          sun_loader_style: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ai_max_calls_per_flow?: number
+          ai_messages_enabled?: boolean
+          ai_min_duration_seconds?: number
+          ai_timeout_ms?: number
+          created_at?: string
+          id?: string
+          messages_catalog?: Json
+          overlay_delay_ms?: number
+          overlay_min_duration_ms?: number
+          show_messages?: boolean
+          sun_loader_enabled?: boolean
+          sun_loader_style?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ai_max_calls_per_flow?: number
+          ai_messages_enabled?: boolean
+          ai_min_duration_seconds?: number
+          ai_timeout_ms?: number
+          created_at?: string
+          id?: string
+          messages_catalog?: Json
+          overlay_delay_ms?: number
+          overlay_min_duration_ms?: number
+          show_messages?: boolean
+          sun_loader_enabled?: boolean
+          sun_loader_style?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loading_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meta_notifications: {
         Row: {
           ano: number
