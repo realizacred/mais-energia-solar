@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -48,7 +49,8 @@ export interface BrandSettings {
   border_radius: string;
 }
 
-// Map of CSS variable name -> settings field for light mode
+// ── CSS Variable Maps ─────────────────────────────────
+
 const LIGHT_COLOR_MAP: Record<string, keyof BrandSettings> = {
   "--primary": "color_primary",
   "--primary-foreground": "color_primary_foreground",
@@ -94,18 +96,16 @@ const DARK_COLOR_MAP: Record<string, keyof BrandSettings> = {
   "--sidebar-ring": "dark_color_primary",
 };
 
+// ── Apply Settings to DOM ─────────────────────────────
+
 function applySettings(settings: BrandSettings) {
   const root = document.documentElement;
 
-  // Apply light mode colors to :root
   Object.entries(LIGHT_COLOR_MAP).forEach(([cssVar, field]) => {
     const value = settings[field] as string;
-    if (value) {
-      root.style.setProperty(cssVar, value);
-    }
+    if (value) root.style.setProperty(cssVar, value);
   });
 
-  // Apply dark mode colors via a style element
   let darkStyle = document.getElementById("brand-dark-overrides");
   if (!darkStyle) {
     darkStyle = document.createElement("style");
@@ -123,10 +123,8 @@ function applySettings(settings: BrandSettings) {
 
   darkStyle.textContent = `.dark {\n${darkVars}\n}`;
 
-  // Apply fonts
   if (settings.font_body) {
     root.style.setProperty("--font-body", settings.font_body);
-    // Load Google Font dynamically
     loadGoogleFont(settings.font_body);
   }
   if (settings.font_heading) {
@@ -134,17 +132,13 @@ function applySettings(settings: BrandSettings) {
     loadGoogleFont(settings.font_heading);
   }
 
-  // Apply border radius
   if (settings.border_radius) {
     root.style.setProperty("--radius", settings.border_radius);
   }
 
-  // Apply favicon
   if (settings.favicon_url) {
     const link = document.querySelector("link[rel='icon']") as HTMLLinkElement;
-    if (link) {
-      link.href = settings.favicon_url;
-    }
+    if (link) link.href = settings.favicon_url;
   }
 }
 
@@ -159,21 +153,51 @@ function loadGoogleFont(fontName: string) {
   document.head.appendChild(link);
 }
 
-export function useBrandSettings() {
-  const [settings, setSettings] = useState<BrandSettings | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+// ── localStorage Cache ────────────────────────────────
 
-  const fetchSettings = useCallback(async () => {
-    try {
-      // Build query with tenant filter when user is authenticated
-      let query = supabase
-        .from("brand_settings" as any)
-        .select("*");
+const CACHE_KEY = "brand-settings-cache";
+
+function getCachedSettings(): BrandSettings | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as BrandSettings;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedSettings(s: BrandSettings) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(s));
+  } catch {
+    // localStorage full — ignore
+  }
+}
+
+// ── Apply cached settings IMMEDIATELY on module load ──
+// This ensures brand colors/logo are visible before React renders
+const _cachedOnLoad = getCachedSettings();
+if (_cachedOnLoad) {
+  applySettings(_cachedOnLoad);
+}
+
+// ── Hook ──────────────────────────────────────────────
+
+export function useBrandSettings() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const appliedRef = useRef(false);
+
+  // Apply cached settings on first render if not already applied at module level
+  const cached = _cachedOnLoad;
+
+  const { data: settings, isLoading } = useQuery({
+    queryKey: ["brand-settings", user?.id],
+    queryFn: async () => {
+      let query = supabase.from("brand_settings" as any).select("*");
 
       if (user) {
-        // Authenticated: RLS filters by tenant, but we also need to handle
-        // the public SELECT policy that returns all rows
         const { data: profile } = await supabase
           .from("profiles")
           .select("tenant_id")
@@ -184,8 +208,6 @@ export function useBrandSettings() {
           query = query.eq("tenant_id", profile.tenant_id);
         }
       } else {
-        // Public: get the active tenant's brand settings
-        // Filter to only active tenants by joining logic
         const { data: activeTenant } = await supabase
           .from("tenants" as any)
           .select("id")
@@ -202,43 +224,53 @@ export function useBrandSettings() {
 
       if (error) {
         console.warn("Could not load brand settings:", error.message);
-        return;
+        return null;
       }
 
       if (data) {
         const s = data as unknown as BrandSettings;
-        setSettings(s);
+        setCachedSettings(s);
         applySettings(s);
+        return s;
       }
-    } catch (err) {
-      console.warn("Brand settings fetch error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [user]);
 
-  useEffect(() => {
-    fetchSettings();
-  }, [fetchSettings]);
+      return null;
+    },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
+  });
+
+  // Use fetched settings, then cached fallback
+  const effectiveSettings = settings ?? cached ?? null;
 
   const updateSettings = useCallback(
     async (updates: Partial<BrandSettings>) => {
-      if (!settings) return { error: "No settings loaded" };
+      if (!effectiveSettings) return { error: "No settings loaded" };
 
       const { error } = await supabase
         .from("brand_settings" as any)
         .update(updates as any)
-        .eq("id", settings.id);
+        .eq("id", effectiveSettings.id);
 
       if (error) return { error: error.message };
 
-      const newSettings = { ...settings, ...updates } as BrandSettings;
-      setSettings(newSettings);
+      const newSettings = { ...effectiveSettings, ...updates } as BrandSettings;
       applySettings(newSettings);
+      setCachedSettings(newSettings);
+      queryClient.setQueryData(["brand-settings", user?.id], newSettings);
       return { error: null };
     },
-    [settings]
+    [effectiveSettings, queryClient, user?.id]
   );
 
-  return { settings, loading, updateSettings, refetch: fetchSettings };
+  const refetch = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["brand-settings"] });
+  }, [queryClient]);
+
+  return {
+    settings: effectiveSettings,
+    loading: isLoading && !effectiveSettings,
+    updateSettings,
+    refetch,
+  };
 }
