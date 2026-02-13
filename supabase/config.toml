@@ -131,3 +131,6 @@ verify_jwt = false
 
 [functions.google-calendar-poll]
 verify_jwt = false
+
+[functions.loading-ai-message]
+verify_jwt = false
