@@ -8274,6 +8274,26 @@ export type Database = {
           remaining: number
         }[]
       }
+      claim_followup_candidates: {
+        Args: { _limit?: number }
+        Returns: {
+          assigned_to: string
+          attempt_count: number
+          cenario: string
+          cliente_nome: string
+          cliente_telefone: string
+          conversation_id: string
+          envio_automatico: boolean
+          instance_id: string
+          last_msg_direction: string
+          max_tentativas: number
+          mensagem_template: string
+          prazo_minutos: number
+          remote_jid: string
+          rule_id: string
+          tenant_id: string
+        }[]
+      }
       cleanup_agenda_sync_logs: { Args: never; Returns: undefined }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_gcal_events: { Args: never; Returns: undefined }
