@@ -94,10 +94,10 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
    const days = eachDayOfInterval({ start: calendarStart, end: calendarEnd });
  
    const getStatusColor = (status: string, dataVencimento: string) => {
-     if (status === "paga") return "bg-green-500";
-     if (status === "pendente" && new Date(dataVencimento) < new Date()) return "bg-red-500";
-     if (status === "pendente") return "bg-yellow-500";
-     return "bg-gray-500";
+      if (status === "paga") return "bg-success";
+      if (status === "pendente" && new Date(dataVencimento) < new Date()) return "bg-destructive";
+      if (status === "pendente") return "bg-warning";
+      return "bg-muted-foreground";
    };
  
    const selectedDayParcelas = selectedDate
@@ -191,16 +191,16 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
            {/* Legenda */}
            <div className="flex gap-4 mt-4 pt-4 border-t text-xs text-muted-foreground">
              <div className="flex items-center gap-1">
-               <div className="h-2 w-2 rounded-full bg-yellow-500" />
-               Pendente
-             </div>
-             <div className="flex items-center gap-1">
-               <div className="h-2 w-2 rounded-full bg-green-500" />
-               Pago
-             </div>
-             <div className="flex items-center gap-1">
-               <div className="h-2 w-2 rounded-full bg-red-500" />
-               Atrasado
+                <div className="h-2 w-2 rounded-full bg-warning" />
+                Pendente
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full bg-success" />
+                Pago
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="h-2 w-2 rounded-full bg-destructive" />
+                Atrasado
              </div>
            </div>
          </CardContent>

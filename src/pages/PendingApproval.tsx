@@ -50,10 +50,10 @@ export default function PendingApproval() {
       <Header showCalculadora={false} showAdmin={false} />
 
       <main className="flex-1 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md border-border/50 shadow-xl">
+        <Card className="w-full max-w-md border-border/50 shadow-md">
           <CardContent className="flex flex-col items-center gap-5 py-10">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-              <Clock className="w-8 h-8 text-amber-500" />
+            <div className="w-16 h-16 rounded-2xl bg-warning/10 flex items-center justify-center">
+              <Clock className="w-8 h-8 text-warning" />
             </div>
             <h2 className="text-2xl font-bold text-foreground">
               Aguardando Aprovação

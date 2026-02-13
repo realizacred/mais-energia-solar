@@ -25,8 +25,8 @@ export function ServicoStatsCards({ servicos }: ServicoStatsCardsProps) {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-500/10">
-              <CalendarClock className="h-5 w-5 text-blue-500" />
+            <div className="p-2 rounded-lg bg-info/10">
+              <CalendarClock className="h-5 w-5 text-info" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.agendados}</p>
@@ -39,8 +39,8 @@ export function ServicoStatsCards({ servicos }: ServicoStatsCardsProps) {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-amber-500/10">
-              <Play className="h-5 w-5 text-amber-500" />
+            <div className="p-2 rounded-lg bg-warning/10">
+              <Play className="h-5 w-5 text-warning" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.emAndamento}</p>
@@ -53,8 +53,8 @@ export function ServicoStatsCards({ servicos }: ServicoStatsCardsProps) {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-500/10">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
+            <div className="p-2 rounded-lg bg-success/10">
+              <CheckCircle2 className="h-5 w-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.concluidos}</p>
@@ -67,8 +67,8 @@ export function ServicoStatsCards({ servicos }: ServicoStatsCardsProps) {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-500/10">
-              <ClipboardCheck className="h-5 w-5 text-purple-500" />
+            <div className="p-2 rounded-lg bg-secondary/10">
+              <ClipboardCheck className="h-5 w-5 text-secondary" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.pendentesValidacao}</p>
@@ -81,8 +81,8 @@ export function ServicoStatsCards({ servicos }: ServicoStatsCardsProps) {
       <Card>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-red-500/10">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+            <div className="p-2 rounded-lg bg-destructive/10">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.atrasados}</p>

@@ -123,7 +123,7 @@ export default function SalesFunnel({ leads, statuses }: SalesFunnelProps) {
                       marginLeft: `${(100 - widthPercent) / 2}%`,
                     }}
                   >
-                    <span className="text-xs font-medium text-white drop-shadow">
+                    <span className="text-xs font-medium text-primary-foreground drop-shadow">
                       {stage.count}
                     </span>
                   </div>
@@ -134,7 +134,7 @@ export default function SalesFunnel({ leads, statuses }: SalesFunnelProps) {
                   <div className="flex items-center justify-center py-1">
                     <div className="text-xs text-muted-foreground flex items-center gap-1">
                       <span>↓</span>
-                      <span className={conversionRates[index].rate >= 50 ? "text-green-600" : conversionRates[index].rate >= 25 ? "text-yellow-600" : "text-red-600"}>
+                      <span className={conversionRates[index].rate >= 50 ? "text-success" : conversionRates[index].rate >= 25 ? "text-warning" : "text-destructive"}>
                         {conversionRates[index].rate}%
                       </span>
                     </div>
@@ -155,7 +155,7 @@ export default function SalesFunnel({ leads, statuses }: SalesFunnelProps) {
             <p className="text-xs text-muted-foreground">Total Leads</p>
           </div>
           <div className="text-center">
-            <div className="flex items-center justify-center gap-1 text-green-600">
+            <div className="flex items-center justify-center gap-1 text-success">
               <CheckCircle className="w-4 h-4" />
               <span className="text-lg font-bold">{overallConversion}%</span>
             </div>

@@ -102,8 +102,8 @@ export function WaInboxStats({ conversations, compact = false }: WaInboxStatsPro
       label: "Satisfação",
       value: satisfactionData?.avg ? `${satisfactionData.avg}` : "—",
       icon: Star,
-      color: "text-amber-500",
-      bg: "bg-amber-500/10",
+      color: "text-warning",
+      bg: "bg-warning/10",
       tooltip: satisfactionData?.count
         ? `${satisfactionData.count} avaliações recebidas`
         : "Nenhuma avaliação ainda",

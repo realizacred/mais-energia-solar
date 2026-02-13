@@ -103,14 +103,14 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
   const maxLeads = topPerformer?.totalLeads || 1;
 
   const getGrowthIcon = (growth: number) => {
-    if (growth > 0) return <TrendingUp className="w-3 h-3 text-green-600" />;
-    if (growth < 0) return <TrendingDown className="w-3 h-3 text-red-600" />;
+    if (growth > 0) return <TrendingUp className="w-3 h-3 text-success" />;
+    if (growth < 0) return <TrendingDown className="w-3 h-3 text-destructive" />;
     return <Minus className="w-3 h-3 text-muted-foreground" />;
   };
 
   const getGrowthColor = (growth: number) => {
-    if (growth > 0) return "text-green-600";
-    if (growth < 0) return "text-red-600";
+    if (growth > 0) return "text-success";
+    if (growth < 0) return "text-destructive";
     return "text-muted-foreground";
   };
 
@@ -133,7 +133,7 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
               <div key={vendor.name} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {index === 0 && <Trophy className="w-4 h-4 text-yellow-500" />}
+                    {index === 0 && <Trophy className="w-4 h-4 text-warning" />}
                     <span className="font-medium text-sm truncate max-w-[120px]" title={vendor.name}>
                       {vendor.name}
                     </span>
@@ -166,7 +166,7 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
                   <span>•</span>
                   <span>Mês anterior: {vendor.lastMonth}</span>
                   <span>•</span>
-                  <span className="text-green-600">Conv: {vendor.conversionRate}%</span>
+                  <span className="text-success">Conv: {vendor.conversionRate}%</span>
                 </div>
               </div>
             ))}
@@ -182,7 +182,7 @@ export default function VendorPerformance({ leads, statuses }: VendorPerformance
                 <p className="text-xs text-muted-foreground">Consultores Ativos</p>
               </div>
               <div>
-                <p className="text-lg font-bold text-green-600">
+                <p className="text-lg font-bold text-success">
                   {Math.round(vendorStats.reduce((acc, v) => acc + v.conversionRate, 0) / vendorStats.length)}%
                 </p>
                 <p className="text-xs text-muted-foreground">Conversão Média</p>
