@@ -45,6 +45,7 @@ import {
   Info,
   Sparkles,
   MessageCircle,
+  Building2,
 } from "lucide-react";
 import {
   Tooltip,
@@ -69,6 +70,7 @@ const step2Schema = z.object({
   tipo_telhado: z.string().min(1, "Selecione o tipo de telhado"),
   rede_atendimento: z.string().min(1, "Selecione a rede"),
   area: z.enum(["Urbana", "Rural"], { required_error: "Selecione" }),
+  concessionaria_id: z.string().optional(),
 });
 
 type Step1Data = z.infer<typeof step1Schema>;
@@ -81,6 +83,7 @@ interface CalcConfig {
   geracao_mensal_por_kwp: number;
   kg_co2_por_kwh: number;
   percentual_economia: number;
+  fator_perdas_percentual?: number;
 }
 
 const DEFAULT_CONFIG: CalcConfig = {
@@ -89,7 +92,18 @@ const DEFAULT_CONFIG: CalcConfig = {
   geracao_mensal_por_kwp: 120,
   kg_co2_por_kwh: 0.084,
   percentual_economia: 95,
+  fator_perdas_percentual: 15,
 };
+
+interface ConcessionariaOption {
+  id: string;
+  nome: string;
+  sigla: string | null;
+  tarifa_energia: number | null;
+  tarifa_fio_b: number | null;
+  aliquota_icms: number | null;
+  custo_disponibilidade_monofasico: number | null;
+}
 
 const STEPS = [
   { id: 1, title: "Seus Dados", icon: <User className="w-4 h-4" /> },
@@ -112,10 +126,16 @@ export default function Calculadora() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [paybackResult, setPaybackResult] = useState<PaybackResult | null>(null);
-
   const [waSent, setWaSent] = useState(false);
 
-  const { calcularPayback, loading: paybackLoading } = usePaybackEngine();
+  // Concessionária & regional data
+  const [concessionarias, setConcessionarias] = useState<ConcessionariaOption[]>([]);
+  const [concessionariaSelecionada, setConcessionariaSelecionada] = useState<ConcessionariaOption | null>(null);
+  const [geracaoRegional, setGeracaoRegional] = useState<number | null>(null);
+  const [custoKwpAjustado, setCustoKwpAjustado] = useState<number | null>(null);
+  const [loadingConc, setLoadingConc] = useState(false);
+
+  const { calcularPayback, paybackConfig, loading: paybackLoading } = usePaybackEngine();
 
   const { toast } = useToast();
   const { honeypotValue, handleHoneypotChange, validateHoneypot, resetHoneypot } = useHoneypot();
@@ -133,7 +153,7 @@ export default function Calculadora() {
   const step2Form = useForm<Step2Data>({
     resolver: zodResolver(step2Schema),
     mode: "onBlur",
-    defaultValues: { consumoMensal: 300, tipo_telhado: "", rede_atendimento: "", area: undefined },
+    defaultValues: { consumoMensal: 300, tipo_telhado: "", rede_atendimento: "", area: undefined, concessionaria_id: "" },
   });
 
   const consumoMensal = step2Form.watch("consumoMensal") || 300;
@@ -142,20 +162,86 @@ export default function Calculadora() {
   const selectedEstado = step1Form.watch("estado");
   const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(selectedEstado);
 
-  // Reset cidade when estado changes (except if it was set by CEP)
+  // Reset cidade when estado changes
   const handleEstadoChange = useCallback((uf: string) => {
     step1Form.setValue("estado", uf, { shouldValidate: true });
     step1Form.setValue("cidade", "", { shouldValidate: false });
   }, [step1Form]);
 
-  // ─── Field validation helpers for green state ──────────────
+  // ─── Load concessionárias when state changes ──────────────
+  useEffect(() => {
+    if (!selectedEstado || selectedEstado.length !== 2) {
+      setConcessionarias([]);
+      setConcessionariaSelecionada(null);
+      return;
+    }
+
+    const loadConc = async () => {
+      setLoadingConc(true);
+      try {
+        const [concRes, irradRes] = await Promise.all([
+          supabase.rpc("get_concessionarias_por_estado", { _estado: selectedEstado }),
+          supabase.rpc("get_irradiacao_estado", { _estado: selectedEstado }),
+        ]);
+
+        if (concRes.data && concRes.data.length > 0) {
+          setConcessionarias(concRes.data as ConcessionariaOption[]);
+        } else {
+          setConcessionarias([]);
+        }
+
+        if (irradRes.data) {
+          setGeracaoRegional(Number(irradRes.data));
+        }
+      } catch (e) {
+        console.error("Erro ao buscar concessionárias:", e);
+      } finally {
+        setLoadingConc(false);
+      }
+    };
+
+    loadConc();
+  }, [selectedEstado]);
+
+  // ─── Handle concessionária selection ──────────────────────
+  const handleConcessionariaChange = useCallback((concId: string) => {
+    step2Form.setValue("concessionaria_id", concId);
+    const conc = concessionarias.find(c => c.id === concId);
+    setConcessionariaSelecionada(conc || null);
+
+    if (conc?.tarifa_energia && conc.tarifa_energia > 0) {
+      setTarifaKwh(Number(conc.tarifa_energia));
+    }
+  }, [concessionarias, step2Form]);
+
+  // ─── Load cost range ──────────────────────────────────────
+  useEffect(() => {
+    const fatorPerdas = 1 - (config.fator_perdas_percentual || 15) / 100;
+    const geracao = geracaoRegional || config.geracao_mensal_por_kwp;
+    const kWp = consumoMensal / (geracao * fatorPerdas);
+
+    const loadCustoFaixa = async () => {
+      try {
+        const { data } = await supabase
+          .from("custo_faixas_kwp")
+          .select("custo_por_kwp")
+          .lte("faixa_min_kwp", kWp)
+          .gte("faixa_max_kwp", kWp)
+          .limit(1)
+          .maybeSingle();
+
+        setCustoKwpAjustado(data?.custo_por_kwp ? Number(data.custo_por_kwp) : null);
+      } catch {
+        setCustoKwpAjustado(null);
+      }
+    };
+
+    loadCustoFaixa();
+  }, [consumoMensal, geracaoRegional, config]);
+
+  // ─── Field validation helpers ──────────────────────────────
   const s1 = step1Form.watch();
   const s1Errors = step1Form.formState.errors;
-  const s1Touched = step1Form.formState.touchedFields;
-
-  const isFieldValid = useCallback((value: string | undefined, fieldName: keyof typeof s1Errors, touched?: boolean) => {
-    return !!value && value.length > 0 && !s1Errors[fieldName] && touched !== false;
-  }, [s1Errors]);
 
   const s2 = step2Form.watch();
   const s2Errors = step2Form.formState.errors;
@@ -167,8 +253,12 @@ export default function Calculadora() {
         const { data, error } = await supabase.rpc("get_calculator_config");
         if (error) throw error;
         if (data?.[0]) {
-          setConfig(data[0]);
-          setTarifaKwh(Number(data[0].tarifa_media_kwh));
+          const cfg = data[0] as any;
+          setConfig({
+            ...cfg,
+            fator_perdas_percentual: cfg.fator_perdas_percentual ?? 15,
+          });
+          setTarifaKwh(Number(cfg.tarifa_media_kwh));
         }
       } catch (e) {
         console.error("Erro ao buscar configuração:", e);
@@ -192,13 +282,16 @@ export default function Calculadora() {
 
   // ─── Calculations ─────────────────────────────────────────
   const calcs = useMemo(() => {
-    const kWp = consumoMensal / config.geracao_mensal_por_kwp;
+    const fatorPerdas = 1 - (config.fator_perdas_percentual || 15) / 100;
+    const geracao = geracaoRegional || config.geracao_mensal_por_kwp;
+    const kWp = consumoMensal / (geracao * fatorPerdas);
+    const custoKwp = custoKwpAjustado || config.custo_por_kwp;
     const economiaMensal = consumoMensal * tarifaKwh * (config.percentual_economia / 100);
     return {
-      investimento: kWp * config.custo_por_kwp,
+      investimento: kWp * custoKwp,
       economiaMensal,
     };
-  }, [consumoMensal, tarifaKwh, config]);
+  }, [consumoMensal, tarifaKwh, config, geracaoRegional, custoKwpAjustado]);
 
   // ─── Navigation ───────────────────────────────────────────
   const goNext = async () => {
@@ -210,20 +303,27 @@ export default function Calculadora() {
       const valid = await step2Form.trigger();
       if (!valid) return;
 
-      // Run professional payback calculation when entering results
+      // Run professional payback calculation
       const s1 = step1Form.getValues();
       const s2 = step2Form.getValues();
-      const kWp = s2.consumoMensal / config.geracao_mensal_por_kwp;
-      const geracaoMensal = kWp * config.geracao_mensal_por_kwp;
+      const fatorPerdas = 1 - (config.fator_perdas_percentual || 15) / 100;
+      const geracao = geracaoRegional || config.geracao_mensal_por_kwp;
+      const kWp = s2.consumoMensal / (geracao * fatorPerdas);
+      const geracaoMensal = kWp * geracao * fatorPerdas;
+      const custoKwp = custoKwpAjustado || config.custo_por_kwp;
+
       try {
         const result = await calcularPayback({
           consumoMensal: s2.consumoMensal,
           tarifaKwh,
-          custoSistema: kWp * config.custo_por_kwp,
+          custoSistema: kWp * custoKwp,
           geracaoMensalKwh: geracaoMensal,
           estado: s1.estado,
           regime: "gd2",
           tipoLigacao: "monofasico",
+          concessionariaId: s2.concessionaria_id || undefined,
+          tarifaFioB: concessionariaSelecionada?.tarifa_fio_b ? Number(concessionariaSelecionada.tarifa_fio_b) : undefined,
+          custoDisponibilidade: concessionariaSelecionada?.custo_disponibilidade_monofasico ? Number(concessionariaSelecionada.custo_disponibilidade_monofasico) : undefined,
         });
         setPaybackResult(result);
       } catch (e) {
@@ -248,11 +348,7 @@ export default function Calculadora() {
       return;
     }
     if (!checkRateLimit()) {
-      toast({
-        title: "Muitas tentativas",
-        description: "Aguarde alguns minutos.",
-        variant: "destructive",
-      });
+      toast({ title: "Muitas tentativas", description: "Aguarde alguns minutos.", variant: "destructive" });
       return;
     }
 
@@ -278,10 +374,7 @@ export default function Calculadora() {
         origem: "calculadora",
       };
 
-      const response = await supabase.functions.invoke("public-create-lead", {
-        body: payload,
-      });
-
+      const response = await supabase.functions.invoke("public-create-lead", { body: payload });
       const result = response.data;
 
       if (result?.success) {
@@ -297,18 +390,10 @@ export default function Calculadora() {
         });
       } else {
         const errorMsg = result?.error || response.error?.message || "Erro ao enviar";
-        toast({
-          title: "Erro ao enviar",
-          description: errorMsg,
-          variant: "destructive",
-        });
+        toast({ title: "Erro ao enviar", description: errorMsg, variant: "destructive" });
       }
     } catch {
-      toast({
-        title: "Erro ao enviar",
-        description: "Ocorreu um erro. Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao enviar", description: "Ocorreu um erro. Tente novamente.", variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
@@ -320,23 +405,15 @@ export default function Calculadora() {
       <div className="min-h-screen gradient-mesh flex flex-col">
         <Header showCalculadora={false} />
         <main className="flex-1 flex items-center justify-center px-4 py-12">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-center max-w-md mx-auto"
-          >
+          <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md mx-auto">
             <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle className="w-10 h-10 text-success" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-              Orçamento Solicitado!
-            </h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-3">Orçamento Solicitado!</h1>
             {waSent ? (
               <div className="flex items-center justify-center gap-2 mb-4 p-3 bg-success/10 rounded-lg border border-success/20">
                 <MessageCircle className="w-5 h-5 text-success" />
-                <p className="text-sm font-medium text-success">
-                  Enviamos uma mensagem no seu WhatsApp!
-                </p>
+                <p className="text-sm font-medium text-success">Enviamos uma mensagem no seu WhatsApp!</p>
               </div>
             ) : null}
             <p className="text-muted-foreground mb-8">
@@ -358,6 +435,7 @@ export default function Calculadora() {
                   setCurrentStep(1);
                   step1Form.reset();
                   step2Form.reset();
+                  setConcessionariaSelecionada(null);
                 }}
                 className="gap-2"
               >
@@ -386,11 +464,7 @@ export default function Calculadora() {
 
       <main className="flex-1 container mx-auto px-4 py-6 md:py-10 max-w-4xl">
         {/* Hero */}
-        <motion.div
-          className="text-center mb-8"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div className="text-center mb-8" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <Badge className="mb-3 bg-primary/10 text-primary border-0 px-3 py-1">
             <Sparkles className="w-3 h-3 mr-1.5" />
             Simulação Gratuita
@@ -411,27 +485,15 @@ export default function Calculadora() {
         {/* Steps content */}
         <AnimatePresence mode="wait" custom={direction}>
           {currentStep === 1 && (
-            <motion.div
-              key="step1"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
+            <motion.div key="step1" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3, ease: "easeInOut" }}>
               <Card className="max-w-lg mx-auto shadow-lg border-t-4 border-t-primary">
                 <CardContent className="p-6 md:p-8 space-y-5">
                   <div className="text-center mb-2">
                     <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
                       <User className="w-6 h-6 text-primary" />
                     </div>
-                    <h2 className="text-lg font-semibold text-foreground">
-                      Para quem é o orçamento?
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Precisamos de algumas informações para personalizar sua simulação
-                    </p>
+                    <h2 className="text-lg font-semibold text-foreground">Para quem é o orçamento?</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Precisamos de algumas informações para personalizar sua simulação</p>
                   </div>
 
                   <div className="space-y-4">
@@ -507,11 +569,7 @@ export default function Calculadora() {
 
                   <HoneypotField value={honeypotValue} onChange={handleHoneypotChange} />
 
-                  <Button
-                    onClick={goNext}
-                    className="w-full h-12 text-base gap-2"
-                    size="lg"
-                  >
+                  <Button onClick={goNext} className="w-full h-12 text-base gap-2" size="lg">
                     Continuar
                     <ArrowRight className="w-4 h-4" />
                   </Button>
@@ -521,44 +579,50 @@ export default function Calculadora() {
           )}
 
           {currentStep === 2 && (
-            <motion.div
-              key="step2"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
+            <motion.div key="step2" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3, ease: "easeInOut" }}>
               <Card className="max-w-lg mx-auto shadow-lg border-t-4 border-t-secondary">
                 <CardContent className="p-6 md:p-8 space-y-5">
                   <div className="text-center mb-2">
                     <div className="w-12 h-12 rounded-full bg-secondary/10 flex items-center justify-center mx-auto mb-3">
                       <Zap className="w-6 h-6 text-secondary" />
                     </div>
-                    <h2 className="text-lg font-semibold text-foreground">
-                      Sobre seu consumo de energia
-                    </h2>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Veja na sua conta de luz ou use uma estimativa
-                    </p>
+                    <h2 className="text-lg font-semibold text-foreground">Sobre seu consumo de energia</h2>
+                    <p className="text-sm text-muted-foreground mt-1">Veja na sua conta de luz ou use uma estimativa</p>
                   </div>
+
+                  {/* Concessionária selector */}
+                  {concessionarias.length > 0 && (
+                    <div className="space-y-1.5">
+                      <FloatingSelect
+                        label={loadingConc ? "Carregando..." : "Concessionária"}
+                        value={s2.concessionaria_id || ""}
+                        onValueChange={handleConcessionariaChange}
+                        success={!!s2.concessionaria_id}
+                        options={concessionarias.map((c) => ({
+                          value: c.id,
+                          label: c.sigla ? `${c.sigla} - ${c.nome}` : c.nome,
+                        }))}
+                      />
+                      {concessionariaSelecionada?.tarifa_energia && (
+                        <div className="flex items-center gap-1.5 text-xs text-success px-1">
+                          <Building2 className="w-3 h-3" />
+                          <span>Tarifa atualizada: R$ {Number(concessionariaSelecionada.tarifa_energia).toFixed(4)}/kWh</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Consumo slider */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <Label className="text-sm font-semibold">
-                          Consumo Mensal
-                        </Label>
+                        <Label className="text-sm font-semibold">Consumo Mensal</Label>
                         <Tooltip>
                           <TooltipTrigger>
                             <Info className="w-3.5 h-3.5 text-muted-foreground" />
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-[200px]">
-                              Valor em kWh que aparece na sua conta de luz
-                            </p>
+                            <p className="max-w-[200px]">Valor em kWh que aparece na sua conta de luz</p>
                           </TooltipContent>
                         </Tooltip>
                       </div>
@@ -566,27 +630,15 @@ export default function Calculadora() {
                         <input
                           type="number"
                           value={consumoMensal}
-                          onChange={(e) =>
-                            step2Form.setValue(
-                              "consumoMensal",
-                              Number(e.target.value) || 0,
-                              { shouldValidate: true }
-                            )
-                          }
+                          onChange={(e) => step2Form.setValue("consumoMensal", Number(e.target.value) || 0, { shouldValidate: true })}
                           className="w-16 bg-transparent text-right font-bold text-lg focus:outline-none"
                         />
-                        <span className="text-sm text-muted-foreground font-medium">
-                          kWh
-                        </span>
+                        <span className="text-sm text-muted-foreground font-medium">kWh</span>
                       </div>
                     </div>
                     <Slider
                       value={[consumoMensal]}
-                      onValueChange={(v) =>
-                        step2Form.setValue("consumoMensal", v[0], {
-                          shouldValidate: true,
-                        })
-                      }
+                      onValueChange={(v) => step2Form.setValue("consumoMensal", v[0], { shouldValidate: true })}
                       min={50}
                       max={3000}
                       step={10}
@@ -597,9 +649,7 @@ export default function Calculadora() {
                       <span>3.000 kWh</span>
                     </div>
                     {step2Form.formState.errors.consumoMensal && (
-                      <p className="text-xs text-destructive">
-                        {step2Form.formState.errors.consumoMensal.message}
-                      </p>
+                      <p className="text-xs text-destructive">{step2Form.formState.errors.consumoMensal.message}</p>
                     )}
                   </div>
 
@@ -622,58 +672,44 @@ export default function Calculadora() {
                         type="number"
                         step="0.01"
                         value={tarifaKwh}
-                        onChange={(e) =>
-                          setTarifaKwh(Number(e.target.value) || 0)
-                        }
+                        onChange={(e) => setTarifaKwh(Number(e.target.value) || 0)}
                         className="w-16 bg-transparent text-right font-medium focus:outline-none"
                       />
                     </div>
                   </div>
+
+                  {/* Irradiação regional info */}
+                  {geracaoRegional && geracaoRegional !== config.geracao_mensal_por_kwp && (
+                    <div className="flex items-center gap-1.5 text-xs text-primary px-1">
+                      <Sun className="w-3 h-3" />
+                      <span>Irradiação regional: {geracaoRegional} kWh/kWp/mês ({selectedEstado})</span>
+                    </div>
+                  )}
 
                   {/* Tipo telhado + Rede + Area */}
                   <div className="space-y-3">
                     <FloatingSelect
                       label="Tipo de telhado"
                       value={s2.tipo_telhado}
-                      onValueChange={(v) =>
-                        step2Form.setValue("tipo_telhado", v, {
-                          shouldValidate: true,
-                        })
-                      }
+                      onValueChange={(v) => step2Form.setValue("tipo_telhado", v, { shouldValidate: true })}
                       error={s2Errors.tipo_telhado?.message}
                       success={!!s2.tipo_telhado && !s2Errors.tipo_telhado}
-                      options={TIPOS_TELHADO.map((t) => ({
-                        value: t,
-                        label: t,
-                      }))}
+                      options={TIPOS_TELHADO.map((t) => ({ value: t, label: t }))}
                     />
 
                     <div className="grid grid-cols-2 gap-3">
                       <FloatingSelect
                         label="Rede elétrica"
                         value={s2.rede_atendimento}
-                        onValueChange={(v) =>
-                          step2Form.setValue("rede_atendimento", v, {
-                            shouldValidate: true,
-                          })
-                        }
+                        onValueChange={(v) => step2Form.setValue("rede_atendimento", v, { shouldValidate: true })}
                         error={s2Errors.rede_atendimento?.message}
                         success={!!s2.rede_atendimento && !s2Errors.rede_atendimento}
-                        options={REDES_ATENDIMENTO.map((r) => ({
-                          value: r,
-                          label: r,
-                        }))}
+                        options={REDES_ATENDIMENTO.map((r) => ({ value: r, label: r }))}
                       />
                       <FloatingSelect
                         label="Área"
                         value={s2.area || ""}
-                        onValueChange={(v) =>
-                          step2Form.setValue(
-                            "area",
-                            v as "Urbana" | "Rural",
-                            { shouldValidate: true }
-                          )
-                        }
+                        onValueChange={(v) => step2Form.setValue("area", v as "Urbana" | "Rural", { shouldValidate: true })}
                         error={s2Errors.area?.message}
                         success={!!s2.area && !s2Errors.area}
                         options={[
@@ -686,35 +722,19 @@ export default function Calculadora() {
 
                   {/* Current bill preview */}
                   <div className="p-4 bg-destructive/5 rounded-lg border border-destructive/20">
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Sua conta atual estimada
-                    </p>
+                    <p className="text-xs text-muted-foreground mb-1">Sua conta atual estimada</p>
                     <p className="text-2xl font-bold text-destructive">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                        maximumFractionDigits: 0,
-                      }).format(consumoMensal * tarifaKwh)}
-                      <span className="text-sm font-normal text-muted-foreground">
-                        /mês
-                      </span>
+                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(consumoMensal * tarifaKwh)}
+                      <span className="text-sm font-normal text-muted-foreground">/mês</span>
                     </p>
                   </div>
 
                   <div className="flex gap-3">
-                    <Button
-                      variant="outline"
-                      onClick={goBack}
-                      className="gap-2"
-                    >
+                    <Button variant="outline" onClick={goBack} className="gap-2">
                       <ArrowLeft className="w-4 h-4" />
                       Voltar
                     </Button>
-                    <Button
-                      onClick={goNext}
-                      className="flex-1 h-12 text-base gap-2"
-                      size="lg"
-                    >
+                    <Button onClick={goNext} className="flex-1 h-12 text-base gap-2" size="lg">
                       Ver Meu Resultado
                       <Sparkles className="w-4 h-4" />
                     </Button>
@@ -725,21 +745,17 @@ export default function Calculadora() {
           )}
 
           {currentStep === 3 && (
-            <motion.div
-              key="step3"
-              custom={direction}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-            >
+            <motion.div key="step3" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.3, ease: "easeInOut" }}>
               <div className="space-y-6">
                 <CalculadoraResults
                   consumoMensal={consumoMensal}
                   tarifaKwh={tarifaKwh}
                   config={config}
                   paybackResult={paybackResult}
+                  reajusteAnualTarifa={paybackConfig.reajuste_anual_tarifa}
+                  degradacaoAnualPainel={paybackConfig.degradacao_anual_painel}
+                  geracaoRegional={geracaoRegional || undefined}
+                  custoKwpAjustado={custoKwpAjustado || undefined}
                 />
 
                 <FinancingSimulator
@@ -748,11 +764,7 @@ export default function Calculadora() {
                 />
 
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={goBack}
-                    className="gap-2"
-                  >
+                  <Button variant="outline" onClick={goBack} className="gap-2">
                     <ArrowLeft className="w-4 h-4" />
                     Ajustar Dados
                   </Button>
@@ -763,15 +775,9 @@ export default function Calculadora() {
                     size="lg"
                   >
                     {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        Enviando...
-                      </>
+                      <><Loader2 className="w-5 h-5 animate-spin" /> Enviando...</>
                     ) : (
-                      <>
-                        <Send className="w-5 h-5" />
-                        Receber Orçamento Detalhado
-                      </>
+                      <><Send className="w-5 h-5" /> Receber Orçamento Detalhado</>
                     )}
                   </Button>
                 </div>
