@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, Loader2, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
+import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { LoadingState } from "@/components/ui-kit";
 
 interface Vendedor {
@@ -617,7 +618,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                             onClick={() => generateInvite(vendedor.id, vendedor.email!, vendedor.telefone)}
                           >
                             {generatingInvite === vendedor.id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Spinner size="sm" />
                             ) : (
                               <TicketCheck className="w-3 h-3" />
                             )}
@@ -975,7 +976,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+              {saving && <Spinner size="sm" className="mr-2" />}
               {saving && creatingUser 
                 ? "Criando acesso..." 
                 : editingVendedor 

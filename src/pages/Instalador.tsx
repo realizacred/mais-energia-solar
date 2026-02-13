@@ -7,7 +7,9 @@
  import { Calendar } from "@/components/ui/calendar";
  import { format, isSameDay, parseISO } from "date-fns";
  import { ptBR } from "date-fns/locale";
- import { Loader2, CalendarDays, List } from "lucide-react";
+ import { CalendarDays, List } from "lucide-react";
+ import { LoadingState } from "@/components/ui-kit/LoadingState";
+ import { InlineLoader } from "@/components/loading/InlineLoader";
  import { toast } from "@/hooks/use-toast";
  import { ServicoEmAndamento } from "@/components/instalador/ServicoEmAndamento";
  import { InstaladorHeader } from "@/components/instalador/InstaladorHeader";
@@ -217,7 +219,7 @@
   if (authLoading || (!accessChecked)) {
      return (
        <div className="min-h-screen flex items-center justify-center">
-         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+         <LoadingState message="Carregando..." size="lg" />
        </div>
      );
    }
@@ -266,10 +268,7 @@
  
              <TabsContent value="lista" className="space-y-4">
                {loading ? (
-                 <div className="flex flex-col items-center justify-center py-16">
-                   <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
-                   <span className="text-sm text-muted-foreground">Carregando serviços...</span>
-                </div>
+                 <InlineLoader context="data_load" message="Carregando serviços..." />
                ) : servicos.filter(s => s.status !== "cancelado" && s.status !== "concluido").length === 0 ? (
                  <Card className="text-center py-16 border-dashed border-2">
                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4 mx-auto">

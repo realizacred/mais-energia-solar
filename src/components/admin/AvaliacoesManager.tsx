@@ -16,7 +16,6 @@ import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
-  Loader2,
   TrendingUp,
   TrendingDown,
   BarChart3,
@@ -27,6 +26,7 @@ import {
   Wrench,
   User,
 } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
 import { StarRatingDisplay } from "@/components/ui/star-rating";
 
 interface Avaliacao {
@@ -522,11 +522,7 @@ export function AvaliacoesManager() {
     : 0;
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <InlineLoader context="data_load" />;
   }
 
   return (

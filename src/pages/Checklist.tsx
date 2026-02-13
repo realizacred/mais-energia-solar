@@ -11,8 +11,9 @@ import {
   X,
   History,
   Plus,
-  Loader2
 } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
+import { InlineLoader } from "@/components/loading/InlineLoader";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useLogo } from "@/hooks/useLogo";
@@ -78,7 +79,7 @@ export default function Checklist() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <LoadingState message="Carregando..." size="lg" />
       </div>
     );
   }
@@ -213,9 +214,7 @@ export default function Checklist() {
             </div>
 
             {loadingHistory ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              </div>
+              <InlineLoader context="data_load" />
             ) : checklists.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
                 <ClipboardList className="h-12 w-12 mx-auto mb-3 opacity-50" />

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Sun, Lock, Loader2, CheckCircle, AlertTriangle, ArrowRight, ShieldCheck } from "lucide-react";
+import { Sun, Lock, CheckCircle, AlertTriangle, ArrowRight, ShieldCheck } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -210,7 +211,7 @@ export default function AtivarConta() {
             <p className="text-sm text-muted-foreground">
               Redirecionando para o sistema...
             </p>
-            <Loader2 className="w-5 h-5 animate-spin text-primary mx-auto" />
+            <Spinner size="sm" className="mx-auto" />
           </CardContent>
         </Card>
       </div>
@@ -318,7 +319,7 @@ export default function AtivarConta() {
                 disabled={state === "activating"}
               >
                 {state === "activating" ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Spinner size="sm" />
                 ) : (
                   <>
                     Ativar Conta

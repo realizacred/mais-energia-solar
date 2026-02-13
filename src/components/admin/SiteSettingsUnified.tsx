@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Save, Globe, Phone, Building2, Type, BarChart3, Palette,
-  Loader2, Sparkles, Instagram, Facebook, Linkedin, Youtube,
+  Sparkles, Instagram, Facebook, Linkedin, Youtube,
   Image as ImageIcon, Moon, Paintbrush, RotateCcw, Eye, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import { extractColorsFromImage } from "@/lib/colorExtractor";
 import { useBrandSettings, type BrandSettings } from "@/hooks/useBrandSettings";
 import { BrandLogoUpload } from "./BrandLogoUpload";
 import { SiteBannersManager } from "./SiteBannersManager";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import type { Database } from "@/integrations/supabase/types";
 
 type SiteSettings = Database["public"]["Tables"]["site_settings"]["Row"];
@@ -209,11 +211,7 @@ export function SiteSettingsUnified() {
 
   // ─── Loading ──────────────────────────────────────────────
   if (loadingSite || loadingBrand) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
+    return <InlineLoader context="data_load" />;
   }
 
   return (
@@ -239,11 +237,11 @@ export function SiteSettingsUnified() {
             <RotateCcw className="h-4 w-4 mr-1.5" /> Desfazer Visual
           </Button>
           <Button size="sm" onClick={saveBrand} disabled={savingBrand || !brandHasChanges} className="gap-1.5">
-            {savingBrand ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {savingBrand ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar Visual
           </Button>
           <Button size="sm" onClick={saveSite} disabled={savingSite} className="gap-1.5" variant="secondary">
-            {savingSite ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {savingSite ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar Conteúdo
           </Button>
         </div>
@@ -477,7 +475,7 @@ export function SiteSettingsUnified() {
                 </div>
               )}
               <Button onClick={handleExtractColors} disabled={extracting} variant="outline" className="gap-2">
-                {extracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Palette className="w-4 h-4" />}
+                {extracting ? <Spinner size="sm" /> : <Palette className="w-4 h-4" />}
                 Extrair Cores da Logo
               </Button>
             </CardContent>

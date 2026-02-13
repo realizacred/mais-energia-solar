@@ -13,13 +13,14 @@ import {
   Image,
   Moon,
   Save,
-  Loader2,
   RotateCcw,
   Eye,
   Paintbrush,
   CheckCircle2,
 } from "lucide-react";
 import { BrandLogoUpload } from "./BrandLogoUpload";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useBrandSettings, type BrandSettings } from "@/hooks/useBrandSettings";
 import { toast } from "@/hooks/use-toast";
 
@@ -173,9 +174,7 @@ export function BrandSettingsManager() {
   if (loading || !draft.id) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </CardContent>
+        <CardContent><InlineLoader context="data_load" /></CardContent>
       </Card>
     );
   }
@@ -207,7 +206,7 @@ export function BrandSettingsManager() {
             Desfazer
           </Button>
           <Button size="sm" onClick={handleSave} disabled={saving || !hasChanges} className="gap-1.5">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar
           </Button>
         </div>

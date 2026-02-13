@@ -22,12 +22,13 @@ import {
   MessageCircle,
   Search,
   RefreshCw,
-  Loader2,
   Calendar,
   Users,
   FileText
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -188,9 +189,7 @@ export function InadimplenciaDashboard() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
-        </CardContent>
+        <CardContent><InlineLoader context="data_load" /></CardContent>
       </Card>
     );
   }
@@ -207,7 +206,7 @@ export function InadimplenciaDashboard() {
         </div>
         <Button variant="outline" onClick={handleRefresh} disabled={refreshing}>
           {refreshing ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <Spinner size="sm" className="mr-2" />
           ) : (
             <RefreshCw className="h-4 w-4 mr-2" />
           )}

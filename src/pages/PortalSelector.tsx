@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Users, Settings, ArrowRight, Check } from "lucide-react";
+import { Users, Settings, ArrowRight, Check } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -130,7 +131,7 @@ export default function PortalSelector() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <LoadingState message="Carregando..." size="lg" />
       </div>
     );
   }
