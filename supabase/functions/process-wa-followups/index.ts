@@ -16,6 +16,16 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // ── Advisory lock: prevent concurrent executions ──
+    const { data: lockAcquired, error: lockError } = await supabase.rpc("try_followup_lock");
+    if (lockError || !lockAcquired) {
+      console.log("[process-wa-followups] Skipped: another instance is running");
+      return new Response(
+        JSON.stringify({ skipped: true, reason: "lock_busy" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const now = new Date().toISOString();
 
     // ── Step 0: Reconcile pending follow-ups FIRST ──
@@ -73,6 +83,9 @@ Deno.serve(async (req) => {
       await supabase.functions.invoke("process-wa-outbox").catch(() => {});
     }
 
+    // Release lock before returning
+    await supabase.rpc("release_followup_lock").catch(() => {});
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -86,6 +99,11 @@ Deno.serve(async (req) => {
     );
   } catch (error: any) {
     console.error("process-wa-followups error:", error);
+    // Release lock on error
+    try {
+      const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      await supabase.rpc("release_followup_lock");
+    } catch { /* best effort */ }
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
