@@ -3156,6 +3156,7 @@ export type Database = {
           ai_min_duration_seconds: number
           ai_timeout_ms: number
           created_at: string
+          custom_loader_url: string | null
           id: string
           loader_theme: string
           messages_catalog: Json
@@ -3173,6 +3174,7 @@ export type Database = {
           ai_min_duration_seconds?: number
           ai_timeout_ms?: number
           created_at?: string
+          custom_loader_url?: string | null
           id?: string
           loader_theme?: string
           messages_catalog?: Json
@@ -3190,6 +3192,7 @@ export type Database = {
           ai_min_duration_seconds?: number
           ai_timeout_ms?: number
           created_at?: string
+          custom_loader_url?: string | null
           id?: string
           loader_theme?: string
           messages_catalog?: Json
