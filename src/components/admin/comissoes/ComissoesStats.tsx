@@ -30,22 +30,22 @@ export function ComissoesStats({
       label: "Total Pago",
       value: formatCurrency(totalPago),
       icon: DollarSign,
-      color: "text-green-600",
-      bgColor: "bg-green-500/10",
+      color: "text-success",
+      bgColor: "bg-success/10",
     },
     {
       label: "Pendente",
       value: formatCurrency(totalPendente),
       icon: Calendar,
-      color: "text-orange-600",
-      bgColor: "bg-orange-500/10",
+      color: "text-warning",
+      bgColor: "bg-warning/10",
     },
     {
       label: "Registros",
       value: quantidadeRegistros.toString(),
       icon: Users,
-      color: "text-blue-600",
-      bgColor: "bg-blue-500/10",
+      color: "text-info",
+      bgColor: "bg-info/10",
     },
   ];
 
@@ -78,7 +78,7 @@ export function ComissoesStats({
                 <p className="text-sm font-medium text-warning">
                   {comissoesAtrasadas} comissão(ões) pendente(s) há mais de 30 dias
                 </p>
-                <p className="text-xs text-orange-600/80">
+                <p className="text-xs text-warning/80">
                   Considere regularizar os pagamentos em atraso
                 </p>
               </div>

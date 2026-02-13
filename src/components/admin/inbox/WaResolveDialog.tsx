@@ -45,7 +45,7 @@ export function WaResolveDialog({
 
         <div className="flex items-center justify-between rounded-lg border border-border/60 p-4 my-2">
           <div className="flex items-center gap-3">
-            <Star className="h-5 w-5 text-amber-500" />
+            <Star className="h-5 w-5 text-warning" />
             <div>
               <Label htmlFor="send-survey" className="text-sm font-medium cursor-pointer">
                 Enviar pesquisa de satisfação

@@ -113,7 +113,7 @@ export function WhatsAppSendDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5 text-green-600" />
+            <MessageSquare className="h-5 w-5 text-success" />
             Enviar WhatsApp
           </DialogTitle>
         </DialogHeader>
@@ -173,7 +173,7 @@ export function WhatsAppSendDialog({
           <Button
             onClick={handleSend}
             disabled={sending || !mensagem.trim()}
-            className="bg-green-600 hover:bg-green-700 gap-2"
+            className="bg-success hover:bg-success/90 text-success-foreground gap-2"
           >
             {sending ? (
               <Spinner size="sm" />

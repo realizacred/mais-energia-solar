@@ -230,7 +230,7 @@ export function OrcamentosTable({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50"
+                            className="text-success hover:text-success hover:bg-success/10"
                             onClick={() => handleOpenWhatsApp(orc)}
                           >
                             <MessageSquare className="w-4 h-4" />
@@ -265,7 +265,7 @@ export function OrcamentosTable({
                       {isConverted && (
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="inline-flex items-center justify-center h-8 w-8 text-emerald-600">
+                            <span className="inline-flex items-center justify-center h-8 w-8 text-success">
                               <UserCheck className="w-4 h-4" />
                             </span>
                           </TooltipTrigger>

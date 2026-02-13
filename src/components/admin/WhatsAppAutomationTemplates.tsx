@@ -56,10 +56,10 @@ interface LeadStatus {
 }
 
 const TIPO_OPTIONS = [
-  { value: "boas_vindas", label: "Boas-vindas", icon: UserPlus, color: "bg-green-500" },
-  { value: "mudanca_status", label: "Mudança de Status", icon: ArrowRightLeft, color: "bg-blue-500" },
-  { value: "inatividade", label: "Lembrete de Inatividade", icon: Clock, color: "bg-orange-500" },
-  { value: "agendamento", label: "Confirmação de Agendamento", icon: Calendar, color: "bg-purple-500" },
+  { value: "boas_vindas", label: "Boas-vindas", icon: UserPlus, color: "bg-success" },
+  { value: "mudanca_status", label: "Mudança de Status", icon: ArrowRightLeft, color: "bg-info" },
+  { value: "inatividade", label: "Lembrete de Inatividade", icon: Clock, color: "bg-warning" },
+  { value: "agendamento", label: "Confirmação de Agendamento", icon: Calendar, color: "bg-secondary" },
 ];
 
 export function WhatsAppAutomationTemplates() {
@@ -393,7 +393,7 @@ export function WhatsAppAutomationTemplates() {
               >
                 <div className="flex items-center gap-4">
                   <Switch checked={template.ativo} onCheckedChange={() => handleToggleTemplate(template)} />
-                  <div className={`p-2 rounded-lg ${tipoInfo.color} text-white`}>
+                  <div className={`p-2 rounded-lg ${tipoInfo.color} text-primary-foreground`}>
                     <TipoIcon className="h-4 w-4" />
                   </div>
                   <div>

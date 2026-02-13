@@ -106,7 +106,7 @@ export function EditorToolbar({
         {/* Object Tools */}
         <div className="flex items-center gap-1">
           <ToolButton
-            icon={<Square className="h-4 w-4 fill-blue-600 text-blue-800" />}
+            icon={<Square className="h-4 w-4 fill-primary text-primary" />}
             tooltip="Adicionar Módulo (M)"
             active={tool === 'module'}
             onClick={() => onToolChange('module')}

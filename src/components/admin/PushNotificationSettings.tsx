@@ -296,8 +296,8 @@ export function PushNotificationSettings() {
                 >
                   <div className="mt-0.5">
                     {item.status === "ok" ? (
-                      <div className="h-5 w-5 rounded-full bg-emerald-500/15 flex items-center justify-center">
-                        <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                      <div className="h-5 w-5 rounded-full bg-success/15 flex items-center justify-center">
+                        <ShieldCheck className="h-3.5 w-3.5 text-success" />
                       </div>
                     ) : item.status === "error" ? (
                       <div className="h-5 w-5 rounded-full bg-destructive/15 flex items-center justify-center">
@@ -324,15 +324,15 @@ export function PushNotificationSettings() {
                 </div>
               ))}
               {diagnostics.every((d) => d.status === "ok") && (
-                <div className="mt-2 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
-                  <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
+                <div className="mt-2 p-3 rounded-lg bg-success/10 border border-success/20 text-center">
+                  <p className="text-sm font-medium text-success">
                     ✅ Tudo funcionando! Push notifications estão 100% operacionais.
                   </p>
                 </div>
               )}
               {diagnostics.some((d) => d.status !== "ok") && (
-                <div className="mt-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-center">
-                  <p className="text-sm text-amber-700 dark:text-amber-400">
+                <div className="mt-2 p-3 rounded-lg bg-warning/10 border border-warning/20 text-center">
+                  <p className="text-sm text-warning">
                     ⚠️ Itens com atenção precisam ser resolvidos para garantir o recebimento.
                   </p>
                 </div>

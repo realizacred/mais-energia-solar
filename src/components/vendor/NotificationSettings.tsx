@@ -79,12 +79,12 @@ export default function NotificationSettings({ vendedorNome }: NotificationSetti
 
   if (!isSupported) {
     return (
-      <Card className="border-yellow-200 bg-yellow-50">
+      <Card className="border-warning/30 bg-warning/5">
         <CardContent className="flex items-center gap-2 sm:gap-3 p-3 sm:pt-6">
-          <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600 shrink-0" />
+          <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-warning shrink-0" />
           <div className="min-w-0">
-            <p className="font-medium text-sm text-yellow-800">Notificações não suportadas</p>
-            <p className="text-xs text-yellow-700">
+            <p className="font-medium text-sm text-warning">Notificações não suportadas</p>
+            <p className="text-xs text-muted-foreground">
               Seu navegador não suporta notificações push.
             </p>
           </div>
@@ -95,12 +95,12 @@ export default function NotificationSettings({ vendedorNome }: NotificationSetti
 
   if (permission === "denied") {
     return (
-      <Card className="border-red-200 bg-red-50">
+      <Card className="border-destructive/30 bg-destructive/5">
         <CardContent className="flex items-center gap-2 sm:gap-3 p-3 sm:pt-6">
-          <BellOff className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 shrink-0" />
+          <BellOff className="w-4 h-4 sm:w-5 sm:h-5 text-destructive shrink-0" />
           <div className="min-w-0">
-            <p className="font-medium text-sm text-red-800">Notificações bloqueadas</p>
-            <p className="text-xs text-red-700">
+            <p className="font-medium text-sm text-destructive">Notificações bloqueadas</p>
+            <p className="text-xs text-muted-foreground">
               Vá nas configurações do navegador para ativar.
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function NotificationSettings({ vendedorNome }: NotificationSetti
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex items-center gap-2 p-2 bg-green-50 rounded-lg text-green-700">
+            <div className="flex items-center gap-2 p-2 bg-success/10 rounded-lg text-success">
               <Check className="w-4 h-4" />
               <span className="text-sm font-medium">Notificações ativadas</span>
             </div>

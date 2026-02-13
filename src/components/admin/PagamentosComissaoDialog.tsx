@@ -211,11 +211,11 @@
                </div>
                <div>
                  <p className="text-sm text-muted-foreground">Total Pago</p>
-                 <p className="text-lg font-bold text-green-600">{formatCurrency(totalPago)}</p>
-               </div>
-               <div>
-                 <p className="text-sm text-muted-foreground">Saldo Restante</p>
-                 <p className="text-lg font-bold text-orange-600">{formatCurrency(saldoRestante)}</p>
+                <p className="text-lg font-bold text-success">{formatCurrency(totalPago)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Saldo Restante</p>
+                <p className="text-lg font-bold text-warning">{formatCurrency(saldoRestante)}</p>
                </div>
              </div>
  

@@ -234,22 +234,22 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                      {/* 2nd Place */}
                      {ranking[1] && (
                        <div className="flex flex-col items-center">
-                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                         <div className="w-16 h-16 rounded-full bg-gradient-to-br from-muted to-muted-foreground/30 flex items-center justify-center text-muted-foreground font-bold text-xl shadow-sm">
                            2
                          </div>
                          <div className="mt-2 text-center">
                            <p className="font-medium text-sm">{ranking[1].consultor_nome}</p>
                            <p className="text-xs text-muted-foreground">{ranking[1].pontuacao_total} pts</p>
                          </div>
-                         <div className="w-20 h-16 bg-gray-200 rounded-t-lg mt-2" />
+                         <div className="w-20 h-16 bg-muted rounded-t-lg mt-2" />
                        </div>
                      )}
  
                      {/* 1st Place */}
                      {ranking[0] && (
                        <div className="flex flex-col items-center">
-                         <Crown className="h-6 w-6 text-yellow-500 mb-1" />
-                         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                          <Crown className="h-6 w-6 text-warning mb-1" />
+                          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-warning to-warning/80 flex items-center justify-center text-warning-foreground font-bold text-2xl shadow-sm">
                            1
                          </div>
                          <div className="mt-2 text-center">
@@ -263,7 +263,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
                      {/* 3rd Place */}
                      {ranking[2] && (
                        <div className="flex flex-col items-center">
-                         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-600 to-amber-700 flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-warning/80 to-warning/60 flex items-center justify-center text-warning-foreground font-bold text-lg shadow-sm">
                            3
                          </div>
                          <div className="mt-2 text-center">

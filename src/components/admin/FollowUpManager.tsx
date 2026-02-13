@@ -328,7 +328,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Award className="w-5 h-5 text-amber-500" />
+            <Award className="w-5 h-5 text-warning" />
             <CardTitle>Ranking de Atendimento por Vendedor</CardTitle>
           </div>
           <CardDescription>Performance de atendimento e KPIs</CardDescription>

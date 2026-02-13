@@ -33,13 +33,13 @@ export function SavingsComparisonSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-white text-sm font-bold mb-4 backdrop-blur-sm">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-secondary-foreground text-sm font-bold mb-4 backdrop-blur-sm">
             Economia Real
           </span>
-          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-secondary-foreground tracking-tight mb-4">
             Antes x Depois da Energia Solar
           </h2>
-          <p className="text-white/60 max-w-2xl mx-auto text-lg">
+          <p className="text-secondary-foreground/60 max-w-2xl mx-auto text-lg">
             Veja a diferença real na conta de luz de quem já investiu em energia solar.*
           </p>
         </motion.div>
@@ -51,13 +51,13 @@ export function SavingsComparisonSection() {
             initial={{ opacity: 0, x: -30 }}
             animate={isVisible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 p-8 text-center"
+            className="rounded-2xl bg-secondary-foreground/10 backdrop-blur-sm border border-secondary-foreground/10 p-8 text-center"
           >
-            <p className="text-white/50 text-sm font-semibold uppercase tracking-wider mb-3">Sem energia solar</p>
-            <p className="font-display text-5xl sm:text-6xl font-extrabold text-white/80 mb-2">
+            <p className="text-secondary-foreground/50 text-sm font-semibold uppercase tracking-wider mb-3">Sem energia solar</p>
+            <p className="font-display text-5xl sm:text-6xl font-extrabold text-secondary-foreground/80 mb-2">
               {isVisible ? <AnimatedValue value={contaAtual} prefix="R$ " /> : "R$ 0"}
             </p>
-            <p className="text-white/40 text-sm">por mês na conta de luz</p>
+            <p className="text-secondary-foreground/40 text-sm">por mês na conta de luz</p>
           </motion.div>
 
           {/* After */}
@@ -71,10 +71,10 @@ export function SavingsComparisonSection() {
               COM SOLAR
             </div>
             <p className="text-primary/80 text-sm font-semibold uppercase tracking-wider mb-3">Com energia solar</p>
-            <p className="font-display text-5xl sm:text-6xl font-extrabold text-white mb-2">
+            <p className="font-display text-5xl sm:text-6xl font-extrabold text-secondary-foreground mb-2">
               {isVisible ? <AnimatedValue value={contaComSolar} prefix="R$ " /> : "R$ 0"}
             </p>
-            <p className="text-white/60 text-sm">taxa mínima da concessionária</p>
+            <p className="text-secondary-foreground/60 text-sm">taxa mínima da concessionária</p>
           </motion.div>
         </div>
 
@@ -93,13 +93,13 @@ export function SavingsComparisonSection() {
           ].map((stat) => (
             <div
               key={stat.label}
-              className="rounded-xl bg-white/5 border border-white/10 p-5 text-center hover:bg-white/10 transition-colors duration-300"
+              className="rounded-xl bg-secondary-foreground/5 border border-secondary-foreground/10 p-5 text-center hover:bg-secondary-foreground/10 transition-colors duration-300"
             >
               <stat.icon className="w-6 h-6 text-primary mx-auto mb-2" />
-              <p className="font-display text-xl sm:text-2xl font-extrabold text-white">
+              <p className="font-display text-xl sm:text-2xl font-extrabold text-secondary-foreground">
                 {isVisible ? <AnimatedValue value={stat.value} prefix={stat.prefix || ""} suffix={stat.suffix || ""} /> : "0"}
               </p>
-              <p className="text-white/40 text-xs mt-1">{stat.label}</p>
+              <p className="text-secondary-foreground/40 text-xs mt-1">{stat.label}</p>
             </div>
           ))}
         </motion.div>
@@ -108,7 +108,7 @@ export function SavingsComparisonSection() {
           initial={{ opacity: 0 }}
           animate={isVisible ? { opacity: 1 } : {}}
           transition={{ delay: 0.8 }}
-          className="text-center text-white/30 text-xs mt-8 max-w-xl mx-auto"
+          className="text-center text-secondary-foreground/30 text-xs mt-8 max-w-xl mx-auto"
         >
           * Valores estimados com base em consumo médio de 450 kWh/mês. A economia real pode variar conforme tarifa, localização e consumo. Solicite uma simulação personalizada.
         </motion.p>

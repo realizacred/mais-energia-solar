@@ -49,7 +49,7 @@ export function InstaladorInstallBanner() {
 
   return (
     <div className="mx-4 mb-4 animate-in slide-in-from-top-4 fade-in duration-300">
-      <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl p-4 relative">
+      <div className="bg-warning/5 border border-warning/20 rounded-xl p-4 relative">
         <button
           onClick={handleDismiss}
           className="absolute top-3 right-3 text-muted-foreground hover:text-foreground transition-colors"
@@ -60,8 +60,8 @@ export function InstaladorInstallBanner() {
 
         <div className="flex items-start gap-3">
           <div className="flex-shrink-0 mt-0.5">
-            <div className="h-10 w-10 rounded-full bg-amber-500/15 flex items-center justify-center">
-              <Wrench className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            <div className="h-10 w-10 rounded-full bg-warning/15 flex items-center justify-center">
+              <Wrench className="h-5 w-5 text-warning" />
             </div>
           </div>
 
@@ -79,7 +79,7 @@ export function InstaladorInstallBanner() {
                 <Button
                   size="sm"
                   onClick={handleInstall}
-                  className="h-8 text-xs bg-amber-600 hover:bg-amber-700 text-white"
+                  className="h-8 text-xs bg-warning hover:bg-warning/90 text-warning-foreground"
                 >
                   <Download className="h-3.5 w-3.5 mr-1.5" />
                   Instalar App

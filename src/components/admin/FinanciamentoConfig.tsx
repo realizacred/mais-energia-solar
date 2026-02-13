@@ -328,7 +328,7 @@ export default function FinanciamentoConfig() {
     }
     if (banco.fonte_sync === 'bcb') {
       return (
-        <Badge variant="outline" className="gap-1 bg-green-50 text-green-700 border-green-200">
+        <Badge variant="outline" className="gap-1 bg-success/10 text-success border-success/20">
           <Check className="w-3 h-3" />
           BCB
         </Badge>
@@ -336,7 +336,7 @@ export default function FinanciamentoConfig() {
     }
     if (banco.fonte_sync === 'api_customizada') {
       return (
-        <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700 border-blue-200">
+        <Badge variant="outline" className="gap-1 bg-info/10 text-info border-info/20">
           <Globe className="w-3 h-3" />
           API
         </Badge>
@@ -356,11 +356,11 @@ export default function FinanciamentoConfig() {
   return (
     <div className="space-y-6">
       {/* Header with Sync All Button */}
-      <Card className="border-green-200 bg-green-50/30">
+      <Card className="border-success/20 bg-success/5">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2 text-green-700">
+              <CardTitle className="flex items-center gap-2 text-success">
                 <RefreshCw className="w-5 h-5" />
                 Sincronização Automática
               </CardTitle>
@@ -371,7 +371,7 @@ export default function FinanciamentoConfig() {
             <Button
               onClick={() => handleSyncBCB()}
               disabled={syncingAll || !!syncingBankId}
-              className="gap-2 bg-green-600 hover:bg-green-700"
+              className="gap-2 bg-success hover:bg-success/90 text-success-foreground"
             >
               {syncingAll ? (
                 <Spinner size="sm" />
@@ -440,7 +440,7 @@ export default function FinanciamentoConfig() {
                             <p className="text-xs text-muted-foreground">BCB: {banco.codigo_bcb}</p>
                           )}
                           {banco.api_customizada_url && (
-                            <p className="text-xs text-blue-600 truncate max-w-[150px]">
+                            <p className="text-xs text-info truncate max-w-[150px]">
                               API: {banco.api_customizada_url}
                             </p>
                           )}
@@ -486,7 +486,7 @@ export default function FinanciamentoConfig() {
                             checked={banco.ativo}
                             onCheckedChange={() => handleToggleAtivo(banco)}
                           />
-                          <span className={`text-sm ${banco.ativo ? "text-green-600" : "text-muted-foreground"}`}>
+                          <span className={`text-sm ${banco.ativo ? "text-success" : "text-muted-foreground"}`}>
                             {banco.ativo ? "Ativo" : "Inativo"}
                           </span>
                         </div>
@@ -502,7 +502,7 @@ export default function FinanciamentoConfig() {
                                     size="icon"
                                     onClick={() => handleSyncBCB(banco.id)}
                                     disabled={syncingBankId === banco.id}
-                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    className="text-success hover:text-success hover:bg-success/10"
                                   >
                                     {syncingBankId === banco.id ? (
                                       <Spinner size="sm" />
@@ -524,7 +524,7 @@ export default function FinanciamentoConfig() {
                                     size="icon"
                                     onClick={() => handleSyncCustomApi(banco)}
                                     disabled={syncingBankId === banco.id}
-                                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    className="text-info hover:text-info hover:bg-info/10"
                                   >
                                     {syncingBankId === banco.id ? (
                                       <Spinner size="sm" />
@@ -578,14 +578,14 @@ export default function FinanciamentoConfig() {
               <span className="text-muted-foreground">Taxa inserida manualmente</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="gap-1 bg-green-50 text-green-700 border-green-200">
+              <Badge variant="outline" className="gap-1 bg-success/10 text-success border-success/20">
                 <Check className="w-3 h-3" />
                 BCB
               </Badge>
               <span className="text-muted-foreground">Sincronizado com Banco Central</span>
             </div>
             <div className="flex items-center gap-2">
-              <Badge variant="outline" className="gap-1 bg-blue-50 text-blue-700 border-blue-200">
+              <Badge variant="outline" className="gap-1 bg-info/10 text-info border-info/20">
                 <Globe className="w-3 h-3" />
                 API
               </Badge>

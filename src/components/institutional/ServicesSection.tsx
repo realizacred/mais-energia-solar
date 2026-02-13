@@ -60,13 +60,13 @@ export function ServicesSection() {
           transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-white text-sm font-bold mb-4 backdrop-blur-sm">
+          <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-primary-foreground text-sm font-bold mb-4 backdrop-blur-sm">
             Nossos Serviços
           </span>
-          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-4 tracking-tight">
+          <h2 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-secondary-foreground mb-4 tracking-tight">
             Do projeto à manutenção
           </h2>
-          <p className="text-white/60 max-w-2xl mx-auto text-lg">
+          <p className="text-secondary-foreground/60 max-w-2xl mx-auto text-lg">
             Cuidamos de tudo para você ter a melhor experiência com energia solar.
           </p>
         </motion.div>
@@ -79,7 +79,7 @@ export function ServicesSection() {
               initial={{ opacity: 0, y: 40 }}
               animate={isVisible ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.5, delay: 0.2 + i * 0.1 }}
-              className="group relative rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm border border-white/10 hover:border-primary/40 hover:bg-white/15 hover:shadow-2xl hover:shadow-primary/10 transition-all duration-500"
+              className="group relative rounded-2xl overflow-hidden bg-secondary-foreground/10 backdrop-blur-sm border border-secondary-foreground/10 hover:border-primary/40 hover:bg-secondary-foreground/15 hover:shadow-md hover:shadow-primary/10 transition-all duration-500"
             >
               {/* Image */}
               <div className="relative h-52 sm:h-60 overflow-hidden">
@@ -98,8 +98,8 @@ export function ServicesSection() {
 
               {/* Content */}
               <div className="p-5 sm:p-6">
-                <h3 className="font-display text-xl font-bold text-white mb-2">{service.title}</h3>
-                <p className="text-sm text-white/60 leading-relaxed mb-4">
+                <h3 className="font-display text-xl font-bold text-secondary-foreground mb-2">{service.title}</h3>
+                <p className="text-sm text-secondary-foreground/60 leading-relaxed mb-4">
                   {service.description}
                 </p>
                 <a
