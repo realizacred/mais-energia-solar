@@ -98,7 +98,7 @@ function SidebarItemButton({
           ${
             isActive
               ? `${section.activeClass} shadow-sm font-semibold`
-              : `text-sidebar-foreground/65 ${section.hoverClass} hover:text-sidebar-foreground/90`
+              : `text-sidebar-foreground/75 ${section.hoverClass} hover:text-sidebar-foreground`
           }
         `}
       >
@@ -106,13 +106,13 @@ function SidebarItemButton({
         {draggable && !collapsed && (
           <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover/item:opacity-30 cursor-grab active:cursor-grabbing transition-opacity -ml-0.5 mr-px" />
         )}
-        <item.icon className="h-4 w-4 shrink-0" />
+        <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? '' : 'opacity-70'}`} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
             <span className="text-[13px] truncate leading-tight">
               {item.title}
             </span>
-            <span className="text-[10px] opacity-50 font-normal truncate leading-tight">
+            <span className="text-[10px] opacity-55 font-normal truncate leading-tight">
               {item.description}
             </span>
           </div>
@@ -248,7 +248,7 @@ function SidebarSectionGroup({
               text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2
               flex items-center gap-2 cursor-pointer select-none
               transition-all duration-200
-              hover:bg-accent/50 rounded-lg
+              hover:bg-accent/60 rounded-lg
               ${section.labelClass}
             `}
           >
@@ -262,7 +262,7 @@ function SidebarSectionGroup({
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1 opacity-80">{section.label}</span>
+                <span className="flex-1 opacity-90">{section.label}</span>
                 <ChevronDown className="h-3 w-3 opacity-30 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
@@ -282,10 +282,10 @@ function SidebarSectionGroup({
                   <React.Fragment key={item.id}>
                     {item.subsectionLabel && !dragId && (
                       <div className="mx-3 mt-2.5 mb-1 flex items-center gap-2">
-                        <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/45 select-none">
+                        <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/55 select-none">
                           {item.subsectionLabel}
                         </span>
-                        <div className="flex-1 h-px bg-border/20" />
+                        <div className="flex-1 h-px bg-border/30" />
                       </div>
                     )}
                     {item.separator && !item.subsectionLabel && !dragId && (
