@@ -134,3 +134,6 @@ verify_jwt = false
 
 [functions.loading-ai-message]
 verify_jwt = false
+
+[functions.retry-failed-calendar-sync]
+verify_jwt = false
