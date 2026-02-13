@@ -112,6 +112,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "baterias", label_default: "Baterias", group_default: "Configurações", order_default: 8, icon: "Battery", description: "Sistemas de armazenamento", keywords: ["bateria", "armazenamento", "lítio", "energia"], criticality: "normal", permission: "admin_only" },
   { nav_key: "concessionarias", label_default: "Concessionárias", group_default: "Configurações", order_default: 9, icon: "Lightbulb", description: "Tarifas por distribuidora", keywords: ["tarifa", "distribuidora", "concessionária", "ANEEL"], criticality: "normal", permission: "admin_only" },
   { nav_key: "menus", label_default: "Menus", group_default: "Configurações", order_default: 10, icon: "LayoutList", description: "Personalizar itens do menu lateral", keywords: ["menu", "navegação", "sidebar", "personalizar", "ordem"], criticality: "normal", permission: "admin_only" },
+  { nav_key: "loading-config", label_default: "Loading & Mensagens", group_default: "Configurações", order_default: 11, icon: "Loader2", description: "Animação de loading e mensagens", keywords: ["loading", "mensagem", "animação", "sol", "overlay"], criticality: "normal", permission: "admin_only" },
 
   // ── Administração ──
   { nav_key: "usuarios", label_default: "Usuários & Permissões", group_default: "Administração", order_default: 0, icon: "Shield", description: "Gerenciar acessos e roles", keywords: ["usuário", "permissão", "role", "acesso"], criticality: "system_critical", permission: "admin_only" },
