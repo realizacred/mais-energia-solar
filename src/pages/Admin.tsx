@@ -352,7 +352,7 @@ export default function Admin() {
                 <Route path="solarmarket" element={<SolarMarketManager />} />
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
-                <Route path="google-calendar" element={<GoogleCalendarConfigPage />} />
+                <Route path="google-calendar" element={<AgendaConfigPage />} />
                 <Route path="ai-config" element={<AiConfigPage />} />
                 
                 {/* Site */}

@@ -92,7 +92,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "solarmarket", label_default: "SolarMarket", group_default: "Integrações", order_default: 4, icon: "Sun", description: "Marketplace solar", keywords: ["marketplace", "solar", "integração"], criticality: "normal", permission: "admin_only" },
   { nav_key: "webhooks", label_default: "Webhooks", group_default: "Integrações", order_default: 5, icon: "Webhook", description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"], criticality: "normal", permission: "admin_only" },
   { nav_key: "n8n", label_default: "Automações", group_default: "Integrações", order_default: 6, icon: "Workflow", description: "Workflows via MCP", keywords: ["n8n", "automação", "workflow", "MCP"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "google-calendar", label_default: "Google Calendar", group_default: "Integrações", order_default: 7, icon: "CalendarClock", description: "Sincronizar agenda", keywords: ["google", "calendar", "agenda", "calendário", "OAuth"], criticality: "normal", permission: "admin_only" },
+  // google-calendar route exists but menu item removed (unified into agenda-config)
   { nav_key: "ai-config", label_default: "Configuração de IA", group_default: "Integrações", order_default: 8, icon: "Brain", description: "Modelo, temperatura e gate de follow-up", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"], criticality: "normal", permission: "admin_only" },
 
   // ── Site ──

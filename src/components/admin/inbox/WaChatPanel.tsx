@@ -597,6 +597,7 @@ export function WaChatPanel({
           conversationId={conversation.id}
           leadId={conversation.lead_id || undefined}
           clienteNome={conversation.cliente_nome || undefined}
+          assignedTo={conversation.assigned_to || undefined}
         />
       </div>
 

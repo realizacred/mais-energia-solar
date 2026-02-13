@@ -8240,6 +8240,7 @@ export type Database = {
         Args: { _phone_digits: string }
         Returns: string
       }
+      auto_mark_missed_appointments: { Args: never; Returns: undefined }
       can_access_wa_conversation: {
         Args: { _conversation_id: string; _user_id?: string }
         Returns: boolean
@@ -8408,6 +8409,21 @@ export type Database = {
           reajuste_anual_tarifa: number
           tarifa_fio_b_padrao: number
           taxas_fixas_mensais: number
+        }[]
+      }
+      get_pending_appointment_reminders: {
+        Args: never
+        Returns: {
+          appointment_type: Database["public"]["Enums"]["appointment_type"]
+          assigned_to: string
+          cliente_id: string
+          conversation_id: string
+          id: string
+          lead_id: string
+          reminder_minutes: number
+          starts_at: string
+          tenant_id: string
+          title: string
         }[]
       }
       get_tenant_subscription: {

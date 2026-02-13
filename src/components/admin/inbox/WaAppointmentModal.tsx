@@ -34,6 +34,7 @@ interface Props {
   leadId?: string;
   clienteId?: string;
   clienteNome?: string;
+  assignedTo?: string;
 }
 
 export function WaAppointmentModal({
@@ -43,6 +44,7 @@ export function WaAppointmentModal({
   leadId,
   clienteId,
   clienteNome,
+  assignedTo,
 }: Props) {
   const { createAppointment, isCreating, agendaConfig } = useAppointments();
 
@@ -69,6 +71,7 @@ export function WaAppointmentModal({
       starts_at: startsAt,
       ends_at: endsAt,
       reminder_minutes: reminderMinutes,
+      assigned_to: assignedTo,
       conversation_id: conversationId,
       lead_id: leadId,
       cliente_id: clienteId,

@@ -156,35 +156,49 @@ Deno.serve(async (req) => {
     }
 
     const calendarId = calToken.calendar_id || "primary";
-    const table =
-      event_type === "servico" ? "servicos_agendados" : "wa_followup_queue";
+    
+    // Resolve table based on event_type
+    let table: string;
+    let eventIdColumn: string;
+    if (event_type === "appointment") {
+      table = "appointments";
+      eventIdColumn = "google_event_id";
+    } else if (event_type === "servico") {
+      table = "servicos_agendados";
+      eventIdColumn = "google_calendar_event_id";
+    } else {
+      table = "wa_followup_queue";
+      eventIdColumn = "google_calendar_event_id";
+    }
 
     // Get existing event ID
     const { data: record } = await supabaseAdmin
       .from(table)
-      .select("google_calendar_event_id")
+      .select(eventIdColumn)
       .eq("id", record_id)
       .maybeSingle();
 
     let result: any;
 
+    const existingEventId = record?.[eventIdColumn];
+
     if (action === "delete") {
-      if (record?.google_calendar_event_id) {
+      if (existingEventId) {
         await deleteCalendarEvent(
           accessToken,
           calendarId,
-          record.google_calendar_event_id
+          existingEventId
         );
         // Remove from local mirror
         await supabaseAdmin
           .from("google_calendar_events")
           .delete()
           .eq("user_id", targetUserId)
-          .eq("google_event_id", record.google_calendar_event_id);
+          .eq("google_event_id", existingEventId);
 
         await supabaseAdmin
           .from(table)
-          .update({ google_calendar_event_id: null })
+          .update({ [eventIdColumn]: null })
           .eq("id", record_id);
       }
       result = { deleted: true };
@@ -226,14 +240,14 @@ Deno.serve(async (req) => {
       let eventId: string;
       let googleResponse: any;
 
-      if (record?.google_calendar_event_id && action === "update") {
+      if (existingEventId && action === "update") {
         googleResponse = await updateCalendarEvent(
           accessToken,
           calendarId,
-          record.google_calendar_event_id,
+          existingEventId,
           gcalEvent
         );
-        eventId = googleResponse?.id || record.google_calendar_event_id;
+        eventId = googleResponse?.id || existingEventId;
       } else {
         googleResponse = await createCalendarEvent(
           accessToken,
@@ -247,7 +261,7 @@ Deno.serve(async (req) => {
         // Save to source table
         await supabaseAdmin
           .from(table)
-          .update({ google_calendar_event_id: eventId })
+          .update({ [eventIdColumn]: eventId })
           .eq("id", record_id);
 
         // ── Anti-loop: upsert to local mirror with source='crm' ──

@@ -251,7 +251,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "solarmarket", title: "SolarMarket", icon: Sun, description: "Marketplace solar", keywords: ["marketplace", "solar", "integração"] },
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"] },
       { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP", keywords: ["n8n", "automação", "workflow", "MCP"] },
-      { id: "google-calendar", title: "Google Calendar", icon: CalendarClock, description: "Sincronizar agenda", keywords: ["google", "calendar", "agenda", "calendário", "OAuth"] },
+      // google-calendar unified into agenda-config
       { id: "ai-config", title: "Configuração de IA", icon: Brain, description: "Modelo, temperatura e gate de follow-up", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"] },
     ],
   },
