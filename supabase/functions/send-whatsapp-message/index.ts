@@ -543,6 +543,7 @@ Deno.serve(async (req) => {
             status: "open",
             last_message_at: new Date().toISOString(),
             last_message_preview: messagePreview,
+            last_message_direction: "out",
             updated_at: new Date().toISOString(),
           };
 
@@ -582,6 +583,7 @@ Deno.serve(async (req) => {
               status: "open",
               last_message_at: new Date().toISOString(),
               last_message_preview: messagePreview,
+              last_message_direction: "out",
               is_group: false,
               canal: "whatsapp",
               profile_picture_url: profilePicUrl,
