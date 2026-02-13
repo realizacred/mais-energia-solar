@@ -213,7 +213,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "vendedores", title: "Consultores", icon: Users, description: "Cadastro de consultores", keywords: ["consultor", "vendedor", "equipe", "cadastro"] },
-      { id: "canais-captacao", title: "Canais de Captação", icon: QrCode, description: "Links e QR Codes por consultor", keywords: ["canal", "captação", "link", "qr", "code", "indicação"] },
+      
       { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso", keywords: ["aprovação", "solicitação", "pendente"] },
       { id: "gamificacao", title: "Gamificação", icon: Trophy, description: "Metas e ranking da equipe", keywords: ["meta", "ranking", "conquista", "pontuação", "competição"] },
       { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade"] },
@@ -315,7 +315,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles", keywords: ["usuário", "permissão", "role", "acesso"] },
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações", keywords: ["log", "auditoria", "histórico", "alteração"] },
       { id: "notificacoes-config", title: "Notificações", icon: Bell, description: "Configurar tipos de notificação da empresa", keywords: ["notificação", "push", "alerta", "configurar", "ativar"], separator: true },
-      { id: "links-instalacao", title: "Links & Instalação", icon: Smartphone, description: "App PWA e links de consultor", keywords: ["PWA", "link", "instalação", "app"] },
+      { id: "links-instalacao", title: "Links & Captação", icon: Smartphone, description: "Links de captação, QR Codes e App PWA", keywords: ["PWA", "link", "instalação", "app", "canal", "captação", "qr", "whatsapp"] },
       { id: "changelog", title: "Atualizações", icon: HistoryIcon, description: "Histórico de atualizações do sistema", keywords: ["changelog", "atualização", "novidade", "versão", "histórico"] },
       { id: "data-reset", title: "Limpeza de Dados", icon: Trash2, description: "Reset seletivo por segmento", keywords: ["reset", "limpeza", "deletar", "remover"] },
     ],

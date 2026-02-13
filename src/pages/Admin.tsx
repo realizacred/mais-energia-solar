@@ -129,7 +129,7 @@ const TAB_TITLES: Record<string, string> = {
   "followup-queue": "Fila de Follow-ups",
   "wa-etiquetas": "Etiquetas WhatsApp",
   "canais-captacao": "Canais de Captação",
-  "links-instalacao": "Links & Instalação",
+  "links-instalacao": "Links & Captação",
   "data-reset": "Limpeza de Dados",
   "integracoes-status": "Status das Integrações",
   "google-calendar": "Google Calendar",
