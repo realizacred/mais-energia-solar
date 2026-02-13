@@ -161,7 +161,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto", keywords: ["checklist", "documento", "verificação", "projeto"] },
       { id: "avaliacoes", title: "Avaliações", icon: Star, description: "NPS — satisfação do cliente (0–10)", keywords: ["NPS", "CSAT", "feedback", "satisfação", "nota", "indicação"] },
       { id: "servicos", title: "Agenda Técnica", icon: CalendarClock, description: "Agendamentos de serviço", keywords: ["agenda", "visita", "instalação", "técnico"] },
-      { id: "agenda-config", title: "Agenda & Compromissos", icon: Calendar, description: "Configurar agenda interna e Google Calendar", keywords: ["agenda", "compromisso", "google", "calendar", "agendamento"], separator: true },
     ],
   },
 
@@ -295,6 +294,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "inversores-cadastro", title: "Inversores", icon: Cpu, description: "Inversores solares cadastrados", keywords: ["inversor", "potência", "micro-inversor", "string"] },
       { id: "baterias", title: "Baterias", icon: Battery, description: "Sistemas de armazenamento", keywords: ["bateria", "armazenamento", "lítio", "energia"] },
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas por distribuidora", keywords: ["tarifa", "distribuidora", "concessionária", "ANEEL"] },
+      { id: "agenda-config", title: "Agenda & Compromissos", icon: Calendar, description: "Configurar agenda interna e Google Calendar", keywords: ["agenda", "compromisso", "google", "calendar", "agendamento"], separator: true },
       { id: "loading-config", title: "Loading & Mensagens", icon: Sun, description: "Animação e mensagens de carregamento", keywords: ["loading", "carregamento", "mensagem", "animação", "sol", "loader"], separator: true },
     ],
   },
