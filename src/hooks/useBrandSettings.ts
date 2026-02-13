@@ -167,8 +167,7 @@ export function useBrandSettings() {
       const { data, error } = await supabase
         .from("brand_settings" as any)
         .select("*")
-        .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.warn("Could not load brand settings:", error.message);
