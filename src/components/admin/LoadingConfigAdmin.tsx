@@ -111,8 +111,11 @@ export function LoadingConfigAdmin() {
 
     setUploading(true);
     try {
+      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+      const tid = await getCurrentTenantId();
+      if (!tid) throw new Error("Tenant não encontrado");
       const ext = file.name.split(".").pop() || "png";
-      const path = `loader-custom/${Date.now()}.${ext}`;
+      const path = tenantPath(tid, "loader-custom", `${Date.now()}.${ext}`);
       const { error: uploadError } = await supabase.storage.from("brand-assets").upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
 
