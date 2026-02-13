@@ -88,7 +88,14 @@ export function ThemeLoader({
   const animClass = ANIM_CLASSES[animation] || ANIM_CLASSES.pulse;
 
   // Image-based loaders (logo / custom upload)
-  if (theme === "logo" && logoUrl) {
+  if (theme === "logo") {
+    if (!logoUrl) {
+      // Still loading brand settings — show empty placeholder to avoid flash of fallback SVG
+      return (
+        <div className={`inline-flex items-center justify-center ${className}`} role="status" aria-label="Carregando"
+          style={{ width: px, height: px }} />
+      );
+    }
     return (
       <div className={`inline-flex items-center justify-center ${className}`} role="status" aria-label="Carregando">
         <img src={logoUrl} alt="Loading" width={px} height={px}
@@ -120,7 +127,7 @@ export function ThemeLoader({
         {theme === "battery" && <BatterySVG />}
         {theme === "leaf" && <LeafSVG />}
         {theme === "orbit" && <OrbitSVG />}
-        {(theme === "logo" || theme === "custom") && <SunSVG />}
+        {theme === "custom" && <SunSVG />}
       </svg>
     </div>
   );
