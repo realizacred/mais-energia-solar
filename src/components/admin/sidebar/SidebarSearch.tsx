@@ -2,7 +2,9 @@ import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "@/components/ui/sidebar";
-import { SIDEBAR_SECTIONS, type MenuItem, type SidebarSection } from "./sidebarConfig";
+import { useNavConfig } from "@/hooks/useNavConfig";
+import { useMenuAccess } from "@/hooks/useMenuAccess";
+import type { MenuItem, SidebarSection } from "./sidebarConfig";
 
 interface SearchResult {
   item: MenuItem;
@@ -25,12 +27,16 @@ export function SidebarSearch() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Use dynamic nav config filtered by permissions
+  const { sections: navSections } = useNavConfig();
+  const filteredSections = useMenuAccess(navSections);
+
   const results = useMemo<SearchResult[]>(() => {
     if (!query.trim()) return [];
     const q = normalize(query.trim());
     const matches: SearchResult[] = [];
 
-    for (const section of SIDEBAR_SECTIONS) {
+    for (const section of filteredSections) {
       for (const item of section.items) {
         const haystack = normalize(
           [item.title, item.description || "", ...(item.keywords || [])].join(" ")
@@ -41,7 +47,7 @@ export function SidebarSearch() {
       }
     }
     return matches.slice(0, 8);
-  }, [query]);
+  }, [query, filteredSections]);
 
   // Close on outside click
   useEffect(() => {

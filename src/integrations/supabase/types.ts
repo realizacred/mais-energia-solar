@@ -3306,6 +3306,53 @@ export type Database = {
           },
         ]
       }
+      nav_overrides: {
+        Row: {
+          created_at: string
+          group_override: string | null
+          id: string
+          label_override: string | null
+          nav_key: string
+          order_override: number | null
+          role_filter: string | null
+          tenant_id: string
+          updated_at: string
+          visible_override: boolean
+        }
+        Insert: {
+          created_at?: string
+          group_override?: string | null
+          id?: string
+          label_override?: string | null
+          nav_key: string
+          order_override?: number | null
+          role_filter?: string | null
+          tenant_id: string
+          updated_at?: string
+          visible_override?: boolean
+        }
+        Update: {
+          created_at?: string
+          group_override?: string | null
+          id?: string
+          label_override?: string | null
+          nav_key?: string
+          order_override?: number | null
+          role_filter?: string | null
+          tenant_id?: string
+          updated_at?: string
+          visible_override?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nav_overrides_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_config: {
         Row: {
           created_at: string
