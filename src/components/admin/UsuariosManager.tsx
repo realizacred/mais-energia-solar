@@ -51,6 +51,7 @@ import {
   MoreVertical,
   Pencil,
 } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit";
 import { UserEditDialog } from "./users/UserEditDialog";
 
 interface UserRole {
@@ -430,8 +431,8 @@ export function UsuariosManager() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <CardContent>
+          <LoadingState className="py-12" />
         </CardContent>
       </Card>
     );
@@ -440,8 +441,8 @@ export function UsuariosManager() {
   if (checkingPermission) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <CardContent>
+          <LoadingState className="py-12" />
         </CardContent>
       </Card>
     );

@@ -4,13 +4,16 @@ import type { LoaderTheme, LoaderAnimation } from "@/components/loading/ThemeLoa
 import { useLoadingConfig } from "@/hooks/useLoadingConfig";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 
-interface LoadingStateProps {
-  message?: string;
-  className?: string;
+interface SpinnerProps {
   size?: "sm" | "md" | "lg";
+  className?: string;
 }
 
-export function LoadingState({ message, className, size = "md" }: LoadingStateProps) {
+/**
+ * Drop-in replacement for inline Loader2 spinners.
+ * Uses the tenant's configured theme loader.
+ */
+export function Spinner({ size = "sm", className }: SpinnerProps) {
   const { config } = useLoadingConfig();
   const { settings: brandSettings } = useBrandSettings();
 
@@ -20,15 +23,13 @@ export function LoadingState({ message, className, size = "md" }: LoadingStatePr
   const customUrl = config?.custom_loader_url ?? null;
 
   return (
-    <div className={cn("flex flex-col items-center justify-center py-16", className)}>
-      <ThemeLoader
-        theme={loaderTheme}
-        animation={loaderAnim}
-        size={size}
-        logoUrl={logoUrl}
-        customUrl={customUrl}
-      />
-      {message && <p className="text-sm text-muted-foreground mt-3">{message}</p>}
-    </div>
+    <ThemeLoader
+      theme={loaderTheme}
+      animation={loaderAnim}
+      size={size}
+      logoUrl={logoUrl}
+      customUrl={customUrl}
+      className={cn(className)}
+    />
   );
 }

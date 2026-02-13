@@ -1,6 +1,8 @@
-import { SunLoader } from "./SunLoader";
-import { LoadingMessage } from "./LoadingMessage";
+import { ThemeLoader } from "./ThemeLoader";
+import { RotatingLoadingMessage, LoadingMessage } from "./LoadingMessage";
 import { useLoadingConfig } from "@/hooks/useLoadingConfig";
+import { useBrandSettings } from "@/hooks/useBrandSettings";
+import type { LoaderTheme, LoaderAnimation } from "./ThemeLoader";
 
 interface InlineLoaderProps {
   context?: string;
@@ -10,21 +12,27 @@ interface InlineLoaderProps {
 
 /**
  * Loader inline para substituir conteúdo enquanto carrega.
- * Usa SunLoader + mensagem contextual.
+ * Usa ThemeLoader configurável + mensagem contextual.
  */
 export function InlineLoader({ context = "data_load", message, className = "" }: InlineLoaderProps) {
   const { config } = useLoadingConfig();
-  const useSun = config?.sun_loader_enabled ?? true;
+  const { settings: brandSettings } = useBrandSettings();
+
+  const loaderTheme = (config?.loader_theme as LoaderTheme) ?? "sun";
+  const loaderAnim = (config?.sun_loader_style as LoaderAnimation) ?? "pulse";
   const showMessages = config?.show_messages ?? true;
-  const sunStyle = (config?.sun_loader_style as "pulse" | "spin" | "breathe") ?? "pulse";
+  const logoUrl = brandSettings?.logo_small_url || brandSettings?.logo_url || null;
+  const customUrl = config?.custom_loader_url ?? null;
 
   return (
     <div className={`flex flex-col items-center justify-center gap-2 py-8 ${className}`}>
-      {useSun ? (
-        <SunLoader size="md" style={sunStyle} />
-      ) : (
-        <div className="h-6 w-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-      )}
+      <ThemeLoader
+        theme={loaderTheme}
+        animation={loaderAnim}
+        size="md"
+        logoUrl={logoUrl}
+        customUrl={customUrl}
+      />
       {showMessages && (
         message ? (
           <p className="text-sm text-muted-foreground">{message}</p>
