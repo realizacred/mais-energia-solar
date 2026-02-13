@@ -7007,18 +7007,21 @@ export type Database = {
           created_at: string
           id: string
           tag_id: string
+          tenant_id: string
         }
         Insert: {
           conversation_id: string
           created_at?: string
           id?: string
           tag_id: string
+          tenant_id?: string
         }
         Update: {
           conversation_id?: string
           created_at?: string
           id?: string
           tag_id?: string
+          tenant_id?: string
         }
         Relationships: [
           {
@@ -7033,6 +7036,13 @@ export type Database = {
             columns: ["tag_id"]
             isOneToOne: false
             referencedRelation: "wa_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversation_tags_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
