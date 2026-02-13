@@ -66,6 +66,7 @@ const WaInstancesManager = lazy(() => import("@/components/admin/WaInstancesMana
 const WaTagsManager = lazy(() => import("@/components/admin/inbox/WaTagsManager").then(m => ({ default: m.WaTagsManager })));
 const InstalarApp = lazy(() => import("@/pages/Instalar"));
 const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalacaoPage").then(m => ({ default: m.LinksInstalacaoPage })));
+const CanaisCaptacaoPage = lazy(() => import("@/components/admin/CanaisCaptacaoPage").then(m => ({ default: m.CanaisCaptacaoPage })));
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
 const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationStatusPage").then(m => ({ default: m.IntegrationStatusPage })));
 const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCalendarConfigPage").then(m => ({ default: m.GoogleCalendarConfigPage })));
@@ -127,6 +128,7 @@ const TAB_TITLES: Record<string, string> = {
   "followup-wa": "Regras de Follow-up",
   "followup-queue": "Fila de Follow-ups",
   "wa-etiquetas": "Etiquetas WhatsApp",
+  "canais-captacao": "Canais de Captação",
   "links-instalacao": "Links & Instalação",
   "data-reset": "Limpeza de Dados",
   "integracoes-status": "Status das Integrações",
@@ -365,6 +367,7 @@ export default function Admin() {
                 <Route path="auditoria" element={<AuditLogsViewer />} />
                 <Route path="data-reset" element={<DataResetManager />} />
                 <Route path="integracoes-status" element={<IntegrationStatusPage />} />
+                <Route path="canais-captacao" element={<CanaisCaptacaoPage />} />
                 <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
                 <Route path="changelog" element={<ChangelogViewer />} />
                 <Route path="notificacoes-config" element={<NotificationConfigAdmin />} />

@@ -86,6 +86,8 @@ Deno.serve(async (req) => {
       existing_lead_id,
       // Optional: skip WA
       skip_wa,
+      // Optional: lead source tracking
+      origem,
     } = body;
 
     // Validate required fields
@@ -238,6 +240,7 @@ Deno.serve(async (req) => {
             consultor_id: vendedorId,
             consultor: vendedorNome || "Site",
             tenant_id: tenantId,
+            origem: origem || null,
             estado: "N/A",
             cidade: "N/A",
             area: "N/A",
