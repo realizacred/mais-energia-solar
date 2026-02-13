@@ -37,3 +37,27 @@ Rodar via CI ou manualmente:
 SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... \
   deno test --allow-net --allow-env supabase/tests/process-wa-followups.test.ts
 ```
+
+## 🛡️ Check: Arquivos proibidos em Edge Functions
+
+Antes de qualquer deploy, rode o validador para garantir que nenhum arquivo não-executável entrou no bundle:
+
+```bash
+# Local (raiz do repo)
+bash supabase/scripts/check-functions-clean.sh
+
+# CI (GitHub Actions — adicionar como step)
+- name: Check Edge Functions cleanliness
+  run: bash supabase/scripts/check-functions-clean.sh
+
+# Pre-commit hook (opcional)
+echo 'bash supabase/scripts/check-functions-clean.sh' >> .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+**Exemplos de erro:**
+```
+❌ PROIBIDO [process-wa-followups/DEPLOY.md] — extensão .md não é executável
+❌ PROIBIDO [process-wa-followups/smoke_test.ts] — arquivo de teste deve ficar em supabase/tests/
+🚫 2 arquivo(s) proibido(s) encontrado(s) em supabase/functions/
+```
