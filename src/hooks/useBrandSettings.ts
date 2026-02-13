@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 export interface BrandSettings {
   id: string;
@@ -161,13 +162,43 @@ function loadGoogleFont(fontName: string) {
 export function useBrandSettings() {
   const [settings, setSettings] = useState<BrandSettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
 
   const fetchSettings = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      // Build query with tenant filter when user is authenticated
+      let query = supabase
         .from("brand_settings" as any)
-        .select("*")
-        .maybeSingle();
+        .select("*");
+
+      if (user) {
+        // Authenticated: RLS filters by tenant, but we also need to handle
+        // the public SELECT policy that returns all rows
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile?.tenant_id) {
+          query = query.eq("tenant_id", profile.tenant_id);
+        }
+      } else {
+        // Public: get the active tenant's brand settings
+        // Filter to only active tenants by joining logic
+        const { data: activeTenant } = await supabase
+          .from("tenants" as any)
+          .select("id")
+          .eq("ativo", true)
+          .limit(1)
+          .maybeSingle() as { data: { id: string } | null };
+
+        if (activeTenant?.id) {
+          query = query.eq("tenant_id", activeTenant.id);
+        }
+      }
+
+      const { data, error } = await query.limit(1).maybeSingle();
 
       if (error) {
         console.warn("Could not load brand settings:", error.message);
@@ -184,7 +215,7 @@ export function useBrandSettings() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchSettings();
