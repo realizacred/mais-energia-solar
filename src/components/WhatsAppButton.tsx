@@ -39,15 +39,15 @@ const WhatsAppButton = forwardRef<HTMLDivElement, WhatsAppButtonProps>(function 
             initial={{ opacity: 0, y: 20, scale: 0.8 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.8 }}
-            className="absolute bottom-16 right-0 bg-white rounded-xl shadow-2xl p-4 w-72 border"
+            className="absolute bottom-16 right-0 bg-card rounded-xl shadow-md p-4 w-72 border"
           >
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 rounded-full bg-success flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-success-foreground" />
               </div>
               <div>
                 <p className="font-semibold text-sm">{nomeEmpresa}</p>
-                <p className="text-xs text-green-600">Online agora</p>
+                <p className="text-xs text-success">Online agora</p>
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-4">
@@ -55,7 +55,7 @@ const WhatsAppButton = forwardRef<HTMLDivElement, WhatsAppButtonProps>(function 
             </p>
             <Button
               onClick={openWhatsApp}
-              className="w-full bg-green-500 hover:bg-green-600 gap-2"
+              className="w-full bg-success hover:bg-success/90 text-success-foreground gap-2"
             >
               <Phone className="w-4 h-4" />
               Iniciar Conversa
@@ -68,7 +68,7 @@ const WhatsAppButton = forwardRef<HTMLDivElement, WhatsAppButtonProps>(function 
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full bg-green-500 hover:bg-green-600 text-white shadow-lg flex items-center justify-center transition-colors"
+        className="w-14 h-14 rounded-full bg-success hover:bg-success/90 text-success-foreground shadow-md flex items-center justify-center transition-colors"
       >
         {isOpen ? (
           <X className="w-6 h-6" />

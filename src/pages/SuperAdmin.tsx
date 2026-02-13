@@ -226,10 +226,10 @@ export default function SuperAdmin() {
   const getMetrics = (tenantId: string) => metrics[tenantId] || { leads: 0, users: 0, clientes: 0 };
 
   const statusColors: Record<string, string> = {
-    active: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    trialing: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
-    past_due: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-    canceled: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+    active: "bg-success/10 text-success",
+    trialing: "bg-info/10 text-info",
+    past_due: "bg-warning/10 text-warning",
+    canceled: "bg-destructive/10 text-destructive",
   };
 
   const totalLeads = Object.values(metrics).reduce((s, m) => s + m.leads, 0);

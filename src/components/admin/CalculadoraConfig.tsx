@@ -124,7 +124,7 @@ export default function CalculadoraConfig() {
           {/* Tarifa */}
           <div className="space-y-2">
             <Label htmlFor="tarifa" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-green-600" />
+              <DollarSign className="w-4 h-4 text-success" />
               Tarifa Média (R$/kWh)
             </Label>
             <Input
@@ -171,7 +171,7 @@ export default function CalculadoraConfig() {
           {/* CO2 */}
           <div className="space-y-2">
             <Label htmlFor="co2" className="flex items-center gap-2">
-              <Leaf className="w-4 h-4 text-green-600" />
+              <Leaf className="w-4 h-4 text-success" />
               CO₂ por kWh (kg)
             </Label>
             <Input
@@ -187,7 +187,7 @@ export default function CalculadoraConfig() {
           {/* Percentual economia */}
           <div className="space-y-2">
             <Label htmlFor="economia" className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-green-600" />
+              <DollarSign className="w-4 h-4 text-success" />
               Percentual Economia (%)
             </Label>
             <Input

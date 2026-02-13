@@ -66,7 +66,7 @@ export function AboutSection() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={isVisible ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.5, delay: 0.3 + i * 0.1 }}
-                className="group relative flex flex-col items-center gap-3 p-6 sm:p-8 rounded-2xl bg-card border-2 border-border/50 hover:border-primary/40 hover:shadow-xl hover:shadow-primary/5 transition-all duration-300"
+                className="group relative flex flex-col items-center gap-3 p-6 sm:p-8 rounded-2xl bg-card border-2 border-border/50 hover:border-primary/40 hover:shadow-md hover:shadow-primary/5 transition-all duration-300"
               >
                 {/* Orange top accent */}
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 rounded-b-full bg-primary/60 group-hover:w-20 group-hover:bg-primary transition-all duration-300" />
@@ -84,16 +84,16 @@ export function AboutSection() {
             initial={{ opacity: 0, y: 30 }}
             animate={isVisible ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.7 }}
-            className="relative rounded-3xl overflow-hidden shadow-2xl"
+            className="relative rounded-3xl overflow-hidden shadow-md"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-primary via-primary/90 to-secondary/70" />
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute top-0 right-0 w-64 h-64 bg-primary-foreground/10 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-secondary/20 rounded-full blur-3xl" />
 
             <div className="relative z-10 p-8 sm:p-12 md:flex md:items-center md:gap-12">
               <div className="flex-1 mb-8 md:mb-0">
-                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-white mb-4">Nosso Propósito</h3>
-                <p className="text-white/80 text-base leading-relaxed">
+                <h3 className="font-display text-2xl sm:text-3xl font-extrabold text-primary-foreground mb-4">Nosso Propósito</h3>
+                <p className="text-primary-foreground/80 text-base leading-relaxed">
                   Mais do que fornecer energia limpa, nosso propósito é gerar economia,
                   autonomia e impacto positivo no dia a dia de nossos clientes.
                 </p>
@@ -101,8 +101,8 @@ export function AboutSection() {
               <div className="flex-1">
                 <ul className="space-y-4 mb-8">
                   {purposes.map((p) => (
-                    <li key={p} className="flex items-center gap-3 text-white">
-                      <CheckCircle2 className="w-5 h-5 text-white shrink-0" />
+                    <li key={p} className="flex items-center gap-3 text-primary-foreground">
+                      <CheckCircle2 className="w-5 h-5 text-primary-foreground shrink-0" />
                       <span className="font-medium">{p}</span>
                     </li>
                   ))}
@@ -110,7 +110,7 @@ export function AboutSection() {
                 <Button
                   asChild
                   size="lg"
-                  className="bg-white text-primary hover:bg-white/90 rounded-full px-8 font-extrabold shadow-xl shadow-black/20 hover:-translate-y-0.5 transition-all duration-300"
+                  className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 rounded-full px-8 font-extrabold shadow-md hover:-translate-y-0.5 transition-all duration-300"
                 >
                   <a href={`https://wa.me/${whatsapp}?text=${encodeURIComponent((get as any)("whatsapp_mensagem_padrao") || "Olá! Gostaria de mais informações sobre energia solar.")}`} target="_blank" rel="noopener noreferrer">
                     <Phone className="w-4 h-4 mr-2" />

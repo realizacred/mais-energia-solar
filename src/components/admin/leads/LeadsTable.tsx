@@ -138,7 +138,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                     {isConverted && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="inline-flex items-center justify-center h-8 w-8 text-green-600">
+                          <span className="inline-flex items-center justify-center h-8 w-8 text-success">
                             <UserCheck className="w-4 h-4" />
                           </span>
                         </TooltipTrigger>

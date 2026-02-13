@@ -154,7 +154,7 @@ export function GoogleCalendarConfigPage() {
             <Settings className="h-4 w-4" />
             Credenciais OAuth 2.0
             {isConfigured && (
-              <Badge variant="outline" className="ml-2 bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1">
+              <Badge variant="outline" className="ml-2 bg-success/10 text-success border-success/20 gap-1">
                 <CheckCircle2 className="h-3 w-3" />
                 Configurado
               </Badge>
@@ -291,7 +291,7 @@ export function GoogleCalendarConfigPage() {
                     variant="outline"
                     className={`text-xs gap-1 ${
                       user.is_active
-                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                        ? "bg-success/10 text-success border-success/20"
                         : "bg-destructive/10 text-destructive border-destructive/20"
                     }`}
                   >

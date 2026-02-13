@@ -381,7 +381,7 @@ export function InstaladorManager() {
                           </TableCell>
                           <TableCell className="text-center">
                             <div className="flex items-center justify-center gap-1">
-                              <Star className="h-3 w-3 text-yellow-500" />
+                              <Star className="h-3 w-3 text-warning" />
                               {entry.avaliacoes_positivas}/{entry.avaliacoes_totais}
                             </div>
                           </TableCell>

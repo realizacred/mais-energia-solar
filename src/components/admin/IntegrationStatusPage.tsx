@@ -175,7 +175,7 @@ function InlineApiKeyConfig({
           {isConfigured ? "Chave configurada" : "Chave não configurada"}
         </span>
         {isConfigured && (
-          <Badge variant="outline" className="gap-1 text-xs bg-emerald-500/10 text-emerald-600 border-emerald-500/20 ml-1">
+          <Badge variant="outline" className="gap-1 text-xs bg-success/10 text-success border-success/20 ml-1">
             <CheckCircle2 className="h-2.5 w-2.5" /> Ativa
           </Badge>
         )}
@@ -233,14 +233,14 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
   return (
     <div className={`p-4 rounded-xl border-2 transition-all ${
       health.ok
-        ? "border-emerald-500/30 bg-emerald-500/5"
+        ? "border-success/30 bg-success/5"
         : "border-destructive/30 bg-destructive/5"
     }`}>
       {/* Instance header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2.5">
           {health.ok ? (
-            <Wifi className="h-5 w-5 text-emerald-600" />
+            <Wifi className="h-5 w-5 text-success" />
           ) : (
             <WifiOff className="h-5 w-5 text-destructive" />
           )}
@@ -257,7 +257,7 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
           variant="outline"
           className={`text-xs gap-1 ${
             health.ok
-              ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+              ? "bg-success/10 text-success border-success/20"
               : "bg-destructive/10 text-destructive border-destructive/20"
           }`}
         >
@@ -284,13 +284,13 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
           <p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
             <Send className="h-3 w-3" /> Último Envio
           </p>
-          <p className={`text-sm font-medium ${sendAge.warning ? "text-amber-600" : ""}`}>
+          <p className={`text-sm font-medium ${sendAge.warning ? "text-warning" : ""}`}>
             {sendAge.text}
           </p>
         </div>
         <div className="space-y-0.5">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Outbox Pendente</p>
-          <p className={`text-sm font-medium ${health.outbox_pending_count > 0 ? "text-amber-600" : ""}`}>
+          <p className={`text-sm font-medium ${health.outbox_pending_count > 0 ? "text-warning" : ""}`}>
             {health.outbox_pending_count}
           </p>
         </div>
@@ -298,9 +298,9 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
 
       {/* Warnings */}
       {webhookAge.warning && health.last_webhook_at && (
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-3">
-          <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-700">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-warning/10 border border-warning/20 mb-3">
+          <AlertTriangle className="h-4 w-4 text-warning shrink-0" />
+          <p className="text-xs text-warning">
             Webhooks parados há mais de 30 minutos. Verifique a URL de webhook na Evolution API.
           </p>
         </div>
@@ -314,9 +314,9 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
       )}
 
       {health.outbox_pending_count > 0 && (
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 mb-3">
-          <Clock className="h-4 w-4 text-amber-600 shrink-0" />
-          <p className="text-xs text-amber-700">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-warning/10 border border-warning/20 mb-3">
+          <Clock className="h-4 w-4 text-warning shrink-0" />
+          <p className="text-xs text-warning">
             {health.outbox_pending_count} mensagen(s) aguardando envio na fila.
           </p>
         </div>
@@ -457,7 +457,7 @@ export function IntegrationStatusPage() {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div className="space-y-1">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <MessageCircle className="h-4 w-4 text-green-500" />
+              <MessageCircle className="h-4 w-4 text-success" />
               WhatsApp (Evolution API)
               {whatsappResult && (
                 <Badge variant="outline" className={`text-xs gap-1 ml-2 ${STATUS_CONFIG[whatsappResult.status].className}`}>

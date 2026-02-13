@@ -91,7 +91,7 @@ function derivePriority(proposta: Proposta, summary: ProposalSummary): PriorityT
     return {
       icon: Flame,
       label: "Quente",
-      className: "bg-orange-500/15 text-orange-600",
+      className: "bg-warning/15 text-warning",
     };
   }
 
