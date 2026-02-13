@@ -42,7 +42,7 @@ export function WaTagsManager() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Spinner size="md" />
         </CardContent>
       </Card>
     );
@@ -85,7 +85,7 @@ export function WaTagsManager() {
                 </div>
               </div>
               <Button onClick={handleCreate} disabled={!newName.trim() || creating} className="gap-2">
-                {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                {creating ? <Spinner size="sm" /> : <Plus className="w-4 h-4" />}
                 Criar
               </Button>
             </div>

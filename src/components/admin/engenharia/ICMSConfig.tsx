@@ -217,7 +217,7 @@ export function ICMSConfig() {
                       disabled={saving === item.id}
                     >
                       {saving === item.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Spinner size="sm" />
                       ) : (
                         <Save className="w-4 h-4" />
                       )}

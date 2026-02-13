@@ -318,7 +318,7 @@
            {/* Table */}
            {loading ? (
              <div className="flex justify-center py-8">
-               <Loader2 className="h-6 w-6 animate-spin" />
+               <Spinner size="md" />
              </div>
            ) : pagamentos.length === 0 ? (
              <p className="text-center text-muted-foreground py-4">

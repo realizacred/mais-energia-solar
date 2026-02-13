@@ -14,7 +14,7 @@ interface Props {
 export default function VendorNotificacoesView({ portal }: Props) {
   return (
     <div className="space-y-4 sm:space-y-6">
-      <Suspense fallback={<Loader2 className="h-5 w-5 animate-spin" />}>
+      <Suspense fallback={<Spinner size="sm" />}>
         <PushNotificationSettings />
       </Suspense>
     </div>

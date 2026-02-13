@@ -50,7 +50,7 @@ export function WaLeadInfoCard({ leadId, open, onOpenChange }: WaLeadInfoCardPro
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            <Spinner size="sm" />
           </div>
         ) : !lead ? (
           <p className="text-sm text-muted-foreground text-center py-8">Lead não encontrado.</p>
