@@ -915,6 +915,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           consumo_previsto: data.consumo_previsto,
           observacoes: data.observacoes?.trim() || null,
           arquivos_urls: fileUrls.length > 0 ? fileUrls : undefined,
+          origem: isPublicVendorForm ? "canal_consultor" : undefined,
         };
 
         // Handle duplicate decision

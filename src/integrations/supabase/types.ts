@@ -3311,6 +3311,7 @@ export type Database = {
           nome: string
           numero: string | null
           observacoes: string | null
+          origem: string | null
           proxima_acao: string | null
           rede_atendimento: string
           rua: string | null
@@ -3348,6 +3349,7 @@ export type Database = {
           nome: string
           numero?: string | null
           observacoes?: string | null
+          origem?: string | null
           proxima_acao?: string | null
           rede_atendimento: string
           rua?: string | null
@@ -3385,6 +3387,7 @@ export type Database = {
           nome?: string
           numero?: string | null
           observacoes?: string | null
+          origem?: string | null
           proxima_acao?: string | null
           rede_atendimento?: string
           rua?: string | null
