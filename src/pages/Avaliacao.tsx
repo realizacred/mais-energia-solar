@@ -75,7 +75,7 @@
  
    if (submitted) {
      return (
-       <div className="min-h-screen gradient-mesh flex items-center justify-center p-4">
+       <div className="min-h-screen bg-background flex items-center justify-center p-4">
          <Card className="w-full max-w-md text-center animate-scale-in shadow-xl">
            <CardContent className="pt-10 pb-10">
              <div className="relative w-24 h-24 mx-auto mb-6">
@@ -101,9 +101,9 @@
    }
  
    return (
-     <div className="min-h-screen gradient-mesh">
+     <div className="min-h-screen bg-background">
        {/* Header corporativo */}
-       <header className="gradient-blue text-white py-5 shadow-lg">
+       <header className="bg-secondary text-white py-5 shadow-sm">
          <div className="container mx-auto px-4 flex items-center justify-center">
            <img src={logoBrancaImg} alt="Logo" className="h-10 sm:h-12" />
          </div>
@@ -112,7 +112,7 @@
        <main className="container mx-auto px-4 py-8 sm:py-12 max-w-lg">
          <Card className="shadow-xl border-0 animate-fade-in">
            <CardHeader className="text-center pb-4">
-             <div className="w-16 h-16 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-2xl flex items-center justify-center mx-auto mb-4 rotate-3">
+             <div className="w-16 h-16 bg-primary/10 rounded-xl flex items-center justify-center mx-auto mb-4">
                <Sparkles className="h-8 w-8 text-primary" />
              </div>
              <CardTitle className="text-2xl sm:text-3xl">Avalie Nosso Atendimento</CardTitle>
@@ -184,7 +184,7 @@
                <Button 
                  type="submit" 
                  size="xl"
-                 className="w-full shadow-primary hover-glow-primary"
+                 className="w-full"
                  disabled={submitting || rating === 0}
                >
                  {submitting ? (

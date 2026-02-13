@@ -1,209 +1,251 @@
-# 🎨 Design System — Mais Energia Solar
+# 🎨 Design System — Soft Depth (v2)
 
-## Visão Geral
+> Linguagem visual oficial do sistema. Nenhum componente, tela ou feature pode violar estas regras.
 
-O Design System da Mais Energia Solar segue uma abordagem **token-first**, onde todas as cores, espaçamentos e estilos visuais são definidos por variáveis CSS semânticas (HSL) e expostos via Tailwind CSS.
-
-**Objetivo:** Garantir consistência visual entre todos os portais (Admin, Vendedor, Instalador, Institucional) com suporte a dark mode e acessibilidade.
+**Estilo**: Soft Depth — elevação suave, bordas sutis, alto contraste, aparência premium.  
+**Referência**: Stripe, Linear, Notion.  
+**Versão**: 2.0 — Atualizado em 2026-02-13
 
 ---
 
-## 🎨 Paleta de Cores (Tokens Semânticos)
+## 🚫 Proibições Absolutas
 
-### Core
+| Proibido | Motivo |
+|----------|--------|
+| `glassmorphism` / `backdrop-blur` em cards | Ruído visual, inconsistência |
+| Gradientes fortes (`gradient-solar`, `gradient-blue`) | Exagero visual — REMOVIDOS do CSS |
+| `badge-glow` / `hover-glow-*` | Efeitos desnecessários — REMOVIDOS do CSS |
+| Sombras pesadas (`shadow-2xl` em cards comuns) | Desproporcional |
+| Cores hardcoded (`bg-orange-500`, `text-blue-600`) | Quebra tematização |
+| `rounded-full` em ícones decorativos | Padrão é `rounded-xl` |
+| Criar botão/card/badge customizado por tela | Use os componentes do design system |
+| `glass`, `glass-strong`, `glass-card` | REMOVIDOS — usar `surface-1/2/3` + `shadow-sm/md` |
 
-| Token | Light | Dark | Uso |
-|-------|-------|------|-----|
-| `--primary` | `hsl(25, 100%, 50%)` | `hsl(25, 100%, 55%)` | Laranja Energia — CTAs, botões principais, destaques |
-| `--primary-foreground` | `hsl(0, 0%, 100%)` | `hsl(0, 0%, 100%)` | Texto sobre primary |
-| `--secondary` | `hsl(210, 100%, 40%)` | `hsl(210, 100%, 55%)` | Azul Corporativo — links, ícones info |
-| `--secondary-foreground` | `hsl(0, 0%, 100%)` | `hsl(0, 0%, 100%)` | Texto sobre secondary |
-
-### Status
-
-| Token | Classe Tailwind | Uso |
-|-------|-----------------|-----|
-| `--success` | `text-success`, `bg-success`, `border-success` | Concluído, ativo, positivo |
-| `--warning` | `text-warning`, `bg-warning`, `border-warning` | Alerta, em andamento, atenção |
-| `--destructive` | `text-destructive`, `bg-destructive`, `border-destructive` | Erro, cancelado, perigo |
-| `--info` | `text-info`, `bg-info`, `border-info` | Informação, dados secundários |
-
-### Superfícies
-
-| Token | Classe | Uso |
-|-------|--------|-----|
-| `--background` | `bg-background` | Fundo principal da página |
-| `--card` | `bg-card` | Cards e painéis |
-| `--muted` | `bg-muted` | Backgrounds sutis |
-| `--accent` | `bg-accent` | Hover states |
-| `--surface-1/2/3` | `surface-1/2/3` | Níveis de profundidade |
-
-### ⛔ NUNCA USAR
+### ⛔ NUNCA USAR em componentes
 
 ```
 ❌ text-green-500, bg-green-100, text-amber-600, bg-red-50
 ❌ text-blue-700, bg-purple-500, text-yellow-500
+❌ text-white (usar text-primary-foreground)
+❌ bg-black (usar bg-foreground)
 ```
 
 Sempre usar os tokens semânticos:
-
 ```
 ✅ text-success, bg-success/10, text-warning, bg-destructive/5
 ✅ text-primary, bg-primary/10, text-secondary, bg-info/10
+✅ text-foreground, text-muted-foreground, bg-card, bg-background
 ```
 
 ---
 
-## 📝 Tipografia
+## 🎯 Tokens Globais
 
-| Elemento | Font | Classes |
-|----------|------|---------|
-| Títulos (h1-h3) | Plus Jakarta Sans | `font-display font-bold tracking-tight` |
-| Corpo | Inter | `font-sans` |
-| Código | JetBrains Mono | `font-mono` |
+### Cores Semânticas (HSL — definidas em `index.css`)
 
-### Escala Tipográfica (definida em `index.css`)
+| Token | Uso |
+|-------|-----|
+| `--background` | Fundo da página |
+| `--foreground` | Texto principal |
+| `--card` / `--card-foreground` | Superfície de cards |
+| `--primary` / `--primary-foreground` | Ações principais, CTAs |
+| `--secondary` / `--secondary-foreground` | Ações secundárias |
+| `--muted` / `--muted-foreground` | Elementos desabilitados, labels |
+| `--accent` / `--accent-foreground` | Hover states, destaques sutis |
+| `--destructive` | Erros, exclusões |
+| `--success` | Confirmações, status positivo |
+| `--warning` | Alertas |
+| `--info` | Informações neutras |
+| `--border` | Bordas padrão |
+| `--input` | Borda de inputs |
+| `--ring` | Focus ring |
 
-- `h1`: `text-3xl md:text-4xl font-bold tracking-tight`
-- `h2`: `text-2xl md:text-3xl font-semibold tracking-tight`
-- `h3`: `text-xl md:text-2xl font-semibold`
-- `h4`: `text-lg font-semibold`
-- `h5`: `text-base font-semibold`
-- `h6`: `text-sm font-semibold uppercase tracking-wider text-muted-foreground`
+### Superfícies de Elevação
+
+| Token | Tailwind | Uso |
+|-------|----------|-----|
+| `--surface-1` | `bg-surface-1` | Card base (= `--card`) |
+| `--surface-2` | `bg-surface-2` | Background elevado sutil |
+| `--surface-3` | `bg-surface-3` | Background de seções internas |
+
+### Sombras (Soft Depth Scale)
+
+| Classe Tailwind | CSS Var | Uso |
+|-----------------|---------|-----|
+| `shadow-xs` | `--shadow-xs` | Inputs, badges |
+| `shadow-sm` | `--shadow-sm` | Cards em repouso |
+| `shadow-md` | `--shadow-md` | Cards em hover, dropdowns |
+| `shadow-lg` | `--shadow-lg` | Modais, popovers |
+| `shadow-xl` | `--shadow-xl` | Dialogs |
+
+> **Nunca** use `shadow-2xl` em componentes comuns. Reservado para overlays fullscreen.
+
+### Border Radius
+
+| Token | Valor | Uso |
+|-------|-------|-----|
+| `rounded-sm` | `calc(0.5rem - 4px)` | Badges internos |
+| `rounded-md` | `calc(0.5rem - 2px)` | Inputs, switches |
+| `rounded-lg` | `0.5rem` | Buttons |
+| `rounded-xl` | `calc(0.5rem + 4px)` | Cards, ícones decorativos |
+| `rounded-2xl` | `calc(0.5rem + 8px)` | Modais, sections |
+
+### Tipografia
+
+| Elemento | Font | Weight | Size |
+|----------|------|--------|------|
+| H1 | Plus Jakarta Sans | 700 (bold) | 2xl → 4xl |
+| H2 | Plus Jakarta Sans | 600 | xl → 3xl |
+| H3 | Plus Jakarta Sans | 600 | lg → 2xl |
+| H4 | Plus Jakarta Sans | 600 | lg |
+| Body | Inter | 400 | sm-base |
+| Label | Inter | 500 | xs-sm |
+| Mono | JetBrains Mono | 400 | sm |
+
+### Spacing Scale
+
+| Uso | Valor |
+|-----|-------|
+| Card padding | `p-5 sm:p-6` |
+| Section gap | `space-y-6` |
+| Element gap | `gap-2` a `gap-4` |
+| Page padding | `p-4 sm:p-6` |
+| Icon + text | `gap-2` (sm), `gap-2.5` (md) |
 
 ---
 
-## 🔘 Botões
+## 🧩 Componentes Oficiais
 
-Usar o componente `Button` de `@/components/ui/button`:
+### Primitivos (`src/components/ui/`)
 
-| Variante | Uso | Exemplo |
-|----------|-----|---------|
-| `default` | Ação principal | Salvar, Enviar, Criar |
-| `secondary` | Ação secundária | Cancelar, Voltar |
-| `outline` | Ação terciária | Filtros, opções |
-| `ghost` | Ação sutil | Ícones em toolbars |
-| `destructive` | Ação perigosa | Excluir, Remover |
-| `link` | Navegação inline | Ver mais, Detalhes |
+| Componente | Status | Especificação |
+|------------|--------|---------------|
+| `<Card>` | ✅ | `rounded-xl border-border/60 bg-card shadow-sm` |
+| `<Button>` | ✅ | 10 variants (default, soft, success, warning, destructive, outline, ghost, link, secondary, soft-secondary), 7 sizes |
+| `<Badge>` | ✅ | 12 variants incluindo `soft-*` para status |
+| `<Input>` | ✅ | `shadow-xs`, hover `border-muted-foreground/30`, focus `ring-ring/40` |
+| `<Dialog>` | ✅ | `rounded-2xl shadow-xl`, overlay `bg-black/60 backdrop-blur-sm` |
+| `<Table>` | ✅ | Header `bg-muted/30`, hover `bg-muted/50`, border `border-border/50` |
+| `<Select>` | ✅ | Shadcn padrão |
+| `<Tabs>` | ✅ | Shadcn padrão |
 
-### Estados
+### Compostos (`src/components/ui-kit/`)
 
-Todos os botões devem ter:
-- ✅ `hover` — feedback visual
-- ✅ `disabled` — opacidade + cursor not-allowed
-- ✅ `loading` — `<Loader2 className="animate-spin" />` + disabled
-- ✅ `focus-visible` — ring de foco (automático via Tailwind)
+| Componente | Uso | Regras |
+|------------|-----|--------|
+| `<PageHeader>` | Título de página com ícone + ações | Obrigatório em toda página |
+| `<SectionCard>` | Card com header (título + ícone + ações) + body | Usar para agrupar conteúdo |
+| `<StatCard>` | Métrica com ícone + `border-left` | **EXCLUSIVO** para métricas. Único com `border-left` |
+| `<EmptyState>` | Estado vazio com ícone `rounded-xl` + CTA | Obrigatório em listas vazias |
+| `<StatusBadge>` | Badge com dot colorido | Obrigatório para status |
+| `<IconBadge>` | Ícone decorativo `rounded-xl` | Padroniza ícones em listas |
+| `<SearchInput>` | Input com ícone de busca | Obrigatório em filtros de busca |
+| `<LoadingState>` | Loader temático configurável | Obrigatório para loading de página |
+| `<Spinner>` | Micro-loader para botões/inline | Substituir `Loader2` solto |
+
+### Regras de Uso
+
+1. **Toda página** deve usar `<PageHeader>` no topo
+2. **Toda seção** de conteúdo deve usar `<SectionCard>` ou `<Card>`
+3. **Nenhum card** pode ter `border-left` exceto `<StatCard>`
+4. **Status** sempre via `<StatusBadge>` com variante semântica
+5. **Ícones decorativos** sempre via `<IconBadge>` com `rounded-xl`
+6. **Busca** sempre via `<SearchInput>` padronizado
+7. **Loading** sempre via `<LoadingState>` ou `<Spinner>` (nunca `Loader2` solto)
+8. **Cards hero/destaque** usar `bg-primary text-primary-foreground` (não gradientes)
 
 ---
 
-## 📦 Cards
+## 🎭 Estados Visuais
+
+### Card em Repouso
+```css
+border: border-border/60
+shadow: shadow-sm
+bg: bg-card
+```
+
+### Card em Hover (`.card-interactive`)
+```css
+border: border-border/80
+shadow: shadow-md
+transform: translateY(-1px)
+```
+
+### Card Destacado (`.card-highlight` — uso restrito)
+```css
+border: border-primary/25
+shadow: inset 0 0 0 1px primary/6 + shadow-sm
+```
+
+### Botão Primário em Hover
+```css
+bg: primary/90
+shadow: shadow-md + shadow-primary/20
+transform: translateY(-1px)
+```
+
+### Input em Focus
+```css
+ring: ring-2 ring-ring/40
+border: border-ring
+offset: ring-offset-1
+```
+
+---
+
+## 📐 Padrão de Tela Admin
 
 ```tsx
-// Card padrão
-<Card className="border-l-4 border-l-primary">
-  <CardContent>...</CardContent>
-</Card>
-
-// Card interativo (hover lift)
-<Card className="card-interactive">
-  <CardContent>...</CardContent>
-</Card>
-
-// Card com destaque
-<Card className="card-highlight">
-  <CardContent>...</CardContent>
-</Card>
+<div className="admin-content">
+  <PageHeader icon={Icon} title="Título" actions={<Button>Ação</Button>} />
+  
+  {/* Stats row (opcional) */}
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <StatCard icon={X} label="Label" value={42} color="primary" />
+    <StatCard icon={Y} label="Label" value={18} color="success" />
+  </div>
+  
+  {/* Content */}
+  <SectionCard icon={Z} title="Seção" actions={<SearchInput />}>
+    <Table>...</Table>
+  </SectionCard>
+</div>
 ```
 
 ---
 
-## 📊 Stats Cards Pattern
+## 📋 Classes CSS Utilitárias Permitidas
 
-```tsx
-<Card className="border-l-4 border-l-{token}">
-  <CardContent className="flex items-center gap-4 p-4">
-    <div className="w-10 h-10 rounded-full bg-{token}/10 flex items-center justify-center">
-      <Icon className="w-5 h-5 text-{token}" />
-    </div>
-    <div>
-      <p className="text-2xl font-bold text-foreground">{value}</p>
-      <p className="text-xs text-muted-foreground">{label}</p>
-    </div>
-  </CardContent>
-</Card>
-```
-
-Tokens válidos: `primary`, `secondary`, `success`, `warning`, `destructive`, `info`
-
----
-
-## 🎭 Sidebar (Admin)
-
-O sidebar usa tokens de seção definidos em `index.css`:
-- `--sidebar-section-analytics` (roxo)
-- `--sidebar-section-finance` (verde)
-- `--sidebar-section-sales` (azul)
-- `--sidebar-section-operations` (laranja)
-- `--sidebar-section-apis` (ciano)
-- `--sidebar-section-config` (amarelo)
-
-Classes Tailwind: `text-sidebar-analytics`, `bg-sidebar-finance/10`, etc.
+| Classe | Uso |
+|--------|-----|
+| `stat-card` | Alternativa CSS para StatCard |
+| `content-section` | Alternativa CSS para SectionCard |
+| `page-header` | Alternativa CSS para PageHeader |
+| `premium-table` | Estilos de tabela premium |
+| `empty-state` | Alternativa CSS para EmptyState |
+| `interactive` | Feedback tátil (scale + brightness) |
+| `hover-lift` | Elevação suave no hover |
+| `card-interactive` | Card com hover state |
+| `card-highlight` | Card com destaque primary |
+| `gradient-soft` | Transição suave surface-2 → background (único gradiente permitido) |
+| `divider-gradient` | Divisor horizontal sutil |
+| `admin-content` | Container padrão de conteúdo admin |
+| `scrollbar-thin` | Scrollbar minimalista |
+| `skeleton-pulse` | Placeholder de loading |
 
 ---
 
-## 🔄 Status Colors para Serviços/Pipeline
+## ✅ Checklist Antes de Criar Componente
 
-| Status | Token |
-|--------|-------|
-| Agendado | `info` (`bg-info/20 text-info`) |
-| Em andamento | `warning` (`bg-warning/20 text-warning`) |
-| Concluído | `success` (`bg-success/20 text-success`) |
-| Cancelado | `destructive` (`bg-destructive/20 text-destructive`) |
-| Reagendado | `sidebar-analytics` ou custom |
-
----
-
-## 📄 Paginação
-
-Usar `usePaginatedQuery` + `PaginationControls`:
-
-```tsx
-import { usePaginatedQuery } from "@/hooks/usePaginatedQuery";
-import { PaginationControls } from "@/components/ui/pagination-controls";
-
-const { data, isLoading, page, totalPages, totalCount, pageSize, 
-        isFetching, goToPage, nextPage, prevPage, hasNextPage, hasPrevPage } = 
-  usePaginatedQuery({
-    queryKey: "admin-leads",
-    table: "leads",
-    select: "*, lead_status(nome, cor)",
-    searchTerm: search,
-    searchColumns: ["nome", "telefone", "cidade"],
-  });
-
-// No JSX:
-<PaginationControls
-  page={page} totalPages={totalPages} totalCount={totalCount}
-  pageSize={pageSize} isFetching={isFetching}
-  onGoToPage={goToPage} onNextPage={nextPage} onPrevPage={prevPage}
-  hasNextPage={hasNextPage} hasPrevPage={hasPrevPage}
-/>
-```
-
----
-
-## ✨ Efeitos e Micro-interações
-
-| Classe | Efeito |
-|--------|--------|
-| `interactive` | Scale down + brightness on click |
-| `hover-lift` | Translate Y -0.5 + shadow on hover |
-| `hover-glow-primary` | Primary color glow shadow |
-| `glass` | Blur background + semi-transparent |
-| `gradient-solar` | Orange gradient (primary brand) |
-| `gradient-blue` | Blue gradient (secondary brand) |
-| `animate-fade-in` | Fade in with slide up |
-| `animate-scale-in` | Scale up entrance |
+- [ ] Existe um componente no ui-kit que resolve isso?
+- [ ] As cores usam tokens semânticos (nunca hardcoded)?
+- [ ] O border-radius segue a escala (`rounded-xl` para cards)?
+- [ ] A sombra segue a Soft Depth scale (`shadow-sm` default)?
+- [ ] Funciona em dark mode?
+- [ ] Sem glassmorphism, gradientes fortes, ou glow?
+- [ ] Responsivo (mobile-first)?
+- [ ] Usa `text-foreground` / `text-muted-foreground` (nunca `text-white` / `text-black`)?
 
 ---
 
@@ -214,16 +256,8 @@ const { data, isLoading, page, totalPages, totalCount, pageSize,
 - ✅ `prefers-reduced-motion` desabilita animações
 - ✅ Labels em todos os inputs
 - ✅ `aria-label` em botões de ícone
+- ✅ `role="status"` em loaders
 
 ---
 
-## 📋 Checklist de QA para Releases
-
-- [ ] Cores: nenhum uso de classes Tailwind hardcoded (green-500, amber-600, etc.)
-- [ ] Botões: todos com hover, disabled e loading states
-- [ ] Inputs: todos com label e estado de erro
-- [ ] Dark mode: testar todos os portais
-- [ ] Mobile: testar responsividade em 360px e 768px
-- [ ] Acessibilidade: testar navegação por teclado
-- [ ] Performance: queries paginadas em listagens > 50 itens
-- [ ] Audit logs: ações críticas geram registro automático
+*Versão 2.0 — Soft Depth | Última atualização: 2026-02-13*

@@ -131,7 +131,7 @@ export function CalculadoraResults({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4 }}
         >
-          <Card className="gradient-solar text-white overflow-hidden shadow-lg">
+          <Card className="bg-primary text-primary-foreground overflow-hidden shadow-md">
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
@@ -202,7 +202,7 @@ export function CalculadoraResults({
     <div className="space-y-4">
       {/* Hero savings card */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
-        <Card className="gradient-solar text-white overflow-hidden shadow-lg">
+        <Card className="bg-primary text-primary-foreground overflow-hidden shadow-md">
           <CardContent className="p-6">
             <div className="flex items-start justify-between">
               <div>

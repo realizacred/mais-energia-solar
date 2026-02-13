@@ -1668,7 +1668,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
                 type="button"
                 onClick={nextStep}
                 disabled={isCheckingDuplicate}
-                className="gap-2 gradient-solar hover:opacity-90"
+                className="gap-2"
               >
                 {isCheckingDuplicate ? (
                   <>
@@ -1685,7 +1685,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             ) : (
               <Button
                 type="submit"
-                className="gap-2 gradient-solar hover:opacity-90"
+                className="gap-2"
                 disabled={isSubmitting || isBlocked}
               >
                 {isSubmitting ? (
