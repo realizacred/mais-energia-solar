@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import {
-  Plus, Pencil, Trash2, Save, X, Loader2, GripVertical,
+  Plus, Pencil, Trash2, Save, X, GripVertical,
   ArrowUp, ArrowDown, Eye, EyeOff, Wrench, Image as ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -117,7 +118,7 @@ export function SiteServicosManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -293,7 +294,7 @@ export function SiteServicosManager() {
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving} className="gap-2">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
               {editing ? "Atualizar" : "Adicionar"}
             </Button>
           </DialogFooter>

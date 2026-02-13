@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Clock, AlertTriangle, CheckCircle2, MessageCircle, Filter,
-  User, Bell, ExternalLink, Loader2,
+  User, Bell, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader, StatCard } from "@/components/ui-kit";
@@ -237,7 +238,7 @@ export function WaFollowupQueuePage() {
       {/* Table */}
       {isLoading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          <Spinner size="md" />
         </div>
       ) : filteredItems.length === 0 ? (
         <Card>
@@ -386,7 +387,7 @@ export function WaFollowupQueuePage() {
             <div className="p-4 space-y-2">
               {loadingMessages ? (
                 <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                  <Spinner size="sm" />
                 </div>
               ) : drawerMessages.length === 0 ? (
                 <p className="text-center text-muted-foreground text-sm py-8">Sem mensagens recentes</p>

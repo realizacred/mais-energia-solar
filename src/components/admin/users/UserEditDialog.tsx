@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -34,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import {
   Pencil,
-  Loader2,
+  
   KeyRound,
   Mail,
   UserX,
@@ -388,7 +389,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                 />
                 {nameChanged && (
                   <Button size="sm" onClick={handleSaveName} disabled={isSaving || !editName.trim()}>
-                    {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    {isSaving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
                   </Button>
                 )}
               </div>
@@ -407,7 +408,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                 />
                 {emailChanged && (
                   <Button size="sm" onClick={handleUpdateEmail} disabled={isUpdatingEmail || !editEmail.trim()}>
-                    {isUpdatingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                    {isUpdatingEmail ? <Spinner size="sm" /> : <Mail className="w-4 h-4" />}
                   </Button>
                 )}
               </div>
@@ -487,7 +488,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
                     disabled={!selectedNewRole || isAddingRole}
                     className="gap-1"
                   >
-                    {isAddingRole ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+                    {isAddingRole ? <Spinner size="sm" /> : <UserPlus className="w-4 h-4" />}
                     Adicionar
                   </Button>
                 </div>
@@ -603,7 +604,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isResettingPassword}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleResetPassword} disabled={isResettingPassword}>
-              {isResettingPassword && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isResettingPassword && <Spinner size="sm" />}
               Enviar email
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -628,7 +629,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
               disabled={isDeleting}
               className="bg-destructive hover:bg-destructive/90"
             >
-              {isDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {isDeleting && <Spinner size="sm" />}
               Excluir permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>

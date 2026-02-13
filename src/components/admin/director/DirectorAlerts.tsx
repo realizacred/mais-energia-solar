@@ -1,10 +1,10 @@
 import { format } from "date-fns";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle,
   Shield,
   RefreshCw,
-  Loader2,
   Flame,
   Clock,
   TrendingDown,
@@ -69,7 +69,7 @@ export function DirectorAlerts({ insights }: Props) {
           variant="outline"
           className="gap-2"
         >
-          {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          {isGenerating ? <Spinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
           {isGenerating ? "Analisando..." : "Atualizar Alertas"}
         </Button>
       </div>
@@ -77,7 +77,7 @@ export function DirectorAlerts({ insights }: Props) {
       {isGenerating && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-10 w-10 text-warning animate-spin mb-4" />
+            <Spinner size="lg" />
             <p className="text-sm font-medium text-muted-foreground">Identificando riscos...</p>
           </CardContent>
         </Card>

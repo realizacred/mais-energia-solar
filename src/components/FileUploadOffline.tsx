@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
-import { Upload, X, FileText, Image, Loader2, Camera, WifiOff } from "lucide-react";
+import { Upload, X, FileText, Image, Camera, WifiOff } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -205,7 +206,7 @@ export default function FileUploadOffline({
       >
         {isProcessing ? (
           <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-12 h-12 text-primary animate-spin" />
+            <Spinner size="md" />
             <p className="text-muted-foreground font-medium">Processando arquivos...</p>
           </div>
         ) : (

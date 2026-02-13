@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { User, Phone, MapPin, Home, Zap, BarChart3, MessageSquare, Send, Loader2, CheckCircle, FileText } from "lucide-react";
+import { User, Phone, MapPin, Home, Zap, BarChart3, MessageSquare, Send, CheckCircle, FileText } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -423,7 +424,7 @@ export default function LeadForm() {
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <Spinner size="sm" />
                   Enviando...
                 </>
               ) : (

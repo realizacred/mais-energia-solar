@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -21,7 +22,7 @@ import {
   FileText,
   Image,
   ExternalLink,
-  Loader2,
+  
   Eye,
   CreditCard,
   Navigation,
@@ -96,7 +97,7 @@ function DocumentThumbnail({ path, onClick }: { path: string; onClick: () => voi
   if (loading) {
     return (
       <div className="w-20 h-20 rounded-lg border bg-muted flex items-center justify-center">
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <Spinner size="sm" />
       </div>
     );
   }

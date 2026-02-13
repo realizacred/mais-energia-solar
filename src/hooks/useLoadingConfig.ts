@@ -43,11 +43,15 @@ const DEFAULT_CONFIG: Omit<LoadingConfig, "id" | "tenant_id"> = {
   ai_max_calls_per_flow: 1,
 };
 
-const CACHE_KEY = "loading-config-cache";
+const CACHE_KEY_PREFIX = "loading-config-cache";
 
-function getCachedConfig(): LoadingConfig | null {
+function cacheKey(tenantId?: string): string {
+  return tenantId ? `${CACHE_KEY_PREFIX}-${tenantId}` : CACHE_KEY_PREFIX;
+}
+
+function getCachedConfig(tenantId?: string): LoadingConfig | null {
   try {
-    const raw = localStorage.getItem(CACHE_KEY);
+    const raw = localStorage.getItem(cacheKey(tenantId));
     if (!raw) return null;
     return JSON.parse(raw) as LoadingConfig;
   } catch {
@@ -57,7 +61,7 @@ function getCachedConfig(): LoadingConfig | null {
 
 function setCachedConfig(config: LoadingConfig) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(config));
+    localStorage.setItem(cacheKey(config.tenant_id), JSON.stringify(config));
   } catch {
     // localStorage full or unavailable — ignore
   }
@@ -91,7 +95,9 @@ export function useLoadingConfig() {
   });
 
   // Use cached config instantly while DB fetch is in-flight
-  const effectiveConfig = config ?? getCachedConfig();
+  // Try tenant-specific cache first, then fallback to legacy key
+  const tenantId = config?.tenant_id ?? user?.user_metadata?.tenant_id;
+  const effectiveConfig = config ?? getCachedConfig(tenantId) ?? getCachedConfig();
 
   const mergedConfig: Omit<LoadingConfig, "id" | "tenant_id"> = effectiveConfig
     ? { ...DEFAULT_CONFIG, ...effectiveConfig, messages_catalog: { ...DEFAULT_CONFIG.messages_catalog, ...(effectiveConfig.messages_catalog || {}) } }

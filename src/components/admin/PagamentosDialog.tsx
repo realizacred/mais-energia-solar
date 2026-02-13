@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Printer } from "lucide-react";
 import { ReciboDialog } from "./recebimentos/ReciboDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -404,7 +405,7 @@ export function PagamentosDialog({
                       Cancelar
                     </Button>
                     <Button type="submit" disabled={saving}>
-                      {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {saving && <Spinner size="sm" />}
                       Registrar
                     </Button>
                   </div>

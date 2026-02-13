@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import {
   Smartphone,
   Plus,
@@ -6,7 +7,7 @@ import {
   RefreshCw,
   Wifi,
   WifiOff,
-  Loader2,
+  
   Copy,
   ExternalLink,
   MoreVertical,
@@ -123,7 +124,7 @@ export function WaInstancesManager() {
               className="gap-2"
             >
               {checkingStatus ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="sm" />
               ) : (
                 <RefreshCw className="h-4 w-4" />
               )}
@@ -260,7 +261,7 @@ export function WaInstancesManager() {
 
                   {checkingStatus && (
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <Spinner size="sm" />
                       Verificando...
                     </div>
                   )}
@@ -388,7 +389,7 @@ export function WaInstancesManager() {
               }}
               disabled={isSyncing}
             >
-              {isSyncing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isSyncing && <Spinner size="sm" />}
               Sincronizar
             </Button>
           </DialogFooter>
@@ -534,7 +535,7 @@ function InstanceFormDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={!nome.trim() || !instanceKey.trim() || saving}>
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {saving && <Spinner size="sm" />}
             {instance ? "Salvar" : "Criar Instância"}
           </Button>
         </DialogFooter>

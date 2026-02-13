@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { CheckCircle, XCircle, Loader2, UserCheck, Clock } from "lucide-react";
+import { CheckCircle, XCircle, UserCheck, Clock } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -180,7 +181,7 @@ export function AprovacaoUsuarios() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Spinner size="md" />
         </CardContent>
       </Card>
     );
@@ -253,7 +254,7 @@ export function AprovacaoUsuarios() {
                             className="gap-1"
                           >
                             {actionLoading === user.user_id ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <Spinner size="sm" />
                             ) : (
                               <CheckCircle className="w-3 h-3" />
                             )}

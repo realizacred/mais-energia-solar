@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +10,7 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Loader2,
+  
   Clock,
   MessageCircle,
   UserX,
@@ -338,7 +339,7 @@ export function WaFollowupRulesManager() {
             className="gap-2"
           >
             {processNowMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="sm" />
             ) : (
               <Play className="h-4 w-4" />
             )}
@@ -388,7 +389,7 @@ export function WaFollowupRulesManager() {
       {/* Rules List */}
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <Spinner size="md" />
         </div>
       ) : rules.length === 0 ? (
         <Card>
@@ -612,7 +613,7 @@ export function WaFollowupRulesManager() {
           <DialogFooter>
             <Button variant="outline" onClick={closeForm}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
-              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saveMutation.isPending ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
               {editingRule ? "Salvar" : "Criar Regra"}
             </Button>
           </DialogFooter>

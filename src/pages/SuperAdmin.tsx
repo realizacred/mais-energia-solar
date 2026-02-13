@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Sun, ShieldAlert, LogOut, Plus, Building2, Users, CreditCard, BarChart3 } from "lucide-react";
+import { ShieldAlert, LogOut, Plus, Building2, Users, CreditCard, BarChart3 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -197,7 +198,7 @@ export default function SuperAdmin() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4 animate-pulse">
-          <Sun className="w-8 h-8 text-primary animate-spin" />
+          <Spinner size="md" />
           <p className="text-sm text-muted-foreground">Verificando acesso...</p>
         </div>
       </div>

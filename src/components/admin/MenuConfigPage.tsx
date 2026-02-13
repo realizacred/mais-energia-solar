@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -341,7 +342,7 @@ export function MenuConfigPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Icons.Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" />
       </div>
     );
   }

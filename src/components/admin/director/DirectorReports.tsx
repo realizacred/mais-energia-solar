@@ -1,9 +1,9 @@
 import { format } from "date-fns";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { ptBR } from "date-fns/locale";
 import {
   FileBarChart,
   RefreshCw,
-  Loader2,
   Download,
   Trophy,
 } from "lucide-react";
@@ -116,7 +116,7 @@ export function DirectorReports({ insights }: Props) {
             size="sm"
             className="gap-2"
           >
-            {isGenerating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {isGenerating ? <Spinner size="sm" /> : <RefreshCw className="h-4 w-4" />}
             {isGenerating ? "Gerando..." : "Gerar Relatório"}
           </Button>
         </div>
@@ -125,7 +125,7 @@ export function DirectorReports({ insights }: Props) {
       {isGenerating && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
-            <Loader2 className="h-10 w-10 text-secondary animate-spin mb-4" />
+            <Spinner size="lg" />
             <p className="text-sm font-medium text-muted-foreground">Gerando relatório semanal...</p>
           </CardContent>
         </Card>

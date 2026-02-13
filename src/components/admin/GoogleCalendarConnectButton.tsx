@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import {
   Calendar,
-  Loader2,
+  
   CheckCircle2,
   Unplug,
   ExternalLink,
@@ -90,7 +91,7 @@ export function GoogleCalendarConnectButton() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-6">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <Spinner size="sm" />
         </CardContent>
       </Card>
     );
@@ -128,7 +129,7 @@ export function GoogleCalendarConnectButton() {
               className="gap-1.5"
             >
               {disconnecting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <Spinner size="sm" />
               ) : (
                 <Unplug className="h-3.5 w-3.5" />
               )}
@@ -152,7 +153,7 @@ export function GoogleCalendarConnectButton() {
             className="gap-2"
           >
             {connecting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="sm" />
             ) : (
               <ExternalLink className="h-4 w-4" />
             )}

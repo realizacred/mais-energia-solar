@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { Separator } from "@/components/ui/separator";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import {
   Eye, Link2, Users, Phone, Mail, MapPin, FileText,
-  Loader2, RefreshCw, ExternalLink, Calendar,
+  RefreshCw, ExternalLink, Calendar,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -191,7 +192,7 @@ export function SolarMarketLinksView() {
   if (loading) {
     return (
       <div className="flex justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -361,7 +362,7 @@ export function SolarMarketLinksView() {
 
                 {loadingDetail && (
                   <div className="flex justify-center py-4">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <Spinner size="sm" />
                   </div>
                 )}
 

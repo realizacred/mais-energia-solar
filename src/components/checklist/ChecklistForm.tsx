@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -22,7 +23,7 @@ import {
   WifiOff, 
   Wifi,
   CloudUpload,
-  Loader2,
+  
   CheckCircle2,
   Sun,
   Zap,
@@ -291,7 +292,7 @@ export function ChecklistForm({ onSuccess }: ChecklistFormProps) {
             className="gap-1"
           >
             {isSyncing ? (
-              <Loader2 className="h-3 w-3 animate-spin" />
+              <Spinner size="sm" />
             ) : (
               <CloudUpload className="h-3 w-3" />
             )}
@@ -579,7 +580,7 @@ export function ChecklistForm({ onSuccess }: ChecklistFormProps) {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <Spinner size="sm" />
                     Salvando...
                   </>
                 ) : (

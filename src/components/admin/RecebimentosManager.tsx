@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ import { Progress } from "@/components/ui/progress";
 import {
   DollarSign,
   Plus,
-  Loader2,
+  
   Edit,
   Trash2,
   Receipt,
@@ -462,7 +463,7 @@ export function RecebimentosManager() {
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={saving}>
-                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {saving && <Spinner size="sm" />}
                   {editingRecebimento ? "Salvar" : "Cadastrar"}
                 </Button>
               </div>

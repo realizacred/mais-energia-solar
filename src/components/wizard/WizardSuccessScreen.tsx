@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { CheckCircle, WifiOff, Loader2, RefreshCw, MessageCircle } from "lucide-react";
+import { CheckCircle, WifiOff, RefreshCw, MessageCircle } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useState } from "react";
@@ -102,7 +103,7 @@ export function WizardSuccessScreen({
               className="gap-2 w-full sm:w-auto"
             >
               {resending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" />
               ) : resendResult === "ok" ? (
                 <CheckCircle className="w-4 h-4 text-primary" />
               ) : (
@@ -122,7 +123,7 @@ export function WizardSuccessScreen({
               className="gap-2 w-full sm:w-auto"
             >
               {isSyncing ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
