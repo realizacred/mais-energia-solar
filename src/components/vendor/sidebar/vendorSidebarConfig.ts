@@ -34,8 +34,8 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     labelIcon: LayoutDashboard,
     indicatorBg: "bg-primary",
     activeClass:
-      "bg-primary/15 text-primary font-semibold border-l-[3px] border-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.08)]",
-    hoverClass: "hover:bg-primary/8 hover:text-sidebar-foreground/80",
+      "bg-primary/18 text-primary font-semibold border-l-[3px] border-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.12)]",
+    hoverClass: "hover:bg-primary/12 hover:text-sidebar-foreground/90",
     labelClass: "text-primary",
     defaultOpen: true,
     items: [
@@ -64,8 +64,8 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     labelIcon: FileText,
     indicatorBg: "bg-secondary",
     activeClass:
-      "bg-secondary/15 text-secondary font-semibold border-l-[3px] border-secondary shadow-[inset_0_0_0_1px_hsl(var(--secondary)/0.08)]",
-    hoverClass: "hover:bg-secondary/8 hover:text-sidebar-foreground/80",
+      "bg-secondary/18 text-secondary font-semibold border-l-[3px] border-secondary shadow-[inset_0_0_0_1px_hsl(var(--secondary)/0.12)]",
+    hoverClass: "hover:bg-secondary/12 hover:text-sidebar-foreground/90",
     labelClass: "text-secondary",
     defaultOpen: true,
     items: [
@@ -88,8 +88,8 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     labelIcon: Smartphone,
     indicatorBg: "bg-muted-foreground",
     activeClass:
-      "bg-muted-foreground/15 text-muted-foreground font-semibold border-l-[3px] border-muted-foreground shadow-[inset_0_0_0_1px_hsl(var(--muted-foreground)/0.08)]",
-    hoverClass: "hover:bg-muted-foreground/8 hover:text-sidebar-foreground/80",
+      "bg-muted-foreground/18 text-muted-foreground font-semibold border-l-[3px] border-muted-foreground shadow-[inset_0_0_0_1px_hsl(var(--muted-foreground)/0.12)]",
+    hoverClass: "hover:bg-muted-foreground/12 hover:text-sidebar-foreground/90",
     labelClass: "text-muted-foreground",
     defaultOpen: false,
     items: [
