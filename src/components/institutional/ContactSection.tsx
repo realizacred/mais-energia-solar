@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, Mail, MapPin, Send, ArrowRight } from "lucide-react";
+import { Phone, Mail, MapPin, Send, ArrowRight, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { supabase } from "@/integrations/supabase/client";
 
 const estados = [
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS",
@@ -19,6 +20,7 @@ export function ContactSection() {
   const { ref, isVisible } = useScrollReveal();
   const { get } = useSiteSettings();
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
     nome: "",
     email: "",
@@ -64,20 +66,52 @@ export function ContactSection() {
       return;
     }
 
+    // Basic phone validation
+    const phoneDigits = formData.telefone.replace(/\D/g, "");
+    if (phoneDigits.length < 10) {
+      toast({
+        title: "Telefone inválido",
+        description: "Informe um telefone com DDD.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
+      // Save lead to database
+      const { error: dbError } = await (supabase as any)
+        .from("leads")
+        .insert({
+          nome: formData.nome.trim(),
+          telefone: formData.telefone.trim(),
+          email: formData.email.trim() || null,
+          cidade: formData.cidade.trim() || null,
+          estado: formData.estado || null,
+          observacoes: formData.observacoes.trim() || null,
+          origem: "site_contato",
+          consultor: "Site",
+        });
+
+      if (dbError) {
+        console.warn("Error saving lead:", dbError.message);
+        // Don't block the WhatsApp redirect even if DB fails
+      }
+
+      // Open WhatsApp
       const message = encodeURIComponent(
         `Olá! Gostaria de solicitar um orçamento.\n\nNome: ${formData.nome}\nTelefone: ${formData.telefone}\nCidade: ${formData.cidade} - ${formData.estado}\n${formData.observacoes ? `Observações: ${formData.observacoes}` : ""}`
       );
       window.open(`https://wa.me/${whatsapp}?text=${message}`, "_blank");
 
-      toast({
-        title: "Redirecionado para WhatsApp!",
-        description: "Complete o envio pelo WhatsApp.",
-      });
-
+      setSubmitted(true);
       setFormData({ nome: "", email: "", telefone: "", cidade: "", estado: "", observacoes: "" });
+
+      toast({
+        title: "Orçamento enviado!",
+        description: "Também salvamos seus dados. Em breve entraremos em contato.",
+      });
     } catch {
       toast({
         title: "Erro ao enviar",
@@ -143,7 +177,7 @@ export function ContactSection() {
               ))}
             </div>
 
-            {/* WhatsApp CTA — bold */}
+            {/* WhatsApp CTA */}
             <a
               href={`https://wa.me/${whatsapp}?text=${encodeURIComponent((get as any)("whatsapp_mensagem_padrao") || "Olá! Gostaria de mais informações sobre energia solar.")}`}
               target="_blank"
@@ -157,74 +191,99 @@ export function ContactSection() {
           </motion.div>
 
           {/* Contact Form */}
-          <motion.form
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={isVisible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.3 }}
-            onSubmit={handleSubmit}
-            className="md:col-span-3 space-y-4 p-6 sm:p-8 rounded-2xl bg-background border-2 border-border/50 shadow-lg"
+            className="md:col-span-3"
           >
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Input
-                placeholder="Nome *"
-                value={formData.nome}
-                onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                required
-                className="rounded-xl h-12"
-              />
-              <Input
-                placeholder="Telefone *"
-                value={formData.telefone}
-                onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                required
-                className="rounded-xl h-12"
-              />
-            </div>
-            <Input
-              type="email"
-              placeholder="E-mail"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="rounded-xl h-12"
-            />
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Input
-                placeholder="Cidade"
-                value={formData.cidade}
-                onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                className="rounded-xl h-12"
-              />
-              <Select
-                value={formData.estado}
-                onValueChange={(val) => setFormData({ ...formData, estado: val })}
+            {submitted ? (
+              <div className="flex flex-col items-center justify-center p-8 sm:p-12 rounded-2xl bg-background border-2 border-primary/30 shadow-lg text-center">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <CheckCircle2 className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="font-display text-xl font-bold text-foreground mb-2">Orçamento Enviado!</h3>
+                <p className="text-muted-foreground mb-6">Em breve nossa equipe entrará em contato com você.</p>
+                <Button onClick={() => setSubmitted(false)} variant="outline" className="rounded-full">
+                  Enviar outro orçamento
+                </Button>
+              </div>
+            ) : (
+              <form
+                onSubmit={handleSubmit}
+                className="space-y-4 p-6 sm:p-8 rounded-2xl bg-background border-2 border-border/50 shadow-lg"
               >
-                <SelectTrigger className="rounded-xl h-12">
-                  <SelectValue placeholder="Estado" />
-                </SelectTrigger>
-                <SelectContent>
-                  {estados.map((uf) => (
-                    <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <Textarea
-              placeholder="Observações"
-              value={formData.observacoes}
-              onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
-              rows={4}
-              className="rounded-xl"
-            />
-            <Button
-              type="submit"
-              disabled={loading}
-              size="xl"
-              className="w-full bg-primary hover:bg-primary/90 rounded-full font-extrabold shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300 hover:-translate-y-0.5 text-lg"
-            >
-              <Send className="w-5 h-5 mr-2" />
-              {loading ? "Enviando..." : "Enviar Orçamento"}
-            </Button>
-          </motion.form>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Input
+                    placeholder="Nome *"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    required
+                    maxLength={100}
+                    className="rounded-xl h-12"
+                  />
+                  <Input
+                    placeholder="Telefone *"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    required
+                    maxLength={20}
+                    className="rounded-xl h-12"
+                  />
+                </div>
+                <Input
+                  type="email"
+                  placeholder="E-mail"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  maxLength={255}
+                  className="rounded-xl h-12"
+                />
+                <div className="grid sm:grid-cols-2 gap-4">
+                  <Input
+                    placeholder="Cidade"
+                    value={formData.cidade}
+                    onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
+                    maxLength={100}
+                    className="rounded-xl h-12"
+                  />
+                  <Select
+                    value={formData.estado}
+                    onValueChange={(val) => setFormData({ ...formData, estado: val })}
+                  >
+                    <SelectTrigger className="rounded-xl h-12">
+                      <SelectValue placeholder="Estado" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {estados.map((uf) => (
+                        <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Textarea
+                  placeholder="Observações"
+                  value={formData.observacoes}
+                  onChange={(e) => setFormData({ ...formData, observacoes: e.target.value })}
+                  rows={4}
+                  maxLength={1000}
+                  className="rounded-xl"
+                />
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  size="xl"
+                  className="w-full bg-primary hover:bg-primary/90 rounded-full font-extrabold shadow-xl shadow-primary/30 hover:shadow-2xl hover:shadow-primary/40 transition-all duration-300 hover:-translate-y-0.5 text-lg"
+                >
+                  <Send className="w-5 h-5 mr-2" />
+                  {loading ? "Enviando..." : "Enviar Orçamento"}
+                </Button>
+                <p className="text-xs text-muted-foreground text-center">
+                  Ao enviar, seus dados serão salvos e você será redirecionado ao WhatsApp.
+                </p>
+              </form>
+            )}
+          </motion.div>
         </div>
       </div>
     </section>
