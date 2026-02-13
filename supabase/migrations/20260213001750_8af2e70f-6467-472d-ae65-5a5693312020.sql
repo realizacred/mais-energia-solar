@@ -1,0 +1,1 @@
+ALTER TABLE public.nav_overrides ALTER COLUMN tenant_id SET DEFAULT get_user_tenant_id();

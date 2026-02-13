@@ -3327,7 +3327,7 @@ export type Database = {
           nav_key: string
           order_override?: number | null
           role_filter?: string | null
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
           visible_override?: boolean
         }
