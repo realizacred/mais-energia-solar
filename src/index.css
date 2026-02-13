@@ -315,29 +315,24 @@
     box-shadow: 0 0 0 1px hsl(var(--border) / 0.1) inset, var(--shadow-md);
   }
 
-  /* Premium stat cards */
+  /* Premium stat cards — Soft Depth */
   .stat-card {
-    @apply relative overflow-hidden rounded-2xl border border-border/40 bg-card p-5 transition-all duration-300;
+    @apply relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 transition-all duration-200 ease-out;
     box-shadow: var(--shadow-sm);
   }
 
   .stat-card:hover {
-    @apply border-border/60 -translate-y-0.5;
-    box-shadow: var(--shadow-lg);
-  }
-
-  .stat-card::before {
-    content: '';
-    @apply absolute top-0 left-0 right-0 h-1 rounded-t-2xl;
-    background: linear-gradient(90deg, var(--stat-accent, hsl(var(--primary))), var(--stat-accent-end, hsl(var(--primary-glow))));
+    @apply border-border/80;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
   .stat-card-icon {
-    @apply w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-300;
+    @apply w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform duration-200;
   }
 
   .stat-card:hover .stat-card-icon {
-    @apply scale-110;
+    @apply scale-105;
   }
 
   /* Section label */
@@ -439,20 +434,26 @@
   .scrollbar-thin::-webkit-scrollbar-thumb { background-color: hsl(var(--muted-foreground) / 0.2); border-radius: 3px; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--muted-foreground) / 0.4); }
 
-  /* Card variants */
+  /* Card variants — Soft Depth system */
   .card-interactive {
-    @apply rounded-xl border bg-card transition-all duration-300 ease-out;
+    @apply rounded-xl border border-border/60 bg-card transition-all duration-200 ease-out;
     box-shadow: var(--shadow-sm);
   }
 
   .card-interactive:hover {
-    @apply border-border/80 -translate-y-1;
-    box-shadow: var(--shadow-lg);
+    @apply border-border/80;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
   }
 
   .card-highlight {
-    @apply rounded-xl border-2 border-primary/20 bg-card;
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.05) inset, var(--shadow-sm);
+    @apply rounded-xl border border-primary/25 bg-card;
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.06) inset, var(--shadow-sm);
+  }
+
+  .card-highlight:hover {
+    @apply border-primary/35;
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1) inset, var(--shadow-md);
   }
 
   /* Badge glow */

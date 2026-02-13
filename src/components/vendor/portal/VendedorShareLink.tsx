@@ -12,7 +12,7 @@ export function VendedorShareLink({ slug, onCopy }: VendedorShareLinkProps) {
   const link = `${window.location.origin}/v/${slug}`;
  
    return (
-     <Card className="bg-primary/5 border-primary/20">
+     <Card className="border-primary/20">
        <CardHeader className="pb-2">
          <CardTitle className="text-base flex items-center gap-2">
            <ExternalLink className="h-4 w-4" />
