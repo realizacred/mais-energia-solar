@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -27,7 +27,7 @@ import * as Icons from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -101,7 +101,6 @@ function buildEditableItems(overrides: NavOverrideRow[]): EditableItem[] {
     const order = ov?.order_override ?? reg.order_default;
     let visible = ov?.visible_override ?? true;
 
-    // Enforce criticality
     if (reg.criticality !== "normal") visible = true;
 
     return {
@@ -120,13 +119,55 @@ function buildEditableItems(overrides: NavOverrideRow[]): EditableItem[] {
   });
 }
 
+// ─── Drag & Drop Hook ────────────────────────────────────────
+
+function useDragReorder(
+  sectionItems: EditableItem[],
+  onReorder: (reordered: EditableItem[]) => void
+) {
+  const dragItemRef = useRef<number | null>(null);
+  const dragOverRef = useRef<number | null>(null);
+  const [draggingIdx, setDraggingIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((idx: number) => {
+    dragItemRef.current = idx;
+    setDraggingIdx(idx);
+  }, []);
+
+  const handleDragEnter = useCallback((idx: number) => {
+    dragOverRef.current = idx;
+    setDragOverIdx(idx);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    const from = dragItemRef.current;
+    const to = dragOverRef.current;
+
+    if (from !== null && to !== null && from !== to) {
+      const reordered = [...sectionItems];
+      const [moved] = reordered.splice(from, 1);
+      reordered.splice(to, 0, moved);
+      // Re-assign sequential orders
+      const updated = reordered.map((item, i) => ({ ...item, order: i }));
+      onReorder(updated);
+    }
+
+    dragItemRef.current = null;
+    dragOverRef.current = null;
+    setDraggingIdx(null);
+    setDragOverIdx(null);
+  }, [sectionItems, onReorder]);
+
+  return { draggingIdx, dragOverIdx, handleDragStart, handleDragEnter, handleDragEnd };
+}
+
 // ─── Component ───────────────────────────────────────────────
 
 export function MenuConfigPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  // Fetch current overrides
   const { data: overrides = [], isLoading } = useQuery({
     queryKey: ["nav-overrides-admin", user?.id],
     enabled: !!user,
@@ -140,13 +181,11 @@ export function MenuConfigPage() {
     },
   });
 
-  // Local editable state
   const [items, setItems] = useState<EditableItem[]>([]);
   const [editingLabel, setEditingLabel] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [hasChanges, setHasChanges] = useState(false);
 
-  // Initialize from overrides
   useEffect(() => {
     if (!isLoading) {
       setItems(buildEditableItems(overrides));
@@ -154,7 +193,6 @@ export function MenuConfigPage() {
     }
   }, [overrides, isLoading]);
 
-  // Group items by section
   const groupedItems = useMemo(() => {
     const map = new Map<string, EditableItem[]>();
     for (const s of SECTION_LABELS) map.set(s, []);
@@ -163,7 +201,6 @@ export function MenuConfigPage() {
       list.push(item);
       map.set(item.group, list);
     }
-    // Sort each section by order
     for (const [, list] of map) {
       list.sort((a, b) => a.order - b.order);
     }
@@ -182,7 +219,6 @@ export function MenuConfigPage() {
     []
   );
 
-  // Toggle visibility
   const toggleVisibility = useCallback(
     (navKey: string) => {
       const item = items.find((i) => i.nav_key === navKey);
@@ -196,35 +232,17 @@ export function MenuConfigPage() {
     [items, updateItem]
   );
 
-  // Move item up/down within section
-  const moveItem = useCallback(
-    (navKey: string, direction: "up" | "down") => {
+  const handleSectionReorder = useCallback(
+    (sectionLabel: string, reorderedItems: EditableItem[]) => {
       setItems((prev) => {
-        const item = prev.find((i) => i.nav_key === navKey);
-        if (!item) return prev;
-        const sectionItems = prev
-          .filter((i) => i.group === item.group)
-          .sort((a, b) => a.order - b.order);
-        const idx = sectionItems.findIndex((i) => i.nav_key === navKey);
-        if (direction === "up" && idx === 0) return prev;
-        if (direction === "down" && idx === sectionItems.length - 1) return prev;
-
-        const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-        const swapItem = sectionItems[swapIdx];
-
-        // Swap orders
-        return prev.map((i) => {
-          if (i.nav_key === navKey) return { ...i, order: swapItem.order };
-          if (i.nav_key === swapItem.nav_key) return { ...i, order: item.order };
-          return i;
-        });
+        const otherItems = prev.filter((i) => i.group !== sectionLabel);
+        return [...otherItems, ...reorderedItems];
       });
       setHasChanges(true);
     },
     []
   );
 
-  // Change group
   const changeGroup = useCallback(
     (navKey: string, newGroup: string) => {
       const item = items.find((i) => i.nav_key === navKey);
@@ -233,7 +251,6 @@ export function MenuConfigPage() {
         toast.error("Itens críticos do sistema não podem ser movidos");
         return;
       }
-      // Put at end of new group
       const targetItems = items.filter((i) => i.group === newGroup);
       const maxOrder = targetItems.length > 0 ? Math.max(...targetItems.map((i) => i.order)) + 1 : 0;
       updateItem(navKey, { group: newGroup, group_changed: true, order: maxOrder });
@@ -241,10 +258,9 @@ export function MenuConfigPage() {
     [items, updateItem]
   );
 
-  // Save mutation
+  // Save mutation — invalidates ALL nav-override queries for instant refresh
   const saveMutation = useMutation({
     mutationFn: async () => {
-      // Build upserts: for each item, if it differs from registry default, create/update override
       const upserts: Array<{
         nav_key: string;
         label_override: string | null;
@@ -273,14 +289,12 @@ export function MenuConfigPage() {
         }
       }
 
-      // Delete all current overrides (tenant-wide, role_filter IS NULL)
       const { error: delError } = await supabase
         .from("nav_overrides")
         .delete()
         .is("role_filter", null);
       if (delError) throw delError;
 
-      // Insert new overrides
       if (upserts.length > 0) {
         const { error: insError } = await supabase
           .from("nav_overrides")
@@ -289,17 +303,19 @@ export function MenuConfigPage() {
       }
     },
     onSuccess: () => {
+      // Invalidate BOTH admin config AND sidebar queries for instant update
       queryClient.invalidateQueries({ queryKey: ["nav-overrides"] });
       queryClient.invalidateQueries({ queryKey: ["nav-overrides-admin"] });
+      // Force refetch immediately (don't wait for staleTime)
+      queryClient.refetchQueries({ queryKey: ["nav-overrides"] });
       setHasChanges(false);
-      toast.success("Menu salvo com sucesso!");
+      toast.success("Menu salvo com sucesso! A sidebar foi atualizada.");
     },
     onError: (err: any) => {
       toast.error("Erro ao salvar: " + err.message);
     },
   });
 
-  // Restore defaults
   const restoreMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase
@@ -311,6 +327,7 @@ export function MenuConfigPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["nav-overrides"] });
       queryClient.invalidateQueries({ queryKey: ["nav-overrides-admin"] });
+      queryClient.refetchQueries({ queryKey: ["nav-overrides"] });
       setHasChanges(false);
       toast.success("Menu restaurado ao padrão!");
     },
@@ -353,7 +370,7 @@ export function MenuConfigPage() {
           <div>
             <h2 className="text-2xl font-bold tracking-tight">Configuração de Menus</h2>
             <p className="text-muted-foreground text-sm">
-              Personalize nomes, ordem e visibilidade dos itens do menu lateral
+              Arraste os itens para reordenar, personalize nomes e visibilidade
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -396,10 +413,13 @@ export function MenuConfigPage() {
         <Card className="border-border/50">
           <CardContent className="py-3 px-4 flex flex-wrap gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <ShieldAlert className="h-3.5 w-3.5 text-destructive" /> Sistema — Não pode ser ocultado nem movido
+              <GripVertical className="h-3.5 w-3.5" /> Arraste para reordenar
             </span>
             <span className="flex items-center gap-1">
-              <Shield className="h-3.5 w-3.5 text-warning" /> Negócio — Não pode ser ocultado, pode ser reorganizado
+              <ShieldAlert className="h-3.5 w-3.5 text-destructive" /> Sistema — Fixo
+            </span>
+            <span className="flex items-center gap-1">
+              <Shield className="h-3.5 w-3.5 text-warning" /> Negócio — Sempre visível
             </span>
             <span className="flex items-center gap-1">
               <Eye className="h-3.5 w-3.5" /> Normal — Totalmente personalizável
@@ -413,185 +433,28 @@ export function MenuConfigPage() {
             const sectionItems = groupedItems.get(sectionLabel) ?? [];
             if (sectionItems.length === 0) return null;
 
-            const sectionMeta = NAV_SECTION_DEFAULTS.find((s) => s.label === sectionLabel);
-            const SectionIcon = resolveIcon(sectionMeta?.icon ?? "Folder");
-
             return (
-              <Collapsible key={sectionLabel} defaultOpen>
-                <Card className="border-border/50">
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="cursor-pointer py-3 px-4 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <SectionIcon className="h-4 w-4 text-muted-foreground" />
-                          <CardTitle className="text-sm font-semibold">{sectionLabel}</CardTitle>
-                          <Badge variant="outline" className="text-[10px]">
-                            {sectionItems.length}
-                          </Badge>
-                        </div>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0 pb-2 px-2">
-                      <div className="divide-y divide-border/50">
-                        {sectionItems.map((item, idx) => {
-                          const ItemIcon = resolveIcon(item.icon);
-                          const isEditing = editingLabel === item.nav_key;
-
-                          return (
-                            <div
-                              key={item.nav_key}
-                              className={`flex items-center gap-2 py-2 px-2 rounded-md transition-colors ${
-                                !item.visible ? "opacity-40" : ""
-                              } hover:bg-muted/20`}
-                            >
-                              {/* Drag handle / order buttons */}
-                              <div className="flex flex-col gap-0.5">
-                                <button
-                                  onClick={() => moveItem(item.nav_key, "up")}
-                                  disabled={idx === 0 || item.criticality === "system_critical"}
-                                  className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
-                                >
-                                  <Icons.ChevronUp className="h-3 w-3" />
-                                </button>
-                                <button
-                                  onClick={() => moveItem(item.nav_key, "down")}
-                                  disabled={idx === sectionItems.length - 1 || item.criticality === "system_critical"}
-                                  className="text-muted-foreground hover:text-foreground disabled:opacity-20 p-0.5"
-                                >
-                                  <Icons.ChevronDown className="h-3 w-3" />
-                                </button>
-                              </div>
-
-                              {/* Icon */}
-                              <ItemIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-
-                              {/* Label (editable) */}
-                              <div className="flex-1 min-w-0">
-                                {isEditing ? (
-                                  <div className="flex items-center gap-1">
-                                    <Input
-                                      value={editingValue}
-                                      onChange={(e) => setEditingValue(e.target.value)}
-                                      className="h-7 text-sm"
-                                      autoFocus
-                                      onKeyDown={(e) => {
-                                        if (e.key === "Enter") {
-                                          updateItem(item.nav_key, { label: editingValue, label_changed: true });
-                                          setEditingLabel(null);
-                                        }
-                                        if (e.key === "Escape") setEditingLabel(null);
-                                      }}
-                                    />
-                                    <button
-                                      onClick={() => {
-                                        updateItem(item.nav_key, { label: editingValue, label_changed: true });
-                                        setEditingLabel(null);
-                                      }}
-                                      className="text-success p-1"
-                                    >
-                                      <Check className="h-3.5 w-3.5" />
-                                    </button>
-                                    <button onClick={() => setEditingLabel(null)} className="text-destructive p-1">
-                                      <X className="h-3.5 w-3.5" />
-                                    </button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-sm font-medium truncate">{item.label}</span>
-                                    <button
-                                      onClick={() => {
-                                        setEditingLabel(item.nav_key);
-                                        setEditingValue(item.label);
-                                      }}
-                                      className="text-muted-foreground hover:text-foreground p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    >
-                                      <Pencil className="h-3 w-3" />
-                                    </button>
-                                    {item.label_changed && (
-                                      <Tooltip>
-                                        <TooltipTrigger>
-                                          <Badge variant="outline" className="text-[9px] px-1 py-0">
-                                            editado
-                                          </Badge>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                          Padrão: {NAV_REGISTRY.find((r) => r.nav_key === item.nav_key)?.label_default}
-                                        </TooltipContent>
-                                      </Tooltip>
-                                    )}
-                                  </div>
-                                )}
-                                <p className="text-[11px] text-muted-foreground truncate">{item.description}</p>
-                              </div>
-
-                              {/* Criticality badge */}
-                              <div className="shrink-0">{criticalityBadge(item.criticality)}</div>
-
-                              {/* Move to section */}
-                              <Select
-                                value={item.group}
-                                onValueChange={(val) => changeGroup(item.nav_key, val)}
-                                disabled={item.criticality === "system_critical"}
-                              >
-                                <SelectTrigger className="h-7 w-[130px] text-xs shrink-0">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {SECTION_LABELS.map((sl) => (
-                                    <SelectItem key={sl} value={sl} className="text-xs">
-                                      {sl}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-
-                              {/* Visibility toggle */}
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    onClick={() => toggleVisibility(item.nav_key)}
-                                    disabled={item.criticality !== "normal"}
-                                    className="p-1.5 rounded-md hover:bg-muted/50 disabled:opacity-30 transition-colors shrink-0"
-                                  >
-                                    {item.visible ? (
-                                      <Eye className="h-4 w-4 text-muted-foreground" />
-                                    ) : (
-                                      <EyeOff className="h-4 w-4 text-destructive" />
-                                    )}
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {item.criticality !== "normal"
-                                    ? "Item crítico — não pode ser ocultado"
-                                    : item.visible
-                                    ? "Clique para ocultar"
-                                    : "Clique para exibir"}
-                                </TooltipContent>
-                              </Tooltip>
-
-                              {/* Edit label button (always visible) */}
-                              {!isEditing && (
-                                <button
-                                  onClick={() => {
-                                    setEditingLabel(item.nav_key);
-                                    setEditingValue(item.label);
-                                  }}
-                                  className="p-1.5 rounded-md hover:bg-muted/50 transition-colors shrink-0"
-                                >
-                                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Card>
-              </Collapsible>
+              <SectionCard
+                key={sectionLabel}
+                sectionLabel={sectionLabel}
+                sectionItems={sectionItems}
+                editingLabel={editingLabel}
+                editingValue={editingValue}
+                onEditStart={(navKey, label) => {
+                  setEditingLabel(navKey);
+                  setEditingValue(label);
+                }}
+                onEditChange={setEditingValue}
+                onEditConfirm={(navKey) => {
+                  updateItem(navKey, { label: editingValue, label_changed: true });
+                  setEditingLabel(null);
+                }}
+                onEditCancel={() => setEditingLabel(null)}
+                onToggleVisibility={toggleVisibility}
+                onChangeGroup={changeGroup}
+                onReorder={handleSectionReorder}
+                criticalityBadge={criticalityBadge}
+              />
             );
           })}
         </div>
@@ -604,15 +467,219 @@ export function MenuConfigPage() {
               <p className="font-medium">Sobre a personalização de menus</p>
               <ul className="mt-1 space-y-0.5 list-disc list-inside">
                 <li>As rotas e permissões de acesso <strong>nunca</strong> são alteradas pela personalização.</li>
-                <li>Itens críticos do sistema (Usuários & Permissões) não podem ser ocultados nem movidos.</li>
-                <li>Itens críticos de negócio (Dashboard, Leads, Inbox) não podem ser ocultados.</li>
-                <li>Use "Restaurar Padrão" para voltar à configuração original a qualquer momento.</li>
+                <li>Itens críticos do sistema não podem ser ocultados nem movidos.</li>
+                <li>Itens críticos de negócio não podem ser ocultados.</li>
+                <li>Arraste os itens pelo ícone <GripVertical className="h-3 w-3 inline" /> para reordenar.</li>
+                <li>Use "Restaurar Padrão" para voltar à configuração original.</li>
               </ul>
             </div>
           </CardContent>
         </Card>
       </div>
     </TooltipProvider>
+  );
+}
+
+// ─── Section Card with Drag & Drop ───────────────────────────
+
+interface SectionCardProps {
+  sectionLabel: string;
+  sectionItems: EditableItem[];
+  editingLabel: string | null;
+  editingValue: string;
+  onEditStart: (navKey: string, label: string) => void;
+  onEditChange: (value: string) => void;
+  onEditConfirm: (navKey: string) => void;
+  onEditCancel: () => void;
+  onToggleVisibility: (navKey: string) => void;
+  onChangeGroup: (navKey: string, newGroup: string) => void;
+  onReorder: (sectionLabel: string, items: EditableItem[]) => void;
+  criticalityBadge: (c: NavCriticality) => React.ReactNode;
+}
+
+function SectionCard({
+  sectionLabel,
+  sectionItems,
+  editingLabel,
+  editingValue,
+  onEditStart,
+  onEditChange,
+  onEditConfirm,
+  onEditCancel,
+  onToggleVisibility,
+  onChangeGroup,
+  onReorder,
+  criticalityBadge,
+}: SectionCardProps) {
+  const sectionMeta = NAV_SECTION_DEFAULTS.find((s) => s.label === sectionLabel);
+  const SectionIcon = resolveIcon(sectionMeta?.icon ?? "Folder");
+
+  const { draggingIdx, dragOverIdx, handleDragStart, handleDragEnter, handleDragEnd } =
+    useDragReorder(sectionItems, (reordered) => onReorder(sectionLabel, reordered));
+
+  return (
+    <Collapsible defaultOpen>
+      <Card className="border-border/50">
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer py-3 px-4 hover:bg-muted/30 transition-colors">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <SectionIcon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-semibold">{sectionLabel}</CardTitle>
+                <Badge variant="outline" className="text-[10px]">
+                  {sectionItems.length}
+                </Badge>
+              </div>
+              <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform" />
+            </div>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="pt-0 pb-2 px-2">
+            <div className="space-y-0">
+              {sectionItems.map((item, idx) => {
+                const ItemIcon = resolveIcon(item.icon);
+                const isEditing = editingLabel === item.nav_key;
+                const isDragging = draggingIdx === idx;
+                const isDragOver = dragOverIdx === idx;
+                const canDrag = item.criticality !== "system_critical";
+
+                return (
+                  <div
+                    key={item.nav_key}
+                    draggable={canDrag}
+                    onDragStart={(e) => {
+                      if (!canDrag) { e.preventDefault(); return; }
+                      e.dataTransfer.effectAllowed = "move";
+                      handleDragStart(idx);
+                    }}
+                    onDragEnter={() => canDrag && handleDragEnter(idx)}
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                    onDragEnd={handleDragEnd}
+                    className={`
+                      flex items-center gap-2 py-2.5 px-2 rounded-lg transition-all
+                      ${!item.visible ? "opacity-40" : ""}
+                      ${isDragging ? "opacity-30 scale-[0.98]" : ""}
+                      ${isDragOver && !isDragging ? "border-t-2 border-primary" : "border-t-2 border-transparent"}
+                      hover:bg-muted/20 group
+                    `}
+                  >
+                    {/* Drag handle */}
+                    <div
+                      className={`
+                        p-1 rounded cursor-grab active:cursor-grabbing
+                        ${canDrag ? "text-muted-foreground/50 hover:text-muted-foreground hover:bg-muted/40" : "opacity-20 cursor-not-allowed"}
+                      `}
+                    >
+                      <GripVertical className="h-4 w-4" />
+                    </div>
+
+                    {/* Icon */}
+                    <ItemIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+
+                    {/* Label (editable) */}
+                    <div className="flex-1 min-w-0">
+                      {isEditing ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            value={editingValue}
+                            onChange={(e) => onEditChange(e.target.value)}
+                            className="h-7 text-sm"
+                            autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") onEditConfirm(item.nav_key);
+                              if (e.key === "Escape") onEditCancel();
+                            }}
+                          />
+                          <button onClick={() => onEditConfirm(item.nav_key)} className="text-success p-1">
+                            <Check className="h-3.5 w-3.5" />
+                          </button>
+                          <button onClick={onEditCancel} className="text-destructive p-1">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium truncate">{item.label}</span>
+                          <button
+                            onClick={() => onEditStart(item.nav_key, item.label)}
+                            className="text-muted-foreground hover:text-foreground p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          {item.label_changed && (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Badge variant="outline" className="text-[9px] px-1 py-0">editado</Badge>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Padrão: {NAV_REGISTRY.find((r) => r.nav_key === item.nav_key)?.label_default}
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-[11px] text-muted-foreground truncate">{item.description}</p>
+                    </div>
+
+                    {/* Criticality badge */}
+                    <div className="shrink-0">{criticalityBadge(item.criticality)}</div>
+
+                    {/* Move to section */}
+                    <Select
+                      value={item.group}
+                      onValueChange={(val) => onChangeGroup(item.nav_key, val)}
+                      disabled={item.criticality === "system_critical"}
+                    >
+                      <SelectTrigger className="h-7 w-[130px] text-xs shrink-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {SECTION_LABELS.map((sl) => (
+                          <SelectItem key={sl} value={sl} className="text-xs">{sl}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {/* Visibility toggle */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => onToggleVisibility(item.nav_key)}
+                          disabled={item.criticality !== "normal"}
+                          className="p-1.5 rounded-md hover:bg-muted/50 disabled:opacity-30 transition-colors shrink-0"
+                        >
+                          {item.visible ? (
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          ) : (
+                            <EyeOff className="h-4 w-4 text-destructive" />
+                          )}
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {item.criticality !== "normal"
+                          ? "Item crítico — não pode ser ocultado"
+                          : item.visible ? "Clique para ocultar" : "Clique para exibir"}
+                      </TooltipContent>
+                    </Tooltip>
+
+                    {/* Edit label button */}
+                    {!isEditing && (
+                      <button
+                        onClick={() => onEditStart(item.nav_key, item.label)}
+                        className="p-1.5 rounded-md hover:bg-muted/50 transition-colors shrink-0"
+                      >
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }
 
