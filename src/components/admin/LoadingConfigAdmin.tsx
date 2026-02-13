@@ -54,6 +54,7 @@ export function LoadingConfigAdmin() {
   const { config: currentConfig, defaults } = useLoadingConfig();
   const { settings: brandSettings } = useBrandSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const initializedRef = useRef(false);
 
   const [loaderTheme, setLoaderTheme] = useState<LoaderTheme>("sun");
   const [animStyle, setAnimStyle] = useState<LoaderAnimation>("pulse");
@@ -75,9 +76,10 @@ export function LoadingConfigAdmin() {
 
   const logoUrl = brandSettings?.logo_small_url || brandSettings?.logo_url || null;
 
-  // Load from current config
+  // Load from current config ONLY once on first data arrival
   useEffect(() => {
-    if (currentConfig) {
+    if (currentConfig && !initializedRef.current) {
+      initializedRef.current = true;
       setLoaderTheme((currentConfig.loader_theme as LoaderTheme) || "sun");
       const anim = (currentConfig.sun_loader_style as LoaderAnimation) || "pulse";
       setAnimStyle(anim);
