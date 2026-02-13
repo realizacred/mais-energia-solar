@@ -342,6 +342,7 @@ export type Database = {
         Row: {
           created_at: string
           custo_por_kwp: number
+          fator_perdas_percentual: number
           geracao_mensal_por_kwp: number
           id: string
           kg_co2_por_kwh: number
@@ -354,6 +355,7 @@ export type Database = {
         Insert: {
           created_at?: string
           custo_por_kwp?: number
+          fator_perdas_percentual?: number
           geracao_mensal_por_kwp?: number
           id?: string
           kg_co2_por_kwh?: number
@@ -366,6 +368,7 @@ export type Database = {
         Update: {
           created_at?: string
           custo_por_kwp?: number
+          fator_perdas_percentual?: number
           geracao_mensal_por_kwp?: number
           id?: string
           kg_co2_por_kwh?: number
@@ -1673,6 +1676,47 @@ export type Database = {
           },
         ]
       }
+      custo_faixas_kwp: {
+        Row: {
+          created_at: string
+          custo_por_kwp: number
+          descricao: string | null
+          faixa_max_kwp: number
+          faixa_min_kwp: number
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custo_por_kwp?: number
+          descricao?: string | null
+          faixa_max_kwp?: number
+          faixa_min_kwp?: number
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custo_por_kwp?: number
+          descricao?: string | null
+          faixa_max_kwp?: number
+          faixa_min_kwp?: number
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custo_faixas_kwp_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dead_letter_queue: {
         Row: {
           created_at: string
@@ -2441,6 +2485,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "inversores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      irradiacao_por_estado: {
+        Row: {
+          created_at: string
+          estado: string
+          fonte: string | null
+          geracao_media_kwp_mes: number
+          id: string
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          estado: string
+          fonte?: string | null
+          geracao_media_kwp_mes?: number
+          id?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          estado?: string
+          fonte?: string | null
+          geracao_media_kwp_mes?: number
+          id?: string
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "irradiacao_por_estado_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -7747,11 +7829,28 @@ export type Database = {
         Args: never
         Returns: {
           custo_por_kwp: number
+          fator_perdas_percentual: number
           geracao_mensal_por_kwp: number
           kg_co2_por_kwh: number
           percentual_economia: number
           tarifa_media_kwh: number
           vida_util_sistema: number
+        }[]
+      }
+      get_concessionarias_por_estado: {
+        Args: { _estado: string }
+        Returns: {
+          aliquota_icms: number
+          custo_disponibilidade_bifasico: number
+          custo_disponibilidade_monofasico: number
+          custo_disponibilidade_trifasico: number
+          id: string
+          nome: string
+          percentual_isencao: number
+          possui_isencao_scee: boolean
+          sigla: string
+          tarifa_energia: number
+          tarifa_fio_b: number
         }[]
       }
       get_config_tributaria: {
@@ -7825,6 +7924,10 @@ export type Database = {
       get_integration_key: {
         Args: { _service_key: string; _tenant_id?: string }
         Returns: string
+      }
+      get_irradiacao_estado: {
+        Args: { _estado: string; _tenant_id?: string }
+        Returns: number
       }
       get_payback_config: {
         Args: never
