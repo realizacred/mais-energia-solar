@@ -63,49 +63,50 @@ export function CanaisCaptacaoPage() {
               {consultores.map((v) => {
                 const slug = v.slug || v.codigo;
                 const leadLink = `${appUrl}/v/${slug}`;
+                const waLink = `${appUrl}/w/${slug}`;
                 const id = `canal-${slug}`;
+                const waId = `wa-${slug}`;
                 return (
-                  <div key={slug} className="flex items-center gap-3 p-3 rounded-lg border border-border/50 bg-muted/20">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{v.nome}</p>
-                      <p className="text-xs text-muted-foreground font-mono truncate">{leadLink}</p>
+                  <div key={slug} className="flex flex-col gap-2 p-3 rounded-lg border border-border/50 bg-muted/20">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">{v.nome}</p>
+                      </div>
                     </div>
-                    <div className="flex gap-1 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title="Copiar link"
-                        onClick={() => handleCopy(leadLink, id)}
-                      >
-                        {copiedId === id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title="Gerar QR Code"
-                        onClick={() => setQrSlug(slug)}
-                      >
-                        <QrCode className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title="Compartilhar via WhatsApp"
-                        onClick={() => {
-                          const waText = encodeURIComponent(`Solicite seu orçamento de energia solar: ${leadLink}`);
+                    {/* Formulário link */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-muted-foreground w-16 shrink-0">Formulário</span>
+                      <p className="text-xs text-muted-foreground font-mono truncate flex-1">{leadLink}</p>
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="outline" size="sm" title="Copiar" onClick={() => handleCopy(leadLink, id)}>
+                          {copiedId === id ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button variant="outline" size="sm" title="QR Code" onClick={() => setQrSlug(slug)}>
+                          <QrCode className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="outline" size="sm" title="Abrir" onClick={() => window.open(leadLink, "_blank")}>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                    {/* WhatsApp link */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-success font-medium w-16 shrink-0">WhatsApp</span>
+                      <p className="text-xs text-muted-foreground font-mono truncate flex-1">{waLink}</p>
+                      <div className="flex gap-1 shrink-0">
+                        <Button variant="outline" size="sm" title="Copiar" onClick={() => handleCopy(waLink, waId)}>
+                          {copiedId === waId ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button variant="outline" size="sm" title="Compartilhar via WhatsApp" onClick={() => {
+                          const waText = encodeURIComponent(`Fale comigo pelo WhatsApp: ${waLink}`);
                           window.open(`https://wa.me/?text=${waText}`, "_blank");
-                        }}
-                      >
-                        <MessageCircle className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        title="Abrir link"
-                        onClick={() => window.open(leadLink, "_blank")}
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                      </Button>
+                        }}>
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button variant="outline" size="sm" title="Abrir" onClick={() => window.open(waLink, "_blank")}>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 );

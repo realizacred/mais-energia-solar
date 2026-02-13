@@ -475,6 +475,13 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     setSelectedConv({ ...selectedConv, assigned_to: userId });
   };
 
+  const handleAccept = async () => {
+    if (!selectedConv || !user) return;
+    assignConversation({ conversationId: selectedConv.id, userId: user.id });
+    setSelectedConv({ ...selectedConv, assigned_to: user.id });
+    toast({ title: "Atendimento aceito", description: "Conversa atribuída a você." });
+  };
+
   const handleLinkLead = (leadId: string | null) => {
     if (!selectedConv) return;
     updateConversation({ id: selectedConv.id, updates: { lead_id: leadId } as any });
@@ -598,6 +605,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   onOpenTags={() => setShowTags(true)}
                   onOpenAssign={() => setShowAssign(true)}
                   onLinkLead={() => setShowLinkLead(true)}
+                  onAccept={handleAccept}
                   vendedores={vendedores}
                   lastReadMessageId={lastReadMessageId}
                   onMarkAsRead={markAsRead}
@@ -710,6 +718,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 onOpenTags={() => setShowTags(true)}
                 onOpenAssign={() => setShowAssign(true)}
                 onLinkLead={() => setShowLinkLead(true)}
+                onAccept={handleAccept}
                 vendedores={vendedores}
                 lastReadMessageId={lastReadMessageId}
                 onMarkAsRead={markAsRead}
