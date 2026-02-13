@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
+import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
 const statusConfig: Record<string, { label: string; color: string; dotColor: string; icon: typeof MessageCircle }> = {
@@ -228,6 +229,8 @@ export function WaConversationList({
               const isSelected = conv.id === selectedId;
               const st = statusConfig[conv.status] || statusConfig.open;
               const hasUnread = conv.unread_count > 0;
+              const derivedStatus = deriveConversationStatus(conv, followupConvIds);
+              const derivedCfg = derivedStatus ? DERIVED_STATUS_CONFIG[derivedStatus] : null;
 
               return (
                 <button
@@ -271,6 +274,12 @@ export function WaConversationList({
                           {followupConvIds?.has(conv.id) && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
                         </span>
                         <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {derivedCfg && derivedStatus !== "resolvida" && (
+                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 gap-1 ${derivedCfg.badgeClass}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${derivedCfg.dotClass}`} />
+                              {derivedCfg.label}
+                            </Badge>
+                          )}
                           {conv.status === "resolved" && (
                             <Badge variant="muted" size="sm" className="text-[9px] px-1.5 py-0">
                               Resolvida
