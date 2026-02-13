@@ -12,8 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ThemeLoader, ThemeLoaderPreview } from "@/components/loading/ThemeLoader";
-import type { LoaderTheme, LoaderAnimation } from "@/components/loading/ThemeLoader";
+import { ThemeLoader, ThemeLoaderPreview, buildAnimationKey, parseAnimationKey } from "@/components/loading/ThemeLoader";
+import type { LoaderTheme, LoaderAnimation, LoaderMotion, LoaderFinish } from "@/components/loading/ThemeLoader";
 import { RotatingLoadingMessage } from "@/components/loading/LoadingMessage";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
 import { Save, RotateCcw, Palette, MessageCircle, Brain, Eye, Loader2, Upload, X } from "lucide-react";
@@ -57,6 +57,8 @@ export function LoadingConfigAdmin() {
 
   const [loaderTheme, setLoaderTheme] = useState<LoaderTheme>("sun");
   const [animStyle, setAnimStyle] = useState<LoaderAnimation>("pulse");
+  const [motion, setMotion] = useState<LoaderMotion>("pulse");
+  const [finish, setFinish] = useState<LoaderFinish>("continue");
   const [showMessages, setShowMessages] = useState(true);
   const [overlayDelay, setOverlayDelay] = useState(400);
   const [overlayMinDuration, setOverlayMinDuration] = useState(300);
@@ -77,7 +79,11 @@ export function LoadingConfigAdmin() {
   useEffect(() => {
     if (currentConfig) {
       setLoaderTheme((currentConfig.loader_theme as LoaderTheme) || "sun");
-      setAnimStyle((currentConfig.sun_loader_style as LoaderAnimation) || "pulse");
+      const anim = (currentConfig.sun_loader_style as LoaderAnimation) || "pulse";
+      setAnimStyle(anim);
+      const parsed = parseAnimationKey(anim);
+      setMotion(parsed.motion);
+      setFinish(parsed.finish);
       setShowMessages(currentConfig.show_messages);
       setOverlayDelay(currentConfig.overlay_delay_ms);
       setOverlayMinDuration(currentConfig.overlay_min_duration_ms);
@@ -156,16 +162,20 @@ export function LoadingConfigAdmin() {
           .eq("id", existing.id);
         if (error) throw error;
       } else {
-        // Get tenant_id from profile — required by RLS INSERT policy
+        // Get tenant_id via auth session → profiles
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Sessão expirada. Faça login novamente.");
+
         const { data: profile } = await supabase
           .from("profiles")
           .select("tenant_id")
+          .eq("user_id", user.id)
           .maybeSingle();
-        
+
         if (!profile?.tenant_id) {
-          throw new Error("Não foi possível identificar seu tenant. Faça login novamente.");
+          throw new Error("Perfil sem tenant_id. Contate o administrador.");
         }
-        
+
         const { error } = await supabase
           .from("loading_config")
           .insert({ ...payload, tenant_id: profile.tenant_id } as any);
@@ -184,6 +194,8 @@ export function LoadingConfigAdmin() {
   const handleReset = useCallback(() => {
     setLoaderTheme("sun");
     setAnimStyle("pulse");
+    setMotion("pulse");
+    setFinish("continue");
     setShowMessages(true);
     setOverlayDelay(400);
     setOverlayMinDuration(300);
@@ -331,22 +343,61 @@ export function LoadingConfigAdmin() {
 
           <Separator />
 
-          {/* Animation style */}
-          <div className="space-y-2">
-            <Label>Estilo da animação</Label>
-            <Select value={animStyle} onValueChange={(v) => setAnimStyle(v as LoaderAnimation)}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="pulse">Pulsar</SelectItem>
-                <SelectItem value="spin">Girar</SelectItem>
-                <SelectItem value="breathe">Respirar</SelectItem>
-                <SelectItem value="spin-pulse">Girar e Pulsar</SelectItem>
-                <SelectItem value="spin-stop">Girar 360° e Parar</SelectItem>
-                <SelectItem value="none">Parado (sem animação)</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Animation style — 2-step selector */}
+          <div className="space-y-3">
+            <Label>Animação</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <span className="text-xs font-medium text-muted-foreground">① Movimento</span>
+                <Select value={motion} onValueChange={(v) => {
+                  const m = v as LoaderMotion;
+                  setMotion(m);
+                  // Auto-set sensible finish defaults
+                  const defaultFinish: LoaderFinish = m === "none" ? "none" : m === "pulse" || m === "breathe" ? "continue" : "stop";
+                  setFinish(defaultFinish);
+                  setAnimStyle(buildAnimationKey(m, defaultFinish));
+                }}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pulse">🫀 Pulsar</SelectItem>
+                    <SelectItem value="breathe">🌬️ Respirar</SelectItem>
+                    <SelectItem value="spin">🔄 Girar contínuo</SelectItem>
+                    <SelectItem value="spin360">🎯 Girar 360°</SelectItem>
+                    <SelectItem value="none">⏸️ Parado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-xs font-medium text-muted-foreground">② Depois</span>
+                <Select
+                  value={finish}
+                  onValueChange={(v) => {
+                    const f = v as LoaderFinish;
+                    setFinish(f);
+                    setAnimStyle(buildAnimationKey(motion, f));
+                  }}
+                  disabled={motion === "none" || motion === "pulse" || motion === "breathe"}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="stop">⏹️ Parar</SelectItem>
+                    <SelectItem value="pulse">🫀 Pulsar</SelectItem>
+                    <SelectItem value="grow">🔍 Crescer (zoom in)</SelectItem>
+                    <SelectItem value="shrink">🔎 Diminuir (zoom out)</SelectItem>
+                    <SelectItem value="continue">🔁 Continuar</SelectItem>
+                    <SelectItem value="none">— Nenhum</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Resultado: <Badge variant="secondary" className="text-xs">{animStyle}</Badge>
+            </p>
           </div>
 
           {/* Preview sizes */}
