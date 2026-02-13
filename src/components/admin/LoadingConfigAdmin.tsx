@@ -156,14 +156,19 @@ export function LoadingConfigAdmin() {
           .eq("id", existing.id);
         if (error) throw error;
       } else {
+        // Get tenant_id from profile — required by RLS INSERT policy
         const { data: profile } = await supabase
           .from("profiles")
           .select("tenant_id")
           .maybeSingle();
         
+        if (!profile?.tenant_id) {
+          throw new Error("Não foi possível identificar seu tenant. Faça login novamente.");
+        }
+        
         const { error } = await supabase
           .from("loading_config")
-          .insert({ ...payload, tenant_id: profile?.tenant_id } as any);
+          .insert({ ...payload, tenant_id: profile.tenant_id } as any);
         if (error) throw error;
       }
 
@@ -338,6 +343,7 @@ export function LoadingConfigAdmin() {
                 <SelectItem value="spin">Girar</SelectItem>
                 <SelectItem value="breathe">Respirar</SelectItem>
                 <SelectItem value="spin-pulse">Girar e Pulsar</SelectItem>
+                <SelectItem value="spin-stop">Girar 360° e Parar</SelectItem>
                 <SelectItem value="none">Parado (sem animação)</SelectItem>
               </SelectContent>
             </Select>
