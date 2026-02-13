@@ -418,7 +418,7 @@ export default function LeadForm() {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full h-12 text-lg font-semibold gradient-solar hover:opacity-90 transition-opacity"
+              className="w-full h-12 text-lg font-semibold"
               disabled={isSubmitting}
             >
               {isSubmitting ? (

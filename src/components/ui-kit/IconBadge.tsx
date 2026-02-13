@@ -30,7 +30,7 @@ export function IconBadge({ icon: Icon, color = "primary", size = "md", classNam
   const c = colorMap[color];
   const s = sizeMap[size];
   return (
-    <div className={cn("rounded-full flex items-center justify-center shrink-0", c.bg, s.container, className)}>
+    <div className={cn("rounded-xl flex items-center justify-center shrink-0", c.bg, s.container, className)}>
       <Icon className={cn(c.text, s.icon)} />
     </div>
   );

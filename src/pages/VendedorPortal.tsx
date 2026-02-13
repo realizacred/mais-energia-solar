@@ -41,7 +41,7 @@ export default function VendedorPortal() {
 
   if (authLoading || portal.loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background gradient-mesh">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4 animate-pulse-soft">
           <div className="p-4 rounded-2xl bg-primary/10">
             <Sun className="w-8 h-8 text-primary animate-spin-slow" />

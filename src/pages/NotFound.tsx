@@ -13,7 +13,7 @@ export default function NotFound() {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen gradient-mesh flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header />
       
       <main className="flex-1 flex items-center justify-center">

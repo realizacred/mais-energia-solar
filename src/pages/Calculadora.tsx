@@ -402,7 +402,7 @@ export default function Calculadora() {
   // ─── Success State ────────────────────────────────────────
   if (isSuccess) {
     return (
-      <div className="min-h-screen gradient-mesh flex flex-col">
+      <div className="min-h-screen bg-background flex flex-col">
         <Header showCalculadora={false} />
         <main className="flex-1 flex items-center justify-center px-4 py-12">
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md mx-auto">
@@ -452,7 +452,7 @@ export default function Calculadora() {
 
   // ─── Render ───────────────────────────────────────────────
   return (
-    <div className="min-h-screen gradient-mesh flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header showCalculadora={false}>
         <Link to="/">
           <Button variant="default" size="sm" className="gap-2">
