@@ -1,7 +1,56 @@
 import { useMemo } from "react";
 
 export type LoaderTheme = "sun" | "lightning" | "gear" | "logo" | "custom";
-export type LoaderAnimation = "pulse" | "spin" | "breathe" | "spin-pulse" | "spin-stop" | "none";
+
+/** Primary motion */
+export type LoaderMotion = "spin" | "spin360" | "pulse" | "breathe" | "none";
+
+/** What happens after the primary motion */
+export type LoaderFinish = "stop" | "pulse" | "shrink" | "grow" | "continue" | "none";
+
+/**
+ * Legacy single-value type kept for DB compatibility.
+ * Internally maps to motion + finish.
+ */
+export type LoaderAnimation =
+  | "pulse" | "spin" | "breathe" | "spin-pulse" | "spin-stop"
+  | "spin360-stop" | "spin360-pulse" | "spin360-grow" | "spin360-shrink"
+  | "none";
+
+/** Build the combined animation key from motion + finish */
+export function buildAnimationKey(motion: LoaderMotion, finish: LoaderFinish): LoaderAnimation {
+  if (motion === "none") return "none";
+  if (motion === "pulse") return "pulse";
+  if (motion === "breathe") return "breathe";
+  if (motion === "spin" && finish === "continue") return "spin";
+  if (motion === "spin" && finish === "pulse") return "spin-pulse";
+  if (motion === "spin" && finish === "stop") return "spin-stop";
+  if (motion === "spin360" && finish === "stop") return "spin360-stop";
+  if (motion === "spin360" && finish === "pulse") return "spin360-pulse";
+  if (motion === "spin360" && finish === "grow") return "spin360-grow";
+  if (motion === "spin360" && finish === "shrink") return "spin360-shrink";
+  // Default fallback
+  if (motion === "spin") return "spin";
+  if (motion === "spin360") return "spin360-stop";
+  return "pulse";
+}
+
+/** Parse a stored animation key back to motion + finish */
+export function parseAnimationKey(key: LoaderAnimation): { motion: LoaderMotion; finish: LoaderFinish } {
+  switch (key) {
+    case "none": return { motion: "none", finish: "none" };
+    case "pulse": return { motion: "pulse", finish: "continue" };
+    case "breathe": return { motion: "breathe", finish: "continue" };
+    case "spin": return { motion: "spin", finish: "continue" };
+    case "spin-pulse": return { motion: "spin", finish: "pulse" };
+    case "spin-stop": return { motion: "spin", finish: "stop" };
+    case "spin360-stop": return { motion: "spin360", finish: "stop" };
+    case "spin360-pulse": return { motion: "spin360", finish: "pulse" };
+    case "spin360-grow": return { motion: "spin360", finish: "grow" };
+    case "spin360-shrink": return { motion: "spin360", finish: "shrink" };
+    default: return { motion: "pulse", finish: "continue" };
+  }
+}
 
 interface ThemeLoaderProps {
   theme?: LoaderTheme;
@@ -14,6 +63,19 @@ interface ThemeLoaderProps {
 
 const SIZES = { sm: 24, md: 40, lg: 64 };
 
+const ANIM_CLASSES: Record<LoaderAnimation, string> = {
+  "pulse": "animate-[sun-pulse_1.5s_ease-in-out_infinite]",
+  "spin": "animate-[sun-spin_2s_linear_infinite]",
+  "breathe": "animate-[sun-breathe_2s_ease-in-out_infinite]",
+  "spin-pulse": "animate-[sun-spin-pulse_2.5s_ease-in-out_infinite]",
+  "spin-stop": "animate-[sun-spin-stop_2s_ease-in-out_forwards]",
+  "spin360-stop": "animate-[sun-spin360-stop_1.5s_ease-in-out_forwards]",
+  "spin360-pulse": "animate-[sun-spin360-pulse_2.5s_ease-in-out_infinite]",
+  "spin360-grow": "animate-[sun-spin360-grow_2s_ease-in-out_forwards]",
+  "spin360-shrink": "animate-[sun-spin360-shrink_2s_ease-in-out_forwards]",
+  "none": "",
+};
+
 export function ThemeLoader({
   theme = "sun",
   animation = "pulse",
@@ -23,30 +85,15 @@ export function ThemeLoader({
   className = "",
 }: ThemeLoaderProps) {
   const px = SIZES[size];
-
-  const animClass = useMemo(() => {
-    switch (animation) {
-      case "spin": return "animate-[sun-spin_2s_linear_infinite]";
-      case "breathe": return "animate-[sun-breathe_2s_ease-in-out_infinite]";
-      case "spin-pulse": return "animate-[sun-spin-pulse_2.5s_ease-in-out_infinite]";
-      case "spin-stop": return "animate-[sun-spin-stop_2s_ease-in-out_forwards]";
-      case "none": return "";
-      default: return "animate-[sun-pulse_1.5s_ease-in-out_infinite]";
-    }
-  }, [animation]);
+  const animClass = ANIM_CLASSES[animation] || ANIM_CLASSES.pulse;
 
   // Image-based loaders (logo / custom upload)
   if (theme === "logo" && logoUrl) {
     return (
       <div className={`inline-flex items-center justify-center ${className}`} role="status" aria-label="Carregando">
-        <img
-          src={logoUrl}
-          alt="Loading"
-          width={px}
-          height={px}
+        <img src={logoUrl} alt="Loading" width={px} height={px}
           className={`object-contain ${animClass} motion-reduce:animate-none`}
-          style={{ width: px, height: px }}
-        />
+          style={{ width: px, height: px }} />
       </div>
     );
   }
@@ -54,14 +101,9 @@ export function ThemeLoader({
   if (theme === "custom" && customUrl) {
     return (
       <div className={`inline-flex items-center justify-center ${className}`} role="status" aria-label="Carregando">
-        <img
-          src={customUrl}
-          alt="Loading"
-          width={px}
-          height={px}
+        <img src={customUrl} alt="Loading" width={px} height={px}
           className={`object-contain ${animClass} motion-reduce:animate-none`}
-          style={{ width: px, height: px }}
-        />
+          style={{ width: px, height: px }} />
       </div>
     );
   }
@@ -69,17 +111,11 @@ export function ThemeLoader({
   // SVG-based loaders
   return (
     <div className={`inline-flex items-center justify-center ${className}`} role="status" aria-label="Carregando">
-      <svg
-        width={px}
-        height={px}
-        viewBox="0 0 48 48"
-        fill="none"
-        className={`${animClass} motion-reduce:animate-none`}
-      >
+      <svg width={px} height={px} viewBox="0 0 48 48" fill="none"
+        className={`${animClass} motion-reduce:animate-none`}>
         {theme === "sun" && <SunSVG />}
         {theme === "lightning" && <LightningSVG />}
         {theme === "gear" && <GearSVG />}
-        {/* Fallback for logo/custom without URL */}
         {(theme === "logo" || theme === "custom") && <SunSVG />}
       </svg>
     </div>
@@ -96,17 +132,11 @@ function SunSVG() {
         const angle = (i * 360) / rays;
         const rad = (angle * Math.PI) / 180;
         return (
-          <line
-            key={i}
-            x1={24 + Math.cos(rad) * 16}
-            y1={24 + Math.sin(rad) * 16}
-            x2={24 + Math.cos(rad) * 21}
-            y2={24 + Math.sin(rad) * 21}
-            className="stroke-primary"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            opacity={0.6 + (i % 2) * 0.3}
-          />
+          <line key={i}
+            x1={24 + Math.cos(rad) * 16} y1={24 + Math.sin(rad) * 16}
+            x2={24 + Math.cos(rad) * 21} y2={24 + Math.sin(rad) * 21}
+            className="stroke-primary" strokeWidth="2.5" strokeLinecap="round"
+            opacity={0.6 + (i % 2) * 0.3} />
         );
       })}
     </>
@@ -117,18 +147,8 @@ function LightningSVG() {
   return (
     <>
       <circle cx="24" cy="24" r="20" className="fill-primary/10" />
-      <path
-        d="M26 8L14 26h9l-3 14 14-20h-9l1-12z"
-        className="fill-primary"
-        opacity="0.9"
-      />
-      <path
-        d="M26 8L14 26h9l-3 14 14-20h-9l1-12z"
-        className="stroke-primary"
-        strokeWidth="1"
-        fill="none"
-        opacity="0.4"
-      />
+      <path d="M26 8L14 26h9l-3 14 14-20h-9l1-12z" className="fill-primary" opacity="0.9" />
+      <path d="M26 8L14 26h9l-3 14 14-20h-9l1-12z" className="stroke-primary" strokeWidth="1" fill="none" opacity="0.4" />
     </>
   );
 }
@@ -144,15 +164,12 @@ function GearSVG() {
         const outerR = 16;
         const halfTooth = 10 * (Math.PI / 180);
         return (
-          <path
-            key={i}
+          <path key={i}
             d={`M ${24 + Math.cos(angle - halfTooth) * innerR} ${24 + Math.sin(angle - halfTooth) * innerR}
                 L ${24 + Math.cos(angle - halfTooth) * outerR} ${24 + Math.sin(angle - halfTooth) * outerR}
                 L ${24 + Math.cos(angle + halfTooth) * outerR} ${24 + Math.sin(angle + halfTooth) * outerR}
                 L ${24 + Math.cos(angle + halfTooth) * innerR} ${24 + Math.sin(angle + halfTooth) * innerR} Z`}
-            className="fill-primary"
-            opacity="0.75"
-          />
+            className="fill-primary" opacity="0.75" />
         );
       })}
     </>
@@ -161,10 +178,7 @@ function GearSVG() {
 
 /** Compact preview for admin settings */
 export function ThemeLoaderPreview({
-  theme,
-  animation,
-  logoUrl,
-  customUrl,
+  theme, animation, logoUrl, customUrl,
 }: {
   theme: LoaderTheme;
   animation: LoaderAnimation;
