@@ -69,6 +69,7 @@ const DataResetManager = lazy(() => import("@/components/admin/DataResetManager"
 const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationStatusPage").then(m => ({ default: m.IntegrationStatusPage })));
 const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCalendarConfigPage").then(m => ({ default: m.GoogleCalendarConfigPage })));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
+const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -360,6 +361,7 @@ export default function Admin() {
                 <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
                 <Route path="changelog" element={<ChangelogViewer />} />
                 <Route path="notificacoes-config" element={<NotificationConfigAdmin />} />
+                <Route path="menus" element={<MenuConfigPage />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
