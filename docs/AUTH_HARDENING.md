@@ -8,18 +8,20 @@
 
 ## CHECKLIST DE SEGURANÇA AUTH
 
-### 1. ✅ Leaked Password Protection
+### 1. ⏸️ Leaked Password Protection
 
 **O que é:** Verifica senhas contra bases de dados de senhas vazadas (HaveIBeenPwned).
 
-**Status:** ⚠️ REQUER ATIVAÇÃO MANUAL
+**Status:** 🟡 RISK ACCEPTED (baixo impacto)
 
-**Ação necessária:**
-1. Acesse **Supabase Dashboard → Authentication → Providers → Email**
-2. Ative **"Leaked Password Protection"**
-3. Tire um print da tela após ativação
+**Decisão (2026-02-13):**
+- Recurso disponível apenas no plano **Supabase Pro ($25/mês)**
+- Classificado como **risco baixo** para a fase atual do produto
+- Não bloqueia operação nem expõe dados
 
-> 🔗 Link direto: https://supabase.com/dashboard/project/bguhckqkpnziykpbwbeu/auth/providers
+**Backlog:** Ativar leaked password protection quando migrar para plano Pro.
+
+**Rollback:** N/A — nenhuma mudança aplicada.
 
 ---
 
