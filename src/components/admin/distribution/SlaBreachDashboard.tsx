@@ -1,4 +1,6 @@
-import { Loader2, AlertTriangle, Shield, CheckCircle2, Clock } from "lucide-react";
+import { AlertTriangle, Shield, CheckCircle2, Clock } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,9 +38,7 @@ export function SlaBreachDashboard() {
 
   if (isLoading) {
     return (
-      <Card><CardContent className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </CardContent></Card>
+      <Card><CardContent><InlineLoader context="data_load" /></CardContent></Card>
     );
   }
 

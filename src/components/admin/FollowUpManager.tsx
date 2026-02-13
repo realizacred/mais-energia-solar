@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, Clock, Phone, CheckCircle, Bell, MessageCircle, Users, FileText, Timer, Award, Send, Loader2 } from "lucide-react";
+import { AlertTriangle, Clock, Phone, CheckCircle, Bell, MessageCircle, Users, FileText, Timer, Award, Send } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { LoadingState } from "@/components/ui-kit";
 import { differenceInDays, parseISO } from "date-fns";
 
@@ -445,7 +446,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
               <Input id="data_proxima_acao" type="date" value={formData.data_proxima_acao} onChange={(e) => setFormData(p => ({ ...p, data_proxima_acao: e.target.value }))} />
             </div>
             <Button onClick={handleSave} disabled={saving} className="w-full">
-              {saving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}Confirmar Contato
+              {saving && <Spinner size="sm" className="mr-2" />}Confirmar Contato
             </Button>
           </div>
         </DialogContent>

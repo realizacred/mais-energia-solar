@@ -14,7 +14,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Clock, MessageCircle, Loader2, Send } from "lucide-react";
+import { CalendarIcon, Clock, MessageCircle, Send } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
@@ -308,7 +309,7 @@ export function ScheduleWhatsAppDialog({
               className="w-full sm:w-auto"
             >
               {scheduling ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner size="sm" className="mr-2" />
               ) : (
                 <Clock className="h-4 w-4 mr-2" />
               )}
@@ -321,7 +322,7 @@ export function ScheduleWhatsAppDialog({
               className="w-full sm:w-auto bg-success hover:bg-success/90 text-success-foreground"
             >
               {sending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <Spinner size="sm" className="mr-2" />
               ) : (
                 <Send className="h-4 w-4 mr-2" />
               )}

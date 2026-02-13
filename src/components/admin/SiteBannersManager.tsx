@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { Plus, Trash2, GripVertical, Eye, EyeOff, Loader2, Save, ImageIcon, Upload } from "lucide-react";
+import { Plus, Trash2, GripVertical, Eye, EyeOff, Save, ImageIcon, Upload } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -53,7 +54,7 @@ function BannerImageUpload({ value, onChange }: { value: string; onChange: (url:
       <div className="flex gap-2">
         <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleUpload} />
         <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading} className="gap-1.5">
-          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+          {uploading ? <Spinner size="sm" /> : <Upload className="w-4 h-4" />}
           {uploading ? "Enviando..." : "Upload"}
         </Button>
       </div>
@@ -118,7 +119,7 @@ export function SiteBannersManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <Spinner size="md" />
       </div>
     );
   }
@@ -163,7 +164,7 @@ export function SiteBannersManager() {
                 </div>
               </div>
               <Button onClick={handleAdd} disabled={saving === "new"} className="w-full gap-2">
-                {saving === "new" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {saving === "new" ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
                 Adicionar Banner
               </Button>
             </div>

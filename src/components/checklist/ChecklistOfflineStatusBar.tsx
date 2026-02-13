@@ -1,4 +1,5 @@
-import { WifiOff, Wifi, RefreshCw, Loader2, Radio, Database } from "lucide-react";
+import { WifiOff, Wifi, RefreshCw, Radio, Database } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { useOfflineChecklistDb } from "@/hooks/useOfflineChecklistDb";
 
@@ -69,7 +70,7 @@ export function ChecklistOfflineStatusBar({ instaladorId }: ChecklistOfflineStat
           >
             {isSyncing ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" />
                 Sincronizando...
               </>
             ) : (

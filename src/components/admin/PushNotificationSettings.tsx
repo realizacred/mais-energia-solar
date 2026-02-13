@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, BellOff, Smartphone, Trash2, Clock, Loader2, ShieldCheck, ShieldAlert, RefreshCw } from "lucide-react";
+import { Bell, BellOff, Smartphone, Trash2, Clock, ShieldCheck, ShieldAlert, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -272,7 +273,7 @@ export function PushNotificationSettings() {
               disabled={runningDiag}
             >
               {runningDiag ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                <Spinner size="sm" className="mr-1" />
               ) : (
                 <RefreshCw className="h-4 w-4 mr-1" />
               )}
@@ -365,7 +366,7 @@ export function PushNotificationSettings() {
             <div className="space-y-4">
               {!isSubscribed ? (
                 <Button onClick={subscribe} disabled={isLoading}>
-                  {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Bell className="h-4 w-4 mr-2" />}
+                  {isLoading ? <Spinner size="sm" className="mr-2" /> : <Bell className="h-4 w-4 mr-2" />}
                   Ativar Push neste dispositivo
                 </Button>
               ) : (
@@ -446,7 +447,7 @@ export function PushNotificationSettings() {
           </div>
 
           <Button onClick={savePreferences} disabled={savingPrefs} size="sm">
-            {savingPrefs ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {savingPrefs ? <Spinner size="sm" className="mr-2" /> : null}
             Salvar preferências
           </Button>
         </CardContent>
@@ -466,7 +467,7 @@ export function PushNotificationSettings() {
         <CardContent>
           {loadingDevices ? (
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Carregando...
+              <Spinner size="sm" /> Carregando...
             </div>
           ) : devices.length === 0 ? (
             <p className="text-sm text-muted-foreground">

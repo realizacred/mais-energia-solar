@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Scale, Save, Loader2, Plus, Trash2, Info } from "lucide-react";
+import { Scale, Save, Plus, Trash2, Info } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
+import { InlineLoader } from "@/components/loading/InlineLoader";
 import {
   Table,
   TableBody,
@@ -109,9 +111,7 @@ export function FioBConfig() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        </CardContent>
+        <CardContent><InlineLoader context="data_load" /></CardContent>
       </Card>
     );
   }

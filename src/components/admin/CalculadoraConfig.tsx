@@ -5,7 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Save, Loader2, Calculator, Zap, Leaf, DollarSign, Calendar } from "lucide-react";
+import { Settings, Save, Calculator, Zap, Leaf, DollarSign, Calendar } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
+import { InlineLoader } from "@/components/loading/InlineLoader";
 
 interface CalculadoraConfigData {
   id: string;
@@ -91,9 +93,7 @@ export default function CalculadoraConfig() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        </CardContent>
+        <CardContent><InlineLoader context="data_load" /></CardContent>
       </Card>
     );
   }
@@ -219,7 +219,7 @@ export default function CalculadoraConfig() {
 
         <div className="flex justify-end mt-6">
           <Button onClick={handleSave} disabled={saving} className="gap-2">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {saving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
             Salvar Configuração
           </Button>
         </div>

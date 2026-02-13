@@ -6,7 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { FileText, Download, Eye, Loader2, Calculator, Banknote } from "lucide-react";
+import { FileText, Download, Eye, Calculator, Banknote } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { generateProposalPdf, downloadProposalPdf } from "@/lib/proposalPdf";
 import { toast } from "@/hooks/use-toast";
 import { useLogo } from "@/hooks/useLogo";
@@ -293,7 +294,7 @@ export function ProposalGenerator({ lead, orcamento, vendedorNome }: ProposalGen
         >
           {isGenerating ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="sm" />
               Gerando PDF...
             </>
           ) : (

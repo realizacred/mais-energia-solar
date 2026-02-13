@@ -14,9 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, Star, Upload, X,
-  Loader2, ImageIcon, Video, MapPin, Zap, Tag, Clock,
+  ImageIcon, Video, MapPin, Zap, Tag, Clock,
   MessageSquareQuote, TrendingUp, Link2
 } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { ESTADOS_BRASIL } from "@/lib/validations";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 
@@ -332,9 +334,7 @@ export function ObrasManager() {
 
       {/* List */}
       {loading ? (
-        <div className="flex items-center justify-center py-16">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
+        <InlineLoader context="data_load" />
       ) : obras.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon"><ImageIcon className="w-8 h-8 text-muted-foreground" /></div>
@@ -634,7 +634,7 @@ export function ObrasManager() {
               <label className="flex items-center justify-center gap-2 px-4 py-6 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors">
                 <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" disabled={uploadingImages} />
                 {uploadingImages ? (
-                  <><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /> Enviando...</>
+                  <><Spinner size="sm" /> Enviando...</>
                 ) : (
                   <><Upload className="w-5 h-5 text-muted-foreground" /> <span className="text-sm text-muted-foreground">Arraste ou clique para enviar imagens</span></>
                 )}
@@ -678,7 +678,7 @@ export function ObrasManager() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving} className="gap-2">
-              {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+              {saving && <Spinner size="sm" />}
               {editingObra ? "Salvar" : "Adicionar"}
             </Button>
           </DialogFooter>

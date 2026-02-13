@@ -18,7 +18,8 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -149,7 +150,7 @@ export function ReagendarDialog({ servico, isOpen, onClose, onSuccess }: Reagend
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={saving || !novaData}>
-            {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            {saving && <Spinner size="sm" className="mr-2" />}
             Reagendar
           </Button>
         </DialogFooter>

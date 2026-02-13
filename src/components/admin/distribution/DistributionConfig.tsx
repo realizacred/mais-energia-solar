@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Plus, Trash2, Settings, RotateCcw, MapPin, Users, Loader2 } from "lucide-react";
+import { Plus, Trash2, Settings, RotateCcw, MapPin, Users } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -45,9 +47,7 @@ export function DistributionConfig() {
 
       {/* Active Rules */}
       {loading ? (
-        <Card><CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent></Card>
+        <Card><CardContent><InlineLoader context="data_load" /></CardContent></Card>
       ) : rules.length === 0 ? (
         <Card className="border-dashed border-2">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
@@ -112,9 +112,7 @@ export function DistributionConfig() {
         </CardHeader>
         <CardContent>
           {logQuery.isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            <InlineLoader context="data_load" />
           ) : (logQuery.data || []).length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">Nenhuma distribuição registrada ainda.</p>
           ) : (
@@ -215,7 +213,7 @@ function RuleDialog({
         </div>
         <DialogFooter>
           <Button onClick={handleSubmit} disabled={saving || !nome.trim()}>
-            {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            {saving ? <Spinner size="sm" className="mr-2" /> : null}
             Salvar
           </Button>
         </DialogFooter>

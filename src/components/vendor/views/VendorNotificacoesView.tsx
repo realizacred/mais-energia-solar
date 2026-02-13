@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 const PushNotificationSettings = lazy(() =>
   import("@/components/admin/PushNotificationSettings").then((m) => ({

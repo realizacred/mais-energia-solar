@@ -1,7 +1,8 @@
 import { useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Brain, RefreshCw, Loader2 } from "lucide-react";
+import { Brain, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useLeads } from "@/hooks/useLeads";
 import { useLeadScoring } from "@/hooks/useLeadScoring";
 import { LeadsToAttack } from "./LeadsToAttack";
@@ -75,7 +76,7 @@ export function IntelligenceDashboard() {
           size="sm"
         >
           {isScoring ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner size="sm" />
           ) : (
             <RefreshCw className="h-4 w-4" />
           )}

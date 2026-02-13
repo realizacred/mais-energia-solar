@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import {
   Select,
   SelectContent,
@@ -51,7 +51,7 @@ export function OrcamentoStatusSelector({
           }}
         >
           {isUpdating ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner size="sm" />
           ) : (
             <SelectValue placeholder="Status" />
           )}

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from "react";
-import { Upload, X, FileText, Image, Loader2, Camera } from "lucide-react";
+import { Upload, X, FileText, Image, Camera } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { buildStoragePath, resolvePublicTenantId, tenantPath } from "@/lib/storagePaths";

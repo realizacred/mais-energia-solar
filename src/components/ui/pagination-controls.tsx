@@ -1,4 +1,5 @@
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Loader2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 
 interface PaginationControlsProps {
@@ -41,7 +42,7 @@ export function PaginationControls({
 
       <div className="flex items-center gap-1.5">
         {isFetching && (
-          <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+          <Spinner size="sm" className="mr-2" />
         )}
 
         <Button

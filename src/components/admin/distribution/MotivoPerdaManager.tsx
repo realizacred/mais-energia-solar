@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Plus, Trash2, GripVertical, Loader2, XCircle } from "lucide-react";
+import { Plus, Trash2, GripVertical, XCircle } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
+import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +50,7 @@ export function MotivoPerdaManager() {
               onKeyDown={(e) => e.key === "Enter" && handleAdd()}
             />
             <Button onClick={handleAdd} disabled={saving || !newNome.trim()} className="gap-2 shrink-0">
-              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+              {saving ? <Spinner size="sm" /> : <Plus className="h-4 w-4" />}
               Adicionar
             </Button>
           </div>
@@ -58,9 +60,7 @@ export function MotivoPerdaManager() {
       {/* List */}
       {loading ? (
         <Card>
-          <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-          </CardContent>
+          <CardContent><InlineLoader context="data_load" /></CardContent>
         </Card>
       ) : motivos.length === 0 ? (
         <Card className="border-dashed border-2">

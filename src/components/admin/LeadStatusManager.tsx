@@ -21,7 +21,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Plus, Pencil, Trash2, GripVertical, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, GripVertical, AlertTriangle } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface LeadStatus {
   id: string;
@@ -181,11 +183,7 @@ export function LeadStatusManager() {
     SYSTEM_STATUS_NAMES.includes(nome);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <InlineLoader context="data_load" />;
   }
 
   return (
@@ -330,7 +328,7 @@ export function LeadStatusManager() {
               Cancelar
             </Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {saving && <Spinner size="sm" className="mr-2" />}
               {editingStatus ? "Salvar" : "Criar"}
             </Button>
           </DialogFooter>
@@ -352,7 +350,7 @@ export function LeadStatusManager() {
               Cancelar
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={saving}>
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {saving && <Spinner size="sm" className="mr-2" />}
               Excluir
             </Button>
           </DialogFooter>

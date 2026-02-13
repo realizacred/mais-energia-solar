@@ -21,7 +21,8 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, DollarSign, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { DollarSign, AlertTriangle, TrendingUp, TrendingDown } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface Comissao {
   id: string;
@@ -338,7 +339,7 @@ export function BulkPaymentDialog({
                   type="submit" 
                   disabled={saving || !formData.forma_pagamento || valorPagoNum <= 0}
                 >
-                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {saving && <Spinner size="sm" className="mr-2" />}
                   Pagar {formatCurrency(valorPagoNum)}
                 </Button>
               </div>

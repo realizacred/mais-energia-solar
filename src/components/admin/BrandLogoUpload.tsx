@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Trash2, Loader2, ImageIcon, Link2 } from "lucide-react";
+import { Upload, Trash2, ImageIcon, Link2 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { toast } from "@/hooks/use-toast";
 import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
 
@@ -156,7 +157,7 @@ export function BrandLogoUpload({
           className="gap-1.5"
         >
           {uploading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner size="sm" />
           ) : (
             <Upload className="h-4 w-4" />
           )}
