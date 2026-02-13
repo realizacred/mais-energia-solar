@@ -11,6 +11,18 @@ const MAX_AI_PER_CYCLE = 5;
 const AI_TIMEOUT_MS = 5000;
 const MAX_PER_INSTANCE = 5;
 
+// ── Alarm thresholds ──
+const ALARM = {
+  total_ms_warn: 45000,
+  rpc_ms_p95: 2000,
+  reconcile_ms_p95: 3000,
+  ai_total_ms_warn: 25000,
+  ai_timeouts_warn: 2,
+  backlog_pendente_warn: 50,
+  backlog_pendente_revisao_warn: 20,
+  skipped_lock_consecutive_critical: 3,
+};
+
 interface Timing {
   total_ms: number;
   reconcile_ms: number;
@@ -18,6 +30,22 @@ interface Timing {
   insert_ms: number;
   ai_total_ms: number;
   send_ms: number;
+}
+
+interface Backlog {
+  pendente: number;
+  pendente_revisao: number;
+}
+
+interface Alarms {
+  total_ms_high: boolean;
+  rpc_ms_high: boolean;
+  reconcile_ms_high: boolean;
+  ai_total_ms_high: boolean;
+  ai_timeouts_high: boolean;
+  backlog_pendente_high: boolean;
+  backlog_pendente_revisao_high: boolean;
+  skipped_lock_streak: number;
 }
 
 interface Metrics {
@@ -35,6 +63,8 @@ interface Metrics {
   instance_rate_limited: number;
   ai_budget_exhausted: number;
   timing: Timing;
+  backlog: Backlog;
+  alarms: Alarms;
 }
 
 function emptyMetrics(): Metrics {
@@ -53,7 +83,28 @@ function emptyMetrics(): Metrics {
     instance_rate_limited: 0,
     ai_budget_exhausted: 0,
     timing: { total_ms: 0, reconcile_ms: 0, rpc_ms: 0, insert_ms: 0, ai_total_ms: 0, send_ms: 0 },
+    backlog: { pendente: 0, pendente_revisao: 0 },
+    alarms: {
+      total_ms_high: false,
+      rpc_ms_high: false,
+      reconcile_ms_high: false,
+      ai_total_ms_high: false,
+      ai_timeouts_high: false,
+      backlog_pendente_high: false,
+      backlog_pendente_revisao_high: false,
+      skipped_lock_streak: 0,
+    },
   };
+}
+
+function evaluateAlarms(m: Metrics): void {
+  m.alarms.total_ms_high = m.timing.total_ms > ALARM.total_ms_warn;
+  m.alarms.rpc_ms_high = m.timing.rpc_ms > ALARM.rpc_ms_p95;
+  m.alarms.reconcile_ms_high = m.timing.reconcile_ms > ALARM.reconcile_ms_p95;
+  m.alarms.ai_total_ms_high = m.timing.ai_total_ms > ALARM.ai_total_ms_warn;
+  m.alarms.ai_timeouts_high = m.ai_timeouts >= ALARM.ai_timeouts_warn;
+  m.alarms.backlog_pendente_high = m.backlog.pendente > ALARM.backlog_pendente_warn;
+  m.alarms.backlog_pendente_revisao_high = m.backlog.pendente_revisao > ALARM.backlog_pendente_revisao_warn;
 }
 
 Deno.serve(async (req) => {
@@ -73,12 +124,33 @@ Deno.serve(async (req) => {
     const { data: lockAcquired, error: lockError } = await supabase.rpc("try_followup_lock");
     if (lockError || !lockAcquired) {
       m.skipped_lock = true;
+
+      // Track consecutive skips via a lightweight query
+      const { count: recentSkips } = await supabase
+        .from("wa_followup_queue")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pendente");
+      m.backlog.pendente = recentSkips ?? 0;
+
+      // skipped_lock streak: check last 3 log lines would need external state.
+      // We log the flag; external monitoring counts consecutive occurrences.
+      m.alarms.skipped_lock_streak = 1; // current run is a skip
+
       m.timing.total_ms = Date.now() - t0;
+      evaluateAlarms(m);
       console.log("[followup] SKIP lock_busy", JSON.stringify(m));
       return jsonResponse({ ...m, success: true });
     }
 
     try {
+      // ── Backlog snapshot (before processing) ──
+      const [{ count: cPendente }, { count: cRevisao }] = await Promise.all([
+        supabase.from("wa_followup_queue").select("id", { count: "exact", head: true }).eq("status", "pendente"),
+        supabase.from("wa_followup_queue").select("id", { count: "exact", head: true }).eq("status", "pendente_revisao"),
+      ]);
+      m.backlog.pendente = cPendente ?? 0;
+      m.backlog.pendente_revisao = cRevisao ?? 0;
+
       // ── Reconcile ──
       const tReconcile = Date.now();
       m.reconciled = await reconcilePendingFollowups(supabase);
@@ -92,6 +164,7 @@ Deno.serve(async (req) => {
 
       if (!candidates || candidates.length === 0) {
         m.timing.total_ms = Date.now() - t0;
+        evaluateAlarms(m);
         console.log("[followup] OK no_candidates", JSON.stringify(m));
         return jsonResponse({ ...m, success: true });
       }
@@ -274,11 +347,23 @@ Deno.serve(async (req) => {
     }
 
     m.timing.total_ms = Date.now() - t0;
-    console.log("[followup] OK", JSON.stringify(m));
+    evaluateAlarms(m);
+
+    // Log level based on alarms
+    const hasAlarm = Object.entries(m.alarms).some(([k, v]) =>
+      k !== "skipped_lock_streak" && v === true
+    );
+    if (hasAlarm) {
+      console.warn("[followup] WARN alarms_triggered", JSON.stringify(m));
+    } else {
+      console.log("[followup] OK", JSON.stringify(m));
+    }
+
     return jsonResponse({ ...m, success: true });
   } catch (error: any) {
     m.errors++;
     m.timing.total_ms = Date.now() - t0;
+    evaluateAlarms(m);
     console.error("[followup] FATAL", error.message, JSON.stringify(m));
 
     try {
