@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 export type LoaderTheme = "sun" | "lightning" | "gear" | "logo" | "custom";
-export type LoaderAnimation = "pulse" | "spin" | "breathe" | "spin-pulse" | "none";
+export type LoaderAnimation = "pulse" | "spin" | "breathe" | "spin-pulse" | "spin-stop" | "none";
 
 interface ThemeLoaderProps {
   theme?: LoaderTheme;
@@ -29,6 +29,7 @@ export function ThemeLoader({
       case "spin": return "animate-[sun-spin_2s_linear_infinite]";
       case "breathe": return "animate-[sun-breathe_2s_ease-in-out_infinite]";
       case "spin-pulse": return "animate-[sun-spin-pulse_2.5s_ease-in-out_infinite]";
+      case "spin-stop": return "animate-[sun-spin-stop_2s_ease-in-out_forwards]";
       case "none": return "";
       default: return "animate-[sun-pulse_1.5s_ease-in-out_infinite]";
     }
