@@ -22,6 +22,7 @@ import {
   Eye,
   PanelRightOpen,
   PanelRightClose,
+  CalendarPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -47,6 +48,7 @@ import { WaForwardDialog } from "./WaForwardDialog";
 import { WaMediaPreview } from "./WaMediaPreview";
 import { WaMessageContextMenu, type ContextMenuState } from "./WaMessageContextMenu";
 import { WaMessageBubble } from "./WaMessageBubble";
+import { WaAppointmentModal } from "./WaAppointmentModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface ReplyingTo {
@@ -115,6 +117,7 @@ export function WaChatPanel({
   const [showLeadInfo, setShowLeadInfo] = useState(false);
   const [showCRMSidebar, setShowCRMSidebar] = useState(false);
   const [showAISidebar, setShowAISidebar] = useState(false);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ url: string; type: "image" | "video" | "audio" | "document"; caption?: string } | null>(null);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyingTo | null>(null);
@@ -444,6 +447,10 @@ export function WaChatPanel({
                   <Link2 className="h-4 w-4 mr-2" />
                   {conversation.lead_id ? "Alterar Lead" : "Vincular Lead"}
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowAppointmentModal(true)}>
+                  <CalendarPlus className="h-4 w-4 mr-2" />
+                  Agendar Compromisso
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {conversation.status === "resolved" ? (
                   <DropdownMenuItem onClick={onReopen}>
@@ -581,6 +588,15 @@ export function WaChatPanel({
           onOpenChange={(open) => { if (!open) setForwardingMsg(null); }}
           message={forwardingMsg}
           currentConversationId={conversation.id}
+        />
+
+        {/* Appointment Modal */}
+        <WaAppointmentModal
+          open={showAppointmentModal}
+          onOpenChange={setShowAppointmentModal}
+          conversationId={conversation.id}
+          leadId={conversation.lead_id || undefined}
+          clienteNome={conversation.cliente_nome || undefined}
         />
       </div>
 

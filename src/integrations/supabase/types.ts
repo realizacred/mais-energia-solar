@@ -14,6 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      agenda_config: {
+        Row: {
+          agenda_enabled: boolean
+          created_at: string
+          google_default_calendar_id: string | null
+          google_sync_enabled: boolean
+          google_sync_mode: Database["public"]["Enums"]["gcal_sync_mode"]
+          google_sync_types:
+            | Database["public"]["Enums"]["appointment_type"][]
+            | null
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          agenda_enabled?: boolean
+          created_at?: string
+          google_default_calendar_id?: string | null
+          google_sync_enabled?: boolean
+          google_sync_mode?: Database["public"]["Enums"]["gcal_sync_mode"]
+          google_sync_types?:
+            | Database["public"]["Enums"]["appointment_type"][]
+            | null
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          agenda_enabled?: boolean
+          created_at?: string
+          google_default_calendar_id?: string | null
+          google_sync_enabled?: boolean
+          google_sync_mode?: Database["public"]["Enums"]["gcal_sync_mode"]
+          google_sync_types?:
+            | Database["public"]["Enums"]["appointment_type"][]
+            | null
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agenda_sync_logs: {
+        Row: {
+          action: string
+          appointment_id: string | null
+          created_at: string
+          error_message: string | null
+          google_event_id: string | null
+          id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          action: string
+          appointment_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          google_event_id?: string | null
+          id?: string
+          status: string
+          tenant_id?: string
+        }
+        Update: {
+          action?: string
+          appointment_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          google_event_id?: string | null
+          id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agenda_sync_logs_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agenda_sync_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_insights: {
         Row: {
           created_at: string
@@ -49,6 +147,110 @@ export type Database = {
           tenant_id?: string
         }
         Relationships: []
+      }
+      appointments: {
+        Row: {
+          all_day: boolean | null
+          appointment_type: Database["public"]["Enums"]["appointment_type"]
+          assigned_to: string | null
+          cliente_id: string | null
+          conversation_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          ends_at: string | null
+          google_event_id: string | null
+          google_sync_error: string | null
+          google_sync_status: string | null
+          google_synced_at: string | null
+          id: string
+          lead_id: string | null
+          reminder_minutes: number | null
+          reminder_sent: boolean | null
+          starts_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          all_day?: boolean | null
+          appointment_type?: Database["public"]["Enums"]["appointment_type"]
+          assigned_to?: string | null
+          cliente_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          google_event_id?: string | null
+          google_sync_error?: string | null
+          google_sync_status?: string | null
+          google_synced_at?: string | null
+          id?: string
+          lead_id?: string | null
+          reminder_minutes?: number | null
+          reminder_sent?: boolean | null
+          starts_at: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+          tenant_id?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          all_day?: boolean | null
+          appointment_type?: Database["public"]["Enums"]["appointment_type"]
+          assigned_to?: string | null
+          cliente_id?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          ends_at?: string | null
+          google_event_id?: string | null
+          google_sync_error?: string | null
+          google_sync_status?: string | null
+          google_synced_at?: string | null
+          id?: string
+          lead_id?: string | null
+          reminder_minutes?: number | null
+          reminder_sent?: boolean | null
+          starts_at?: string
+          status?: Database["public"]["Enums"]["appointment_status"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       audit_logs: {
         Row: {
@@ -8061,6 +8263,7 @@ export type Database = {
           remaining: number
         }[]
       }
+      cleanup_agenda_sync_logs: { Args: never; Returns: undefined }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_gcal_events: { Args: never; Returns: undefined }
       cleanup_sm_integration_requests: { Args: never; Returns: undefined }
@@ -8322,6 +8525,8 @@ export type Database = {
         | "instalador"
         | "financeiro"
         | "super_admin"
+      appointment_status: "scheduled" | "completed" | "cancelled" | "missed"
+      appointment_type: "call" | "meeting" | "followup" | "visit" | "other"
       atividade_tipo:
         | "ligacao"
         | "whatsapp"
@@ -8353,6 +8558,7 @@ export type Database = {
         | "pendente_correcao"
         | "finalizado"
         | "cancelado"
+      gcal_sync_mode: "create_only" | "bidirectional"
       projeto_status:
         | "aguardando_documentacao"
         | "em_analise"
@@ -8521,6 +8727,8 @@ export const Constants = {
         "financeiro",
         "super_admin",
       ],
+      appointment_status: ["scheduled", "completed", "cancelled", "missed"],
+      appointment_type: ["call", "meeting", "followup", "visit", "other"],
       atividade_tipo: [
         "ligacao",
         "whatsapp",
@@ -8556,6 +8764,7 @@ export const Constants = {
         "finalizado",
         "cancelado",
       ],
+      gcal_sync_mode: ["create_only", "bidirectional"],
       projeto_status: [
         "aguardando_documentacao",
         "em_analise",

@@ -13,6 +13,7 @@ import {
   Star,
   Wrench,
   CalendarClock,
+  Calendar,
   DollarSign,
   AlertTriangle,
   Wallet,
@@ -160,6 +161,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "checklists", title: "Documentação", icon: ClipboardList, description: "Checklists de projeto", keywords: ["checklist", "documento", "verificação", "projeto"] },
       { id: "avaliacoes", title: "Avaliações", icon: Star, description: "NPS — satisfação do cliente (0–10)", keywords: ["NPS", "CSAT", "feedback", "satisfação", "nota", "indicação"] },
       { id: "servicos", title: "Agenda Técnica", icon: CalendarClock, description: "Agendamentos de serviço", keywords: ["agenda", "visita", "instalação", "técnico"] },
+      { id: "agenda-config", title: "Agenda & Compromissos", icon: Calendar, description: "Configurar agenda interna e Google Calendar", keywords: ["agenda", "compromisso", "google", "calendar", "agendamento"], separator: true },
     ],
   },
 

@@ -72,6 +72,7 @@ const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCal
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
+const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -130,6 +131,7 @@ const TAB_TITLES: Record<string, string> = {
   "data-reset": "Limpeza de Dados",
   "integracoes-status": "Status das Integrações",
   "google-calendar": "Google Calendar",
+  "agenda-config": "Agenda & Compromissos",
   "ai-config": "Configuração de IA",
   changelog: "Atualizações",
   "notificacoes-config": "Notificações",
@@ -338,6 +340,7 @@ export default function Admin() {
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
+                <Route path="agenda-config" element={<AgendaConfigPage />} />
                 
                 {/* IA */}
                 <Route path="diretor" element={<CommercialDirectorDashboard />} />
