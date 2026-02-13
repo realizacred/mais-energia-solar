@@ -20,11 +20,11 @@ import { SidebarSearch } from "./SidebarSearch";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  SIDEBAR_SECTIONS,
   type SidebarSection,
   type MenuItem,
 } from "./sidebarConfig";
 import { useMenuAccess, useCanAccessItem } from "@/hooks/useMenuAccess";
+import { useNavConfig } from "@/hooks/useNavConfig";
 
 interface AdminSidebarProps {
   activeTab: string;
@@ -34,10 +34,13 @@ interface AdminSidebarProps {
 }
 
 /* ─── Build a flat lookup: item id → { item, section } ─── */
-const ITEM_MAP = new Map<string, { item: MenuItem; section: SidebarSection }>();
-SIDEBAR_SECTIONS.forEach((section) =>
-  section.items.forEach((item) => ITEM_MAP.set(item.id, { item, section }))
-);
+function buildItemMap(sections: SidebarSection[]) {
+  const map = new Map<string, { item: MenuItem; section: SidebarSection }>();
+  sections.forEach((section) =>
+    section.items.forEach((item) => map.set(item.id, { item, section }))
+  );
+  return map;
+}
 
 /* ─── Reusable menu item renderer ─── */
 function SidebarItemButton({
@@ -329,17 +332,19 @@ function FavoritesSection({
   activeTab,
   badgeCounts,
   onToggleFav,
+  itemMap,
 }: {
   favoriteIds: string[];
   activeTab: string;
   badgeCounts?: Record<string, number>;
   onToggleFav: (id: string) => void;
+  itemMap: Map<string, { item: MenuItem; section: SidebarSection }>;
 }) {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
 
   const resolvedItems = favoriteIds
-    .map((id) => ITEM_MAP.get(id))
+    .map((id) => itemMap.get(id))
     .filter(Boolean) as { item: MenuItem; section: SidebarSection }[];
 
   if (resolvedItems.length === 0) return null;
@@ -423,8 +428,12 @@ export function AdminSidebar({
     getSectionOrder,
   } = useSidebarPreferences();
 
-  const filteredSections = useMenuAccess(SIDEBAR_SECTIONS);
+  const { sections: navSections } = useNavConfig();
+  const filteredSections = useMenuAccess(navSections);
   const canAccessItem = useCanAccessItem();
+
+  // Build item map from dynamic sections
+  const itemMap = useMemo(() => buildItemMap(filteredSections), [filteredSections]);
 
   // Filter favorites to only show accessible items
   const accessibleFavorites = useMemo(
@@ -487,6 +496,7 @@ export function AdminSidebar({
               activeTab={activeTab}
               badgeCounts={badgeCounts}
               onToggleFav={toggleFavorite}
+              itemMap={itemMap}
             />
             <div className="mx-4 my-1 h-px bg-border/30" />
           </>
