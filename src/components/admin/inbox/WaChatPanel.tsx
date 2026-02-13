@@ -41,6 +41,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import type { WaConversation, WaMessage } from "@/hooks/useWaInbox";
+import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import { WaChatComposer } from "./WaChatComposer";
 import { WaLeadInfoCard } from "./WaLeadInfoCard";
 import { WaCRMSidebar } from "./WaCRMSidebar";
@@ -325,6 +326,17 @@ export function WaChatPanel({
               <h3 className="text-sm font-semibold text-foreground truncate">
                 {conversation.cliente_nome || conversation.cliente_telefone}
               </h3>
+              {(() => {
+                const ds = deriveConversationStatus(conversation);
+                const cfg = ds ? DERIVED_STATUS_CONFIG[ds] : null;
+                if (!cfg || ds === "resolvida") return null;
+                return (
+                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 gap-1 shrink-0 ${cfg.badgeClass}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
+                    {cfg.label}
+                  </Badge>
+                );
+              })()}
               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground flex-wrap">
                 <span className="truncate max-w-[120px]">{conversation.cliente_telefone}</span>
                 {conversation.instance_name && (
