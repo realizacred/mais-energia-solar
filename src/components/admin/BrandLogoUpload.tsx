@@ -49,8 +49,12 @@ export function BrandLogoUpload({
     setUploading(true);
 
     try {
+      // Force session refresh to prevent expired JWT causing RLS failures
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) console.warn("Session refresh warning:", refreshError.message);
+
       const tid = await getCurrentTenantId();
-      if (!tid) throw new Error("Tenant não encontrado");
+      if (!tid) throw new Error("Tenant não encontrado. Faça login novamente.");
       const ext = file.name.split(".").pop()?.toLowerCase() || "png";
       const fileName = tenantPath(tid, folder, `${Date.now()}.${ext}`);
 

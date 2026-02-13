@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-export type LoaderTheme = "sun" | "lightning" | "gear" | "logo" | "custom";
+export type LoaderTheme = "sun" | "lightning" | "gear" | "solar-panel" | "battery" | "leaf" | "orbit" | "logo" | "custom";
 
 /** Primary motion */
 export type LoaderMotion = "spin" | "spin360" | "pulse" | "breathe" | "none";
@@ -116,6 +116,10 @@ export function ThemeLoader({
         {theme === "sun" && <SunSVG />}
         {theme === "lightning" && <LightningSVG />}
         {theme === "gear" && <GearSVG />}
+        {theme === "solar-panel" && <SolarPanelSVG />}
+        {theme === "battery" && <BatterySVG />}
+        {theme === "leaf" && <LeafSVG />}
+        {theme === "orbit" && <OrbitSVG />}
         {(theme === "logo" || theme === "custom") && <SunSVG />}
       </svg>
     </div>
@@ -172,6 +176,119 @@ function GearSVG() {
             className="fill-primary" opacity="0.75" />
         );
       })}
+    </>
+  );
+}
+
+/** Solar Panel — painel fotovoltaico estilizado */
+function SolarPanelSVG() {
+  return (
+    <>
+      {/* Panel body */}
+      <rect x="8" y="12" width="32" height="24" rx="2" className="fill-primary/15 stroke-primary" strokeWidth="1.5" />
+      {/* Grid lines */}
+      <line x1="8" y1="20" x2="40" y2="20" className="stroke-primary" strokeWidth="0.8" opacity="0.5" />
+      <line x1="8" y1="28" x2="40" y2="28" className="stroke-primary" strokeWidth="0.8" opacity="0.5" />
+      <line x1="18.7" y1="12" x2="18.7" y2="36" className="stroke-primary" strokeWidth="0.8" opacity="0.5" />
+      <line x1="29.3" y1="12" x2="29.3" y2="36" className="stroke-primary" strokeWidth="0.8" opacity="0.5" />
+      {/* Cells fill */}
+      {[0, 1, 2].map((row) =>
+        [0, 1, 2].map((col) => (
+          <rect key={`${row}-${col}`}
+            x={9 + col * 10.7} y={13 + row * 8}
+            width="9.7" height="7" rx="0.5"
+            className="fill-primary" opacity={0.25 + row * 0.15 + col * 0.05} />
+        ))
+      )}
+      {/* Stand */}
+      <line x1="24" y1="36" x2="24" y2="42" className="stroke-primary" strokeWidth="2" strokeLinecap="round" />
+      <line x1="18" y1="42" x2="30" y2="42" className="stroke-primary" strokeWidth="2" strokeLinecap="round" />
+      {/* Sun reflection sparkle */}
+      <circle cx="14" cy="17" r="1.5" className="fill-primary" opacity="0.7">
+        <animate attributeName="opacity" values="0.7;0.2;0.7" dur="2s" repeatCount="indefinite" />
+      </circle>
+    </>
+  );
+}
+
+/** Battery — bateria com nível de carga animado */
+function BatterySVG() {
+  return (
+    <>
+      {/* Battery body */}
+      <rect x="12" y="10" width="24" height="30" rx="3" className="stroke-primary" strokeWidth="2" fill="none" />
+      {/* Battery cap */}
+      <rect x="18" y="6" width="12" height="5" rx="1.5" className="fill-primary" opacity="0.6" />
+      {/* Charge levels — animated */}
+      <rect x="15" y="32" width="18" height="5" rx="1" className="fill-primary" opacity="0.9">
+        <animate attributeName="opacity" values="0.9;0.9;0.9" dur="2s" repeatCount="indefinite" />
+      </rect>
+      <rect x="15" y="25" width="18" height="5" rx="1" className="fill-primary" opacity="0.6">
+        <animate attributeName="opacity" values="0;0.6;0.6" dur="2s" repeatCount="indefinite" />
+      </rect>
+      <rect x="15" y="18" width="18" height="5" rx="1" className="fill-primary" opacity="0.3">
+        <animate attributeName="opacity" values="0;0;0.3" dur="2s" repeatCount="indefinite" />
+      </rect>
+      {/* Lightning bolt inside */}
+      <path d="M26 14l-4 8h4l-2 8 6-10h-4l2-6z" className="fill-primary/30" />
+    </>
+  );
+}
+
+/** Leaf — folha de sustentabilidade / energia limpa */
+function LeafSVG() {
+  return (
+    <>
+      {/* Leaf shape */}
+      <path
+        d="M24 6 C12 14, 8 28, 24 42 C40 28, 36 14, 24 6Z"
+        className="fill-primary/15 stroke-primary" strokeWidth="1.5"
+      />
+      {/* Center vein */}
+      <path d="M24 12 Q24 24 24 38" className="stroke-primary" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+      {/* Side veins */}
+      <path d="M24 18 Q18 20 14 24" className="stroke-primary" strokeWidth="1" fill="none" opacity="0.5" strokeLinecap="round" />
+      <path d="M24 18 Q30 20 34 24" className="stroke-primary" strokeWidth="1" fill="none" opacity="0.5" strokeLinecap="round" />
+      <path d="M24 26 Q17 28 13 32" className="stroke-primary" strokeWidth="1" fill="none" opacity="0.5" strokeLinecap="round" />
+      <path d="M24 26 Q31 28 35 32" className="stroke-primary" strokeWidth="1" fill="none" opacity="0.5" strokeLinecap="round" />
+      {/* Glow */}
+      <circle cx="24" cy="24" r="4" className="fill-primary" opacity="0.2">
+        <animate attributeName="r" values="3;5;3" dur="2s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="0.2;0.4;0.2" dur="2s" repeatCount="indefinite" />
+      </circle>
+    </>
+  );
+}
+
+/** Orbit — elétrons orbitando um núcleo (átomo energético) */
+function OrbitSVG() {
+  return (
+    <>
+      {/* Nucleus */}
+      <circle cx="24" cy="24" r="5" className="fill-primary" opacity="0.85" />
+      <circle cx="24" cy="24" r="7" className="fill-primary/10" />
+      {/* Orbit rings */}
+      <ellipse cx="24" cy="24" rx="18" ry="8" className="stroke-primary/40" strokeWidth="1" fill="none"
+        transform="rotate(0 24 24)" />
+      <ellipse cx="24" cy="24" rx="18" ry="8" className="stroke-primary/40" strokeWidth="1" fill="none"
+        transform="rotate(60 24 24)" />
+      <ellipse cx="24" cy="24" rx="18" ry="8" className="stroke-primary/40" strokeWidth="1" fill="none"
+        transform="rotate(120 24 24)" />
+      {/* Electron 1 */}
+      <circle cx="42" cy="24" r="2.5" className="fill-primary" opacity="0.9">
+        <animateTransform attributeName="transform" type="rotate"
+          values="0 24 24;360 24 24" dur="2s" repeatCount="indefinite" />
+      </circle>
+      {/* Electron 2 */}
+      <circle cx="6" cy="24" r="2" className="fill-primary" opacity="0.7">
+        <animateTransform attributeName="transform" type="rotate"
+          from="120 24 24" to="480 24 24" dur="3s" repeatCount="indefinite" />
+      </circle>
+      {/* Electron 3 */}
+      <circle cx="33" cy="15" r="1.8" className="fill-primary" opacity="0.6">
+        <animateTransform attributeName="transform" type="rotate"
+          from="240 24 24" to="600 24 24" dur="2.5s" repeatCount="indefinite" />
+      </circle>
     </>
   );
 }

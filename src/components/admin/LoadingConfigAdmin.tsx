@@ -44,6 +44,10 @@ const DEFAULT_CATALOG: Record<string, string[]> = {
 const THEME_OPTIONS: { value: LoaderTheme; label: string; emoji: string; description: string }[] = [
   { value: "sun", label: "Sol", emoji: "☀️", description: "Animação temática com sol e raios" },
   { value: "lightning", label: "Raio / Energia", emoji: "⚡", description: "Ícone de energia pulsante" },
+  { value: "solar-panel", label: "Painel Solar", emoji: "🔲", description: "Módulo fotovoltaico com reflexo animado" },
+  { value: "battery", label: "Bateria", emoji: "🔋", description: "Bateria carregando com nível animado" },
+  { value: "leaf", label: "Sustentabilidade", emoji: "🌿", description: "Folha verde — energia limpa" },
+  { value: "orbit", label: "Átomo Energético", emoji: "⚛️", description: "Elétrons orbitando — energia renovável" },
   { value: "gear", label: "Engrenagem", emoji: "⚙️", description: "Engrenagem giratória, estilo técnico" },
   { value: "logo", label: "Logo da empresa", emoji: "🏢", description: "Usa o logo cadastrado no Brand Settings" },
   { value: "custom", label: "Imagem custom", emoji: "🎨", description: "Upload de SVG/PNG personalizado" },
@@ -111,9 +115,11 @@ export function LoadingConfigAdmin() {
 
     setUploading(true);
     try {
+      // Force session refresh to prevent expired JWT causing RLS failures
+      await supabase.auth.refreshSession();
       const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
       const tid = await getCurrentTenantId();
-      if (!tid) throw new Error("Tenant não encontrado");
+      if (!tid) throw new Error("Tenant não encontrado. Faça login novamente.");
       const ext = file.name.split(".").pop() || "png";
       const path = tenantPath(tid, "loader-custom", `${Date.now()}.${ext}`);
       const { error: uploadError } = await supabase.storage.from("brand-assets").upload(path, file, { upsert: true });
