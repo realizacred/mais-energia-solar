@@ -98,8 +98,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: BarChart3,
     indicatorBg: "bg-sidebar-intelligence",
     activeClass:
-      "bg-sidebar-intelligence/12 text-sidebar-intelligence font-semibold border-l-2 border-sidebar-intelligence",
-    hoverClass: "hover:bg-sidebar-intelligence/6",
+      "bg-sidebar-intelligence/15 text-sidebar-intelligence font-semibold border-l-[3px] border-sidebar-intelligence shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-intelligence)/0.08)]",
+    hoverClass: "hover:bg-sidebar-intelligence/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-intelligence",
     defaultOpen: true,
     items: [
@@ -113,8 +113,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: TrendingUp,
     indicatorBg: "bg-sidebar-commercial",
     activeClass:
-      "bg-sidebar-commercial/12 text-sidebar-commercial font-semibold border-l-2 border-sidebar-commercial",
-    hoverClass: "hover:bg-sidebar-commercial/6",
+      "bg-sidebar-commercial/15 text-sidebar-commercial font-semibold border-l-[3px] border-sidebar-commercial shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-commercial)/0.08)]",
+    hoverClass: "hover:bg-sidebar-commercial/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-commercial",
     defaultOpen: true,
     items: [
@@ -134,8 +134,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: MessageCircle,
     indicatorBg: "bg-sidebar-atendimento",
     activeClass:
-      "bg-sidebar-atendimento/12 text-sidebar-atendimento font-semibold border-l-2 border-sidebar-atendimento",
-    hoverClass: "hover:bg-sidebar-atendimento/6",
+      "bg-sidebar-atendimento/15 text-sidebar-atendimento font-semibold border-l-[3px] border-sidebar-atendimento shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-atendimento)/0.08)]",
+    hoverClass: "hover:bg-sidebar-atendimento/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-atendimento",
     defaultOpen: true,
     items: [
@@ -151,8 +151,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: UserCheck,
     indicatorBg: "bg-sidebar-clients",
     activeClass:
-      "bg-sidebar-clients/12 text-sidebar-clients font-semibold border-l-2 border-sidebar-clients",
-    hoverClass: "hover:bg-sidebar-clients/6",
+      "bg-sidebar-clients/15 text-sidebar-clients font-semibold border-l-[3px] border-sidebar-clients shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-clients)/0.08)]",
+    hoverClass: "hover:bg-sidebar-clients/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-clients",
     defaultOpen: true,
     items: [
@@ -169,8 +169,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Wrench,
     indicatorBg: "bg-sidebar-operations",
     activeClass:
-      "bg-sidebar-operations/12 text-sidebar-operations font-semibold border-l-2 border-sidebar-operations",
-    hoverClass: "hover:bg-sidebar-operations/6",
+      "bg-sidebar-operations/15 text-sidebar-operations font-semibold border-l-[3px] border-sidebar-operations shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-operations)/0.08)]",
+    hoverClass: "hover:bg-sidebar-operations/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-operations",
     defaultOpen: false,
     items: [
@@ -186,8 +186,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Wallet,
     indicatorBg: "bg-sidebar-finance",
     activeClass:
-      "bg-sidebar-finance/12 text-sidebar-finance font-semibold border-l-2 border-sidebar-finance",
-    hoverClass: "hover:bg-sidebar-finance/6",
+      "bg-sidebar-finance/15 text-sidebar-finance font-semibold border-l-[3px] border-sidebar-finance shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-finance)/0.08)]",
+    hoverClass: "hover:bg-sidebar-finance/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-finance",
     defaultOpen: false,
     items: [
@@ -205,8 +205,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Users,
     indicatorBg: "bg-sidebar-cadastros",
     activeClass:
-      "bg-sidebar-cadastros/12 text-sidebar-cadastros font-semibold border-l-2 border-sidebar-cadastros",
-    hoverClass: "hover:bg-sidebar-cadastros/6",
+      "bg-sidebar-cadastros/15 text-sidebar-cadastros font-semibold border-l-[3px] border-sidebar-cadastros shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-cadastros)/0.08)]",
+    hoverClass: "hover:bg-sidebar-cadastros/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-cadastros",
     defaultOpen: false,
     items: [
@@ -223,8 +223,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Bot,
     indicatorBg: "bg-sidebar-ai",
     activeClass:
-      "bg-sidebar-ai/12 text-sidebar-ai font-semibold border-l-2 border-sidebar-ai",
-    hoverClass: "hover:bg-sidebar-ai/6",
+      "bg-sidebar-ai/15 text-sidebar-ai font-semibold border-l-[3px] border-sidebar-ai shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-ai)/0.08)]",
+    hoverClass: "hover:bg-sidebar-ai/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-ai",
     defaultOpen: false,
     items: [
@@ -238,8 +238,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Cable,
     indicatorBg: "bg-sidebar-integrations",
     activeClass:
-      "bg-sidebar-integrations/12 text-sidebar-integrations font-semibold border-l-2 border-sidebar-integrations",
-    hoverClass: "hover:bg-sidebar-integrations/6",
+      "bg-sidebar-integrations/15 text-sidebar-integrations font-semibold border-l-[3px] border-sidebar-integrations shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-integrations)/0.08)]",
+    hoverClass: "hover:bg-sidebar-integrations/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-integrations",
     defaultOpen: false,
     items: [
@@ -261,8 +261,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Globe,
     indicatorBg: "bg-sidebar-marketing",
     activeClass:
-      "bg-sidebar-marketing/12 text-sidebar-marketing font-semibold border-l-2 border-sidebar-marketing",
-    hoverClass: "hover:bg-sidebar-marketing/6",
+      "bg-sidebar-marketing/15 text-sidebar-marketing font-semibold border-l-[3px] border-sidebar-marketing shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-marketing)/0.08)]",
+    hoverClass: "hover:bg-sidebar-marketing/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-marketing",
     defaultOpen: false,
     items: [
@@ -278,8 +278,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Settings,
     indicatorBg: "bg-sidebar-cadastros",
     activeClass:
-      "bg-sidebar-cadastros/12 text-sidebar-cadastros font-semibold border-l-2 border-sidebar-cadastros",
-    hoverClass: "hover:bg-sidebar-cadastros/6",
+      "bg-sidebar-cadastros/15 text-sidebar-cadastros font-semibold border-l-[3px] border-sidebar-cadastros shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-cadastros)/0.08)]",
+    hoverClass: "hover:bg-sidebar-cadastros/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-cadastros",
     defaultOpen: false,
     items: [
@@ -302,8 +302,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Shield,
     indicatorBg: "bg-sidebar-settings",
     activeClass:
-      "bg-sidebar-settings/12 text-sidebar-settings font-semibold border-l-2 border-sidebar-settings",
-    hoverClass: "hover:bg-sidebar-settings/6",
+      "bg-sidebar-settings/15 text-sidebar-settings font-semibold border-l-[3px] border-sidebar-settings shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-settings)/0.08)]",
+    hoverClass: "hover:bg-sidebar-settings/8 hover:text-sidebar-foreground/80",
     labelClass: "text-sidebar-settings",
     defaultOpen: false,
     items: [

@@ -98,7 +98,7 @@ function SidebarItemButton({
           ${
             isActive
               ? `${section.activeClass} shadow-sm font-semibold`
-              : `text-sidebar-foreground/55 ${section.hoverClass} hover:text-sidebar-foreground/90`
+              : `text-sidebar-foreground/65 ${section.hoverClass} hover:text-sidebar-foreground/90`
           }
         `}
       >
@@ -112,7 +112,7 @@ function SidebarItemButton({
             <span className="text-[13px] truncate leading-tight">
               {item.title}
             </span>
-            <span className="text-[10px] opacity-40 font-normal truncate leading-tight">
+            <span className="text-[10px] opacity-50 font-normal truncate leading-tight">
               {item.description}
             </span>
           </div>
@@ -248,7 +248,7 @@ function SidebarSectionGroup({
               text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2
               flex items-center gap-2 cursor-pointer select-none
               transition-all duration-200
-              hover:bg-accent/40 rounded-lg
+              hover:bg-accent/50 rounded-lg
               ${section.labelClass}
             `}
           >
@@ -262,7 +262,7 @@ function SidebarSectionGroup({
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1 opacity-70">{section.label}</span>
+                <span className="flex-1 opacity-80">{section.label}</span>
                 <ChevronDown className="h-3 w-3 opacity-30 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
