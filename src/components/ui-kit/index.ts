@@ -5,4 +5,5 @@ export { EmptyState } from "./EmptyState";
 export { StatusBadge } from "./StatusBadge";
 export { IconBadge } from "./IconBadge";
 export { LoadingState } from "./LoadingState";
+export { Spinner } from "./Spinner";
 export { SearchInput } from "./SearchInput";

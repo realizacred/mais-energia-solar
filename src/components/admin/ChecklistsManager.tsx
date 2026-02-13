@@ -22,6 +22,7 @@
  import { toast } from "@/hooks/use-toast";
  import { format } from "date-fns";
  import { ptBR } from "date-fns/locale";
+ import { LoadingState } from "@/components/ui-kit";
  import {
  ClipboardCheck,
  Search,
@@ -124,11 +125,7 @@
  };
  
  if (loading) {
-   return (
-     <div className="flex items-center justify-center py-12">
-       <Loader2 className="h-8 w-8 animate-spin text-primary" />
-     </div>
-   );
+   return <LoadingState className="py-12" />;
  }
  
  return (

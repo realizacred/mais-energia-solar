@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit";
 import { useOrcamentosAdmin } from "@/hooks/useOrcamentosAdmin";
 import { 
   OrcamentosTable, 
@@ -157,10 +157,7 @@ export function LeadsView() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <span className="ml-3 text-muted-foreground">Carregando orçamentos...</span>
-            </div>
+            <LoadingState message="Carregando orçamentos..." className="py-12" />
           ) : (
             <OrcamentosTable
               orcamentos={filteredOrcamentos}

@@ -10,7 +10,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertTriangle, Clock, Phone, CheckCircle, Loader2, Bell, MessageCircle, Users, FileText, Timer, Award, Send } from "lucide-react";
+import { AlertTriangle, Clock, Phone, CheckCircle, Bell, MessageCircle, Users, FileText, Timer, Award, Send, Loader2 } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit";
 import { differenceInDays, parseISO } from "date-fns";
 
 interface FollowUpItem {
@@ -313,8 +314,8 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <CardContent>
+          <LoadingState className="py-8" />
         </CardContent>
       </Card>
     );

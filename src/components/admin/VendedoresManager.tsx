@@ -15,6 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Plus, Copy, Check, Trash2, Edit2, Users, Link as LinkIcon, Phone, Mail, Loader2, UserCheck, Eye, EyeOff, KeyRound, Unlink, Send, TicketCheck } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit";
 
 interface Vendedor {
   id: string;
@@ -537,8 +538,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+        <CardContent>
+          <LoadingState className="py-12" />
         </CardContent>
       </Card>
     );
