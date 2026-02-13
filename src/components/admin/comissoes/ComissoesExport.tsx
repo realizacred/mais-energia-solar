@@ -6,7 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { Download, FileSpreadsheet, FileText } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -219,7 +220,7 @@ export function ComissoesExport({
       <DropdownMenuTrigger asChild>
         <Button variant="outline" className="gap-2" disabled={exporting || comissoes.length === 0}>
           {exporting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Spinner size="sm" />
           ) : (
             <Download className="h-4 w-4" />
           )}

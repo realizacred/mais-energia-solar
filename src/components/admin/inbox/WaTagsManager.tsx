@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Plus, Trash2, Tag, Loader2 } from "lucide-react";
+import { Plus, Trash2, Tag } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useWaTags } from "@/hooks/useWaInbox";
 
 const PRESET_COLORS = [

@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { LayoutGrid, BarChart3, Settings2, Loader2 } from "lucide-react";
+import { LayoutGrid, BarChart3, Settings2 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { subDays, isAfter } from "date-fns";
 import { PipelineFilters, KanbanCard, PipelineAutomations, EnhancedFunnel } from "./pipeline";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
@@ -398,7 +399,7 @@ const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consu
                   disabled={loadingMore}
                   className="gap-2"
                 >
-                  {loadingMore && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {loadingMore && <Spinner size="sm" />}
                   Carregar mais leads ({leads.length} carregados)
                 </Button>
               </div>

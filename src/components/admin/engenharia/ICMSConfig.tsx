@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Landmark, Save, Loader2, Search, Info } from "lucide-react";
+import { Landmark, Save, Search, Info } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
+import { InlineLoader } from "@/components/loading/InlineLoader";
 import {
   Table,
   TableBody,
@@ -101,7 +103,7 @@ export function ICMSConfig() {
     return (
       <Card>
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Spinner size="md" />
         </CardContent>
       </Card>
     );

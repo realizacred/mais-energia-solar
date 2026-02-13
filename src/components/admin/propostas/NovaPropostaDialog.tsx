@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import type { PropostaFormData } from "@/hooks/usePropostas";
 
@@ -306,7 +306,7 @@ export function NovaPropostaDialog({
             Cancelar
           </Button>
           <Button onClick={handleSubmit} disabled={creating || !isValid}>
-            {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            {creating && <Spinner size="sm" className="mr-2" />}
             Criar Proposta
           </Button>
         </DialogFooter>

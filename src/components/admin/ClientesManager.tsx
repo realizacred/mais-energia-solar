@@ -33,7 +33,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Users,
   Plus,
-  Loader2,
   Edit,
   Trash2,
   Link as LinkIcon,
@@ -43,6 +42,7 @@ import {
   Eye,
   FileText,
 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
@@ -626,7 +626,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                   Cancelar
                 </Button>
                 <Button type="submit" disabled={saving}>
-                  {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {saving && <Spinner size="sm" className="mr-2" />}
                   {editingCliente ? "Salvar" : "Cadastrar"}
                 </Button>
               </div>

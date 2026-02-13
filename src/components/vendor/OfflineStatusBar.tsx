@@ -1,4 +1,5 @@
-import { WifiOff, Wifi, RefreshCw, Loader2 } from "lucide-react";
+import { WifiOff, Wifi, RefreshCw } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { useOfflineLeadSync } from "@/hooks/useOfflineLeadSync";
 import { cn } from "@/lib/utils";
@@ -70,7 +71,7 @@ export function OfflineStatusBar({ vendedorNome }: OfflineStatusBarProps = {}) {
             >
               {isSyncing ? (
                 <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Spinner size="sm" />
                   Sincronizando...
                 </>
               ) : (

@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Loader2, XCircle } from "lucide-react";
+import { XCircle } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -68,7 +69,7 @@ export function MotivoPerdaDialog({
             <Label>Motivo de Perda *</Label>
             {loadingMotivos ? (
               <div className="flex items-center gap-2 py-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Spinner size="sm" />
                 <span className="text-sm text-muted-foreground">Carregando motivos...</span>
               </div>
             ) : activeMotivos.length === 0 ? (
@@ -106,7 +107,7 @@ export function MotivoPerdaDialog({
             onClick={handleSubmit}
             disabled={!selectedMotivo || recordLoss.isPending}
           >
-            {recordLoss.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            {recordLoss.isPending && <Spinner size="sm" className="mr-2" />}
             Registrar Perda
           </Button>
         </DialogFooter>

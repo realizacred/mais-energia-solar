@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { AlertTriangle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Mail, Lock, Loader2, CheckCircle, KeyRound, ArrowRight, Sparkles, ArrowLeft, User, Briefcase } from "lucide-react";
+import { Mail, Lock, CheckCircle, KeyRound, ArrowRight, Sparkles, ArrowLeft, User, Briefcase } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -468,7 +469,7 @@ export function AuthForm() {
               disabled={isLoading}
             >
               {isLoading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" />
               ) : (
                 <>
                   Atualizar Senha
@@ -552,7 +553,7 @@ export function AuthForm() {
 
               <Button type="submit" className="w-full h-11" disabled={isLoading}>
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Spinner size="sm" />
                 ) : (
                   <>
                     Entrar
@@ -686,7 +687,7 @@ export function AuthForm() {
 
               <Button type="submit" className="w-full h-11" disabled={isLoading}>
                 {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Spinner size="sm" />
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 mr-2" />

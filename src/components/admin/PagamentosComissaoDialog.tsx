@@ -28,7 +28,8 @@
  } from "@/components/ui/select";
  import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
  import { Progress } from "@/components/ui/progress";
- import { Plus, Loader2, Trash2, DollarSign } from "lucide-react";
+ import { Plus, Trash2, DollarSign } from "lucide-react";
+ import { Spinner } from "@/components/ui-kit/Spinner";
  import { format } from "date-fns";
  import { ptBR } from "date-fns/locale";
  
@@ -305,7 +306,7 @@
                        Cancelar
                      </Button>
                      <Button type="submit" disabled={saving}>
-                       {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                       {saving && <Spinner size="sm" className="mr-2" />}
                        Registrar
                      </Button>
                    </div>

@@ -1,6 +1,7 @@
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { UserCheck, ArrowRightLeft, Clock, Loader2, Info } from "lucide-react";
+import { UserCheck, ArrowRightLeft, Clock, Info } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { LeadOwnershipData } from "@/hooks/useLeadOwnership";
@@ -13,7 +14,7 @@ export function LeadOwnershipCard({ ownership }: LeadOwnershipCardProps) {
   if (ownership.loading) {
     return (
       <div className="flex items-center gap-2 py-2 text-muted-foreground text-sm">
-        <Loader2 className="h-3 w-3 animate-spin" />
+        <Spinner size="sm" />
         Carregando histórico...
       </div>
     );

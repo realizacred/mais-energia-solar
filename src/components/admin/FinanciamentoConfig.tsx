@@ -11,7 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, Trash2, Edit2, Loader2, Building2, Percent, CreditCard, RefreshCw, GripVertical, Check, Clock, AlertCircle, Globe } from "lucide-react";
+import { Plus, Trash2, Edit2, Building2, Percent, CreditCard, RefreshCw, GripVertical, Check, Clock, AlertCircle, Globe } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -346,9 +348,7 @@ export default function FinanciamentoConfig() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
-        </CardContent>
+        <CardContent><InlineLoader context="data_load" /></CardContent>
       </Card>
     );
   }
@@ -374,7 +374,7 @@ export default function FinanciamentoConfig() {
               className="gap-2 bg-green-600 hover:bg-green-700"
             >
               {syncingAll ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Spinner size="sm" />
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
@@ -505,7 +505,7 @@ export default function FinanciamentoConfig() {
                                     className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                   >
                                     {syncingBankId === banco.id ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                      <Spinner size="sm" />
                                     ) : (
                                       <RefreshCw className="w-4 h-4" />
                                     )}
@@ -527,7 +527,7 @@ export default function FinanciamentoConfig() {
                                     className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                                   >
                                     {syncingBankId === banco.id ? (
-                                      <Loader2 className="w-4 h-4 animate-spin" />
+                                      <Spinner size="sm" />
                                     ) : (
                                       <Globe className="w-4 h-4" />
                                     )}
@@ -690,7 +690,7 @@ export default function FinanciamentoConfig() {
               Cancelar
             </Button>
             <Button onClick={handleSaveBanco} disabled={saving}>
-              {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {saving && <Spinner size="sm" className="mr-2" />}
               {editingBanco ? "Salvar" : "Cadastrar"}
             </Button>
           </DialogFooter>

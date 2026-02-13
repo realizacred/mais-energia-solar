@@ -3,7 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, CheckCircle2, XCircle, Pause, Clock, Users, FolderOpen, FileText, Play, Timer } from "lucide-react";
+import { CheckCircle2, XCircle, Pause, Clock, Users, FolderOpen, FileText, Play, Timer } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -92,8 +93,8 @@ export function SyncProgressTracker() {
   const totalChunks = totalProjects > 0 ? Math.ceil(totalProjects / CHUNK_SIZE) : 0;
 
   const statusConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-    running: { icon: <Loader2 className="h-4 w-4 animate-spin" />, label: "Sincronizando...", color: "text-info" },
-    continuing: { icon: <Loader2 className="h-4 w-4 animate-spin" />, label: "Processando lote...", color: "text-info" },
+    running: { icon: <Spinner size="sm" />, label: "Sincronizando...", color: "text-info" },
+    continuing: { icon: <Spinner size="sm" />, label: "Processando lote...", color: "text-info" },
     success: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Concluído", color: "text-success" },
     partial: { icon: <CheckCircle2 className="h-4 w-4" />, label: "Parcial (com erros)", color: "text-warning" },
     fail: { icon: <XCircle className="h-4 w-4" />, label: "Falhou", color: "text-destructive" },

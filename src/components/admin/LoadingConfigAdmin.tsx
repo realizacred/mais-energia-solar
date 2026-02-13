@@ -16,7 +16,8 @@ import { ThemeLoader, ThemeLoaderPreview, buildAnimationKey, parseAnimationKey }
 import type { LoaderTheme, LoaderAnimation, LoaderMotion, LoaderFinish } from "@/components/loading/ThemeLoader";
 import { RotatingLoadingMessage } from "@/components/loading/LoadingMessage";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
-import { Save, RotateCcw, Palette, MessageCircle, Brain, Eye, Loader2, Upload, X } from "lucide-react";
+import { Save, RotateCcw, Palette, MessageCircle, Brain, Eye, Upload, X } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 const CONTEXT_LABELS: Record<string, string> = {
   general: "Geral",
@@ -229,7 +230,7 @@ export function LoadingConfigAdmin() {
             Restaurar padrões
           </Button>
           <Button size="sm" onClick={handleSave} disabled={saving} className="gap-2">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
             Salvar
           </Button>
         </div>
@@ -324,7 +325,7 @@ export function LoadingConfigAdmin() {
                   disabled={uploading}
                   className="gap-2"
                 >
-                  {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {uploading ? <Spinner size="sm" /> : <Upload className="h-4 w-4" />}
                   {uploading ? "Enviando..." : "Enviar imagem"}
                 </Button>
               )}

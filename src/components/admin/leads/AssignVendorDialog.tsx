@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { UserPlus, Loader2 } from "lucide-react";
+import { UserPlus } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -217,7 +218,7 @@ export function AssignVendorDialog({
 
           {loading ? (
             <div className="flex items-center justify-center py-4">
-              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              <Spinner size="sm" />
             </div>
           ) : (
             <div className="space-y-2">
@@ -261,7 +262,7 @@ export function AssignVendorDialog({
             <Button onClick={handleAssign} disabled={saving || !selectedVendedorId}>
               {saving ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  <Spinner size="sm" className="mr-2" />
                   Salvando...
                 </>
               ) : (

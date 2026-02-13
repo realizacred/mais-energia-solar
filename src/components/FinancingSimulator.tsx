@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { CreditCard, TrendingUp, Calculator, Check, Loader2 } from "lucide-react";
+import { CreditCard, TrendingUp, Calculator, Check } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface FinancingSimulatorProps {
   investimento: number;
@@ -94,7 +95,7 @@ export default function FinancingSimulator({ investimento, economia }: Financing
     return (
       <Card className="shadow-lg border-t-4 border-t-secondary">
         <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <Spinner size="md" />
         </CardContent>
       </Card>
     );

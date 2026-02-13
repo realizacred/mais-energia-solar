@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, User, Phone, Mail, Loader2, Link2Off, Zap } from "lucide-react";
+import { Search, User, Phone, Mail, Link2Off, Zap } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { WaConversation } from "@/hooks/useWaInbox";
@@ -210,7 +211,7 @@ export function WaLinkLeadSearch({
               <ScrollArea className="h-[280px]">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <Spinner size="sm" />
                   </div>
                 ) : leads.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">
@@ -254,7 +255,7 @@ export function WaLinkLeadSearch({
               <ScrollArea className="h-[280px]">
                 {isLoading ? (
                   <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <Spinner size="sm" />
                   </div>
                 ) : clientes.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-8">

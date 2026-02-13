@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { MessageSquare, Loader2, Save } from "lucide-react";
+import { MessageSquare, Save } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -159,7 +160,7 @@ export function WaAutoMessageToggle({ vendedorId: propVendedorId, compact }: WaA
                   onClick={handleSaveTemplate}
                   disabled={saving}
                 >
-                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                  {saving ? <Spinner size="sm" /> : <Save className="h-3 w-3" />}
                   Salvar template
                 </Button>
               )}

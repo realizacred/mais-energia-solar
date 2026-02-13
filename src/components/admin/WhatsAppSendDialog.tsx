@@ -12,7 +12,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
-import { MessageSquare, Send, Loader2, User, Phone } from "lucide-react";
+import { MessageSquare, Send, User, Phone } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface WhatsAppSendDialogProps {
   open: boolean;
@@ -175,7 +176,7 @@ export function WhatsAppSendDialog({
             className="bg-green-600 hover:bg-green-700 gap-2"
           >
             {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Spinner size="sm" />
             ) : (
               <Send className="h-4 w-4" />
             )}

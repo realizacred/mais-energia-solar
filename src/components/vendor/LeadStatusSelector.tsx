@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { Spinner } from "@/components/ui-kit/Spinner";
 
 interface LeadStatus {
   id: string;
@@ -92,7 +92,7 @@ export function LeadStatusSelector({
           }}
         >
           {saving ? (
-            <Loader2 className="h-3 w-3 animate-spin" />
+            <Spinner size="sm" />
           ) : (
             <SelectValue placeholder="Status" />
           )}

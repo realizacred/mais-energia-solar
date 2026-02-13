@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
-import { Save, Globe, Phone, MapPin, Type, BarChart3, Palette, Loader2, Sparkles, Building2, Instagram, Facebook, Linkedin, Youtube } from "lucide-react";
+import { Save, Globe, Phone, MapPin, Type, BarChart3, Palette, Sparkles, Building2, Instagram, Facebook, Linkedin, Youtube } from "lucide-react";
+import { InlineLoader } from "@/components/loading/InlineLoader";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -109,11 +111,7 @@ export function SiteConfigManager() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <InlineLoader context="data_load" />;
   }
 
   if (!settings) {
@@ -134,7 +132,7 @@ export function SiteConfigManager() {
           <p className="text-sm text-muted-foreground">Gerencie o conteúdo dinâmico do site institucional</p>
         </div>
         <Button onClick={handleSave} disabled={saving} className="gap-2">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          {saving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
           Salvar Alterações
         </Button>
       </div>
@@ -360,7 +358,7 @@ export function SiteConfigManager() {
                 </div>
               )}
               <Button onClick={handleExtractColors} disabled={extracting} variant="outline" className="gap-2">
-                {extracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Palette className="w-4 h-4" />}
+                {extracting ? <Spinner size="sm" /> : <Palette className="w-4 h-4" />}
                 Extrair Cores da Logo (Canvas)
               </Button>
               <p className="text-xs text-muted-foreground">
