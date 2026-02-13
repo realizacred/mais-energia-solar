@@ -77,6 +77,7 @@ interface WaChatPanelProps {
   onOpenTags: () => void;
   onOpenAssign: () => void;
   onLinkLead: () => void;
+  onAccept?: () => void;
   vendedores: { id: string; nome: string; user_id: string | null }[];
   lastReadMessageId?: string | null;
   onMarkAsRead?: (messageId: string) => void;
@@ -105,6 +106,7 @@ export function WaChatPanel({
   onOpenTags,
   onOpenAssign,
   onLinkLead,
+  onAccept,
   vendedores,
   lastReadMessageId,
   onMarkAsRead,
@@ -379,6 +381,18 @@ export function WaChatPanel({
 
           {/* Actions */}
           <div className="flex items-center gap-1 shrink-0">
+            {/* Accept button for unassigned conversations */}
+            {!conversation.assigned_to && onAccept && (
+              <Button
+                size="sm"
+                variant="default"
+                className="h-8 gap-1.5 bg-success hover:bg-success/90 text-white text-xs"
+                onClick={onAccept}
+              >
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Aceitar
+              </Button>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button

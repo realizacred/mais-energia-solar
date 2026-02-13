@@ -137,3 +137,6 @@ verify_jwt = false
 
 [functions.retry-failed-calendar-sync]
 verify_jwt = false
+
+[functions.resolve-wa-channel]
+verify_jwt = false

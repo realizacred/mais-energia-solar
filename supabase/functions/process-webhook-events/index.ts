@@ -282,14 +282,9 @@ async function handleMessageUpsert(
       conversationId = newConv.id;
     }
 
-    // ── HARDENING: Auto-assign conversations to instance owner ──
-    // For ANY non-group conversation (inbound or outbound) that has no assigned_to,
-    // resolve the owner from the instance's linked vendedores or owner_user_id.
-    // This ensures conversations are ALWAYS visible in the vendor's Inbox.
-    // For inbound: assigns to the instance's primary vendedor so they see new contacts.
-    // For outbound: assigns to the sender's instance owner.
+    // ── HARDENING: Auto-assign conversations ──
+    // Priority: #CANAL:slug marker > instance owner > first linked consultor
     if (!isGroup) {
-      // Check if conversation already has assigned_to
       const { data: convCheck } = await supabase
         .from("wa_conversations")
         .select("assigned_to")
@@ -297,21 +292,50 @@ async function handleMessageUpsert(
         .maybeSingle();
 
       if (convCheck && !convCheck.assigned_to) {
-        // Resolve owner from instance
         let ownerId: string | null = null;
+        let assignSource = "unknown";
 
-        // 1. Check owner_user_id on the instance
-        const { data: instData } = await supabase
-          .from("wa_instances")
-          .select("owner_user_id")
-          .eq("id", instanceId)
-          .maybeSingle();
+        // 1. Check #CANAL:slug marker in first inbound message
+        if (!fromMe && content) {
+          const canalMatch = content.match(/#CANAL:([a-zA-Z0-9_-]+)/);
+          if (canalMatch) {
+            const canalSlug = canalMatch[1];
+            const { data: canalConsultor } = await supabase
+              .rpc("resolve_consultor_public", { _codigo: canalSlug })
+              .maybeSingle();
 
-        if (instData?.owner_user_id) {
-          ownerId = instData.owner_user_id;
+            if (canalConsultor && canalConsultor.tenant_id === tenantId && canalConsultor.id) {
+              // Get user_id from consultores
+              const { data: consultorData } = await supabase
+                .from("consultores")
+                .select("user_id")
+                .eq("id", canalConsultor.id)
+                .maybeSingle();
+
+              if (consultorData?.user_id) {
+                ownerId = consultorData.user_id;
+                assignSource = `canal:${canalSlug}`;
+                console.log(`[process-webhook-events] #CANAL marker detected: ${canalSlug} → user ${ownerId}`);
+              }
+            }
+          }
         }
 
-        // 2. Fallback: first linked consultor via junction table
+        // 2. Fallback: instance owner_user_id
+        if (!ownerId) {
+          const { data: instData } = await supabase
+            .from("wa_instances")
+            .select("owner_user_id")
+            .eq("id", instanceId)
+            .maybeSingle();
+
+          if (instData?.owner_user_id) {
+            ownerId = instData.owner_user_id;
+            assignSource = "instance_owner";
+          }
+        }
+
+        // 3. Fallback: first linked consultor
         if (!ownerId) {
           const { data: links } = await supabase
             .from("wa_instance_consultores")
@@ -321,6 +345,7 @@ async function handleMessageUpsert(
 
           if (links && links.length > 0) {
             ownerId = (links[0].consultores as any)?.user_id || null;
+            if (ownerId) assignSource = "linked_consultor";
           }
         }
 
@@ -329,9 +354,9 @@ async function handleMessageUpsert(
             .from("wa_conversations")
             .update({ assigned_to: ownerId, status: "open" })
             .eq("id", conversationId);
-          console.log(`[process-webhook-events] Auto-assigned conversation ${conversationId} to ${ownerId} (direction=${direction})`);
+          console.log(`[process-webhook-events] Auto-assigned conversation ${conversationId} to ${ownerId} (source=${assignSource})`);
         } else {
-          console.warn(`[process-webhook-events] Conversation ${conversationId} has no assigned_to and no instance owner found`);
+          console.warn(`[process-webhook-events] Conversation ${conversationId} has no assigned_to and no owner found`);
         }
       }
     }

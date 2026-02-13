@@ -29,6 +29,7 @@ const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const AtivarConta = lazy(() => import("./pages/AtivarConta"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const WaChannelPage = lazy(() => import("./pages/WaChannelPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const MessagingApp = lazy(() => import("./pages/MessagingApp"));
 const AppDebug = lazy(() => import("./pages/AppDebug"));
@@ -86,6 +87,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/v/:codigo" element={<VendorPage />} />
+              <Route path="/w/:slug" element={<WaChannelPage />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/portal" element={<PortalSelector />} />
               <Route path="/admin/*" element={<Admin />} />
