@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Check, ExternalLink, MessageCircle, QrCode, Users, X } from "lucide-react";
+import { Copy, Check, ExternalLink, MessageCircle, QrCode, Users } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { getPublicUrl } from "@/lib/getPublicUrl";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -13,6 +14,9 @@ export function CanaisCaptacaoPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [qrSlug, setQrSlug] = useState<string | null>(null);
 
+  // Hardening #1: RLS already filters by tenant, but explicit tenant_id filter
+  // via get_user_tenant_id() isn't needed client-side (RLS enforces it).
+  // We keep the query simple; RLS is the source of truth for isolation.
   const { data: consultores = [] } = useQuery({
     queryKey: ["canais-captacao-consultores"],
     queryFn: async () => {
@@ -26,7 +30,8 @@ export function CanaisCaptacaoPage() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const appUrl = window.location.origin;
+  // Hardening #2: configurable public URL (VITE_PUBLIC_URL with fallback)
+  const appUrl = getPublicUrl();
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
