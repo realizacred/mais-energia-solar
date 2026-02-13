@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,52 @@ import { Upload, Trash2, ImageIcon, Link2 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { toast } from "@/hooks/use-toast";
 import { getCurrentTenantId, tenantPath } from "@/lib/storagePaths";
+
+// ── Image Compression ─────────────────────────────────
+const MAX_DIMENSION = 512;
+const MAX_SIZE_KB = 150;
+const QUALITY_STEPS = [0.85, 0.7, 0.55, 0.4];
+
+async function compressImage(file: File): Promise<{ blob: Blob; ext: string }> {
+  if (file.type === "image/svg+xml" || file.type === "image/x-icon") {
+    return { blob: file, ext: file.name.split(".").pop()?.toLowerCase() || "svg" };
+  }
+
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+        const ratio = Math.min(MAX_DIMENSION / width, MAX_DIMENSION / height);
+        width = Math.round(width * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d")!;
+      ctx.drawImage(img, 0, 0, width, height);
+      const tryQuality = (idx: number) => {
+        const quality = QUALITY_STEPS[idx] ?? 0.4;
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) return reject(new Error("Falha ao comprimir imagem"));
+            if (blob.size <= MAX_SIZE_KB * 1024 || idx >= QUALITY_STEPS.length - 1) {
+              resolve({ blob, ext: "webp" });
+            } else {
+              tryQuality(idx + 1);
+            }
+          },
+          "image/webp",
+          quality,
+        );
+      };
+      tryQuality(0);
+    };
+    img.onerror = () => reject(new Error("Não foi possível ler a imagem"));
+    img.src = URL.createObjectURL(file);
+  });
+}
 
 interface BrandLogoUploadProps {
   label: string;
@@ -49,13 +95,17 @@ export function BrandLogoUpload({
     setUploading(true);
 
     try {
-      // Force session refresh to prevent expired JWT causing RLS failures
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) console.warn("Session refresh warning:", refreshError.message);
 
       const tid = await getCurrentTenantId();
       if (!tid) throw new Error("Tenant não encontrado. Faça login novamente.");
-      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+
+      // Compress image (resize + WebP conversion)
+      const { blob: compressedBlob, ext } = await compressImage(file);
+      const originalKb = Math.round(file.size / 1024);
+      const finalKb = Math.round(compressedBlob.size / 1024);
+
       const fileName = tenantPath(tid, folder, `${Date.now()}.${ext}`);
 
       // Delete old file if it's from our bucket
@@ -68,9 +118,10 @@ export function BrandLogoUpload({
 
       const { error: uploadError } = await supabase.storage
         .from("brand-assets")
-        .upload(fileName, file, {
+        .upload(fileName, compressedBlob, {
           cacheControl: "3600",
           upsert: true,
+          contentType: ext === "webp" ? "image/webp" : file.type,
         });
 
       if (uploadError) throw uploadError;
@@ -80,7 +131,14 @@ export function BrandLogoUpload({
         .getPublicUrl(fileName);
 
       onChange(urlData.publicUrl);
-      toast({ title: "Upload concluído!" });
+
+      const savedPercent = originalKb > 0 ? Math.round((1 - finalKb / originalKb) * 100) : 0;
+      toast({
+        title: "Upload concluído!",
+        description: savedPercent > 10
+          ? `Imagem otimizada: ${originalKb}KB → ${finalKb}KB (${savedPercent}% menor)`
+          : undefined,
+      });
     } catch (err: any) {
       toast({
         title: "Erro no upload",

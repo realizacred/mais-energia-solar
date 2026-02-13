@@ -46,8 +46,7 @@ import { PhotoCapture } from "@/components/checklist/PhotoCapture";
    Grid3X3,
  } from "lucide-react";
  import { cn } from "@/lib/utils";
-import logoWhite from "@/assets/logo-branca.png";
-import logoBlue from "@/assets/logo.png";
+import { useLogo } from "@/hooks/useLogo";
 import { useBrandSettings } from "@/hooks/useBrandSettings";
  import { VideoCapture } from "./VideoCapture";
   import { SolarLayoutEditor, type LayoutData } from "@/components/solar-editor";
@@ -86,7 +85,8 @@ import { useBrandSettings } from "@/hooks/useBrandSettings";
  
  export function ServicoEmAndamento({ servico, onClose, onServiceUpdated }: ServicoEmAndamentoProps) {
   const { settings: brandSettings } = useBrandSettings();
-  const logo = brandSettings?.logo_small_url || brandSettings?.logo_url || logoBlue;
+  const logo = useLogo();
+  const logoWhite = useLogo({ onDarkBg: true });
    const [currentStep, setCurrentStep] = useState(1);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
