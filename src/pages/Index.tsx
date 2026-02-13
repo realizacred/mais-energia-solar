@@ -7,11 +7,15 @@ import Footer from "@/components/layout/Footer";
 import {
   HeroBanner,
   AboutSection,
+  HowItWorksSection,
   ServicesSection,
+  SavingsComparisonSection,
   ProjectsSection,
   InstagramSection,
   CTASection,
   TestimonialsSection,
+  FAQSection,
+  PartnersSection,
   ContactSection,
 } from "@/components/institutional";
 import { VendorLandingPage } from "@/components/vendor/VendorLandingPage";
@@ -19,12 +23,10 @@ import { VendorLandingPage } from "@/components/vendor/VendorLandingPage";
 export default function Index() {
   const [searchParams] = useSearchParams();
 
-  // Detecta se é link de vendedor
   const isVendorLink = useMemo(() => {
     return !!(searchParams.get("v") || searchParams.get("vendedor"));
   }, [searchParams]);
 
-  // Página dedicada para links de vendedores
   if (isVendorLink) {
     return <VendorLandingPage />;
   }
@@ -32,14 +34,17 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      {/* Extra top padding to account for header + banner carousel */}
       <HeroBanner />
       <AboutSection />
+      <HowItWorksSection />
       <ServicesSection />
+      <SavingsComparisonSection />
       <CTASection />
       <ProjectsSection />
-      <InstagramSection />
       <TestimonialsSection />
+      <PartnersSection />
+      <FAQSection />
+      <InstagramSection />
       <ContactSection />
       <Footer />
       <WhatsAppButton />

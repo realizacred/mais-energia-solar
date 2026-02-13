@@ -15,8 +15,10 @@ interface HeaderProps {
 const navLinks = [
   { label: "Home", href: "#" },
   { label: "Quem Somos", href: "#quem-somos" },
+  { label: "Como Funciona", href: "#como-funciona" },
   { label: "Serviços", href: "#servicos" },
-  { label: "Obras Realizadas", href: "#obras" },
+  { label: "Obras", href: "#obras" },
+  { label: "FAQ", href: "#faq" },
   { label: "Contato", href: "#contato" },
 ];
 

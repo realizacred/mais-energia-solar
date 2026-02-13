@@ -1,8 +1,12 @@
 export { HeroBanner } from './HeroBanner';
 export { AboutSection } from './AboutSection';
+export { HowItWorksSection } from './HowItWorksSection';
 export { ServicesSection } from './ServicesSection';
+export { SavingsComparisonSection } from './SavingsComparisonSection';
 export { ProjectsSection } from './ProjectsSection';
 export { InstagramSection } from './InstagramSection';
 export { TestimonialsSection } from './TestimonialsSection';
+export { FAQSection } from './FAQSection';
+export { PartnersSection } from './PartnersSection';
 export { CTASection } from './CTASection';
 export { ContactSection } from './ContactSection';
