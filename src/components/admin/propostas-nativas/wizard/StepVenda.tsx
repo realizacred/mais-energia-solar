@@ -1,9 +1,11 @@
-import { SlidersHorizontal } from "lucide-react";
+import { useState, useEffect } from "react";
+import { SlidersHorizontal, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { supabase } from "@/integrations/supabase/client";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
 
 interface StepVendaProps {
@@ -14,6 +16,33 @@ interface StepVendaProps {
 }
 
 export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaProps) {
+  const [loadedDefaults, setLoadedDefaults] = useState(false);
+  const [descontoMax, setDescontoMax] = useState(100);
+
+  // Load pricing_config defaults once
+  useEffect(() => {
+    if (loadedDefaults) return;
+    supabase
+      .from("pricing_config")
+      .select("margem_minima_percent, comissao_padrao_percent, desconto_maximo_percent")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          const d = data as any;
+          // Only apply defaults if user hasn't touched them
+          if (venda.margem_percentual === 20 && d.margem_minima_percent) {
+            onVendaChange({
+              ...venda,
+              margem_percentual: d.margem_minima_percent,
+            });
+          }
+          if (d.desconto_maximo_percent) setDescontoMax(d.desconto_maximo_percent);
+        }
+        setLoadedDefaults(true);
+      });
+  }, []);
+
   const update = (field: keyof VendaData, value: any) => {
     onVendaChange({ ...venda, [field]: value });
   };
@@ -25,6 +54,7 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
   const precoComMargem = custoBase + margemValor;
   const descontoValor = precoComMargem * (venda.desconto_percentual / 100);
   const precoFinal = precoComMargem - descontoValor;
+  const margemLiquida = custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
 
   return (
     <div className="space-y-5">
@@ -55,8 +85,8 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
           <Input type="number" min={0} value={venda.custo_outros || ""} onChange={e => update("custo_outros", Number(e.target.value))} placeholder="0,00" className="h-9" />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Desconto (%)</Label>
-          <Input type="number" min={0} max={100} value={venda.desconto_percentual || ""} onChange={e => update("desconto_percentual", Number(e.target.value))} placeholder="0" className="h-9" />
+          <Label className="text-xs">Desconto (%) <span className="text-muted-foreground font-normal">máx {descontoMax}%</span></Label>
+          <Input type="number" min={0} max={descontoMax} value={venda.desconto_percentual || ""} onChange={e => update("desconto_percentual", Math.min(Number(e.target.value), descontoMax))} placeholder="0" className="h-9" />
         </div>
       </div>
 
@@ -94,12 +124,26 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
               <span className="font-medium text-destructive">-{formatBRL(descontoValor)}</span>
             </div>
           )}
-          <div className="flex justify-between px-4 py-3 text-base font-bold bg-primary/5">
-            <span>Preço Final</span>
-            <span className="text-primary">{formatBRL(precoFinal)}</span>
+          <div className="flex justify-between px-4 py-3 bg-primary/5">
+            <div>
+              <span className="text-base font-bold">Preço Final</span>
+              <span className="text-xs text-muted-foreground ml-2">
+                Margem líq. {margemLiquida.toFixed(1)}%
+              </span>
+            </div>
+            <span className="text-base font-bold text-primary">{formatBRL(precoFinal)}</span>
           </div>
         </div>
       </div>
+
+      {/* R$/kWp indicator */}
+      {custoKit > 0 && (
+        <div className="flex items-center gap-3 text-xs text-muted-foreground">
+          <Badge variant="outline" className="text-[10px]">
+            R$/kWp não disponível (potência vem do wizard)
+          </Badge>
+        </div>
+      )}
 
       {/* Observações */}
       <div className="space-y-2">
