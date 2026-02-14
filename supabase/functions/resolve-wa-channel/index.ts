@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
         .from("wa_instances")
         .select("id, phone_number, evolution_api_url, evolution_instance_key, api_key, status")
         .in("id", instanceIds)
-        .eq("status", "active")
+        .in("status", ["active", "connected"])
         .limit(5);
 
       if (instances && instances.length > 0) {
@@ -77,7 +77,7 @@ Deno.serve(async (req) => {
         .from("wa_instances")
         .select("id, phone_number, evolution_api_url, evolution_instance_key, api_key, status")
         .eq("tenant_id", consultor.tenant_id)
-        .eq("status", "active")
+        .in("status", ["active", "connected"])
         .limit(1)
         .maybeSingle();
 
@@ -119,24 +119,41 @@ async function fetchAndCachePhone(supabase: any, instance: any): Promise<string 
 
     if (!apiUrl || !instanceKey) return null;
 
-    const resp = await fetch(`${apiUrl}/instance/fetchInstances`, {
+    const listResp = await fetch(`${apiUrl}/instance/fetchInstances`, {
       headers: { apikey: apiKey },
     });
 
-    if (!resp.ok) {
-      console.warn("[resolve-wa-channel] Evolution API error:", resp.status);
+    if (!listResp.ok) {
+      console.warn("[resolve-wa-channel] Evolution API error:", listResp.status);
       return null;
     }
 
-    const instances = await resp.json();
+    const instances = await listResp.json();
+    
+    // Try multiple known Evolution API response formats
     const match = Array.isArray(instances)
-      ? instances.find((i: any) => i.instance?.instanceName === instanceKey)
+      ? instances.find((i: any) => {
+          const name = i.instance?.instanceName || i.instanceName || i.name || i.id;
+          return name === instanceKey;
+        })
       : null;
 
-    const ownerJid = match?.instance?.owner;
-    if (!ownerJid) return null;
+    if (!match) {
+      console.warn(`[resolve-wa-channel] No match for instanceKey="${instanceKey}"`);
+      return null;
+    }
 
-    const phone = ownerJid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
+    // Try multiple known paths for the owner/number (Evolution API v1 vs v2)
+    const ownerJid = match?.instance?.owner || match?.owner || match?.ownerJid;
+    const number = match?.instance?.number || match?.number;
+    
+    const rawPhone = ownerJid || number;
+    if (!rawPhone) {
+      console.warn("[resolve-wa-channel] No owner/number found. Match keys:", Object.keys(match));
+      return null;
+    }
+
+    const phone = String(rawPhone).replace("@s.whatsapp.net", "").replace(/\D/g, "");
     if (!phone) return null;
 
     // Cache in DB
