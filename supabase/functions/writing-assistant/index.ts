@@ -1,4 +1,3 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -33,19 +32,28 @@ const ACTION_INSTRUCTIONS: Record<Action, string> = {
   translate_es: "Traduce este texto al español. Devuelve SOLO el texto traducido.",
 };
 
-const DEFAULT_PRIMARY_MODEL = "google/gemini-2.5-flash";
-const FALLBACK_MODEL = "google/gemini-2.5-flash-lite";
-const ALLOWED_MODELS = [
-  "google/gemini-2.5-flash-lite",
-  "google/gemini-2.5-flash",
-  "google/gemini-3-flash-preview",
-  "google/gemini-2.5-pro",
+// ── Model → Provider mapping ──
+const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini"];
+const GEMINI_MODELS = [
+  "gemini-2.0-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-2.5-flash-preview-05-20",
+  "gemini-2.5-pro-preview-06-05",
 ];
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+type Provider = "openai" | "google_gemini";
+
+function resolveProvider(model: string): Provider {
+  if (OPENAI_MODELS.includes(model)) return "openai";
+  return "google_gemini";
+}
+
+const DEFAULT_MODEL = "gemini-2.5-flash-preview-05-20";
 const MAX_TEXT_LENGTH = 2000;
 const AI_TIMEOUT_MS = 8000;
 
-async function callAI(
+// ── OpenAI call ──
+async function callOpenAI(
   apiKey: string,
   model: string,
   action: Action,
@@ -62,7 +70,7 @@ Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
   const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
 
   try {
-    const response = await fetch(AI_GATEWAY_URL, {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -74,15 +82,15 @@ Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        stream: false,
+        max_tokens: 500,
+        temperature: 0.7,
       }),
       signal: controller.signal,
     });
 
     if (!response.ok) {
-      const status = response.status;
       const body = await response.text();
-      throw new Error(`AI_HTTP_${status}: ${body}`);
+      throw new Error(`AI_HTTP_${response.status}: ${body}`);
     }
 
     const data = await response.json();
@@ -94,7 +102,54 @@ Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
   }
 }
 
-serve(async (req) => {
+// ── Gemini call ──
+async function callGemini(
+  apiKey: string,
+  model: string,
+  action: Action,
+  text: string,
+  locale: string
+): Promise<string> {
+  const systemPrompt = `Você é um assistente de escrita para mensagens comerciais em ${locale}.
+Reescreva o texto do usuário conforme a instrução.
+Retorne APENAS o texto reescrito, sem explicações, sem aspas, sem prefixos.`;
+
+  const userPrompt = `${ACTION_INSTRUCTIONS[action]}\n\nTexto:\n${text}`;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 500,
+        },
+      }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new Error(`AI_HTTP_${response.status}: ${body}`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) throw new Error("AI_EMPTY_RESPONSE");
+    return content.trim();
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -137,7 +192,7 @@ serve(async (req) => {
     }
     userId = user.id;
 
-    // Resolve tenant — profiles.user_id is the FK to auth.users.id
+    // Resolve tenant
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("tenant_id")
@@ -145,9 +200,6 @@ serve(async (req) => {
       .single();
 
     if (profileError || !profile?.tenant_id) {
-      console.error(
-        `[writing-assistant] tenant resolution failed for user=${user.id}: ${profileError?.message || "no profile"}`
-      );
       logStatus = 403;
       return new Response(
         JSON.stringify({ error: "Perfil não encontrado. Contate o administrador." }),
@@ -156,8 +208,8 @@ serve(async (req) => {
     }
     tenantId = profile.tenant_id;
 
-    // ── Resolve preferred model from tenant settings (user-scoped, RLS safe) ──
-    let primaryModel = DEFAULT_PRIMARY_MODEL;
+    // ── Resolve preferred model from tenant settings ──
+    let primaryModel = DEFAULT_MODEL;
     const { data: aiSettings } = await supabase
       .from("wa_ai_settings")
       .select("templates")
@@ -166,20 +218,40 @@ serve(async (req) => {
     if (aiSettings?.templates) {
       const tpl = aiSettings.templates as Record<string, any>;
       const configuredModel = tpl?.writing_assistant?.model;
-      if (configuredModel && ALLOWED_MODELS.includes(configuredModel)) {
+      if (configuredModel && [...OPENAI_MODELS, ...GEMINI_MODELS].includes(configuredModel)) {
         primaryModel = configuredModel;
       }
     }
 
-    // ── Rate limit ──
-    // GUARDRAIL: service_role client is used EXCLUSIVELY for check_rate_limit RPC.
-    // It bypasses RLS by design — DO NOT reuse for any data query.
-    // If you need tenant-scoped data, use the user-scoped `supabase` client above.
+    const provider = resolveProvider(primaryModel);
+
+    // ── Get tenant API key from integration_configs ──
+    // GUARDRAIL: service_role only for rate limit + key fetch
     const supabaseService = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const { data: keyRow } = await supabaseService
+      .from("integration_configs")
+      .select("api_key")
+      .eq("tenant_id", tenantId)
+      .eq("service_key", provider)
+      .eq("is_active", true)
+      .single();
+
+    if (!keyRow?.api_key) {
+      logStatus = 422;
+      const providerName = provider === "openai" ? "OpenAI" : "Google Gemini";
+      return new Response(
+        JSON.stringify({
+          error: `Chave da API ${providerName} não configurada. Vá em Admin → Integrações para adicioná-la.`,
+        }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // ── Rate limit ──
     const { data: allowed } = await supabaseService.rpc("check_rate_limit", {
       _function_name: "writing-assistant",
       _identifier: user.id,
@@ -212,9 +284,7 @@ serve(async (req) => {
     if (text.length > MAX_TEXT_LENGTH) {
       logStatus = 400;
       return new Response(
-        JSON.stringify({
-          error: `Texto muito longo (máx ${MAX_TEXT_LENGTH} caracteres).`,
-        }),
+        JSON.stringify({ error: `Texto muito longo (máx ${MAX_TEXT_LENGTH} caracteres).` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -230,58 +300,41 @@ serve(async (req) => {
     logAction = action;
     logTextLength = text.trim().length;
 
-    // ── API Key ──
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
-    // ── Call AI with fallback ──
+    // ── Call AI ──
     let suggestion: string;
+    const callFn = provider === "openai" ? callOpenAI : callGemini;
+
     try {
-      suggestion = await callAI(LOVABLE_API_KEY, primaryModel, action, text.trim(), locale);
+      suggestion = await callFn(keyRow.api_key, primaryModel, action, text.trim(), locale);
       logModel = primaryModel;
-    } catch (primaryError) {
-      console.warn(
-        `[writing-assistant] Primary model failed: ${primaryError instanceof Error ? primaryError.message : "unknown"}`
+    } catch (err) {
+      console.error(
+        `[writing-assistant] ${provider} model failed: ${err instanceof Error ? err.message : "unknown"}`
       );
-      try {
-        suggestion = await callAI(LOVABLE_API_KEY, FALLBACK_MODEL, action, text.trim(), locale);
-        logModel = FALLBACK_MODEL;
-      } catch (fallbackError) {
-        console.error(
-          `[writing-assistant] Fallback model also failed: ${fallbackError instanceof Error ? fallbackError.message : "unknown"}`
-        );
 
-        // Check for specific error codes
-        const errMsg =
-          fallbackError instanceof Error ? fallbackError.message : "";
-        if (errMsg.includes("AI_HTTP_429")) {
-          logStatus = 429;
-          return new Response(
-            JSON.stringify({
-              error: "Limite de requisições de IA excedido. Tente novamente em breve.",
-            }),
-            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        if (errMsg.includes("AI_HTTP_402")) {
-          logStatus = 402;
-          return new Response(
-            JSON.stringify({ error: "Créditos de IA esgotados." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-
-        logStatus = 502;
+      const errMsg = err instanceof Error ? err.message : "";
+      if (errMsg.includes("AI_HTTP_429")) {
+        logStatus = 429;
         return new Response(
-          JSON.stringify({
-            error:
-              "Assistente de escrita temporariamente indisponível. Envie sua mensagem normalmente.",
-          }),
-          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ error: "Limite de requisições da IA excedido. Tente novamente em breve." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+      if (errMsg.includes("AI_HTTP_402") || errMsg.includes("AI_HTTP_403")) {
+        logStatus = 402;
+        return new Response(
+          JSON.stringify({ error: "Chave da API inválida ou sem créditos. Verifique em Admin → Integrações." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      logStatus = 502;
+      return new Response(
+        JSON.stringify({
+          error: "Assistente de escrita temporariamente indisponível. Envie sua mensagem normalmente.",
+        }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     logStatus = 200;

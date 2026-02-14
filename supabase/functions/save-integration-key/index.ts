@@ -83,6 +83,22 @@ Deno.serve(async (req) => {
       } catch (err: any) {
         validation = { valid: false, details: err.message || "Timeout ou erro de conexão" };
       }
+    } else if (service_key === "google_gemini") {
+      try {
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${api_key}`,
+          { method: "GET", signal: AbortSignal.timeout(10000) }
+        );
+        if (res.ok) {
+          await res.text();
+          validation = { valid: true, details: "API key válida" };
+        } else {
+          const errText = await res.text();
+          validation = { valid: false, details: `HTTP ${res.status}: ${errText.slice(0, 100)}` };
+        }
+      } catch (err: any) {
+        validation = { valid: false, details: err.message || "Timeout ou erro de conexão" };
+      }
     } else {
       // For other services, accept without validation for now
       validation = { valid: true, details: "Salva sem validação" };

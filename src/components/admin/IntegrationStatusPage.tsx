@@ -30,6 +30,7 @@ import {
   Send,
   Inbox,
   Phone,
+  Sparkles,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 
@@ -82,10 +83,18 @@ const INTEGRATION_META: Record<string, IntegrationMeta> = {
   openai: {
     icon: Brain,
     color: "text-secondary",
-    description: "IA — Sugestões comerciais e análise de leads",
+    description: "OpenAI — Sugestões comerciais e assistente de escrita",
     configurable: true,
     placeholder: "sk-...",
     helpText: "Chave da API OpenAI. Validada antes de salvar.",
+  },
+  google_gemini: {
+    icon: Sparkles,
+    color: "text-primary",
+    description: "Google Gemini — IA alternativa para assistente de escrita",
+    configurable: true,
+    placeholder: "AIzaSy...",
+    helpText: "Chave da API Google Gemini (AI Studio). Validada antes de salvar.",
   },
 };
 
@@ -522,7 +531,7 @@ export function IntegrationStatusPage() {
 
       {/* ── Other integrations (SolarMarket, OpenAI) ── */}
       <div className="grid gap-4">
-        {(["solarmarket", "openai"] as const).map((id) => {
+        {(["solarmarket", "openai", "google_gemini"] as const).map((id) => {
           const meta = INTEGRATION_META[id];
           const result = otherResults.find((r) => r.id === id);
           const Icon = meta.icon;
