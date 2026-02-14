@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Settings, MessageSquare, FileText, ShoppingCart, FolderOpen,
   Clock, User, ChevronRight, Zap, DollarSign, CalendarDays, Loader2,
-  Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter
+  Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
+  MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +85,11 @@ interface StorageFile {
   metadata: { size?: number; mimetype?: string } | null;
 }
 
+interface PipelineInfo {
+  id: string;
+  name: string;
+}
+
 interface Props {
   dealId: string;
   onBack: () => void;
@@ -93,7 +99,7 @@ const TABS = [
   { id: "gerenciamento", label: "Gerenciamento", icon: Settings },
   { id: "chat", label: "Chat Whatsapp", icon: MessageSquare },
   { id: "propostas", label: "Propostas", icon: FileText },
-  { id: "loja", label: "Loja SolarMarket", icon: ShoppingCart },
+  { id: "loja", label: "Loja Solarmarket", icon: ShoppingCart },
   { id: "documentos", label: "Documentos", icon: FolderOpen },
 ] as const;
 
@@ -106,10 +112,18 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const [stages, setStages] = useState<StageInfo[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
+  const [customerCpfCnpj, setCustomerCpfCnpj] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("gerenciamento");
+  const [pipelines, setPipelines] = useState<PipelineInfo[]>([]);
+  const [allStagesMap, setAllStagesMap] = useState<Map<string, StageInfo[]>>(new Map());
+  const [propostasCount, setPropostasCount] = useState(0);
+  const [docsCount, setDocsCount] = useState(0);
 
+  // Load deal data
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -124,18 +138,47 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
         setDeal(d);
         setHistory((historyRes.data || []) as StageHistory[]);
 
-        const [stagesRes, customerRes, ownerRes] = await Promise.all([
+        const [stagesRes, customerRes, ownerRes, pipelinesRes, allStagesRes] = await Promise.all([
           supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", d.pipeline_id).order("position"),
-          d.customer_id ? supabase.from("clientes").select("nome, telefone").eq("id", d.customer_id).single() : Promise.resolve({ data: null }),
+          d.customer_id ? supabase.from("clientes").select("nome, telefone, email, cpf_cnpj, rua, numero, bairro, cidade, estado, cep").eq("id", d.customer_id).single() : Promise.resolve({ data: null }),
           supabase.from("consultores").select("nome").eq("id", d.owner_id).single(),
+          supabase.from("pipelines").select("id, name").eq("is_active", true).order("name"),
+          supabase.from("pipeline_stages").select("id, name, position, pipeline_id, is_closed, is_won, probability").order("position"),
         ]);
 
         setStages((stagesRes.data || []) as StageInfo[]);
         if (customerRes.data) {
-          setCustomerName((customerRes.data as any).nome);
-          setCustomerPhone((customerRes.data as any).telefone || "");
+          const c = customerRes.data as any;
+          setCustomerName(c.nome);
+          setCustomerPhone(c.telefone || "");
+          setCustomerEmail(c.email || "");
+          setCustomerCpfCnpj(c.cpf_cnpj || "");
+          const parts = [c.rua, c.numero ? `n° ${c.numero}` : null, c.bairro, c.cidade ? `${c.cidade} (${c.estado || ""})` : null, c.cep ? `CEP: ${c.cep}` : null].filter(Boolean);
+          setCustomerAddress(parts.join(", "));
         }
         if (ownerRes.data) setOwnerName((ownerRes.data as any).nome);
+        if (pipelinesRes.data) setPipelines(pipelinesRes.data as PipelineInfo[]);
+        if (allStagesRes.data) {
+          const map = new Map<string, StageInfo[]>();
+          (allStagesRes.data as any[]).forEach(s => {
+            const arr = map.get(s.pipeline_id) || [];
+            arr.push({ id: s.id, name: s.name, position: s.position, is_closed: s.is_closed, is_won: s.is_won, probability: s.probability });
+            map.set(s.pipeline_id, arr);
+          });
+          setAllStagesMap(map);
+        }
+
+        // Counts for tab badges
+        if (d.customer_id) {
+          supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", d.customer_id)
+            .then(({ count }) => setPropostasCount(count || 0));
+        }
+        supabase.from("profiles").select("tenant_id").limit(1).single().then(({ data: profile }) => {
+          if (profile) {
+            supabase.storage.from("projeto-documentos").list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 })
+              .then(({ data: files }) => setDocsCount(files?.length || 0));
+          }
+        });
       } catch (err) {
         console.error("ProjetoDetalhe:", err);
       } finally {
@@ -147,6 +190,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
 
   const currentStage = useMemo(() => stages.find(s => s.id === deal?.stage_id), [stages, deal]);
   const currentStageIndex = useMemo(() => stages.findIndex(s => s.id === deal?.stage_id), [stages, deal]);
+  const currentPipeline = useMemo(() => pipelines.find(p => p.id === deal?.pipeline_id), [pipelines, deal]);
 
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
@@ -159,6 +203,22 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const getStageNameById = (id: string | null) => {
     if (!id) return "—";
     return stages.find(s => s.id === id)?.name || "—";
+  };
+
+  const reloadDeal = async () => {
+    setLoading(true);
+    try {
+      const { data: d } = await supabase.from("deals").select("id, title, value, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date").eq("id", dealId).single();
+      if (d) {
+        setDeal(d as DealDetail);
+        const [stagesRes, historyRes] = await Promise.all([
+          supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", (d as any).pipeline_id).order("position"),
+          supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
+        ]);
+        setStages((stagesRes.data || []) as StageInfo[]);
+        setHistory((historyRes.data || []) as StageHistory[]);
+      }
+    } finally { setLoading(false); }
   };
 
   if (loading) {
@@ -179,88 +239,68 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
     );
   }
 
+  const tabBadge = (tabId: string) => {
+    if (tabId === "propostas" && propostasCount > 0) return `(${propostasCount})`;
+    if (tabId === "documentos" && docsCount > 0) return `(${docsCount})`;
+    if (tabId === "loja") return "(0)";
+    return null;
+  };
+
   return (
-    <div className="space-y-4">
-      {/* ── Header ── */}
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon-sm" onClick={onBack}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-lg font-bold text-foreground truncate">
+    <div className="space-y-0">
+      {/* ── Breadcrumb ── */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+        <button onClick={onBack} className="hover:text-foreground transition-colors">Projetos</button>
+        <ChevronRight className="h-3 w-3" />
+        <span className="text-foreground font-medium">Projeto #{deal.title?.match(/#(\d+)/)?.[1] || deal.id.slice(0, 6)}</span>
+      </div>
+
+      {/* ── Header Row ── */}
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="text-xl font-bold text-foreground truncate">
             {customerName || deal.title}
-          </h2>
-          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><User className="h-3 w-3" />{ownerName}</span>
-            {deal.value > 0 && (
-              <span className="flex items-center gap-1 font-bold text-foreground">
-                <DollarSign className="h-3 w-3 text-success" />{formatBRL(deal.value)}
-              </span>
-            )}
-            <Badge variant="secondary" className="text-[10px] h-5">{deal.status}</Badge>
+          </h1>
+          <Button variant="ghost" size="icon-sm" className="shrink-0">
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+          {/* Status badges */}
+          {deal.value > 0 && (
+            <Badge className="bg-destructive/90 text-destructive-foreground text-xs shrink-0">
+              {formatBRL(deal.value)}
+            </Badge>
+          )}
+          <Badge variant="secondary" className="text-xs shrink-0 capitalize">{deal.status}</Badge>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="flex -space-x-2">
+            <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center">
+              <User className="h-4 w-4 text-muted-foreground" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Stepper Horizontal ── */}
-      <Card className="overflow-hidden">
-        <CardContent className="py-5 px-6">
-          <div className="relative">
-            <div className="absolute top-4 left-0 right-0 h-1 bg-muted rounded-full" />
-            <motion.div
-              className="absolute top-4 left-0 h-1 bg-gradient-to-r from-teal-solar to-amarelo-sol rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: stages.length > 1 ? `${(currentStageIndex / (stages.length - 1)) * 100}%` : "0%" }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
-            />
-            <div className="relative flex justify-between">
-              {stages.map((stage, i) => {
-                const isCompleted = i < currentStageIndex;
-                const isCurrent = i === currentStageIndex;
-                const isPast = i <= currentStageIndex;
-                return (
-                  <div key={stage.id} className="flex flex-col items-center z-10">
-                    <motion.div
-                      className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold border-2 transition-all",
-                        isCompleted && "bg-teal-solar border-teal-solar text-white",
-                        isCurrent && "bg-background border-teal-solar text-teal-solar shadow-md",
-                        !isPast && "bg-muted border-muted-foreground/20 text-muted-foreground"
-                      )}
-                      animate={{ scale: isCurrent ? 1.15 : 1 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      {isCompleted ? "✓" : i + 1}
-                    </motion.div>
-                    <span className={cn(
-                      "mt-1.5 text-[10px] font-medium text-center max-w-[70px] leading-tight",
-                      isCurrent ? "text-teal-solar font-bold" : "text-muted-foreground"
-                    )}>
-                      {stage.name}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Tabs ── */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-1">
+      {/* ── Main Tabs ── */}
+      <div className="flex items-center border-b border-border/60 mb-0 overflow-x-auto">
         {TABS.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const badge = tabBadge(tab.id);
           return (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all",
-                isActive ? "bg-teal-solar text-white shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-[1px]",
+                isActive
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               )}
             >
-              <Icon className="h-4 w-4" />{tab.label}
+              <Icon className="h-4 w-4" />
+              {tab.label}
+              {badge && <span className="text-xs text-muted-foreground ml-0.5">{badge}</span>}
             </button>
           );
         })}
@@ -270,32 +310,24 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.2 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.15 }}
+          className="pt-4"
         >
           {activeTab === "gerenciamento" && (
             <GerenciamentoTab
               deal={deal} history={history} stages={stages}
-              customerName={customerName} ownerName={ownerName}
-              currentStage={currentStage}
+              pipelines={pipelines} allStagesMap={allStagesMap}
+              customerName={customerName} customerPhone={customerPhone}
+              customerEmail={customerEmail} customerCpfCnpj={customerCpfCnpj}
+              customerAddress={customerAddress}
+              ownerName={ownerName}
+              currentStage={currentStage} currentStageIndex={currentStageIndex}
+              currentPipeline={currentPipeline}
               formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
-              onDealUpdated={async () => {
-                setLoading(true);
-                try {
-                  const { data: d } = await supabase.from("deals").select("id, title, value, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date").eq("id", dealId).single();
-                  if (d) {
-                    setDeal(d as DealDetail);
-                    const [stagesRes, historyRes] = await Promise.all([
-                      supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", (d as any).pipeline_id).order("position"),
-                      supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
-                    ]);
-                    setStages((stagesRes.data || []) as StageInfo[]);
-                    setHistory((historyRes.data || []) as StageHistory[]);
-                  }
-                } finally { setLoading(false); }
-              }}
+              onDealUpdated={reloadDeal}
             />
           )}
           {activeTab === "chat" && (
@@ -321,7 +353,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
 type TimelineFilter = "todos" | "funil" | "notas" | "documentos";
 
 const TIMELINE_FILTERS: { id: TimelineFilter; label: string; icon: typeof ChevronRight }[] = [
-  { id: "todos", label: "Todos", icon: Filter },
+  { id: "todos", label: "Todas", icon: Filter },
   { id: "funil", label: "Funil", icon: Zap },
   { id: "notas", label: "Notas", icon: StickyNote },
   { id: "documentos", label: "Documentos", icon: FolderOpen },
@@ -338,58 +370,46 @@ interface UnifiedTimelineItem {
 }
 
 function GerenciamentoTab({
-  deal, history, stages, customerName, ownerName, currentStage,
+  deal, history, stages, pipelines, allStagesMap,
+  customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress,
+  ownerName, currentStage, currentStageIndex, currentPipeline,
   formatDate, formatBRL, getStageNameById, onDealUpdated,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
-  customerName: string; ownerName: string; currentStage?: StageInfo;
+  pipelines: PipelineInfo[]; allStagesMap: Map<string, StageInfo[]>;
+  customerName: string; customerPhone: string; customerEmail: string;
+  customerCpfCnpj: string; customerAddress: string;
+  ownerName: string; currentStage?: StageInfo; currentStageIndex: number;
+  currentPipeline?: PipelineInfo;
   formatDate: (d: string) => string; formatBRL: (v: number) => string;
   getStageNameById: (id: string | null) => string;
   onDealUpdated: () => void;
 }) {
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
-  const [pipelines, setPipelines] = useState<{ id: string; name: string }[]>([]);
-  const [allStagesMap, setAllStagesMap] = useState<Map<string, { id: string; name: string; position: number }[]>>(new Map());
   const [changingPipeline, setChangingPipeline] = useState(false);
+  const [consultores, setConsultores] = useState<{ id: string; nome: string }[]>([]);
 
-  // Load pipelines
+  // Load consultores for owner selector
   useEffect(() => {
-    supabase.from("pipelines").select("id, name").eq("is_active", true).order("name")
-      .then(({ data }) => {
-        if (data) setPipelines(data as { id: string; name: string }[]);
-      });
-    supabase.from("pipeline_stages").select("id, name, position, pipeline_id").order("position")
-      .then(({ data }) => {
-        if (data) {
-          const map = new Map<string, { id: string; name: string; position: number }[]>();
-          (data as any[]).forEach(s => {
-            const arr = map.get(s.pipeline_id) || [];
-            arr.push({ id: s.id, name: s.name, position: s.position });
-            map.set(s.pipeline_id, arr);
-          });
-          setAllStagesMap(map);
-        }
-      });
+    supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome")
+      .then(({ data }) => { if (data) setConsultores(data as any[]); });
   }, []);
 
   const handlePipelineChange = async (pipelineId: string) => {
     if (pipelineId === deal.pipeline_id) return;
     setChangingPipeline(true);
     try {
-      // Get first stage of the target pipeline
       const targetStages = allStagesMap.get(pipelineId);
       const firstStage = targetStages?.sort((a, b) => a.position - b.position)[0];
       if (!firstStage) {
         toast({ title: "Este funil não tem etapas configuradas", variant: "destructive" });
         return;
       }
-
       const { error } = await supabase.from("deals")
         .update({ pipeline_id: pipelineId, stage_id: firstStage.id })
         .eq("id", deal.id);
       if (error) throw error;
-
       toast({ title: "Funil alterado com sucesso" });
       onDealUpdated();
     } catch (err: any) {
@@ -399,13 +419,53 @@ function GerenciamentoTab({
     }
   };
 
+  const handleOwnerChange = async (ownerId: string) => {
+    if (ownerId === deal.owner_id) return;
+    try {
+      const { error } = await supabase.from("deals").update({ owner_id: ownerId }).eq("id", deal.id);
+      if (error) throw error;
+      toast({ title: "Responsável alterado" });
+      onDealUpdated();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleWinDeal = async () => {
+    try {
+      const wonStage = stages.find(s => s.is_won);
+      const update: any = { status: "won" };
+      if (wonStage) update.stage_id = wonStage.id;
+      const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
+      if (error) throw error;
+      toast({ title: "🎉 Projeto ganho!" });
+      onDealUpdated();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleLoseDeal = async () => {
+    try {
+      const lostStage = stages.find(s => s.is_closed && !s.is_won);
+      const update: any = { status: "lost" };
+      if (lostStage) update.stage_id = lostStage.id;
+      const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
+      if (error) throw error;
+      toast({ title: "Projeto marcado como perdido" });
+      onDealUpdated();
+    } catch (err: any) {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    }
+  };
+
   // Load document activity for timeline
   useEffect(() => {
     async function loadDocEntries() {
       try {
         const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
         if (!profile) return;
-        const path = `${profile.tenant_id}/deals/${deal.id}`;
+        const path = `${(profile as any).tenant_id}/deals/${deal.id}`;
         const { data } = await supabase.storage
           .from("projeto-documentos")
           .list(path, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
@@ -423,27 +483,20 @@ function GerenciamentoTab({
     loadDocEntries();
   }, [deal.id, formatDate]);
 
-  // Build unified timeline entries
+  // Build unified timeline
   const allEntries = useMemo(() => {
     const entries: UnifiedTimelineItem[] = [];
-
-    // Current stage (always first)
     if (currentStage) {
       entries.push({
-        id: "current-stage",
-        type: "funil",
+        id: "current-stage", type: "funil",
         title: `Etapa atual: ${currentStage.name}`,
         subtitle: `Probabilidade: ${currentStage.probability}%`,
-        date: formatDate(deal.updated_at),
-        isCurrent: true,
+        date: formatDate(deal.updated_at), isCurrent: true,
       });
     }
-
-    // Stage history
     history.forEach(h => {
       entries.push({
-        id: h.id,
-        type: "funil",
+        id: h.id, type: "funil",
         title: h.from_stage_id
           ? `Movido de "${getStageNameById(h.from_stage_id)}" para "${getStageNameById(h.to_stage_id)}"`
           : `Incluído na etapa "${getStageNameById(h.to_stage_id)}"`,
@@ -451,35 +504,20 @@ function GerenciamentoTab({
         date: formatDate(h.moved_at),
       });
     });
-
-    // Notes from deal
     if ((deal as any).notas) {
       const notasText = String((deal as any).notas);
       entries.push({
-        id: "nota-principal",
-        type: "nota",
+        id: "nota-principal", type: "nota",
         title: "Nota adicionada",
         subtitle: notasText.length > 80 ? notasText.substring(0, 80) + "..." : notasText,
         date: formatDate(deal.updated_at),
       });
     }
-
-    // Document entries
     entries.push(...docEntries);
-
-    // Creation entry (always last)
-    entries.push({
-      id: "criacao",
-      type: "criacao",
-      title: "Projeto criado",
-      date: formatDate(deal.created_at),
-      isFirst: true,
-    });
-
+    entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", date: formatDate(deal.created_at), isFirst: true });
     return entries;
   }, [history, currentStage, deal, docEntries, formatDate, getStageNameById]);
 
-  // Filtered entries
   const filteredEntries = useMemo(() => {
     if (timelineFilter === "todos") return allEntries;
     if (timelineFilter === "funil") return allEntries.filter(e => e.type === "funil" || e.type === "criacao");
@@ -496,98 +534,234 @@ function GerenciamentoTab({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div className="lg:col-span-1 space-y-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold">Informações</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Funil</span>
-              <Select
-                value={deal.pipeline_id}
-                onValueChange={handlePipelineChange}
-                disabled={changingPipeline}
-              >
-                <SelectTrigger className="h-7 w-[160px] text-xs font-medium">
-                  <SelectValue placeholder="Selecionar funil" />
-                </SelectTrigger>
-                <SelectContent>
-                  {pipelines.map(p => (
-                    <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+    <div className="space-y-4">
+      {/* ── Pipeline Sub-Tabs + Stepper Area ── */}
+      <div className="space-y-3">
+        {/* Pipeline tabs row */}
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {pipelines.map(p => {
+              const isActive = p.id === deal.pipeline_id;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => !isActive && handlePipelineChange(p.id)}
+                  disabled={changingPipeline}
+                  className={cn(
+                    "px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all border-b-2",
+                    isActive
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {p.name}
+                </button>
+              );
+            })}
+            <button className="px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors">
+              <Plus className="h-4 w-4" />
+            </button>
+            <button className="px-2 py-1.5 text-muted-foreground hover:text-destructive transition-colors">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+
+          {/* Win / Lose + Owner */}
+          <div className="flex items-center gap-3">
+            <Button
+              size="sm"
+              onClick={handleWinDeal}
+              className="bg-success hover:bg-success/90 text-success-foreground font-bold px-5"
+            >
+              Ganhar
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleLoseDeal}
+              className="font-bold px-5"
+            >
+              Perder
+            </Button>
+          </div>
+        </div>
+
+        {/* Stage name + Stepper + Responsável */}
+        <div className="flex items-start justify-between gap-6">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-foreground mb-2">{currentStage?.name || "—"}</p>
+            {/* Stepper */}
+            <div className="relative">
+              <div className="absolute top-[9px] left-0 right-0 h-[3px] bg-muted rounded-full" />
+              <motion.div
+                className="absolute top-[9px] left-0 h-[3px] bg-primary rounded-full"
+                initial={{ width: "0%" }}
+                animate={{ width: stages.length > 1 ? `${(currentStageIndex / (stages.length - 1)) * 100}%` : "0%" }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              />
+              <div className="relative flex justify-between">
+                {stages.map((stage, i) => {
+                  const isPast = i <= currentStageIndex;
+                  const isCurrent = i === currentStageIndex;
+                  return (
+                    <div key={stage.id} className="flex flex-col items-center z-10">
+                      <motion.div
+                        className={cn(
+                          "w-5 h-5 rounded-full border-2 transition-all",
+                          isPast ? "bg-primary border-primary" : "bg-muted border-muted-foreground/20",
+                          isCurrent && "ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+                        )}
+                        animate={{ scale: isCurrent ? 1.2 : 1 }}
+                        transition={{ duration: 0.3 }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-            <InfoRow label="Cliente" value={customerName || "—"} />
-            <InfoRow label="Responsável" value={ownerName} />
-            <InfoRow label="Etapa Atual" value={currentStage?.name || "—"} />
-            <InfoRow label="Valor" value={formatBRL(deal.value)} />
-            <InfoRow label="Status" value={deal.status} />
-            <InfoRow label="Criado em" value={formatDate(deal.created_at)} />
-            {deal.expected_close_date && (
-              <InfoRow label="Previsão" value={new Date(deal.expected_close_date).toLocaleDateString("pt-BR")} />
-            )}
-          </CardContent>
-        </Card>
+          </div>
+
+          {/* Responsável */}
+          <div className="shrink-0 text-right space-y-1">
+            <p className="text-xs text-muted-foreground">Responsável no funil</p>
+            <Select value={deal.owner_id} onValueChange={handleOwnerChange}>
+              <SelectTrigger className="h-8 w-[180px] text-sm">
+                <SelectValue placeholder="Selecionar" />
+              </SelectTrigger>
+              <SelectContent>
+                {consultores.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
-      <div className="lg:col-span-2">
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <CardTitle className="text-sm font-bold flex items-center gap-2">
-                <Clock className="h-4 w-4 text-teal-solar" />Timeline de Atividades
-              </CardTitle>
-            </div>
-            {/* Mini-filter tabs */}
-            <div className="flex items-center gap-1 mt-2 overflow-x-auto">
-              {TIMELINE_FILTERS.map(f => {
-                const Icon = f.icon;
-                const isActive = timelineFilter === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    onClick={() => setTimelineFilter(f.id)}
-                    className={cn(
-                      "flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all",
-                      isActive
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <Icon className="h-3 w-3" />{f.label}
-                  </button>
-                );
-              })}
-            </div>
-          </CardHeader>
-          <CardContent>
-            {filteredEntries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <p className="text-sm">Nenhuma atividade nesta categoria</p>
+      <Separator />
+
+      {/* ── Two Column Layout: Client Data + Timeline ── */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Left: Client Data */}
+        <div className="lg:col-span-2 space-y-5">
+          {/* Dados do Cliente */}
+          <div>
+            <h3 className="text-sm font-bold text-foreground mb-3">Dados do cliente</h3>
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="text-sm font-medium">{customerName || "—"}</span>
               </div>
-            ) : (
-              <div className="relative">
-                <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border/60 rounded-full" />
-                <div className="space-y-4">
-                  {filteredEntries.map(entry => (
-                    <TimelineEntry
-                      key={entry.id}
-                      icon={getEntryIcon(entry)}
-                      title={entry.title}
-                      subtitle={entry.subtitle}
-                      date={entry.date}
-                      isCurrent={entry.isCurrent}
-                      isFirst={entry.isFirst}
-                    />
-                  ))}
+              {customerCpfCnpj && (
+                <div className="flex items-center gap-3">
+                  <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm">{customerCpfCnpj}</span>
                 </div>
+              )}
+              {customerPhone && (
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm">{customerPhone}</span>
+                </div>
+              )}
+              {customerEmail && (
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <span className="text-sm text-primary">{customerEmail}</span>
+                </div>
+              )}
+              {customerAddress && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <span className="text-sm">{customerAddress}</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Project info */}
+          <div>
+            <h3 className="text-sm font-bold text-foreground mb-3">Informações do Projeto</h3>
+            <div className="space-y-2 text-sm">
+              <InfoRow label="Funil" value={currentPipeline?.name || "—"} />
+              <InfoRow label="Etapa" value={currentStage?.name || "—"} />
+              <InfoRow label="Valor" value={formatBRL(deal.value)} />
+              <InfoRow label="Status" value={deal.status} />
+              <InfoRow label="Criado em" value={formatDate(deal.created_at)} />
+              {deal.expected_close_date && (
+                <InfoRow label="Previsão" value={new Date(deal.expected_close_date).toLocaleDateString("pt-BR")} />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Timeline / Histórico */}
+        <div className="lg:col-span-3">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <Clock className="h-4 w-4 text-primary" />
+              Histórico
+            </h3>
+            <Button variant="ghost" size="sm" className="gap-1 text-xs h-7">
+              <Plus className="h-3 w-3" />Nova nota
+            </Button>
+          </div>
+
+          {/* Filter tabs */}
+          <div className="flex items-center gap-1 mb-4 overflow-x-auto">
+            {TIMELINE_FILTERS.map(f => {
+              const Icon = f.icon;
+              const isActive = timelineFilter === f.id;
+              const count = f.id === "todos" ? null :
+                f.id === "funil" ? allEntries.filter(e => e.type === "funil" || e.type === "criacao").length :
+                f.id === "notas" ? allEntries.filter(e => e.type === "nota").length :
+                allEntries.filter(e => e.type === "documento").length;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => setTimelineFilter(f.id)}
+                  className={cn(
+                    "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all",
+                    isActive
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  {f.label}
+                  {count !== null && count > 0 && (
+                    <span className={cn("text-[10px]", isActive ? "opacity-80" : "")}>({count})</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Timeline */}
+          {filteredEntries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <p className="text-sm">Nenhuma atividade nesta categoria</p>
+            </div>
+          ) : (
+            <div className="relative">
+              <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border/60 rounded-full" />
+              <div className="space-y-4">
+                {filteredEntries.map(entry => (
+                  <TimelineEntry
+                    key={entry.id}
+                    icon={getEntryIcon(entry)}
+                    title={entry.title}
+                    subtitle={entry.subtitle}
+                    date={entry.date}
+                    isCurrent={entry.isCurrent}
+                    isFirst={entry.isFirst}
+                  />
+                ))}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -695,7 +869,7 @@ function PropostasTab({ customerId, dealTitle, navigate }: { customerId: string 
                     <div className="flex items-center gap-4 text-xs text-muted-foreground">
                       {v.potencia_kwp && (
                         <span className="flex items-center gap-0.5">
-                          <Zap className="h-3 w-3 text-amarelo-sol" />{v.potencia_kwp} kWp
+                          <Zap className="h-3 w-3 text-warning" />{v.potencia_kwp} kWp
                         </span>
                       )}
                       <span className="font-bold text-foreground">{formatBRL(v.valor_total)}</span>
@@ -737,7 +911,6 @@ function ChatTab({ customerId, customerPhone }: { customerId: string | null; cus
     async function load() {
       if (!customerPhone && !customerId) { setLoading(false); return; }
       try {
-        // Search by phone digits
         const digits = customerPhone.replace(/\D/g, "");
         if (digits.length >= 10) {
           const { data } = await supabase
@@ -781,8 +954,8 @@ function ChatTab({ customerId, customerPhone }: { customerId: string | null; cus
               onClick={() => navigate("/admin/inbox")}
             >
               <CardContent className="py-3 px-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-teal-solar/10 flex items-center justify-center shrink-0">
-                  <MessageSquare className="h-5 w-5 text-teal-solar" />
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <MessageSquare className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -823,23 +996,17 @@ function DocumentosTab({ dealId }: { dealId: string }) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const folderPath = useMemo(() => {
-    // We'll resolve tenant_id on the fly at upload time
-    return `deals/${dealId}`;
-  }, [dealId]);
+  const folderPath = useMemo(() => `deals/${dealId}`, [dealId]);
 
   const loadFiles = async () => {
     setLoading(true);
     try {
-      // Get tenant_id from profile
       const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
       if (!profile) { setLoading(false); return; }
-
-      const path = `${profile.tenant_id}/${folderPath}`;
+      const path = `${(profile as any).tenant_id}/${folderPath}`;
       const { data, error } = await supabase.storage
         .from("projeto-documentos")
         .list(path, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-
       if (error) throw error;
       setFiles((data || []) as StorageFile[]);
     } catch (err) { console.error("DocumentosTab:", err); }
@@ -851,15 +1018,12 @@ function DocumentosTab({ dealId }: { dealId: string }) {
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
     if (!fileList || fileList.length === 0) return;
-
     setUploading(true);
     try {
       await supabase.auth.refreshSession();
       const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
       if (!profile) throw new Error("Perfil não encontrado");
-
-      const basePath = `${profile.tenant_id}/${folderPath}`;
-
+      const basePath = `${(profile as any).tenant_id}/${folderPath}`;
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
         const fileName = `${Date.now()}_${file.name}`;
@@ -868,7 +1032,6 @@ function DocumentosTab({ dealId }: { dealId: string }) {
           .upload(`${basePath}/${fileName}`, file, { upsert: false });
         if (error) throw error;
       }
-
       toast({ title: "Arquivo(s) enviado(s) com sucesso!" });
       loadFiles();
     } catch (err: any) {
@@ -883,11 +1046,9 @@ function DocumentosTab({ dealId }: { dealId: string }) {
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
       if (!profile) return;
-
-      const path = `${profile.tenant_id}/${folderPath}/${fileName}`;
+      const path = `${(profile as any).tenant_id}/${folderPath}/${fileName}`;
       const { error } = await supabase.storage.from("projeto-documentos").remove([path]);
       if (error) throw error;
-
       setFiles(prev => prev.filter(f => f.name !== fileName));
       toast({ title: "Arquivo removido" });
     } catch (err: any) {
@@ -899,8 +1060,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
       if (!profile) return;
-
-      const path = `${profile.tenant_id}/${folderPath}/${fileName}`;
+      const path = `${(profile as any).tenant_id}/${folderPath}/${fileName}`;
       const { data, error } = await supabase.storage.from("projeto-documentos").createSignedUrl(path, 300);
       if (error) throw error;
       if (data?.signedUrl) window.open(data.signedUrl, "_blank");
@@ -923,19 +1083,8 @@ function DocumentosTab({ dealId }: { dealId: string }) {
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-bold text-foreground">Documentos do Projeto</h3>
         <div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleUpload}
-          />
-          <Button
-            size="sm"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="gap-1.5"
-          >
+          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
+          <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
             {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
             {uploading ? "Enviando..." : "Upload"}
           </Button>
@@ -954,7 +1103,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
         <div className="space-y-1.5">
           {files.map(f => (
             <div key={f.name} className="flex items-center gap-3 py-2.5 px-4 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
-              <FileText className="h-5 w-5 text-teal-solar shrink-0" />
+              <FileText className="h-5 w-5 text-primary shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
                 <p className="text-[10px] text-muted-foreground">
@@ -1002,8 +1151,8 @@ function TimelineEntry({ icon, title, subtitle, date, isCurrent, isFirst }: {
     <div className="relative flex gap-3 pl-0">
       <div className={cn(
         "relative z-10 flex items-center justify-center w-6 h-6 rounded-full shrink-0 border-2",
-        isCurrent ? "bg-teal-solar border-teal-solar text-white"
-          : isFirst ? "bg-amarelo-sol border-amarelo-sol text-white"
+        isCurrent ? "bg-primary border-primary text-primary-foreground"
+          : isFirst ? "bg-warning border-warning text-warning-foreground"
           : "bg-background border-border text-muted-foreground"
       )}>
         {icon}
