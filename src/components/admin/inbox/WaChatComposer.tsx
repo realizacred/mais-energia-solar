@@ -98,6 +98,19 @@ export function WaChatComposer({
   const prefillAppliedRef = useRef(false);
 
   // ── Writing Assistant ──
+  const { data: writingAssistantEnabled } = useQuery({
+    queryKey: ["writing-assistant-enabled"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("wa_ai_settings")
+        .select("templates")
+        .maybeSingle();
+      const templates = data?.templates as Record<string, any> | null;
+      return templates?.writing_assistant?.enabled !== false;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const isWritingAssistantOn = writingAssistantEnabled !== false;
   const writingAssistant = useWritingAssistant();
 
   // Apply prefill message once
@@ -620,7 +633,7 @@ export function WaChatComposer({
         </Tooltip>
 
         {/* Writing Assistant */}
-        {!isNoteMode && (
+        {!isNoteMode && isWritingAssistantOn && (
           <>
             <div className="w-px h-4 bg-border/50 mx-1" />
             <WritingAssistantButton
@@ -687,7 +700,7 @@ export function WaChatComposer({
       )}
 
       {/* Writing Assistant Preview */}
-      {writingAssistant.suggestion && writingAssistant.originalText && (
+      {isWritingAssistantOn && writingAssistant.suggestion && writingAssistant.originalText && (
         <WritingAssistantPreview
           originalText={writingAssistant.originalText}
           suggestion={writingAssistant.suggestion}
