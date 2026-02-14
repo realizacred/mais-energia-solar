@@ -131,15 +131,29 @@ serve(async (req) => {
     }
     userId = user.id;
 
-    // Resolve tenant
-    const { data: profile } = await supabase
+    // Resolve tenant — profiles.user_id is the FK to auth.users.id
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("tenant_id")
       .eq("user_id", user.id)
       .single();
-    tenantId = profile?.tenant_id || "unknown";
+
+    if (profileError || !profile?.tenant_id) {
+      console.error(
+        `[writing-assistant] tenant resolution failed for user=${user.id}: ${profileError?.message || "no profile"}`
+      );
+      logStatus = 403;
+      return new Response(
+        JSON.stringify({ error: "Perfil não encontrado. Contate o administrador." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    tenantId = profile.tenant_id;
 
     // ── Rate limit ──
+    // GUARDRAIL: service_role client is used EXCLUSIVELY for check_rate_limit RPC.
+    // It bypasses RLS by design — DO NOT reuse for any data query.
+    // If you need tenant-scoped data, use the user-scoped `supabase` client above.
     const supabaseService = createClient(
       supabaseUrl,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
