@@ -472,10 +472,10 @@ async function handleMessageUpsert(
 
     // ── Fetch media if applicable ──
     let mediaUrl: string | null = msg.mediaUrl || null;
-    const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || null;
+    const mediaMimeType: string | null = msg.mimetype || messageContent?.imageMessage?.mimetype || messageContent?.videoMessage?.mimetype || messageContent?.audioMessage?.mimetype || messageContent?.documentMessage?.mimetype || messageContent?.stickerMessage?.mimetype || null;
     
-    if (!mediaUrl && ["image", "video", "audio", "document"].includes(messageType) && evolutionMessageId) {
-      mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType, mediaMimeType, msg);
+    if (!mediaUrl && ["image", "video", "audio", "document", "gif", "sticker"].includes(messageType) && evolutionMessageId) {
+      mediaUrl = await fetchAndStoreMedia(supabase, instanceId, tenantId, evolutionMessageId, messageType === "gif" ? "video" : messageType, mediaMimeType, msg);
     }
 
     // ⚠️ HARDENING: Use upsert with ignoreDuplicates to prevent duplicate key errors
@@ -713,7 +713,9 @@ function extractMessageContent(messageContent: any, msg: any): { content: string
     return { content: messageContent.imageMessage.caption || null, messageType: "image" };
   }
   if (messageContent.videoMessage) {
-    return { content: messageContent.videoMessage.caption || null, messageType: "video" };
+    // WhatsApp sends GIFs as videoMessage with gifPlayback=true
+    const isGif = messageContent.videoMessage.gifPlayback === true;
+    return { content: messageContent.videoMessage.caption || null, messageType: isGif ? "gif" : "video" };
   }
   if (messageContent.audioMessage) {
     return { content: null, messageType: "audio" };

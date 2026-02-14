@@ -312,7 +312,10 @@ function extractContent(messageContent: any, msg: any): { content: string | null
   if (messageContent.conversation) return { content: messageContent.conversation, messageType: "text" };
   if (messageContent.extendedTextMessage?.text) return { content: messageContent.extendedTextMessage.text, messageType: "text" };
   if (messageContent.imageMessage) return { content: messageContent.imageMessage.caption || null, messageType: "image" };
-  if (messageContent.videoMessage) return { content: messageContent.videoMessage.caption || null, messageType: "video" };
+  if (messageContent.videoMessage) {
+    const isGif = messageContent.videoMessage.gifPlayback === true;
+    return { content: messageContent.videoMessage.caption || null, messageType: isGif ? "gif" : "video" };
+  }
   if (messageContent.audioMessage) return { content: null, messageType: "audio" };
   if (messageContent.documentMessage) return { content: messageContent.documentMessage.fileName || null, messageType: "document" };
   if (messageContent.stickerMessage) return { content: null, messageType: "sticker" };
