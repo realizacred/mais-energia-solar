@@ -2,6 +2,7 @@ import { Briefcase } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { type ComercialData, UF_LIST } from "./types";
 
 interface Props {
@@ -10,8 +11,14 @@ interface Props {
 }
 
 export function StepComercial({ comercial, onComercialChange }: Props) {
+  const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(comercial.empresa_estado);
+
   const update = (field: keyof ComercialData, value: string) => {
-    onComercialChange({ ...comercial, [field]: value });
+    if (field === "empresa_estado" && value !== comercial.empresa_estado) {
+      onComercialChange({ ...comercial, [field]: value, empresa_cidade: "" });
+    } else {
+      onComercialChange({ ...comercial, [field]: value });
+    }
   };
 
   return (
@@ -80,8 +87,17 @@ export function StepComercial({ comercial, onComercialChange }: Props) {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">Cidade</Label>
-            <Input value={comercial.empresa_cidade} onChange={e => update("empresa_cidade", e.target.value)} className="h-9" />
+            <Label className="text-xs">{cidadesLoading ? "Carregando cidades..." : "Cidade"}</Label>
+            {cidades.length > 0 ? (
+              <Select value={comercial.empresa_cidade} onValueChange={v => update("empresa_cidade", v)}>
+                <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {cidades.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input value={comercial.empresa_cidade} onChange={e => update("empresa_cidade", e.target.value)} className="h-9" />
+            )}
           </div>
         </div>
 

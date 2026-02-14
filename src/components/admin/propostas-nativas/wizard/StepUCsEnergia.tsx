@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { supabase } from "@/integrations/supabase/client";
+import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import {
   type UCData, type Concessionaria, createEmptyUC,
   UF_LIST, TIPO_TELHADO_OPTIONS, GRUPO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT, MESES,
@@ -33,6 +34,7 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
 
   const currentUC = ucs[Number(activeUC)] || ucs[0];
   const currentEstado = currentUC?.estado;
+  const { cidades: cidadesUC, isLoading: cidadesLoading } = useCidadesPorEstado(currentEstado || "");
 
   // Fetch concessionárias when estado changes
   useEffect(() => {
@@ -70,7 +72,11 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
 
   const updateUC = (index: number, field: keyof UCData, value: any) => {
     const updated = [...ucs];
-    updated[index] = { ...updated[index], [field]: value };
+    if (field === "estado" && value !== updated[index].estado) {
+      updated[index] = { ...updated[index], [field]: value, cidade: "" };
+    } else {
+      updated[index] = { ...updated[index], [field]: value };
+    }
     onUcsChange(updated);
   };
 
@@ -212,8 +218,15 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
                 <Input value={u.tensao_rede} onChange={e => updateUC(i, "tensao_rede", e.target.value)} placeholder="127/220V" className="h-9" />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs">Cidade</Label>
-                <Input value={u.cidade} onChange={e => updateUC(i, "cidade", e.target.value)} className="h-9" />
+                <Label className="text-xs">{cidadesLoading ? "Carregando cidades..." : "Cidade"}</Label>
+                {cidadesUC.length > 0 ? (
+                  <Select value={u.cidade} onValueChange={v => updateUC(i, "cidade", v)}>
+                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                    <SelectContent>{cidadesUC.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                  </Select>
+                ) : (
+                  <Input value={u.cidade} onChange={e => updateUC(i, "cidade", e.target.value)} className="h-9" />
+                )}
               </div>
             </div>
 
