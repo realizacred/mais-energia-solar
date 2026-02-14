@@ -124,6 +124,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads", keywords: ["contato", "prospect", "captura", "formulário"] },
       { id: "pipeline", title: "Pipeline", icon: Kanban, description: "Funil de vendas visual", keywords: ["kanban", "etapas", "funil", "conversão"] },
       { id: "propostas", title: "Propostas (SM)", icon: FileText, description: "Importações SolarMarket", keywords: ["orçamento", "cotação", "solarmarket"] },
+      { id: "propostas-nativas", title: "Gerador de Propostas", icon: FileText, description: "Criar propostas nativas", keywords: ["proposta", "gerar", "wizard", "lei 14300", "nativa", "cotação"] },
       { id: "projetos", title: "Projetos", icon: FolderKanban, description: "Pipeline de projetos com funil", keywords: ["projeto", "pipeline", "funil", "kanban", "etapa", "proposta"] },
       { id: "followup", title: "Follow-ups", icon: Bell, description: "Acompanhamento de leads", keywords: ["lembrete", "retorno", "agendamento", "tarefa"] },
       { id: "distribuicao", title: "Distribuição", icon: RotateCcw, description: "Regras & fila de leads", keywords: ["fila", "round-robin", "atribuição", "regras"], separator: true },
