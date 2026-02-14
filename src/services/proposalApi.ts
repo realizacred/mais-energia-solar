@@ -103,6 +103,9 @@ export interface GenerateProposalResult {
   vpl?: number;
   tir?: number;
   payback_anos?: number;
+  engine_version?: string;
+  calc_hash?: string;
+  cenarios_count?: number;
   error?: string;
 }
 
