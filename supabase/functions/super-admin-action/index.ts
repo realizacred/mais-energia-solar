@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     if (!isSuperAdmin) return err("Forbidden: super_admin required", 403);
 
     const body = await req.json();
-    const { action, tenant_id, reason, target_user_id, new_email, new_role } = body;
+    const { action, tenant_id, reason, target_user_id, new_email, new_role, new_password } = body;
 
     if (!action) return err("Missing action");
 
@@ -337,7 +337,6 @@ Deno.serve(async (req) => {
 
         const { remove_role } = body;
         if (remove_role) {
-          // Check last admin protection
           if (["admin", "gerente"].includes(new_role)) {
             const { data: isLast } = await supabaseAdmin.rpc("is_last_admin_of_tenant", {
               _user_id: target_user_id,
@@ -362,6 +361,77 @@ Deno.serve(async (req) => {
 
         await logAction({ role: new_role, action_type: remove_role ? "remove" : "add", tenant_id: effectiveTenantId });
         result = { success: true, message: `Role ${new_role} ${remove_role ? "removida" : "atribuída"}` };
+        break;
+      }
+
+      // ── Ban / Reset User ──
+      case "ban_user": {
+        if (!target_user_id) throw new Error("target_user_id required");
+        // Ban in Supabase Auth (prevents login)
+        const { error: banErr } = await supabaseAdmin.auth.admin.updateUserById(target_user_id, {
+          ban_duration: "876600h", // ~100 years
+        });
+        if (banErr) throw banErr;
+        // Also deactivate profile
+        await supabaseAdmin.from("profiles").update({ ativo: false }).eq("user_id", target_user_id);
+        await logAction({ ban: true });
+        result = { success: true, message: "Usuário banido" };
+        break;
+      }
+
+      case "unban_user": {
+        if (!target_user_id) throw new Error("target_user_id required");
+        const { error: unbanErr } = await supabaseAdmin.auth.admin.updateUserById(target_user_id, {
+          ban_duration: "none",
+        });
+        if (unbanErr) throw unbanErr;
+        await supabaseAdmin.from("profiles").update({ ativo: true }).eq("user_id", target_user_id);
+        await logAction({ unban: true });
+        result = { success: true, message: "Usuário desbanido" };
+        break;
+      }
+
+      case "set_password": {
+        if (!target_user_id || !new_password) throw new Error("target_user_id and new_password required");
+        const { error: pwErr } = await supabaseAdmin.auth.admin.updateUserById(target_user_id, {
+          password: new_password,
+        });
+        if (pwErr) throw pwErr;
+        await logAction({ password_changed: true });
+        result = { success: true, message: "Senha redefinida" };
+        break;
+      }
+
+      case "delete_user_permanently": {
+        if (!target_user_id) throw new Error("target_user_id required");
+        // Verify user belongs to tenant
+        const { data: delProfile } = await supabaseAdmin
+          .from("profiles")
+          .select("tenant_id, nome")
+          .eq("user_id", target_user_id)
+          .single();
+        if (!delProfile) throw new Error("Profile not found");
+        // Check not last admin
+        const { data: isLastDel } = await supabaseAdmin.rpc("is_last_admin_of_tenant", {
+          _user_id: target_user_id,
+          _tenant_id: delProfile.tenant_id,
+        });
+        if (isLastDel) throw new Error("Não é possível excluir o último admin do tenant");
+        // Remove roles
+        await supabaseAdmin.from("user_roles").delete().eq("user_id", target_user_id);
+        // Deactivate profile (keep for data integrity)
+        await supabaseAdmin.from("profiles").update({ ativo: false }).eq("user_id", target_user_id);
+        // Release conversations
+        await supabaseAdmin
+          .from("wa_conversations")
+          .update({ assigned_to: null })
+          .eq("assigned_to", target_user_id)
+          .eq("status", "open");
+        // Delete from Auth
+        const { error: delAuthErr } = await supabaseAdmin.auth.admin.deleteUser(target_user_id);
+        if (delAuthErr) throw delAuthErr;
+        await logAction({ user_name: delProfile.nome, permanent_delete: true });
+        result = { success: true, message: "Usuário excluído permanentemente" };
         break;
       }
 
