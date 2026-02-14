@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, FileText, Loader2, RefreshCw, Send, CheckCircle2,
   XCircle, AlertTriangle, Clock, Download, Link2, MessageCircle,
-  Copy,
+  Copy, Smartphone, Monitor, Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +19,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
+import { ProposalViewsCard } from "./ProposalViewsCard";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
   rascunho: { label: "Rascunho", variant: "secondary", icon: Clock },
@@ -55,6 +56,8 @@ export function ProposalDetail() {
   const [sending, setSending] = useState(false);
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [showSendDialog, setShowSendDialog] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   useEffect(() => {
     if (versaoId) loadData();
@@ -167,6 +170,64 @@ export function ProposalDetail() {
     if (publicUrl) {
       navigator.clipboard.writeText(publicUrl);
       toast({ title: "Link copiado!" });
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!html) {
+      toast({ title: "Renderize a proposta primeiro", variant: "destructive" });
+      return;
+    }
+    setDownloadingPdf(true);
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+
+      // Create a temporary container to render HTML
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      container.style.width = "800px";
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      document.body.appendChild(container);
+
+      await doc.html(container, {
+        callback: (pdf) => {
+          pdf.save(`${proposta?.codigo || "proposta"}_v${versao.versao_numero}.pdf`);
+          document.body.removeChild(container);
+        },
+        x: 10,
+        y: 10,
+        width: 190,
+        windowWidth: 800,
+      });
+
+      toast({ title: "PDF gerado com sucesso!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!proposta?.id || !versaoId) return;
+    setSending(true);
+    try {
+      const result = await sendProposal({
+        proposta_id: proposta.id,
+        versao_id: versaoId,
+        canal: "email" as any,
+        lead_id: proposta.lead_id,
+      });
+      setPublicUrl(result.public_url);
+      setProposta((prev: any) => ({ ...prev, status: "enviada" }));
+      setShowSendDialog(false);
+      toast({ title: "Proposta enviada por email!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar email", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
     }
   };
 
@@ -284,6 +345,14 @@ export function ProposalDetail() {
                       >
                         <MessageCircle className="h-4 w-4" /> Enviar via WhatsApp
                       </Button>
+                      <Button
+                        className="gap-2 justify-start"
+                        variant="outline"
+                        onClick={handleSendEmail}
+                        disabled={sending}
+                      >
+                        <Mail className="h-4 w-4" /> Enviar por Email
+                      </Button>
                     </div>
                     <AlertDialogFooter>
                       <AlertDialogCancel disabled={sending}>Cancelar</AlertDialogCancel>
@@ -366,22 +435,63 @@ export function ProposalDetail() {
             <p className="text-sm font-medium flex items-center gap-2">
               <FileText className="h-4 w-4" /> Pré-visualização
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRender}
-              disabled={rendering}
-              className="gap-1"
-            >
-              {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
-              {html ? "Atualizar" : "Renderizar"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {html && (
+                <>
+                  <div className="flex items-center border rounded-md overflow-hidden">
+                    <Button
+                      variant={!mobilePreview ? "default" : "ghost"}
+                      size="sm"
+                      className="rounded-none h-7 px-2"
+                      onClick={() => setMobilePreview(false)}
+                    >
+                      <Monitor className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant={mobilePreview ? "default" : "ghost"}
+                      size="sm"
+                      className="rounded-none h-7 px-2"
+                      onClick={() => setMobilePreview(true)}
+                    >
+                      <Smartphone className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleDownloadPdf}
+                    disabled={downloadingPdf}
+                    className="gap-1"
+                  >
+                    {downloadingPdf ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                    PDF
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRender}
+                disabled={rendering}
+                className="gap-1"
+              >
+                {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                {html ? "Atualizar" : "Renderizar"}
+              </Button>
+            </div>
           </div>
 
           {rendering ? (
             <Skeleton className="h-[500px] w-full rounded-xl" />
           ) : html ? (
-            <div className="border rounded-xl overflow-hidden bg-white shadow-sm" style={{ maxHeight: 700, overflow: "auto" }}>
+            <div
+              className="border rounded-xl overflow-hidden bg-white shadow-sm mx-auto transition-all duration-300"
+              style={{
+                maxWidth: mobilePreview ? 390 : "100%",
+                maxHeight: 700,
+                overflow: "auto",
+              }}
+            >
               <iframe
                 srcDoc={html}
                 title="Proposta Preview"
@@ -397,6 +507,9 @@ export function ProposalDetail() {
           )}
         </CardContent>
       </Card>
+
+      {/* Views tracking */}
+      {proposta?.id && <ProposalViewsCard propostaId={proposta.id} />}
     </div>
   );
 }
