@@ -5,7 +5,11 @@ import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(({ mode }) => {
+  // Resolve APP_URL: env var → fallback for dev
+  const APP_URL = process.env.VITE_PUBLIC_URL || "";
+
+  return {
   define: {
     __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
   },
@@ -17,6 +21,13 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [
+    // Replace __APP_URL__ in index.html at build time
+    {
+      name: "html-app-url",
+      transformIndexHtml(html: string) {
+        return html.replace(/__APP_URL__/g, APP_URL || "https://maisenergiasolar.lovable.app");
+      },
+    },
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
@@ -147,4 +158,5 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-}));
+};
+});

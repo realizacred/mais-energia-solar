@@ -15,8 +15,11 @@ Deno.serve(async (req) => {
     const stateParam = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    const appUrl =
-      Deno.env.get("APP_URL") || "https://maisenergiasolar.lovable.app";
+    const appUrl = Deno.env.get("APP_URL");
+    if (!appUrl) {
+      console.error("APP_URL env var is not set — cannot redirect user.");
+      return new Response("APP_URL not configured", { status: 500 });
+    }
 
     if (error) {
       console.error("Google OAuth error:", error);
@@ -164,8 +167,8 @@ Deno.serve(async (req) => {
     return redirectTo(`${appUrl}/admin/google-calendar?success=true`);
   } catch (error: any) {
     console.error("Error in google-calendar-callback:", error);
-    const appUrl =
-      Deno.env.get("APP_URL") || "https://maisenergiasolar.lovable.app";
+    const appUrl = Deno.env.get("APP_URL") || "";
+    if (!appUrl) return new Response("APP_URL not configured", { status: 500 });
     return redirectTo(`${appUrl}/admin/google-calendar?error=internal_error`);
   }
 });
