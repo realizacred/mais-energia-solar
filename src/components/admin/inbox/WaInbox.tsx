@@ -159,16 +159,27 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     [pendingFollowups]
   );
 
-  // Realtime listener for new follow-ups → toast notification
+  // Realtime listener for new follow-ups → toast notification (tenant-scoped)
+  const [followupTenantId, setFollowupTenantId] = useState<string | null>(null);
+
   useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    import("@/lib/storagePaths").then(({ getCurrentTenantId }) =>
+      getCurrentTenantId().then((tid) => { if (!cancelled) setFollowupTenantId(tid); })
+    );
+    return () => { cancelled = true; };
+  }, [user]);
+
+  useEffect(() => {
+    if (!followupTenantId) return;
     const channel = supabase
       .channel("followup-notifications")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "wa_followup_queue" },
+        { event: "INSERT", schema: "public", table: "wa_followup_queue", filter: `tenant_id=eq.${followupTenantId}` },
         (payload) => {
           const newFU = payload.new as any;
-          // Only notify if assigned to current user
           if (newFU.assigned_to === user?.id) {
             toast({
               title: "⏰ Novo Follow-up",
@@ -180,7 +191,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [user?.id, toast]);
+  }, [followupTenantId, user?.id, toast]);
 
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   useEffect(() => {

@@ -32,6 +32,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── P1-2: Backlog alert (stuck events > 5min old) ──
+    {
+      const { count: stuckCount } = await supabase
+        .from("wa_webhook_events")
+        .select("id", { count: "exact", head: true })
+        .eq("processed", false)
+        .lt("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString());
+      if (stuckCount && stuckCount > 10) {
+        console.error("[ALERT] webhook_backlog_stuck", { count: stuckCount });
+      }
+    }
+
     // Fetch unprocessed events
     const { data: events, error: fetchError } = await supabase
       .from("wa_webhook_events")
