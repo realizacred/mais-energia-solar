@@ -178,7 +178,7 @@ export function GoogleCalendarConfigPage() {
               <li>Em <strong>Credenciais</strong>, crie um <strong>OAuth 2.0 Client ID</strong> (tipo: Web Application)</li>
               <li>Adicione como <strong>Authorized Redirect URI</strong>:
                 <code className="block mt-1 px-2 py-1 bg-muted rounded text-xs font-mono break-all">
-                  {`https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/google-calendar-callback`}
+                  {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-callback`}
                 </code>
               </li>
               <li>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> gerados</li>
