@@ -170,6 +170,31 @@ export function WaMessageBubble({
           {msg.message_type === "image" && msg.content && (
             <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
           )}
+          {/* GIF - autoplay loop */}
+          {msg.message_type === "gif" && (
+            msg.media_url ? (
+              <div
+                className="cursor-pointer hover:opacity-90 transition-opacity block mb-1"
+                onClick={() => onMediaPreview({ url: msg.media_url!, type: "video", caption: msg.content || undefined })}
+              >
+                <video
+                  src={msg.media_url}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="rounded-lg max-w-full max-h-48 object-cover"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-xs opacity-80">
+                <span>🎞️</span> GIF
+              </div>
+            )
+          )}
+          {msg.message_type === "gif" && msg.content && (
+            <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
+          )}
           {msg.message_type === "video" && (
             msg.media_url ? (
               <div
@@ -228,10 +253,10 @@ export function WaMessageBubble({
               <span>📍</span> Localização
             </div>
           )}
-          {(msg.message_type === "text" || !["audio", "document", "sticker", "location", "image", "video"].includes(msg.message_type)) && msg.content && (
+          {(msg.message_type === "text" || !["audio", "document", "sticker", "location", "image", "video", "gif"].includes(msg.message_type)) && msg.content && (
             <p className="whitespace-pre-wrap break-words">{renderFormattedText(msg.content)}</p>
           )}
-          {msg.message_type === "video" && msg.content && (
+          {(msg.message_type === "video" || msg.message_type === "gif") && msg.content && (
             <p className="whitespace-pre-wrap break-words text-xs mt-1">{renderFormattedText(msg.content)}</p>
           )}
 
