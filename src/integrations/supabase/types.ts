@@ -8840,7 +8840,28 @@ export type Database = {
           total_leads: number
         }[]
       }
+      get_dashboard_consultor_performance_v2: {
+        Args: never
+        Returns: {
+          consultor: string
+          leads_com_status: number
+          total_kwh: number
+          total_leads: number
+        }[]
+      }
       get_dashboard_financeiro: {
+        Args: never
+        Returns: {
+          atualizado_em: string
+          parcelas_atrasadas: number
+          parcelas_pagas: number
+          parcelas_pendentes: number
+          valor_atrasado: number
+          valor_pago: number
+          valor_pendente: number
+        }[]
+      }
+      get_dashboard_financeiro_v2: {
         Args: never
         Returns: {
           atualizado_em: string
@@ -8861,6 +8882,15 @@ export type Database = {
           total_leads: number
         }[]
       }
+      get_dashboard_leads_estado_v2: {
+        Args: never
+        Returns: {
+          estado: string
+          media_consumo: number
+          total_kwh: number
+          total_leads: number
+        }[]
+      }
       get_dashboard_leads_mensal: {
         Args: never
         Returns: {
@@ -8872,7 +8902,29 @@ export type Database = {
           total_leads: number
         }[]
       }
+      get_dashboard_leads_mensal_v2: {
+        Args: never
+        Returns: {
+          consultores_ativos: number
+          estados_unicos: number
+          media_consumo: number
+          mes: string
+          total_kwh: number
+          total_leads: number
+        }[]
+      }
       get_dashboard_pipeline: {
+        Args: never
+        Returns: {
+          status_cor: string
+          status_id: string
+          status_nome: string
+          status_ordem: number
+          total_kwh: number
+          total_leads: number
+        }[]
+      }
+      get_dashboard_pipeline_v2: {
         Args: never
         Returns: {
           status_cor: string
@@ -9032,6 +9084,7 @@ export type Database = {
         Returns: number
       }
       refresh_dashboard_views: { Args: never; Returns: undefined }
+      refresh_dashboard_views_v2: { Args: never; Returns: undefined }
       release_followup_lock: { Args: never; Returns: undefined }
       release_webhook_lock: { Args: never; Returns: undefined }
       require_tenant_id: { Args: { _user_id?: string }; Returns: string }
