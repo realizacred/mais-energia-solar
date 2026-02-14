@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Search, User, Building2, FileText, Tag, Users, Phone, Loader2 } from "lucide-react";
+import { Phone, Loader2, Users, Type, Wifi } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -51,18 +51,8 @@ export interface NovoProjetoData {
 }
 
 const emptyCliente = {
-  nome: "",
-  email: "",
-  empresa: "",
-  cpfCnpj: "",
-  telefone: "",
-  cep: "",
-  estado: "",
-  cidade: "",
-  endereco: "",
-  numero: "",
-  bairro: "",
-  complemento: "",
+  nome: "", email: "", empresa: "", cpfCnpj: "", telefone: "",
+  cep: "", estado: "", cidade: "", endereco: "", numero: "", bairro: "", complemento: "",
 };
 
 export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: Props) {
@@ -75,6 +65,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [similares, setSimilares] = useState<{ id: string; nome: string; telefone: string; email: string | null }[]>([]);
   const [buscando, setBuscando] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateCliente = useCallback((field: string, value: string) => {
@@ -85,10 +76,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
   // Debounced search for similar clients
   useEffect(() => {
     const term = cliente.nome.trim();
-    if (term.length < 2) {
-      setSimilares([]);
-      return;
-    }
+    if (term.length < 2) { setSimilares([]); return; }
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -100,96 +88,73 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
           .ilike("nome", `%${term}%`)
           .limit(8);
         setSimilares(data ?? []);
-      } catch {
-        setSimilares([]);
-      } finally {
-        setBuscando(false);
-      }
+      } catch { setSimilares([]); }
+      finally { setBuscando(false); }
     }, 400);
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [cliente.nome]);
-
-  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     const newErrors: Record<string, boolean> = {};
     if (!cliente.nome.trim()) newErrors["cliente.nome"] = true;
     if (!cliente.telefone.trim()) newErrors["cliente.telefone"] = true;
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      return;
-    }
+    if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
     setSubmitting(true);
     try {
-      await onSubmit?.({
-        nome: nome.trim() || cliente.nome.trim(),
-        descricao,
-        consultorId,
-        etiqueta,
-        notas,
-        cliente,
-      });
-
-      // Reset on success
-      setNome("");
-      setDescricao("");
-      setConsultorId("");
-      setEtiqueta("");
-      setNotas("");
-      setCliente(emptyCliente);
-      setErrors({});
-      setSimilares([]);
+      await onSubmit?.({ nome: nome.trim() || cliente.nome.trim(), descricao, consultorId, etiqueta, notas, cliente });
+      setNome(""); setDescricao(""); setConsultorId(""); setEtiqueta(""); setNotas("");
+      setCliente(emptyCliente); setErrors({}); setSimilares([]);
       onOpenChange(false);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleClose = () => {
-    onOpenChange(false);
+    } finally { setSubmitting(false); }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 gap-0">
-        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border/60">
-          <DialogTitle className="text-lg font-bold tracking-tight">
+      <DialogContent className="max-w-[1100px] max-h-[90vh] overflow-hidden p-0 gap-0 rounded-xl">
+        <DialogHeader className="px-8 pt-6 pb-5 border-b border-border/40">
+          <DialogTitle className="text-xl font-bold text-foreground tracking-tight">
             Novo Projeto
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex overflow-hidden" style={{ minHeight: "520px" }}>
-          {/* ── Column 1: Projeto ── */}
-          <div className="flex-1 p-5 overflow-y-auto space-y-4">
-            <SectionTitle icon={FileText} label="Projeto" />
+        <div className="flex overflow-hidden" style={{ minHeight: "500px" }}>
+          {/* ── Coluna 1: Projeto ── */}
+          <div className="w-[320px] shrink-0 px-8 py-6 overflow-y-auto space-y-5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-primary">Projeto</h3>
+              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                <Users className="h-6 w-6 text-muted-foreground/60" />
+              </div>
+            </div>
 
-            <FieldGroup label="Nome do projeto">
+            <Field label="Nome do Projeto *">
               <Input
-                placeholder="Ex: Sistema 10kWp - João Silva"
+                placeholder="Nome do projeto"
                 value={nome}
                 onChange={e => setNome(e.target.value)}
-                className="h-9 text-sm"
+                className="h-10 text-sm border-border/60"
               />
-            </FieldGroup>
+            </Field>
 
-            <FieldGroup label="Descrição">
+            <Field label="Descrição">
               <Textarea
-                placeholder="Detalhes do projeto..."
+                placeholder="Escreva aqui"
                 value={descricao}
                 onChange={e => setDescricao(e.target.value)}
-                className="text-sm min-h-[72px] resize-none"
+                className="text-sm min-h-[68px] resize-y border-border/60"
               />
-            </FieldGroup>
+            </Field>
 
-            <FieldGroup label="Vendedor" icon={Users}>
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-semibold text-foreground">Vendedores</span>
+                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+              </div>
               <Select value={consultorId} onValueChange={setConsultorId}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Selecione o responsável" />
+                <SelectTrigger className="h-10 text-sm border-border/60">
+                  <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-popover">
                   {consultores.map(c => (
@@ -197,12 +162,24 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
                   ))}
                 </SelectContent>
               </Select>
-            </FieldGroup>
+              {/* Vendor bars indicator */}
+              <div className="flex gap-1 pt-1">
+                {consultores.slice(0, 6).map((c, i) => (
+                  <div
+                    key={c.id}
+                    className={cn(
+                      "h-2 flex-1 rounded-sm transition-colors",
+                      c.id === consultorId ? "bg-primary" : "bg-muted-foreground/20"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
 
-            <FieldGroup label="Etiqueta" icon={Tag}>
+            <Field label="Etiqueta">
               <Select value={etiqueta} onValueChange={setEtiqueta}>
-                <SelectTrigger className="h-9 text-sm">
-                  <SelectValue placeholder="Selecionar etiqueta" />
+                <SelectTrigger className="h-10 text-sm border-border/60">
+                  <SelectValue placeholder="Selecione uma opção" />
                 </SelectTrigger>
                 <SelectContent className="z-50 bg-popover">
                   <SelectItem value="residencial">Residencial</SelectItem>
@@ -211,162 +188,95 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
                   <SelectItem value="rural">Rural</SelectItem>
                 </SelectContent>
               </Select>
-            </FieldGroup>
+            </Field>
 
-            <FieldGroup label="Notas">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-3 text-muted-foreground">
+                <Type className="h-4 w-4 italic" />
+                <Wifi className="h-4 w-4" />
+              </div>
               <Textarea
-                placeholder="Observações internas..."
+                placeholder="Notas..."
                 value={notas}
                 onChange={e => setNotas(e.target.value)}
-                className="text-sm min-h-[64px] resize-none"
+                className="text-sm min-h-[60px] resize-none border-border/60"
               />
-            </FieldGroup>
-          </div>
-
-          {/* Divider */}
-          <Separator orientation="vertical" className="h-auto" />
-
-          {/* ── Column 2: Cliente ── */}
-          <div className="flex-1 p-5 overflow-y-auto space-y-4">
-            <SectionTitle icon={User} label="Cliente" />
-
-            {/* Endereço */}
-            <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Endereço
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <FieldGroup label="CEP">
-                  <Input
-                    placeholder="00000-000"
-                    value={cliente.cep}
-                    onChange={e => updateCliente("cep", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </FieldGroup>
-                <FieldGroup label="Estado">
-                  <Input
-                    placeholder="UF"
-                    value={cliente.estado}
-                    onChange={e => updateCliente("estado", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </FieldGroup>
-              </div>
-              <FieldGroup label="Cidade">
-                <Input
-                  placeholder="Cidade"
-                  value={cliente.cidade}
-                  onChange={e => updateCliente("cidade", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </FieldGroup>
-              <FieldGroup label="Endereço">
-                <Input
-                  placeholder="Rua, Av..."
-                  value={cliente.endereco}
-                  onChange={e => updateCliente("endereco", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </FieldGroup>
-              <div className="grid grid-cols-3 gap-3">
-                <FieldGroup label="Número">
-                  <Input
-                    placeholder="Nº"
-                    value={cliente.numero}
-                    onChange={e => updateCliente("numero", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </FieldGroup>
-                <FieldGroup label="Bairro">
-                  <Input
-                    placeholder="Bairro"
-                    value={cliente.bairro}
-                    onChange={e => updateCliente("bairro", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </FieldGroup>
-                <FieldGroup label="Complemento">
-                  <Input
-                    placeholder="Apto, Bloco..."
-                    value={cliente.complemento}
-                    onChange={e => updateCliente("complemento", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </FieldGroup>
-              </div>
-            </div>
-
-            {/* Dados Pessoais */}
-            <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-                Dados pessoais
-              </p>
-              <FieldGroup label="Nome do cliente *" error={errors["cliente.nome"]}>
-                <Input
-                  placeholder="Nome completo"
-                  value={cliente.nome}
-                  onChange={e => updateCliente("nome", e.target.value)}
-                  className={cn("h-9 text-sm", errors["cliente.nome"] && "border-destructive")}
-                />
-                {errors["cliente.nome"] && (
-                  <p className="text-[11px] text-destructive mt-0.5">Nome é obrigatório!</p>
-                )}
-              </FieldGroup>
-              <FieldGroup label="Email">
-                <Input
-                  type="email"
-                  placeholder="email@exemplo.com"
-                  value={cliente.email}
-                  onChange={e => updateCliente("email", e.target.value)}
-                  className="h-9 text-sm"
-                />
-              </FieldGroup>
-              <div className="grid grid-cols-2 gap-3">
-                <FieldGroup label="Empresa">
-                  <Input
-                    placeholder="Nome da empresa"
-                    value={cliente.empresa}
-                    onChange={e => updateCliente("empresa", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </FieldGroup>
-                <FieldGroup label="CPF/CNPJ">
-                  <Input
-                    placeholder="000.000.000-00"
-                    value={cliente.cpfCnpj}
-                    onChange={e => updateCliente("cpfCnpj", e.target.value)}
-                    className="h-9 text-sm"
-                  />
-                </FieldGroup>
-              </div>
-              <FieldGroup label="Telefone *" error={errors["cliente.telefone"]}>
-                <Input
-                  placeholder="(00) 00000-0000"
-                  value={cliente.telefone}
-                  onChange={e => updateCliente("telefone", e.target.value)}
-                  className={cn("h-9 text-sm", errors["cliente.telefone"] && "border-destructive")}
-                />
-                {errors["cliente.telefone"] && (
-                  <p className="text-[11px] text-destructive mt-0.5">Telefone é obrigatório!</p>
-                )}
-              </FieldGroup>
             </div>
           </div>
 
-          {/* Divider */}
-          <Separator orientation="vertical" className="h-auto" />
+          {/* Divider teal */}
+          <div className="w-[3px] bg-primary/60 shrink-0" />
 
-          {/* ── Column 3: Clientes Similares ── */}
-          <div className="w-[260px] shrink-0 p-5 flex flex-col">
-            <SectionTitle icon={Search} label="Clientes similares" />
+          {/* ── Coluna 2: Cliente ── */}
+          <div className="flex-1 px-8 py-6 overflow-y-auto space-y-5">
+            <h3 className="text-base font-bold text-foreground">Cliente</h3>
+
+            <Field label="Nome do Cliente *" error={errors["cliente.nome"]}>
+              <Input
+                placeholder="Digite o nome do cliente"
+                value={cliente.nome}
+                onChange={e => updateCliente("nome", e.target.value)}
+                className={cn("h-10 text-sm border-border/60", errors["cliente.nome"] && "border-destructive ring-1 ring-destructive/30")}
+              />
+              {errors["cliente.nome"] && (
+                <p className="text-xs text-destructive mt-1">Nome é obrigatório!</p>
+              )}
+            </Field>
+
+            <Field label="Email do Cliente">
+              <Input
+                type="email"
+                placeholder="Digite o email do cliente"
+                value={cliente.email}
+                onChange={e => updateCliente("email", e.target.value)}
+                className="h-10 text-sm border-border/60"
+              />
+            </Field>
+
+            <Field label="Nome da Empresa">
+              <Input
+                placeholder="Digite o nome da empresa"
+                value={cliente.empresa}
+                onChange={e => updateCliente("empresa", e.target.value)}
+                className="h-10 text-sm border-border/60"
+              />
+            </Field>
+
+            <Field label="CNPJ/CPF">
+              <Input
+                placeholder=""
+                value={cliente.cpfCnpj}
+                onChange={e => updateCliente("cpfCnpj", e.target.value)}
+                className="h-10 text-sm border-border/60"
+              />
+            </Field>
+
+            <Field label="Telefone Celular *" error={errors["cliente.telefone"]}>
+              <Input
+                placeholder=""
+                value={cliente.telefone}
+                onChange={e => updateCliente("telefone", e.target.value)}
+                className={cn("h-10 text-sm border-border/60", errors["cliente.telefone"] && "border-destructive ring-1 ring-destructive/30")}
+              />
+              {errors["cliente.telefone"] && (
+                <p className="text-xs text-destructive mt-1">Telefone é obrigatório!</p>
+              )}
+            </Field>
+          </div>
+
+          {/* Divider cinza */}
+          <div className="w-[3px] bg-border/60 shrink-0" />
+
+          {/* ── Coluna 3: Clientes Similares ── */}
+          <div className="w-[260px] shrink-0 px-6 py-6 flex flex-col">
+            <h3 className="text-base font-bold text-primary/90">Clientes similares</h3>
 
             {buscando ? (
               <div className="flex-1 flex items-center justify-center">
                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
             ) : similares.length > 0 ? (
-              <div className="mt-2 space-y-2 overflow-y-auto flex-1">
+              <div className="mt-4 space-y-2 overflow-y-auto flex-1">
                 {similares.map(c => (
                   <button
                     key={c.id}
@@ -389,38 +299,38 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
                           {c.telefone}
                         </span>
                       )}
-                      {c.email && (
-                        <span className="truncate">{c.email}</span>
-                      )}
+                      {c.email && <span className="truncate">{c.email}</span>}
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="flex-1 flex items-center justify-center">
-                <div className="text-center space-y-2">
-                  <div className="mx-auto w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center">
-                    <Users className="h-5 w-5 text-muted-foreground/50" />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {cliente.nome.trim().length >= 2
-                      ? "Nenhum cliente similar encontrado"
-                      : "Digite o nome do cliente para buscar similares"
-                    }
-                  </p>
-                </div>
-              </div>
+              <p className="mt-4 text-sm text-muted-foreground">
+                {cliente.nome.trim().length >= 2
+                  ? "Nenhum cliente similar"
+                  : "Nenhum cliente similar"
+                }
+              </p>
             )}
           </div>
         </div>
 
         {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border/60 bg-muted/20">
-          <Button variant="ghost" onClick={handleClose} className="text-sm" disabled={submitting}>
+        <div className="flex items-center justify-end gap-4 px-8 py-4 border-t border-border/40">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            disabled={submitting}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2"
+          >
             Fechar
-          </Button>
-          <Button onClick={handleSubmit} className="text-sm px-6 gap-1.5" disabled={submitting}>
-            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+          </button>
+          <Button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="text-sm px-8 h-10 rounded-lg bg-primary hover:bg-primary/90"
+          >
+            {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
             {submitting ? "Cadastrando..." : "Cadastrar"}
           </Button>
         </div>
@@ -429,32 +339,10 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
   );
 }
 
-// ── Helper components ──
-
-function SectionTitle({ icon: Icon, label }: { icon: React.ElementType; label: string }) {
+function Field({ label, error, children }: { label: string; error?: boolean; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 mb-1">
-      <Icon className="h-4 w-4 text-primary" />
-      <h3 className="text-sm font-bold text-foreground tracking-tight">{label}</h3>
-    </div>
-  );
-}
-
-function FieldGroup({
-  label,
-  icon: Icon,
-  error,
-  children,
-}: {
-  label: string;
-  icon?: React.ElementType;
-  error?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-1">
-      <Label className="text-[11px] font-medium text-muted-foreground flex items-center gap-1">
-        {Icon && <Icon className="h-3 w-3" />}
+    <div className="space-y-1.5">
+      <Label className={cn("text-sm font-semibold", error ? "text-destructive" : "text-foreground")}>
         {label}
       </Label>
       {children}
