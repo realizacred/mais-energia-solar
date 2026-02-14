@@ -3,15 +3,15 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Zap, DollarSign, Plus, LayoutGrid } from "lucide-react";
-import type { ConsultorColumn, ProjetoItem } from "@/hooks/useProjetoPipeline";
+import { DollarSign, Plus, LayoutGrid } from "lucide-react";
+import type { OwnerColumn, DealKanbanCard } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  columns: ConsultorColumn[];
-  onMoveProjeto: (projetoId: string, consultorId: string) => void;
-  onViewProjeto?: (projeto: ProjetoItem) => void;
-  onCreateProjeto?: (consultorId: string) => void;
+  columns: OwnerColumn[];
+  onMoveProjeto: (dealId: string, ownerId: string) => void;
+  onViewProjeto?: (deal: DealKanbanCard) => void;
+  onCreateProjeto?: (ownerId: string) => void;
 }
 
 const formatBRL = (v: number) => {
@@ -27,22 +27,18 @@ const formatBRLFull = (v: number | null) => {
 };
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  aguardando_documentacao: { label: "Aguard. Doc", variant: "outline" },
-  em_analise: { label: "Em Análise", variant: "secondary" },
-  aprovado: { label: "Aprovado", variant: "default" },
-  em_instalacao: { label: "Instalando", variant: "default" },
-  instalado: { label: "Instalado", variant: "secondary" },
-  comissionado: { label: "Comissionado", variant: "secondary" },
-  concluido: { label: "Concluído", variant: "default" },
-  cancelado: { label: "Cancelado", variant: "destructive" },
+  open: { label: "Aberto", variant: "outline" },
+  won: { label: "Ganho", variant: "default" },
+  lost: { label: "Perdido", variant: "destructive" },
+  archived: { label: "Arquivado", variant: "secondary" },
 };
 
 export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCreateProjeto }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
 
-  const handleDragStart = (e: React.DragEvent, projetoId: string) => {
-    setDraggedId(projetoId);
+  const handleDragStart = (e: React.DragEvent, dealId: string) => {
+    setDraggedId(dealId);
     e.dataTransfer.effectAllowed = "move";
   };
 
@@ -54,10 +50,10 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
 
   const handleDragLeave = () => setDragOverCol(null);
 
-  const handleDrop = (e: React.DragEvent, consultorId: string) => {
+  const handleDrop = (e: React.DragEvent, ownerId: string) => {
     e.preventDefault();
     if (draggedId) {
-      onMoveProjeto(draggedId, consultorId);
+      onMoveProjeto(draggedId, ownerId);
       setDraggedId(null);
       setDragOverCol(null);
     }
@@ -66,7 +62,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
   if (columns.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-        <p className="font-medium">Nenhum consultor com projetos</p>
+        <p className="font-medium">Nenhum responsável com projetos</p>
         <p className="text-sm mt-1">Crie um projeto para começar.</p>
       </div>
     );
@@ -89,17 +85,13 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, col.id)}
             >
-              {/* Column header - Consultant info */}
+              {/* Column header */}
               <div className="px-3 py-3 border-b border-border/40 space-y-2">
                 <p className="text-sm font-bold text-foreground">{col.nome}</p>
                 <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
                   <span className="flex items-center gap-1">
                     <DollarSign className="h-3 w-3 text-success" />
                     {formatBRL(col.totalValor)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Zap className="h-3 w-3 text-warning" />
-                    {col.totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWp
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -110,30 +102,30 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                 </div>
               </div>
 
-              {/* Column body - Project cards */}
+              {/* Cards */}
               <div className="p-2 min-h-[300px] space-y-2 flex-1">
-                {col.projetos.length === 0 && (
+                {col.deals.length === 0 && (
                   <div className="flex items-center justify-center h-24 text-xs text-muted-foreground/60">
                     Arraste projetos aqui
                   </div>
                 )}
-                {col.projetos.map(projeto => {
-                  const statusInfo = STATUS_LABELS[projeto.status] || { label: projeto.status, variant: "outline" as const };
+                {col.deals.map(deal => {
+                  const statusInfo = STATUS_LABELS[deal.deal_status] || { label: deal.deal_status, variant: "outline" as const };
                   return (
                     <Card
-                      key={projeto.id}
+                      key={deal.deal_id}
                       draggable
-                      onDragStart={e => handleDragStart(e, projeto.id)}
-                      onClick={() => onViewProjeto?.(projeto)}
+                      onDragStart={e => handleDragStart(e, deal.deal_id)}
+                      onClick={() => onViewProjeto?.(deal)}
                       className={cn(
                         "cursor-grab active:cursor-grabbing hover:shadow-sm transition-all border-border/40 hover:border-border",
-                        draggedId === projeto.id && "opacity-40 scale-95"
+                        draggedId === deal.deal_id && "opacity-40 scale-95"
                       )}
                     >
                       <CardContent className="p-3 space-y-1.5">
                         <div className="flex items-start justify-between gap-2">
                           <p className="font-medium text-sm leading-tight text-foreground">
-                            {projeto.cliente?.nome || projeto.codigo || "Projeto sem nome"}
+                            {deal.customer_name || deal.deal_title || "Sem nome"}
                           </p>
                           <Badge variant={statusInfo.variant} className="text-[9px] shrink-0 px-1.5 h-4">
                             {statusInfo.label}
@@ -141,16 +133,15 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          {projeto.potencia_kwp && (
-                            <span className="flex items-center gap-0.5">
-                              <Zap className="h-3 w-3" />
-                              {projeto.potencia_kwp} kWp
+                          {deal.deal_value > 0 && (
+                            <span className="font-semibold text-foreground">
+                              {formatBRLFull(deal.deal_value)}
                             </span>
                           )}
-                          {projeto.valor_total && (
-                            <span className="font-semibold text-foreground">
-                              {formatBRLFull(projeto.valor_total)}
-                            </span>
+                          {deal.stage_name && (
+                            <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                              {deal.stage_name}
+                            </Badge>
                           )}
                         </div>
                       </CardContent>
@@ -159,7 +150,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                 })}
               </div>
 
-              {/* Footer - New project button */}
+              {/* Footer */}
               <div className="p-2 border-t border-border/40">
                 <Button
                   variant="ghost"
