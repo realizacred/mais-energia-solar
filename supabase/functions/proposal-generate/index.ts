@@ -109,6 +109,7 @@ interface GenerateRequestV2 {
   pagamento_opcoes: PagamentoPayload[];
   observacoes?: string;
   idempotency_key: string;
+  variaveis_custom?: boolean; // if true, evaluate tenant vc_* variables
 }
 
 // ─── 25-Year Series Calculator ──────────────────────────────
@@ -205,6 +206,31 @@ function calcTIR(investimento: number, fluxos: number[]): number {
 
 function round2(v: number): number {
   return Math.round(v * 100) / 100;
+}
+
+// ─── Safe Expression Evaluator (mirrors src/lib/expressionEngine.ts) ─────
+function evaluateExpression(expr: string, ctx: Record<string, number>): number | null {
+  try {
+    if (!expr || expr.trim() === "") return null;
+    // Replace [var] with values
+    let resolved = expr;
+    const matches = expr.match(/\[([^\]]+)\]/g);
+    if (matches) {
+      for (const m of matches) {
+        const name = m.slice(1, -1).trim();
+        const val = ctx[name] ?? 0;
+        resolved = resolved.replace(m, String(val));
+      }
+    }
+    // Only allow: digits, dots, operators, parens, spaces, minus
+    if (/[^0-9.+\-*/() \t]/.test(resolved)) return null;
+    // Use Function for safe math-only evaluation
+    const fn = new Function(`"use strict"; return (${resolved});`);
+    const result = fn();
+    return typeof result === "number" && isFinite(result) ? Math.round(result * 10000) / 10000 : null;
+  } catch {
+    return null;
+  }
 }
 
 // ─── Main Handler ───────────────────────────────────────────
@@ -408,6 +434,61 @@ Deno.serve(async (req) => {
 
     const paybackMeses = economiaMensal > 0 ? Math.ceil(valorTotal / economiaMensal) : 0;
 
+    // ── 5b. CUSTOM VARIABLES (vc_*) ─────────────────────────
+    let vcResults: Array<{ variavel_id: string; nome: string; label: string; expressao: string; valor_calculado: string | null }> = [];
+
+    if (body.variaveis_custom !== false) {
+      const { data: vcDefs } = await adminClient
+        .from("proposta_variaveis_custom")
+        .select("id, nome, label, expressao, tipo_resultado")
+        .eq("tenant_id", tenantId)
+        .eq("ativo", true)
+        .order("ordem");
+
+      if (vcDefs && vcDefs.length > 0) {
+        const numModulos = body.itens.filter((it: any) => it.categoria === "modulo").reduce((s: number, it: any) => s + it.quantidade, 0);
+        const ctx: Record<string, number> = {
+          valor_total: valorTotal,
+          economia_mensal: round2(economiaMensal),
+          economia_anual: round2(economiaMensal * 12),
+          payback_meses: paybackMeses,
+          payback_anos: paybackAnos,
+          potencia_kwp: potenciaKwp,
+          consumo_total: consumoTotal,
+          geracao_estimada: round2(geracaoEstimada),
+          custo_kit: round2(custoKit),
+          margem_percentual: venda.margem_percentual,
+          desconto_percentual: venda.desconto_percentual,
+          vpl,
+          tir,
+          roi_25_anos: round2(economiaMensal * 12 * 25),
+          num_modulos: numModulos,
+          num_ucs: body.ucs.length,
+        };
+
+        for (const vc of vcDefs) {
+          try {
+            const val = evaluateExpression(vc.expressao, ctx);
+            vcResults.push({
+              variavel_id: vc.id,
+              nome: vc.nome,
+              label: vc.label,
+              expressao: vc.expressao,
+              valor_calculado: val !== null ? String(val) : null,
+            });
+          } catch {
+            vcResults.push({
+              variavel_id: vc.id,
+              nome: vc.nome,
+              label: vc.label,
+              expressao: vc.expressao,
+              valor_calculado: null,
+            });
+          }
+        }
+      }
+    }
+
     // Resolver consultor_id
     const { data: consultor } = await adminClient
       .from("consultores")
@@ -469,6 +550,7 @@ Deno.serve(async (req) => {
         roi_25_anos: round2(economiaMensal * 12 * 25),
       },
       pagamento_opcoes: body.pagamento_opcoes ?? [],
+      variaveis_custom: vcResults.length > 0 ? vcResults : undefined,
       inputs: {
         lead_id: body.lead_id,
         projeto_id: body.projeto_id ?? null,
@@ -753,6 +835,23 @@ Deno.serve(async (req) => {
               fluxo_caixa: s.fluxo_caixa,
               fluxo_caixa_acumulado: s.fluxo_caixa_acumulado,
               vpl_parcial: s.vpl_parcial,
+            }))
+          )
+        );
+      }
+
+      // Custom variables (vc_*)
+      if (vcResults.length > 0) {
+        granularOps.push(
+          adminClient.from("proposta_versao_variaveis").insert(
+            vcResults.map(vc => ({
+              tenant_id: tenantId,
+              versao_id: versaoId,
+              variavel_id: vc.variavel_id,
+              nome: vc.nome,
+              label: vc.label,
+              expressao: vc.expressao,
+              valor_calculado: vc.valor_calculado,
             }))
           )
         );

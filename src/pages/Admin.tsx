@@ -94,6 +94,18 @@ const ProposalDetailPage = lazy(() =>
   }))
 );
 
+const TemplatesManagerPage = lazy(() =>
+  import("@/components/admin/propostas-nativas/TemplatesManager").then((m) => ({
+    default: m.TemplatesManager,
+  }))
+);
+
+const VariaveisCustomPage = lazy(() =>
+  import("@/components/admin/propostas-nativas/VariaveisCustomManager").then((m) => ({
+    default: m.VariaveisCustomManager,
+  }))
+);
+
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
 const TAB_TITLES: Record<string, string> = {
@@ -147,6 +159,8 @@ const TAB_TITLES: Record<string, string> = {
   projetos: "Projetos",
   "propostas-nativas": "Gerador de Propostas",
   "propostas-nativas/nova": "Nova Proposta",
+  "propostas-nativas/templates": "Templates de Proposta",
+  "propostas-nativas/variaveis": "Variáveis Customizadas",
   "followup-wa": "Regras de Follow-up",
   "followup-queue": "Fila de Follow-ups",
   "wa-etiquetas": "Etiquetas WhatsApp",
@@ -320,6 +334,8 @@ export default function Admin() {
                 <Route path="projetos" element={<ProjetosManagerPage />} />
                 <Route path="propostas-nativas" element={<ProposalListPage />} />
                 <Route path="propostas-nativas/nova" element={<ProposalWizardPage />} />
+                <Route path="propostas-nativas/templates" element={<TemplatesManagerPage />} />
+                <Route path="propostas-nativas/variaveis" element={<VariaveisCustomPage />} />
                 <Route path="propostas-nativas/:propostaId/versoes/:versaoId" element={<ProposalDetailPage />} />
                 <Route path="aprovacao" element={<AprovacaoUsuarios />} />
                 <Route path="lead-status" element={<LeadStatusManager />} />

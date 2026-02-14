@@ -198,6 +198,7 @@ export function ProposalWizard() {
         lead_id: selectedLead.id,
         grupo: grupo.startsWith("B") ? "B" : "A",
         idempotency_key: idempotencyKey,
+        template_id: templateSelecionado || undefined,
         potencia_kwp: potenciaKwp,
         ucs: ucs.map(({ id, uc_index, ...rest }) => rest),
         premissas,
