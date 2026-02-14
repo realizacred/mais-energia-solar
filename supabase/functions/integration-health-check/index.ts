@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "authorization, x-client-info, apikey, content-type, x-cron-secret, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 /**
@@ -11,8 +11,8 @@ const corsHeaders = {
  * to `integration_health_cache` table.
  *
  * Two invocation modes:
- * 1. Authenticated (admin clicks "Refresh") — checks only their tenant
- * 2. Cron (pg_cron via pg_net) — checks ALL active tenants
+ * 1. Manual (admin clicks "Refresh") — Authorization Bearer → getUser() → single tenant
+ * 2. Cron (pg_cron via pg_net) — x-cron-secret header → ALL active tenants (paginated)
  *
  * Status mapping: healthy | degraded | down | not_configured
  */
@@ -39,26 +39,28 @@ Deno.serve(async (req) => {
     );
 
     const authHeader = req.headers.get("Authorization");
+    const cronSecretHeader = req.headers.get("x-cron-secret");
     let tenantIds: string[] = [];
     let isManualRefresh = false;
 
     if (authHeader?.startsWith("Bearer ")) {
-      // Authenticated mode — resolve single tenant
+      // ── Manual mode: admin refresh ──
       const supabaseUser = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_ANON_KEY")!,
         { global: { headers: { Authorization: authHeader } } }
       );
-      const token = authHeader.replace("Bearer ", "");
-      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
-      if (claimsError || !claimsData?.claims) {
+
+      // Fix #4: getUser() instead of getClaims()
+      const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+      if (userError || !user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      const userId = claimsData.claims.sub;
+      const userId = user.id;
 
       // Admin check
       const { data: roleData } = await supabaseUser
@@ -92,14 +94,26 @@ Deno.serve(async (req) => {
       tenantIds = [profile.tenant_id];
       isManualRefresh = true;
     } else {
-      // Cron mode — check all active tenants
-      const { data: tenants } = await supabaseAdmin
-        .from("tenants")
-        .select("id")
-        .eq("ativo", true)
-        .limit(100); // Safety limit
+      // ── Cron mode: require x-cron-secret ──
+      // Fix #1: Cron secret protection
+      const expectedSecret = Deno.env.get("CRON_SECRET");
+      if (!expectedSecret) {
+        console.error("[integration-health-check] CRON_SECRET not configured");
+        return new Response(JSON.stringify({ error: "Server misconfigured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
 
-      tenantIds = (tenants || []).map((t: { id: string }) => t.id);
+      if (!cronSecretHeader || cronSecretHeader !== expectedSecret) {
+        return new Response(JSON.stringify({ error: "Unauthorized: invalid or missing cron secret" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Fix #2: Paginated fetch of ALL active tenants (no limit)
+      tenantIds = await fetchAllActiveTenants(supabaseAdmin);
     }
 
     if (tenantIds.length === 0) {
@@ -114,42 +128,35 @@ Deno.serve(async (req) => {
     for (const tenantId of tenantIds) {
       const results: CheckResult[] = [];
 
-      // ── WhatsApp ──
       results.push(await checkWhatsApp(supabaseAdmin, tenantId));
-
-      // ── OpenAI ──
       results.push(await checkOpenAI(supabaseAdmin, tenantId));
-
-      // ── Google Gemini ──
       results.push(await checkGemini(supabaseAdmin, tenantId));
-
-      // ── SolarMarket ──
       results.push(await checkSolarMarket(supabaseAdmin, tenantId));
-
-      // ── Google Calendar ──
       results.push(await checkGoogleCalendar(supabaseAdmin, tenantId));
 
-      // Persist all results to cache
+      // Fix #3: Batch upsert (single call per tenant, not per integration)
       const now = new Date().toISOString();
-      for (const r of results) {
-        await supabaseAdmin.from("integration_health_cache").upsert(
-          {
-            tenant_id: tenantId,
-            integration_name: r.integration_name,
-            status: r.status,
-            latency_ms: r.latency_ms,
-            error_message: r.error_message,
-            details: r.details,
-            last_check_at: now,
-          },
-          { onConflict: "tenant_id,integration_name" }
-        );
+      const rows = results.map((r) => ({
+        tenant_id: tenantId,
+        integration_name: r.integration_name,
+        status: r.status,
+        latency_ms: r.latency_ms,
+        error_message: r.error_message,
+        details: r.details,
+        last_check_at: now,
+      }));
+
+      const { error: upsertError } = await supabaseAdmin
+        .from("integration_health_cache")
+        .upsert(rows, { onConflict: "tenant_id,integration_name" });
+
+      if (upsertError) {
+        console.error(`[integration-health-check] Batch upsert failed for tenant=${tenantId}:`, upsertError.message);
       }
 
       allResults[tenantId] = results;
     }
 
-    // For manual refresh, return results for immediate UI update
     if (isManualRefresh && tenantIds.length === 1) {
       return new Response(
         JSON.stringify({ success: true, results: allResults[tenantIds[0]] }),
@@ -173,6 +180,38 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// ─── Paginated tenant fetch ───
+
+async function fetchAllActiveTenants(admin: any): Promise<string[]> {
+  const PAGE_SIZE = 500;
+  const ids: string[] = [];
+  let offset = 0;
+
+  while (true) {
+    const { data, error } = await admin
+      .from("tenants")
+      .select("id")
+      .eq("ativo", true)
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (error) {
+      console.error("[integration-health-check] Failed to fetch tenants:", error.message);
+      break;
+    }
+
+    if (!data || data.length === 0) break;
+
+    for (const t of data) {
+      ids.push(t.id);
+    }
+
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return ids;
+}
 
 // ─── Check Functions ───
 
@@ -223,7 +262,7 @@ async function checkWhatsApp(admin: any, tenantId: string): Promise<CheckResult>
           if (ok) onlineCount++;
           instanceDetails.push({ name: inst.nome, ok, state, latency_ms: latency, phone: inst.phone_number });
         } else {
-          const errText = await stateRes.text();
+          await stateRes.text();
           instanceDetails.push({ name: inst.nome, ok: false, error: `HTTP ${stateRes.status}`, latency_ms: latency });
         }
       } catch (err: any) {
@@ -376,7 +415,6 @@ async function checkGoogleCalendar(admin: any, tenantId: string): Promise<CheckR
       return { integration_name: "google_calendar", status: "not_configured", latency_ms: null, error_message: null, details: {} };
     }
 
-    // Check if any user has active tokens
     const { count } = await admin
       .from("google_calendar_tokens")
       .select("*", { count: "exact", head: true })
