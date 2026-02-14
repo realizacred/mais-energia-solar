@@ -44,6 +44,7 @@ import {
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { formatPhone, ESTADOS_BRASIL } from "@/lib/validations";
+import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { WhatsAppSendDialog } from "./WhatsAppSendDialog";
 import { ClienteViewDialog } from "./ClienteViewDialog";
 import { ClienteDocumentUpload } from "./ClienteDocumentUpload";
@@ -148,7 +149,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     try {
       const { data, error } = await supabase
         .from("clientes")
-        .select("*")
+        .select("id, nome, telefone, email, cpf_cnpj, data_nascimento, cep, estado, cidade, bairro, rua, numero, complemento, potencia_kwp, valor_projeto, data_instalacao, numero_placas, modelo_inversor, observacoes, lead_id, localizacao, ativo, created_at, identidade_urls, comprovante_endereco_urls, comprovante_beneficiaria_urls, disjuntor_id, transformador_id")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -487,14 +488,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cidade">Cidade</Label>
-                    <Input
-                      id="cidade"
-                      value={formData.cidade}
-                      onChange={(e) => setFormData({ ...formData, cidade: e.target.value })}
-                    />
-                  </div>
+                  <CidadeSelect estado={formData.estado} cidade={formData.cidade} onCidadeChange={(v) => setFormData({ ...formData, cidade: v })} />
                   <div className="space-y-2">
                     <Label htmlFor="bairro">Bairro</Label>
                     <Input
@@ -805,6 +799,40 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         open={viewOpen}
         onOpenChange={setViewOpen}
       />
+    </div>
+  );
+}
+
+function CidadeSelect({ estado, cidade, onCidadeChange }: { estado: string; cidade: string; onCidadeChange: (v: string) => void }) {
+  const { cidades, isLoading } = useCidadesPorEstado(estado);
+
+  if (!estado || cidades.length === 0) {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor="cidade">Cidade</Label>
+        <Input
+          id="cidade"
+          value={cidade}
+          onChange={(e) => onCidadeChange(e.target.value)}
+          placeholder={isLoading ? "Carregando..." : "Digite a cidade"}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor="cidade">Cidade</Label>
+      <Select value={cidade} onValueChange={onCidadeChange}>
+        <SelectTrigger>
+          <SelectValue placeholder="Selecione a cidade" />
+        </SelectTrigger>
+        <SelectContent>
+          {cidades.map((c) => (
+            <SelectItem key={c} value={c}>{c}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   );
 }

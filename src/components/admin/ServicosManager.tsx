@@ -106,7 +106,7 @@ export function ServicosManager() {
             cidade,
             descricao,
             instalador_id,
-            cliente:clientes(id, nome, telefone),
+            cliente:clientes(id, nome, telefone, bairro, cidade),
             fotos_urls,
             audio_url,
             video_url,
