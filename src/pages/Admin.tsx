@@ -106,6 +106,12 @@ const VariaveisCustomPage = lazy(() =>
   }))
 );
 
+const ProposalDashboardPage = lazy(() =>
+  import("@/components/admin/propostas-nativas/ProposalDashboard").then((m) => ({
+    default: m.ProposalDashboard,
+  }))
+);
+
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
 const TAB_TITLES: Record<string, string> = {
@@ -159,6 +165,7 @@ const TAB_TITLES: Record<string, string> = {
   projetos: "Projetos",
   "propostas-nativas": "Gerador de Propostas",
   "propostas-nativas/nova": "Nova Proposta",
+  "propostas-nativas/dashboard": "Dashboard de Propostas",
   "propostas-nativas/templates": "Templates de Proposta",
   "propostas-nativas/variaveis": "Variáveis Customizadas",
   "followup-wa": "Regras de Follow-up",
@@ -334,6 +341,7 @@ export default function Admin() {
                 <Route path="projetos" element={<ProjetosManagerPage />} />
                 <Route path="propostas-nativas" element={<ProposalListPage />} />
                 <Route path="propostas-nativas/nova" element={<ProposalWizardPage />} />
+                <Route path="propostas-nativas/dashboard" element={<ProposalDashboardPage />} />
                 <Route path="propostas-nativas/templates" element={<TemplatesManagerPage />} />
                 <Route path="propostas-nativas/variaveis" element={<VariaveisCustomPage />} />
                 <Route path="propostas-nativas/:propostaId/versoes/:versaoId" element={<ProposalDetailPage />} />
