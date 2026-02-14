@@ -639,7 +639,7 @@ export function WaChatComposer({
             <WritingAssistantButton
               onAction={(action) => writingAssistant.requestSuggestion(inputValue, action)}
               isLoading={writingAssistant.isLoading}
-              disabled={!inputValue.trim() || inputValue.trim().length < 3 || busy}
+              disabled={busy}
             />
           </>
         )}
