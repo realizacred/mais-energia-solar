@@ -5136,6 +5136,120 @@ export type Database = {
           },
         ]
       }
+      proposta_campos_distribuidora: {
+        Row: {
+          campo_key: string
+          created_at: string
+          id: string
+          tenant_id: string
+          valor: string | null
+          valor_boolean: boolean | null
+          versao_id: string
+        }
+        Insert: {
+          campo_key: string
+          created_at?: string
+          id?: string
+          tenant_id: string
+          valor?: string | null
+          valor_boolean?: boolean | null
+          versao_id: string
+        }
+        Update: {
+          campo_key?: string
+          created_at?: string
+          id?: string
+          tenant_id?: string
+          valor?: string | null
+          valor_boolean?: boolean | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_campos_distribuidora_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_campos_distribuidora_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_comercial: {
+        Row: {
+          created_at: string
+          empresa_cidade: string | null
+          empresa_cnpj_cpf: string | null
+          empresa_estado: string | null
+          empresa_nome: string | null
+          id: string
+          projeto_id_externo: string | null
+          representante_celular: string | null
+          representante_email: string | null
+          representante_nome: string | null
+          responsavel_celular: string | null
+          responsavel_email: string | null
+          responsavel_nome: string | null
+          tenant_id: string
+          versao_id: string
+        }
+        Insert: {
+          created_at?: string
+          empresa_cidade?: string | null
+          empresa_cnpj_cpf?: string | null
+          empresa_estado?: string | null
+          empresa_nome?: string | null
+          id?: string
+          projeto_id_externo?: string | null
+          representante_celular?: string | null
+          representante_email?: string | null
+          representante_nome?: string | null
+          responsavel_celular?: string | null
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          tenant_id: string
+          versao_id: string
+        }
+        Update: {
+          created_at?: string
+          empresa_cidade?: string | null
+          empresa_cnpj_cpf?: string | null
+          empresa_estado?: string | null
+          empresa_nome?: string | null
+          id?: string
+          projeto_id_externo?: string | null
+          representante_celular?: string | null
+          representante_email?: string | null
+          representante_nome?: string | null
+          responsavel_celular?: string | null
+          responsavel_email?: string | null
+          responsavel_nome?: string | null
+          tenant_id?: string
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_comercial_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_comercial_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_envios: {
         Row: {
           canal: string
@@ -5244,6 +5358,300 @@ export type Database = {
           },
         ]
       }
+      proposta_kit_itens: {
+        Row: {
+          avulso: boolean | null
+          categoria: string
+          created_at: string
+          descricao: string
+          fabricante: string | null
+          id: string
+          kit_id: string
+          modelo: string | null
+          ordem: number | null
+          potencia_w: number | null
+          preco_unitario: number
+          produto_ref: string | null
+          quantidade: number
+          tenant_id: string
+        }
+        Insert: {
+          avulso?: boolean | null
+          categoria: string
+          created_at?: string
+          descricao: string
+          fabricante?: string | null
+          id?: string
+          kit_id: string
+          modelo?: string | null
+          ordem?: number | null
+          potencia_w?: number | null
+          preco_unitario?: number
+          produto_ref?: string | null
+          quantidade?: number
+          tenant_id: string
+        }
+        Update: {
+          avulso?: boolean | null
+          categoria?: string
+          created_at?: string
+          descricao?: string
+          fabricante?: string | null
+          id?: string
+          kit_id?: string
+          modelo?: string | null
+          ordem?: number | null
+          potencia_w?: number | null
+          preco_unitario?: number
+          produto_ref?: string | null
+          quantidade?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_kit_itens_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_kit_itens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_kits: {
+        Row: {
+          created_at: string
+          id: string
+          kit_fechado_ref: string | null
+          tenant_id: string
+          tipo_kit: string
+          tipo_sistema: string | null
+          topologia: string | null
+          versao_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kit_fechado_ref?: string | null
+          tenant_id: string
+          tipo_kit?: string
+          tipo_sistema?: string | null
+          topologia?: string | null
+          versao_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kit_fechado_ref?: string | null
+          tenant_id?: string
+          tipo_kit?: string
+          tipo_sistema?: string | null
+          topologia?: string | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_kits_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_kits_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_layout_modulos: {
+        Row: {
+          arranjo_index: number
+          created_at: string
+          disposicao: string | null
+          id: string
+          inclinacao: number | null
+          kit_id: string
+          modulos_por_linha: number
+          num_linhas: number
+          orientacao: string | null
+          tenant_id: string
+        }
+        Insert: {
+          arranjo_index?: number
+          created_at?: string
+          disposicao?: string | null
+          id?: string
+          inclinacao?: number | null
+          kit_id: string
+          modulos_por_linha?: number
+          num_linhas?: number
+          orientacao?: string | null
+          tenant_id: string
+        }
+        Update: {
+          arranjo_index?: number
+          created_at?: string
+          disposicao?: string | null
+          id?: string
+          inclinacao?: number | null
+          kit_id?: string
+          modulos_por_linha?: number
+          num_linhas?: number
+          orientacao?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_layout_modulos_kit_id_fkey"
+            columns: ["kit_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_kits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_layout_modulos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_pagamento_opcoes: {
+        Row: {
+          carencia_meses: number | null
+          created_at: string
+          entrada: number | null
+          id: string
+          nome: string
+          num_parcelas: number | null
+          observacoes: string | null
+          ordem: number | null
+          taxa_mensal: number | null
+          tenant_id: string
+          tipo: string | null
+          valor_financiado: number | null
+          valor_parcela: number | null
+          versao_id: string
+        }
+        Insert: {
+          carencia_meses?: number | null
+          created_at?: string
+          entrada?: number | null
+          id?: string
+          nome: string
+          num_parcelas?: number | null
+          observacoes?: string | null
+          ordem?: number | null
+          taxa_mensal?: number | null
+          tenant_id: string
+          tipo?: string | null
+          valor_financiado?: number | null
+          valor_parcela?: number | null
+          versao_id: string
+        }
+        Update: {
+          carencia_meses?: number | null
+          created_at?: string
+          entrada?: number | null
+          id?: string
+          nome?: string
+          num_parcelas?: number | null
+          observacoes?: string | null
+          ordem?: number | null
+          taxa_mensal?: number | null
+          tenant_id?: string
+          tipo?: string | null
+          valor_financiado?: number | null
+          valor_parcela?: number | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_pagamento_opcoes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_pagamento_opcoes_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_premissas: {
+        Row: {
+          created_at: string
+          id: string
+          imposto: number | null
+          inflacao_energetica: number | null
+          inflacao_ipca: number | null
+          perda_eficiencia_anual: number | null
+          sobredimensionamento: number | null
+          tenant_id: string
+          troca_inversor_anos: number | null
+          troca_inversor_custo: number | null
+          versao_id: string
+          vpl_taxa_desconto: number | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          imposto?: number | null
+          inflacao_energetica?: number | null
+          inflacao_ipca?: number | null
+          perda_eficiencia_anual?: number | null
+          sobredimensionamento?: number | null
+          tenant_id: string
+          troca_inversor_anos?: number | null
+          troca_inversor_custo?: number | null
+          versao_id: string
+          vpl_taxa_desconto?: number | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          imposto?: number | null
+          inflacao_energetica?: number | null
+          inflacao_ipca?: number | null
+          perda_eficiencia_anual?: number | null
+          sobredimensionamento?: number | null
+          tenant_id?: string
+          troca_inversor_anos?: number | null
+          troca_inversor_custo?: number | null
+          versao_id?: string
+          vpl_taxa_desconto?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_premissas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_premissas_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_renders: {
         Row: {
           created_at: string
@@ -5298,6 +5706,238 @@ export type Database = {
           },
         ]
       }
+      proposta_resultados_energia: {
+        Row: {
+          consumo_abatido: number | null
+          created_at: string
+          creditos_abr: number | null
+          creditos_ago: number | null
+          creditos_alocados: number | null
+          creditos_dez: number | null
+          creditos_fev: number | null
+          creditos_jan: number | null
+          creditos_jul: number | null
+          creditos_jun: number | null
+          creditos_mai: number | null
+          creditos_mar: number | null
+          creditos_nov: number | null
+          creditos_out: number | null
+          creditos_set: number | null
+          economia_demanda_mensal: number | null
+          economia_energia_mensal: number | null
+          economia_energia_percentual: number | null
+          economia_total_anual: number | null
+          economia_total_mensal: number | null
+          gasto_demanda_mensal_atual: number | null
+          gasto_demanda_mensal_novo: number | null
+          gasto_energia_mensal_atual: number | null
+          gasto_energia_mensal_novo: number | null
+          gasto_total_mensal_atual: number | null
+          gasto_total_mensal_novo: number | null
+          id: string
+          tarifacao_energia_compensada_bt: number | null
+          tarifacao_energia_compensada_fp: number | null
+          tarifacao_energia_compensada_p: number | null
+          tenant_id: string
+          uc_id: string | null
+          valor_imposto_energia: number | null
+          versao_id: string
+        }
+        Insert: {
+          consumo_abatido?: number | null
+          created_at?: string
+          creditos_abr?: number | null
+          creditos_ago?: number | null
+          creditos_alocados?: number | null
+          creditos_dez?: number | null
+          creditos_fev?: number | null
+          creditos_jan?: number | null
+          creditos_jul?: number | null
+          creditos_jun?: number | null
+          creditos_mai?: number | null
+          creditos_mar?: number | null
+          creditos_nov?: number | null
+          creditos_out?: number | null
+          creditos_set?: number | null
+          economia_demanda_mensal?: number | null
+          economia_energia_mensal?: number | null
+          economia_energia_percentual?: number | null
+          economia_total_anual?: number | null
+          economia_total_mensal?: number | null
+          gasto_demanda_mensal_atual?: number | null
+          gasto_demanda_mensal_novo?: number | null
+          gasto_energia_mensal_atual?: number | null
+          gasto_energia_mensal_novo?: number | null
+          gasto_total_mensal_atual?: number | null
+          gasto_total_mensal_novo?: number | null
+          id?: string
+          tarifacao_energia_compensada_bt?: number | null
+          tarifacao_energia_compensada_fp?: number | null
+          tarifacao_energia_compensada_p?: number | null
+          tenant_id: string
+          uc_id?: string | null
+          valor_imposto_energia?: number | null
+          versao_id: string
+        }
+        Update: {
+          consumo_abatido?: number | null
+          created_at?: string
+          creditos_abr?: number | null
+          creditos_ago?: number | null
+          creditos_alocados?: number | null
+          creditos_dez?: number | null
+          creditos_fev?: number | null
+          creditos_jan?: number | null
+          creditos_jul?: number | null
+          creditos_jun?: number | null
+          creditos_mai?: number | null
+          creditos_mar?: number | null
+          creditos_nov?: number | null
+          creditos_out?: number | null
+          creditos_set?: number | null
+          economia_demanda_mensal?: number | null
+          economia_energia_mensal?: number | null
+          economia_energia_percentual?: number | null
+          economia_total_anual?: number | null
+          economia_total_mensal?: number | null
+          gasto_demanda_mensal_atual?: number | null
+          gasto_demanda_mensal_novo?: number | null
+          gasto_energia_mensal_atual?: number | null
+          gasto_energia_mensal_novo?: number | null
+          gasto_total_mensal_atual?: number | null
+          gasto_total_mensal_novo?: number | null
+          id?: string
+          tarifacao_energia_compensada_bt?: number | null
+          tarifacao_energia_compensada_fp?: number | null
+          tarifacao_energia_compensada_p?: number | null
+          tenant_id?: string
+          uc_id?: string | null
+          valor_imposto_energia?: number | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_resultados_energia_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_resultados_energia_uc_id_fkey"
+            columns: ["uc_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_ucs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_resultados_energia_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_series: {
+        Row: {
+          created_at: string
+          data_points: Json
+          id: string
+          serie_key: string
+          tenant_id: string
+          uc_index: number | null
+          unidade: string | null
+          versao_id: string
+        }
+        Insert: {
+          created_at?: string
+          data_points?: Json
+          id?: string
+          serie_key: string
+          tenant_id: string
+          uc_index?: number | null
+          unidade?: string | null
+          versao_id: string
+        }
+        Update: {
+          created_at?: string
+          data_points?: Json
+          id?: string
+          serie_key?: string
+          tenant_id?: string
+          uc_index?: number | null
+          unidade?: string | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_series_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_series_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_servicos: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          descricao: string
+          id: string
+          incluso_no_preco: boolean | null
+          ordem: number | null
+          tenant_id: string
+          valor: number
+          versao_id: string
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          descricao: string
+          id?: string
+          incluso_no_preco?: boolean | null
+          ordem?: number | null
+          tenant_id: string
+          valor?: number
+          versao_id: string
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          descricao?: string
+          id?: string
+          incluso_no_preco?: boolean | null
+          ordem?: number | null
+          tenant_id?: string
+          valor?: number
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_servicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_servicos_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_templates: {
         Row: {
           ativo: boolean
@@ -5341,6 +5981,186 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_ucs: {
+        Row: {
+          cidade: string | null
+          consumo_abr: number | null
+          consumo_ago: number | null
+          consumo_dez: number | null
+          consumo_fev: number | null
+          consumo_jan: number | null
+          consumo_jul: number | null
+          consumo_jun: number | null
+          consumo_mai: number | null
+          consumo_mar: number | null
+          consumo_mensal: number | null
+          consumo_mensal_fp: number | null
+          consumo_mensal_p: number | null
+          consumo_nov: number | null
+          consumo_out: number | null
+          consumo_set: number | null
+          created_at: string
+          custo_disponibilidade_kwh: number | null
+          custo_disponibilidade_valor: number | null
+          demanda_adicional: number | null
+          demanda_contratada: number | null
+          demanda_g: number | null
+          demanda_g_preco: number | null
+          demanda_preco: number | null
+          desvio_azimutal: number | null
+          distancia: number | null
+          distribuidora: string | null
+          estado: string | null
+          fase: string | null
+          fator_simultaneidade: number | null
+          id: string
+          imposto_energia: number | null
+          inclinacao: number | null
+          nome: string | null
+          outros_encargos_atual: number | null
+          outros_encargos_novo: number | null
+          rateio_creditos: number | null
+          rateio_sugerido_creditos: number | null
+          regra_compensacao: number | null
+          subgrupo: string | null
+          tarifa_distribuidora: number | null
+          tarifa_te_fp: number | null
+          tarifa_te_p: number | null
+          tarifa_tusd_fp: number | null
+          tarifa_tusd_p: number | null
+          taxa_desempenho: number | null
+          tenant_id: string
+          tensao_rede: string | null
+          tipo_dimensionamento: string | null
+          tipo_telhado: string | null
+          uc_index: number
+          versao_id: string
+        }
+        Insert: {
+          cidade?: string | null
+          consumo_abr?: number | null
+          consumo_ago?: number | null
+          consumo_dez?: number | null
+          consumo_fev?: number | null
+          consumo_jan?: number | null
+          consumo_jul?: number | null
+          consumo_jun?: number | null
+          consumo_mai?: number | null
+          consumo_mar?: number | null
+          consumo_mensal?: number | null
+          consumo_mensal_fp?: number | null
+          consumo_mensal_p?: number | null
+          consumo_nov?: number | null
+          consumo_out?: number | null
+          consumo_set?: number | null
+          created_at?: string
+          custo_disponibilidade_kwh?: number | null
+          custo_disponibilidade_valor?: number | null
+          demanda_adicional?: number | null
+          demanda_contratada?: number | null
+          demanda_g?: number | null
+          demanda_g_preco?: number | null
+          demanda_preco?: number | null
+          desvio_azimutal?: number | null
+          distancia?: number | null
+          distribuidora?: string | null
+          estado?: string | null
+          fase?: string | null
+          fator_simultaneidade?: number | null
+          id?: string
+          imposto_energia?: number | null
+          inclinacao?: number | null
+          nome?: string | null
+          outros_encargos_atual?: number | null
+          outros_encargos_novo?: number | null
+          rateio_creditos?: number | null
+          rateio_sugerido_creditos?: number | null
+          regra_compensacao?: number | null
+          subgrupo?: string | null
+          tarifa_distribuidora?: number | null
+          tarifa_te_fp?: number | null
+          tarifa_te_p?: number | null
+          tarifa_tusd_fp?: number | null
+          tarifa_tusd_p?: number | null
+          taxa_desempenho?: number | null
+          tenant_id: string
+          tensao_rede?: string | null
+          tipo_dimensionamento?: string | null
+          tipo_telhado?: string | null
+          uc_index?: number
+          versao_id: string
+        }
+        Update: {
+          cidade?: string | null
+          consumo_abr?: number | null
+          consumo_ago?: number | null
+          consumo_dez?: number | null
+          consumo_fev?: number | null
+          consumo_jan?: number | null
+          consumo_jul?: number | null
+          consumo_jun?: number | null
+          consumo_mai?: number | null
+          consumo_mar?: number | null
+          consumo_mensal?: number | null
+          consumo_mensal_fp?: number | null
+          consumo_mensal_p?: number | null
+          consumo_nov?: number | null
+          consumo_out?: number | null
+          consumo_set?: number | null
+          created_at?: string
+          custo_disponibilidade_kwh?: number | null
+          custo_disponibilidade_valor?: number | null
+          demanda_adicional?: number | null
+          demanda_contratada?: number | null
+          demanda_g?: number | null
+          demanda_g_preco?: number | null
+          demanda_preco?: number | null
+          desvio_azimutal?: number | null
+          distancia?: number | null
+          distribuidora?: string | null
+          estado?: string | null
+          fase?: string | null
+          fator_simultaneidade?: number | null
+          id?: string
+          imposto_energia?: number | null
+          inclinacao?: number | null
+          nome?: string | null
+          outros_encargos_atual?: number | null
+          outros_encargos_novo?: number | null
+          rateio_creditos?: number | null
+          rateio_sugerido_creditos?: number | null
+          regra_compensacao?: number | null
+          subgrupo?: string | null
+          tarifa_distribuidora?: number | null
+          tarifa_te_fp?: number | null
+          tarifa_te_p?: number | null
+          tarifa_tusd_fp?: number | null
+          tarifa_tusd_p?: number | null
+          taxa_desempenho?: number | null
+          tenant_id?: string
+          tensao_rede?: string | null
+          tipo_dimensionamento?: string | null
+          tipo_telhado?: string | null
+          uc_index?: number
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_ucs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_ucs_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
         ]
@@ -5392,6 +6212,78 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_venda: {
+        Row: {
+          created_at: string
+          custo_comissao: number | null
+          custo_instalacao: number | null
+          custo_kit: number | null
+          custo_outros: number | null
+          custo_total: number | null
+          desconto_percentual: number | null
+          desconto_valor: number | null
+          id: string
+          margem_percentual: number | null
+          markup: number | null
+          observacoes: string | null
+          preco_final: number | null
+          preco_por_kwp: number | null
+          tenant_id: string
+          versao_id: string
+        }
+        Insert: {
+          created_at?: string
+          custo_comissao?: number | null
+          custo_instalacao?: number | null
+          custo_kit?: number | null
+          custo_outros?: number | null
+          custo_total?: number | null
+          desconto_percentual?: number | null
+          desconto_valor?: number | null
+          id?: string
+          margem_percentual?: number | null
+          markup?: number | null
+          observacoes?: string | null
+          preco_final?: number | null
+          preco_por_kwp?: number | null
+          tenant_id: string
+          versao_id: string
+        }
+        Update: {
+          created_at?: string
+          custo_comissao?: number | null
+          custo_instalacao?: number | null
+          custo_kit?: number | null
+          custo_outros?: number | null
+          custo_total?: number | null
+          desconto_percentual?: number | null
+          desconto_valor?: number | null
+          id?: string
+          margem_percentual?: number | null
+          markup?: number | null
+          observacoes?: string | null
+          preco_final?: number | null
+          preco_por_kwp?: number | null
+          tenant_id?: string
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_venda_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_venda_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: true
+            referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },
         ]
