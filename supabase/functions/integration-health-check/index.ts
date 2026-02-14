@@ -48,22 +48,15 @@ Deno.serve(async (req) => {
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.replace("Bearer ", "");
-
-      // Skip anon key — it's the SDK default, not a user session
       const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-      if (token && token !== anonKey) {
-        const supabaseUser = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_ANON_KEY")!,
-          { global: { headers: { Authorization: authHeader } } }
-        );
 
-        const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+      if (token && token !== anonKey) {
+        // Use service_role admin client to validate the token directly
+        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
         if (user && !userError) {
           const userId = user.id;
 
-          // Admin check
           const { data: roleData } = await supabaseAdmin
             .from("user_roles")
             .select("role")
