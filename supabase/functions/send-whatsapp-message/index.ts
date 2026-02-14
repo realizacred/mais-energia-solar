@@ -12,25 +12,24 @@ interface SendMessageRequest {
   lead_id?: string;
   tipo?: "automatico" | "manual" | "lembrete";
   instance_id?: string;
-  tenant_id?: string; // callers MUST pass for service_role context
+  tenant_id?: string; // ONLY accepted for service_role callers (internal automations). JWT users: IGNORED, resolved from profile.
 }
 
 /**
  * AUTH MODEL: "auth required" — NOT a public webhook.
- * - Regular users: JWT validated via getClaims()
- * - Internal callers (automations): service_role key accepted, but tenant_id MUST be in body
+ * - Regular users: JWT validated via getClaims(), tenant resolved from profiles (NEVER from payload)
+ * - Internal callers (automations): service_role key accepted, tenant_id MUST be in body
+ * 
+ * TENANT ISOLATION RULES:
+ * - JWT users: body.tenant_id is IGNORED. If provided and mismatches profile → 403 + ALERT log.
+ * - service_role: body.tenant_id is REQUIRED and validated against tenants table.
+ * - tenantIdResolved is used for ALL DB operations (SELECT/INSERT/UPDATE).
  * 
  * INSTANCE ROUTING (priority order):
  * 1. body.instance_id (explicit — caller knows which instance)
- * 2. Vendor's linked instance via wa_instance_vendedores junction table
+ * 2. Vendor's linked instance via wa_instance_consultores junction table
  * 3. config.evolution_instance (legacy fallback from whatsapp_automation_config)
  * 4. First active instance of the tenant
- * 
- * TENANT RESOLUTION (deterministic, no blind fallback):
- * 1. body.tenant_id (explicit — required for service_role)
- * 2. User profile (regular JWT)
- * 3. Lead record (if lead_id provided)
- * 4. FAIL — never uses wa_config as blind fallback
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -125,90 +124,75 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── TENANT RESOLUTION (deterministic — NO blind fallback) ──
-    let tenantId: string | null = null;
+    // ── TENANT RESOLUTION (P0 HARDENED — NO payload trust for JWT users) ──
+    let tenantIdResolved: string | null = null;
     let tenantSource = "";
 
-    // Resolve user's profile tenant first (needed for mismatch check)
-    let profileTenantId: string | null = null;
-    if (userId) {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      profileTenantId = profile?.tenant_id || null;
-    }
-
-    // Strategy 1: Explicit tenant_id in body (REQUIRED for service_role callers)
-    if (body.tenant_id) {
-      // P0 HARDENING: If JWT user passes tenant_id, it MUST match their profile tenant
-      if (!isServiceRole && profileTenantId && body.tenant_id !== profileTenantId) {
-        console.error(`[send-wa] [ALERT][SECURITY] tenant_id MISMATCH: body=${body.tenant_id} profile=${profileTenantId} user=${userId}`);
+    if (isServiceRole) {
+      // SERVICE_ROLE: tenant_id MUST come from body (internal automations)
+      if (!body.tenant_id) {
+        console.error("[send-wa] BLOCKED: service_role call sem tenant_id no body — obrigatório");
         return new Response(
-          JSON.stringify({ success: false, error: "tenant_id mismatch — acesso negado" }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ success: false, error: "service_role call sem tenant_id no body — obrigatório" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-
       const { data: tenantRow } = await supabaseAdmin
         .from("tenants")
-        .select("id")
+        .select("id, status, deleted_at")
         .eq("id", body.tenant_id)
         .eq("ativo", true)
         .maybeSingle();
-      if (tenantRow) {
-        tenantId = tenantRow.id;
-        tenantSource = "body.tenant_id";
-      } else {
-        console.error(`[send-wa] BLOCKED: body.tenant_id=${body.tenant_id} not found or inactive`);
+      if (!tenantRow) {
+        console.error(`[send-wa] BLOCKED: service_role tenant_id=${body.tenant_id} not found or inactive`);
         return new Response(
           JSON.stringify({ success: false, error: "Tenant inválido ou inativo" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-    }
-
-    // Strategy 2: From user profile (regular JWT user)
-    if (!tenantId && profileTenantId) {
-      tenantId = profileTenantId;
-      tenantSource = "user_profile";
-    }
-
-    // Strategy 3: From lead record (if lead_id provided)
-    if (!tenantId && lead_id) {
-      const { data: lead } = await supabaseAdmin
-        .from("leads")
+      tenantIdResolved = tenantRow.id;
+      tenantSource = "service_role.body";
+    } else {
+      // JWT USER: tenant resolved EXCLUSIVELY from profiles. body.tenant_id is IGNORED.
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
         .select("tenant_id")
-        .eq("id", lead_id)
+        .eq("user_id", userId!)
         .maybeSingle();
-      if (lead?.tenant_id) {
-        tenantId = lead.tenant_id;
-        tenantSource = "lead";
+
+      if (!profile?.tenant_id) {
+        console.error(`[send-wa] BLOCKED: JWT user ${userId} sem tenant_id no profile`);
+        return new Response(
+          JSON.stringify({ success: false, error: "Usuário sem tenant_id no profile" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      tenantIdResolved = profile.tenant_id;
+      tenantSource = "user_profile";
+
+      // SECURITY: If body.tenant_id was provided, it MUST match — otherwise it's spoofing
+      if (body.tenant_id && body.tenant_id !== tenantIdResolved) {
+        console.error(`[send-wa] [ALERT][SECURITY] tenant_id SPOOFING ATTEMPT: body=${body.tenant_id} profile=${tenantIdResolved} user=${userId}`);
+        return new Response(
+          JSON.stringify({ success: false, error: "tenant_id mismatch — acesso negado" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (body.tenant_id) {
+        console.warn(`[send-wa] [WARN] JWT user ${userId} passed body.tenant_id (matched profile, but field is ignored)`);
       }
     }
 
-    if (!tenantId) {
-      const reason = isServiceRole
-        ? "service_role call sem tenant_id no body — obrigatório"
-        : "Usuário sem tenant_id no profile";
-      console.error(`[send-wa] BLOCKED: tenant não resolvido. Reason: ${reason}`);
-      return new Response(
-        JSON.stringify({ success: false, error: `Tenant não resolvido: ${reason}` }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`[send-wa] tenant=${tenantId} via ${tenantSource}, userId=${userId || "service_role"}`);
+    console.log(`[send-wa] tenant=${tenantIdResolved} via ${tenantSource}, userId=${userId || "service_role"}`);
 
     // G3: Tenant status enforcement
     const { data: tenantStatusRow } = await supabaseAdmin
       .from("tenants")
       .select("status, deleted_at")
-      .eq("id", tenantId)
+      .eq("id", tenantIdResolved)
       .single();
     if (!tenantStatusRow || tenantStatusRow.status !== "active" || tenantStatusRow.deleted_at) {
-      console.error(`[send-wa] BLOCKED: tenant ${tenantId} inactive (${tenantStatusRow?.status})`);
+      console.error(`[send-wa] BLOCKED: tenant ${tenantIdResolved} inactive (${tenantStatusRow?.status})`);
       return new Response(
         JSON.stringify({ success: false, error: "tenant_inactive" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -219,7 +203,7 @@ Deno.serve(async (req) => {
     const { data: config, error: configError } = await supabaseAdmin
       .from("whatsapp_automation_config")
       .select("ativo, modo_envio, webhook_url, api_token, evolution_api_url, evolution_api_key, evolution_instance")
-      .eq("tenant_id", tenantId)
+      .eq("tenant_id", tenantIdResolved)
       .maybeSingle();
 
     if (configError) {
@@ -231,7 +215,7 @@ Deno.serve(async (req) => {
     }
 
     if (!config) {
-      console.warn(`[send-wa] No wa_config for tenant=${tenantId}`);
+      console.warn(`[send-wa] No wa_config for tenant=${tenantIdResolved}`);
       return new Response(JSON.stringify({ success: false, error: "Configuração de WhatsApp não encontrada para este tenant." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -257,7 +241,7 @@ Deno.serve(async (req) => {
     // Priority 1: Explicit instance_id
     if (instance_id) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(instance_id);
-      let q = supabaseAdmin.from("wa_instances").select("id, evolution_api_url, evolution_instance_key, api_key, status").eq("tenant_id", tenantId);
+      let q = supabaseAdmin.from("wa_instances").select("id, evolution_api_url, evolution_instance_key, api_key, status").eq("tenant_id", tenantIdResolved);
       if (isUuid) {
         q = q.eq("id", instance_id);
       } else {
@@ -282,7 +266,7 @@ Deno.serve(async (req) => {
           .select("id")
           .eq("user_id", userId)
           .eq("ativo", true)
-          .eq("tenant_id", tenantId)
+          .eq("tenant_id", tenantIdResolved)
           .maybeSingle();
         vendedorId = vendedor?.id || null;
       }
@@ -303,7 +287,7 @@ Deno.serve(async (req) => {
           .from("wa_instance_consultores")
           .select("instance_id, wa_instances:instance_id(id, evolution_api_url, evolution_instance_key, api_key, status)")
           .eq("consultor_id", vendedorId)
-          .eq("tenant_id", tenantId);
+          .eq("tenant_id", tenantIdResolved);
 
         if (links && links.length > 0) {
           // Prefer connected instance, fallback to first
@@ -331,7 +315,7 @@ Deno.serve(async (req) => {
         .from("wa_instances")
         .select("id, evolution_api_url, evolution_instance_key, api_key, status")
         .eq("evolution_instance_key", config.evolution_instance)
-        .eq("tenant_id", tenantId)
+        .eq("tenant_id", tenantIdResolved)
         .maybeSingle();
       if (inst) {
         resolvedInstance = inst;
@@ -344,7 +328,7 @@ Deno.serve(async (req) => {
       const { data: inst } = await supabaseAdmin
         .from("wa_instances")
         .select("id, evolution_api_url, evolution_instance_key, api_key, status")
-        .eq("tenant_id", tenantId)
+        .eq("tenant_id", tenantIdResolved)
         .eq("status", "connected")
         .order("created_at", { ascending: true })
         .limit(1)
@@ -592,7 +576,7 @@ Deno.serve(async (req) => {
           const { data: newConv, error: convErr } = await supabaseAdmin
             .from("wa_conversations")
             .upsert({
-              tenant_id: tenantId,
+              tenant_id: tenantIdResolved,
               instance_id: resolvedInstance.id,
               remote_jid: remoteJid,
               cliente_telefone: formattedPhone,
@@ -632,7 +616,7 @@ Deno.serve(async (req) => {
           const { error: msgErr } = await supabaseAdmin
             .from("wa_messages")
             .insert({
-              tenant_id: tenantId,
+              tenant_id: tenantIdResolved,
               conversation_id: createdConvId,
               direction: "out",
               message_type: "text",
@@ -653,7 +637,7 @@ Deno.serve(async (req) => {
             const { data: existingTag } = await supabaseAdmin
               .from("wa_tags")
               .select("id")
-              .eq("tenant_id", tenantId)
+              .eq("tenant_id", tenantIdResolved)
               .eq("name", "Aguardando orçamento")
               .maybeSingle();
 
@@ -661,7 +645,7 @@ Deno.serve(async (req) => {
             if (!tagId) {
               const { data: newTag } = await supabaseAdmin
                 .from("wa_tags")
-                .insert({ tenant_id: tenantId, name: "Aguardando orçamento", color: "#f59e0b" })
+                .insert({ tenant_id: tenantIdResolved, name: "Aguardando orçamento", color: "#f59e0b" })
                 .select("id")
                 .single();
               tagId = newTag?.id;
@@ -672,7 +656,7 @@ Deno.serve(async (req) => {
               await supabaseAdmin
                 .from("wa_conversation_tags")
                 .upsert(
-                  { conversation_id: createdConvId, tag_id: tagId, tenant_id: tenantId },
+                  { conversation_id: createdConvId, tag_id: tagId, tenant_id: tenantIdResolved },
                   { onConflict: "conversation_id,tag_id" }
                 );
               console.log(`[send-wa] Tag "Aguardando orçamento" applied to conv ${createdConvId}`);
@@ -680,7 +664,7 @@ Deno.serve(async (req) => {
             }
           } catch (tagErr) {
             // P0-1: ALERT-level log for security visibility (non-blocking for message delivery)
-            console.error("[ALERT][SECURITY] Tag upsert failed", { conversationId: createdConvId, tenantId, error: tagErr });
+            console.error("[ALERT][SECURITY] Tag upsert failed", { conversationId: createdConvId, tenantId: tenantIdResolved, error: tagErr });
           }
         }
       } catch (convErr) {
@@ -698,7 +682,7 @@ Deno.serve(async (req) => {
       mensagem_enviada: mensagem,
       status,
       erro_detalhes: logErroDetalhes,
-      tenant_id: tenantId,
+      tenant_id: tenantIdResolved,
       instance_id: resolvedInstance?.id || null,
     });
 
@@ -711,7 +695,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`[send-wa] Done tenant=${tenantId} src=${tenantSource} instance=${resolvedInstance?.evolution_instance_key || "NONE"} via=${instanceSource}: ${results.length} methods, anySuccess=${anySuccess}`);
+    console.log(`[send-wa] Done tenant=${tenantIdResolved} src=${tenantSource} instance=${resolvedInstance?.evolution_instance_key || "NONE"} via=${instanceSource}: ${results.length} methods, anySuccess=${anySuccess}`);
 
     return new Response(
       JSON.stringify({
