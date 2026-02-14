@@ -7606,6 +7606,336 @@ export type Database = {
           },
         ]
       }
+      pv_contrato_servicos: {
+        Row: {
+          contrato_id: string
+          created_at: string
+          id: string
+          preco_unitario: number | null
+          quantidade: number
+          servico_id: string
+          tenant_id: string
+        }
+        Insert: {
+          contrato_id: string
+          created_at?: string
+          id?: string
+          preco_unitario?: number | null
+          quantidade?: number
+          servico_id: string
+          tenant_id: string
+        }
+        Update: {
+          contrato_id?: string
+          created_at?: string
+          id?: string
+          preco_unitario?: number | null
+          quantidade?: number
+          servico_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pv_contrato_servicos_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "pv_contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pv_contrato_servicos_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "pv_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pv_contrato_servicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pv_contratos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data_fim: string | null
+          data_inicio: string
+          id: string
+          numero_contrato: string | null
+          observacoes: string | null
+          periodicidade_meses: number | null
+          proximo_servico_em: string | null
+          status: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+          valor_mensal: number | null
+          valor_total: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio: string
+          id?: string
+          numero_contrato?: string | null
+          observacoes?: string | null
+          periodicidade_meses?: number | null
+          proximo_servico_em?: string | null
+          status?: string
+          tenant_id: string
+          tipo?: string
+          updated_at?: string
+          valor_mensal?: number | null
+          valor_total?: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data_fim?: string | null
+          data_inicio?: string
+          id?: string
+          numero_contrato?: string | null
+          observacoes?: string | null
+          periodicidade_meses?: number | null
+          proximo_servico_em?: string | null
+          status?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+          valor_mensal?: number | null
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pv_contratos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pv_contratos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pv_ordens_servico: {
+        Row: {
+          appointment_id: string | null
+          assinatura_cliente_url: string | null
+          cliente_id: string
+          contrato_id: string | null
+          created_at: string
+          created_by: string | null
+          data_agendada: string | null
+          data_conclusao: string | null
+          data_execucao: string | null
+          executado_por: string | null
+          fotos_urls: string[] | null
+          id: string
+          laudo_tecnico: string | null
+          numero_os: string | null
+          observacoes: string | null
+          servico_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+          valor_cobrado: number | null
+        }
+        Insert: {
+          appointment_id?: string | null
+          assinatura_cliente_url?: string | null
+          cliente_id: string
+          contrato_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_agendada?: string | null
+          data_conclusao?: string | null
+          data_execucao?: string | null
+          executado_por?: string | null
+          fotos_urls?: string[] | null
+          id?: string
+          laudo_tecnico?: string | null
+          numero_os?: string | null
+          observacoes?: string | null
+          servico_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+          valor_cobrado?: number | null
+        }
+        Update: {
+          appointment_id?: string | null
+          assinatura_cliente_url?: string | null
+          cliente_id?: string
+          contrato_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_agendada?: string | null
+          data_conclusao?: string | null
+          data_execucao?: string | null
+          executado_por?: string | null
+          fotos_urls?: string[] | null
+          id?: string
+          laudo_tecnico?: string | null
+          numero_os?: string | null
+          observacoes?: string | null
+          servico_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+          valor_cobrado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pv_ordens_servico_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pv_ordens_servico_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pv_ordens_servico_contrato_id_fkey"
+            columns: ["contrato_id"]
+            isOneToOne: false
+            referencedRelation: "pv_contratos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pv_ordens_servico_servico_id_fkey"
+            columns: ["servico_id"]
+            isOneToOne: false
+            referencedRelation: "pv_servicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pv_ordens_servico_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pv_os_checklist: {
+        Row: {
+          concluido: boolean
+          created_at: string
+          foto_url: string | null
+          id: string
+          item: string
+          observacao: string | null
+          ordem: number
+          ordem_id: string
+          tenant_id: string
+        }
+        Insert: {
+          concluido?: boolean
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          item: string
+          observacao?: string | null
+          ordem?: number
+          ordem_id: string
+          tenant_id: string
+        }
+        Update: {
+          concluido?: boolean
+          created_at?: string
+          foto_url?: string | null
+          id?: string
+          item?: string
+          observacao?: string | null
+          ordem?: number
+          ordem_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pv_os_checklist_ordem_id_fkey"
+            columns: ["ordem_id"]
+            isOneToOne: false
+            referencedRelation: "pv_ordens_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pv_os_checklist_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pv_servicos: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          duracao_estimada_min: number | null
+          id: string
+          nome: string
+          preco_base: number
+          requer_agendamento: boolean
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          duracao_estimada_min?: number | null
+          id?: string
+          nome: string
+          preco_base?: number
+          requer_agendamento?: boolean
+          tenant_id: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          duracao_estimada_min?: number | null
+          id?: string
+          nome?: string
+          preco_base?: number
+          requer_agendamento?: boolean
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pv_servicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recebimentos: {
         Row: {
           cliente_id: string
@@ -9693,6 +10023,264 @@ export type Database = {
           },
         ]
       }
+      wa_cadence_enrollments: {
+        Row: {
+          cadence_id: string
+          cliente_id: string | null
+          completed_at: string | null
+          conversation_id: string | null
+          created_at: string
+          current_step_ordem: number
+          enrolled_at: string
+          enrolled_by: string | null
+          id: string
+          lead_id: string | null
+          next_execution_at: string | null
+          paused_at: string | null
+          paused_reason: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          cadence_id: string
+          cliente_id?: string | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          current_step_ordem?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          id?: string
+          lead_id?: string | null
+          next_execution_at?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          cadence_id?: string
+          cliente_id?: string | null
+          completed_at?: string | null
+          conversation_id?: string | null
+          created_at?: string
+          current_step_ordem?: number
+          enrolled_at?: string
+          enrolled_by?: string | null
+          id?: string
+          lead_id?: string | null
+          next_execution_at?: string | null
+          paused_at?: string | null
+          paused_reason?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_cadence_enrollments_cadence_id_fkey"
+            columns: ["cadence_id"]
+            isOneToOne: false
+            referencedRelation: "wa_cadences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_cadence_enrollments_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_cadence_enrollments_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_cadence_enrollments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_cadence_enrollments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_cadence_executions: {
+        Row: {
+          ai_confidence_score: number | null
+          ai_message: string | null
+          created_at: string
+          enrollment_id: string
+          error_message: string | null
+          id: string
+          responded_at: string | null
+          sent_at: string | null
+          status: string
+          step_id: string
+          tenant_id: string
+        }
+        Insert: {
+          ai_confidence_score?: number | null
+          ai_message?: string | null
+          created_at?: string
+          enrollment_id: string
+          error_message?: string | null
+          id?: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          step_id: string
+          tenant_id: string
+        }
+        Update: {
+          ai_confidence_score?: number | null
+          ai_message?: string | null
+          created_at?: string
+          enrollment_id?: string
+          error_message?: string | null
+          id?: string
+          responded_at?: string | null
+          sent_at?: string | null
+          status?: string
+          step_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_cadence_executions_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "wa_cadence_enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_cadence_executions_step_id_fkey"
+            columns: ["step_id"]
+            isOneToOne: false
+            referencedRelation: "wa_cadence_steps"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_cadence_executions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_cadence_steps: {
+        Row: {
+          ativo: boolean
+          cadence_id: string
+          canal: string
+          created_at: string
+          delay_hours: number
+          fallback_template: string | null
+          id: string
+          nome: string
+          ordem: number
+          prompt_ia: string | null
+          tenant_id: string
+        }
+        Insert: {
+          ativo?: boolean
+          cadence_id: string
+          canal?: string
+          created_at?: string
+          delay_hours?: number
+          fallback_template?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+          prompt_ia?: string | null
+          tenant_id: string
+        }
+        Update: {
+          ativo?: boolean
+          cadence_id?: string
+          canal?: string
+          created_at?: string
+          delay_hours?: number
+          fallback_template?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+          prompt_ia?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_cadence_steps_cadence_id_fkey"
+            columns: ["cadence_id"]
+            isOneToOne: false
+            referencedRelation: "wa_cadences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_cadence_steps_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_cadences: {
+        Row: {
+          ativo: boolean
+          auto_enroll: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          auto_enroll?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          tenant_id: string
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          auto_enroll?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_cadences_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversation_preferences: {
         Row: {
           conversation_id: string
@@ -10607,6 +11195,131 @@ export type Database = {
             foreignKeyName: "wa_satisfaction_ratings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_sla_alerts: {
+        Row: {
+          acknowledged: boolean
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          ai_summary: string | null
+          assigned_to: string | null
+          conversation_id: string
+          created_at: string
+          escalated: boolean
+          escalated_at: string | null
+          id: string
+          resolved: boolean
+          resolved_at: string | null
+          tempo_sem_resposta_minutos: number | null
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          conversation_id: string
+          created_at?: string
+          escalated?: boolean
+          escalated_at?: string | null
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          tempo_sem_resposta_minutos?: number | null
+          tenant_id: string
+          tipo: string
+        }
+        Update: {
+          acknowledged?: boolean
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          ai_summary?: string | null
+          assigned_to?: string | null
+          conversation_id?: string
+          created_at?: string
+          escalated?: boolean
+          escalated_at?: string | null
+          id?: string
+          resolved?: boolean
+          resolved_at?: string | null
+          tempo_sem_resposta_minutos?: number | null
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_sla_alerts_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_sla_alerts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_sla_config: {
+        Row: {
+          alerta_sonoro: boolean
+          alerta_visual: boolean
+          ativo: boolean
+          created_at: string
+          escalonar_apos_minutos: number
+          gerar_resumo_ia: boolean
+          horario_comercial_fim: string | null
+          horario_comercial_inicio: string | null
+          id: string
+          ignorar_fora_horario: boolean
+          prazo_resposta_minutos: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          alerta_sonoro?: boolean
+          alerta_visual?: boolean
+          ativo?: boolean
+          created_at?: string
+          escalonar_apos_minutos?: number
+          gerar_resumo_ia?: boolean
+          horario_comercial_fim?: string | null
+          horario_comercial_inicio?: string | null
+          id?: string
+          ignorar_fora_horario?: boolean
+          prazo_resposta_minutos?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          alerta_sonoro?: boolean
+          alerta_visual?: boolean
+          ativo?: boolean
+          created_at?: string
+          escalonar_apos_minutos?: number
+          gerar_resumo_ia?: boolean
+          horario_comercial_fim?: string | null
+          horario_comercial_inicio?: string | null
+          id?: string
+          ignorar_fora_horario?: boolean
+          prazo_resposta_minutos?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_sla_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
