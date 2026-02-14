@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useLogo } from "@/hooks/useLogo";
+import { BusinessHoursConfig } from "./settings/BusinessHoursConfig";
+import { HolidaysConfig } from "./settings/HolidaysConfig";
+import { AutoReplyConfig } from "./settings/AutoReplyConfig";
 
 const UF_LIST = [
   "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
@@ -352,6 +355,14 @@ export function TenantSettings() {
           </div>
         </CardContent>
       </Card>
+      {/* ═══ BLOCO 4: HORÁRIOS DE ATENDIMENTO ═══ */}
+      <BusinessHoursConfig tenantId={tenant.id} />
+
+      {/* ═══ BLOCO 5: FERIADOS ═══ */}
+      <HolidaysConfig tenantId={tenant.id} />
+
+      {/* ═══ BLOCO 6: AUTO-RESPOSTA FORA DO HORÁRIO ═══ */}
+      <AutoReplyConfig tenantId={tenant.id} />
     </div>
   );
 }

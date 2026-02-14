@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
+import { ConsultorHorariosEdit } from "@/components/admin/settings/ConsultorHorariosEdit";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatPhone, formatName } from "@/lib/validations";
@@ -962,6 +963,11 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
                 <LinkIcon className="w-3 h-3 inline mr-1" />
                 O link único será gerado automaticamente após o cadastro.
               </p>
+            )}
+
+            {/* Horário Individual do Consultor */}
+            {editingVendedor && (
+              <ConsultorHorariosEdit consultorId={editingVendedor.id} />
             )}
 
             {/* WhatsApp Auto-Message Settings (only when editing) */}
