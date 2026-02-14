@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Settings, MessageSquare, FileText, ShoppingCart, FolderOpen,
   Clock, User, ChevronRight, Zap, DollarSign, CalendarDays, Loader2,
-  Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone
+  Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -301,6 +301,26 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
 // ═══════════════════════════════════════════════════
 // ─── TAB: Gerenciamento ──────────────────────────
 // ═══════════════════════════════════════════════════
+
+type TimelineFilter = "todos" | "funil" | "notas" | "documentos";
+
+const TIMELINE_FILTERS: { id: TimelineFilter; label: string; icon: typeof ChevronRight }[] = [
+  { id: "todos", label: "Todos", icon: Filter },
+  { id: "funil", label: "Funil", icon: Zap },
+  { id: "notas", label: "Notas", icon: StickyNote },
+  { id: "documentos", label: "Documentos", icon: FolderOpen },
+];
+
+interface UnifiedTimelineItem {
+  id: string;
+  type: "funil" | "nota" | "documento" | "criacao";
+  title: string;
+  subtitle?: string;
+  date: string;
+  isCurrent?: boolean;
+  isFirst?: boolean;
+}
+
 function GerenciamentoTab({
   deal, history, stages, customerName, ownerName, currentStage,
   formatDate, formatBRL, getStageNameById,
@@ -310,6 +330,105 @@ function GerenciamentoTab({
   formatDate: (d: string) => string; formatBRL: (v: number) => string;
   getStageNameById: (id: string | null) => string;
 }) {
+  const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
+  const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
+
+  // Load document activity for timeline
+  useEffect(() => {
+    async function loadDocEntries() {
+      try {
+        const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
+        if (!profile) return;
+        const path = `${profile.tenant_id}/deals/${deal.id}`;
+        const { data } = await supabase.storage
+          .from("projeto-documentos")
+          .list(path, { limit: 50, sortBy: { column: "created_at", order: "desc" } });
+        if (data && data.length > 0) {
+          setDocEntries(data.map((f: any) => ({
+            id: `doc-${f.name}`,
+            type: "documento" as const,
+            title: `Documento: ${f.name.replace(/^\d+_/, "")}`,
+            subtitle: f.metadata?.size ? `${(f.metadata.size / 1024).toFixed(0)} KB` : undefined,
+            date: f.created_at ? formatDate(f.created_at) : "—",
+          })));
+        }
+      } catch { /* ignore */ }
+    }
+    loadDocEntries();
+  }, [deal.id, formatDate]);
+
+  // Build unified timeline entries
+  const allEntries = useMemo(() => {
+    const entries: UnifiedTimelineItem[] = [];
+
+    // Current stage (always first)
+    if (currentStage) {
+      entries.push({
+        id: "current-stage",
+        type: "funil",
+        title: `Etapa atual: ${currentStage.name}`,
+        subtitle: `Probabilidade: ${currentStage.probability}%`,
+        date: formatDate(deal.updated_at),
+        isCurrent: true,
+      });
+    }
+
+    // Stage history
+    history.forEach(h => {
+      entries.push({
+        id: h.id,
+        type: "funil",
+        title: h.from_stage_id
+          ? `Movido de "${getStageNameById(h.from_stage_id)}" para "${getStageNameById(h.to_stage_id)}"`
+          : `Incluído na etapa "${getStageNameById(h.to_stage_id)}"`,
+        subtitle: h.moved_by ? `Por: ${h.moved_by}` : undefined,
+        date: formatDate(h.moved_at),
+      });
+    });
+
+    // Notes from deal
+    if ((deal as any).notas) {
+      const notasText = String((deal as any).notas);
+      entries.push({
+        id: "nota-principal",
+        type: "nota",
+        title: "Nota adicionada",
+        subtitle: notasText.length > 80 ? notasText.substring(0, 80) + "..." : notasText,
+        date: formatDate(deal.updated_at),
+      });
+    }
+
+    // Document entries
+    entries.push(...docEntries);
+
+    // Creation entry (always last)
+    entries.push({
+      id: "criacao",
+      type: "criacao",
+      title: "Projeto criado",
+      date: formatDate(deal.created_at),
+      isFirst: true,
+    });
+
+    return entries;
+  }, [history, currentStage, deal, docEntries, formatDate, getStageNameById]);
+
+  // Filtered entries
+  const filteredEntries = useMemo(() => {
+    if (timelineFilter === "todos") return allEntries;
+    if (timelineFilter === "funil") return allEntries.filter(e => e.type === "funil" || e.type === "criacao");
+    if (timelineFilter === "notas") return allEntries.filter(e => e.type === "nota");
+    if (timelineFilter === "documentos") return allEntries.filter(e => e.type === "documento");
+    return allEntries;
+  }, [allEntries, timelineFilter]);
+
+  const getEntryIcon = (entry: UnifiedTimelineItem) => {
+    if (entry.type === "funil") return <Zap className="h-3 w-3" />;
+    if (entry.type === "nota") return <StickyNote className="h-3 w-3" />;
+    if (entry.type === "documento") return <FolderOpen className="h-3 w-3" />;
+    return <CalendarDays className="h-3 w-3" />;
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
       <div className="lg:col-span-1 space-y-4">
@@ -334,40 +453,57 @@ function GerenciamentoTab({
 
       <div className="lg:col-span-2">
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold flex items-center gap-2">
-              <Clock className="h-4 w-4 text-teal-solar" />Timeline de Atividades
-            </CardTitle>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Clock className="h-4 w-4 text-teal-solar" />Timeline de Atividades
+              </CardTitle>
+            </div>
+            {/* Mini-filter tabs */}
+            <div className="flex items-center gap-1 mt-2 overflow-x-auto">
+              {TIMELINE_FILTERS.map(f => {
+                const Icon = f.icon;
+                const isActive = timelineFilter === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setTimelineFilter(f.id)}
+                    className={cn(
+                      "flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all",
+                      isActive
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />{f.label}
+                  </button>
+                );
+              })}
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="relative">
-              <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border/60 rounded-full" />
-              <div className="space-y-4">
-                <TimelineEntry
-                  icon={<Zap className="h-3 w-3" />}
-                  title={`Etapa atual: ${currentStage?.name || "—"}`}
-                  subtitle={`Probabilidade: ${currentStage?.probability || 0}%`}
-                  date={formatDate(deal.updated_at)} isCurrent
-                />
-                {history.map(h => (
-                  <TimelineEntry
-                    key={h.id}
-                    icon={<ChevronRight className="h-3 w-3" />}
-                    title={
-                      h.from_stage_id
-                        ? `Movido de "${getStageNameById(h.from_stage_id)}" para "${getStageNameById(h.to_stage_id)}"`
-                        : `Incluído na etapa "${getStageNameById(h.to_stage_id)}"`
-                    }
-                    subtitle={h.moved_by ? `Por: ${h.moved_by}` : undefined}
-                    date={formatDate(h.moved_at)}
-                  />
-                ))}
-                <TimelineEntry
-                  icon={<CalendarDays className="h-3 w-3" />}
-                  title="Projeto criado" date={formatDate(deal.created_at)} isFirst
-                />
+            {filteredEntries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <p className="text-sm">Nenhuma atividade nesta categoria</p>
               </div>
-            </div>
+            ) : (
+              <div className="relative">
+                <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border/60 rounded-full" />
+                <div className="space-y-4">
+                  {filteredEntries.map(entry => (
+                    <TimelineEntry
+                      key={entry.id}
+                      icon={getEntryIcon(entry)}
+                      title={entry.title}
+                      subtitle={entry.subtitle}
+                      date={entry.date}
+                      isCurrent={entry.isCurrent}
+                      isFirst={entry.isFirst}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
