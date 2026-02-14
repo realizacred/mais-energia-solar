@@ -2,11 +2,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { callSuperAdminAction } from "@/lib/superAdminApi";
 import {
-  Plus, Building2, Users, BarChart3, CreditCard, Pause, Play, Ban,
-  Search, ChevronLeft, ChevronRight, Trash2, Eye,
+  Plus, Building2, Users, Pause, Play, Ban,
+  ChevronLeft, ChevronRight, Trash2, Eye,
 } from "lucide-react";
-import { Spinner } from "@/components/ui-kit/Spinner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  PageHeader, StatCard, SectionCard, SearchInput,
+  StatusBadge, EmptyState, LoadingState,
+} from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -22,11 +24,11 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
-  active: { label: "Ativo", color: "bg-success/10 text-success border-success/20" },
-  suspended: { label: "Suspenso", color: "bg-warning/10 text-warning border-warning/20" },
-  disabled: { label: "Desativado", color: "bg-destructive/10 text-destructive border-destructive/20" },
-  pending: { label: "Pendente", color: "bg-muted text-muted-foreground" },
+const STATUS_VARIANT: Record<string, "success" | "warning" | "destructive" | "muted"> = {
+  active: "success",
+  suspended: "warning",
+  disabled: "destructive",
+  pending: "muted",
 };
 
 const PAGE_SIZE = 20;
@@ -81,7 +83,6 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // Debounce search
   const [searchInput, setSearchInput] = useState("");
   useEffect(() => {
     const t = setTimeout(() => { setSearch(searchInput); setPage(0); }, 400);
@@ -153,41 +154,26 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          { label: "Total", value: totals.total_tenants || 0, icon: Building2 },
-          { label: "Ativos", value: totals.active_tenants || 0, icon: Play },
-          { label: "Suspensos", value: totals.suspended_tenants || 0, icon: Pause },
-          { label: "Desativados", value: totals.disabled_tenants || 0, icon: Ban },
-          { label: "Excluídos", value: totals.deleted_tenants || 0, icon: Trash2 },
-        ].map(({ label, value, icon: Icon }) => (
-          <Card key={label}>
-            <CardContent className="p-3 flex items-center gap-2">
-              <Icon className="w-5 h-5 text-primary shrink-0" />
-              <div>
-                <p className="text-lg font-bold">{value}</p>
-                <p className="text-xs text-muted-foreground">{label}</p>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      {/* Stats — usando StatCard do Design System */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatCard icon={Building2} label="Total" value={totals.total_tenants || 0} color="primary" />
+        <StatCard icon={Play} label="Ativos" value={totals.active_tenants || 0} color="success" />
+        <StatCard icon={Pause} label="Suspensos" value={totals.suspended_tenants || 0} color="warning" />
+        <StatCard icon={Ban} label="Desativados" value={totals.disabled_tenants || 0} color="destructive" />
+        <StatCard icon={Trash2} label="Excluídos" value={totals.deleted_tenants || 0} color="muted" />
       </div>
 
-      {/* Filters */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between pb-3 gap-4 flex-wrap">
-          <CardTitle className="text-base">Empresas</CardTitle>
+      {/* Filters + Table — usando SectionCard */}
+      <SectionCard
+        icon={Building2}
+        title="Empresas"
+        actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar nome, slug, CNPJ, ID..."
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                className="pl-9 w-64"
-              />
-            </div>
+            <SearchInput
+              value={searchInput}
+              onChange={setSearchInput}
+              placeholder="Buscar nome, slug, CNPJ..."
+            />
             <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(0); }}>
               <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -237,127 +223,123 @@ export function SuperAdminTenantList({ onSelectTenant }: Props) {
               </DialogContent>
             </Dialog>
           </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="p-8 text-center"><Spinner size="sm" /></div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Plano</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-center">Leads</TableHead>
-                      <TableHead className="text-center">Usuários</TableHead>
-                      <TableHead>Owner</TableHead>
-                      <TableHead>Criado</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {tenants.map((t: any) => {
-                      const sc = STATUS_CONFIG[t.status] || STATUS_CONFIG.pending;
-                      const isDeleted = !!t.deleted_at;
-                      return (
-                        <TableRow key={t.id} className={isDeleted ? "opacity-60" : ""}>
-                          <TableCell>
-                            <button
-                              onClick={() => onSelectTenant(t.id)}
-                              className="text-left hover:underline"
-                            >
-                              <p className="font-medium">{t.nome}</p>
-                              <p className="text-xs text-muted-foreground">{t.slug}</p>
-                              {t.documento && <p className="text-xs text-muted-foreground">{t.documento}</p>}
-                            </button>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="text-xs">{t.plan_name || t.plano}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className={`text-xs ${sc.color}`}>
-                              {isDeleted ? "Excluído" : sc.label}
-                            </Badge>
-                            {t.suspended_reason && t.status !== "active" && (
-                              <p className="text-xs text-muted-foreground mt-1 max-w-[120px] truncate" title={t.suspended_reason}>
-                                {t.suspended_reason}
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-center">{t.leads_count}</TableCell>
-                          <TableCell className="text-center">{t.users_count}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate" title={t.owner_email}>
-                            {t.owner_email || "—"}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
-                            {format(new Date(t.created_at), "dd/MM/yy", { locale: ptBR })}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-1 justify-end flex-wrap">
-                              <Button variant="ghost" size="sm" onClick={() => onSelectTenant(t.id)} title="Detalhes">
-                                <Eye className="w-4 h-4" />
+        }
+        noPadding
+      >
+        {loading ? (
+          <LoadingState message="Carregando empresas..." />
+        ) : tenants.length === 0 ? (
+          <EmptyState
+            icon={Building2}
+            title="Nenhuma empresa encontrada"
+            description="Tente ajustar os filtros ou crie uma nova empresa"
+            action={{ label: "Nova Empresa", onClick: () => setCreateOpen(true), icon: Plus }}
+          />
+        ) : (
+          <>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Plano</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-center">Leads</TableHead>
+                    <TableHead className="text-center">Usuários</TableHead>
+                    <TableHead>Owner</TableHead>
+                    <TableHead>Criado</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tenants.map((t: any) => {
+                    const isDeleted = !!t.deleted_at;
+                    const variant = isDeleted ? "destructive" as const : (STATUS_VARIANT[t.status] || "muted" as const);
+                    const statusLabel = isDeleted ? "Excluído" : ({ active: "Ativo", suspended: "Suspenso", disabled: "Desativado", pending: "Pendente" }[t.status] || t.status);
+                    return (
+                      <TableRow key={t.id} className={isDeleted ? "opacity-60" : ""}>
+                        <TableCell>
+                          <button onClick={() => onSelectTenant(t.id)} className="text-left hover:underline">
+                            <p className="font-medium">{t.nome}</p>
+                            <p className="text-xs text-muted-foreground">{t.slug}</p>
+                            {t.documento && <p className="text-xs text-muted-foreground">{t.documento}</p>}
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">{t.plan_name || t.plano}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge variant={variant} dot>{statusLabel}</StatusBadge>
+                          {t.suspended_reason && t.status !== "active" && (
+                            <p className="text-xs text-muted-foreground mt-1 max-w-[120px] truncate" title={t.suspended_reason}>
+                              {t.suspended_reason}
+                            </p>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">{t.leads_count}</TableCell>
+                        <TableCell className="text-center">{t.users_count}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground max-w-[120px] truncate" title={t.owner_email}>
+                          {t.owner_email || "—"}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                          {format(new Date(t.created_at), "dd/MM/yy", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex gap-1 justify-end flex-wrap">
+                            <Button variant="ghost" size="sm" onClick={() => onSelectTenant(t.id)} title="Detalhes">
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {!isDeleted && t.status === "active" && (
+                              <Button variant="outline" size="sm" className="text-warning border-warning/30 text-xs h-7"
+                                onClick={() => setSuspendTarget(t)}>
+                                Suspender
                               </Button>
-                              {!isDeleted && t.status === "active" && (
-                                <Button variant="outline" size="sm" className="text-warning border-warning/30 text-xs h-7"
-                                  onClick={() => setSuspendTarget(t)}>
-                                  Suspender
-                                </Button>
-                              )}
-                              {!isDeleted && t.status === "suspended" && (
-                                <>
-                                  <Button variant="outline" size="sm" className="text-success border-success/30 text-xs h-7"
-                                    onClick={() => handleReactivate(t)}>Reativar</Button>
-                                  <Button variant="outline" size="sm" className="text-destructive border-destructive/30 text-xs h-7"
-                                    onClick={() => handleDisable(t)}>Desativar</Button>
-                                </>
-                              )}
-                              {!isDeleted && t.status === "disabled" && (
-                                <>
-                                  <Button variant="outline" size="sm" className="text-success border-success/30 text-xs h-7"
-                                    onClick={() => handleReactivate(t)}>Reativar</Button>
-                                  <Button variant="outline" size="sm" className="text-destructive border-destructive/30 text-xs h-7"
-                                    onClick={() => setDeleteTarget(t)}>Excluir</Button>
-                                </>
-                              )}
-                              {isDeleted && (
+                            )}
+                            {!isDeleted && t.status === "suspended" && (
+                              <>
                                 <Button variant="outline" size="sm" className="text-success border-success/30 text-xs h-7"
-                                  onClick={() => handleReactivate(t)}>Restaurar</Button>
-                              )}
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                    {tenants.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          Nenhuma empresa encontrada
+                                  onClick={() => handleReactivate(t)}>Reativar</Button>
+                                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 text-xs h-7"
+                                  onClick={() => handleDisable(t)}>Desativar</Button>
+                              </>
+                            )}
+                            {!isDeleted && t.status === "disabled" && (
+                              <>
+                                <Button variant="outline" size="sm" className="text-success border-success/30 text-xs h-7"
+                                  onClick={() => handleReactivate(t)}>Reativar</Button>
+                                <Button variant="outline" size="sm" className="text-destructive border-destructive/30 text-xs h-7"
+                                  onClick={() => setDeleteTarget(t)}>Excluir</Button>
+                              </>
+                            )}
+                            {isDeleted && (
+                              <Button variant="outline" size="sm" className="text-success border-success/30 text-xs h-7"
+                                onClick={() => handleReactivate(t)}>Restaurar</Button>
+                            )}
+                          </div>
                         </TableCell>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between p-3 border-t">
-                  <p className="text-xs text-muted-foreground">{filteredCount} resultados</p>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    <span className="text-xs">{page + 1} / {totalPages}</span>
-                    <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between p-3 border-t">
+                <p className="text-xs text-muted-foreground">{filteredCount} resultados</p>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <span className="text-xs">{page + 1} / {totalPages}</span>
+                  <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
                 </div>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
+              </div>
+            )}
+          </>
+        )}
+      </SectionCard>
 
       {/* Suspend Dialog */}
       <Dialog open={!!suspendTarget} onOpenChange={(o) => !o && setSuspendTarget(null)}>

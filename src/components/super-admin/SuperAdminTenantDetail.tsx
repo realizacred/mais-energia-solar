@@ -2,21 +2,22 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { callSuperAdminAction } from "@/lib/superAdminApi";
 import {
-  ArrowLeft, Building2, Users, BarChart3, Activity, History,
-  KeyRound, Mail, UserCog, Shield, UserMinus, UserPlus, Crown, Edit,
-  Ban, Lock, Trash2, RotateCcw, AlertTriangle,
+  ArrowLeft, Building2, Users, Activity, History,
+  KeyRound, Mail, UserMinus, UserPlus, Crown, Edit,
+  Ban, Lock, Trash2, AlertTriangle, BarChart3,
 } from "lucide-react";
-import { Spinner } from "@/components/ui-kit/Spinner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  PageHeader, StatCard, SectionCard, StatusBadge,
+  EmptyState, LoadingState,
+} from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
-  DialogFooter, DialogClose, DialogDescription,
+  DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,11 +25,11 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-const HEALTH_COLORS: Record<string, string> = {
-  healthy: "bg-success/10 text-success",
-  degraded: "bg-warning/10 text-warning",
-  down: "bg-destructive/10 text-destructive",
-  unknown: "bg-muted text-muted-foreground",
+const HEALTH_VARIANT: Record<string, "success" | "warning" | "destructive" | "muted"> = {
+  healthy: "success",
+  degraded: "warning",
+  down: "destructive",
+  unknown: "muted",
 };
 
 const ALL_ROLES = ["admin", "gerente", "financeiro", "vendedor", "instalador"];
@@ -46,7 +47,6 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
   const [saving, setSaving] = useState(false);
   const [plans, setPlans] = useState<any[]>([]);
 
-  // User management dialogs
   const [emailTarget, setEmailTarget] = useState<any>(null);
   const [newEmail, setNewEmail] = useState("");
   const [ownerTarget, setOwnerTarget] = useState<any>(null);
@@ -77,9 +77,9 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
 
   if (loading || !data) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-6">
         <Button variant="ghost" size="sm" onClick={onBack}><ArrowLeft className="w-4 h-4 mr-1" /> Voltar</Button>
-        <div className="p-12 text-center"><Spinner size="md" /></div>
+        <LoadingState message="Carregando detalhes do tenant..." />
       </div>
     );
   }
@@ -193,71 +193,72 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
 
   const isDeleted = !!tenant.deleted_at;
   const statusLabel = isDeleted ? "Excluído" : tenant.status;
+  const statusVariant = isDeleted ? "destructive" as const : ({ active: "success", suspended: "warning", disabled: "destructive", pending: "muted" }[tenant.status as string] as any || "muted");
 
   return (
-    <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={onBack}>
-        <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
-      </Button>
-
-      {/* Header */}
-      <div className="flex items-start justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Building2 className="w-5 h-5 text-primary" />
-            {tenant.nome}
-          </h2>
-          <p className="text-sm text-muted-foreground">{tenant.slug} • {tenant.id}</p>
-          {tenant.documento && <p className="text-sm text-muted-foreground">Doc: {tenant.documento}</p>}
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">{statusLabel}</Badge>
-          <Button variant="outline" size="sm" onClick={openEdit}>
-            <Edit className="w-4 h-4 mr-1" /> Editar
-          </Button>
-        </div>
-      </div>
+    <div className="space-y-6">
+      {/* Header com PageHeader */}
+      <PageHeader
+        icon={Building2}
+        title={tenant.nome}
+        description={`${tenant.slug} • ${tenant.id}`}
+        actions={
+          <div className="flex items-center gap-2">
+            <StatusBadge variant={statusVariant} dot>{statusLabel}</StatusBadge>
+            <Button variant="outline" size="sm" onClick={openEdit}>
+              <Edit className="w-4 h-4 mr-1" /> Editar
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Voltar
+            </Button>
+          </div>
+        }
+      />
 
       <Tabs defaultValue="overview">
         <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="users">Usuários ({users.length})</TabsTrigger>
-          <TabsTrigger value="integrations">Integrações</TabsTrigger>
-          <TabsTrigger value="audit">Audit Log</TabsTrigger>
+          <TabsTrigger value="overview" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            <span className="hidden sm:inline">Visão Geral</span>
+          </TabsTrigger>
+          <TabsTrigger value="users" className="gap-2">
+            <Users className="h-4 w-4" />
+            <span className="hidden sm:inline">Usuários ({users.length})</span>
+          </TabsTrigger>
+          <TabsTrigger value="integrations" className="gap-2">
+            <Activity className="h-4 w-4" />
+            <span className="hidden sm:inline">Integrações</span>
+          </TabsTrigger>
+          <TabsTrigger value="audit" className="gap-2">
+            <History className="h-4 w-4" />
+            <span className="hidden sm:inline">Audit Log</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview */}
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-            {[
-              { label: "Leads", value: metrics.leads_count },
-              { label: "Clientes", value: metrics.clientes_count },
-              { label: "Usuários", value: metrics.users_count },
-              { label: "Projetos", value: metrics.projetos_count },
-              { label: "Instâncias WA", value: metrics.wa_instances_count },
-              { label: "Conversas", value: metrics.conversas_count },
-            ].map(({ label, value }) => (
-              <Card key={label}>
-                <CardContent className="p-3 text-center">
-                  <p className="text-lg font-bold">{value}</p>
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                </CardContent>
-              </Card>
-            ))}
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          {/* Stats com StatCard */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <StatCard icon={BarChart3} label="Leads" value={metrics.leads_count} color="primary" />
+            <StatCard icon={Users} label="Clientes" value={metrics.clientes_count} color="success" />
+            <StatCard icon={Users} label="Usuários" value={metrics.users_count} color="secondary" />
+            <StatCard icon={BarChart3} label="Projetos" value={metrics.projetos_count} color="info" />
+            <StatCard icon={Activity} label="Instâncias WA" value={metrics.wa_instances_count} color="warning" />
+            <StatCard icon={Activity} label="Conversas" value={metrics.conversas_count} color="muted" />
           </div>
 
           <div className="grid md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm">Informações</CardTitle></CardHeader>
-              <CardContent className="text-sm space-y-2">
-                <div className="flex justify-between"><span className="text-muted-foreground">Status</span><span>{statusLabel}</span></div>
+            {/* Informações do Tenant */}
+            <SectionCard icon={Building2} title="Informações">
+              <div className="text-sm space-y-2">
+                <div className="flex justify-between"><span className="text-muted-foreground">Status</span><StatusBadge variant={statusVariant} dot>{statusLabel}</StatusBadge></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Plano</span><span>{sub?.plan_name || tenant.plano}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Owner</span><span className="truncate max-w-[180px]">{data.owner_email || "—"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Domínio</span><span>{tenant.dominio_customizado || "—"}</span></div>
                 <div className="flex justify-between"><span className="text-muted-foreground">Criado</span><span>{format(new Date(tenant.created_at), "dd/MM/yyyy", { locale: ptBR })}</span></div>
                 {sub && (
                   <>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Assinatura</span><span>{sub.status}</span></div>
+                    <div className="flex justify-between"><span className="text-muted-foreground">Assinatura</span><StatusBadge variant={sub.status === "active" ? "success" : "warning"}>{sub.status}</StatusBadge></div>
                     {sub.trial_ends_at && <div className="flex justify-between"><span className="text-muted-foreground">Trial até</span><span>{format(new Date(sub.trial_ends_at), "dd/MM/yyyy")}</span></div>}
                   </>
                 )}
@@ -267,38 +268,39 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                     {tenant.deleted_reason && <div className="flex justify-between"><span className="text-muted-foreground">Motivo</span><span>{tenant.deleted_reason}</span></div>}
                   </>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </SectionCard>
 
-            <Card>
-              <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-1"><Activity className="w-4 h-4" /> Saúde Integrações</CardTitle></CardHeader>
-              <CardContent className="space-y-2">
-                {health.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Nenhuma integração verificada</p>
-                ) : (
-                  health.map((h: any) => (
+            {/* Saúde Integrações */}
+            <SectionCard icon={Activity} title="Saúde Integrações">
+              {health.length === 0 ? (
+                <EmptyState
+                  icon={Activity}
+                  title="Nenhuma integração verificada"
+                  description="O cache de saúde ainda não foi populado para este tenant"
+                />
+              ) : (
+                <div className="space-y-2">
+                  {health.map((h: any) => (
                     <div key={h.integration_name} className="flex items-center justify-between text-sm">
                       <span>{h.integration_name}</span>
-                      <Badge variant="outline" className={`text-xs ${HEALTH_COLORS[h.status] || HEALTH_COLORS.unknown}`}>
+                      <StatusBadge variant={HEALTH_VARIANT[h.status] || "muted"} dot>
                         {h.status}
-                      </Badge>
+                      </StatusBadge>
                     </div>
-                  ))
-                )}
-              </CardContent>
-            </Card>
+                  ))}
+                </div>
+              )}
+            </SectionCard>
           </div>
         </TabsContent>
 
-        {/* Users - Enhanced */}
-        <TabsContent value="users" className="space-y-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Users className="w-4 h-4" /> Gestão de Usuários do Tenant
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
+        {/* Users */}
+        <TabsContent value="users" className="space-y-6 mt-6">
+          <SectionCard icon={Users} title="Gestão de Usuários do Tenant" noPadding>
+            {users.length === 0 ? (
+              <EmptyState icon={Users} title="Nenhum usuário" description="Este tenant não possui usuários cadastrados" />
+            ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -321,9 +323,9 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                               <p className="font-medium text-sm flex items-center gap-1.5">
                                 {u.nome || "Sem nome"}
                                 {isOwner && (
-                                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                  <StatusBadge variant="primary">
                                     <Crown className="w-3 h-3 mr-1" /> Owner
-                                  </Badge>
+                                  </StatusBadge>
                                 )}
                               </p>
                               <p className="text-xs text-muted-foreground">{u.email || "—"}</p>
@@ -352,48 +354,42 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant={u.ativo ? "default" : "destructive"} className="text-xs">
+                            <StatusBadge variant={u.ativo ? "success" : "destructive"} dot>
                               {u.ativo ? "Ativo" : "Inativo"}
-                            </Badge>
+                            </StatusBadge>
                           </TableCell>
                           <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                             {u.created_at ? format(new Date(u.created_at), "dd/MM/yy", { locale: ptBR }) : "—"}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex gap-1 justify-end flex-wrap">
-                              {/* Change Email */}
                               <Button variant="ghost" size="sm" title="Alterar email"
                                 disabled={!!actionLoading}
                                 onClick={() => { setEmailTarget(u); setNewEmail(u.email || ""); }}>
                                 <Mail className="w-4 h-4" />
                               </Button>
-                              {/* Reset Password (generate link) */}
                               <Button variant="ghost" size="sm" title="Gerar link de reset de senha"
                                 disabled={!!actionLoading}
                                 onClick={() => handlePasswordReset(u.user_id)}>
                                 <KeyRound className="w-4 h-4" />
                               </Button>
-                              {/* Set Password directly */}
                               <Button variant="ghost" size="sm" title="Redefinir senha manualmente"
                                 disabled={!!actionLoading}
                                 onClick={() => { setPasswordTarget(u); setNewPassword(""); }}>
                                 <Lock className="w-4 h-4" />
                               </Button>
-                              {/* Toggle Active */}
                               <Button variant="ghost" size="sm"
                                 title={u.ativo ? "Desativar acesso" : "Reativar acesso"}
                                 disabled={!!actionLoading}
                                 onClick={() => handleToggleUser(u.user_id, u.ativo)}>
                                 {u.ativo ? <UserMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
                               </Button>
-                              {/* Ban User */}
                               <Button variant="ghost" size="sm" title="Banir usuário (bloquear login)"
                                 disabled={!!actionLoading}
                                 className="text-warning hover:text-warning"
                                 onClick={() => setBanTarget(u)}>
                                 <Ban className="w-4 h-4" />
                               </Button>
-                              {/* Transfer Ownership */}
                               {!isOwner && (
                                 <Button variant="ghost" size="sm" title="Transferir ownership"
                                   disabled={!!actionLoading}
@@ -401,7 +397,6 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                                   <Crown className="w-4 h-4" />
                                 </Button>
                               )}
-                              {/* Delete permanently */}
                               {!isOwner && (
                                 <Button variant="ghost" size="sm" title="Excluir permanentemente"
                                   disabled={!!actionLoading}
@@ -415,98 +410,96 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                         </TableRow>
                       );
                     })}
-                    {users.length === 0 && (
-                      <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Nenhum usuário</TableCell></TableRow>
-                    )}
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
+            )}
+          </SectionCard>
 
           {/* Action Legend */}
-          <Card>
-            <CardContent className="p-3">
-              <p className="text-xs font-medium text-muted-foreground mb-2">Legenda das ações:</p>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
-                <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> Trocar email</span>
-                <span className="flex items-center gap-1"><KeyRound className="w-3 h-3" /> Link de reset</span>
-                <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> Redefinir senha</span>
-                <span className="flex items-center gap-1"><UserMinus className="w-3 h-3" /> Desativar/Ativar</span>
-                <span className="flex items-center gap-1"><Ban className="w-3 h-3" /> Banir (bloquear login)</span>
-                <span className="flex items-center gap-1"><Crown className="w-3 h-3" /> Transferir ownership</span>
-                <span className="flex items-center gap-1"><Trash2 className="w-3 h-3" /> Excluir permanente</span>
-              </div>
-            </CardContent>
-          </Card>
+          <SectionCard title="Legenda das ações">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1"><Mail className="w-3 h-3 shrink-0" /> Trocar email</span>
+              <span className="flex items-center gap-1"><KeyRound className="w-3 h-3 shrink-0" /> Link de reset</span>
+              <span className="flex items-center gap-1"><Lock className="w-3 h-3 shrink-0" /> Redefinir senha</span>
+              <span className="flex items-center gap-1"><UserMinus className="w-3 h-3 shrink-0" /> Desativar/Ativar</span>
+              <span className="flex items-center gap-1"><Ban className="w-3 h-3 shrink-0" /> Banir (bloquear login)</span>
+              <span className="flex items-center gap-1"><Crown className="w-3 h-3 shrink-0" /> Transferir ownership</span>
+              <span className="flex items-center gap-1"><Trash2 className="w-3 h-3 shrink-0" /> Excluir permanente</span>
+            </div>
+          </SectionCard>
         </TabsContent>
 
         {/* Integrations */}
-        <TabsContent value="integrations">
-          <Card>
-            <CardContent className="p-4">
-              {health.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma integração verificada para este tenant.</p>
-              ) : (
-                <div className="space-y-3">
-                  {health.map((h: any) => (
-                    <div key={h.service_key} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium text-sm">{h.service_key}</p>
-                        {h.error_message && <p className="text-xs text-muted-foreground mt-1">{h.error_message}</p>}
-                        {h.last_checked_at && (
-                          <p className="text-xs text-muted-foreground">
-                            Última verificação: {format(new Date(h.last_checked_at), "dd/MM HH:mm")}
-                          </p>
-                        )}
-                      </div>
-                      <Badge variant="outline" className={`${HEALTH_COLORS[h.status] || HEALTH_COLORS.unknown}`}>
-                        {h.status}
-                      </Badge>
+        <TabsContent value="integrations" className="mt-6">
+          <SectionCard icon={Activity} title="Integrações">
+            {health.length === 0 ? (
+              <EmptyState
+                icon={Activity}
+                title="Nenhuma integração verificada"
+                description="Nenhuma integração foi verificada para este tenant"
+              />
+            ) : (
+              <div className="space-y-3">
+                {health.map((h: any) => (
+                  <div key={h.integration_name} className="flex items-center justify-between p-3 border border-border/60 rounded-xl">
+                    <div>
+                      <p className="font-medium text-sm">{h.integration_name}</p>
+                      {h.error_message && <p className="text-xs text-muted-foreground mt-1">{h.error_message}</p>}
+                      {h.last_check_at && (
+                        <p className="text-xs text-muted-foreground">
+                          Última verificação: {format(new Date(h.last_check_at), "dd/MM HH:mm")}
+                        </p>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <StatusBadge variant={HEALTH_VARIANT[h.status] || "muted"} dot>
+                      {h.status}
+                    </StatusBadge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
         </TabsContent>
 
         {/* Audit */}
-        <TabsContent value="audit">
-          <Card>
-            <CardContent className="p-0">
-              {audit.length === 0 ? (
-                <p className="p-6 text-sm text-muted-foreground text-center">Nenhuma ação registrada para este tenant</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Ação</TableHead>
-                        <TableHead>Detalhes</TableHead>
-                        <TableHead>IP</TableHead>
+        <TabsContent value="audit" className="mt-6">
+          <SectionCard icon={History} title="Audit Log" noPadding>
+            {audit.length === 0 ? (
+              <EmptyState
+                icon={History}
+                title="Nenhuma ação registrada"
+                description="Nenhuma ação de super admin registrada para este tenant"
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Ação</TableHead>
+                      <TableHead>Detalhes</TableHead>
+                      <TableHead>IP</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {audit.map((a: any) => (
+                      <TableRow key={a.id}>
+                        <TableCell className="text-xs whitespace-nowrap">
+                          {format(new Date(a.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                        </TableCell>
+                        <TableCell><Badge variant="outline" className="text-xs">{a.action}</Badge></TableCell>
+                        <TableCell className="text-xs max-w-[200px] truncate">
+                          {a.details?.reason || a.details?.new_email || a.details?.role || JSON.stringify(a.details)}
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{a.ip_address || "—"}</TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {audit.map((a: any) => (
-                        <TableRow key={a.id}>
-                          <TableCell className="text-xs whitespace-nowrap">
-                            {format(new Date(a.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}
-                          </TableCell>
-                          <TableCell><Badge variant="outline" className="text-xs">{a.action}</Badge></TableCell>
-                          <TableCell className="text-xs max-w-[200px] truncate">
-                            {a.details?.reason || a.details?.new_email || a.details?.role || JSON.stringify(a.details)}
-                          </TableCell>
-                          <TableCell className="text-xs text-muted-foreground">{a.ip_address || "—"}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </SectionCard>
         </TabsContent>
       </Tabs>
 
