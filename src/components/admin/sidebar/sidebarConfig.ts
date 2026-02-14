@@ -123,7 +123,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads", keywords: ["contato", "prospect", "captura", "formulário"] },
       { id: "pipeline", title: "Pipeline", icon: Kanban, description: "Funil de vendas visual", keywords: ["kanban", "etapas", "funil", "conversão"] },
-      { id: "propostas", title: "Propostas (SM)", icon: FileText, description: "Importações SolarMarket", keywords: ["orçamento", "cotação", "solarmarket"] },
+      { id: "propostas", title: "Propostas", icon: FileText, description: "Propostas comerciais", keywords: ["orçamento", "cotação", "proposta"] },
       { id: "propostas-nativas", title: "Gerador de Propostas", icon: FileText, description: "Criar propostas nativas", keywords: ["proposta", "gerar", "wizard", "lei 14300", "nativa", "cotação"] },
       { id: "projetos", title: "Projetos", icon: FolderKanban, description: "Pipeline de projetos com funil", keywords: ["projeto", "pipeline", "funil", "kanban", "etapa", "proposta"] },
       { id: "followup", title: "Follow-ups", icon: Bell, description: "Acompanhamento de leads", keywords: ["lembrete", "retorno", "agendamento", "tarefa"] },
@@ -253,7 +253,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"] },
       { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens", keywords: ["API", "automação", "webhook", "bot"] },
       { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts", keywords: ["instagram", "post", "rede social", "feed"] },
-      { id: "solarmarket", title: "SolarMarket", icon: Sun, description: "Marketplace solar", keywords: ["marketplace", "solar", "integração"] },
+      
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"] },
       { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP", keywords: ["n8n", "automação", "workflow", "MCP"] },
       // google-calendar unified into agenda-config

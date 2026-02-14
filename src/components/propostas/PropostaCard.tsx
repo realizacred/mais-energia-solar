@@ -26,11 +26,36 @@ import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import type { Proposta } from "@/hooks/usePropostas";
-import {
-  extractProposalSummary,
-  type ProposalSummary,
-} from "@/lib/solarMarket/extractProposalSummary";
-import { formatProposalMessage } from "@/lib/solarMarket/formatProposalMessage";
+// Inline summary type (previously from SolarMarket lib)
+interface ProposalSummary {
+  totalValue?: number | null;
+  downPayment?: number | null;
+  installments?: { qty: number; value: number } | null;
+  savings?: { monthly?: number | null; yearly?: number | null } | null;
+  system?: { powerKwp?: number | null; monthlyGenKwh?: number | null } | null;
+  equipment?: { modules?: string | null; inverter?: string | null; batteries?: string | null } | null;
+  raw?: { linkPdf?: string | null } | null;
+}
+
+function extractProposalSummary(_payload: any): ProposalSummary {
+  return {};
+}
+
+function formatProposalMessage(opts: {
+  clienteNome?: string; totalValue?: number; downPayment?: number | null;
+  installmentsQty?: number; installmentsValue?: number;
+  modules?: string; inverter?: string; economiaMensal?: number; linkPdf?: string;
+}): string {
+  const lines: string[] = [];
+  if (opts.clienteNome) lines.push(`Olá ${opts.clienteNome}! 👋`);
+  lines.push("Segue o resumo da sua proposta de energia solar:");
+  if (opts.totalValue) lines.push(`💰 Valor: R$ ${opts.totalValue.toLocaleString("pt-BR")}`);
+  if (opts.economiaMensal) lines.push(`📉 Economia: R$ ${opts.economiaMensal.toLocaleString("pt-BR")}/mês`);
+  if (opts.modules) lines.push(`🔋 Módulos: ${opts.modules}`);
+  if (opts.inverter) lines.push(`⚡ Inversor: ${opts.inverter}`);
+  if (opts.linkPdf) lines.push(`📄 PDF: ${opts.linkPdf}`);
+  return lines.join("\n");
+}
 
 // ── Status badges ──
 
