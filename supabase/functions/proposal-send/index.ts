@@ -15,59 +15,84 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   try {
-    // Auth
+    // ── 1. AUTH ──────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonError("Não autorizado", 401);
-    }
+    if (!authHeader?.startsWith("Bearer ")) return jsonError("Não autorizado", 401);
 
-    const callerClient = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
+    const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return jsonError("Token inválido", 401);
-    }
+    if (claimsErr || !claimsData?.claims) return jsonError("Token inválido", 401);
     const userId = claimsData.claims.sub as string;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("tenant_id, ativo")
-      .eq("user_id", userId)
-      .single();
-
-    if (!profile?.tenant_id || !profile.ativo) {
-      return jsonError("Usuário inativo", 403);
-    }
+    const { data: profile } = await adminClient.from("profiles").select("tenant_id, ativo").eq("user_id", userId).single();
+    if (!profile?.tenant_id || !profile.ativo) return jsonError("Usuário inativo", 403);
     const tenantId = profile.tenant_id;
 
-    // Parse body
+    // ── 2. PARSE ────────────────────────────────────────────
     const body = await req.json();
     const { proposta_id, versao_id, canal, lead_id } = body;
 
-    if (!proposta_id || !versao_id) {
-      return jsonError("proposta_id e versao_id obrigatórios", 400);
+    if (!proposta_id || !versao_id) return jsonError("proposta_id e versao_id obrigatórios", 400);
+
+    // ── 3. VERIFICAR OWNERSHIP + DADOS (paralelo) ───────────
+    const [propostaRes, tenantRes, versaoRes, renderRes] = await Promise.all([
+      adminClient.from("propostas_nativas")
+        .select("id, lead_id, titulo, codigo").eq("id", proposta_id).eq("tenant_id", tenantId).single(),
+      adminClient.from("tenants")
+        .select("dominio_customizado, slug, nome").eq("id", tenantId).single(),
+      adminClient.from("proposta_versoes")
+        .select("id, versao_numero, valor_total, economia_mensal, payback_meses, potencia_kwp")
+        .eq("id", versao_id).eq("tenant_id", tenantId).single(),
+      adminClient.from("proposta_renders")
+        .select("id").eq("versao_id", versao_id).eq("tenant_id", tenantId).eq("tipo", "html").maybeSingle(),
+    ]);
+
+    if (!propostaRes.data) return jsonError("Proposta não encontrada", 404);
+    if (!versaoRes.data) return jsonError("Versão não encontrada", 404);
+
+    const proposta = propostaRes.data;
+    const tenant = tenantRes.data;
+    const versao = versaoRes.data;
+
+    // Se não tem render, gerar automaticamente
+    if (!renderRes.data) {
+      console.log("[proposal-send] No render found — triggering auto-render");
+      await adminClient.functions.invoke("proposal-render", {
+        body: { versao_id },
+        headers: { Authorization: authHeader },
+      });
     }
 
-    // Verify ownership
-    const { data: proposta } = await adminClient
-      .from("propostas_nativas")
-      .select("id, lead_id, titulo")
-      .eq("id", proposta_id)
-      .eq("tenant_id", tenantId)
-      .single();
+    // ── 4. IDEMPOTÊNCIA — verificar envio existente ─────────
+    const { data: existingEnvio } = await adminClient
+      .from("proposta_envios")
+      .select("id, token_id, canal, enviado_em")
+      .eq("versao_id", versao_id).eq("tenant_id", tenantId).eq("canal", canal || "link")
+      .maybeSingle();
 
-    if (!proposta) {
-      return jsonError("Proposta não encontrada", 404);
+    if (existingEnvio?.token_id) {
+      const { data: existingToken } = await adminClient
+        .from("proposta_aceite_tokens")
+        .select("token").eq("id", existingEnvio.token_id).single();
+
+      if (existingToken) {
+        const baseUrl = req.headers.get("origin") || `https://${tenant?.slug || "app"}.lovable.app`;
+        return jsonOk({
+          success: true, idempotent: true,
+          token: existingToken.token,
+          public_url: `${baseUrl}/proposta/${existingToken.token}`,
+          whatsapp_sent: false,
+        });
+      }
     }
 
-    // Create acceptance token
+    // ── 5. CRIAR TOKEN ──────────────────────────────────────
     const { data: aceiteToken, error: tokenErr } = await adminClient
       .from("proposta_aceite_tokens")
       .insert({
@@ -79,67 +104,81 @@ Deno.serve(async (req) => {
       .select("id, token")
       .single();
 
-    if (tokenErr || !aceiteToken) {
-      return jsonError(`Erro ao criar token: ${tokenErr?.message}`, 500);
-    }
+    if (tokenErr || !aceiteToken) return jsonError(`Erro ao criar token: ${tokenErr?.message}`, 500);
 
     // Build public URL
-    const { data: tenant } = await adminClient
-      .from("tenants")
-      .select("dominio_customizado, slug")
-      .eq("id", tenantId)
-      .single();
-
-    // Use the app's base URL
     const baseUrl = req.headers.get("origin") || `https://${tenant?.slug || "app"}.lovable.app`;
     const publicUrl = `${baseUrl}/proposta/${aceiteToken.token}`;
 
-    // Update proposta status
-    await adminClient
-      .from("propostas_nativas")
-      .update({
+    // ── 6. REGISTRAR ENVIO + ATUALIZAR PROPOSTA (paralelo) ──
+    const canalFinal = canal || "link";
+
+    await Promise.all([
+      // Registrar na tabela de envios (audit trail)
+      adminClient.from("proposta_envios").insert({
+        tenant_id: tenantId,
+        versao_id,
+        token_id: aceiteToken.id,
+        canal: canalFinal,
+        enviado_por: userId,
+        destinatario_telefone: null, // preenchido abaixo se whatsapp
+        destinatario_nome: null,
+      }),
+      // Atualizar status da proposta
+      adminClient.from("propostas_nativas").update({
         status: "enviada",
         enviada_at: new Date().toISOString(),
-        enviada_via: canal || "link",
+        enviada_via: canalFinal,
         enviada_por: userId,
         public_token: aceiteToken.token,
-      })
-      .eq("id", proposta_id)
-      .eq("tenant_id", tenantId);
+      }).eq("id", proposta_id).eq("tenant_id", tenantId),
+      // Atualizar versão para "sent"
+      adminClient.from("proposta_versoes").update({
+        status: "sent",
+      }).eq("id", versao_id).eq("tenant_id", tenantId),
+    ]);
 
-    // If canal === "whatsapp", try to send via existing infrastructure
+    // ── 7. WHATSAPP (best-effort) ───────────────────────────
     let whatsappSent = false;
-    if (canal === "whatsapp" && (lead_id || proposta.lead_id)) {
-      try {
-        const targetLeadId = lead_id || proposta.lead_id;
-        const { data: lead } = await adminClient
-          .from("leads")
-          .select("telefone, nome")
-          .eq("id", targetLeadId)
-          .eq("tenant_id", tenantId)
-          .single();
+    if (canalFinal === "whatsapp") {
+      const targetLeadId = lead_id || proposta.lead_id;
+      if (targetLeadId) {
+        try {
+          const { data: lead } = await adminClient
+            .from("leads").select("telefone, nome")
+            .eq("id", targetLeadId).eq("tenant_id", tenantId).single();
 
-        if (lead?.telefone) {
-          const mensagem = `Olá ${lead.nome || ""}! 🌞\n\nSua proposta solar está pronta!\n\n📄 *${proposta.titulo}*\n\n🔗 Veja e aceite aqui:\n${publicUrl}\n\nQualquer dúvida, estamos à disposição!`;
+          if (lead?.telefone) {
+            const tenantNome = tenant?.nome || "Empresa";
+            const mensagem = `Olá ${lead.nome || ""}! 🌞\n\n` +
+              `Sua proposta solar está pronta!\n\n` +
+              `📄 *${proposta.titulo || proposta.codigo || "Proposta Solar"}*\n` +
+              `⚡ ${versao.potencia_kwp} kWp | 💰 Economia: R$ ${versao.economia_mensal?.toFixed(2) ?? "—"}/mês\n\n` +
+              `🔗 Veja e aceite aqui:\n${publicUrl}\n\n` +
+              `${tenantNome} — Energia Solar ☀️`;
 
-          // Use send-whatsapp-message function
-          const { error: waErr } = await adminClient.functions.invoke("send-whatsapp-message", {
-            body: {
-              lead_id: targetLeadId,
-              message: mensagem,
-              tenant_id: tenantId,
-            },
-          });
+            const { error: waErr } = await adminClient.functions.invoke("send-whatsapp-message", {
+              body: { lead_id: targetLeadId, message: mensagem, tenant_id: tenantId },
+            });
 
-          whatsappSent = !waErr;
+            whatsappSent = !waErr;
+
+            // Atualizar envio com dados do destinatário
+            if (whatsappSent) {
+              await adminClient.from("proposta_envios").update({
+                destinatario_telefone: lead.telefone,
+                destinatario_nome: lead.nome,
+              }).eq("token_id", aceiteToken.id).eq("tenant_id", tenantId);
+            }
+          }
+        } catch (e) {
+          console.warn("[proposal-send] WhatsApp send failed:", e);
         }
-      } catch (e) {
-        console.warn("[proposal-send] WhatsApp send failed:", e);
       }
     }
 
     return jsonOk({
-      success: true,
+      success: true, idempotent: false,
       token: aceiteToken.token,
       public_url: publicUrl,
       whatsapp_sent: whatsappSent,
@@ -158,7 +197,6 @@ function jsonOk(data: any) {
 
 function jsonError(message: string, status = 400) {
   return new Response(JSON.stringify({ success: false, error: message }), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
