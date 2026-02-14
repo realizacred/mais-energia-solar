@@ -2142,7 +2142,7 @@ export type Database = {
           pipeline_id: string
           stage_id: string
           status?: string
-          tenant_id: string
+          tenant_id?: string
           title: string
           updated_at?: string
           value?: number
