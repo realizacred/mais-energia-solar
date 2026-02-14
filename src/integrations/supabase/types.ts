@@ -9525,6 +9525,85 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_feriados: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          data: string
+          id: string
+          nome: string
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          data: string
+          id?: string
+          nome: string
+          tenant_id: string
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          data?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_feriados_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_horarios_atendimento: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          dia_semana: number
+          hora_fim: string
+          hora_inicio: string
+          id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          dia_semana: number
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          dia_semana?: number
+          hora_fim?: string
+          hora_inicio?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_horarios_atendimento_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_smtp_config: {
         Row: {
           ativo: boolean | null
@@ -10016,6 +10095,92 @@ export type Database = {
           },
           {
             foreignKeyName: "wa_ai_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_auto_reply_config: {
+        Row: {
+          ativo: boolean
+          cooldown_minutos: number
+          created_at: string
+          id: string
+          mensagem_feriado: string
+          mensagem_fora_horario: string
+          silenciar_alertas: boolean
+          silenciar_sla: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cooldown_minutos?: number
+          created_at?: string
+          id?: string
+          mensagem_feriado?: string
+          mensagem_fora_horario?: string
+          silenciar_alertas?: boolean
+          silenciar_sla?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cooldown_minutos?: number
+          created_at?: string
+          id?: string
+          mensagem_feriado?: string
+          mensagem_fora_horario?: string
+          silenciar_alertas?: boolean
+          silenciar_sla?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_auto_reply_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_auto_reply_log: {
+        Row: {
+          conversation_id: string
+          id: string
+          sent_at: string
+          tenant_id: string
+          tipo: string
+        }
+        Insert: {
+          conversation_id: string
+          id?: string
+          sent_at?: string
+          tenant_id: string
+          tipo?: string
+        }
+        Update: {
+          conversation_id?: string
+          id?: string
+          sent_at?: string
+          tenant_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_auto_reply_log_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_auto_reply_log_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -12067,6 +12232,10 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_tenant_active: { Args: { _tenant_id: string }; Returns: boolean }
+      is_within_business_hours: {
+        Args: { _tenant_id: string }
+        Returns: boolean
+      }
       move_deal_to_owner: {
         Args: { _deal_id: string; _to_owner_id: string }
         Returns: Json
