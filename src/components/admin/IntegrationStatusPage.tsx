@@ -556,23 +556,34 @@ export function IntegrationStatusPage() {
     },
   });
 
-  // Auto-check on first load if no data
+  // Auto-check on first load if no data — wait for auth session
   const hasData = healthRecords.length > 0;
+  const [autoChecked, setAutoChecked] = useState(false);
 
   useEffect(() => {
-    if (!isLoading && !hasData) {
+    if (isLoading || hasData || autoChecked) return;
+
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (cancelled || !session) return;
+      setAutoChecked(true);
       handleRefresh();
-    }
+    });
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, hasData]);
+  }, [isLoading, hasData, autoChecked]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      // SDK automatically includes the logged-in user's JWT
-      const { error } = await supabase.functions.invoke("integration-health-check");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Sessão não encontrada. Faça login novamente.");
+      }
+      const { error } = await supabase.functions.invoke("integration-health-check", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       if (error) throw error;
-      // Refetch cache after check completes
       await queryClient.invalidateQueries({ queryKey: ["integration-health-cache"] });
     } catch (err: any) {
       console.error("Health check error:", err);
