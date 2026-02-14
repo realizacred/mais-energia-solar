@@ -1,11 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  ShieldAlert, LogOut, Building2,
-} from "lucide-react";
-import { Spinner } from "@/components/ui-kit/Spinner";
+import { ShieldAlert, LogOut, Building2 } from "lucide-react";
+import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { PortalSwitcher } from "@/components/layout/PortalSwitcher";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -39,10 +37,7 @@ export default function SuperAdmin() {
   if (authLoading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4 animate-pulse">
-          <Spinner size="md" />
-          <p className="text-sm text-muted-foreground">Verificando acesso...</p>
-        </div>
+        <LoadingState message="Verificando acesso..." />
       </div>
     );
   }
@@ -69,13 +64,13 @@ export default function SuperAdmin() {
       <header className="sticky top-0 z-50 bg-background border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Building2 className="w-6 h-6 text-primary" />
-          <h1 className="text-lg font-bold">Super Admin</h1>
+          <h1 className="text-lg font-bold font-display">Super Admin</h1>
           <Badge variant="outline" className="text-xs">Platform Governance</Badge>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground hidden sm:block">{user?.email}</span>
           <PortalSwitcher />
-          <Button variant="ghost" size="icon" onClick={() => signOut()}>
+          <Button variant="ghost" size="icon" onClick={() => signOut()} aria-label="Sair">
             <LogOut className="w-4 h-4" />
           </Button>
         </div>
