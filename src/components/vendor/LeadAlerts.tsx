@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { differenceInDays } from "date-fns";
 import { 
   AlertCircle, 
@@ -36,6 +37,7 @@ interface LeadAlert {
 }
 
 export function LeadAlerts({ leads, diasAlerta = 3 }: LeadAlertsProps) {
+  const navigate = useNavigate();
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   const alertas = useMemo(() => {
@@ -92,11 +94,15 @@ export function LeadAlerts({ leads, diasAlerta = 3 }: LeadAlertsProps) {
   };
 
   const openWhatsApp = (telefone: string, nome: string) => {
-    const mensagem = encodeURIComponent(
-      `Olá ${nome.split(' ')[0]}! Tudo bem? Sou da Mais Energia Solar e gostaria de continuar nossa conversa sobre energia solar. Posso ajudar?`
-    );
+    const mensagem = `Olá ${nome.split(' ')[0]}! Tudo bem? Gostaria de continuar nossa conversa sobre energia solar. Posso ajudar?`;
     const numero = telefone.replace(/\D/g, '');
-    window.open(`https://wa.me/55${numero}?text=${mensagem}`, '_blank');
+
+    // Open internal inbox with prefilled message
+    sessionStorage.setItem(
+      "wa_auto_open_lead",
+      JSON.stringify({ phone: numero, nome, prefillMessage: mensagem })
+    );
+    navigate("/consultor/whatsapp");
   };
 
   // Always render, even when empty (show success state)
