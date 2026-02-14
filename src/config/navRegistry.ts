@@ -103,6 +103,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "obras", label_default: "Portfólio", group_default: "Site", order_default: 2, icon: "Sun", description: "Projetos realizados", keywords: ["portfólio", "obra", "projeto", "foto"], criticality: "normal", permission: "admin_only" },
 
   // ── Configurações ──
+  { nav_key: "conf-solar", label_default: "Conf. Solar", group_default: "Configurações", order_default: -1, icon: "Sun", description: "Premissas, precificação e financiamentos", keywords: ["premissa", "preço", "markup", "financiamento", "solar", "configuração"], criticality: "business_critical", permission: "admin_only" },
   { nav_key: "config", label_default: "Calculadora Solar", group_default: "Configurações", order_default: 0, icon: "Calculator", description: "Parâmetros de geração e custo", keywords: ["cálculo", "geração", "kWp", "tarifa", "custo"], criticality: "normal", permission: "admin_only" },
   { nav_key: "lead-status", label_default: "Status de Leads", group_default: "Configurações", order_default: 1, icon: "Kanban", description: "Personalizar etapas do funil", keywords: ["etapa", "funil", "personalizar", "status"], criticality: "normal", permission: "admin_only" },
   { nav_key: "motivos-perda", label_default: "Motivos de Perda", group_default: "Configurações", order_default: 2, icon: "XCircle", description: "Razões de perda de negócios", keywords: ["perda", "motivo", "relatório", "análise"], criticality: "normal", permission: "admin_only" },

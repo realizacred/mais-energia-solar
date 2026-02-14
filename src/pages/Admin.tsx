@@ -75,6 +75,7 @@ const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
 const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
+const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard").then((m) => ({
@@ -182,6 +183,7 @@ const TAB_TITLES: Record<string, string> = {
   "notificacoes-config": "Notificações",
   "loading-config": "Loading & Mensagens",
   "tenant-settings": "Configurações da Empresa",
+  "conf-solar": "Configurações Solar",
 };
 
 /** N8n placeholder component */
@@ -386,6 +388,7 @@ export default function Admin() {
                 <Route path="baterias" element={<BateriasManager />} />
                 <Route path="concessionarias" element={<ConcessionariasManager />} />
                 <Route path="config" element={<CalculadoraConfig />} />
+                <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
                 <Route path="agenda-config" element={<AgendaConfigPage />} />
