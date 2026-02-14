@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   try {
-    // ── 1. AUTH ──────────────────────────────────────────────
+    // ── 1. AUTH + TENANT + ROLE ──────────────────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonError("Não autorizado", 401);
@@ -49,6 +49,31 @@ Deno.serve(async (req) => {
     }
     const tenantId = profile.tenant_id;
 
+    // [D] Check tenant ativo
+    const { data: tenant } = await adminClient
+      .from("tenants")
+      .select("id, status, nome")
+      .eq("id", tenantId)
+      .single();
+
+    if (!tenant || tenant.status !== "active") {
+      return jsonError("Tenant suspenso ou inativo", 403);
+    }
+
+    // [D] Check role
+    const { data: roles } = await adminClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+
+    const allowedRoles = ["admin", "gerente", "financeiro", "consultor"];
+    const hasPermission = roles?.some((r: any) =>
+      allowedRoles.includes(r.role)
+    );
+    if (!hasPermission) {
+      return jsonError("Sem permissão para renderizar propostas", 403);
+    }
+
     // ── 2. PARSE PAYLOAD ────────────────────────────────────
     const body = await req.json();
     const { versao_id } = body;
@@ -75,15 +100,13 @@ Deno.serve(async (req) => {
       return jsonError("Versão sem snapshot — gere a proposta primeiro", 400);
     }
 
-    // ── 4. IDEMPOTÊNCIA: verificar render existente ─────────
+    // ── 4. [G] IDEMPOTÊNCIA via UNIQUE (tenant_id, versao_id, tipo) ──
     const { data: existingRender } = await adminClient
       .from("proposta_renders")
-      .select("id, url, created_at")
+      .select("id, url, html, created_at")
       .eq("versao_id", versao_id)
       .eq("tenant_id", tenantId)
       .eq("tipo", "html")
-      .order("created_at", { ascending: false })
-      .limit(1)
       .maybeSingle();
 
     if (existingRender) {
@@ -92,10 +115,11 @@ Deno.serve(async (req) => {
         idempotent: true,
         render_id: existingRender.id,
         url: existingRender.url,
+        html: existingRender.html,
       });
     }
 
-    // ── 5. BUSCAR PROPOSTA + LEAD + TEMPLATE + BRANDING ─────
+    // ── 5. BUSCAR PROPOSTA + LEAD/CLIENTE + BRANDING ────────
     const { data: proposta } = await adminClient
       .from("propostas_nativas")
       .select("id, titulo, codigo, lead_id, cliente_id, template_id")
@@ -103,7 +127,7 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .single();
 
-    // Lead/Cliente info
+    // [E] Resolver nome do cliente: tenta clientes, fallback leads
     let clienteNome = "Cliente";
     let clienteTelefone = "";
     if (proposta?.cliente_id) {
@@ -112,18 +136,19 @@ Deno.serve(async (req) => {
         .select("nome, telefone")
         .eq("id", proposta.cliente_id)
         .eq("tenant_id", tenantId)
-        .single();
+        .maybeSingle();
       if (cli) {
         clienteNome = cli.nome;
         clienteTelefone = cli.telefone;
       }
-    } else if (proposta?.lead_id) {
+    }
+    if (clienteNome === "Cliente" && proposta?.lead_id) {
       const { data: lead } = await adminClient
         .from("leads")
         .select("nome, telefone")
         .eq("id", proposta.lead_id)
         .eq("tenant_id", tenantId)
-        .single();
+        .maybeSingle();
       if (lead) {
         clienteNome = lead.nome;
         clienteTelefone = lead.telefone ?? "";
@@ -139,17 +164,10 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
-    // Tenant name
-    const { data: tenantData } = await adminClient
-      .from("tenants")
-      .select("nome")
-      .eq("id", tenantId)
-      .single();
-
     // ── 6. GERAR HTML ───────────────────────────────────────
     const snap = versao.snapshot as any;
     const html = renderProposalHtml({
-      tenantNome: tenantData?.nome ?? "Empresa",
+      tenantNome: tenant.nome ?? "Empresa",
       logoUrl: brand?.logo_url ?? null,
       primaryColor: brand?.color_primary ?? "220 70% 50%",
       fontHeading: brand?.font_heading ?? "Inter",
@@ -163,14 +181,15 @@ Deno.serve(async (req) => {
       snap,
     });
 
-    // ── 7. SALVAR RENDER ────────────────────────────────────
+    // ── 7. [F] SALVAR RENDER COM HTML PERSISTIDO ────────────
     const { data: render, error: renderErr } = await adminClient
       .from("proposta_renders")
       .insert({
         tenant_id: tenantId,
         versao_id: versao.id,
         tipo: "html",
-        url: null, // HTML inline por enquanto; URL gerada quando publicar
+        html, // [F] Persiste o HTML no banco
+        url: null,
         storage_path: null,
         tamanho_bytes: new TextEncoder().encode(html).length,
         gerado_por: userId,
@@ -179,6 +198,25 @@ Deno.serve(async (req) => {
       .single();
 
     if (renderErr) {
+      // [G] Se conflito do UNIQUE (já existe), retornar existente
+      if (renderErr.code === "23505") {
+        const { data: dup } = await adminClient
+          .from("proposta_renders")
+          .select("id, url, html")
+          .eq("versao_id", versao_id)
+          .eq("tenant_id", tenantId)
+          .eq("tipo", "html")
+          .maybeSingle();
+        if (dup) {
+          return jsonOk({
+            success: true,
+            idempotent: true,
+            render_id: dup.id,
+            url: dup.url,
+            html: dup.html,
+          });
+        }
+      }
       return jsonError(`Erro ao salvar render: ${renderErr.message}`, 500);
     }
 
@@ -187,8 +225,7 @@ Deno.serve(async (req) => {
       idempotent: false,
       render_id: render!.id,
       html,
-      // TODO: quando implementar storage, retornar url aqui
-      url: null,
+      url: null, // TODO: storage URL quando implementar upload
     });
   } catch (err) {
     console.error("[proposal-render] Error:", err);

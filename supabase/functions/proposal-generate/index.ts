@@ -9,6 +9,7 @@ const corsHeaders = {
 interface GenerateRequest {
   lead_id: string;
   projeto_id?: string;
+  cliente_id?: string;
   grupo: "A" | "B";
   template_id?: string;
   dados_tecnicos: {
@@ -27,7 +28,7 @@ interface GenerateRequest {
   mao_de_obra?: number;
   desconto_percentual?: number;
   observacoes?: string;
-  idempotency_key: string; // obrigatório
+  idempotency_key: string;
 }
 
 Deno.serve(async (req) => {
@@ -39,7 +40,7 @@ Deno.serve(async (req) => {
   const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   try {
-    // ── 1. AUTH: resolver user + tenant ──────────────────────
+    // ── 1. AUTH ──────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonError("Não autorizado", 401);
@@ -59,9 +60,9 @@ Deno.serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    // Resolve tenant via profiles (NUNCA do payload)
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // Resolve tenant
     const { data: profile } = await adminClient
       .from("profiles")
       .select("tenant_id, ativo")
@@ -84,7 +85,7 @@ Deno.serve(async (req) => {
       return jsonError("Tenant suspenso ou inativo", 403);
     }
 
-    // Verificar permissão (admin, gerente, financeiro ou consultor do tenant)
+    // Verificar permissão
     const { data: roles } = await adminClient
       .from("user_roles")
       .select("role")
@@ -117,7 +118,9 @@ Deno.serve(async (req) => {
     // ── 3. IDEMPOTÊNCIA: verificar se já existe ─────────────
     const { data: existingVersion } = await adminClient
       .from("proposta_versoes")
-      .select("id, proposta_id, versao_numero, valor_total, payback_meses, economia_mensal")
+      .select(
+        "id, proposta_id, versao_numero, valor_total, payback_meses, economia_mensal"
+      )
       .eq("tenant_id", tenantId)
       .eq("idempotency_key", body.idempotency_key)
       .maybeSingle();
@@ -135,22 +138,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── 4. COLETAR DADOS AUXILIARES (Lei 14.300) ────────────
+    // ── 4. DADOS AUXILIARES (Lei 14.300) ─────────────────────
     const estado = body.dados_tecnicos.estado;
     const anoAtual = new Date().getFullYear();
 
-    // Fio B escalonamento
-    const { data: fioB } = await adminClient
+    // [C] Fio B: buscar por tenant OU global (tenant_id IS NULL), preferindo tenant
+    const { data: fioBRows } = await adminClient
       .from("fio_b_escalonamento")
-      .select("ano, percentual_nao_compensado")
-      .eq("tenant_id", tenantId)
+      .select("ano, percentual_nao_compensado, tenant_id")
       .eq("ano", anoAtual)
-      .maybeSingle();
+      .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
+      .order("tenant_id", { ascending: false, nullsFirst: false })
+      .limit(1);
 
-    // EVIDÊNCIA NECESSÁRIA: fallback se tenant não tem fio_b configurado
-    const percentualFioB = fioB?.percentual_nao_compensado ?? 50; // fallback seguro
+    const fioB = fioBRows?.[0] ?? null;
+    // [C] Fallback 0% (conservador: não inflar custo ao cliente)
+    // EVIDÊNCIA NECESSÁRIA: valor oficial depende do ano de homologação do sistema
+    const percentualFioB = fioB?.percentual_nao_compensado ?? 0;
 
-    // Tributação do estado
+    // Tributação
     const { data: tributacao } = await adminClient
       .from("config_tributaria_estado")
       .select("aliquota_icms, possui_isencao_scee, percentual_isencao")
@@ -161,7 +167,7 @@ Deno.serve(async (req) => {
     const possuiIsencao = tributacao?.possui_isencao_scee ?? false;
     const percentualIsencao = tributacao?.percentual_isencao ?? 0;
 
-    // Irradiação
+    // Irradiação (tenant-specific ou global)
     const { data: irradiacao } = await adminClient
       .from("irradiacao_por_estado")
       .select("geracao_media_kwp_mes")
@@ -173,7 +179,7 @@ Deno.serve(async (req) => {
 
     const geracaoMediaKwpMes = irradiacao?.geracao_media_kwp_mes ?? 120;
 
-    // Concessionária (se informada)
+    // Concessionária
     let concessionariaData: any = null;
     if (body.dados_tecnicos.concessionaria_id) {
       const { data: conc } = await adminClient
@@ -192,14 +198,12 @@ Deno.serve(async (req) => {
     const consumoMedio = body.dados_tecnicos.consumo_medio_kwh;
     const tipoFase = body.dados_tecnicos.tipo_fase;
 
-    // Geração estimada
     const geracaoEstimada = potenciaKwp * geracaoMediaKwpMes;
 
-    // Tarifa
     const tarifaEnergia = concessionariaData?.tarifa_energia ?? 0.85;
-    const tarifaFioB = concessionariaData?.tarifa_fio_b ?? tarifaEnergia * 0.28;
+    const tarifaFioB =
+      concessionariaData?.tarifa_fio_b ?? tarifaEnergia * 0.28;
 
-    // Custo de disponibilidade
     const custoDispMap: Record<string, string> = {
       monofasico: "custo_disponibilidade_monofasico",
       bifasico: "custo_disponibilidade_bifasico",
@@ -208,9 +212,7 @@ Deno.serve(async (req) => {
     const custoDisponibilidade =
       concessionariaData?.[custoDispMap[tipoFase]] ?? 100;
 
-    // Economia mensal (Lei 14.300 — desconto do fio B não compensado)
     const energiaCompensavel = Math.min(geracaoEstimada, consumoMedio);
-    const valorSemSolar = consumoMedio * tarifaEnergia;
     const fioBAplicavel = body.grupo === "B" ? percentualFioB / 100 : 0;
     const custoFioBMensal = energiaCompensavel * tarifaFioB * fioBAplicavel;
     const economiaBruta = energiaCompensavel * tarifaEnergia;
@@ -219,7 +221,6 @@ Deno.serve(async (req) => {
       0
     );
 
-    // Itens
     const itensComSubtotal = body.itens.map((item) => ({
       ...item,
       subtotal: item.quantidade * item.preco_unitario,
@@ -234,15 +235,23 @@ Deno.serve(async (req) => {
     const descontoValor = subtotalBruto * (descontoPercent / 100);
     const valorTotal = subtotalBruto - descontoValor;
 
-    // Payback
     const paybackMeses =
       economiaMensal > 0 ? Math.ceil(valorTotal / economiaMensal) : 0;
-
-    // Economia anual e ROI 25 anos
     const economiaAnual = economiaMensal * 12;
     const roi25anos = economiaAnual * 25;
 
-    // ── 6. MONTAR SNAPSHOT IMUTÁVEL ─────────────────────────
+    // Resolver consultor_id
+    const { data: consultor } = await adminClient
+      .from("consultores")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true)
+      .maybeSingle();
+
+    const consultorId = consultor?.id ?? null;
+
+    // ── 6. SNAPSHOT IMUTÁVEL ────────────────────────────────
     const snapshot = {
       versao_schema: 1,
       gerado_em: new Date().toISOString(),
@@ -252,7 +261,7 @@ Deno.serve(async (req) => {
         fio_b_ano: anoAtual,
         percentual_fio_b: fioBAplicavel,
         percentual_nao_compensado: percentualFioB,
-        fonte: fioB ? "fio_b_escalonamento" : "fallback",
+        fonte: fioB ? "fio_b_escalonamento" : "fallback_zero",
       },
       tributacao: {
         estado,
@@ -288,35 +297,22 @@ Deno.serve(async (req) => {
       inputs: {
         lead_id: body.lead_id,
         projeto_id: body.projeto_id ?? null,
+        cliente_id: body.cliente_id ?? null,
         template_id: body.template_id ?? null,
-        consultor_id: null as string | null,
+        consultor_id: consultorId,
         user_id: userId,
       },
     };
 
-    // Resolver consultor_id do user
-    const { data: consultor } = await adminClient
-      .from("consultores")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("tenant_id", tenantId)
-      .eq("ativo", true)
-      .maybeSingle();
-
-    const consultorId = consultor?.id ?? null;
-    snapshot.inputs.consultor_id = consultorId;
-
     // ── 7. CRIAR OU REUTILIZAR propostas_nativas ────────────
-    // Busca proposta existente para o lead/projeto
     let propostaId: string;
-    let versaoNumero: number;
 
     const matchFilter: any = { tenant_id: tenantId, lead_id: body.lead_id };
     if (body.projeto_id) matchFilter.projeto_id = body.projeto_id;
 
     const { data: existingProposta } = await adminClient
       .from("propostas_nativas")
-      .select("id, versao_atual")
+      .select("id")
       .match(matchFilter)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -324,15 +320,7 @@ Deno.serve(async (req) => {
 
     if (existingProposta) {
       propostaId = existingProposta.id;
-      versaoNumero = existingProposta.versao_atual + 1;
-
-      // Atualizar versao_atual
-      await adminClient
-        .from("propostas_nativas")
-        .update({ versao_atual: versaoNumero })
-        .eq("id", propostaId);
     } else {
-      // Buscar nome do lead para título
       const { data: lead } = await adminClient
         .from("leads")
         .select("nome, lead_code")
@@ -352,11 +340,12 @@ Deno.serve(async (req) => {
           tenant_id: tenantId,
           lead_id: body.lead_id,
           projeto_id: body.projeto_id ?? null,
+          cliente_id: body.cliente_id ?? null,
           consultor_id: consultorId,
           template_id: body.template_id ?? null,
           titulo,
           codigo: lead.lead_code ? `PROP-${lead.lead_code}` : null,
-          versao_atual: 1,
+          versao_atual: 0, // será atualizado pela RPC
           created_by: userId,
         })
         .select("id")
@@ -365,12 +354,23 @@ Deno.serve(async (req) => {
       if (insertErr || !novaProposta) {
         return jsonError(`Erro ao criar proposta: ${insertErr?.message}`, 500);
       }
-
       propostaId = novaProposta.id;
-      versaoNumero = 1;
     }
 
-    // ── 8. CRIAR proposta_versoes (já como generated) ───────
+    // ── 8. [B] VERSÃO ATÔMICA via RPC ───────────────────────
+    const { data: versaoNumero, error: rpcErr } = await adminClient.rpc(
+      "next_proposta_versao_numero",
+      { _proposta_id: propostaId }
+    );
+
+    if (rpcErr || !versaoNumero) {
+      return jsonError(
+        `Erro ao gerar número de versão: ${rpcErr?.message}`,
+        500
+      );
+    }
+
+    // ── 9. INSERIR proposta_versoes ─────────────────────────
     const { data: versao, error: versaoErr } = await adminClient
       .from("proposta_versoes")
       .insert({
@@ -394,15 +394,19 @@ Deno.serve(async (req) => {
         gerado_por: userId,
         gerado_em: new Date().toISOString(),
       })
-      .select("id, versao_numero, valor_total, payback_meses, economia_mensal")
+      .select(
+        "id, versao_numero, valor_total, payback_meses, economia_mensal"
+      )
       .single();
 
     if (versaoErr) {
-      // Se for conflito de idempotency, retornar existente
+      // Conflito de idempotency_key = retornar existente
       if (versaoErr.code === "23505") {
         const { data: dup } = await adminClient
           .from("proposta_versoes")
-          .select("id, proposta_id, versao_numero, valor_total, payback_meses, economia_mensal")
+          .select(
+            "id, proposta_id, versao_numero, valor_total, payback_meses, economia_mensal"
+          )
           .eq("tenant_id", tenantId)
           .eq("idempotency_key", body.idempotency_key)
           .single();
@@ -417,6 +421,57 @@ Deno.serve(async (req) => {
             payback_meses: dup.payback_meses,
             economia_mensal: dup.economia_mensal,
           });
+        }
+      }
+      // Conflito de versao_numero (race extremamente raro) — retry 1x
+      if (
+        versaoErr.code === "23505" &&
+        versaoErr.message?.includes("uq_proposta_versao")
+      ) {
+        const { data: retryNum } = await adminClient.rpc(
+          "next_proposta_versao_numero",
+          { _proposta_id: propostaId }
+        );
+        if (retryNum) {
+          const { data: retryVersao, error: retryErr } = await adminClient
+            .from("proposta_versoes")
+            .insert({
+              tenant_id: tenantId,
+              proposta_id: propostaId,
+              versao_numero: retryNum,
+              status: "generated",
+              grupo: body.grupo,
+              potencia_kwp: potenciaKwp,
+              valor_total: Math.round(valorTotal * 100) / 100,
+              economia_mensal: Math.round(economiaMensal * 100) / 100,
+              payback_meses: paybackMeses,
+              validade_dias: 30,
+              valido_ate: new Date(Date.now() + 30 * 86400000)
+                .toISOString()
+                .split("T")[0],
+              snapshot,
+              snapshot_locked: true,
+              idempotency_key: body.idempotency_key,
+              observacoes: body.observacoes ?? null,
+              gerado_por: userId,
+              gerado_em: new Date().toISOString(),
+            })
+            .select(
+              "id, versao_numero, valor_total, payback_meses, economia_mensal"
+            )
+            .single();
+          if (!retryErr && retryVersao) {
+            return jsonOk({
+              success: true,
+              idempotent: false,
+              proposta_id: propostaId,
+              versao_id: retryVersao.id,
+              versao_numero: retryVersao.versao_numero,
+              valor_total: retryVersao.valor_total,
+              payback_meses: retryVersao.payback_meses,
+              economia_mensal: retryVersao.economia_mensal,
+            });
+          }
         }
       }
       return jsonError(`Erro ao criar versão: ${versaoErr.message}`, 500);
