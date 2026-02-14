@@ -312,6 +312,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-settings",
     defaultOpen: false,
     items: [
+      { id: "tenant-settings", title: "Empresa", icon: Building2, description: "Identidade, localização e regras de cadastro", keywords: ["empresa", "cnpj", "tenant", "configuração", "crm", "cadastro"] },
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles", keywords: ["usuário", "permissão", "role", "acesso"] },
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações", keywords: ["log", "auditoria", "histórico", "alteração"] },
       { id: "notificacoes-config", title: "Notificações", icon: Bell, description: "Configurar tipos de notificação da empresa", keywords: ["notificação", "push", "alerta", "configurar", "ativar"], separator: true },

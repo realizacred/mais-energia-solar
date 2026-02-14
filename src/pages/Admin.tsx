@@ -74,6 +74,7 @@ const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
+const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -138,6 +139,7 @@ const TAB_TITLES: Record<string, string> = {
   changelog: "Atualizações",
   "notificacoes-config": "Notificações",
   "loading-config": "Loading & Mensagens",
+  "tenant-settings": "Configurações da Empresa",
 };
 
 /** N8n placeholder component */
@@ -359,6 +361,7 @@ export default function Admin() {
                 <Route path="obras" element={<ObrasManager />} />
                 
                 {/* Administração */}
+                <Route path="tenant-settings" element={<TenantSettings />} />
                 <Route path="auditoria" element={<AuditLogsViewer />} />
                 <Route path="data-reset" element={<DataResetManager />} />
                 <Route path="integracoes-status" element={<IntegrationStatusPage />} />
