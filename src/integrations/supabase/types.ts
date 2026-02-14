@@ -9554,6 +9554,10 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_tenant_active: { Args: { _tenant_id: string }; Returns: boolean }
+      move_deal_to_owner: {
+        Args: { _deal_id: string; _to_owner_id: string }
+        Returns: Json
+      }
       move_deal_to_stage: {
         Args: { _deal_id: string; _to_stage_id: string }
         Returns: Json
@@ -9566,6 +9570,10 @@ export type Database = {
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
       release_followup_lock: { Args: never; Returns: undefined }
       release_webhook_lock: { Args: never; Returns: undefined }
+      reorder_pipeline_stages: {
+        Args: { _ordered_ids: string[]; _pipeline_id: string }
+        Returns: undefined
+      }
       require_tenant_id: { Args: { _user_id?: string }; Returns: string }
       resolve_consultor_public: {
         Args: { _codigo: string }

@@ -261,15 +261,23 @@ export function useDealPipeline() {
     setStages(prev => prev.map(s => s.id === id ? { ...s, probability } : s));
   }, [toast]);
 
-  const reorderStages = useCallback(async (_pipelineId: string, orderedIds: string[]) => {
+  const reorderStages = useCallback(async (pipelineId: string, orderedIds: string[]) => {
+    // Optimistic update
     setStages(prev => prev.map(s => {
       const idx = orderedIds.indexOf(s.id);
       return idx >= 0 ? { ...s, position: idx } : s;
     }));
-    for (let i = 0; i < orderedIds.length; i++) {
-      await supabase.from("pipeline_stages").update({ position: i }).eq("id", orderedIds[i]);
+
+    // Single RPC call (eliminates N+1)
+    const { error } = await supabase.rpc("reorder_pipeline_stages", {
+      _pipeline_id: pipelineId,
+      _ordered_ids: orderedIds,
+    });
+    if (error) {
+      toast({ title: "Erro ao reordenar", description: error.message, variant: "destructive" });
+      fetchAll();
     }
-  }, []);
+  }, [toast, fetchAll]);
 
   const deleteStage = useCallback(async (id: string) => {
     const { error } = await supabase.from("pipeline_stages").delete().eq("id", id);
@@ -295,11 +303,17 @@ export function useDealPipeline() {
 
   const moveDealToOwner = useCallback(async (dealId: string, ownerId: string) => {
     const consultor = consultores.find(c => c.id === ownerId);
+    // Optimistic update
     setDeals(prev => prev.map(d => d.deal_id === dealId
       ? { ...d, owner_id: ownerId, owner_name: consultor?.nome || "" }
       : d
     ));
-    const { error } = await supabase.from("deals").update({ owner_id: ownerId }).eq("id", dealId);
+
+    // Secure RPC with row locking + tenant validation
+    const { error } = await supabase.rpc("move_deal_to_owner", {
+      _deal_id: dealId,
+      _to_owner_id: ownerId,
+    });
     if (error) {
       toast({ title: "Erro ao mover deal", description: error.message, variant: "destructive" });
       fetchAll();
