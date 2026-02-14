@@ -140,3 +140,6 @@ verify_jwt = false
 
 [functions.resolve-wa-channel]
 verify_jwt = false
+
+[functions.writing-assistant]
+verify_jwt = false
