@@ -63,7 +63,37 @@ export function ProjetosManager() {
       />
 
       <div className="rounded-xl border border-border/60 bg-card">
-        {/* Pipeline tabs */}
+        {/* ── Filters row with view toggle ── */}
+        <div className="px-4 py-3">
+          <ProjetoFilters
+            searchTerm={filters.search}
+            onSearchChange={(v) => handleFilterChange("search", v)}
+            funis={pipelines.map(p => ({
+              id: p.id,
+              nome: p.name,
+              ordem: 0,
+              ativo: p.is_active,
+              tenant_id: p.tenant_id,
+            }))}
+            filterFunil={filters.pipelineId || "todos"}
+            onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
+            filterConsultor={filters.ownerId}
+            onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
+            consultores={consultoresFilter}
+            filterStatus={filters.status}
+            onFilterStatusChange={(v) => handleFilterChange("status", v)}
+            etiquetas={[]}
+            filterEtiquetas={[]}
+            onFilterEtiquetasChange={() => {}}
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            onClearFilters={clearFilters}
+          />
+        </div>
+
+        <Separator />
+
+        {/* ── Pipeline tabs + Stage manager ── */}
         <div className="px-4 py-2.5 flex items-center gap-2">
           <div className="flex-1 min-w-0">
             <ProjetoFunilSelector
@@ -109,37 +139,7 @@ export function ProjetosManager() {
           )}
         </div>
 
-        <Separator />
-
-        {/* Filters */}
-        <div className="px-4 py-2.5">
-          <ProjetoFilters
-            searchTerm={filters.search}
-            onSearchChange={(v) => handleFilterChange("search", v)}
-            funis={pipelines.map(p => ({
-              id: p.id,
-              nome: p.name,
-              ordem: 0,
-              ativo: p.is_active,
-              tenant_id: p.tenant_id,
-            }))}
-            filterFunil={filters.pipelineId || "todos"}
-            onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
-            filterConsultor={filters.ownerId}
-            onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
-            consultores={consultoresFilter}
-            filterStatus={filters.status}
-            onFilterStatusChange={(v) => handleFilterChange("status", v)}
-            etiquetas={[]}
-            filterEtiquetas={[]}
-            onFilterEtiquetasChange={() => {}}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            onClearFilters={clearFilters}
-          />
-        </div>
-
-        {/* Summary bar */}
+        {/* ── Summary bar ── */}
         <div className="px-4 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-1.5">
@@ -160,7 +160,7 @@ export function ProjetosManager() {
         </div>
       </div>
 
-      {/* Kanban / List */}
+      {/* ── Kanban / List ── */}
       {viewMode === "kanban" ? (
         <ProjetoKanbanOwner
           columns={ownerColumns}

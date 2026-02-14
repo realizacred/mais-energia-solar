@@ -1,9 +1,7 @@
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Plus, LayoutGrid } from "lucide-react";
+import { Zap, Plus, LayoutGrid } from "lucide-react";
 import type { OwnerColumn, DealKanbanCard } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 
@@ -17,20 +15,21 @@ interface Props {
 const formatBRL = (v: number) => {
   if (!v) return "R$ 0";
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace(".", ",")}M`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)}mil`;
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
+  if (v >= 1_000) return `R$ ${Math.round(v / 1_000)}K`;
+  return `R$ ${v}`;
 };
 
-const formatBRLFull = (v: number | null) => {
+const formatKwp = (v: number) => {
+  if (!v) return "0";
+  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}.${((v % 1_000) / 100).toFixed(0)}`;
+  return v.toFixed(2).replace(".", ",");
+};
+
+const formatBRLCard = (v: number | null) => {
   if (!v) return null;
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-};
-
-const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  open: { label: "Aberto", variant: "outline" },
-  won: { label: "Ganho", variant: "default" },
-  lost: { label: "Perdido", variant: "destructive" },
-  archived: { label: "Arquivado", variant: "secondary" },
+  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace(".", ",")}M`;
+  if (v >= 1_000) return `R$ ${Math.round(v / 1_000)}K`;
+  return `R$ ${v}`;
 };
 
 export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCreateProjeto }: Props) {
@@ -70,7 +69,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
 
   return (
     <ScrollArea className="w-full">
-      <div className="flex gap-3 pb-4" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-4 pb-4" style={{ minWidth: "max-content" }}>
         {columns.map(col => {
           const isOver = dragOverCol === col.id;
 
@@ -78,89 +77,64 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
             <div
               key={col.id}
               className={cn(
-                "w-72 flex-shrink-0 rounded-xl border border-border/60 bg-card transition-colors flex flex-col",
+                "w-[260px] flex-shrink-0 rounded-lg bg-muted/30 border border-border/40 transition-colors flex flex-col",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
               onDragOver={e => handleDragOver(e, col.id)}
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, col.id)}
             >
-              {/* Column header */}
-              <div className="px-3 py-3 border-b border-border/40 space-y-2">
-                <p className="text-sm font-bold text-foreground">{col.nome}</p>
-                <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <DollarSign className="h-3 w-3 text-success" />
+              {/* ── Column Header ── */}
+              <div className="px-4 pt-4 pb-2 space-y-1.5">
+                <h3 className="text-base font-bold text-foreground leading-tight">
+                  {col.nome}
+                </h3>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <span className="font-semibold text-foreground">
                     {formatBRL(col.totalValor)}
                   </span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
-                    <LayoutGrid className="h-2.5 w-2.5 mr-0.5" />
+                  {col.totalKwp > 0 && (
+                    <span className="flex items-center gap-0.5">
+                      <Zap className="h-3 w-3 text-warning" />
+                      {formatKwp(col.totalKwp)} kWp
+                    </span>
+                  )}
+                  <span className="flex items-center gap-0.5">
+                    <LayoutGrid className="h-3 w-3" />
                     {col.count} projetos
-                  </Badge>
+                  </span>
                 </div>
               </div>
 
-              {/* Cards */}
-              <div className="p-2 min-h-[300px] space-y-2 flex-1">
+              {/* ── New Project Button ── */}
+              <div className="px-3 pb-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full h-9 text-sm font-medium text-primary border-primary/40 hover:bg-primary/5 hover:text-primary gap-1"
+                  onClick={() => onCreateProjeto?.(col.id)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Novo projeto
+                </Button>
+              </div>
+
+              {/* ── Cards ── */}
+              <div className="px-3 pb-3 min-h-[200px] space-y-2 flex-1">
                 {col.deals.length === 0 && (
                   <div className="flex items-center justify-center h-24 text-xs text-muted-foreground/60">
                     Arraste projetos aqui
                   </div>
                 )}
-                {col.deals.map(deal => {
-                  const statusInfo = STATUS_LABELS[deal.deal_status] || { label: deal.deal_status, variant: "outline" as const };
-                  return (
-                    <Card
-                      key={deal.deal_id}
-                      draggable
-                      onDragStart={e => handleDragStart(e, deal.deal_id)}
-                      onClick={() => onViewProjeto?.(deal)}
-                      className={cn(
-                        "cursor-grab active:cursor-grabbing hover:shadow-sm transition-all border-border/40 hover:border-border",
-                        draggedId === deal.deal_id && "opacity-40 scale-95"
-                      )}
-                    >
-                      <CardContent className="p-3 space-y-1.5">
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="font-medium text-sm leading-tight text-foreground">
-                            {deal.customer_name || deal.deal_title || "Sem nome"}
-                          </p>
-                          <Badge variant={statusInfo.variant} className="text-[9px] shrink-0 px-1.5 h-4">
-                            {statusInfo.label}
-                          </Badge>
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                          {deal.deal_value > 0 && (
-                            <span className="font-semibold text-foreground">
-                              {formatBRLFull(deal.deal_value)}
-                            </span>
-                          )}
-                          {deal.stage_name && (
-                            <Badge variant="outline" className="text-[9px] h-4 px-1.5">
-                              {deal.stage_name}
-                            </Badge>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
-
-              {/* Footer */}
-              <div className="p-2 border-t border-border/40">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full h-8 text-xs text-muted-foreground hover:text-foreground gap-1 border border-dashed border-border/60 hover:border-primary/40"
-                  onClick={() => onCreateProjeto?.(col.id)}
-                >
-                  <Plus className="h-3 w-3" />
-                  Novo projeto
-                </Button>
+                {col.deals.map(deal => (
+                  <DealCard
+                    key={deal.deal_id}
+                    deal={deal}
+                    isDragging={draggedId === deal.deal_id}
+                    onDragStart={handleDragStart}
+                    onClick={() => onViewProjeto?.(deal)}
+                  />
+                ))}
               </div>
             </div>
           );
@@ -168,5 +142,63 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
+  );
+}
+
+// ── Deal Card Component ──────────────────────────────────────
+
+interface DealCardProps {
+  deal: DealKanbanCard;
+  isDragging: boolean;
+  onDragStart: (e: React.DragEvent, id: string) => void;
+  onClick: () => void;
+}
+
+function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
+  // Get first letter of stage category for the badge
+  const stageInitial = deal.stage_name ? deal.stage_name.charAt(0).toUpperCase() : "";
+
+  return (
+    <div
+      draggable
+      onDragStart={e => onDragStart(e, deal.deal_id)}
+      onClick={onClick}
+      className={cn(
+        "relative bg-card rounded-lg border border-border/50 p-3 cursor-grab active:cursor-grabbing",
+        "hover:shadow-md hover:border-border transition-all",
+        "border-l-[3px] border-l-primary",
+        isDragging && "opacity-40 scale-95"
+      )}
+    >
+      {/* Title row with badge */}
+      <div className="flex items-start justify-between gap-2 mb-2">
+        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+          {deal.customer_name || deal.deal_title || "Sem nome"}
+        </p>
+        <span className="shrink-0 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
+          0
+        </span>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          {deal.deal_value > 0 && (
+            <span className="font-bold text-foreground">
+              {formatBRLCard(deal.deal_value)}
+            </span>
+          )}
+          <span className="flex items-center gap-0.5">
+            <Zap className="h-3 w-3 text-warning" />
+            - kWp
+          </span>
+        </div>
+        {stageInitial && (
+          <span className="font-semibold text-foreground/70 text-xs">
+            {stageInitial}
+          </span>
+        )}
+      </div>
+    </div>
   );
 }

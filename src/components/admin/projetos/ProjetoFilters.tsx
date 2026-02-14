@@ -1,4 +1,4 @@
-import { Search, Filter, LayoutGrid, List, X } from "lucide-react";
+import { Search, X, Filter } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,28 +10,24 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ProjetoFunil, ProjetoEtiqueta } from "@/hooks/useProjetoPipeline";
+import { cn } from "@/lib/utils";
 
 interface ConsultorOption { id: string; nome: string; }
 
 interface Props {
   searchTerm: string;
   onSearchChange: (v: string) => void;
-  // Funil
   funis: ProjetoFunil[];
   filterFunil: string;
   onFilterFunilChange: (v: string) => void;
-  // Responsável
   filterConsultor: string;
   onFilterConsultorChange: (v: string) => void;
   consultores: ConsultorOption[];
-  // Status
   filterStatus: string;
   onFilterStatusChange: (v: string) => void;
-  // Etiquetas
   etiquetas: ProjetoEtiqueta[];
   filterEtiquetas: string[];
   onFilterEtiquetasChange: (ids: string[]) => void;
-  // View
   viewMode: "kanban" | "lista";
   onViewModeChange: (v: "kanban" | "lista") => void;
   onClearFilters: () => void;
@@ -64,119 +60,147 @@ export function ProjetoFilters({
     }
   };
 
+  // Count active status filters
+  const statusCount = filterStatus !== "todos" ? 1 : 0;
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-3">
-        {/* Busca */}
-        <div className="flex-1 min-w-[180px] max-w-xs space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Buscar</label>
+      {/* ── Top row: View toggle + Filters ── */}
+      <div className="flex items-center gap-6">
+        {/* View mode tabs */}
+        <div className="flex items-center gap-1 border-b-2 border-transparent">
+          <button
+            onClick={() => onViewModeChange("kanban")}
+            className={cn(
+              "flex items-center gap-1.5 pb-1.5 px-1 text-sm font-medium transition-colors border-b-2 -mb-[2px]",
+              viewMode === "kanban"
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground"
+            )}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            Funil
+          </button>
+          <button
+            onClick={() => onViewModeChange("lista")}
+            className={cn(
+              "flex items-center gap-1.5 pb-1.5 px-1 text-sm font-medium transition-colors border-b-2 -mb-[2px]",
+              viewMode === "lista"
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground"
+            )}
+          >
+            ☰ Lista
+          </button>
+        </div>
+
+        {/* Filters aligned right */}
+        <div className="flex items-center gap-4 ml-auto flex-wrap">
+          {/* Funil */}
+          <div className="space-y-0.5">
+            <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+              <Filter className="h-2.5 w-2.5" />
+              Funil *
+            </label>
+            <Select value={filterFunil} onValueChange={onFilterFunilChange}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue placeholder="Vendedores" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Vendedores</SelectItem>
+                {funis.filter(f => f.ativo).map(f => (
+                  <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Responsável */}
+          <div className="space-y-0.5">
+            <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+              👤 Responsável
+            </label>
+            <Select value={filterConsultor} onValueChange={onFilterConsultorChange}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {consultores.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Status */}
+          <div className="space-y-0.5">
+            <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+              ◎ Status *
+            </label>
+            <Select value={filterStatus} onValueChange={onFilterStatusChange}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue placeholder="Todos" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map(s => (
+                  <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Etiquetas */}
+          <div className="space-y-0.5">
+            <label className="text-[10px] font-medium text-muted-foreground flex items-center gap-1">
+              ◇ Etiquetas
+            </label>
+            <Select value="todas" onValueChange={() => {}}>
+              <SelectTrigger className="w-[120px] h-8 text-xs">
+                <SelectValue placeholder="Todas" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todas">Todas</SelectItem>
+                {etiquetas.map(et => (
+                  <SelectItem key={et.id} value={et.id}>{et.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Nome, código..."
+              placeholder="Buscar..."
               value={searchTerm}
               onChange={e => onSearchChange(e.target.value)}
-              className="pl-9 h-9"
+              className="pl-8 h-8 w-[140px] text-xs"
             />
           </div>
-        </div>
 
-        {/* Funil */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Funil</label>
-          <Select value={filterFunil} onValueChange={onFilterFunilChange}>
-            <SelectTrigger className="w-[150px] h-9">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              {funis.filter(f => f.ativo).map(f => (
-                <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Responsável */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Responsável</label>
-          <Select value={filterConsultor} onValueChange={onFilterConsultorChange}>
-            <SelectTrigger className="w-[160px] h-9">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              {consultores.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Status */}
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
-          <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-            <SelectTrigger className="w-[150px] h-9">
-              <SelectValue placeholder="Todos" />
-            </SelectTrigger>
-            <SelectContent>
-              {STATUS_OPTIONS.map(s => (
-                <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Limpar */}
-        {hasActive && (
-          <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground h-9 gap-1">
-            <X className="h-3 w-3" />
-            Limpar
-          </Button>
-        )}
-
-        {/* View toggle */}
-        <div className="ml-auto flex gap-1">
-          <Button
-            variant={viewMode === "kanban" ? "default" : "outline"}
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => onViewModeChange("kanban")}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "lista" ? "default" : "outline"}
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => onViewModeChange("lista")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
+          {/* Clear */}
+          {hasActive && (
+            <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground h-8 px-2 text-xs gap-1">
+              <X className="h-3 w-3" />
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Etiquetas */}
-      {etiquetas.length > 0 && (
-        <div className="space-y-1">
-          <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Etiquetas</label>
-          <div className="flex flex-wrap gap-1.5">
-            {etiquetas.map(et => {
-              const isActive = filterEtiquetas.includes(et.id);
-              return (
-                <Badge
-                  key={et.id}
-                  variant={isActive ? "default" : "outline"}
-                  className="cursor-pointer text-[11px] h-6 px-2 transition-colors"
-                  style={isActive ? { backgroundColor: et.cor, borderColor: et.cor } : { borderColor: et.cor, color: et.cor }}
-                  onClick={() => toggleEtiqueta(et.id)}
-                >
-                  {et.nome}
-                </Badge>
-              );
-            })}
-          </div>
+      {/* Etiquetas inline */}
+      {etiquetas.length > 0 && filterEtiquetas.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {etiquetas.filter(et => filterEtiquetas.includes(et.id)).map(et => (
+            <Badge
+              key={et.id}
+              className="text-[10px] h-5 px-2 cursor-pointer"
+              style={{ backgroundColor: et.cor, borderColor: et.cor }}
+              onClick={() => toggleEtiqueta(et.id)}
+            >
+              {et.nome} ×
+            </Badge>
+          ))}
         </div>
       )}
     </div>
