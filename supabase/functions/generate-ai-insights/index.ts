@@ -6,67 +6,40 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Dual-mode AI: tenant OpenAI key first, Lovable gateway as fallback
+// AI caller — tenant OpenAI key ONLY (no external gateway)
 async function callAI(
   tenantApiKey: string | null,
-  lovableApiKey: string | null,
   messages: Array<{ role: string; content: string }>,
   options: { temperature?: number; max_tokens?: number } = {}
 ): Promise<{ content: string; provider: string }> {
   const { temperature = 0.4, max_tokens = 4000 } = options;
 
-  // 1) Try tenant's own OpenAI key
-  if (tenantApiKey) {
-    try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${tenantApiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages,
-          temperature,
-          max_tokens,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const content = data.choices?.[0]?.message?.content || "{}";
-        return { content, provider: "openai_tenant" };
-      }
-      console.warn(`[generate-ai-insights] Tenant OpenAI failed (${res.status}), trying fallback...`);
-    } catch (e) {
-      console.warn("[generate-ai-insights] Tenant OpenAI error, trying fallback:", e);
-    }
+  if (!tenantApiKey) {
+    throw new Error("No AI provider available. Configure OpenAI key in Admin > Integrations.");
   }
 
-  // 2) Fallback: Lovable AI Gateway (will be removed once all tenants migrate)
-  if (lovableApiKey) {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages,
-        temperature,
-        max_tokens,
-      }),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`AI fallback error: ${res.status} - ${errText}`);
-    }
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content || "{}";
-    return { content, provider: "lovable_fallback" };
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${tenantApiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages,
+      temperature,
+      max_tokens,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`OpenAI API error: ${res.status} - ${errText}`);
   }
 
-  throw new Error("No AI provider available. Configure OpenAI key in Admin > Integrations.");
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content || "{}";
+  return { content, provider: "openai_tenant" };
 }
 
 Deno.serve(async (req) => {
@@ -77,7 +50,6 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY") || null;
 
     // Auth check
     const authHeader = req.headers.get("Authorization");
@@ -138,7 +110,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { insight_type = "daily_summary", filters = {} } = body;
 
-    console.log(`[generate-ai-insights] Generating ${insight_type} for user ${user.id} (tenant_key: ${!!tenantApiKey}, lovable_key: ${!!lovableApiKey})`);
+    console.log(`[generate-ai-insights] Generating ${insight_type} for user ${user.id} (tenant_key: ${!!tenantApiKey})`);
 
     // ── Gather CRM Data ──────────────────────────────────────────
     const now = new Date();
@@ -349,12 +321,11 @@ Responda SEMPRE em JSON válido:
       userPrompt = `Gere o RELATÓRIO SEMANAL completo:\n\n${crmContext}`;
     }
 
-    // ── Call AI (dual-mode) ──────────────────────────────────────
+    // ── Call AI (tenant OpenAI only) ─────────────────────────────
     console.log(`[generate-ai-insights] Calling AI for ${insight_type}...`);
 
     const { content: rawContent, provider } = await callAI(
       tenantApiKey,
-      lovableApiKey,
       [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },

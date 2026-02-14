@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
     {
       name: "html-app-url",
       transformIndexHtml(html: string) {
-        return html.replace(/__APP_URL__/g, APP_URL || "https://maisenergiasolar.lovable.app");
+        return html.replace(/__APP_URL__/g, APP_URL || "");
       },
     },
     react(),
