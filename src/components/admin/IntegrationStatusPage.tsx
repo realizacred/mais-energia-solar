@@ -569,12 +569,8 @@ export function IntegrationStatusPage() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const { error } = await supabase.functions.invoke("integration-health-check", {
-        headers: session?.access_token
-          ? { Authorization: `Bearer ${session.access_token}` }
-          : undefined,
-      });
+      // SDK automatically includes the logged-in user's JWT
+      const { error } = await supabase.functions.invoke("integration-health-check");
       if (error) throw error;
       // Refetch cache after check completes
       await queryClient.invalidateQueries({ queryKey: ["integration-health-cache"] });

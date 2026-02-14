@@ -43,59 +43,64 @@ Deno.serve(async (req) => {
     let tenantIds: string[] = [];
     let isManualRefresh = false;
 
+    // Try to resolve user from Authorization header (manual mode)
+    let resolvedUser = false;
+
     if (authHeader?.startsWith("Bearer ")) {
-      // ── Manual mode: admin refresh ──
-      const supabaseUser = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: authHeader } } }
-      );
+      const token = authHeader.replace("Bearer ", "");
 
-      // Fix #4: getUser() instead of getClaims()
-      const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-      if (userError || !user) {
-        return new Response(JSON.stringify({ error: "Unauthorized" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      // Skip anon key — it's the SDK default, not a user session
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+      if (token && token !== anonKey) {
+        const supabaseUser = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } }
+        );
+
+        const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+
+        if (user && !userError) {
+          const userId = user.id;
+
+          // Admin check
+          const { data: roleData } = await supabaseAdmin
+            .from("user_roles")
+            .select("role")
+            .eq("user_id", userId)
+            .in("role", ["admin", "gerente"])
+            .limit(1)
+            .maybeSingle();
+
+          if (!roleData) {
+            return new Response(JSON.stringify({ error: "Admin access required" }), {
+              status: 403,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          const { data: profile } = await supabaseAdmin
+            .from("profiles")
+            .select("tenant_id")
+            .eq("user_id", userId)
+            .single();
+
+          if (!profile?.tenant_id) {
+            return new Response(JSON.stringify({ error: "Tenant not found" }), {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          tenantIds = [profile.tenant_id];
+          isManualRefresh = true;
+          resolvedUser = true;
+        }
       }
+    }
 
-      const userId = user.id;
-
-      // Admin check
-      const { data: roleData } = await supabaseUser
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .in("role", ["admin", "gerente"])
-        .limit(1)
-        .maybeSingle();
-
-      if (!roleData) {
-        return new Response(JSON.stringify({ error: "Admin access required" }), {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", userId)
-        .single();
-
-      if (!profile?.tenant_id) {
-        return new Response(JSON.stringify({ error: "Tenant not found" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      tenantIds = [profile.tenant_id];
-      isManualRefresh = true;
-    } else {
+    if (!resolvedUser) {
       // ── Cron mode: require x-cron-secret ──
-      // Fix #1: Cron secret protection
       const expectedSecret = Deno.env.get("CRON_SECRET");
       if (!expectedSecret) {
         console.error("[integration-health-check] CRON_SECRET not configured");
@@ -106,13 +111,12 @@ Deno.serve(async (req) => {
       }
 
       if (!cronSecretHeader || cronSecretHeader !== expectedSecret) {
-        return new Response(JSON.stringify({ error: "Unauthorized: invalid or missing cron secret" }), {
+        return new Response(JSON.stringify({ error: "Unauthorized: login required or invalid cron secret" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      // Fix #2: Paginated fetch of ALL active tenants (no limit)
       tenantIds = await fetchAllActiveTenants(supabaseAdmin);
     }
 
