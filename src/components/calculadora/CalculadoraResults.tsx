@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { getPublicUrl } from "@/lib/getPublicUrl";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -107,7 +108,7 @@ export function CalculadoraResults({
     }).format(v);
 
   const handleShare = async () => {
-    const text = `☀️ Simulei minha economia com energia solar!\n\n💰 Economia mensal estimada: ${fmt(economiaMensal)}\n📊 Investimento estimado: ${fmt(investimentoTotal)}\n🌱 ${co2Anual.toFixed(1)} ton CO₂/ano evitados\n💵 Economia estimada em 25 anos: ${fmt(economia25AnosComposta)}\n\nSimule a sua: ${window.location.origin}/calculadora`;
+    const text = `☀️ Simulei minha economia com energia solar!\n\n💰 Economia mensal estimada: ${fmt(economiaMensal)}\n📊 Investimento estimado: ${fmt(investimentoTotal)}\n🌱 ${co2Anual.toFixed(1)} ton CO₂/ano evitados\n💵 Economia estimada em 25 anos: ${fmt(economia25AnosComposta)}\n\nSimule a sua: ${getPublicUrl()}/calculadora`;
 
     if (navigator.share) {
       try {

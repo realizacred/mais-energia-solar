@@ -3,6 +3,7 @@ import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatPhone, formatName } from "@/lib/validations";
+import { getPublicUrl } from "@/lib/getPublicUrl";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
       if (error) throw error;
 
-      const link = `${window.location.origin}/ativar-conta?token=${invite.token}`;
+      const link = `${getPublicUrl()}/ativar-conta?token=${invite.token}`;
       setInviteLink(link);
       setInviteDialogOpen(true);
 
@@ -490,8 +491,8 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   };
 
   const copyLink = async (vendedor: Vendedor) => {
-    // Use current domain for vendor links
-    const link = `${window.location.origin}/v/${vendedor.slug || vendedor.codigo}`;
+    // Use configurable domain for vendor links
+    const link = `${getPublicUrl()}/v/${vendedor.slug || vendedor.codigo}`;
     
     try {
       await navigator.clipboard.writeText(link);

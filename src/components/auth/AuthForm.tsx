@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { getPublicUrl } from "@/lib/getPublicUrl";
 import { useForm } from "react-hook-form";
 import { AlertTriangle } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -182,7 +183,7 @@ export function AuthForm() {
     setIsLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?type=recovery`,
+        redirectTo: `${getPublicUrl()}/auth?type=recovery`,
       });
 
       if (error) {
