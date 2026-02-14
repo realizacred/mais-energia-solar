@@ -61,6 +61,12 @@
     --brand-blue: 225 78% 30%;
     --brand-blue-light: 225 65% 40%;
 
+    /* --- SolarMarket Identity --- */
+    --teal-solar: 168 82% 32%;
+    --teal-solar-foreground: 0 0% 100%;
+    --amarelo-sol: 36 91% 52%;
+    --amarelo-sol-foreground: 0 0% 10%;
+
     /* --- Elevation Surfaces --- */
     --surface-1: 0 0% 100%;
     --surface-2: 220 10% 97%;
@@ -272,6 +278,12 @@
   .text-brand-orange { color: hsl(var(--brand-orange)); }
   .bg-brand-blue { background-color: hsl(var(--brand-blue)); }
   .bg-brand-orange { background-color: hsl(var(--brand-orange)); }
+
+  /* SolarMarket utility classes */
+  .text-teal-solar { color: hsl(var(--teal-solar)); }
+  .bg-teal-solar { background-color: hsl(var(--teal-solar)); }
+  .text-amarelo-sol { color: hsl(var(--amarelo-sol)); }
+  .bg-amarelo-sol { background-color: hsl(var(--amarelo-sol)); }
 
   /* Status colors */
   .text-success { color: hsl(var(--success)); }
