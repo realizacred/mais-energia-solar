@@ -160,6 +160,27 @@ export function useProjetoPipeline() {
     setFunis(prev => prev.map(f => f.id === id ? { ...f, nome } : f));
   }, [toast]);
 
+  const toggleFunilAtivo = useCallback(async (id: string, ativo: boolean) => {
+    const { error } = await supabase.from("projeto_funis").update({ ativo }).eq("id", id);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setFunis(prev => prev.map(f => f.id === id ? { ...f, ativo } : f));
+    if (!ativo && selectedFunilId === id) {
+      const next = funis.find(f => f.id !== id && f.ativo);
+      if (next) setSelectedFunilId(next.id);
+    }
+    toast({ title: ativo ? "Funil reativado" : "Funil desativado" });
+  }, [toast, selectedFunilId, funis]);
+
+  const reorderFunis = useCallback(async (orderedIds: string[]) => {
+    setFunis(prev => prev.map(f => {
+      const idx = orderedIds.indexOf(f.id);
+      return idx >= 0 ? { ...f, ordem: idx } : f;
+    }).sort((a, b) => a.ordem - b.ordem));
+    for (let i = 0; i < orderedIds.length; i++) {
+      await supabase.from("projeto_funis").update({ ordem: i }).eq("id", orderedIds[i]);
+    }
+  }, []);
+
   // ─── Etapa CRUD ──────────────────────────────────────────
 
   const createEtapa = useCallback(async (funilId: string, nome: string, categoria: ProjetoEtapaCategoria = "aberto") => {
@@ -238,6 +259,8 @@ export function useProjetoPipeline() {
     fetchAll,
     createFunil,
     renameFunil,
+    toggleFunilAtivo,
+    reorderFunis,
     createEtapa,
     renameEtapa,
     moveProjetoToEtapa,
