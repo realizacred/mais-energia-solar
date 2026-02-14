@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Loader2, FileText, GripVertical } from "lucide-react";
+import { Plus, Trash2, Save, Loader2, FileText, GripVertical, Eye, X } from "lucide-react";
 
 interface TemplateRow {
   id: string;
@@ -21,6 +21,7 @@ interface TemplateRow {
   ativo: boolean;
   ordem: number;
   thumbnail_url: string | null;
+  template_html: string | null;
   isNew?: boolean;
 }
 
@@ -28,6 +29,7 @@ export function TemplatesTab() {
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
   useEffect(() => { loadData(); }, []);
 
@@ -35,7 +37,7 @@ export function TemplatesTab() {
     setLoading(true);
     const { data, error } = await supabase
       .from("proposta_templates")
-      .select("id, nome, descricao, grupo, categoria, tipo, ativo, ordem, thumbnail_url")
+      .select("id, nome, descricao, grupo, categoria, tipo, ativo, ordem, thumbnail_url, template_html")
       .order("ordem", { ascending: true });
     if (error) toast({ title: "Erro ao carregar templates", description: error.message, variant: "destructive" });
     setTemplates((data as unknown as TemplateRow[]) || []);
@@ -46,7 +48,7 @@ export function TemplatesTab() {
     setTemplates([...templates, {
       id: crypto.randomUUID(), nome: "", descricao: null, grupo: "B",
       categoria: "padrao", tipo: "html", ativo: true, ordem: templates.length,
-      thumbnail_url: null, isNew: true,
+      thumbnail_url: null, template_html: null, isNew: true,
     }]);
   }
 
@@ -113,12 +115,17 @@ export function TemplatesTab() {
                     </Badge>
                     <span className="text-xs font-semibold">{t.nome || `Template ${i + 1}`}</span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <Switch checked={t.ativo} onCheckedChange={(v) => updateTemplate(i, "ativo", v)} />
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeTemplate(i)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
+                   <div className="flex items-center gap-3">
+                     {t.template_html && (
+                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewHtml(t.template_html)}>
+                         <Eye className="h-3.5 w-3.5" />
+                       </Button>
+                     )}
+                     <Switch checked={t.ativo} onCheckedChange={(v) => updateTemplate(i, "ativo", v)} />
+                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeTemplate(i)}>
+                       <Trash2 className="h-3.5 w-3.5" />
+                     </Button>
+                   </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div className="space-y-1 sm:col-span-2">
@@ -169,6 +176,23 @@ export function TemplatesTab() {
           </Button>
         </div>
       </CardContent>
+
+      {/* Preview Modal */}
+      {previewHtml && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-6" onClick={() => setPreviewHtml(null)}>
+          <div className="bg-card rounded-xl shadow-xl w-full max-w-4xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <p className="text-sm font-semibold">Preview do Template</p>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPreviewHtml(null)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-auto bg-white rounded-b-xl">
+              <iframe srcDoc={previewHtml} title="Preview" className="w-full border-0" style={{ height: 600, pointerEvents: "none" }} />
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
