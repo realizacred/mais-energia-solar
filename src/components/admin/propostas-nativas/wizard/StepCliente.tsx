@@ -26,7 +26,7 @@ interface DuplicateWarning {
 export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, onClienteChange }: Props) {
   const [search, setSearch] = useState("");
   const [leads, setLeads] = useState<any[]>([]);
-  const [searching, setSearching] = useState(false);
+  const [searching, setSearching] = useState(true);
   const [duplicateWarnings, setDuplicateWarnings] = useState<DuplicateWarning[]>([]);
   const [checkingDuplicates, setCheckingDuplicates] = useState(false);
 
@@ -41,19 +41,24 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
         .order("created_at", { ascending: false })
         .limit(20);
       if (q.length >= 2) {
-        // Escape special chars for ilike
         const safe = q.replace(/[%_]/g, "");
         query = query.or(`nome.ilike.%${safe}%,telefone.ilike.%${safe}%,lead_code.ilike.%${safe}%`);
       }
-      const { data } = await query;
+      const { data, error } = await query;
+      if (error) {
+        console.error("[StepCliente] Erro ao buscar leads:", error.message);
+      }
       setLeads(data || []);
-    } catch { setLeads([]); }
-    finally { setSearching(false); }
+    } catch (e) {
+      console.error("[StepCliente] Exception ao buscar leads:", e);
+      setLeads([]);
+    } finally {
+      setSearching(false);
+    }
   }, []);
 
-  useEffect(() => { fetchLeads(""); }, [fetchLeads]);
   useEffect(() => {
-    const t = setTimeout(() => fetchLeads(search), 300);
+    const t = setTimeout(() => fetchLeads(search), search ? 300 : 0);
     return () => clearTimeout(t);
   }, [search, fetchLeads]);
 
