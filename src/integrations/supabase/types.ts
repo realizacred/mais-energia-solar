@@ -4809,6 +4809,139 @@ export type Database = {
           },
         ]
       }
+      premissas_tecnicas: {
+        Row: {
+          created_at: string
+          custo_disponibilidade_bi: number | null
+          custo_disponibilidade_mono: number | null
+          custo_disponibilidade_tri: number | null
+          degradacao_anual_percent: number | null
+          fator_perdas_percent: number | null
+          horas_sol_pico: number | null
+          id: string
+          ipca_anual: number | null
+          irradiacao_media_kwh_m2: number | null
+          metadata: Json | null
+          performance_ratio: number | null
+          reajuste_tarifa_anual_percent: number | null
+          taxa_selic_anual: number | null
+          taxas_fixas_mensais: number | null
+          tenant_id: string
+          updated_at: string
+          vida_util_anos: number | null
+        }
+        Insert: {
+          created_at?: string
+          custo_disponibilidade_bi?: number | null
+          custo_disponibilidade_mono?: number | null
+          custo_disponibilidade_tri?: number | null
+          degradacao_anual_percent?: number | null
+          fator_perdas_percent?: number | null
+          horas_sol_pico?: number | null
+          id?: string
+          ipca_anual?: number | null
+          irradiacao_media_kwh_m2?: number | null
+          metadata?: Json | null
+          performance_ratio?: number | null
+          reajuste_tarifa_anual_percent?: number | null
+          taxa_selic_anual?: number | null
+          taxas_fixas_mensais?: number | null
+          tenant_id: string
+          updated_at?: string
+          vida_util_anos?: number | null
+        }
+        Update: {
+          created_at?: string
+          custo_disponibilidade_bi?: number | null
+          custo_disponibilidade_mono?: number | null
+          custo_disponibilidade_tri?: number | null
+          degradacao_anual_percent?: number | null
+          fator_perdas_percent?: number | null
+          horas_sol_pico?: number | null
+          id?: string
+          ipca_anual?: number | null
+          irradiacao_media_kwh_m2?: number | null
+          metadata?: Json | null
+          performance_ratio?: number | null
+          reajuste_tarifa_anual_percent?: number | null
+          taxa_selic_anual?: number | null
+          taxas_fixas_mensais?: number | null
+          tenant_id?: string
+          updated_at?: string
+          vida_util_anos?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premissas_tecnicas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_config: {
+        Row: {
+          comissao_gerente_percent: number | null
+          comissao_padrao_percent: number | null
+          created_at: string
+          desconto_maximo_percent: number | null
+          id: string
+          margem_minima_percent: number | null
+          markup_equipamentos_percent: number | null
+          markup_servicos_percent: number | null
+          metadata: Json | null
+          preco_kwp_maximo: number | null
+          preco_kwp_minimo: number | null
+          preco_kwp_sugerido: number | null
+          requer_aprovacao_desconto: boolean | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          comissao_gerente_percent?: number | null
+          comissao_padrao_percent?: number | null
+          created_at?: string
+          desconto_maximo_percent?: number | null
+          id?: string
+          margem_minima_percent?: number | null
+          markup_equipamentos_percent?: number | null
+          markup_servicos_percent?: number | null
+          metadata?: Json | null
+          preco_kwp_maximo?: number | null
+          preco_kwp_minimo?: number | null
+          preco_kwp_sugerido?: number | null
+          requer_aprovacao_desconto?: boolean | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          comissao_gerente_percent?: number | null
+          comissao_padrao_percent?: number | null
+          created_at?: string
+          desconto_maximo_percent?: number | null
+          id?: string
+          margem_minima_percent?: number | null
+          markup_equipamentos_percent?: number | null
+          markup_servicos_percent?: number | null
+          metadata?: Json | null
+          preco_kwp_maximo?: number | null
+          preco_kwp_minimo?: number | null
+          preco_kwp_sugerido?: number | null
+          requer_aprovacao_desconto?: boolean | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ativo: boolean
@@ -5317,6 +5450,136 @@ export type Database = {
           },
           {
             foreignKeyName: "proposta_campos_distribuidora_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_cenarios: {
+        Row: {
+          ativo: boolean | null
+          cet_anual: number | null
+          comissao_percent: number | null
+          comissao_valor: number | null
+          created_at: string
+          custo_equipamentos: number | null
+          custo_servicos: number | null
+          custo_total: number | null
+          economia_primeiro_ano: number | null
+          entrada_percent: number | null
+          entrada_valor: number | null
+          financiador_id: string | null
+          id: string
+          is_default: boolean
+          margem_percent: number | null
+          markup_percent: number | null
+          metadata: Json | null
+          nome: string
+          num_parcelas: number | null
+          ordem: number | null
+          payback_meses: number | null
+          preco_final: number | null
+          preco_por_kwp: number | null
+          roi_25_anos: number | null
+          taxa_juros_anual: number | null
+          taxa_juros_mensal: number | null
+          tenant_id: string
+          tipo: string
+          tir_anual: number | null
+          updated_at: string
+          valor_financiado: number | null
+          valor_parcela: number | null
+          versao_id: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          cet_anual?: number | null
+          comissao_percent?: number | null
+          comissao_valor?: number | null
+          created_at?: string
+          custo_equipamentos?: number | null
+          custo_servicos?: number | null
+          custo_total?: number | null
+          economia_primeiro_ano?: number | null
+          entrada_percent?: number | null
+          entrada_valor?: number | null
+          financiador_id?: string | null
+          id?: string
+          is_default?: boolean
+          margem_percent?: number | null
+          markup_percent?: number | null
+          metadata?: Json | null
+          nome: string
+          num_parcelas?: number | null
+          ordem?: number | null
+          payback_meses?: number | null
+          preco_final?: number | null
+          preco_por_kwp?: number | null
+          roi_25_anos?: number | null
+          taxa_juros_anual?: number | null
+          taxa_juros_mensal?: number | null
+          tenant_id: string
+          tipo?: string
+          tir_anual?: number | null
+          updated_at?: string
+          valor_financiado?: number | null
+          valor_parcela?: number | null
+          versao_id: string
+        }
+        Update: {
+          ativo?: boolean | null
+          cet_anual?: number | null
+          comissao_percent?: number | null
+          comissao_valor?: number | null
+          created_at?: string
+          custo_equipamentos?: number | null
+          custo_servicos?: number | null
+          custo_total?: number | null
+          economia_primeiro_ano?: number | null
+          entrada_percent?: number | null
+          entrada_valor?: number | null
+          financiador_id?: string | null
+          id?: string
+          is_default?: boolean
+          margem_percent?: number | null
+          markup_percent?: number | null
+          metadata?: Json | null
+          nome?: string
+          num_parcelas?: number | null
+          ordem?: number | null
+          payback_meses?: number | null
+          preco_final?: number | null
+          preco_por_kwp?: number | null
+          roi_25_anos?: number | null
+          taxa_juros_anual?: number | null
+          taxa_juros_mensal?: number | null
+          tenant_id?: string
+          tipo?: string
+          tir_anual?: number | null
+          updated_at?: string
+          valor_financiado?: number | null
+          valor_parcela?: number | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_cenarios_financiador_id_fkey"
+            columns: ["financiador_id"]
+            isOneToOne: false
+            referencedRelation: "financiamento_bancos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_cenarios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_cenarios_versao_id_fkey"
             columns: ["versao_id"]
             isOneToOne: false
             referencedRelation: "proposta_versoes"
@@ -6442,6 +6705,251 @@ export type Database = {
           },
         ]
       }
+      proposta_versao_series: {
+        Row: {
+          ano: number
+          cenario_id: string | null
+          custo_om: number | null
+          degradacao_acumulada: number | null
+          economia_acumulada_rs: number | null
+          economia_rs: number | null
+          fluxo_caixa: number | null
+          fluxo_caixa_acumulado: number | null
+          geracao_kwh: number | null
+          id: string
+          mes: number | null
+          metadata: Json | null
+          parcela_financiamento: number | null
+          saldo_devedor: number | null
+          tarifa_vigente: number | null
+          tenant_id: string
+          versao_id: string
+        }
+        Insert: {
+          ano: number
+          cenario_id?: string | null
+          custo_om?: number | null
+          degradacao_acumulada?: number | null
+          economia_acumulada_rs?: number | null
+          economia_rs?: number | null
+          fluxo_caixa?: number | null
+          fluxo_caixa_acumulado?: number | null
+          geracao_kwh?: number | null
+          id?: string
+          mes?: number | null
+          metadata?: Json | null
+          parcela_financiamento?: number | null
+          saldo_devedor?: number | null
+          tarifa_vigente?: number | null
+          tenant_id: string
+          versao_id: string
+        }
+        Update: {
+          ano?: number
+          cenario_id?: string | null
+          custo_om?: number | null
+          degradacao_acumulada?: number | null
+          economia_acumulada_rs?: number | null
+          economia_rs?: number | null
+          fluxo_caixa?: number | null
+          fluxo_caixa_acumulado?: number | null
+          geracao_kwh?: number | null
+          id?: string
+          mes?: number | null
+          metadata?: Json | null
+          parcela_financiamento?: number | null
+          saldo_devedor?: number | null
+          tarifa_vigente?: number | null
+          tenant_id?: string
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_versao_series_cenario_id_fkey"
+            columns: ["cenario_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_cenarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_series_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_series_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_versao_servicos: {
+        Row: {
+          created_at: string
+          descricao: string
+          id: string
+          incluso: boolean | null
+          metadata: Json | null
+          obrigatorio: boolean | null
+          ordem: number | null
+          tenant_id: string
+          tipo: string
+          valor: number
+          versao_id: string
+        }
+        Insert: {
+          created_at?: string
+          descricao: string
+          id?: string
+          incluso?: boolean | null
+          metadata?: Json | null
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          tenant_id: string
+          tipo: string
+          valor?: number
+          versao_id: string
+        }
+        Update: {
+          created_at?: string
+          descricao?: string
+          id?: string
+          incluso?: boolean | null
+          metadata?: Json | null
+          obrigatorio?: boolean | null
+          ordem?: number | null
+          tenant_id?: string
+          tipo?: string
+          valor?: number
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_versao_servicos_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_servicos_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_versao_ucs: {
+        Row: {
+          aliquota_icms: number | null
+          concessionaria_id: string | null
+          consumo_fora_ponta_kwh: number | null
+          consumo_mensal_kwh: number
+          consumo_ponta_kwh: number | null
+          created_at: string
+          demanda_contratada_kw: number | null
+          geracao_mensal_estimada: number | null
+          grupo: string | null
+          id: string
+          metadata: Json | null
+          modalidade: string | null
+          nome: string | null
+          numero_uc: string | null
+          ordem: number
+          percentual_atendimento: number | null
+          potencia_necessaria_kwp: number | null
+          tarifa_energia: number | null
+          tarifa_fio_b: number | null
+          tarifa_fora_ponta: number | null
+          tarifa_ponta: number | null
+          tenant_id: string
+          tipo_ligacao: string | null
+          titular: string | null
+          versao_id: string
+        }
+        Insert: {
+          aliquota_icms?: number | null
+          concessionaria_id?: string | null
+          consumo_fora_ponta_kwh?: number | null
+          consumo_mensal_kwh?: number
+          consumo_ponta_kwh?: number | null
+          created_at?: string
+          demanda_contratada_kw?: number | null
+          geracao_mensal_estimada?: number | null
+          grupo?: string | null
+          id?: string
+          metadata?: Json | null
+          modalidade?: string | null
+          nome?: string | null
+          numero_uc?: string | null
+          ordem?: number
+          percentual_atendimento?: number | null
+          potencia_necessaria_kwp?: number | null
+          tarifa_energia?: number | null
+          tarifa_fio_b?: number | null
+          tarifa_fora_ponta?: number | null
+          tarifa_ponta?: number | null
+          tenant_id: string
+          tipo_ligacao?: string | null
+          titular?: string | null
+          versao_id: string
+        }
+        Update: {
+          aliquota_icms?: number | null
+          concessionaria_id?: string | null
+          consumo_fora_ponta_kwh?: number | null
+          consumo_mensal_kwh?: number
+          consumo_ponta_kwh?: number | null
+          created_at?: string
+          demanda_contratada_kw?: number | null
+          geracao_mensal_estimada?: number | null
+          grupo?: string | null
+          id?: string
+          metadata?: Json | null
+          modalidade?: string | null
+          nome?: string | null
+          numero_uc?: string | null
+          ordem?: number
+          percentual_atendimento?: number | null
+          potencia_necessaria_kwp?: number | null
+          tarifa_energia?: number | null
+          tarifa_fio_b?: number | null
+          tarifa_fora_ponta?: number | null
+          tarifa_ponta?: number | null
+          tenant_id?: string
+          tipo_ligacao?: string | null
+          titular?: string | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_versao_ucs_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_ucs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_ucs_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_versao_variaveis: {
         Row: {
           created_at: string
@@ -6503,8 +7011,10 @@ export type Database = {
       proposta_versoes: {
         Row: {
           aceito_em: string | null
+          calc_hash: string | null
           created_at: string
           economia_mensal: number | null
+          engine_version: string | null
           gerado_em: string | null
           gerado_por: string | null
           grupo: string | null
@@ -6528,8 +7038,10 @@ export type Database = {
         }
         Insert: {
           aceito_em?: string | null
+          calc_hash?: string | null
           created_at?: string
           economia_mensal?: number | null
+          engine_version?: string | null
           gerado_em?: string | null
           gerado_por?: string | null
           grupo?: string | null
@@ -6553,8 +7065,10 @@ export type Database = {
         }
         Update: {
           aceito_em?: string | null
+          calc_hash?: string | null
           created_at?: string
           economia_mensal?: number | null
+          engine_version?: string | null
           gerado_em?: string | null
           gerado_por?: string | null
           grupo?: string | null
