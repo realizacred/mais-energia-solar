@@ -6,8 +6,9 @@ import {
   ArrowLeft, Settings, MessageSquare, FileText, ShoppingCart, FolderOpen,
   Clock, User, ChevronRight, Zap, DollarSign, CalendarDays, Loader2,
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
-  MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash
+  MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -389,6 +390,7 @@ function GerenciamentoTab({
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
   const [changingPipeline, setChangingPipeline] = useState(false);
   const [consultores, setConsultores] = useState<{ id: string; nome: string }[]>([]);
+  const [showFunilPicker, setShowFunilPicker] = useState(false);
 
   // Load consultores for owner selector
   useEffect(() => {
@@ -540,30 +542,28 @@ function GerenciamentoTab({
         {/* Pipeline tabs row */}
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-1 overflow-x-auto">
-            {pipelines.map(p => {
-              const isActive = p.id === deal.pipeline_id;
-              return (
+            {/* Current pipeline as a card-style tab */}
+            {pipelines.filter(p => p.id === deal.pipeline_id).map(p => (
+              <div
+                key={p.id}
+                className="px-3 py-1.5 text-sm font-medium whitespace-nowrap border-b-2 border-primary text-foreground"
+              >
+                {p.name}
+              </div>
+            ))}
+
+            {/* "+" button to open funnel picker */}
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <button
-                  key={p.id}
-                  onClick={() => !isActive && handlePipelineChange(p.id)}
-                  disabled={changingPipeline}
-                  className={cn(
-                    "px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-all border-b-2",
-                    isActive
-                      ? "border-primary text-foreground"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  )}
+                  onClick={() => setShowFunilPicker(!showFunilPicker)}
+                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {p.name}
+                  <Plus className="h-4 w-4" />
                 </button>
-              );
-            })}
-            <button className="px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors">
-              <Plus className="h-4 w-4" />
-            </button>
-            <button className="px-2 py-1.5 text-muted-foreground hover:text-destructive transition-colors">
-              <Trash2 className="h-4 w-4" />
-            </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs">Trocar funil</TooltipContent>
+            </Tooltip>
           </div>
 
           {/* Win / Lose + Owner */}
@@ -571,20 +571,93 @@ function GerenciamentoTab({
             <Button
               size="sm"
               onClick={handleWinDeal}
-              className="bg-success hover:bg-success/90 text-success-foreground font-bold px-5"
+              disabled={deal.status === "won" || deal.status === "lost"}
+              className="bg-success hover:bg-success/90 text-success-foreground font-bold px-5 disabled:opacity-50"
             >
-              Ganhar
+              {deal.status === "won" ? <><Check className="h-3.5 w-3.5 mr-1" /> Ganho</> : "Ganhar"}
             </Button>
             <Button
               size="sm"
               variant="destructive"
               onClick={handleLoseDeal}
-              className="font-bold px-5"
+              disabled={deal.status === "won" || deal.status === "lost"}
+              className="font-bold px-5 disabled:opacity-50"
             >
-              Perder
+              {deal.status === "lost" ? <><XCircle className="h-3.5 w-3.5 mr-1" /> Perdido</> : "Perder"}
             </Button>
           </div>
         </div>
+
+        {/* ── Funnel Picker Panel ── */}
+        <AnimatePresence>
+          {showFunilPicker && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="rounded-xl border border-border/60 bg-card p-4" style={{ boxShadow: "var(--shadow-sm)" }}>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold text-foreground">Trocar Funil do Projeto</h4>
+                  <button onClick={() => setShowFunilPicker(false)} className="text-muted-foreground hover:text-foreground">
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {pipelines.map(p => {
+                    const isCurrentPipeline = p.id === deal.pipeline_id;
+                    const pipelineStages = allStagesMap.get(p.id) || [];
+                    return (
+                      <button
+                        key={p.id}
+                        disabled={changingPipeline || isCurrentPipeline}
+                        onClick={async () => {
+                          await handlePipelineChange(p.id);
+                          setShowFunilPicker(false);
+                        }}
+                        className={cn(
+                          "rounded-lg border p-3 text-left transition-all text-sm",
+                          isCurrentPipeline
+                            ? "border-primary bg-primary/5 cursor-default"
+                            : "border-border/60 hover:border-primary/40 hover:bg-muted/50 cursor-pointer"
+                        )}
+                      >
+                        <div className="font-medium text-foreground flex items-center justify-between">
+                          {p.name}
+                          {isCurrentPipeline && <Check className="h-3.5 w-3.5 text-primary" />}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {pipelineStages.length} etapa{pipelineStages.length !== 1 ? "s" : ""}
+                        </p>
+                        {/* Mini stage dots */}
+                        <div className="flex gap-1 mt-2">
+                          {pipelineStages.sort((a, b) => a.position - b.position).slice(0, 6).map(s => (
+                            <Tooltip key={s.id}>
+                              <TooltipTrigger asChild>
+                                <div
+                                  className={cn(
+                                    "w-2.5 h-2.5 rounded-full",
+                                    s.is_won ? "bg-success" : s.is_closed ? "bg-destructive" : "bg-primary"
+                                  )}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent side="bottom" className="text-xs">{s.name}</TooltipContent>
+                            </Tooltip>
+                          ))}
+                          {pipelineStages.length > 6 && (
+                            <span className="text-[10px] text-muted-foreground">+{pipelineStages.length - 6}</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Stage name + Stepper + Responsável */}
         <div className="flex items-start justify-between gap-6">
@@ -604,17 +677,39 @@ function GerenciamentoTab({
                   const isPast = i <= currentStageIndex;
                   const isCurrent = i === currentStageIndex;
                   return (
-                    <div key={stage.id} className="flex flex-col items-center z-10">
-                      <motion.div
-                        className={cn(
-                          "w-5 h-5 rounded-full border-2 transition-all",
-                          isPast ? "bg-primary border-primary" : "bg-muted border-muted-foreground/20",
-                          isCurrent && "ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
-                        )}
-                        animate={{ scale: isCurrent ? 1.2 : 1 }}
-                        transition={{ duration: 0.3 }}
-                      />
-                    </div>
+                    <Tooltip key={stage.id}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={async () => {
+                            if (stage.id === deal.stage_id) return;
+                            try {
+                              const { error } = await supabase.from("deals").update({ stage_id: stage.id }).eq("id", deal.id);
+                              if (error) throw error;
+                              toast({ title: `Movido para "${stage.name}"` });
+                              onDealUpdated();
+                            } catch (err: any) {
+                              toast({ title: "Erro", description: err.message, variant: "destructive" });
+                            }
+                          }}
+                          className="flex flex-col items-center z-10 group cursor-pointer"
+                        >
+                          <motion.div
+                            className={cn(
+                              "w-5 h-5 rounded-full border-2 transition-all",
+                              isPast ? "bg-primary border-primary" : "bg-muted border-muted-foreground/20",
+                              isCurrent && "ring-2 ring-primary/30 ring-offset-2 ring-offset-background",
+                              !isCurrent && "group-hover:ring-2 group-hover:ring-primary/20 group-hover:ring-offset-1 group-hover:ring-offset-background"
+                            )}
+                            animate={{ scale: isCurrent ? 1.2 : 1 }}
+                            transition={{ duration: 0.3 }}
+                          />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        {stage.name}
+                        {isCurrent && " (atual)"}
+                      </TooltipContent>
+                    </Tooltip>
                   );
                 })}
               </div>
