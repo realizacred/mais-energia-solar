@@ -31,8 +31,11 @@ import {
   Inbox,
   Phone,
   Sparkles,
+  Globe,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 
 // ── Types ──
 
@@ -364,6 +367,125 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
   );
 }
 
+// ── App URL Config Card ──
+
+function AppUrlConfigCard() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [url, setUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  const { data: currentUrl, isLoading } = useQuery({
+    queryKey: ["app_url_config"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("integration_configs")
+        .select("api_key")
+        .eq("service_key", "app_url")
+        .eq("is_active", true)
+        .maybeSingle();
+      if (error) throw error;
+      return data?.api_key || "";
+    },
+  });
+
+  const handleSave = async () => {
+    const trimmed = url.trim().replace(/\/+$/, "");
+    if (!trimmed || !trimmed.startsWith("https://")) {
+      toast({ title: "URL inválida", description: "A URL deve começar com https://", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    try {
+      // Upsert into integration_configs
+      const { data, error } = await supabase.functions.invoke("save-integration-key", {
+        body: { service_key: "app_url", api_key: trimmed },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.details || data.error);
+      toast({ title: "URL salva", description: "URL de produção atualizada com sucesso." });
+      setEditing(false);
+      setUrl("");
+      queryClient.invalidateQueries({ queryKey: ["app_url_config"] });
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Globe className="h-4 w-4 text-primary" />
+          URL de Produção
+          {currentUrl && (
+            <Badge variant="outline" className="ml-2 bg-success/10 text-success border-success/20 gap-1 text-xs">
+              <CheckCircle2 className="h-3 w-3" />
+              Configurado
+            </Badge>
+          )}
+        </CardTitle>
+        <CardDescription>
+          Domínio usado em links, QR codes, OAuth e e-mails. Sem configuração, o sistema usa o domínio atual automaticamente.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Spinner size="sm" />
+        ) : editing ? (
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">URL de produção</Label>
+              <Input
+                placeholder="https://app.maisenergiasolar.com.br"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Deve ser HTTPS. Esta URL será usada em canonical, OG tags, OAuth callbacks e links compartilhados.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={handleSave} disabled={saving || !url.trim()} size="sm" className="gap-1.5">
+                {saving ? <Spinner size="sm" /> : <Save className="h-3.5 w-3.5" />}
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => { setEditing(false); setUrl(""); }}>
+                Cancelar
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between">
+            <div>
+              {currentUrl ? (
+                <p className="text-sm font-mono text-foreground">{currentUrl}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground italic">
+                  Não configurado — usando domínio atual ({window.location.origin})
+                </p>
+              )}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { setEditing(true); setUrl(currentUrl || ""); }}
+              className="gap-1.5"
+            >
+              <Settings className="h-3.5 w-3.5" />
+              {currentUrl ? "Alterar" : "Configurar"}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main Page ──
 
 export function IntegrationStatusPage() {
@@ -460,6 +582,9 @@ export function IntegrationStatusPage() {
           )}
         </div>
       )}
+
+      {/* ── URL de Produção ── */}
+      <AppUrlConfigCard />
 
       {/* ── WhatsApp — Per-Instance Health Panel ── */}
       <Card>
