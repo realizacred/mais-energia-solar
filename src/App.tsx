@@ -12,6 +12,7 @@ import { WaNotificationProvider } from "@/components/notifications/WaNotificatio
 import { PushActivationBanner } from "@/components/notifications/PushActivationBanner";
 import { consumePWAReturnUrl } from "@/hooks/usePWAInstall";
 import { PWAAutoInstallPrompt } from "@/components/pwa/PWAAutoInstallPrompt";
+import { TenantGuardGate } from "@/components/guards/TenantGuardGate";
 
 // Lazy load all page components for code splitting
 const Index = lazy(() => import("./pages/Index"));
@@ -37,13 +38,9 @@ const AppDebug = lazy(() => import("./pages/AppDebug"));
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Dados ficam "frescos" por 2 minutos — evita refetch desnecessário
       staleTime: 2 * 60 * 1000,
-      // Cache mantido por 10 minutos após componente desmontar
       gcTime: 10 * 60 * 1000,
-      // Não refaz query ao voltar à aba (reduz chamadas)
       refetchOnWindowFocus: false,
-      // Retry com backoff para resiliência
       retry: 2,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
     },
@@ -62,7 +59,6 @@ function PWAReturnRedirect() {
 
     if (isStandalone && location.pathname === "/") {
       const returnUrl = consumePWAReturnUrl();
-      // PWA opens as WhatsApp clone — go straight to fullscreen inbox
       navigate(returnUrl || "/app", { replace: true });
     }
   }, [navigate, location.pathname]);
@@ -85,27 +81,29 @@ const App = () => (
           <PushActivationBanner />
           <Suspense fallback={<LoadingSpinner />}>
             <Routes>
+              {/* Public routes — no tenant guard */}
               <Route path="/" element={<Index />} />
               <Route path="/v/:codigo" element={<VendorPage />} />
               <Route path="/w/:slug" element={<WaChannelPage />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/portal" element={<PortalSelector />} />
-              <Route path="/admin/*" element={<Admin />} />
-              <Route path="/super-admin" element={<SuperAdmin />} />
-              <Route path="/consultor/*" element={<VendedorPortal />} />
-              {/* Redirect legado para não quebrar links antigos */}
-              <Route path="/vendedor/*" element={<VendedorPortal />} />
               <Route path="/calculadora" element={<Calculadora />} />
               <Route path="/checklist" element={<Checklist />} />
               <Route path="/instalar" element={<Instalar />} />
               <Route path="/avaliacao" element={<Avaliacao />} />
-              <Route path="/instalador" element={<Instalador />} />
-              <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
               <Route path="/ativar-conta" element={<AtivarConta />} />
-              <Route path="/inbox" element={<Inbox />} />
-              <Route path="/app" element={<MessagingApp />} />
-              <Route path="/app/debug" element={<AppDebug />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
+
+              {/* Protected routes — tenant guard active */}
+              <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />
+              <Route path="/admin/*" element={<TenantGuardGate><Admin /></TenantGuardGate>} />
+              <Route path="/super-admin" element={<SuperAdmin />} />
+              <Route path="/consultor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
+              <Route path="/vendedor/*" element={<TenantGuardGate><VendedorPortal /></TenantGuardGate>} />
+              <Route path="/instalador" element={<TenantGuardGate><Instalador /></TenantGuardGate>} />
+              <Route path="/inbox" element={<TenantGuardGate><Inbox /></TenantGuardGate>} />
+              <Route path="/app" element={<TenantGuardGate><MessagingApp /></TenantGuardGate>} />
+              <Route path="/app/debug" element={<TenantGuardGate><AppDebug /></TenantGuardGate>} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

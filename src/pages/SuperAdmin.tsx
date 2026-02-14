@@ -154,34 +154,35 @@ export default function SuperAdmin() {
   const loadAllData = useCallback(async () => {
     setLoadingData(true);
     try {
-      const [tenantsRes, subsRes, plansRes] = await Promise.all([
-        supabase.from("tenants").select("*").order("created_at", { ascending: false }),
-        supabase.from("subscriptions").select("tenant_id, status, trial_ends_at, current_period_end, plans:plan_id(code, name)"),
+      // G8: Use server-side RPC instead of N+1 client-side queries
+      const [rpcRes, plansRes] = await Promise.all([
+        supabase.rpc("get_super_admin_metrics", { _limit: 200 }),
         supabase.from("plans").select("id, code, name").eq("is_active", true).order("sort_order"),
       ]);
 
-      setTenants((tenantsRes.data as any) || []);
-      setSubscriptions((subsRes.data as any) || []);
+      if (rpcRes.error) throw rpcRes.error;
+      const rpcData = rpcRes.data as any;
+
+      const tenantsList = (rpcData?.tenants || []).map((t: any) => ({
+        id: t.id, nome: t.nome, slug: t.slug, ativo: t.ativo,
+        status: t.status, plano: t.plano, suspended_at: t.suspended_at,
+        suspended_reason: t.suspended_reason, owner_user_id: t.owner_user_id,
+        created_at: t.created_at,
+      }));
+      setTenants(tenantsList);
       setPlans(plansRes.data || []);
 
-      const tenantIds = (tenantsRes.data || []).map((t: any) => t.id);
+      // Build subscriptions from RPC data
+      setSubscriptions((rpcData?.tenants || []).filter((t: any) => t.subscription_status).map((t: any) => ({
+        tenant_id: t.id, status: t.subscription_status,
+        trial_ends_at: t.trial_ends_at, current_period_end: t.current_period_end,
+        plans: t.plan_code ? { code: t.plan_code, name: t.plan_name } : null,
+      })));
+
+      // Build metrics from RPC data (already aggregated server-side)
       const metricsMap: Record<string, TenantMetrics> = {};
-
-      if (tenantIds.length > 0) {
-        const [leadsRes, usersRes, clientesRes] = await Promise.all([
-          supabase.from("leads").select("tenant_id").in("tenant_id", tenantIds),
-          supabase.from("profiles").select("tenant_id").in("tenant_id", tenantIds),
-          supabase.from("clientes").select("tenant_id").in("tenant_id", tenantIds),
-        ]);
-
-        for (const tid of tenantIds) {
-          metricsMap[tid] = {
-            tenant_id: tid,
-            leads: (leadsRes.data || []).filter((l: any) => l.tenant_id === tid).length,
-            users: (usersRes.data || []).filter((p: any) => p.tenant_id === tid).length,
-            clientes: (clientesRes.data || []).filter((c: any) => c.tenant_id === tid).length,
-          };
-        }
+      for (const t of rpcData?.tenants || []) {
+        metricsMap[t.id] = { tenant_id: t.id, leads: t.leads_count || 0, users: t.users_count || 0, clientes: t.clientes_count || 0 };
       }
       setMetrics(metricsMap);
     } catch (err) {

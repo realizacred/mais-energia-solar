@@ -188,6 +188,20 @@ Deno.serve(async (req) => {
 
     console.log(`[send-wa] tenant=${tenantId} via ${tenantSource}, userId=${userId || "service_role"}`);
 
+    // G3: Tenant status enforcement
+    const { data: tenantStatusRow } = await supabaseAdmin
+      .from("tenants")
+      .select("status, deleted_at")
+      .eq("id", tenantId)
+      .single();
+    if (!tenantStatusRow || tenantStatusRow.status !== "active" || tenantStatusRow.deleted_at) {
+      console.error(`[send-wa] BLOCKED: tenant ${tenantId} inactive (${tenantStatusRow?.status})`);
+      return new Response(
+        JSON.stringify({ success: false, error: "tenant_inactive" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── FETCH CONFIG (scoped by resolved tenant) ──────────────
     const { data: config, error: configError } = await supabaseAdmin
       .from("whatsapp_automation_config")

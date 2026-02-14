@@ -39,6 +39,19 @@ Deno.serve(async (req) => {
 
     const tenantId = profile.tenant_id;
 
+    // G3: Tenant status enforcement
+    const { data: tenantRow } = await adminClient
+      .from("tenants")
+      .select("status, deleted_at")
+      .eq("id", tenantId)
+      .single();
+    if (!tenantRow || tenantRow.status !== "active" || tenantRow.deleted_at) {
+      return new Response(
+        JSON.stringify({ error: "tenant_inactive" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Get OpenAI key for this tenant
     const { data: keyRow } = await adminClient
       .from("integration_configs")

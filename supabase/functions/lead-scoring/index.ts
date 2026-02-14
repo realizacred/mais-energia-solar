@@ -115,6 +115,14 @@ Deno.serve(async (req) => {
       .eq("user_id", user.id)
       .single();
 
+    // G3: Tenant status enforcement
+    if (profile?.tenant_id) {
+      const { data: tRow } = await adminClient.from("tenants").select("status, deleted_at").eq("id", profile.tenant_id).single();
+      if (!tRow || tRow.status !== "active" || tRow.deleted_at) {
+        return new Response(JSON.stringify({ error: "tenant_inactive" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
+    }
+
     let tenantApiKey: string | null = null;
     if (profile?.tenant_id) {
       const { data: keyRow } = await adminClient

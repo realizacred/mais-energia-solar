@@ -108,6 +108,21 @@ Deno.serve(async (req) => {
       });
     }
 
+    // G3: Tenant status enforcement — reject webhooks for inactive tenants
+    const { data: tenantCheck } = await supabase
+      .from("tenants")
+      .select("status, deleted_at")
+      .eq("id", instance.tenant_id)
+      .single();
+
+    if (!tenantCheck || tenantCheck.status !== "active" || tenantCheck.deleted_at) {
+      console.warn(`[evolution-webhook] Tenant ${instance.tenant_id} inactive (${tenantCheck?.status}), rejecting webhook`);
+      return new Response(JSON.stringify({ error: "tenant_inactive" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Validate webhook secret if both are provided
     if (webhookSecret && instance.webhook_secret && webhookSecret !== instance.webhook_secret) {
       console.error(`[evolution-webhook] Invalid webhook secret for instance=${instanceKey}`);

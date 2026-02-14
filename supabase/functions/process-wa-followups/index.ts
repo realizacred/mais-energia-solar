@@ -70,9 +70,14 @@ Deno.serve(async (req) => {
         }
       }
 
+      // G3: Filter out candidates from inactive tenants
       const tids = [...new Set(eligible.map((c: any) => c.tenant_id))];
-      const aiMap = await loadAi(sb, tids);
-      const after = eligible.filter((c: any) => aiMap.get(c.tenant_id)?.modo !== "desativado");
+      const { data: activeTenants } = await sb.from("tenants").select("id").in("id", tids).eq("status", "active").is("deleted_at", null);
+      const activeSet = new Set((activeTenants || []).map((t: any) => t.id));
+      const tenantFiltered = eligible.filter((c: any) => activeSet.has(c.tenant_id));
+      
+      const aiMap = await loadAi(sb, [...activeSet]);
+      const after = tenantFiltered.filter((c: any) => aiMap.get(c.tenant_id)?.modo !== "desativado");
 
       const ins = after.map((c: any) => ({ tenant_id: c.tenant_id, rule_id: c.rule_id, conversation_id: c.conversation_id, status: "pendente", tentativa: Number(c.attempt_count) + 1, scheduled_at: new Date().toISOString(), assigned_to: c.assigned_to }));
       if (ins.length) {

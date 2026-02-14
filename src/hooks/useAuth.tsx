@@ -2,11 +2,18 @@ import { useState, useEffect, useCallback, createContext, useContext, ReactNode 
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicUrl } from "@/lib/getPublicUrl";
+import { useTenantGuard, type TenantGuardStatus } from "@/hooks/useTenantGuard";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  tenantStatus: TenantGuardStatus;
+  tenantGuard: {
+    tenantName?: string;
+    suspendedAt?: string | null;
+    suspendedReason?: string | null;
+  };
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -22,49 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const tenantGuardState = useTenantGuard(user?.id);
+
   const signOut = useCallback(async (reason?: string) => {
     if (reason) {
       sessionStorage.setItem("logout_reason", reason);
     }
     await supabase.auth.signOut();
   }, []);
-
-  // One-time access check on login (profile ativo + has roles)
-  useEffect(() => {
-    if (!user) return;
-
-    const checkAccess = async () => {
-      try {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("ativo")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (profile && profile.ativo === false) {
-          console.warn("[auth] User deactivated, signing out");
-          await signOut("Seu acesso foi desativado. Entre em contato com o administrador.");
-          return;
-        }
-
-        const { data: roles } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id);
-
-        if (!roles || roles.length === 0) {
-          console.warn("[auth] User has no roles, signing out");
-          await signOut("Seus perfis de acesso foram removidos. Entre em contato com o administrador.");
-        }
-      } catch {
-        // Silently ignore — network errors shouldn't log user out
-      }
-    };
-
-    // Single check after login, then realtime handles ongoing changes
-    const timeout = setTimeout(checkAccess, 3_000);
-    return () => clearTimeout(timeout);
-  }, [user, signOut]);
 
   // Realtime: listen for profile deactivation AND role removal
   useEffect(() => {
@@ -157,7 +129,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider value={{
+      user,
+      session,
+      loading,
+      tenantStatus: tenantGuardState.status,
+      tenantGuard: {
+        tenantName: tenantGuardState.tenantName,
+        suspendedAt: tenantGuardState.suspendedAt,
+        suspendedReason: tenantGuardState.suspendedReason,
+      },
+      signIn,
+      signUp,
+      signOut,
+    }}>
       {children}
     </AuthContext.Provider>
   );
