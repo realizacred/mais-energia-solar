@@ -41,7 +41,9 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
         .order("created_at", { ascending: false })
         .limit(20);
       if (q.length >= 2) {
-        query = query.or(`nome.ilike.%${q}%,telefone.ilike.%${q}%,lead_code.ilike.%${q}%`);
+        // Escape special chars for ilike
+        const safe = q.replace(/[%_]/g, "");
+        query = query.or(`nome.ilike.%${safe}%,telefone.ilike.%${safe}%,lead_code.ilike.%${safe}%`);
       }
       const { data } = await query;
       setLeads(data || []);
@@ -157,9 +159,9 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
           </div>
           {searching ? (
             <p className="text-sm text-muted-foreground text-center py-4 animate-pulse">Buscando...</p>
-          ) : search.length >= 2 && leads.length === 0 ? (
+          ) : leads.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">Nenhum lead encontrado.</p>
-          ) : search.length >= 2 ? (
+          ) : (
             <div className="border rounded-xl divide-y max-h-60 overflow-y-auto">
               {leads.map(l => (
                 <button key={l.id} className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors" onClick={() => handleSelect(l)}>
@@ -168,7 +170,7 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
                 </button>
               ))}
             </div>
-          ) : null}
+          )}
         </div>
       )}
 
@@ -190,7 +192,8 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs">Nome *</Label>
-            <Input value={cliente.nome} onChange={e => update("nome", e.target.value)} placeholder="Nome completo" className="h-9" />
+            <Input value={cliente.nome} onChange={e => update("nome", e.target.value)} placeholder="Nome completo" className={`h-9 ${!cliente.nome.trim() ? "border-destructive/50" : ""}`} />
+            {!cliente.nome.trim() && <p className="text-[10px] text-destructive">Obrigatório para avançar</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Empresa</Label>
@@ -215,8 +218,9 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
               value={cliente.celular}
               onChange={e => update("celular", e.target.value)}
               placeholder="(00) 00000-0000"
-              className={`h-9 ${duplicateWarnings.some(w => w.field === "celular") ? "border-warning focus-visible:ring-warning" : ""}`}
+              className={`h-9 ${!cliente.celular.trim() ? "border-destructive/50" : ""} ${duplicateWarnings.some(w => w.field === "celular") ? "border-warning focus-visible:ring-warning" : ""}`}
             />
+            {!cliente.celular.trim() && <p className="text-[10px] text-destructive">Obrigatório para avançar</p>}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">CEP</Label>
