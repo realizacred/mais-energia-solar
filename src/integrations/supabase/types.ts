@@ -8532,6 +8532,7 @@ export type Database = {
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       release_followup_lock: { Args: never; Returns: undefined }
+      release_webhook_lock: { Args: never; Returns: undefined }
       require_tenant_id: { Args: { _user_id?: string }; Returns: string }
       resolve_consultor_public: {
         Args: { _codigo: string }
@@ -8552,6 +8553,7 @@ export type Database = {
         | { Args: never; Returns: string }
         | { Args: { _consultor_code?: string }; Returns: string }
       try_followup_lock: { Args: never; Returns: boolean }
+      try_webhook_lock: { Args: never; Returns: boolean }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
       validate_consultor_code: {
