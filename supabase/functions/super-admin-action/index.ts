@@ -417,21 +417,32 @@ Deno.serve(async (req) => {
           _tenant_id: delProfile.tenant_id,
         });
         if (isLastDel) throw new Error("Não é possível excluir o último admin do tenant");
-        // Remove roles
+        // 1. Remove roles
         await supabaseAdmin.from("user_roles").delete().eq("user_id", target_user_id);
-        // Deactivate profile (keep for data integrity)
-        await supabaseAdmin.from("profiles").update({ ativo: false }).eq("user_id", target_user_id);
-        // Release conversations
+        // 2. Deactivate consultores linked to this user
+        await supabaseAdmin.from("consultores").update({ ativo: false, user_id: null }).eq("user_id", target_user_id);
+        // 3. Release open conversations
         await supabaseAdmin
           .from("wa_conversations")
           .update({ assigned_to: null })
           .eq("assigned_to", target_user_id)
           .eq("status", "open");
-        // Delete from Auth
+        // 4. Remove user_feature_permissions
+        await supabaseAdmin.from("user_feature_permissions").delete().eq("user_id", target_user_id);
+        // 5. Hard-delete profile (auth.users will also be deleted, no orphans)
+        const { error: delProfileErr } = await supabaseAdmin.from("profiles").delete().eq("user_id", target_user_id);
+        if (delProfileErr) {
+          console.error("[ALERT][SECURITY] Failed to delete profile:", delProfileErr);
+          throw new Error("Falha ao excluir profile: " + delProfileErr.message);
+        }
+        // 6. Delete from Auth (final step)
         const { error: delAuthErr } = await supabaseAdmin.auth.admin.deleteUser(target_user_id);
-        if (delAuthErr) throw delAuthErr;
+        if (delAuthErr) {
+          console.error("[ALERT][SECURITY] Profile deleted but auth.users deletion failed:", delAuthErr);
+          throw new Error("Profile excluído mas falha ao excluir auth: " + delAuthErr.message);
+        }
         await logAction({ user_name: delProfile.nome, permanent_delete: true });
-        result = { success: true, message: "Usuário excluído permanentemente" };
+        result = { success: true, message: "Usuário excluído permanentemente (profile + auth removidos)" };
         break;
       }
 
