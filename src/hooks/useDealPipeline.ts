@@ -357,6 +357,60 @@ export function useDealPipeline() {
     return consultores.map(c => ({ id: c.id, nome: c.nome }));
   }, [consultores]);
 
+  // ─── Create Deal ──────────────────────────────────────
+  const createDeal = useCallback(async (params: {
+    title: string;
+    ownerId: string;
+    pipelineId?: string;
+    customerId?: string;
+    value?: number;
+  }) => {
+    const pipeId = params.pipelineId || selectedPipelineId || pipelines[0]?.id;
+    if (!pipeId) {
+      toast({ title: "Erro", description: "Nenhum funil disponível", variant: "destructive" });
+      return null;
+    }
+
+    // Get first open stage of this pipeline
+    const pipeStages = stages
+      .filter(s => s.pipeline_id === pipeId && !s.is_closed)
+      .sort((a, b) => a.position - b.position);
+    const firstStage = pipeStages[0];
+    if (!firstStage) {
+      toast({ title: "Erro", description: "Funil sem etapas abertas", variant: "destructive" });
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from("deals")
+      .insert({
+        title: params.title,
+        pipeline_id: pipeId,
+        stage_id: firstStage.id,
+        owner_id: params.ownerId,
+        customer_id: params.customerId || null,
+        value: params.value || 0,
+        status: "open",
+      } as any)
+      .select("id")
+      .single();
+
+    if (error) {
+      toast({ title: "Erro ao criar projeto", description: error.message, variant: "destructive" });
+      return null;
+    }
+
+    toast({ title: "Projeto criado com sucesso!" });
+
+    // Refresh deals
+    try {
+      const enriched = await fetchDeals(filters);
+      setDeals(enriched);
+    } catch {}
+
+    return data;
+  }, [selectedPipelineId, pipelines, stages, filters, fetchDeals, toast]);
+
   return {
     pipelines,
     stages,
@@ -382,5 +436,6 @@ export function useDealPipeline() {
     deleteStage,
     moveDealToStage,
     moveDealToOwner,
+    createDeal,
   };
 }

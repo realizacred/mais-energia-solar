@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export function ProjetosManager() {
     createPipeline, renamePipeline, togglePipelineActive, reorderPipelines,
     createStage, renameStage, updateStageProbability, reorderStages, deleteStage,
     moveDealToOwner,
+    createDeal,
   } = useDealPipeline();
 
   const [viewMode, setViewMode] = useState<"kanban" | "lista">("kanban");
@@ -83,6 +85,36 @@ export function ProjetosManager() {
         open={novoProjetoOpen}
         onOpenChange={setNovoProjetoOpen}
         consultores={consultoresFilter}
+        onSubmit={async (data) => {
+          // Create client first if needed
+          let customerId: string | undefined;
+          if (data.cliente.nome.trim()) {
+            const { data: cli, error } = await supabase
+              .from("clientes")
+              .insert({
+                nome: data.cliente.nome,
+                telefone: data.cliente.telefone || "N/A",
+                email: data.cliente.email || null,
+                cpf_cnpj: data.cliente.cpfCnpj || null,
+                cep: data.cliente.cep || null,
+                estado: data.cliente.estado || null,
+                cidade: data.cliente.cidade || null,
+                rua: data.cliente.endereco || null,
+                numero: data.cliente.numero || null,
+                bairro: data.cliente.bairro || null,
+                complemento: data.cliente.complemento || null,
+              } as any)
+              .select("id")
+              .single();
+            if (!error && cli) customerId = cli.id;
+          }
+
+          await createDeal({
+            title: data.nome || data.cliente.nome,
+            ownerId: data.consultorId || consultoresFilter[0]?.id,
+            customerId,
+          });
+        }}
       />
 
       <div className="rounded-xl border border-border/60 bg-card">

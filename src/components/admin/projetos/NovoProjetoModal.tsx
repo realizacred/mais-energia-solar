@@ -25,7 +25,7 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   consultores: { id: string; nome: string }[];
-  onSubmit?: (data: NovoProjetoData) => void;
+  onSubmit?: (data: NovoProjetoData) => void | Promise<void>;
 }
 
 export interface NovoProjetoData {
@@ -112,7 +112,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
     };
   }, [cliente.nome]);
 
-  const handleSubmit = () => {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async () => {
     const newErrors: Record<string, boolean> = {};
     if (!cliente.nome.trim()) newErrors["cliente.nome"] = true;
     if (!cliente.telefone.trim()) newErrors["cliente.telefone"] = true;
@@ -122,24 +124,30 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
       return;
     }
 
-    onSubmit?.({
-      nome: nome.trim() || cliente.nome.trim(),
-      descricao,
-      consultorId,
-      etiqueta,
-      notas,
-      cliente,
-    });
+    setSubmitting(true);
+    try {
+      await onSubmit?.({
+        nome: nome.trim() || cliente.nome.trim(),
+        descricao,
+        consultorId,
+        etiqueta,
+        notas,
+        cliente,
+      });
 
-    // Reset
-    setNome("");
-    setDescricao("");
-    setConsultorId("");
-    setEtiqueta("");
-    setNotas("");
-    setCliente(emptyCliente);
-    setErrors({});
-    onOpenChange(false);
+      // Reset on success
+      setNome("");
+      setDescricao("");
+      setConsultorId("");
+      setEtiqueta("");
+      setNotas("");
+      setCliente(emptyCliente);
+      setErrors({});
+      setSimilares([]);
+      onOpenChange(false);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleClose = () => {
@@ -408,11 +416,12 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
         {/* ── Footer ── */}
         <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border/60 bg-muted/20">
-          <Button variant="ghost" onClick={handleClose} className="text-sm">
+          <Button variant="ghost" onClick={handleClose} className="text-sm" disabled={submitting}>
             Fechar
           </Button>
-          <Button onClick={handleSubmit} className="text-sm px-6 gap-1.5">
-            Cadastrar
+          <Button onClick={handleSubmit} className="text-sm px-6 gap-1.5" disabled={submitting}>
+            {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
+            {submitting ? "Cadastrando..." : "Cadastrar"}
           </Button>
         </div>
       </DialogContent>
