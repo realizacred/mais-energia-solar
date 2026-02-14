@@ -1,4 +1,4 @@
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,20 +20,7 @@ export function WritingAssistantButton({
   isLoading,
   disabled,
 }: WritingAssistantButtonProps) {
-  if (isLoading) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button size="icon" variant="ghost" className="h-7 w-7 text-primary" disabled>
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side="top" className="text-xs">
-          Processando...
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
+  const isDisabled = disabled || isLoading;
 
   return (
     <DropdownMenu>
@@ -44,14 +31,14 @@ export function WritingAssistantButton({
               size="icon"
               variant="ghost"
               className="h-7 w-7 text-muted-foreground hover:text-primary"
-              disabled={disabled}
+              disabled={isDisabled}
             >
               <Sparkles className="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
         <TooltipContent side="top" className="text-xs">
-          Assistente de escrita
+          {isLoading ? "Processando..." : "Assistente de escrita"}
         </TooltipContent>
       </Tooltip>
       <DropdownMenuContent side="top" align="start" className="w-52">
