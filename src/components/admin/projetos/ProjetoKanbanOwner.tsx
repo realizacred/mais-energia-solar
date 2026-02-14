@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, LayoutGrid, FileText } from "lucide-react";
+import { Zap, Plus, LayoutGrid, FileText, Phone, Tag } from "lucide-react";
 import type { OwnerColumn, DealKanbanCard } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface Props {
   columns: OwnerColumn[];
@@ -29,6 +30,13 @@ const formatBRLCard = (v: number | null) => {
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace(".", ",")}M`;
   if (v >= 1_000) return `R$ ${Math.round(v / 1_000)}K`;
   return `R$ ${v}`;
+};
+
+const ETIQUETA_COLORS: Record<string, string> = {
+  residencial: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+  comercial: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  industrial: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  rural: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
 };
 
 export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCreateProjeto }: Props) {
@@ -76,7 +84,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
             <div
               key={col.id}
               className={cn(
-                "w-[280px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
+                "w-[300px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
                 "bg-muted/20",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
@@ -159,7 +167,7 @@ interface DealCardProps {
 }
 
 function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
-  const stageInitial = deal.stage_name ? deal.stage_name.charAt(0).toUpperCase() : "";
+  const etiquetaClass = deal.etiqueta ? ETIQUETA_COLORS[deal.etiqueta] : null;
 
   return (
     <div
@@ -167,24 +175,31 @@ function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "relative bg-card rounded-lg border border-border/40 p-3 cursor-grab active:cursor-grabbing",
-        "hover:shadow-md hover:border-border/70 transition-all duration-150",
+        "relative bg-card rounded-lg border border-border/40 p-3.5 cursor-grab active:cursor-grabbing",
+        "hover:shadow-md hover:border-primary/30 transition-all duration-150",
         isDragging && "opacity-40 scale-95"
       )}
       style={{ boxShadow: "var(--shadow-xs)" }}
     >
-      {/* Proposal count indicator */}
-      <div className="absolute -top-1.5 -right-1.5 flex items-center gap-0.5 bg-muted rounded-full px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground border border-border/50">
-        <FileText className="h-2.5 w-2.5" />
-        0
-      </div>
-
       {/* Title row */}
-      <div className="flex items-start justify-between gap-2 mb-2 pr-4">
+      <div className="flex items-start justify-between gap-2 mb-2">
         <p className="text-[13px] font-bold text-foreground leading-snug line-clamp-2">
           {deal.customer_name || deal.deal_title || "Sem nome"}
         </p>
+        {etiquetaClass && (
+          <span className={cn("text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0", etiquetaClass)}>
+            {deal.etiqueta}
+          </span>
+        )}
       </div>
+
+      {/* Phone */}
+      {deal.customer_phone && deal.customer_phone !== "" && (
+        <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-2">
+          <Phone className="h-3 w-3" />
+          <span>{deal.customer_phone}</span>
+        </div>
+      )}
 
       {/* Stats row */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
@@ -194,17 +209,11 @@ function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
               {formatBRLCard(deal.deal_value)}
             </span>
           )}
-          <span className="flex items-center gap-0.5">
-            <Zap className="h-3 w-3 text-amarelo-sol" />
-            <span className="text-[11px] font-medium">— kWp</span>
-          </span>
         </div>
         {/* Stage badge */}
-        {stageInitial && (
-          <span className="flex items-center justify-center h-5 w-5 rounded-full bg-muted text-[10px] font-bold text-muted-foreground border border-border/40">
-            {stageInitial}
-          </span>
-        )}
+        <Badge variant="outline" className="text-[10px] h-5 px-2 font-medium border-border/60 bg-muted/50">
+          {deal.stage_name}
+        </Badge>
       </div>
     </div>
   );

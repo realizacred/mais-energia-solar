@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus } from "lucide-react";
+import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, Users, Layers } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useDealPipeline } from "@/hooks/useDealPipeline";
@@ -8,6 +8,7 @@ import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { ProjetoFunilSelector } from "./ProjetoFunilSelector";
 import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanOwner } from "./ProjetoKanbanOwner";
+import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
 import { ProjetoListView } from "./ProjetoListView";
 import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
 import { NovoProjetoModal } from "./NovoProjetoModal";
@@ -28,11 +29,11 @@ export function ProjetosManager() {
     consultoresFilter,
     createPipeline, renamePipeline, togglePipelineActive, reorderPipelines,
     createStage, renameStage, updateStageProbability, reorderStages, deleteStage,
-    moveDealToOwner,
+    moveDealToOwner, moveDealToStage,
     createDeal,
   } = useDealPipeline();
 
-  const [viewMode, setViewMode] = useState<"kanban" | "lista">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "kanban-etapa" | "lista">("kanban");
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
@@ -108,6 +109,7 @@ export function ProjetosManager() {
                 telefone: data.cliente.telefone || "N/A",
                 email: data.cliente.email || null,
                 cpf_cnpj: data.cliente.cpfCnpj || null,
+                empresa: data.cliente.empresa || null,
                 cep: data.cliente.cep || null,
                 estado: data.cliente.estado || null,
                 cidade: data.cliente.cidade || null,
@@ -125,6 +127,8 @@ export function ProjetosManager() {
             title: data.nome || data.cliente.nome,
             ownerId: data.consultorId || consultoresFilter[0]?.id,
             customerId,
+            etiqueta: data.etiqueta || undefined,
+            notas: data.notas || undefined,
           });
         }}
       />
@@ -248,6 +252,13 @@ export function ProjetosManager() {
           onMoveProjeto={moveDealToOwner}
           onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
         />
+      ) : viewMode === "kanban-etapa" ? (
+        <ProjetoKanbanStage
+          stages={selectedPipelineStages}
+          deals={deals}
+          onMoveToStage={moveDealToStage}
+          onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
+        />
       ) : (
         <ProjetoListView
           projetos={deals.map(d => ({
@@ -265,7 +276,7 @@ export function ProjetosManager() {
             observacoes: null,
             created_at: d.last_stage_change,
             updated_at: d.last_stage_change,
-            cliente: { nome: d.customer_name, telefone: "" },
+            cliente: { nome: d.customer_name, telefone: d.customer_phone || "" },
             consultor: { nome: d.owner_name },
           }))}
           etapas={selectedPipelineStages.map(s => ({

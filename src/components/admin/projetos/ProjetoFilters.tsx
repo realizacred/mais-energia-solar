@@ -1,4 +1,4 @@
-import { Search, X, Filter, LayoutGrid, Columns3 } from "lucide-react";
+import { Search, X, Filter, LayoutGrid, Columns3, Users, Layers } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +28,8 @@ interface Props {
   etiquetas: ProjetoEtiqueta[];
   filterEtiquetas: string[];
   onFilterEtiquetasChange: (ids: string[]) => void;
-  viewMode: "kanban" | "lista";
-  onViewModeChange: (v: "kanban" | "lista") => void;
+  viewMode: "kanban" | "kanban-etapa" | "lista";
+  onViewModeChange: (v: "kanban" | "kanban-etapa" | "lista") => void;
   onClearFilters: () => void;
 }
 
@@ -74,8 +74,20 @@ export function ProjetoFilters({
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Columns3 className="h-3.5 w-3.5" />
-            Funil
+            <Users className="h-3.5 w-3.5" />
+            Responsável
+          </button>
+          <button
+            onClick={() => onViewModeChange("kanban-etapa")}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all",
+              viewMode === "kanban-etapa"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            Etapas
           </button>
           <button
             onClick={() => onViewModeChange("lista")}

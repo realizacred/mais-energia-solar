@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Phone, Loader2, Users, Type, Wifi } from "lucide-react";
+import { Phone, Loader2, Users, Type, Wifi, Search, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -66,6 +66,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
   const [similares, setSimilares] = useState<{ id: string; nome: string; telefone: string; email: string | null }[]>([]);
   const [buscando, setBuscando] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [buscandoCep, setBuscandoCep] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateCliente = useCallback((field: string, value: string) => {
@@ -94,6 +95,35 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [cliente.nome]);
+
+  // ViaCEP auto-fill
+  const buscarCep = useCallback(async (cepRaw: string) => {
+    const digits = cepRaw.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setBuscandoCep(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (!data.erro) {
+        setCliente(prev => ({
+          ...prev,
+          estado: data.uf || prev.estado,
+          cidade: data.localidade || prev.cidade,
+          bairro: data.bairro || prev.bairro,
+          endereco: data.logradouro || prev.endereco,
+          complemento: data.complemento || prev.complemento,
+        }));
+      }
+    } catch {}
+    finally { setBuscandoCep(false); }
+  }, []);
+
+  const handleCepChange = useCallback((raw: string) => {
+    let v = raw.replace(/\D/g, "").slice(0, 8);
+    if (v.length > 5) v = `${v.slice(0,5)}-${v.slice(5)}`;
+    updateCliente("cep", v);
+    if (v.replace(/\D/g, "").length === 8) buscarCep(v);
+  }, [updateCliente, buscarCep]);
 
   const handleSubmit = async () => {
     const newErrors: Record<string, boolean> = {};
@@ -162,9 +192,8 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
                   ))}
                 </SelectContent>
               </Select>
-              {/* Vendor bars indicator */}
               <div className="flex gap-1 pt-1">
-                {consultores.slice(0, 6).map((c, i) => (
+                {consultores.slice(0, 6).map((c) => (
                   <div
                     key={c.id}
                     className={cn(
@@ -244,7 +273,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
             <Field label="CNPJ/CPF">
               <Input
-                placeholder=""
+                placeholder="000.000.000-00"
                 value={cliente.cpfCnpj}
                 onChange={e => updateCliente("cpfCnpj", e.target.value)}
                 className="h-10 text-sm border-border/60"
@@ -256,7 +285,6 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
                 placeholder="(00) 00000-0000"
                 value={cliente.telefone}
                 onChange={e => {
-                  // Phone mask
                   let v = e.target.value.replace(/\D/g, "").slice(0, 11);
                   if (v.length > 6) v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
                   else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
@@ -270,20 +298,23 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
             </Field>
 
             <Separator className="my-3 opacity-40" />
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Endereço</h4>
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+              <MapPin className="h-3.5 w-3.5" /> Endereço
+            </h4>
 
             <div className="grid grid-cols-2 gap-3">
               <Field label="CEP">
-                <Input
-                  placeholder="00000-000"
-                  value={cliente.cep}
-                  onChange={e => {
-                    let v = e.target.value.replace(/\D/g, "").slice(0, 8);
-                    if (v.length > 5) v = `${v.slice(0,5)}-${v.slice(5)}`;
-                    updateCliente("cep", v);
-                  }}
-                  className="h-9 text-sm border-border/60"
-                />
+                <div className="relative">
+                  <Input
+                    placeholder="00000-000"
+                    value={cliente.cep}
+                    onChange={e => handleCepChange(e.target.value)}
+                    className="h-9 text-sm border-border/60 pr-8"
+                  />
+                  {buscandoCep && (
+                    <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
               </Field>
               <Field label="Estado">
                 <Input
@@ -387,10 +418,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
               </div>
             ) : (
               <p className="mt-4 text-sm text-muted-foreground">
-                {cliente.nome.trim().length >= 2
-                  ? "Nenhum cliente similar"
-                  : "Nenhum cliente similar"
-                }
+                Nenhum cliente similar
               </p>
             )}
           </div>
