@@ -1,4 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  ENGINE_VERSION, calcSeries25, calcCenario, calcHash,
+  evaluateExpression, round2,
+  type CalcInputs, type CenarioInput, type FioBStep,
+} from "../_shared/calc-engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -92,6 +97,7 @@ interface PagamentoPayload {
   carencia_meses: number;
   num_parcelas: number;
   valor_parcela: number;
+  financiador_id?: string;
 }
 
 interface GenerateRequestV2 {
@@ -109,128 +115,7 @@ interface GenerateRequestV2 {
   pagamento_opcoes: PagamentoPayload[];
   observacoes?: string;
   idempotency_key: string;
-  variaveis_custom?: boolean; // if true, evaluate tenant vc_* variables
-}
-
-// ─── 25-Year Series Calculator ──────────────────────────────
-
-interface SeriesRow {
-  ano: number;
-  geracao_kwh: number;
-  economia_bruta: number;
-  custo_fio_b: number;
-  economia_liquida: number;
-  economia_acumulada: number;
-  custo_extra: number; // inverter replacement
-  fluxo_caixa: number;
-  fluxo_caixa_acumulado: number;
-  vpl_parcial: number;
-}
-
-function calcSeries25(params: {
-  investimentoTotal: number;
-  economiaMensalAno1: number;
-  inflacaoEnergetica: number;
-  perdaEficienciaAnual: number;
-  trocaInversorAnos: number;
-  trocaInversorCustoPct: number;
-  vplTaxaDesconto: number;
-}): { series: SeriesRow[]; paybackAnos: number; vpl: number; tir: number } {
-  const {
-    investimentoTotal, economiaMensalAno1, inflacaoEnergetica,
-    perdaEficienciaAnual, trocaInversorAnos, trocaInversorCustoPct,
-    vplTaxaDesconto,
-  } = params;
-
-  const series: SeriesRow[] = [];
-  let acumulado = 0;
-  let fluxoAcumulado = -investimentoTotal;
-  let vplTotal = -investimentoTotal;
-  let paybackAnos = 0;
-  const taxaDesc = vplTaxaDesconto / 100;
-
-  for (let ano = 1; ano <= 25; ano++) {
-    const degradacao = Math.pow(1 - perdaEficienciaAnual / 100, ano - 1);
-    const inflacao = Math.pow(1 + inflacaoEnergetica / 100, ano - 1);
-    const economiaAnual = economiaMensalAno1 * 12 * degradacao * inflacao;
-    
-    let custoExtra = 0;
-    if (trocaInversorAnos > 0 && ano === trocaInversorAnos) {
-      custoExtra = investimentoTotal * (trocaInversorCustoPct / 100);
-    }
-
-    const fluxo = economiaAnual - custoExtra;
-    acumulado += economiaAnual;
-    fluxoAcumulado += fluxo;
-    
-    const vplParcial = fluxo / Math.pow(1 + taxaDesc, ano);
-    vplTotal += vplParcial;
-
-    if (paybackAnos === 0 && fluxoAcumulado >= 0) {
-      paybackAnos = ano;
-    }
-
-    series.push({
-      ano,
-      geracao_kwh: 0, // filled by caller if needed
-      economia_bruta: round2(economiaAnual),
-      custo_fio_b: 0,
-      economia_liquida: round2(economiaAnual),
-      economia_acumulada: round2(acumulado),
-      custo_extra: round2(custoExtra),
-      fluxo_caixa: round2(fluxo),
-      fluxo_caixa_acumulado: round2(fluxoAcumulado),
-      vpl_parcial: round2(vplParcial),
-    });
-  }
-
-  // Simple TIR approximation via bisection
-  const tir = calcTIR(investimentoTotal, series.map(s => s.fluxo_caixa + (s.ano === 1 ? 0 : 0)));
-
-  return { series, paybackAnos, vpl: round2(vplTotal), tir: round2(tir) };
-}
-
-function calcTIR(investimento: number, fluxos: number[]): number {
-  let lo = -0.5, hi = 5.0;
-  for (let iter = 0; iter < 100; iter++) {
-    const mid = (lo + hi) / 2;
-    let npv = -investimento;
-    for (let i = 0; i < fluxos.length; i++) {
-      npv += fluxos[i] / Math.pow(1 + mid, i + 1);
-    }
-    if (Math.abs(npv) < 0.01) return mid * 100;
-    if (npv > 0) lo = mid; else hi = mid;
-  }
-  return ((lo + hi) / 2) * 100;
-}
-
-function round2(v: number): number {
-  return Math.round(v * 100) / 100;
-}
-
-// ─── Safe Expression Evaluator (mirrors src/lib/expressionEngine.ts) ─────
-function evaluateExpression(expr: string, ctx: Record<string, number>): number | null {
-  try {
-    if (!expr || expr.trim() === "") return null;
-    // Replace [var] with values
-    let resolved = expr;
-    const matches = expr.match(/\[([^\]]+)\]/g);
-    if (matches) {
-      for (const m of matches) {
-        const name = m.slice(1, -1).trim();
-        const val = ctx[name] ?? 0;
-        resolved = resolved.replace(m, String(val));
-      }
-    }
-    // Only allow: digits, dots, operators, parens, spaces, minus
-    if (/[^0-9.+\-*/() \t]/.test(resolved)) return null;
-    // Use Function for safe math-only evaluation
-    const fn = new Function(`"use strict"; return (${resolved});`);
-    const result = fn();
-    return typeof result === "number" && isFinite(result) ? Math.round(result * 10000) / 10000 : null;
-  } catch {
-    return null;
-  }
+  variaveis_custom?: boolean;
 }
 
 // ─── Main Handler ───────────────────────────────────────────
@@ -251,54 +136,36 @@ Deno.serve(async (req) => {
     }
 
     const callerClient = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
+      supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!,
       { global: { headers: { Authorization: authHeader } } }
     );
 
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) {
-      return jsonError("Token inválido", 401);
-    }
+    if (claimsErr || !claimsData?.claims) return jsonError("Token inválido", 401);
     const userId = claimsData.claims.sub as string;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Resolve tenant
-    const { data: profile } = await adminClient
-      .from("profiles")
-      .select("tenant_id, ativo")
-      .eq("user_id", userId)
-      .single();
+    // Resolve tenant + permissions (parallel)
+    const [profileRes, rolesRes] = await Promise.all([
+      adminClient.from("profiles").select("tenant_id, ativo").eq("user_id", userId).single(),
+      adminClient.from("user_roles").select("role").eq("user_id", userId),
+    ]);
 
-    if (!profile?.tenant_id || !profile.ativo) {
+    if (!profileRes.data?.tenant_id || !profileRes.data.ativo) {
       return jsonError("Usuário inativo ou sem tenant", 403);
     }
-    const tenantId = profile.tenant_id;
-
-    // Verificar tenant ativo
-    const { data: tenant } = await adminClient
-      .from("tenants")
-      .select("id, status, nome, estado")
-      .eq("id", tenantId)
-      .single();
-
-    if (!tenant || tenant.status !== "active") {
-      return jsonError("Tenant suspenso ou inativo", 403);
-    }
-
-    // Verificar permissão
-    const { data: roles } = await adminClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+    const tenantId = profileRes.data.tenant_id;
 
     const allowedRoles = ["admin", "gerente", "financeiro", "consultor"];
-    const hasPermission = roles?.some((r: any) => allowedRoles.includes(r.role));
-    if (!hasPermission) {
-      return jsonError("Sem permissão para gerar propostas", 403);
-    }
+    const hasPermission = rolesRes.data?.some((r: any) => allowedRoles.includes(r.role));
+    if (!hasPermission) return jsonError("Sem permissão para gerar propostas", 403);
+
+    // Verify tenant active
+    const { data: tenant } = await adminClient
+      .from("tenants").select("id, status, nome, estado").eq("id", tenantId).single();
+    if (!tenant || tenant.status !== "active") return jsonError("Tenant suspenso ou inativo", 403);
 
     // ── 2. PARSE PAYLOAD ────────────────────────────────────
     const body: GenerateRequestV2 = await req.json();
@@ -306,17 +173,13 @@ Deno.serve(async (req) => {
     if (!body.lead_id || !body.grupo || !body.ucs?.length || !body.itens?.length) {
       return jsonError("Campos obrigatórios: lead_id, grupo, ucs, itens", 400);
     }
-    if (!body.idempotency_key) {
-      return jsonError("idempotency_key é obrigatório", 400);
-    }
-    if (!["A", "B"].includes(body.grupo)) {
-      return jsonError("grupo deve ser A ou B", 400);
-    }
+    if (!body.idempotency_key) return jsonError("idempotency_key é obrigatório", 400);
+    if (!["A", "B"].includes(body.grupo)) return jsonError("grupo deve ser A ou B", 400);
 
     // ── 3. IDEMPOTÊNCIA ─────────────────────────────────────
     const { data: existingVersion } = await adminClient
       .from("proposta_versoes")
-      .select("id, proposta_id, versao_numero, valor_total, payback_meses, economia_mensal")
+      .select("id, proposta_id, versao_numero, valor_total, payback_meses, economia_mensal, calc_hash, engine_version")
       .eq("tenant_id", tenantId)
       .eq("idempotency_key", body.idempotency_key)
       .maybeSingle();
@@ -330,76 +193,73 @@ Deno.serve(async (req) => {
         valor_total: existingVersion.valor_total,
         payback_meses: existingVersion.payback_meses,
         economia_mensal: existingVersion.economia_mensal,
+        engine_version: existingVersion.engine_version,
       });
     }
 
-    // ── 4. DADOS AUXILIARES ─────────────────────────────────
+    // ── 4. DADOS AUXILIARES (parallel) ──────────────────────
     const uc1 = body.ucs[0];
     const estado = uc1.estado;
     const anoAtual = new Date().getFullYear();
 
-    // Load tenant default premissas (fallback to payload or hardcoded)
+    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes] = await Promise.all([
+      adminClient.from("fio_b_escalonamento")
+        .select("ano, percentual_nao_compensado")
+        .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
+        .order("ano", { ascending: true }),
+      adminClient.from("config_tributaria_estado")
+        .select("aliquota_icms, possui_isencao_scee, percentual_isencao")
+        .eq("estado", estado).maybeSingle(),
+      adminClient.from("irradiacao_por_estado")
+        .select("geracao_media_kwp_mes")
+        .eq("estado", estado)
+        .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
+        .order("tenant_id", { ascending: false, nullsFirst: false })
+        .limit(1).maybeSingle(),
+      adminClient.from("premissas_default_tenant")
+        .select("inflacao_energetica, inflacao_ipca, taxa_desconto_vpl, perda_eficiencia_anual, sobredimensionamento, troca_inversor_ano, troca_inversor_custo_percentual")
+        .eq("tenant_id", tenantId).maybeSingle(),
+      adminClient.from("consultores")
+        .select("id").eq("user_id", userId).eq("tenant_id", tenantId).eq("ativo", true).maybeSingle(),
+    ]);
+
+    const consultorId = consultorRes.data?.id ?? null;
+    const geracaoMediaKwpMes = irradiacaoRes.data?.geracao_media_kwp_mes ?? 120;
+
+    // Build Fio B escalation steps
+    const fioBSteps: FioBStep[] = (fioBRes.data ?? []).map((r: any) => ({
+      ano: r.ano,
+      percentual: r.percentual_nao_compensado,
+    }));
+    const fioBCurrentYear = fioBSteps.find(s => s.ano === anoAtual);
+    const percentualFioB = fioBCurrentYear?.percentual ?? 0;
+
+    // Resolve premissas (payload > tenant defaults > hardcoded)
     let premissas = body.premissas;
     if (!premissas || Object.keys(premissas).length === 0) {
-      const { data: defaults } = await adminClient
-        .from("premissas_default_tenant")
-        .select("inflacao_energetica, inflacao_ipca, taxa_desconto_vpl, perda_eficiencia_anual, sobredimensionamento, troca_inversor_ano, troca_inversor_custo_percentual")
-        .eq("tenant_id", tenantId)
-        .maybeSingle();
-
-      if (defaults) {
-        premissas = {
-          imposto: 0,
-          inflacao_energetica: defaults.inflacao_energetica ?? 6.5,
-          inflacao_ipca: defaults.inflacao_ipca ?? 4.5,
-          perda_eficiencia_anual: defaults.perda_eficiencia_anual ?? 0.5,
-          sobredimensionamento: defaults.sobredimensionamento ?? 0,
-          troca_inversor_anos: defaults.troca_inversor_ano ?? 15,
-          troca_inversor_custo: defaults.troca_inversor_custo_percentual ?? 30,
-          vpl_taxa_desconto: defaults.taxa_desconto_vpl ?? 10,
-        };
-      } else {
-        premissas = {
-          imposto: 0, inflacao_energetica: 6.5, inflacao_ipca: 4.5,
-          perda_eficiencia_anual: 0.5, sobredimensionamento: 0,
-          troca_inversor_anos: 15, troca_inversor_custo: 30, vpl_taxa_desconto: 10,
-        };
-      }
+      const d = defaultPremissasRes.data;
+      premissas = d ? {
+        imposto: 0,
+        inflacao_energetica: d.inflacao_energetica ?? 6.5,
+        inflacao_ipca: d.inflacao_ipca ?? 4.5,
+        perda_eficiencia_anual: d.perda_eficiencia_anual ?? 0.5,
+        sobredimensionamento: d.sobredimensionamento ?? 0,
+        troca_inversor_anos: d.troca_inversor_ano ?? 15,
+        troca_inversor_custo: d.troca_inversor_custo_percentual ?? 30,
+        vpl_taxa_desconto: d.taxa_desconto_vpl ?? 10,
+      } : {
+        imposto: 0, inflacao_energetica: 6.5, inflacao_ipca: 4.5,
+        perda_eficiencia_anual: 0.5, sobredimensionamento: 0,
+        troca_inversor_anos: 15, troca_inversor_custo: 30, vpl_taxa_desconto: 10,
+      };
     }
 
-    // Fio B
-    const { data: fioBRows } = await adminClient
-      .from("fio_b_escalonamento")
-      .select("ano, percentual_nao_compensado, tenant_id")
-      .eq("ano", anoAtual)
-      .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
-      .order("tenant_id", { ascending: false, nullsFirst: false })
-      .limit(1);
-    const percentualFioB = fioBRows?.[0]?.percentual_nao_compensado ?? 0;
+    const tributacao = tributacaoRes.data;
 
-    // Tributação
-    const { data: tributacao } = await adminClient
-      .from("config_tributaria_estado")
-      .select("aliquota_icms, possui_isencao_scee, percentual_isencao")
-      .eq("estado", estado)
-      .maybeSingle();
-
-    // Irradiação
-    const { data: irradiacao } = await adminClient
-      .from("irradiacao_por_estado")
-      .select("geracao_media_kwp_mes")
-      .eq("estado", estado)
-      .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
-      .order("tenant_id", { ascending: false, nullsFirst: false })
-      .limit(1)
-      .maybeSingle();
-    const geracaoMediaKwpMes = irradiacao?.geracao_media_kwp_mes ?? 120;
-
-    // ── 5. CÁLCULO ──────────────────────────────────────────
+    // ── 5. CÁLCULO via shared engine ────────────────────────
     const potenciaKwp = body.potencia_kwp;
     const consumoTotal = body.ucs.reduce((s, uc) => {
-      if (uc.tipo_dimensionamento === "MT") return s + uc.consumo_mensal_p + uc.consumo_mensal_fp;
-      return s + uc.consumo_mensal;
+      return s + (uc.tipo_dimensionamento === "MT" ? uc.consumo_mensal_p + uc.consumo_mensal_fp : uc.consumo_mensal);
     }, 0);
 
     const geracaoEstimada = potenciaKwp * geracaoMediaKwpMes;
@@ -421,87 +281,94 @@ Deno.serve(async (req) => {
     const descontoValor = precoComMargem * (venda.desconto_percentual / 100);
     const valorTotal = round2(precoComMargem - descontoValor);
 
-    // 25-year series
-    const { series, paybackAnos, vpl, tir } = calcSeries25({
+    // Build calc inputs
+    const calcInputs: CalcInputs = {
       investimentoTotal: valorTotal,
       economiaMensalAno1: economiaMensal,
+      geracaoMensalKwh: geracaoEstimada,
+      tarifaMedia,
       inflacaoEnergetica: premissas.inflacao_energetica,
       perdaEficienciaAnual: premissas.perda_eficiencia_anual,
       trocaInversorAnos: premissas.troca_inversor_anos,
       trocaInversorCustoPct: premissas.troca_inversor_custo,
       vplTaxaDesconto: premissas.vpl_taxa_desconto,
-    });
+      fioB: {
+        anoBase: anoAtual,
+        percentualBase: percentualFioB,
+        escalonamento: fioBSteps,
+      },
+    };
 
-    const paybackMeses = economiaMensal > 0 ? Math.ceil(valorTotal / economiaMensal) : 0;
+    // 25-year series via shared engine
+    const calcResult = calcSeries25(calcInputs);
 
-    // ── 5b. CUSTOM VARIABLES (vc_*) ─────────────────────────
+    // Calc hash for deterministic auditing
+    const hashInput = {
+      grupo: body.grupo, potencia_kwp: potenciaKwp, ucs: body.ucs,
+      premissas, itens: body.itens, servicos: body.servicos, venda,
+      pagamento_opcoes: body.pagamento_opcoes, fioB: fioBSteps,
+      irradiacao: geracaoMediaKwpMes,
+    };
+    const hash = await calcHash(hashInput);
+
+    // ── 5b. CENÁRIOS (one per payment option) ───────────────
+    const cenarioInputs: CenarioInput[] = (body.pagamento_opcoes ?? []).map(p => ({
+      nome: p.nome,
+      tipo: p.tipo,
+      investimento: valorTotal,
+      entrada: p.entrada,
+      taxaMensal: p.taxa_mensal,
+      numParcelas: p.num_parcelas,
+      valorParcela: p.valor_parcela,
+      financiadorId: p.financiador_id,
+    }));
+    const cenarioResults = cenarioInputs.map(ci => calcCenario(calcInputs, ci));
+
+    // ── 5c. CUSTOM VARIABLES (vc_*) ─────────────────────────
     let vcResults: Array<{ variavel_id: string; nome: string; label: string; expressao: string; valor_calculado: string | null }> = [];
 
     if (body.variaveis_custom !== false) {
       const { data: vcDefs } = await adminClient
         .from("proposta_variaveis_custom")
         .select("id, nome, label, expressao, tipo_resultado")
-        .eq("tenant_id", tenantId)
-        .eq("ativo", true)
-        .order("ordem");
+        .eq("tenant_id", tenantId).eq("ativo", true).order("ordem");
 
       if (vcDefs && vcDefs.length > 0) {
-        const numModulos = body.itens.filter((it: any) => it.categoria === "modulo").reduce((s: number, it: any) => s + it.quantidade, 0);
+        const numModulos = body.itens.filter(it => it.categoria === "modulo").reduce((s, it) => s + it.quantidade, 0);
         const ctx: Record<string, number> = {
           valor_total: valorTotal,
           economia_mensal: round2(economiaMensal),
           economia_anual: round2(economiaMensal * 12),
-          payback_meses: paybackMeses,
-          payback_anos: paybackAnos,
+          payback_meses: calcResult.paybackMeses,
+          payback_anos: calcResult.paybackAnos,
           potencia_kwp: potenciaKwp,
           consumo_total: consumoTotal,
           geracao_estimada: round2(geracaoEstimada),
           custo_kit: round2(custoKit),
           margem_percentual: venda.margem_percentual,
           desconto_percentual: venda.desconto_percentual,
-          vpl,
-          tir,
-          roi_25_anos: round2(economiaMensal * 12 * 25),
+          vpl: calcResult.vpl,
+          tir: calcResult.tir,
+          roi_25_anos: calcResult.roi25Anos,
           num_modulos: numModulos,
           num_ucs: body.ucs.length,
         };
 
         for (const vc of vcDefs) {
-          try {
-            const val = evaluateExpression(vc.expressao, ctx);
-            vcResults.push({
-              variavel_id: vc.id,
-              nome: vc.nome,
-              label: vc.label,
-              expressao: vc.expressao,
-              valor_calculado: val !== null ? String(val) : null,
-            });
-          } catch {
-            vcResults.push({
-              variavel_id: vc.id,
-              nome: vc.nome,
-              label: vc.label,
-              expressao: vc.expressao,
-              valor_calculado: null,
-            });
-          }
+          const val = evaluateExpression(vc.expressao, ctx);
+          vcResults.push({
+            variavel_id: vc.id, nome: vc.nome, label: vc.label,
+            expressao: vc.expressao, valor_calculado: val !== null ? String(val) : null,
+          });
         }
       }
     }
 
-    // Resolver consultor_id
-    const { data: consultor } = await adminClient
-      .from("consultores")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("tenant_id", tenantId)
-      .eq("ativo", true)
-      .maybeSingle();
-    const consultorId = consultor?.id ?? null;
-
     // ── 6. SNAPSHOT IMUTÁVEL ────────────────────────────────
     const snapshot = {
-      versao_schema: 2,
+      versao_schema: 3,
+      engine_version: ENGINE_VERSION,
+      calc_hash: hash,
       gerado_em: new Date().toISOString(),
       grupo: body.grupo,
       regra_lei_14300: {
@@ -509,7 +376,8 @@ Deno.serve(async (req) => {
         fio_b_ano: anoAtual,
         percentual_fio_b: fioBAplicavel,
         percentual_nao_compensado: percentualFioB,
-        fonte: fioBRows?.[0] ? "fio_b_escalonamento" : "fallback_zero",
+        escalonamento: fioBSteps,
+        fonte: fioBRes.data?.length ? "fio_b_escalonamento" : "fallback_zero",
       },
       tributacao: {
         estado,
@@ -542,22 +410,23 @@ Deno.serve(async (req) => {
         desconto_valor: round2(descontoValor),
         valor_total: valorTotal,
         economia_mensal: round2(economiaMensal),
-        economia_anual: round2(economiaMensal * 12),
-        payback_meses: paybackMeses,
-        payback_anos: paybackAnos,
-        vpl,
-        tir,
-        roi_25_anos: round2(economiaMensal * 12 * 25),
+        economia_anual: calcResult.economiaPrimeiroAno,
+        payback_meses: calcResult.paybackMeses,
+        payback_anos: calcResult.paybackAnos,
+        vpl: calcResult.vpl,
+        tir: calcResult.tir,
+        roi_25_anos: calcResult.roi25Anos,
       },
       pagamento_opcoes: body.pagamento_opcoes ?? [],
+      cenarios: cenarioResults.map(c => ({
+        nome: c.nome, tipo: c.tipo, preco_final: c.precoFinal,
+        payback_meses: c.paybackMeses, tir: c.tir, cet_anual: c.cetAnual,
+      })),
       variaveis_custom: vcResults.length > 0 ? vcResults : undefined,
       inputs: {
-        lead_id: body.lead_id,
-        projeto_id: body.projeto_id ?? null,
-        cliente_id: body.cliente_id ?? null,
-        template_id: body.template_id ?? null,
-        consultor_id: consultorId,
-        user_id: userId,
+        lead_id: body.lead_id, projeto_id: body.projeto_id ?? null,
+        cliente_id: body.cliente_id ?? null, template_id: body.template_id ?? null,
+        consultor_id: consultorId, user_id: userId,
       },
     };
 
@@ -568,100 +437,72 @@ Deno.serve(async (req) => {
     if (body.projeto_id) matchFilter.projeto_id = body.projeto_id;
 
     const { data: existingProposta } = await adminClient
-      .from("propostas_nativas")
-      .select("id")
-      .match(matchFilter)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .from("propostas_nativas").select("id").match(matchFilter)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
 
     if (existingProposta) {
       propostaId = existingProposta.id;
     } else {
       const { data: lead } = await adminClient
-        .from("leads")
-        .select("nome, lead_code")
-        .eq("id", body.lead_id)
-        .eq("tenant_id", tenantId)
-        .single();
-
-      if (!lead) {
-        return jsonError("Lead não encontrado neste tenant", 404);
-      }
+        .from("leads").select("nome, lead_code")
+        .eq("id", body.lead_id).eq("tenant_id", tenantId).single();
+      if (!lead) return jsonError("Lead não encontrado neste tenant", 404);
 
       const titulo = `Proposta ${lead.lead_code ?? ""} - ${lead.nome}`.trim();
       const { data: novaProposta, error: insertErr } = await adminClient
         .from("propostas_nativas")
         .insert({
-          tenant_id: tenantId,
-          lead_id: body.lead_id,
-          projeto_id: body.projeto_id ?? null,
-          cliente_id: body.cliente_id ?? null,
-          consultor_id: consultorId,
-          template_id: body.template_id ?? null,
-          titulo,
-          codigo: lead.lead_code ? `PROP-${lead.lead_code}` : null,
-          versao_atual: 0,
-          created_by: userId,
+          tenant_id: tenantId, lead_id: body.lead_id,
+          projeto_id: body.projeto_id ?? null, cliente_id: body.cliente_id ?? null,
+          consultor_id: consultorId, template_id: body.template_id ?? null,
+          titulo, codigo: lead.lead_code ? `PROP-${lead.lead_code}` : null,
+          versao_atual: 0, created_by: userId,
         })
-        .select("id")
-        .single();
-
-      if (insertErr || !novaProposta) {
-        return jsonError(`Erro ao criar proposta: ${insertErr?.message}`, 500);
-      }
+        .select("id").single();
+      if (insertErr || !novaProposta) return jsonError(`Erro ao criar proposta: ${insertErr?.message}`, 500);
       propostaId = novaProposta.id;
     }
 
     // ── 8. VERSÃO ATÔMICA via RPC ───────────────────────────
     const { data: versaoNumero, error: rpcErr } = await adminClient.rpc(
-      "next_proposta_versao_numero",
-      { _proposta_id: propostaId }
+      "next_proposta_versao_numero", { _proposta_id: propostaId }
     );
-
-    if (rpcErr || !versaoNumero) {
-      return jsonError(`Erro ao gerar número de versão: ${rpcErr?.message}`, 500);
-    }
+    if (rpcErr || !versaoNumero) return jsonError(`Erro ao gerar número de versão: ${rpcErr?.message}`, 500);
 
     // ── 9. INSERIR proposta_versoes ─────────────────────────
     const { data: versao, error: versaoErr } = await adminClient
       .from("proposta_versoes")
       .insert({
-        tenant_id: tenantId,
-        proposta_id: propostaId,
-        versao_numero: versaoNumero,
-        status: "generated",
-        grupo: body.grupo,
-        potencia_kwp: potenciaKwp,
+        tenant_id: tenantId, proposta_id: propostaId,
+        versao_numero: versaoNumero, status: "generated",
+        grupo: body.grupo, potencia_kwp: potenciaKwp,
         valor_total: valorTotal,
         economia_mensal: round2(economiaMensal),
-        payback_meses: paybackMeses,
+        payback_meses: calcResult.paybackMeses,
         validade_dias: 30,
         valido_ate: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
-        snapshot,
-        snapshot_locked: true,
+        snapshot, snapshot_locked: true,
         idempotency_key: body.idempotency_key,
         observacoes: body.observacoes ?? null,
         gerado_por: userId,
         gerado_em: new Date().toISOString(),
+        calc_hash: hash,
+        engine_version: ENGINE_VERSION,
       })
       .select("id, versao_numero, valor_total, payback_meses, economia_mensal")
       .single();
 
     if (versaoErr) {
       if (versaoErr.code === "23505") {
-        const { data: dup } = await adminClient
-          .from("proposta_versoes")
+        const { data: dup } = await adminClient.from("proposta_versoes")
           .select("id, proposta_id, versao_numero, valor_total, payback_meses, economia_mensal")
-          .eq("tenant_id", tenantId)
-          .eq("idempotency_key", body.idempotency_key)
-          .single();
+          .eq("tenant_id", tenantId).eq("idempotency_key", body.idempotency_key).single();
         if (dup) {
           return jsonOk({
-            success: true, idempotent: true,
-            proposta_id: dup.proposta_id, versao_id: dup.id,
-            versao_numero: dup.versao_numero, valor_total: dup.valor_total,
-            payback_meses: dup.payback_meses, economia_mensal: dup.economia_mensal,
+            success: true, idempotent: true, proposta_id: dup.proposta_id,
+            versao_id: dup.id, versao_numero: dup.versao_numero,
+            valor_total: dup.valor_total, payback_meses: dup.payback_meses,
+            economia_mensal: dup.economia_mensal,
           });
         }
       }
@@ -670,211 +511,235 @@ Deno.serve(async (req) => {
 
     const versaoId = versao!.id;
 
-    // ── 9b. ATUALIZAR STATUS DA PROPOSTA ────────────────────
-    await adminClient
-      .from("propostas_nativas")
+    // ── 10. GRANULAR PERSISTENCE (critical path) ────────────
+    await adminClient.from("propostas_nativas")
       .update({ status: "gerada", versao_atual: versao!.versao_numero })
-      .eq("id", propostaId)
-      .eq("tenant_id", tenantId);
-    // Fire-and-forget: non-critical, snapshot is the source of truth
-    try {
-      const granularOps = [];
+      .eq("id", propostaId).eq("tenant_id", tenantId);
 
-      // UCs
-      if (body.ucs.length > 0) {
-        granularOps.push(
-          adminClient.from("proposta_ucs").insert(
-            body.ucs.map((uc, i) => ({
-              tenant_id: tenantId,
-              versao_id: versaoId,
-              uc_index: i + 1,
-              nome: uc.nome,
-              tipo_dimensionamento: uc.tipo_dimensionamento,
-              distribuidora: uc.distribuidora,
-              distribuidora_id: uc.distribuidora_id || null,
-              subgrupo: uc.subgrupo,
-              estado: uc.estado,
-              cidade: uc.cidade,
-              fase: uc.fase,
-              tensao_rede: uc.tensao_rede,
-              consumo_mensal: uc.consumo_mensal,
-              consumo_meses: uc.consumo_meses,
-              consumo_mensal_p: uc.consumo_mensal_p,
-              consumo_mensal_fp: uc.consumo_mensal_fp,
-              tarifa_distribuidora: uc.tarifa_distribuidora,
-              custo_disponibilidade_kwh: uc.custo_disponibilidade_kwh,
-              custo_disponibilidade_valor: uc.custo_disponibilidade_valor,
-              distancia_km: uc.distancia,
-              tipo_telhado: uc.tipo_telhado,
-              inclinacao: uc.inclinacao,
-              desvio_azimutal: uc.desvio_azimutal,
-              taxa_desempenho: uc.taxa_desempenho,
-              rateio_creditos: uc.rateio_creditos,
-              fator_simultaneidade: uc.fator_simultaneidade,
-            }))
-          )
-        );
-      }
+    const granularOps = [];
 
-      // Premissas
+    // UCs → proposta_versao_ucs (new granular table)
+    if (body.ucs.length > 0) {
       granularOps.push(
-        adminClient.from("proposta_premissas").insert({
-          tenant_id: tenantId,
-          versao_id: versaoId,
-          imposto: premissas.imposto,
-          inflacao_energetica: premissas.inflacao_energetica,
-          inflacao_ipca: premissas.inflacao_ipca,
-          perda_eficiencia_anual: premissas.perda_eficiencia_anual,
-          sobredimensionamento: premissas.sobredimensionamento,
-          troca_inversor_anos: premissas.troca_inversor_anos,
-          troca_inversor_custo_pct: premissas.troca_inversor_custo,
-          vpl_taxa_desconto: premissas.vpl_taxa_desconto,
-        })
+        adminClient.from("proposta_versao_ucs").insert(
+          body.ucs.map((uc, i) => ({
+            tenant_id: tenantId, versao_id: versaoId, ordem: i + 1,
+            nome: uc.nome, grupo: uc.subgrupo.startsWith("A") ? "A" : "B",
+            modalidade: uc.tipo_dimensionamento,
+            consumo_mensal_kwh: uc.tipo_dimensionamento === "MT"
+              ? uc.consumo_mensal_p + uc.consumo_mensal_fp
+              : uc.consumo_mensal,
+            consumo_ponta_kwh: uc.consumo_mensal_p || null,
+            consumo_fora_ponta_kwh: uc.consumo_mensal_fp || null,
+            tarifa_energia: uc.tarifa_distribuidora,
+            tipo_ligacao: uc.fase,
+            concessionaria_id: uc.distribuidora_id || null,
+            demanda_contratada_kw: uc.demanda_contratada || null,
+            aliquota_icms: tributacao?.aliquota_icms ?? null,
+          }))
+        )
       );
+    }
 
-      // Kit
+    // Also keep legacy proposta_ucs for backward compat
+    if (body.ucs.length > 0) {
       granularOps.push(
-        adminClient.from("proposta_kits").insert({
-          tenant_id: tenantId,
-          versao_id: versaoId,
-          tipo_kit: "customizado",
-          tipo_sistema: "on_grid",
-          topologia: "tradicional",
-          custo_total: round2(custoKit),
-        }).select("id").single().then(async ({ data: kit }) => {
-          if (kit && body.itens.length > 0) {
-            await adminClient.from("proposta_kit_itens").insert(
-              body.itens.map((it, i) => ({
-                tenant_id: tenantId,
-                kit_id: kit.id,
-                ordem: i + 1,
-                descricao: it.descricao,
-                fabricante: it.fabricante,
-                modelo: it.modelo,
-                potencia_w: it.potencia_w,
-                quantidade: it.quantidade,
-                preco_unitario: it.preco_unitario,
-                subtotal: round2(it.quantidade * it.preco_unitario),
-                categoria: it.categoria,
-                avulso: it.avulso,
-              }))
-            );
-          }
-        })
+        adminClient.from("proposta_ucs").insert(
+          body.ucs.map((uc, i) => ({
+            tenant_id: tenantId, versao_id: versaoId, uc_index: i + 1,
+            nome: uc.nome, tipo_dimensionamento: uc.tipo_dimensionamento,
+            distribuidora: uc.distribuidora, distribuidora_id: uc.distribuidora_id || null,
+            subgrupo: uc.subgrupo, estado: uc.estado, cidade: uc.cidade,
+            fase: uc.fase, tensao_rede: uc.tensao_rede,
+            consumo_mensal: uc.consumo_mensal, consumo_meses: uc.consumo_meses,
+            consumo_mensal_p: uc.consumo_mensal_p, consumo_mensal_fp: uc.consumo_mensal_fp,
+            tarifa_distribuidora: uc.tarifa_distribuidora,
+            custo_disponibilidade_kwh: uc.custo_disponibilidade_kwh,
+            custo_disponibilidade_valor: uc.custo_disponibilidade_valor,
+            distancia_km: uc.distancia, tipo_telhado: uc.tipo_telhado,
+            inclinacao: uc.inclinacao, desvio_azimutal: uc.desvio_azimutal,
+            taxa_desempenho: uc.taxa_desempenho, rateio_creditos: uc.rateio_creditos,
+            fator_simultaneidade: uc.fator_simultaneidade,
+          }))
+        )
       );
+    }
 
-      // Serviços
-      if (body.servicos.length > 0) {
-        granularOps.push(
-          adminClient.from("proposta_servicos").insert(
-            body.servicos.map((s, i) => ({
-              tenant_id: tenantId,
-              versao_id: versaoId,
-              ordem: i + 1,
-              descricao: s.descricao,
-              categoria: s.categoria,
-              valor: s.valor,
-              incluso_no_preco: s.incluso_no_preco,
+    // Premissas
+    granularOps.push(
+      adminClient.from("proposta_premissas").insert({
+        tenant_id: tenantId, versao_id: versaoId,
+        imposto: premissas.imposto, inflacao_energetica: premissas.inflacao_energetica,
+        inflacao_ipca: premissas.inflacao_ipca, perda_eficiencia_anual: premissas.perda_eficiencia_anual,
+        sobredimensionamento: premissas.sobredimensionamento,
+        troca_inversor_anos: premissas.troca_inversor_anos,
+        troca_inversor_custo_pct: premissas.troca_inversor_custo,
+        vpl_taxa_desconto: premissas.vpl_taxa_desconto,
+      })
+    );
+
+    // Kit + itens
+    granularOps.push(
+      adminClient.from("proposta_kits").insert({
+        tenant_id: tenantId, versao_id: versaoId,
+        tipo_kit: "customizado", tipo_sistema: "on_grid",
+        topologia: "tradicional", custo_total: round2(custoKit),
+      }).select("id").single().then(async ({ data: kit }) => {
+        if (kit && body.itens.length > 0) {
+          await adminClient.from("proposta_kit_itens").insert(
+            body.itens.map((it, i) => ({
+              tenant_id: tenantId, kit_id: kit.id, ordem: i + 1,
+              descricao: it.descricao, fabricante: it.fabricante, modelo: it.modelo,
+              potencia_w: it.potencia_w, quantidade: it.quantidade,
+              preco_unitario: it.preco_unitario,
+              subtotal: round2(it.quantidade * it.preco_unitario),
+              categoria: it.categoria, avulso: it.avulso,
             }))
-          )
-        );
-      }
+          );
+        }
+      })
+    );
 
-      // Venda
+    // Serviços → proposta_versao_servicos (new)
+    if (body.servicos.length > 0) {
       granularOps.push(
-        adminClient.from("proposta_venda").insert({
-          tenant_id: tenantId,
-          versao_id: versaoId,
-          custo_equipamentos: round2(custoKit),
-          custo_servicos: round2(custoServicosInclusos),
-          custo_comissao: round2(venda.custo_comissao),
-          custo_outros: round2(venda.custo_outros),
-          margem_percentual: venda.margem_percentual,
-          margem_valor: round2(margemValor),
-          desconto_percentual: venda.desconto_percentual,
-          desconto_valor: round2(descontoValor),
-          preco_final: valorTotal,
-          observacoes: venda.observacoes,
-        })
+        adminClient.from("proposta_versao_servicos").insert(
+          body.servicos.map((s, i) => ({
+            tenant_id: tenantId, versao_id: versaoId, ordem: i + 1,
+            descricao: s.descricao, tipo: s.categoria, valor: s.valor,
+            incluso: s.incluso_no_preco,
+          }))
+        )
       );
+      // Legacy
+      granularOps.push(
+        adminClient.from("proposta_servicos").insert(
+          body.servicos.map((s, i) => ({
+            tenant_id: tenantId, versao_id: versaoId, ordem: i + 1,
+            descricao: s.descricao, categoria: s.categoria, valor: s.valor,
+            incluso_no_preco: s.incluso_no_preco,
+          }))
+        )
+      );
+    }
 
-      // Pagamento opções
-      if (body.pagamento_opcoes?.length > 0) {
+    // Venda
+    granularOps.push(
+      adminClient.from("proposta_venda").insert({
+        tenant_id: tenantId, versao_id: versaoId,
+        custo_equipamentos: round2(custoKit), custo_servicos: round2(custoServicosInclusos),
+        custo_comissao: round2(venda.custo_comissao), custo_outros: round2(venda.custo_outros),
+        margem_percentual: venda.margem_percentual, margem_valor: round2(margemValor),
+        desconto_percentual: venda.desconto_percentual, desconto_valor: round2(descontoValor),
+        preco_final: valorTotal, observacoes: venda.observacoes,
+      })
+    );
+
+    // Cenários → proposta_cenarios
+    if (cenarioResults.length > 0) {
+      for (let i = 0; i < cenarioResults.length; i++) {
+        const cr = cenarioResults[i];
+        const pg = body.pagamento_opcoes[i];
         granularOps.push(
-          adminClient.from("proposta_pagamento_opcoes").insert(
-            body.pagamento_opcoes.map((p, i) => ({
-              tenant_id: tenantId,
-              versao_id: versaoId,
-              ordem: i + 1,
-              nome: p.nome,
-              tipo: p.tipo,
-              valor_financiado: p.valor_financiado,
-              entrada: p.entrada,
-              taxa_mensal: p.taxa_mensal,
-              carencia_meses: p.carencia_meses,
-              num_parcelas: p.num_parcelas,
-              valor_parcela: p.valor_parcela,
-            }))
-          )
+          adminClient.from("proposta_cenarios").insert({
+            tenant_id: tenantId, versao_id: versaoId, ordem: i + 1,
+            nome: cr.nome, tipo: cr.tipo, is_default: i === 0,
+            preco_final: cr.precoFinal, entrada_valor: cr.entrada,
+            entrada_percent: cr.precoFinal > 0 ? round2(cr.entrada / cr.precoFinal * 100) : 0,
+            taxa_juros_mensal: cr.taxaMensal,
+            taxa_juros_anual: cr.taxaMensal > 0 ? round2((Math.pow(1 + cr.taxaMensal / 100, 12) - 1) * 100) : 0,
+            cet_anual: cr.cetAnual,
+            num_parcelas: cr.numParcelas, valor_parcela: cr.valorParcela,
+            valor_financiado: pg.valor_financiado,
+            payback_meses: cr.paybackMeses, tir_anual: cr.tir,
+            roi_25_anos: cr.roi25Anos, economia_primeiro_ano: cr.economiaPrimeiroAno,
+            custo_equipamentos: round2(custoKit), custo_servicos: round2(custoServicosInclusos),
+            custo_total: valorTotal, margem_percent: venda.margem_percentual,
+            financiador_id: cr.financiadorId || null,
+          }).select("id").single().then(async ({ data: cenario }) => {
+            // Write series for this cenário
+            if (cenario && cr.series.length > 0) {
+              await adminClient.from("proposta_versao_series").insert(
+                cr.series.map(s => ({
+                  tenant_id: tenantId, versao_id: versaoId, cenario_id: cenario.id,
+                  ano: s.ano, geracao_kwh: s.geracao_kwh, tarifa_vigente: s.tarifa_vigente,
+                  degradacao_acumulada: s.degradacao_acumulada,
+                  economia_rs: s.economia_liquida, economia_acumulada_rs: s.economia_acumulada,
+                  fluxo_caixa: s.fluxo_caixa, fluxo_caixa_acumulado: s.fluxo_caixa_acumulado,
+                  // Financing parcels for this cenário
+                  parcela_financiamento: s.ano * 12 <= cr.numParcelas ? cr.valorParcela * 12 : 0,
+                }))
+              );
+            }
+          })
         );
       }
+    }
 
-      // Series 25 anos
-      if (series.length > 0) {
-        granularOps.push(
-          adminClient.from("proposta_series").insert(
-            series.map(s => ({
-              tenant_id: tenantId,
-              versao_id: versaoId,
-              ano: s.ano,
-              geracao_kwh: s.geracao_kwh,
-              economia_bruta: s.economia_bruta,
-              custo_fio_b: s.custo_fio_b,
-              economia_liquida: s.economia_liquida,
-              economia_acumulada: s.economia_acumulada,
-              fluxo_caixa: s.fluxo_caixa,
-              fluxo_caixa_acumulado: s.fluxo_caixa_acumulado,
-              vpl_parcial: s.vpl_parcial,
-            }))
-          )
-        );
-      }
+    // Also write base series (no cenário) to legacy table
+    if (calcResult.series.length > 0) {
+      granularOps.push(
+        adminClient.from("proposta_series").insert(
+          calcResult.series.map(s => ({
+            tenant_id: tenantId, versao_id: versaoId,
+            ano: s.ano, geracao_kwh: s.geracao_kwh,
+            economia_bruta: s.economia_bruta, custo_fio_b: s.custo_fio_b,
+            economia_liquida: s.economia_liquida, economia_acumulada: s.economia_acumulada,
+            fluxo_caixa: s.fluxo_caixa, fluxo_caixa_acumulado: s.fluxo_caixa_acumulado,
+            vpl_parcial: s.vpl_parcial,
+          }))
+        )
+      );
+    }
 
-      // Custom variables (vc_*)
-      if (vcResults.length > 0) {
-        granularOps.push(
-          adminClient.from("proposta_versao_variaveis").insert(
-            vcResults.map(vc => ({
-              tenant_id: tenantId,
-              versao_id: versaoId,
-              variavel_id: vc.variavel_id,
-              nome: vc.nome,
-              label: vc.label,
-              expressao: vc.expressao,
-              valor_calculado: vc.valor_calculado,
-            }))
-          )
-        );
-      }
+    // Legacy pagamento opcoes
+    if (body.pagamento_opcoes?.length > 0) {
+      granularOps.push(
+        adminClient.from("proposta_pagamento_opcoes").insert(
+          body.pagamento_opcoes.map((p, i) => ({
+            tenant_id: tenantId, versao_id: versaoId, ordem: i + 1,
+            nome: p.nome, tipo: p.tipo, valor_financiado: p.valor_financiado,
+            entrada: p.entrada, taxa_mensal: p.taxa_mensal,
+            carencia_meses: p.carencia_meses, num_parcelas: p.num_parcelas,
+            valor_parcela: p.valor_parcela,
+          }))
+        )
+      );
+    }
 
-      await Promise.allSettled(granularOps);
-    } catch (granularErr) {
-      // Log but don't fail — snapshot is the source of truth
-      console.warn("[proposal-generate] Granular persistence partial failure:", granularErr);
+    // Custom variables
+    if (vcResults.length > 0) {
+      granularOps.push(
+        adminClient.from("proposta_versao_variaveis").insert(
+          vcResults.map(vc => ({
+            tenant_id: tenantId, versao_id: versaoId,
+            variavel_id: vc.variavel_id, nome: vc.nome, label: vc.label,
+            expressao: vc.expressao, valor_calculado: vc.valor_calculado,
+          }))
+        )
+      );
+    }
+
+    // Execute all granular writes
+    const granularResults = await Promise.allSettled(granularOps);
+    const failures = granularResults.filter(r => r.status === "rejected");
+    if (failures.length > 0) {
+      console.warn(`[proposal-generate] ${failures.length}/${granularResults.length} granular ops failed:`,
+        failures.map(f => (f as PromiseRejectedResult).reason));
     }
 
     return jsonOk({
-      success: true,
-      idempotent: false,
-      proposta_id: propostaId,
-      versao_id: versaoId,
+      success: true, idempotent: false,
+      proposta_id: propostaId, versao_id: versaoId,
       versao_numero: versao!.versao_numero,
       valor_total: versao!.valor_total,
       payback_meses: versao!.payback_meses,
       economia_mensal: versao!.economia_mensal,
-      vpl,
-      tir,
-      payback_anos: paybackAnos,
+      vpl: calcResult.vpl, tir: calcResult.tir,
+      payback_anos: calcResult.paybackAnos,
+      engine_version: ENGINE_VERSION,
+      calc_hash: hash,
+      cenarios_count: cenarioResults.length,
     });
   } catch (err) {
     console.error("[proposal-generate] Error:", err);
@@ -890,7 +755,6 @@ function jsonOk(data: any) {
 
 function jsonError(message: string, status = 400) {
   return new Response(JSON.stringify({ success: false, error: message }), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
