@@ -380,35 +380,57 @@ async function checkGemini(admin: any, tenantId: string): Promise<CheckResult> {
 }
 
 async function checkSolarMarket(admin: any, tenantId: string): Promise<CheckResult> {
-  try {
-    const smToken = Deno.env.get("SOLARMARKET_TOKEN");
-    if (!smToken) {
-      return { integration_name: "solarmarket", status: "not_configured", latency_ms: null, error_message: null, details: {} };
-    }
-
-    const start = Date.now();
-    const res = await fetch("https://api.solarmarket.com.br/v2/clientes?page=1&per_page=1", {
-      method: "GET",
-      headers: { Authorization: `Bearer ${smToken}`, Accept: "application/json" },
-      signal: AbortSignal.timeout(10000),
-    });
-    const latency = Date.now() - start;
-
-    if (res.ok) {
-      await res.text();
-      return { integration_name: "solarmarket", status: "healthy", latency_ms: latency, error_message: null, details: {} };
-    }
-    const errText = await res.text();
-    return {
-      integration_name: "solarmarket",
-      status: res.status === 401 ? "down" : "degraded",
-      latency_ms: latency,
-      error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
-      details: {},
-    };
-  } catch (err: any) {
-    return { integration_name: "solarmarket", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  const smToken = Deno.env.get("SOLARMARKET_TOKEN");
+  if (!smToken) {
+    return { integration_name: "solarmarket", status: "not_configured", latency_ms: null, error_message: null, details: {} };
   }
+
+  // Retry up to 2 times to handle transient DNS failures in Edge Runtime
+  const MAX_RETRIES = 2;
+  let lastError = "";
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, 1000 * attempt)); // backoff
+      }
+      const start = Date.now();
+      const res = await fetch("https://api.solarmarket.com.br/v2/clientes?page=1&per_page=1", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${smToken}`, Accept: "application/json" },
+        signal: AbortSignal.timeout(10000),
+      });
+      const latency = Date.now() - start;
+
+      if (res.ok) {
+        await res.text();
+        return { integration_name: "solarmarket", status: "healthy", latency_ms: latency, error_message: null, details: { retries: attempt } };
+      }
+      const errText = await res.text();
+      return {
+        integration_name: "solarmarket",
+        status: res.status === 401 ? "down" : "degraded",
+        latency_ms: latency,
+        error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+        details: { retries: attempt },
+      };
+    } catch (err: any) {
+      lastError = err.message;
+      const isDns = lastError.includes("dns") || lastError.includes("lookup");
+      if (!isDns || attempt === MAX_RETRIES) {
+        return {
+          integration_name: "solarmarket",
+          status: "degraded", // degraded instead of down for transient network errors
+          latency_ms: null,
+          error_message: `${lastError} (${attempt + 1} tentativa${attempt > 0 ? "s" : ""})`,
+          details: { retries: attempt, dns_error: isDns },
+        };
+      }
+      console.log(`[health-check] SolarMarket DNS retry ${attempt + 1}/${MAX_RETRIES}`);
+    }
+  }
+
+  return { integration_name: "solarmarket", status: "degraded", latency_ms: null, error_message: lastError, details: {} };
 }
 
 async function checkGoogleCalendar(admin: any, tenantId: string): Promise<CheckResult> {
