@@ -1,5 +1,8 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { useWritingAssistant } from "@/hooks/useWritingAssistant";
+import { WritingAssistantButton } from "./WritingAssistantButton";
+import { WritingAssistantPreview } from "./WritingAssistantPreview";
 import {
   Send,
   StickyNote,
@@ -93,6 +96,9 @@ export function WaChatComposer({
   const [slashQuery, setSlashQuery] = useState("");
   const [slashIndex, setSlashIndex] = useState(0);
   const prefillAppliedRef = useRef(false);
+
+  // ── Writing Assistant ──
+  const writingAssistant = useWritingAssistant();
 
   // Apply prefill message once
   useEffect(() => {
@@ -602,6 +608,18 @@ export function WaChatComposer({
           </TooltipContent>
         </Tooltip>
 
+        {/* Writing Assistant */}
+        {!isNoteMode && (
+          <>
+            <div className="w-px h-4 bg-border/50 mx-1" />
+            <WritingAssistantButton
+              onAction={(action) => writingAssistant.requestSuggestion(inputValue, action)}
+              isLoading={writingAssistant.isLoading}
+              disabled={!inputValue.trim() || inputValue.trim().length < 3 || busy}
+            />
+          </>
+        )}
+
         <input
           ref={fileInputRef}
           type="file"
@@ -655,6 +673,25 @@ export function WaChatComposer({
             )}
           </div>
         </div>
+      )}
+
+      {/* Writing Assistant Preview */}
+      {writingAssistant.suggestion && writingAssistant.originalText && (
+        <WritingAssistantPreview
+          originalText={writingAssistant.originalText}
+          suggestion={writingAssistant.suggestion}
+          model={writingAssistant.model}
+          onAccept={(text) => {
+            setInputValue(text);
+            writingAssistant.dismiss();
+          }}
+          onEdit={(text) => {
+            setInputValue(text);
+            writingAssistant.dismiss();
+            setTimeout(() => textareaRef.current?.focus(), 100);
+          }}
+          onDismiss={writingAssistant.dismiss}
+        />
       )}
 
       {/* Input Area */}
