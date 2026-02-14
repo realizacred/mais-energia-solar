@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from "react";
-import { Search, User, Plus, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { Search, User, Plus, AlertTriangle, Loader2, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
+import { toast } from "@/hooks/use-toast";
 import { type LeadSelection, type ClienteData, UF_LIST } from "./types";
 
 interface Props {
@@ -45,12 +46,15 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
         query = query.or(`nome.ilike.%${safe}%,telefone.ilike.%${safe}%,lead_code.ilike.%${safe}%`);
       }
       const { data, error } = await query;
+      console.log("[StepCliente] fetchLeads result:", { q, count: data?.length, error: error?.message });
       if (error) {
         console.error("[StepCliente] Erro ao buscar leads:", error.message);
+        toast({ title: "Erro ao buscar leads", description: error.message, variant: "destructive" });
       }
       setLeads(data || []);
-    } catch (e) {
+    } catch (e: any) {
       console.error("[StepCliente] Exception ao buscar leads:", e);
+      toast({ title: "Erro ao buscar leads", description: e?.message || "Erro desconhecido", variant: "destructive" });
       setLeads([]);
     } finally {
       setSearching(false);
@@ -132,6 +136,8 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
     setSearch("");
   };
 
+  const [fetchingCep, setFetchingCep] = useState(false);
+
   const update = (field: keyof ClienteData, value: string) => {
     if (field === "estado" && value !== cliente.estado) {
       onClienteChange({ ...cliente, [field]: value, cidade: "" });
@@ -139,6 +145,35 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
       onClienteChange({ ...cliente, [field]: value });
     }
   };
+
+  // CEP auto-fill via ViaCEP
+  useEffect(() => {
+    const cepDigits = cliente.cep.replace(/\D/g, "");
+    if (cepDigits.length !== 8) return;
+
+    const t = setTimeout(async () => {
+      setFetchingCep(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${cepDigits}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          onClienteChange({
+            ...cliente,
+            endereco: data.logradouro || cliente.endereco,
+            bairro: data.bairro || cliente.bairro,
+            cidade: data.localidade || cliente.cidade,
+            estado: data.uf || cliente.estado,
+            complemento: data.complemento || cliente.complemento,
+          });
+        }
+      } catch {
+        // ViaCEP offline — ignore
+      } finally {
+        setFetchingCep(false);
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [cliente.cep]);
 
   return (
     <div className="space-y-5">
@@ -181,11 +216,36 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
 
       {/* Duplicate warnings */}
       {duplicateWarnings.length > 0 && (
-        <div className="rounded-xl border border-warning/40 bg-warning/5 p-3 space-y-1.5">
+        <div className="rounded-xl border border-warning/40 bg-warning/5 p-3 space-y-2">
+          <p className="text-xs font-semibold text-warning flex items-center gap-1.5">
+            <AlertTriangle className="h-3.5 w-3.5" /> Possíveis duplicidades encontradas
+          </p>
           {duplicateWarnings.map((w, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm text-warning">
-              <AlertTriangle className="h-4 w-4 shrink-0" />
-              <span>{w.message}</span>
+            <div key={i} className="flex items-center justify-between gap-2 text-sm">
+              <span className="text-warning">{w.message}</span>
+              <div className="flex gap-1.5 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-[10px] px-2"
+                  onClick={() => {
+                    // Pre-fill with existing client data
+                    onClienteChange({ ...cliente, nome: w.clienteNome });
+                    toast({ title: `Dados de "${w.clienteNome}" carregados`, description: "Você pode continuar com os dados deste cliente." });
+                    setDuplicateWarnings([]);
+                  }}
+                >
+                  Usar este cliente
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 text-[10px] px-2 text-muted-foreground"
+                  onClick={() => setDuplicateWarnings(prev => prev.filter((_, idx) => idx !== i))}
+                >
+                  Ignorar
+                </Button>
+              </div>
             </div>
           ))}
         </div>
@@ -228,8 +288,16 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
             {!cliente.celular.trim() && <p className="text-[10px] text-destructive">Obrigatório para avançar</p>}
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs">CEP</Label>
-            <Input value={cliente.cep} onChange={e => update("cep", e.target.value)} placeholder="00000-000" className="h-9" />
+            <Label className="text-xs flex items-center gap-1">
+              CEP
+              {fetchingCep && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+            </Label>
+            <div className="relative">
+              <Input value={cliente.cep} onChange={e => update("cep", e.target.value)} placeholder="00000-000" className="h-9" />
+              {fetchingCep && (
+                <MapPin className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-primary animate-pulse" />
+              )}
+            </div>
           </div>
         </div>
 
