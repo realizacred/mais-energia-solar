@@ -5952,37 +5952,49 @@ export type Database = {
       proposta_templates: {
         Row: {
           ativo: boolean
+          categoria: string
           created_at: string
           descricao: string | null
           grupo: string
           id: string
           nome: string
+          ordem: number
           template_html: string | null
           tenant_id: string
+          thumbnail_url: string | null
+          tipo: string
           updated_at: string
           variaveis_disponiveis: Json
         }
         Insert: {
           ativo?: boolean
+          categoria?: string
           created_at?: string
           descricao?: string | null
           grupo?: string
           id?: string
           nome: string
+          ordem?: number
           template_html?: string | null
           tenant_id: string
+          thumbnail_url?: string | null
+          tipo?: string
           updated_at?: string
           variaveis_disponiveis?: Json
         }
         Update: {
           ativo?: boolean
+          categoria?: string
           created_at?: string
           descricao?: string | null
           grupo?: string
           id?: string
           nome?: string
+          ordem?: number
           template_html?: string | null
           tenant_id?: string
+          thumbnail_url?: string | null
+          tipo?: string
           updated_at?: string
           variaveis_disponiveis?: Json
         }
@@ -6227,6 +6239,59 @@ export type Database = {
           },
         ]
       }
+      proposta_variaveis_custom: {
+        Row: {
+          ativo: boolean
+          categoria: string
+          created_at: string
+          descricao: string | null
+          expressao: string
+          id: string
+          label: string
+          nome: string
+          ordem: number
+          tenant_id: string
+          tipo_resultado: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          expressao: string
+          id?: string
+          label: string
+          nome: string
+          ordem?: number
+          tenant_id: string
+          tipo_resultado?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: string
+          created_at?: string
+          descricao?: string | null
+          expressao?: string
+          id?: string
+          label?: string
+          nome?: string
+          ordem?: number
+          tenant_id?: string
+          tipo_resultado?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_variaveis_custom_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_venda: {
         Row: {
           created_at: string
@@ -6294,6 +6359,64 @@ export type Database = {
             foreignKeyName: "proposta_venda_versao_id_fkey"
             columns: ["versao_id"]
             isOneToOne: true
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_versao_variaveis: {
+        Row: {
+          created_at: string
+          expressao: string
+          id: string
+          label: string
+          nome: string
+          tenant_id: string
+          valor_calculado: string | null
+          variavel_id: string | null
+          versao_id: string
+        }
+        Insert: {
+          created_at?: string
+          expressao: string
+          id?: string
+          label: string
+          nome: string
+          tenant_id: string
+          valor_calculado?: string | null
+          variavel_id?: string | null
+          versao_id: string
+        }
+        Update: {
+          created_at?: string
+          expressao?: string
+          id?: string
+          label?: string
+          nome?: string
+          tenant_id?: string
+          valor_calculado?: string | null
+          variavel_id?: string | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_versao_variaveis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_variaveis_variavel_id_fkey"
+            columns: ["variavel_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_variaveis_custom"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versao_variaveis_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
             referencedRelation: "proposta_versoes"
             referencedColumns: ["id"]
           },

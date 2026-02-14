@@ -29,9 +29,9 @@ import {
   type LeadSelection, type ClienteData, type ComercialData, type UCData,
   type PremissasData, type KitItemRow, type ServicoItem, type VendaData,
   type PagamentoOpcao, type BancoFinanciamento,
-  type CatalogoModulo, type CatalogoInversor,
   EMPTY_CLIENTE, EMPTY_COMERCIAL, DEFAULT_PREMISSAS, createEmptyUC, formatBRL,
 } from "./wizard/types";
+import { StepDocumento } from "./wizard/StepDocumento";
 
 // ─── Steps Config ──────────────────────────────────────────
 
@@ -100,9 +100,9 @@ export function ProposalWizard() {
   // Step 3 - Premissas
   const [premissas, setPremissas] = useState<PremissasData>(DEFAULT_PREMISSAS);
 
-  // Step 4 - Kit
-  const [modulos, setModulos] = useState<CatalogoModulo[]>([]);
-  const [inversores, setInversores] = useState<CatalogoInversor[]>([]);
+  // Step 4 - Kit (unified catalog)
+  const [modulos, setModulos] = useState<any[]>([]);
+  const [inversores, setInversores] = useState<any[]>([]);
   const [loadingEquip, setLoadingEquip] = useState(false);
   const [itens, setItens] = useState<KitItemRow[]>([
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
@@ -127,21 +127,21 @@ export function ProposalWizard() {
   const [rendering, setRendering] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
-  const [templateSelecionado, setTemplateSelecionado] = useState("modelo_1");
+  const [templateSelecionado, setTemplateSelecionado] = useState("");
 
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
-  // ─── Data fetching ───────────────────────────────────
+  // ─── Data fetching (unified catalog) ─────────────────
   useEffect(() => {
     setLoadingEquip(true);
     Promise.all([
-      supabase.from("modulos_fotovoltaicos").select("id, fabricante, modelo, potencia_w").eq("ativo", true).order("potencia_w", { ascending: false }),
-      supabase.from("inversores").select("id, fabricante, modelo, potencia_nominal_w").eq("ativo", true).order("potencia_nominal_w", { ascending: false }),
+      supabase.from("modulos_solares").select("id, fabricante, modelo, potencia_wp, tipo_celula, eficiencia_percent").eq("ativo", true).order("potencia_wp", { ascending: false }),
+      supabase.from("inversores_catalogo").select("id, fabricante, modelo, potencia_nominal_kw, tipo, mppt_count, fases").eq("ativo", true).order("potencia_nominal_kw", { ascending: false }),
     ]).then(([modRes, invRes]) => {
-      setModulos((modRes.data || []) as CatalogoModulo[]);
-      setInversores((invRes.data || []) as CatalogoInversor[]);
+      setModulos(modRes.data || []);
+      setInversores(invRes.data || []);
       setLoadingEquip(false);
     });
   }, []);
@@ -334,90 +334,21 @@ export function ProposalWizard() {
             {/* ── STEP 8: Documento ── */}
             {step === 8 && (
               <StepContent key="step8">
-                <div className="space-y-6">
-                  {!result ? (
-                    <div className="space-y-6">
-                      <h3 className="text-base font-bold flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-primary" /> Gerar Proposta
-                      </h3>
-
-                      <div className="space-y-2">
-                        <Label>Template</Label>
-                        <div className="grid grid-cols-2 gap-3">
-                          {["modelo_1", "modelo_2"].map(t => (
-                            <button key={t} onClick={() => setTemplateSelecionado(t)} className={cn(
-                              "p-4 rounded-xl border-2 text-center transition-all",
-                              templateSelecionado === t ? "border-primary bg-primary/5" : "border-border/40 hover:border-border/70"
-                            )}>
-                              <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                              <p className="text-sm font-medium">{t === "modelo_1" ? "Modelo 1" : "Modelo 2"}</p>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cliente</p>
-                          <p className="text-sm font-semibold truncate">{cliente.nome || selectedLead?.nome}</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Potência</p>
-                          <p className="text-sm font-semibold">{potenciaKwp} kWp</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">UCs</p>
-                          <p className="text-sm font-semibold">{ucs.length}</p>
-                        </div>
-                        <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Investimento</p>
-                          <p className="text-sm font-semibold">{formatBRL(precoFinal)}</p>
-                        </div>
-                      </div>
-
-                      <div className="text-center">
-                        <Button size="lg" className="gap-2 min-w-[200px]" onClick={handleGenerate} disabled={generating}>
-                          {generating ? <Sun className="h-5 w-5 animate-spin" style={{ animationDuration: "2s" }} /> : <Zap className="h-5 w-5" />}
-                          {generating ? "Gerando..." : "Gerar PDF"}
-                        </Button>
-                      </div>
-
-                      {generating && <SunSpinner message="Gerando proposta comercial..." />}
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-3 gap-4">
-                        <div className="p-4 rounded-xl bg-primary/5 border border-primary/15 text-center">
-                          <p className="text-xs text-muted-foreground">Investimento</p>
-                          <p className="text-lg font-bold text-primary">{formatBRL(result.valor_total)}</p>
-                        </div>
-                        <div className="p-4 rounded-xl bg-success/5 border border-success/15 text-center">
-                          <p className="text-xs text-muted-foreground">Economia/mês</p>
-                          <p className="text-lg font-bold text-success">{formatBRL(result.economia_mensal)}</p>
-                        </div>
-                        <div className="p-4 rounded-xl bg-info/5 border border-info/15 text-center">
-                          <p className="text-xs text-muted-foreground">Payback</p>
-                          <p className="text-lg font-bold text-info">{result.payback_meses} meses</p>
-                        </div>
-                      </div>
-
-                      {rendering ? <SunSpinner message="Renderizando proposta..." /> : htmlPreview ? (
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Pré-visualização</p>
-                          <div className="border rounded-xl overflow-hidden bg-white shadow-sm" style={{ maxHeight: 600, overflow: "auto" }}>
-                            <iframe srcDoc={htmlPreview} title="Proposta Preview" className="w-full border-0" style={{ height: 800, pointerEvents: "none" }} />
-                          </div>
-                        </div>
-                      ) : null}
-
-                      <div className="flex flex-wrap gap-3 justify-center pt-4">
-                        <Button onClick={handleViewDetail} className="gap-2">Ver Detalhes</Button>
-                        <Button variant="outline" onClick={handleNewVersion} className="gap-2"><Plus className="h-4 w-4" /> Nova Versão</Button>
-                        <Button variant="ghost" onClick={() => setStep(2)}>Voltar e Editar</Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <StepDocumento
+                  clienteNome={cliente.nome || selectedLead?.nome || ""}
+                  potenciaKwp={potenciaKwp}
+                  numUcs={ucs.length}
+                  precoFinal={precoFinal}
+                  templateSelecionado={templateSelecionado}
+                  onTemplateSelecionado={setTemplateSelecionado}
+                  generating={generating}
+                  rendering={rendering}
+                  result={result}
+                  htmlPreview={htmlPreview}
+                  onGenerate={handleGenerate}
+                  onNewVersion={handleNewVersion}
+                  onViewDetail={handleViewDetail}
+                />
               </StepContent>
             )}
 
