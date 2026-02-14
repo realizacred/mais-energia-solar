@@ -4752,6 +4752,7 @@ export type Database = {
         Row: {
           created_at: string
           gerado_por: string | null
+          html: string | null
           id: string
           storage_path: string | null
           tamanho_bytes: number | null
@@ -4763,6 +4764,7 @@ export type Database = {
         Insert: {
           created_at?: string
           gerado_por?: string | null
+          html?: string | null
           id?: string
           storage_path?: string | null
           tamanho_bytes?: number | null
@@ -4774,6 +4776,7 @@ export type Database = {
         Update: {
           created_at?: string
           gerado_por?: string | null
+          html?: string | null
           id?: string
           storage_path?: string | null
           tamanho_bytes?: number | null
@@ -9024,6 +9027,10 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_tenant_active: { Args: { _tenant_id: string }; Returns: boolean }
+      next_proposta_versao_numero: {
+        Args: { _proposta_id: string }
+        Returns: number
+      }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       release_followup_lock: { Args: never; Returns: undefined }
       release_webhook_lock: { Args: never; Returns: undefined }
