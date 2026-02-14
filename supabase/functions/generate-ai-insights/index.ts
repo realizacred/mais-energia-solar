@@ -6,7 +6,68 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
+// Dual-mode AI: tenant OpenAI key first, Lovable gateway as fallback
+async function callAI(
+  tenantApiKey: string | null,
+  lovableApiKey: string | null,
+  messages: Array<{ role: string; content: string }>,
+  options: { temperature?: number; max_tokens?: number } = {}
+): Promise<{ content: string; provider: string }> {
+  const { temperature = 0.4, max_tokens = 4000 } = options;
+
+  // 1) Try tenant's own OpenAI key
+  if (tenantApiKey) {
+    try {
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${tenantApiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages,
+          temperature,
+          max_tokens,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const content = data.choices?.[0]?.message?.content || "{}";
+        return { content, provider: "openai_tenant" };
+      }
+      console.warn(`[generate-ai-insights] Tenant OpenAI failed (${res.status}), trying fallback...`);
+    } catch (e) {
+      console.warn("[generate-ai-insights] Tenant OpenAI error, trying fallback:", e);
+    }
+  }
+
+  // 2) Fallback: Lovable AI Gateway (will be removed once all tenants migrate)
+  if (lovableApiKey) {
+    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${lovableApiKey}`,
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages,
+        temperature,
+        max_tokens,
+      }),
+    });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`AI fallback error: ${res.status} - ${errText}`);
+    }
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content || "{}";
+    return { content, provider: "lovable_fallback" };
+  }
+
+  throw new Error("No AI provider available. Configure OpenAI key in Admin > Integrations.");
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -16,7 +77,7 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
+    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY") || null;
 
     // Auth check
     const authHeader = req.headers.get("Authorization");
@@ -55,10 +116,29 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Resolve tenant + OpenAI key
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .single();
+
+    let tenantApiKey: string | null = null;
+    if (profile?.tenant_id) {
+      const { data: keyRow } = await supabase
+        .from("integration_configs")
+        .select("api_key")
+        .eq("tenant_id", profile.tenant_id)
+        .eq("service_key", "openai")
+        .eq("is_active", true)
+        .single();
+      tenantApiKey = keyRow?.api_key || null;
+    }
+
     const body = await req.json();
     const { insight_type = "daily_summary", filters = {} } = body;
 
-    console.log(`[generate-ai-insights] Generating ${insight_type} for user ${user.id}`);
+    console.log(`[generate-ai-insights] Generating ${insight_type} for user ${user.id} (tenant_key: ${!!tenantApiKey}, lovable_key: ${!!lovableApiKey})`);
 
     // ── Gather CRM Data ──────────────────────────────────────────
     const now = new Date();
@@ -102,34 +182,28 @@ Deno.serve(async (req) => {
     const statusMap = new Map(statuses.map((s: any) => [s.id, s.nome]));
     const scoreMap = new Map(scores.map((s: any) => [s.lead_id, s]));
 
-    // Leads by status
     const leadsByStatus: Record<string, number> = {};
     leads.forEach((l: any) => {
       const statusName = l.status_id ? statusMap.get(l.status_id) || "Sem status" : "Sem status";
       leadsByStatus[statusName] = (leadsByStatus[statusName] || 0) + 1;
     });
 
-    // Leads by vendor
     const leadsByVendor: Record<string, number> = {};
     leads.forEach((l: any) => {
       const v = l.vendedor || "Sem vendedor";
       leadsByVendor[v] = (leadsByVendor[v] || 0) + 1;
     });
 
-    // Scoring summary
     const hotLeads = scores.filter((s: any) => s.nivel === "hot");
     const warmLeads = scores.filter((s: any) => s.nivel === "warm");
     const coldLeads = scores.filter((s: any) => s.nivel === "cold");
 
-    // Revenue data
     const receitaPrevista = scores.reduce((acc: number, s: any) => acc + (s.valor_estimado || 0), 0);
     const receitaRealizada = clientes.reduce((acc: number, c: any) => acc + (c.valor_projeto || 0), 0);
 
-    // Follow-up stats
     const followUpsPendentes = atividades.filter((a: any) => !a.concluido && a.data_agendada);
     const followUpsAtrasados = followUpsPendentes.filter((a: any) => new Date(a.data_agendada) < now);
 
-    // Leads without contact
     const leadsParados = leads.filter((l: any) => {
       const score = scoreMap.get(l.id);
       if (!score || score.nivel !== "hot") return false;
@@ -138,22 +212,18 @@ Deno.serve(async (req) => {
       return daysSince > 3;
     });
 
-    // Inadimplência
     const parcelasAtrasadas = recebimentos.filter((p: any) =>
       p.status === "pendente" && p.data_vencimento && new Date(p.data_vencimento) < now
     );
 
-    // Ticket médio
     const ticketMedio = clientes.length > 0
       ? clientes.reduce((acc: number, c: any) => acc + (c.valor_projeto || 0), 0) / clientes.length
       : 0;
 
-    // Conversion rate (last 30 days)
     const leadsLast30 = leads.filter((l: any) => new Date(l.created_at) >= new Date(thirtyDaysAgo));
     const conversoes30d = clientes.length;
     const taxaConversao = leadsLast30.length > 0 ? (conversoes30d / leadsLast30.length * 100) : 0;
 
-    // ── Build CRM context for AI ─────────────────────────────────
     const crmContext = `
 ## DADOS DO CRM (${today})
 
@@ -279,34 +349,20 @@ Responda SEMPRE em JSON válido:
       userPrompt = `Gere o RELATÓRIO SEMANAL completo:\n\n${crmContext}`;
     }
 
-    // ── Call AI Gateway ──────────────────────────────────────────
-    console.log(`[generate-ai-insights] Calling AI Gateway for ${insight_type}...`);
+    // ── Call AI (dual-mode) ──────────────────────────────────────
+    console.log(`[generate-ai-insights] Calling AI for ${insight_type}...`);
 
-    const aiResponse = await fetch(AI_GATEWAY_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.4,
-        max_tokens: 4000,
-      }),
-    });
+    const { content: rawContent, provider } = await callAI(
+      tenantApiKey,
+      lovableApiKey,
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      { temperature: 0.4, max_tokens: 4000 }
+    );
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error(`[generate-ai-insights] AI Gateway error: ${aiResponse.status} - ${errorText}`);
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
-    }
-
-    const aiData = await aiResponse.json();
-    const rawContent = aiData.choices?.[0]?.message?.content || "{}";
+    console.log(`[generate-ai-insights] AI response via ${provider}`);
 
     // Parse JSON from AI response (handle markdown code blocks)
     let payload: any;
@@ -338,17 +394,7 @@ Responda SEMPRE em JSON válido:
       throw saveError;
     }
 
-    // ── Audit log ────────────────────────────────────────────────
-    await supabase.from("audit_logs").insert({
-      acao: "generate_ai_insight",
-      tabela: "ai_insights",
-      registro_id: savedInsight.id,
-      user_id: user.id,
-      user_email: user.email,
-      dados_novos: { insight_type, filters },
-    });
-
-    console.log(`[generate-ai-insights] Successfully generated ${insight_type}, saved as ${savedInsight.id}`);
+    console.log(`[generate-ai-insights] Successfully generated ${insight_type} via ${provider}, saved as ${savedInsight.id}`);
 
     return new Response(JSON.stringify({ success: true, insight: savedInsight }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
