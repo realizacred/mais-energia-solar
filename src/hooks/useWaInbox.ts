@@ -179,17 +179,29 @@ export function useWaConversations(filters?: {
     // Never combine polling + realtime on the same resource.
   });
 
-  // ── Realtime: listen for conversation changes (debounced) ──
+  // ── Realtime: listen for conversation changes (debounced, tenant-scoped) ──
+  const [realtimeTenantId, setRealtimeTenantId] = useState<string | null>(null);
+
   useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    import("@/lib/storagePaths").then(({ getCurrentTenantId }) =>
+      getCurrentTenantId().then((tid) => { if (!cancelled) setRealtimeTenantId(tid); })
+    );
+    return () => { cancelled = true; };
+  }, [user]);
+
+  useEffect(() => {
+    if (!realtimeTenantId) return;
+
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     const channel = supabase
       .channel("wa-conversations-realtime")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "wa_conversations" },
+        { event: "INSERT", schema: "public", table: "wa_conversations", filter: `tenant_id=eq.${realtimeTenantId}` },
         () => {
-          // Debounce to avoid rapid-fire invalidations
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
@@ -198,7 +210,7 @@ export function useWaConversations(filters?: {
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "wa_conversations" },
+        { event: "UPDATE", schema: "public", table: "wa_conversations", filter: `tenant_id=eq.${realtimeTenantId}` },
         () => {
           if (debounceTimer) clearTimeout(debounceTimer);
           debounceTimer = setTimeout(() => {
@@ -212,7 +224,7 @@ export function useWaConversations(filters?: {
       if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
-  }, [queryClient]);
+  }, [queryClient, realtimeTenantId]);
 
   const updateConversation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<WaConversation> }) => {

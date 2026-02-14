@@ -152,25 +152,8 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Strategy 5: wa_config — ONLY if exactly 1 record (single-tenant compat)
-    if (!tenantId) {
-      const { data: allConfigs } = await supabaseAdmin
-        .from("whatsapp_automation_config")
-        .select("tenant_id")
-        .limit(2); // fetch max 2 to detect multi-tenant
-
-      if (allConfigs && allConfigs.length === 1 && allConfigs[0].tenant_id) {
-        tenantId = allConfigs[0].tenant_id;
-        tenantSource = "wa_config_single";
-        console.log(`[process-wa-auto] Single-tenant fallback: ${tenantId}`);
-      } else if (allConfigs && allConfigs.length > 1) {
-        console.error("[process-wa-auto] BLOCKED: Multiple wa_configs found — tenant_id obrigatório no body");
-        return new Response(
-          JSON.stringify({ success: false, error: "Multi-tenant: tenant_id obrigatório no body da requisição" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    }
+    // Strategy 5 REMOVED (P1-3): wa_config_single fallback was a cross-tenant risk.
+    // If none of Strategies 1-4 resolved tenant → fail-fast below.
 
     if (!tenantId) {
       console.error("[process-wa-auto] BLOCKED: tenant não resolvido de nenhuma fonte");
