@@ -4482,6 +4482,157 @@ export type Database = {
           },
         ]
       }
+      projeto_etapas: {
+        Row: {
+          categoria: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          cor: string
+          created_at: string
+          funil_id: string
+          id: string
+          nome: string
+          ordem: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          categoria?: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          cor?: string
+          created_at?: string
+          funil_id: string
+          id?: string
+          nome: string
+          ordem?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          categoria?: Database["public"]["Enums"]["projeto_etapa_categoria"]
+          cor?: string
+          created_at?: string
+          funil_id?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_etapas_funil_id_fkey"
+            columns: ["funil_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_funis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_etapas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_etiqueta_rel: {
+        Row: {
+          etiqueta_id: string
+          projeto_id: string
+        }
+        Insert: {
+          etiqueta_id: string
+          projeto_id: string
+        }
+        Update: {
+          etiqueta_id?: string
+          projeto_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_etiqueta_rel_etiqueta_id_fkey"
+            columns: ["etiqueta_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etiquetas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_etiqueta_rel_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_etiquetas: {
+        Row: {
+          cor: string
+          created_at: string
+          id: string
+          nome: string
+          tenant_id: string
+        }
+        Insert: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome: string
+          tenant_id: string
+        }
+        Update: {
+          cor?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_etiquetas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projeto_funis: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projeto_funis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projetos: {
         Row: {
           cliente_id: string | null
@@ -4493,6 +4644,8 @@ export type Database = {
           data_instalacao: string | null
           data_previsao_instalacao: string | null
           data_venda: string | null
+          etapa_id: string | null
+          funil_id: string | null
           id: string
           instalador_id: string | null
           lead_id: string | null
@@ -4501,6 +4654,7 @@ export type Database = {
           numero_modulos: number | null
           observacoes: string | null
           potencia_kwp: number | null
+          proposta_id: string | null
           status: Database["public"]["Enums"]["projeto_status"]
           tenant_id: string
           tipo_instalacao: string | null
@@ -4519,6 +4673,8 @@ export type Database = {
           data_instalacao?: string | null
           data_previsao_instalacao?: string | null
           data_venda?: string | null
+          etapa_id?: string | null
+          funil_id?: string | null
           id?: string
           instalador_id?: string | null
           lead_id?: string | null
@@ -4527,6 +4683,7 @@ export type Database = {
           numero_modulos?: number | null
           observacoes?: string | null
           potencia_kwp?: number | null
+          proposta_id?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
@@ -4545,6 +4702,8 @@ export type Database = {
           data_instalacao?: string | null
           data_previsao_instalacao?: string | null
           data_venda?: string | null
+          etapa_id?: string | null
+          funil_id?: string | null
           id?: string
           instalador_id?: string | null
           lead_id?: string | null
@@ -4553,6 +4712,7 @@ export type Database = {
           numero_modulos?: number | null
           observacoes?: string | null
           potencia_kwp?: number | null
+          proposta_id?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
@@ -4570,10 +4730,31 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "projetos_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_etapas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_funil_id_fkey"
+            columns: ["funil_id"]
+            isOneToOne: false
+            referencedRelation: "projeto_funis"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "projetos_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
             referencedColumns: ["id"]
           },
           {
@@ -9181,6 +9362,7 @@ export type Database = {
         | "finalizado"
         | "cancelado"
       gcal_sync_mode: "create_only" | "bidirectional"
+      projeto_etapa_categoria: "aberto" | "ganho" | "perdido" | "excluido"
       projeto_status:
         | "aguardando_documentacao"
         | "em_analise"
@@ -9395,6 +9577,7 @@ export const Constants = {
         "cancelado",
       ],
       gcal_sync_mode: ["create_only", "bidirectional"],
+      projeto_etapa_categoria: ["aberto", "ganho", "perdido", "excluido"],
       projeto_status: [
         "aguardando_documentacao",
         "em_analise",

@@ -1,0 +1,1 @@
+export { ProjetosManager } from "./ProjetosManager";

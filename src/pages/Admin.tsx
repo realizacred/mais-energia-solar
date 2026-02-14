@@ -75,6 +75,7 @@ const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
 const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
+const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard").then((m) => ({
     default: m.ProposalWizard,
@@ -143,6 +144,7 @@ const TAB_TITLES: Record<string, string> = {
   "wa-instances": "Instâncias WhatsApp",
   release: "Release Notes",
   propostas: "Propostas Comerciais",
+  projetos: "Projetos",
   "propostas-nativas": "Gerador de Propostas",
   "propostas-nativas/nova": "Nova Proposta",
   "followup-wa": "Regras de Follow-up",
@@ -315,6 +317,7 @@ export default function Admin() {
                 <Route path="pipeline" element={<LeadsPipeline />} />
                 <Route path="followup" element={<FollowUpManager diasAlerta={3} />} />
                 <Route path="propostas" element={<PropostasManager />} />
+                <Route path="projetos" element={<ProjetosManagerPage />} />
                 <Route path="propostas-nativas" element={<ProposalListPage />} />
                 <Route path="propostas-nativas/nova" element={<ProposalWizardPage />} />
                 <Route path="propostas-nativas/:propostaId/versoes/:versaoId" element={<ProposalDetailPage />} />
