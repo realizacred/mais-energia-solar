@@ -151,3 +151,6 @@ verify_jwt = false
 
 [functions.proposal-send]
 verify_jwt = false
+
+[functions.process-sla-alerts]
+verify_jwt = false
