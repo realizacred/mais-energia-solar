@@ -6499,6 +6499,47 @@ export type Database = {
           },
         ]
       }
+      super_admin_actions: {
+        Row: {
+          action: string
+          admin_user_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          ip_address: string | null
+          target_tenant_id: string | null
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          admin_user_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_tenant_id?: string | null
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          admin_user_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          ip_address?: string | null
+          target_tenant_id?: string | null
+          target_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "super_admin_actions_target_tenant_id_fkey"
+            columns: ["target_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_events: {
         Row: {
           action: string
@@ -6601,9 +6642,13 @@ export type Database = {
           dominio_customizado: string | null
           id: string
           nome: string
+          owner_user_id: string | null
           plano: string
           slug: string
+          status: Database["public"]["Enums"]["tenant_status"]
           subdominio: string | null
+          suspended_at: string | null
+          suspended_reason: string | null
           updated_at: string
         }
         Insert: {
@@ -6612,9 +6657,13 @@ export type Database = {
           dominio_customizado?: string | null
           id?: string
           nome: string
+          owner_user_id?: string | null
           plano?: string
           slug: string
+          status?: Database["public"]["Enums"]["tenant_status"]
           subdominio?: string | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
           updated_at?: string
         }
         Update: {
@@ -6623,9 +6672,13 @@ export type Database = {
           dominio_customizado?: string | null
           id?: string
           nome?: string
+          owner_user_id?: string | null
           plano?: string
           slug?: string
+          status?: Database["public"]["Enums"]["tenant_status"]
           subdominio?: string | null
+          suspended_at?: string | null
+          suspended_reason?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -8509,6 +8562,10 @@ export type Database = {
           title: string
         }[]
       }
+      get_tenant_status: {
+        Args: { _tenant_id: string }
+        Returns: Database["public"]["Enums"]["tenant_status"]
+      }
       get_tenant_subscription: {
         Args: never
         Returns: {
@@ -8588,6 +8645,7 @@ export type Database = {
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
+      is_tenant_active: { Args: { _tenant_id: string }; Returns: boolean }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       release_followup_lock: { Args: never; Returns: undefined }
       release_webhook_lock: { Args: never; Returns: undefined }
@@ -8695,6 +8753,7 @@ export type Database = {
         | "past_due"
         | "canceled"
         | "expired"
+      tenant_status: "active" | "suspended" | "disabled" | "pending"
       tipo_sistema_inversor: "ON_GRID" | "HIBRIDO" | "OFF_GRID"
     }
     CompositeTypes: {
@@ -8904,6 +8963,7 @@ export const Constants = {
         "canceled",
         "expired",
       ],
+      tenant_status: ["active", "suspended", "disabled", "pending"],
       tipo_sistema_inversor: ["ON_GRID", "HIBRIDO", "OFF_GRID"],
     },
   },
