@@ -6640,6 +6640,9 @@ export type Database = {
           ativo: boolean
           created_at: string
           deleted_at: string | null
+          deleted_by: string | null
+          deleted_reason: string | null
+          documento: string | null
           dominio_customizado: string | null
           id: string
           nome: string
@@ -6656,6 +6659,9 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
+          documento?: string | null
           dominio_customizado?: string | null
           id?: string
           nome: string
@@ -6672,6 +6678,9 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           deleted_at?: string | null
+          deleted_by?: string | null
+          deleted_reason?: string | null
+          documento?: string | null
           dominio_customizado?: string | null
           id?: string
           nome?: string
@@ -8575,6 +8584,10 @@ export type Database = {
         }
         Returns: Json
       }
+      get_super_admin_tenant_detail: {
+        Args: { _tenant_id: string }
+        Returns: Json
+      }
       get_tenant_status: {
         Args: { _tenant_id: string }
         Returns: Database["public"]["Enums"]["tenant_status"]
@@ -8657,6 +8670,10 @@ export type Database = {
         Returns: undefined
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_last_admin_of_tenant: {
+        Args: { _tenant_id: string; _user_id: string }
+        Returns: boolean
+      }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_tenant_active: { Args: { _tenant_id: string }; Returns: boolean }
       refresh_dashboard_views: { Args: never; Returns: undefined }
