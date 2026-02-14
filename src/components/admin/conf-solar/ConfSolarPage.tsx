@@ -1,14 +1,18 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings2, DollarSign, Building2, FileText, Sliders } from "lucide-react";
+import { Settings2, DollarSign, Building2, FileText, Variable, Sliders } from "lucide-react";
 import { PremissasTecnicasTab } from "./tabs/PremissasTecnicasTab";
 import { PrecificacaoTab } from "./tabs/PrecificacaoTab";
 import { FinanciamentosTab } from "./tabs/FinanciamentosTab";
+import { TemplatesTab } from "./tabs/TemplatesTab";
+import { VariaveisTab } from "./tabs/VariaveisTab";
 
 const TABS = [
   { value: "premissas", label: "Premissas", icon: Settings2 },
   { value: "precificacao", label: "Precificação", icon: DollarSign },
   { value: "financiamentos", label: "Financiamentos", icon: Building2 },
+  { value: "templates", label: "Templates", icon: FileText },
+  { value: "variaveis", label: "Variáveis", icon: Variable },
 ] as const;
 
 export function ConfSolarPage() {
@@ -22,7 +26,7 @@ export function ConfSolarPage() {
           Configurações Solar
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Premissas técnicas, regras de precificação e produtos de financiamento.
+          Premissas técnicas, regras de precificação, financiamentos, templates e variáveis.
         </p>
       </div>
 
@@ -37,7 +41,7 @@ export function ConfSolarPage() {
                 className="gap-1.5 text-xs data-[state=active]:bg-background data-[state=active]:shadow-sm rounded-lg px-3 py-2"
               >
                 <Icon className="h-3.5 w-3.5" />
-                {t.label}
+                <span className="hidden sm:inline">{t.label}</span>
               </TabsTrigger>
             );
           })}
@@ -51,6 +55,12 @@ export function ConfSolarPage() {
         </TabsContent>
         <TabsContent value="financiamentos" className="mt-4">
           <FinanciamentosTab />
+        </TabsContent>
+        <TabsContent value="templates" className="mt-4">
+          <TemplatesTab />
+        </TabsContent>
+        <TabsContent value="variaveis" className="mt-4">
+          <VariaveisTab />
         </TabsContent>
       </Tabs>
     </div>

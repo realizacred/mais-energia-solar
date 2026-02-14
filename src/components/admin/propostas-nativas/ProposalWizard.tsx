@@ -247,36 +247,44 @@ export function ProposalWizard() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* ── Stepper ── */}
-      <div className="flex items-center gap-0.5 overflow-x-auto pb-1">
-        {STEPS.map((s, i) => {
-          const Icon = s.icon;
-          const isActive = i === step;
-          const isDone = i < step;
-          return (
-            <div key={s.label} className="flex items-center gap-0.5 flex-shrink-0">
-              <button
-                onClick={() => { if (isDone) setStep(i); }}
-                className={cn(
-                  "flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap",
-                  isActive && "bg-primary text-primary-foreground shadow-sm",
-                  isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15",
-                  !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
-                )}
-              >
-                <span className={cn(
-                  "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0",
-                  isActive && "bg-primary-foreground/20",
-                  isDone && "bg-primary/20",
-                  !isActive && !isDone && "bg-muted",
-                )}>
-                  {isDone ? <Check className="h-2.5 w-2.5" /> : <Icon className="h-2.5 w-2.5" />}
-                </span>
-                <span className="hidden xl:block">{s.label}</span>
-              </button>
-              {i < STEPS.length - 1 && <div className="w-2 h-px bg-border shrink-0" />}
-            </div>
-          );
-        })}
+      <div className="relative">
+        <div className="flex items-center gap-0.5 overflow-x-auto pb-2 scrollbar-thin snap-x snap-mandatory px-1 -mx-1">
+          {STEPS.map((s, i) => {
+            const Icon = s.icon;
+            const isActive = i === step;
+            const isDone = i < step;
+            return (
+              <div key={s.label} className="flex items-center gap-0.5 flex-shrink-0 snap-start">
+                <button
+                  onClick={() => { if (isDone) setStep(i); }}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap min-h-[44px]",
+                    isActive && "bg-primary text-primary-foreground shadow-sm",
+                    isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15 active:bg-primary/20",
+                    !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
+                  )}
+                >
+                  <span className={cn(
+                    "flex items-center justify-center h-6 w-6 rounded-full text-[10px] shrink-0",
+                    isActive && "bg-primary-foreground/20",
+                    isDone && "bg-primary/20",
+                    !isActive && !isDone && "bg-muted",
+                  )}>
+                    {isDone ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                  </span>
+                  <span className="hidden sm:block">{s.label}</span>
+                </button>
+                {i < STEPS.length - 1 && <div className="w-3 h-px bg-border shrink-0" />}
+              </div>
+            );
+          })}
+        </div>
+        {/* Step counter for mobile */}
+        <div className="sm:hidden text-center mt-1">
+          <span className="text-[10px] font-medium text-muted-foreground">
+            {step + 1}/{STEPS.length} — {STEPS[step].label}
+          </span>
+        </div>
       </div>
 
       {/* ── Step Content ── */}
@@ -360,12 +368,12 @@ export function ProposalWizard() {
       {/* ── Navigation Footer ── */}
       {step < 8 && !result && (
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} className="gap-1">
-            <ChevronLeft className="h-4 w-4" /> Voltar
+          <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} className="gap-1 min-h-[44px]">
+            <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar</span>
           </Button>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{step + 1} / {STEPS.length}</span>
-            <Button onClick={() => setStep(step + 1)} disabled={!canStep[step]} className="gap-1">
+            <span className="text-xs text-muted-foreground hidden sm:inline">{step + 1} / {STEPS.length}</span>
+            <Button onClick={() => setStep(step + 1)} disabled={!canStep[step]} className="gap-1 min-h-[44px]">
               Próximo <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -373,8 +381,8 @@ export function ProposalWizard() {
       )}
       {step === 8 && !result && (
         <div className="flex justify-start">
-          <Button variant="ghost" onClick={() => setStep(7)} className="gap-1">
-            <ChevronLeft className="h-4 w-4" /> Voltar
+          <Button variant="ghost" onClick={() => setStep(7)} className="gap-1 min-h-[44px]">
+            <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar</span>
           </Button>
         </div>
       )}
