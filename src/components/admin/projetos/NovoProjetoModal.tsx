@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Phone, Loader2, Users, Type, Wifi, Search, MapPin } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Phone, Loader2, Users, MapPin, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -142,305 +143,290 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[1100px] max-h-[90vh] overflow-hidden p-0 gap-0 rounded-xl">
-        <DialogHeader className="px-8 pt-6 pb-5 border-b border-border/40">
-          <DialogTitle className="text-xl font-bold text-foreground tracking-tight">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] lg:max-w-[1000px] max-h-[90vh] overflow-hidden p-0 gap-0 rounded-2xl flex flex-col">
+        {/* Header */}
+        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border/40 shrink-0">
+          <DialogTitle className="text-lg font-bold text-foreground tracking-tight">
             Novo Projeto
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex overflow-hidden" style={{ minHeight: "500px" }}>
-          {/* ── Coluna 1: Projeto ── */}
-          <div className="w-[320px] shrink-0 px-8 py-6 overflow-y-auto space-y-5">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-primary">Projeto</h3>
-              <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                <Users className="h-6 w-6 text-muted-foreground/60" />
-              </div>
-            </div>
+        {/* Body - scrollable */}
+        <ScrollArea className="flex-1 overflow-auto">
+          <div className="p-6 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[1fr_1fr_220px] lg:gap-6">
 
-            <Field label="Nome do Projeto *">
-              <Input
-                placeholder="Nome do projeto"
-                value={nome}
-                onChange={e => setNome(e.target.value)}
-                className="h-10 text-sm border-border/60"
-              />
-            </Field>
+            {/* ── Coluna 1: Projeto ── */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Projeto</h3>
 
-            <Field label="Descrição">
-              <Textarea
-                placeholder="Escreva aqui"
-                value={descricao}
-                onChange={e => setDescricao(e.target.value)}
-                className="text-sm min-h-[68px] resize-y border-border/60"
-              />
-            </Field>
-
-            <div className="space-y-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-semibold text-foreground">Vendedores</span>
-                <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-              </div>
-              <Select value={consultorId} onValueChange={setConsultorId}>
-                <SelectTrigger className="h-10 text-sm border-border/60">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  {consultores.map(c => (
-                    <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex gap-1 pt-1">
-                {consultores.slice(0, 6).map((c) => (
-                  <div
-                    key={c.id}
-                    className={cn(
-                      "h-2 flex-1 rounded-sm transition-colors",
-                      c.id === consultorId ? "bg-primary" : "bg-muted-foreground/20"
-                    )}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <Field label="Etiqueta">
-              <Select value={etiqueta} onValueChange={setEtiqueta}>
-                <SelectTrigger className="h-10 text-sm border-border/60">
-                  <SelectValue placeholder="Selecione uma opção" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  <SelectItem value="residencial">Residencial</SelectItem>
-                  <SelectItem value="comercial">Comercial</SelectItem>
-                  <SelectItem value="industrial">Industrial</SelectItem>
-                  <SelectItem value="rural">Rural</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-
-            <div className="space-y-1.5">
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <Type className="h-4 w-4 italic" />
-                <Wifi className="h-4 w-4" />
-              </div>
-              <Textarea
-                placeholder="Notas..."
-                value={notas}
-                onChange={e => setNotas(e.target.value)}
-                className="text-sm min-h-[60px] resize-none border-border/60"
-              />
-            </div>
-          </div>
-
-          {/* Divider teal */}
-          <div className="w-[3px] bg-primary/60 shrink-0" />
-
-          {/* ── Coluna 2: Cliente ── */}
-          <div className="flex-1 px-8 py-6 overflow-y-auto space-y-5">
-            <h3 className="text-base font-bold text-foreground">Cliente</h3>
-
-            <Field label="Nome do Cliente *" error={errors["cliente.nome"]}>
-              <Input
-                placeholder="Digite o nome do cliente"
-                value={cliente.nome}
-                onChange={e => updateCliente("nome", e.target.value)}
-                className={cn("h-10 text-sm border-border/60", errors["cliente.nome"] && "border-destructive ring-1 ring-destructive/30")}
-              />
-              {errors["cliente.nome"] && (
-                <p className="text-xs text-destructive mt-1">Nome é obrigatório!</p>
-              )}
-            </Field>
-
-            <Field label="Email do Cliente">
-              <Input
-                type="email"
-                placeholder="Digite o email do cliente"
-                value={cliente.email}
-                onChange={e => updateCliente("email", e.target.value)}
-                className="h-10 text-sm border-border/60"
-              />
-            </Field>
-
-            <Field label="Nome da Empresa">
-              <Input
-                placeholder="Digite o nome da empresa"
-                value={cliente.empresa}
-                onChange={e => updateCliente("empresa", e.target.value)}
-                className="h-10 text-sm border-border/60"
-              />
-            </Field>
-
-            <Field label="CNPJ/CPF">
-              <Input
-                placeholder="000.000.000-00"
-                value={cliente.cpfCnpj}
-                onChange={e => updateCliente("cpfCnpj", e.target.value)}
-                className="h-10 text-sm border-border/60"
-              />
-            </Field>
-
-            <Field label="Telefone Celular *" error={errors["cliente.telefone"]}>
-              <Input
-                placeholder="(00) 00000-0000"
-                value={cliente.telefone}
-                onChange={e => {
-                  let v = e.target.value.replace(/\D/g, "").slice(0, 11);
-                  if (v.length > 6) v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
-                  else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
-                  updateCliente("telefone", v);
-                }}
-                className={cn("h-10 text-sm border-border/60", errors["cliente.telefone"] && "border-destructive ring-1 ring-destructive/30")}
-              />
-              {errors["cliente.telefone"] && (
-                <p className="text-xs text-destructive mt-1">Telefone é obrigatório!</p>
-              )}
-            </Field>
-
-            <Separator className="my-3 opacity-40" />
-            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" /> Endereço
-            </h4>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="CEP">
-                <div className="relative">
-                  <Input
-                    placeholder="00000-000"
-                    value={cliente.cep}
-                    onChange={e => handleCepChange(e.target.value)}
-                    className="h-9 text-sm border-border/60 pr-8"
-                  />
-                  {buscandoCep && (
-                    <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />
-                  )}
-                </div>
-              </Field>
-              <Field label="Estado">
+              <Field label="Nome do Projeto">
                 <Input
-                  placeholder="UF"
-                  maxLength={2}
-                  value={cliente.estado}
-                  onChange={e => updateCliente("estado", e.target.value.toUpperCase())}
-                  className="h-9 text-sm border-border/60"
+                  placeholder="Nome do projeto"
+                  value={nome}
+                  onChange={e => setNome(e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </Field>
+
+              <Field label="Descrição">
+                <Textarea
+                  placeholder="Escreva aqui..."
+                  value={descricao}
+                  onChange={e => setDescricao(e.target.value)}
+                  className="text-sm min-h-[68px] resize-y"
+                />
+              </Field>
+
+              <Field label="Responsável">
+                <Select value={consultorId} onValueChange={setConsultorId}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {consultores.map(c => (
+                      <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field label="Etiqueta">
+                <Select value={etiqueta} onValueChange={setEtiqueta}>
+                  <SelectTrigger className="h-10 text-sm">
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="residencial">Residencial</SelectItem>
+                    <SelectItem value="comercial">Comercial</SelectItem>
+                    <SelectItem value="industrial">Industrial</SelectItem>
+                    <SelectItem value="rural">Rural</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field label="Notas">
+                <Textarea
+                  placeholder="Notas do projeto..."
+                  value={notas}
+                  onChange={e => setNotas(e.target.value)}
+                  className="text-sm min-h-[60px] resize-none"
                 />
               </Field>
             </div>
 
-            <Field label="Cidade">
-              <Input
-                placeholder="Cidade"
-                value={cliente.cidade}
-                onChange={e => updateCliente("cidade", e.target.value)}
-                className="h-9 text-sm border-border/60"
-              />
-            </Field>
+            {/* Divider mobile */}
+            <Separator className="lg:hidden" />
 
-            <Field label="Bairro">
-              <Input
-                placeholder="Bairro"
-                value={cliente.bairro}
-                onChange={e => updateCliente("bairro", e.target.value)}
-                className="h-9 text-sm border-border/60"
-              />
-            </Field>
+            {/* ── Coluna 2: Cliente ── */}
+            <div className="space-y-4 lg:border-l lg:border-r lg:border-border/40 lg:px-6">
+              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Cliente</h3>
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2">
-                <Field label="Endereço">
+              <Field label="Nome do Cliente *" error={errors["cliente.nome"]}>
+                <Input
+                  placeholder="Digite o nome do cliente"
+                  value={cliente.nome}
+                  onChange={e => updateCliente("nome", e.target.value)}
+                  className={cn("h-10 text-sm", errors["cliente.nome"] && "border-destructive ring-1 ring-destructive/30")}
+                />
+                {errors["cliente.nome"] && (
+                  <p className="text-xs text-destructive mt-0.5">Nome é obrigatório</p>
+                )}
+              </Field>
+
+              <Field label="Email">
+                <Input
+                  type="email"
+                  placeholder="email@exemplo.com"
+                  value={cliente.email}
+                  onChange={e => updateCliente("email", e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </Field>
+
+              <Field label="Empresa">
+                <Input
+                  placeholder="Nome da empresa"
+                  value={cliente.empresa}
+                  onChange={e => updateCliente("empresa", e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </Field>
+
+              <Field label="CPF/CNPJ">
+                <Input
+                  placeholder="000.000.000-00"
+                  value={cliente.cpfCnpj}
+                  onChange={e => updateCliente("cpfCnpj", e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </Field>
+
+              <Field label="Telefone *" error={errors["cliente.telefone"]}>
+                <Input
+                  placeholder="(00) 00000-0000"
+                  value={cliente.telefone}
+                  onChange={e => {
+                    let v = e.target.value.replace(/\D/g, "").slice(0, 11);
+                    if (v.length > 6) v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+                    else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+                    updateCliente("telefone", v);
+                  }}
+                  className={cn("h-10 text-sm", errors["cliente.telefone"] && "border-destructive ring-1 ring-destructive/30")}
+                />
+                {errors["cliente.telefone"] && (
+                  <p className="text-xs text-destructive mt-0.5">Telefone é obrigatório</p>
+                )}
+              </Field>
+
+              <Separator className="opacity-40" />
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="h-3.5 w-3.5" /> Endereço
+              </h4>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="CEP">
+                  <div className="relative">
+                    <Input
+                      placeholder="00000-000"
+                      value={cliente.cep}
+                      onChange={e => handleCepChange(e.target.value)}
+                      className="h-9 text-sm pr-8"
+                    />
+                    {buscandoCep && (
+                      <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />
+                    )}
+                  </div>
+                </Field>
+                <Field label="Estado">
                   <Input
-                    placeholder="Rua, Avenida..."
-                    value={cliente.endereco}
-                    onChange={e => updateCliente("endereco", e.target.value)}
-                    className="h-9 text-sm border-border/60"
+                    placeholder="UF"
+                    maxLength={2}
+                    value={cliente.estado}
+                    onChange={e => updateCliente("estado", e.target.value.toUpperCase())}
+                    className="h-9 text-sm"
                   />
                 </Field>
               </div>
-              <Field label="Nº">
+
+              <Field label="Cidade">
                 <Input
-                  placeholder="Nº"
-                  value={cliente.numero}
-                  onChange={e => updateCliente("numero", e.target.value)}
-                  className="h-9 text-sm border-border/60"
+                  placeholder="Cidade"
+                  value={cliente.cidade}
+                  onChange={e => updateCliente("cidade", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </Field>
+
+              <Field label="Bairro">
+                <Input
+                  placeholder="Bairro"
+                  value={cliente.bairro}
+                  onChange={e => updateCliente("bairro", e.target.value)}
+                  className="h-9 text-sm"
+                />
+              </Field>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <Field label="Endereço">
+                    <Input
+                      placeholder="Rua, Avenida..."
+                      value={cliente.endereco}
+                      onChange={e => updateCliente("endereco", e.target.value)}
+                      className="h-9 text-sm"
+                    />
+                  </Field>
+                </div>
+                <Field label="Nº">
+                  <Input
+                    placeholder="Nº"
+                    value={cliente.numero}
+                    onChange={e => updateCliente("numero", e.target.value)}
+                    className="h-9 text-sm"
+                  />
+                </Field>
+              </div>
+
+              <Field label="Complemento">
+                <Input
+                  placeholder="Apto, Bloco..."
+                  value={cliente.complemento}
+                  onChange={e => updateCliente("complemento", e.target.value)}
+                  className="h-9 text-sm"
                 />
               </Field>
             </div>
 
-            <Field label="Complemento">
-              <Input
-                placeholder="Apto, Bloco..."
-                value={cliente.complemento}
-                onChange={e => updateCliente("complemento", e.target.value)}
-                className="h-9 text-sm border-border/60"
-              />
-            </Field>
+            {/* Divider mobile */}
+            <Separator className="lg:hidden" />
+
+            {/* ── Coluna 3: Similares ── */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
+                <Search className="h-3.5 w-3.5" />
+                Similares
+              </h3>
+
+              {buscando ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : similares.length > 0 ? (
+                <div className="space-y-2">
+                  {similares.map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setCliente(prev => ({
+                          ...prev,
+                          nome: c.nome,
+                          telefone: c.telefone || prev.telefone,
+                          email: c.email || prev.email,
+                        }));
+                      }}
+                      className="w-full text-left rounded-xl border border-border/50 p-2.5 hover:border-primary/40 hover:bg-primary/5 transition-all space-y-0.5"
+                    >
+                      <p className="text-xs font-semibold text-foreground truncate">{c.nome}</p>
+                      <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        {c.telefone && (
+                          <span className="flex items-center gap-0.5">
+                            <Phone className="h-2.5 w-2.5" />
+                            {c.telefone}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground py-4">
+                  {cliente.nome.trim().length >= 2
+                    ? "Nenhum cliente similar encontrado"
+                    : "Digite o nome do cliente para buscar"}
+                </p>
+              )}
+            </div>
           </div>
+        </ScrollArea>
 
-          {/* Divider cinza */}
-          <div className="w-[3px] bg-border/60 shrink-0" />
-
-          {/* ── Coluna 3: Clientes Similares ── */}
-          <div className="w-[260px] shrink-0 px-6 py-6 flex flex-col">
-            <h3 className="text-base font-bold text-primary/90">Clientes similares</h3>
-
-            {buscando ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            ) : similares.length > 0 ? (
-              <div className="mt-4 space-y-2 overflow-y-auto flex-1">
-                {similares.map(c => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
-                      setCliente(prev => ({
-                        ...prev,
-                        nome: c.nome,
-                        telefone: c.telefone || prev.telefone,
-                        email: c.email || prev.email,
-                      }));
-                    }}
-                    className="w-full text-left rounded-lg border border-border/50 p-3 hover:border-primary/40 hover:bg-primary/5 transition-all space-y-1"
-                  >
-                    <p className="text-sm font-medium text-foreground truncate">{c.nome}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      {c.telefone && (
-                        <span className="flex items-center gap-0.5">
-                          <Phone className="h-3 w-3" />
-                          {c.telefone}
-                        </span>
-                      )}
-                      {c.email && <span className="truncate">{c.email}</span>}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">
-                Nenhum cliente similar
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* ── Footer ── */}
-        <div className="flex items-center justify-end gap-4 px-8 py-4 border-t border-border/40">
-          <button
-            type="button"
+        {/* Footer - always visible */}
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border/40 bg-muted/30 shrink-0">
+          <Button
+            variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2"
+            className="text-sm h-10 px-4"
           >
-            Fechar
-          </button>
+            Cancelar
+          </Button>
           <Button
             onClick={handleSubmit}
             disabled={submitting}
-            className="text-sm px-8 h-10 rounded-lg bg-primary hover:bg-primary/90"
+            className="text-sm px-8 h-10 rounded-xl"
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-            {submitting ? "Cadastrando..." : "Cadastrar"}
+            {submitting ? "Cadastrando..." : "Cadastrar Projeto"}
           </Button>
         </div>
       </DialogContent>
@@ -451,7 +437,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 function Field({ label, error, children }: { label: string; error?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className={cn("text-sm font-semibold", error ? "text-destructive" : "text-foreground")}>
+      <Label className={cn("text-xs font-semibold", error ? "text-destructive" : "text-foreground")}>
         {label}
       </Label>
       {children}
