@@ -49,30 +49,27 @@ export function useWaNotifications() {
     localStorage.setItem(STORAGE_KEY_SOUND, String(val));
   }, []);
 
-  // Lightweight poll: only fetch id, unread_count, name, phone, preview
+  // ⚠️ HARDENING: Per-user unread count via RPC (not global unread_count column).
+  // Uses wa_reads table for per-user read state + visibility rules (admin vs vendor).
+  // 60s polling — Realtime in useWaInbox handles real-time updates when on inbox.
   const { data: snapshot } = useQuery({
-    queryKey: ["wa-notification-poll"],
+    queryKey: ["wa-notification-poll", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_conversations")
-        .select("id, unread_count, cliente_nome, cliente_telefone, last_message_preview, last_message_at")
-        .gt("unread_count", 0)
-        .order("last_message_at", { ascending: false })
-        .limit(50);
+      const { data, error } = await supabase.rpc("get_user_unread_conversations", {
+        _limit: 50,
+      });
       if (error) throw error;
       return (data || []) as Array<{
-        id: string;
-        unread_count: number;
+        conversation_id: string;
         cliente_nome: string | null;
         cliente_telefone: string;
         last_message_preview: string | null;
         last_message_at: string | null;
+        unread_for_user: number;
       }>;
     },
     enabled: !!user && enabled,
     staleTime: 30_000,
-    // ⚠️ HARDENING: 60s polling (was 15s). This runs on EVERY page globally.
-    // Realtime in useWaInbox handles real-time updates when on inbox.
     refetchInterval: 60_000,
   });
 
@@ -81,7 +78,7 @@ export function useWaNotifications() {
     if (!snapshot || !enabled) return;
 
     const newMap = new Map<string, number>();
-    snapshot.forEach((c) => newMap.set(c.id, c.unread_count));
+    snapshot.forEach((c) => newMap.set(c.conversation_id, c.unread_for_user));
 
     if (initialLoadRef.current) {
       initialLoadRef.current = false;
@@ -93,10 +90,10 @@ export function useWaNotifications() {
     const newMessages: WaNewMessage[] = [];
 
     snapshot.forEach((c) => {
-      const prevCount = prev.get(c.id) || 0;
-      if (c.unread_count > prevCount) {
+      const prevCount = prev.get(c.conversation_id) || 0;
+      if (c.unread_for_user > prevCount) {
         newMessages.push({
-          conversationId: c.id,
+          conversationId: c.conversation_id,
           clienteNome: c.cliente_nome,
           clienteTelefone: c.cliente_telefone,
           preview: c.last_message_preview,
@@ -129,8 +126,8 @@ export function useWaNotifications() {
     setPendingNotifications([]);
   }, []);
 
-  // Total unread count for badge
-  const totalUnread = snapshot?.reduce((sum, c) => sum + c.unread_count, 0) ?? 0;
+  // Total unread count for badge — per-user via RPC
+  const totalUnread = snapshot?.reduce((sum, c) => sum + c.unread_for_user, 0) ?? 0;
 
   // Update app badge on PWA icon
   useEffect(() => {
