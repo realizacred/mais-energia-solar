@@ -4640,6 +4640,60 @@ export type Database = {
           },
         ]
       }
+      proposta_envios: {
+        Row: {
+          canal: string
+          created_at: string
+          destinatario: string | null
+          detalhes: Json | null
+          enviado_em: string
+          enviado_por: string | null
+          id: string
+          status: string
+          tenant_id: string
+          versao_id: string
+        }
+        Insert: {
+          canal: string
+          created_at?: string
+          destinatario?: string | null
+          detalhes?: Json | null
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          status?: string
+          tenant_id: string
+          versao_id: string
+        }
+        Update: {
+          canal?: string
+          created_at?: string
+          destinatario?: string | null
+          detalhes?: Json | null
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          status?: string
+          tenant_id?: string
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_envios_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_envios_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_itens: {
         Row: {
           category: string | null
@@ -4694,6 +4748,104 @@ export type Database = {
           },
         ]
       }
+      proposta_renders: {
+        Row: {
+          created_at: string
+          gerado_por: string | null
+          id: string
+          storage_path: string | null
+          tamanho_bytes: number | null
+          tenant_id: string
+          tipo: string
+          url: string | null
+          versao_id: string
+        }
+        Insert: {
+          created_at?: string
+          gerado_por?: string | null
+          id?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          tenant_id: string
+          tipo: string
+          url?: string | null
+          versao_id: string
+        }
+        Update: {
+          created_at?: string
+          gerado_por?: string | null
+          id?: string
+          storage_path?: string | null
+          tamanho_bytes?: number | null
+          tenant_id?: string
+          tipo?: string
+          url?: string | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_renders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_renders_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_templates: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          grupo: string
+          id: string
+          nome: string
+          template_html: string | null
+          tenant_id: string
+          updated_at: string
+          variaveis_disponiveis: Json
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          grupo?: string
+          id?: string
+          nome: string
+          template_html?: string | null
+          tenant_id: string
+          updated_at?: string
+          variaveis_disponiveis?: Json
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          grupo?: string
+          id?: string
+          nome?: string
+          template_html?: string | null
+          tenant_id?: string
+          updated_at?: string
+          variaveis_disponiveis?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_variaveis: {
         Row: {
           created_at: string
@@ -4738,6 +4890,93 @@ export type Database = {
           },
           {
             foreignKeyName: "proposta_variaveis_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_versoes: {
+        Row: {
+          aceito_em: string | null
+          created_at: string
+          economia_mensal: number | null
+          gerado_em: string | null
+          gerado_por: string | null
+          grupo: string | null
+          id: string
+          motivo_rejeicao: string | null
+          observacoes: string | null
+          payback_meses: number | null
+          potencia_kwp: number | null
+          proposta_id: string
+          rejeitado_em: string | null
+          snapshot: Json | null
+          status: Database["public"]["Enums"]["proposta_nativa_status"]
+          tenant_id: string
+          updated_at: string
+          validade_dias: number
+          valido_ate: string | null
+          valor_total: number | null
+          versao_numero: number
+        }
+        Insert: {
+          aceito_em?: string | null
+          created_at?: string
+          economia_mensal?: number | null
+          gerado_em?: string | null
+          gerado_por?: string | null
+          grupo?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          observacoes?: string | null
+          payback_meses?: number | null
+          potencia_kwp?: number | null
+          proposta_id: string
+          rejeitado_em?: string | null
+          snapshot?: Json | null
+          status?: Database["public"]["Enums"]["proposta_nativa_status"]
+          tenant_id: string
+          updated_at?: string
+          validade_dias?: number
+          valido_ate?: string | null
+          valor_total?: number | null
+          versao_numero: number
+        }
+        Update: {
+          aceito_em?: string | null
+          created_at?: string
+          economia_mensal?: number | null
+          gerado_em?: string | null
+          gerado_por?: string | null
+          grupo?: string | null
+          id?: string
+          motivo_rejeicao?: string | null
+          observacoes?: string | null
+          payback_meses?: number | null
+          potencia_kwp?: number | null
+          proposta_id?: string
+          rejeitado_em?: string | null
+          snapshot?: Json | null
+          status?: Database["public"]["Enums"]["proposta_nativa_status"]
+          tenant_id?: string
+          updated_at?: string
+          validade_dias?: number
+          valido_ate?: string | null
+          valor_total?: number | null
+          versao_numero?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_versoes_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_versoes_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -4870,6 +5109,97 @@ export type Database = {
             columns: ["consultor_id"]
             isOneToOne: false
             referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      propostas_nativas: {
+        Row: {
+          cliente_id: string | null
+          codigo: string | null
+          consultor_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string | null
+          projeto_id: string | null
+          template_id: string | null
+          tenant_id: string
+          titulo: string
+          updated_at: string
+          versao_atual: number
+        }
+        Insert: {
+          cliente_id?: string | null
+          codigo?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          projeto_id?: string | null
+          template_id?: string | null
+          tenant_id: string
+          titulo: string
+          updated_at?: string
+          versao_atual?: number
+        }
+        Update: {
+          cliente_id?: string | null
+          codigo?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string | null
+          projeto_id?: string | null
+          template_id?: string | null
+          tenant_id?: string
+          titulo?: string
+          updated_at?: string
+          versao_atual?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_nativas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -8794,6 +9124,13 @@ export type Database = {
         | "comissionado"
         | "concluido"
         | "cancelado"
+      proposta_nativa_status:
+        | "draft"
+        | "generated"
+        | "sent"
+        | "accepted"
+        | "rejected"
+        | "expired"
       servico_status:
         | "agendado"
         | "em_andamento"
@@ -9001,6 +9338,14 @@ export const Constants = {
         "comissionado",
         "concluido",
         "cancelado",
+      ],
+      proposta_nativa_status: [
+        "draft",
+        "generated",
+        "sent",
+        "accepted",
+        "rejected",
+        "expired",
       ],
       servico_status: [
         "agendado",
