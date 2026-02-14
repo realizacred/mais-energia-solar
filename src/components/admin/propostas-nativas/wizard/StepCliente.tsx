@@ -38,7 +38,7 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
     try {
       let query = supabase
         .from("leads")
-        .select("id, nome, telefone, lead_code, estado, cidade, consumo_kwh, media_consumo, tipo_telhado, email, rede_atendimento")
+        .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, email, rede_atendimento")
         .order("created_at", { ascending: false })
         .limit(20);
       if (q.length >= 2) {
