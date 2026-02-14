@@ -51,6 +51,10 @@ export interface NovoProjetoData {
   };
 }
 
+// Auto-capitalize: first letter of each word uppercase
+const autoCapitalize = (value: string) =>
+  value.replace(/\b\w/g, (char) => char.toUpperCase());
+
 const emptyCliente = {
   nome: "", email: "", empresa: "", cpfCnpj: "", telefone: "",
   cep: "", estado: "", cidade: "", endereco: "", numero: "", bairro: "", complemento: "",
@@ -160,12 +164,12 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
               <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Projeto</h3>
 
               <Field label="Nome do Projeto">
-                <Input
-                  placeholder="Nome do projeto"
-                  value={nome}
-                  onChange={e => setNome(e.target.value)}
-                  className="h-10 text-sm"
-                />
+                 <Input
+                   placeholder="Nome do projeto"
+                   value={nome}
+                   onChange={e => setNome(autoCapitalize(e.target.value))}
+                   className="h-10 text-sm"
+                 />
               </Field>
 
               <Field label="Descrição">
@@ -224,9 +228,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
               <Field label="Nome do Cliente *" error={errors["cliente.nome"]}>
                 <Input
                   placeholder="Digite o nome do cliente"
-                  value={cliente.nome}
-                  onChange={e => updateCliente("nome", e.target.value)}
-                  className={cn("h-10 text-sm", errors["cliente.nome"] && "border-destructive ring-1 ring-destructive/30")}
+                   value={cliente.nome}
+                   onChange={e => updateCliente("nome", autoCapitalize(e.target.value))}
+                   className={cn("h-10 text-sm", errors["cliente.nome"] && "border-destructive ring-1 ring-destructive/30")}
                 />
                 {errors["cliente.nome"] && (
                   <p className="text-xs text-destructive mt-0.5">Nome é obrigatório</p>
@@ -245,9 +249,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
               <Field label="Empresa">
                 <Input
-                  placeholder="Nome da empresa"
-                  value={cliente.empresa}
-                  onChange={e => updateCliente("empresa", e.target.value)}
+                   placeholder="Nome da empresa"
+                   value={cliente.empresa}
+                   onChange={e => updateCliente("empresa", autoCapitalize(e.target.value))}
                   className="h-10 text-sm"
                 />
               </Field>
@@ -310,18 +314,18 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
               <Field label="Cidade">
                 <Input
-                  placeholder="Cidade"
-                  value={cliente.cidade}
-                  onChange={e => updateCliente("cidade", e.target.value)}
+                   placeholder="Cidade"
+                   value={cliente.cidade}
+                   onChange={e => updateCliente("cidade", autoCapitalize(e.target.value))}
                   className="h-9 text-sm"
                 />
               </Field>
 
               <Field label="Bairro">
                 <Input
-                  placeholder="Bairro"
-                  value={cliente.bairro}
-                  onChange={e => updateCliente("bairro", e.target.value)}
+                   placeholder="Bairro"
+                   value={cliente.bairro}
+                   onChange={e => updateCliente("bairro", autoCapitalize(e.target.value))}
                   className="h-9 text-sm"
                 />
               </Field>
@@ -330,9 +334,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
                 <div className="col-span-2">
                   <Field label="Endereço">
                     <Input
-                      placeholder="Rua, Avenida..."
-                      value={cliente.endereco}
-                      onChange={e => updateCliente("endereco", e.target.value)}
+                       placeholder="Rua, Avenida..."
+                       value={cliente.endereco}
+                       onChange={e => updateCliente("endereco", autoCapitalize(e.target.value))}
                       className="h-9 text-sm"
                     />
                   </Field>
@@ -349,9 +353,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
               <Field label="Complemento">
                 <Input
-                  placeholder="Apto, Bloco..."
-                  value={cliente.complemento}
-                  onChange={e => updateCliente("complemento", e.target.value)}
+                   placeholder="Apto, Bloco..."
+                   value={cliente.complemento}
+                   onChange={e => updateCliente("complemento", autoCapitalize(e.target.value))}
                   className="h-9 text-sm"
                 />
               </Field>
