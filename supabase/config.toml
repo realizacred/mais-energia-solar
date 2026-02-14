@@ -57,11 +57,6 @@ verify_jwt = false
 [functions.check-wa-instance-status]
 verify_jwt = false
 
-[functions.cleanup-legacy-storage]
-verify_jwt = false
-
-[functions.migrate-storage-paths]
-verify_jwt = false
 
 [functions.process-wa-followups]
 verify_jwt = false
@@ -132,8 +127,6 @@ verify_jwt = false
 [functions.google-calendar-poll]
 verify_jwt = false
 
-[functions.loading-ai-message]
-verify_jwt = false
 
 [functions.retry-failed-calendar-sync]
 verify_jwt = false

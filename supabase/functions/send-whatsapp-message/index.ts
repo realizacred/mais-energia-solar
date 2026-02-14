@@ -129,8 +129,28 @@ Deno.serve(async (req) => {
     let tenantId: string | null = null;
     let tenantSource = "";
 
+    // Resolve user's profile tenant first (needed for mismatch check)
+    let profileTenantId: string | null = null;
+    if (userId) {
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      profileTenantId = profile?.tenant_id || null;
+    }
+
     // Strategy 1: Explicit tenant_id in body (REQUIRED for service_role callers)
     if (body.tenant_id) {
+      // P0 HARDENING: If JWT user passes tenant_id, it MUST match their profile tenant
+      if (!isServiceRole && profileTenantId && body.tenant_id !== profileTenantId) {
+        console.error(`[send-wa] [ALERT][SECURITY] tenant_id MISMATCH: body=${body.tenant_id} profile=${profileTenantId} user=${userId}`);
+        return new Response(
+          JSON.stringify({ success: false, error: "tenant_id mismatch — acesso negado" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       const { data: tenantRow } = await supabaseAdmin
         .from("tenants")
         .select("id")
@@ -150,16 +170,9 @@ Deno.serve(async (req) => {
     }
 
     // Strategy 2: From user profile (regular JWT user)
-    if (!tenantId && userId) {
-      const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("tenant_id")
-        .eq("user_id", userId)
-        .maybeSingle();
-      if (profile?.tenant_id) {
-        tenantId = profile.tenant_id;
-        tenantSource = "user_profile";
-      }
+    if (!tenantId && profileTenantId) {
+      tenantId = profileTenantId;
+      tenantSource = "user_profile";
     }
 
     // Strategy 3: From lead record (if lead_id provided)
