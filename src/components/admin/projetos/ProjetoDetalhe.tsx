@@ -206,8 +206,13 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
     return stages.find(s => s.id === id)?.name || "—";
   };
 
-  const reloadDeal = async () => {
-    setLoading(true);
+  // Optimistic local updater — no loading spinner
+  const updateDealLocal = (patch: Partial<DealDetail>) => {
+    setDeal(prev => prev ? { ...prev, ...patch } : prev);
+  };
+
+  // Background refresh (silent, no loading state)
+  const silentRefresh = async () => {
     try {
       const { data: d } = await supabase.from("deals").select("id, title, value, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date").eq("id", dealId).single();
       if (d) {
@@ -219,7 +224,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
         setStages((stagesRes.data || []) as StageInfo[]);
         setHistory((historyRes.data || []) as StageHistory[]);
       }
-    } finally { setLoading(false); }
+    } catch { /* silent */ }
   };
 
   if (loading) {
@@ -328,7 +333,8 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
               currentStage={currentStage} currentStageIndex={currentStageIndex}
               currentPipeline={currentPipeline}
               formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
-              onDealUpdated={reloadDeal}
+              onDealUpdated={silentRefresh}
+              updateDealLocal={updateDealLocal}
             />
           )}
           {activeTab === "chat" && (
@@ -374,7 +380,7 @@ function GerenciamentoTab({
   deal, history, stages, pipelines, allStagesMap,
   customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress,
   ownerName, currentStage, currentStageIndex, currentPipeline,
-  formatDate, formatBRL, getStageNameById, onDealUpdated,
+  formatDate, formatBRL, getStageNameById, onDealUpdated, updateDealLocal,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
   pipelines: PipelineInfo[]; allStagesMap: Map<string, StageInfo[]>;
@@ -385,6 +391,7 @@ function GerenciamentoTab({
   formatDate: (d: string) => string; formatBRL: (v: number) => string;
   getStageNameById: (id: string | null) => string;
   onDealUpdated: () => void;
+  updateDealLocal: (patch: Partial<DealDetail>) => void;
 }) {
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
@@ -408,13 +415,16 @@ function GerenciamentoTab({
         toast({ title: "Este funil não tem etapas configuradas", variant: "destructive" });
         return;
       }
+      // Optimistic
+      updateDealLocal({ pipeline_id: pipelineId, stage_id: firstStage.id });
       const { error } = await supabase.from("deals")
         .update({ pipeline_id: pipelineId, stage_id: firstStage.id })
         .eq("id", deal.id);
       if (error) throw error;
       toast({ title: "Funil alterado com sucesso" });
-      onDealUpdated();
+      onDealUpdated(); // silent background refresh
     } catch (err: any) {
+      updateDealLocal({ pipeline_id: deal.pipeline_id, stage_id: deal.stage_id }); // rollback
       toast({ title: "Erro ao alterar funil", description: err.message, variant: "destructive" });
     } finally {
       setChangingPipeline(false);
@@ -423,40 +433,51 @@ function GerenciamentoTab({
 
   const handleOwnerChange = async (ownerId: string) => {
     if (ownerId === deal.owner_id) return;
+    const prevOwnerId = deal.owner_id;
+    updateDealLocal({ owner_id: ownerId }); // Optimistic
     try {
       const { error } = await supabase.from("deals").update({ owner_id: ownerId }).eq("id", deal.id);
       if (error) throw error;
       toast({ title: "Responsável alterado" });
       onDealUpdated();
     } catch (err: any) {
+      updateDealLocal({ owner_id: prevOwnerId }); // rollback
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
 
   const handleWinDeal = async () => {
+    const prevStatus = deal.status;
+    const prevStageId = deal.stage_id;
+    const wonStage = stages.find(s => s.is_won);
+    const update: any = { status: "won" };
+    if (wonStage) update.stage_id = wonStage.id;
+    updateDealLocal(update); // Optimistic
     try {
-      const wonStage = stages.find(s => s.is_won);
-      const update: any = { status: "won" };
-      if (wonStage) update.stage_id = wonStage.id;
       const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
       if (error) throw error;
       toast({ title: "🎉 Projeto ganho!" });
       onDealUpdated();
     } catch (err: any) {
+      updateDealLocal({ status: prevStatus, stage_id: prevStageId }); // rollback
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
 
   const handleLoseDeal = async () => {
+    const prevStatus = deal.status;
+    const prevStageId = deal.stage_id;
+    const lostStage = stages.find(s => s.is_closed && !s.is_won);
+    const update: any = { status: "lost" };
+    if (lostStage) update.stage_id = lostStage.id;
+    updateDealLocal(update); // Optimistic
     try {
-      const lostStage = stages.find(s => s.is_closed && !s.is_won);
-      const update: any = { status: "lost" };
-      if (lostStage) update.stage_id = lostStage.id;
       const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
       if (error) throw error;
       toast({ title: "Projeto marcado como perdido" });
       onDealUpdated();
     } catch (err: any) {
+      updateDealLocal({ status: prevStatus, stage_id: prevStageId }); // rollback
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     }
   };
@@ -682,12 +703,15 @@ function GerenciamentoTab({
                         <button
                           onClick={async () => {
                             if (stage.id === deal.stage_id) return;
+                            const prevStageId = deal.stage_id;
+                            updateDealLocal({ stage_id: stage.id }); // Optimistic
                             try {
                               const { error } = await supabase.from("deals").update({ stage_id: stage.id }).eq("id", deal.id);
                               if (error) throw error;
                               toast({ title: `Movido para "${stage.name}"` });
                               onDealUpdated();
                             } catch (err: any) {
+                              updateDealLocal({ stage_id: prevStageId }); // rollback
                               toast({ title: "Erro", description: err.message, variant: "destructive" });
                             }
                           }}
