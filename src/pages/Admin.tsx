@@ -75,6 +75,9 @@ const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
 const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
+const ProposalWizardPage = lazy(() => import("@/components/admin/propostas-nativas").then(m => ({ default: m.ProposalWizard })));
+const ProposalListPage = lazy(() => import("@/components/admin/propostas-nativas").then(m => ({ default: m.ProposalList })));
+const ProposalDetailPage = lazy(() => import("@/components/admin/propostas-nativas").then(m => ({ default: m.ProposalDetail })));
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
@@ -126,6 +129,8 @@ const TAB_TITLES: Record<string, string> = {
   "wa-instances": "Instâncias WhatsApp",
   release: "Release Notes",
   propostas: "Propostas Comerciais",
+  "propostas-nativas": "Gerador de Propostas",
+  "propostas-nativas/nova": "Nova Proposta",
   "followup-wa": "Regras de Follow-up",
   "followup-queue": "Fila de Follow-ups",
   "wa-etiquetas": "Etiquetas WhatsApp",
@@ -296,6 +301,9 @@ export default function Admin() {
                 <Route path="pipeline" element={<LeadsPipeline />} />
                 <Route path="followup" element={<FollowUpManager diasAlerta={3} />} />
                 <Route path="propostas" element={<PropostasManager />} />
+                <Route path="propostas-nativas" element={<ProposalListPage />} />
+                <Route path="propostas-nativas/nova" element={<ProposalWizardPage />} />
+                <Route path="propostas-nativas/:propostaId/versoes/:versaoId" element={<ProposalDetailPage />} />
                 <Route path="aprovacao" element={<AprovacaoUsuarios />} />
                 <Route path="lead-status" element={<LeadStatusManager />} />
                 <Route path="inteligencia" element={<IntelligenceDashboard />} />
