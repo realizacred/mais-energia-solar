@@ -6639,6 +6639,7 @@ export type Database = {
         Row: {
           ativo: boolean
           created_at: string
+          deleted_at: string | null
           dominio_customizado: string | null
           id: string
           nome: string
@@ -6654,6 +6655,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           created_at?: string
+          deleted_at?: string | null
           dominio_customizado?: string | null
           id?: string
           nome: string
@@ -6669,6 +6671,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           created_at?: string
+          deleted_at?: string | null
           dominio_customizado?: string | null
           id?: string
           nome?: string
@@ -8535,6 +8538,7 @@ export type Database = {
         Args: { _estado: string; _tenant_id?: string }
         Returns: number
       }
+      get_my_tenant_status: { Args: never; Returns: Json }
       get_payback_config: {
         Args: never
         Returns: {
@@ -8561,6 +8565,15 @@ export type Database = {
           tenant_id: string
           title: string
         }[]
+      }
+      get_super_admin_metrics: {
+        Args: {
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _status_filter?: string
+        }
+        Returns: Json
       }
       get_tenant_status: {
         Args: { _tenant_id: string }
@@ -8668,10 +8681,13 @@ export type Database = {
       resolve_public_tenant_id:
         | { Args: never; Returns: string }
         | { Args: { _consultor_code?: string }; Returns: string }
+      tenant_and_user_active: { Args: never; Returns: boolean }
+      tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
       try_followup_lock: { Args: never; Returns: boolean }
       try_webhook_lock: { Args: never; Returns: boolean }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
+      user_is_active: { Args: { _user_id?: string }; Returns: boolean }
       validate_consultor_code: {
         Args: { _codigo: string }
         Returns: {

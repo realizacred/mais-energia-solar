@@ -208,6 +208,25 @@ Deno.serve(async (req) => {
     }
     tenantId = profile.tenant_id;
 
+    // ── G3: Tenant status enforcement ──
+    const supabaseServiceCheck = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+    const { data: tenantRow } = await supabaseServiceCheck
+      .from("tenants")
+      .select("status, deleted_at")
+      .eq("id", tenantId)
+      .single();
+
+    if (!tenantRow || tenantRow.status !== "active" || tenantRow.deleted_at) {
+      logStatus = 403;
+      return new Response(
+        JSON.stringify({ error: "Acesso bloqueado: empresa inativa." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ── Resolve preferred model from tenant settings ──
     let primaryModel = DEFAULT_MODEL;
     const { data: aiSettings } = await supabase

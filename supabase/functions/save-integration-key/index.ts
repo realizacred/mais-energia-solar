@@ -130,6 +130,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // G3: Tenant status enforcement
+    const { data: tenantRow } = await supabaseAdmin
+      .from("tenants")
+      .select("status, deleted_at")
+      .eq("id", profile.tenant_id)
+      .single();
+    if (!tenantRow || tenantRow.status !== "active" || tenantRow.deleted_at) {
+      return new Response(
+        JSON.stringify({ error: "tenant_inactive" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Upsert the key
     const { error: upsertError } = await supabaseAdmin
       .from("integration_configs")

@@ -145,12 +145,35 @@ Deno.serve(async (req) => {
 
       case "update_user_role": {
         if (!target_user_id || !new_role) throw new Error("target_user_id and new_role required");
-        // Upsert role
+        
+        // G25 FIX: Resolve tenant_id from target user's profile
+        const { data: targetProfile, error: tpErr } = await supabaseAdmin
+          .from("profiles")
+          .select("tenant_id")
+          .eq("user_id", target_user_id)
+          .single();
+        
+        if (tpErr || !targetProfile?.tenant_id) {
+          throw new Error("Target user has no profile/tenant. Cannot assign role without tenant_id.");
+        }
+        
+        // If caller specifies tenant_id, validate it matches (super_admin can cross-tenant)
+        const effectiveTenantId = tenant_id || targetProfile.tenant_id;
+        
+        // Validate target user belongs to the specified tenant
+        if (tenant_id && tenant_id !== targetProfile.tenant_id) {
+          throw new Error(`Target user belongs to tenant ${targetProfile.tenant_id}, not ${tenant_id}`);
+        }
+        
+        // Upsert role WITH tenant_id
         const { error } = await supabaseAdmin
           .from("user_roles")
-          .upsert({ user_id: target_user_id, role: new_role }, { onConflict: "user_id,role" });
+          .upsert(
+            { user_id: target_user_id, role: new_role, tenant_id: effectiveTenantId },
+            { onConflict: "user_id,role" }
+          );
         if (error) throw error;
-        result = { success: true, message: `Role ${new_role} atribuída` };
+        result = { success: true, message: `Role ${new_role} atribuída (tenant: ${effectiveTenantId})` };
         break;
       }
 
