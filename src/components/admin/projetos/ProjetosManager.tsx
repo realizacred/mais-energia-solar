@@ -15,7 +15,7 @@ export function ProjetosManager() {
     selectedFunilId, setSelectedFunilId,
     selectedFunilEtapas, projetosByEtapa,
     consultoresFilter,
-    createFunil, renameFunil,
+    createFunil, renameFunil, toggleFunilAtivo, reorderFunis,
     moveProjetoToEtapa,
   } = useProjetoPipeline();
 
@@ -95,6 +95,8 @@ export function ProjetosManager() {
             onSelect={setSelectedFunilId}
             onCreate={createFunil}
             onRename={renameFunil}
+            onToggleAtivo={toggleFunilAtivo}
+            onReorder={reorderFunis}
           />
         </CardHeader>
         <CardContent className="pt-0">
