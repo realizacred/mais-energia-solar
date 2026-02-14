@@ -8710,6 +8710,15 @@ export type Database = {
       resolve_public_tenant_id:
         | { Args: never; Returns: string }
         | { Args: { _consultor_code?: string }; Returns: string }
+      resolve_tenant_public: {
+        Args: { _id?: string; _slug?: string }
+        Returns: {
+          id: string
+          nome: string
+          slug: string
+          status: string
+        }[]
+      }
       tenant_and_user_active: { Args: never; Returns: boolean }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
       try_followup_lock: { Args: never; Returns: boolean }

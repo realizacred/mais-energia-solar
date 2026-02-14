@@ -80,15 +80,13 @@ export async function resolvePublicTenantId(vendedorCode?: string | null): Promi
     }
   }
 
-  // Fallback: single-tenant mode — get the only active tenant
-  const { data: tenants } = await supabase
-    .from("tenants")
-    .select("id")
-    .eq("ativo", true)
+  // Fallback: single-tenant mode — resolve via RPC segura (nunca SELECT direto)
+  const { data: activeTenants } = await supabase
+    .rpc("resolve_tenant_public")
     .limit(2);
 
-  if (tenants && tenants.length === 1) {
-    return tenants[0].id;
+  if (activeTenants && activeTenants.length === 1) {
+    return (activeTenants[0] as any).id;
   }
 
   return null;
