@@ -4,6 +4,7 @@ import { callSuperAdminAction } from "@/lib/superAdminApi";
 import {
   ArrowLeft, Building2, Users, BarChart3, Activity, History,
   KeyRound, Mail, UserCog, Shield, UserMinus, UserPlus, Crown, Edit,
+  Ban, Lock, Trash2, RotateCcw, AlertTriangle,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,10 +44,17 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState({ nome: "", documento: "", dominio_customizado: "", plano: "" });
   const [saving, setSaving] = useState(false);
+  const [plans, setPlans] = useState<any[]>([]);
+
+  // User management dialogs
   const [emailTarget, setEmailTarget] = useState<any>(null);
   const [newEmail, setNewEmail] = useState("");
   const [ownerTarget, setOwnerTarget] = useState<any>(null);
-  const [plans, setPlans] = useState<any[]>([]);
+  const [passwordTarget, setPasswordTarget] = useState<any>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [banTarget, setBanTarget] = useState<any>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -104,71 +112,83 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
     finally { setSaving(false); }
   };
 
-  const handlePasswordReset = async (userId: string) => {
+  const runAction = async (actionName: string, payload: any, successMsg: string) => {
+    setActionLoading(actionName);
     try {
-      const res = await callSuperAdminAction({ action: "force_password_reset", target_user_id: userId });
+      const res = await callSuperAdminAction(payload);
+      toast.success(successMsg);
       if (res.recovery_link) {
         await navigator.clipboard.writeText(res.recovery_link);
-        toast.success("Link copiado para clipboard");
-      } else {
-        toast.success("Reset enviado");
+        toast.info("Link de recuperação copiado para o clipboard");
       }
-    } catch (err: any) { toast.error(err.message); }
+      load();
+      return res;
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const handleToggleUser = async (userId: string, currentActive: boolean) => {
-    try {
-      await callSuperAdminAction({
-        action: "toggle_user_active",
-        target_user_id: userId,
-        new_active: !currentActive,
-      });
-      toast.success(currentActive ? "Usuário desativado" : "Usuário ativado");
-      load();
-    } catch (err: any) { toast.error(err.message); }
-  };
+  const handlePasswordReset = (userId: string) =>
+    runAction("reset_" + userId, { action: "force_password_reset", target_user_id: userId }, "Link de reset gerado");
+
+  const handleToggleUser = (userId: string, currentActive: boolean) =>
+    runAction("toggle_" + userId, {
+      action: "toggle_user_active", target_user_id: userId, new_active: !currentActive,
+    }, currentActive ? "Usuário desativado" : "Usuário ativado");
 
   const handleChangeEmail = async () => {
     if (!emailTarget || !newEmail) return;
-    try {
-      await callSuperAdminAction({
-        action: "change_owner_email",
-        target_user_id: emailTarget.user_id,
-        tenant_id: tenantId,
-        new_email: newEmail,
-      });
-      toast.success("Email atualizado");
-      setEmailTarget(null); setNewEmail("");
-      load();
-    } catch (err: any) { toast.error(err.message); }
+    await runAction("email", {
+      action: "change_owner_email", target_user_id: emailTarget.user_id,
+      tenant_id: tenantId, new_email: newEmail,
+    }, "Email atualizado");
+    setEmailTarget(null); setNewEmail("");
   };
 
   const handleTransferOwnership = async () => {
     if (!ownerTarget) return;
-    try {
-      await callSuperAdminAction({
-        action: "transfer_ownership",
-        tenant_id: tenantId,
-        target_user_id: ownerTarget.user_id,
-      });
-      toast.success("Ownership transferido");
-      setOwnerTarget(null);
-      load();
-    } catch (err: any) { toast.error(err.message); }
+    await runAction("ownership", {
+      action: "transfer_ownership", tenant_id: tenantId, target_user_id: ownerTarget.user_id,
+    }, "Ownership transferido");
+    setOwnerTarget(null);
   };
 
-  const handleToggleRole = async (userId: string, role: string, hasRole: boolean) => {
-    try {
-      await callSuperAdminAction({
-        action: "update_user_role",
-        target_user_id: userId,
-        tenant_id: tenantId,
-        new_role: role,
-        remove_role: hasRole,
-      });
-      toast.success(hasRole ? `Role ${role} removida` : `Role ${role} adicionada`);
-      load();
-    } catch (err: any) { toast.error(err.message); }
+  const handleToggleRole = (userId: string, role: string, hasRole: boolean) =>
+    runAction("role_" + userId + role, {
+      action: "update_user_role", target_user_id: userId, tenant_id: tenantId,
+      new_role: role, remove_role: hasRole,
+    }, hasRole ? `Role ${role} removida` : `Role ${role} adicionada`);
+
+  const handleSetPassword = async () => {
+    if (!passwordTarget || !newPassword || newPassword.length < 6) {
+      toast.error("Senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    await runAction("setpw", {
+      action: "set_password", target_user_id: passwordTarget.user_id, new_password: newPassword,
+    }, "Senha redefinida com sucesso");
+    setPasswordTarget(null); setNewPassword("");
+  };
+
+  const handleBanUser = async () => {
+    if (!banTarget) return;
+    await runAction("ban", {
+      action: "ban_user", target_user_id: banTarget.user_id,
+    }, "Usuário banido");
+    setBanTarget(null);
+  };
+
+  const handleUnbanUser = (userId: string) =>
+    runAction("unban_" + userId, { action: "unban_user", target_user_id: userId }, "Usuário desbanido");
+
+  const handleDeleteUser = async () => {
+    if (!deleteTarget) return;
+    await runAction("delete", {
+      action: "delete_user_permanently", target_user_id: deleteTarget.user_id,
+    }, "Usuário excluído permanentemente");
+    setDeleteTarget(null);
   };
 
   const isDeleted = !!tenant.deleted_at;
@@ -270,18 +290,23 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
           </div>
         </TabsContent>
 
-        {/* Users */}
-        <TabsContent value="users">
+        {/* Users - Enhanced */}
+        <TabsContent value="users" className="space-y-4">
           <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Users className="w-4 h-4" /> Gestão de Usuários do Tenant
+              </CardTitle>
+            </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead>Usuário</TableHead>
                       <TableHead>Roles</TableHead>
                       <TableHead>Status</TableHead>
+                      <TableHead>Criado em</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -291,22 +316,32 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                       const isOwner = u.user_id === tenant.owner_user_id;
                       return (
                         <TableRow key={u.user_id}>
-                          <TableCell className="font-medium">
-                            {u.nome || "—"}
-                            {isOwner && <Badge variant="outline" className="ml-2 text-xs">Owner</Badge>}
-                          </TableCell>
-                          <TableCell className="text-sm">{u.email || "—"}</TableCell>
                           <TableCell>
-                            <div className="flex gap-1 flex-wrap">
+                            <div>
+                              <p className="font-medium text-sm flex items-center gap-1.5">
+                                {u.nome || "Sem nome"}
+                                {isOwner && (
+                                  <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
+                                    <Crown className="w-3 h-3 mr-1" /> Owner
+                                  </Badge>
+                                )}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{u.email || "—"}</p>
+                              {u.telefone && <p className="text-xs text-muted-foreground">{u.telefone}</p>}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 flex-wrap max-w-[220px]">
                               {ALL_ROLES.map(role => {
                                 const has = userRoles.includes(role);
                                 return (
                                   <button
                                     key={role}
                                     onClick={() => handleToggleRole(u.user_id, role, has)}
+                                    disabled={!!actionLoading}
                                     className={`text-xs px-2 py-0.5 rounded border transition-colors ${
                                       has
-                                        ? "bg-primary/10 text-primary border-primary/20"
+                                        ? "bg-primary/10 text-primary border-primary/20 font-medium"
                                         : "bg-muted/50 text-muted-foreground border-border hover:bg-muted"
                                     }`}
                                   >
@@ -321,25 +356,58 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                               {u.ativo ? "Ativo" : "Inativo"}
                             </Badge>
                           </TableCell>
+                          <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                            {u.created_at ? format(new Date(u.created_at), "dd/MM/yy", { locale: ptBR }) : "—"}
+                          </TableCell>
                           <TableCell className="text-right">
-                            <div className="flex gap-1 justify-end">
-                              <Button variant="ghost" size="sm" title="Reset senha" onClick={() => handlePasswordReset(u.user_id)}>
-                                <KeyRound className="w-4 h-4" />
-                              </Button>
+                            <div className="flex gap-1 justify-end flex-wrap">
+                              {/* Change Email */}
                               <Button variant="ghost" size="sm" title="Alterar email"
+                                disabled={!!actionLoading}
                                 onClick={() => { setEmailTarget(u); setNewEmail(u.email || ""); }}>
                                 <Mail className="w-4 h-4" />
                               </Button>
+                              {/* Reset Password (generate link) */}
+                              <Button variant="ghost" size="sm" title="Gerar link de reset de senha"
+                                disabled={!!actionLoading}
+                                onClick={() => handlePasswordReset(u.user_id)}>
+                                <KeyRound className="w-4 h-4" />
+                              </Button>
+                              {/* Set Password directly */}
+                              <Button variant="ghost" size="sm" title="Redefinir senha manualmente"
+                                disabled={!!actionLoading}
+                                onClick={() => { setPasswordTarget(u); setNewPassword(""); }}>
+                                <Lock className="w-4 h-4" />
+                              </Button>
+                              {/* Toggle Active */}
                               <Button variant="ghost" size="sm"
-                                title={u.ativo ? "Desativar" : "Ativar"}
-                                onClick={() => handleToggleUser(u.user_id, u.ativo)}
-                              >
+                                title={u.ativo ? "Desativar acesso" : "Reativar acesso"}
+                                disabled={!!actionLoading}
+                                onClick={() => handleToggleUser(u.user_id, u.ativo)}>
                                 {u.ativo ? <UserMinus className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
                               </Button>
+                              {/* Ban User */}
+                              <Button variant="ghost" size="sm" title="Banir usuário (bloquear login)"
+                                disabled={!!actionLoading}
+                                className="text-warning hover:text-warning"
+                                onClick={() => setBanTarget(u)}>
+                                <Ban className="w-4 h-4" />
+                              </Button>
+                              {/* Transfer Ownership */}
                               {!isOwner && (
                                 <Button variant="ghost" size="sm" title="Transferir ownership"
+                                  disabled={!!actionLoading}
                                   onClick={() => setOwnerTarget(u)}>
                                   <Crown className="w-4 h-4" />
+                                </Button>
+                              )}
+                              {/* Delete permanently */}
+                              {!isOwner && (
+                                <Button variant="ghost" size="sm" title="Excluir permanentemente"
+                                  disabled={!!actionLoading}
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteTarget(u)}>
+                                  <Trash2 className="w-4 h-4" />
                                 </Button>
                               )}
                             </div>
@@ -352,6 +420,22 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Action Legend */}
+          <Card>
+            <CardContent className="p-3">
+              <p className="text-xs font-medium text-muted-foreground mb-2">Legenda das ações:</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> Trocar email</span>
+                <span className="flex items-center gap-1"><KeyRound className="w-3 h-3" /> Link de reset</span>
+                <span className="flex items-center gap-1"><Lock className="w-3 h-3" /> Redefinir senha</span>
+                <span className="flex items-center gap-1"><UserMinus className="w-3 h-3" /> Desativar/Ativar</span>
+                <span className="flex items-center gap-1"><Ban className="w-3 h-3" /> Banir (bloquear login)</span>
+                <span className="flex items-center gap-1"><Crown className="w-3 h-3" /> Transferir ownership</span>
+                <span className="flex items-center gap-1"><Trash2 className="w-3 h-3" /> Excluir permanente</span>
               </div>
             </CardContent>
           </Card>
@@ -369,9 +453,7 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                     <div key={h.service_key} className="flex items-center justify-between p-3 border rounded-lg">
                       <div>
                         <p className="font-medium text-sm">{h.service_key}</p>
-                        {h.error_message && (
-                          <p className="text-xs text-muted-foreground mt-1">{h.error_message}</p>
-                        )}
+                        {h.error_message && <p className="text-xs text-muted-foreground mt-1">{h.error_message}</p>}
                         {h.last_checked_at && (
                           <p className="text-xs text-muted-foreground">
                             Última verificação: {format(new Date(h.last_checked_at), "dd/MM HH:mm")}
@@ -463,7 +545,50 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
           <div><Label>Novo Email</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} /></div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEmailTarget(null)}>Cancelar</Button>
-            <Button onClick={handleChangeEmail}>Confirmar</Button>
+            <Button onClick={handleChangeEmail} disabled={!!actionLoading}>Confirmar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Set Password Dialog */}
+      <Dialog open={!!passwordTarget} onOpenChange={(o) => !o && setPasswordTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Redefinir Senha</DialogTitle>
+            <DialogDescription>
+              Definir nova senha para: <strong>{passwordTarget?.nome}</strong> ({passwordTarget?.email})
+            </DialogDescription>
+          </DialogHeader>
+          <div>
+            <Label>Nova Senha (mín. 6 caracteres)</Label>
+            <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Nova senha..." />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordTarget(null)}>Cancelar</Button>
+            <Button onClick={handleSetPassword} disabled={!!actionLoading || newPassword.length < 6}>
+              Redefinir Senha
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Ban User Dialog */}
+      <Dialog open={!!banTarget} onOpenChange={(o) => !o && setBanTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-warning">
+              <AlertTriangle className="w-5 h-5" /> Banir Usuário
+            </DialogTitle>
+            <DialogDescription>
+              Banir <strong>{banTarget?.nome}</strong> ({banTarget?.email})?
+              Isso bloqueia completamente o login do usuário no Supabase Auth e desativa o perfil.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBanTarget(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleBanUser} disabled={!!actionLoading}>
+              Confirmar Ban
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -480,7 +605,29 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOwnerTarget(null)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleTransferOwnership}>Confirmar Transferência</Button>
+            <Button variant="destructive" onClick={handleTransferOwnership} disabled={!!actionLoading}>Confirmar Transferência</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Dialog */}
+      <Dialog open={!!deleteTarget} onOpenChange={(o) => !o && setDeleteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="w-5 h-5" /> Excluir Usuário Permanentemente
+            </DialogTitle>
+            <DialogDescription>
+              Excluir <strong>{deleteTarget?.nome}</strong> ({deleteTarget?.email}) permanentemente?
+              Esta ação remove o usuário do Supabase Auth, desativa o perfil e libera todas as conversas atribuídas.
+              <strong className="block mt-2 text-destructive">Esta ação NÃO pode ser desfeita.</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteUser} disabled={!!actionLoading}>
+              Excluir Permanentemente
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
