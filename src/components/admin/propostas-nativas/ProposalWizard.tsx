@@ -198,16 +198,19 @@ export function ProposalWizard() {
         lead_id: selectedLead.id,
         grupo: grupo.startsWith("B") ? "B" : "A",
         idempotency_key: idempotencyKey,
-        dados_tecnicos: {
-          potencia_kwp: potenciaKwp,
-          consumo_medio_kwh: consumoTotal,
-          tipo_fase: uc1?.fase || "bifasico",
-          estado: uc1?.estado || cliente.estado,
+        potencia_kwp: potenciaKwp,
+        ucs: ucs.map(({ id, uc_index, ...rest }) => rest),
+        premissas,
+        itens: itens.filter(i => i.descricao).map(({ id, ...rest }) => rest),
+        servicos: servicos.map(({ id, ...rest }) => rest),
+        venda: {
+          custo_comissao: venda.custo_comissao,
+          custo_outros: venda.custo_outros,
+          margem_percentual: venda.margem_percentual,
+          desconto_percentual: venda.desconto_percentual,
+          observacoes: venda.observacoes,
         },
-        itens: itens.filter(i => i.descricao).map(({ descricao, quantidade, preco_unitario, categoria }) => ({
-          descricao, quantidade, preco_unitario, categoria,
-        })),
-        desconto_percentual: venda.desconto_percentual || undefined,
+        pagamento_opcoes: pagamentoOpcoes.map(({ id, ...rest }) => rest),
         observacoes: venda.observacoes || undefined,
       };
 
