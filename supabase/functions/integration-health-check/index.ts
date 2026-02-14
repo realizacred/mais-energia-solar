@@ -6,30 +6,25 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-interface IntegrationResult {
-  id: string;
-  name: string;
-  status: "online" | "offline" | "degraded" | "not_configured";
-  latency_ms?: number;
-  details?: string;
-  last_event?: string;
-  checked_at: string;
-}
+/**
+ * Integration Health Check — runs checks against external APIs and persists results
+ * to `integration_health_cache` table.
+ *
+ * Two invocation modes:
+ * 1. Authenticated (admin clicks "Refresh") — checks only their tenant
+ * 2. Cron (pg_cron via pg_net) — checks ALL active tenants
+ *
+ * Status mapping: healthy | degraded | down | not_configured
+ */
 
-interface InstanceHealth {
-  instance_id: string;
-  instance_name: string;
-  phone_number: string | null;
-  profile_name: string | null;
-  ok: boolean;
-  evolution_state: string | null;
+type HealthStatus = "healthy" | "degraded" | "down" | "not_configured";
+
+interface CheckResult {
+  integration_name: string;
+  status: HealthStatus;
   latency_ms: number | null;
   error_message: string | null;
-  last_seen_at: string | null;
-  last_webhook_at: string | null;
-  last_send_ok_at: string | null;
-  outbox_pending_count: number;
-  consultores: { id: string; nome: string; codigo: string }[];
+  details: Record<string, unknown>;
 }
 
 Deno.serve(async (req) => {
@@ -38,436 +33,136 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: authHeader } } }
-    );
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const userId = claimsData.claims.sub;
-
-    // Admin only
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .in("role", ["admin", "gerente"])
-      .limit(1)
-      .maybeSingle();
-
-    if (!roleData) {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    const body = await req.json().catch(() => ({}));
-    const integration = body.integration || "all";
-
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve tenant
-    const { data: profileData } = await supabaseAdmin
-      .from("profiles")
-      .select("tenant_id")
-      .eq("user_id", userId)
-      .single();
-    const tenantId = profileData?.tenant_id;
+    const authHeader = req.headers.get("Authorization");
+    let tenantIds: string[] = [];
+    let isManualRefresh = false;
 
-    const results: IntegrationResult[] = [];
-    const now = new Date().toISOString();
-    let instanceHealthList: InstanceHealth[] = [];
-
-    // ── WhatsApp (Evolution API) — per-instance health ──
-    if (integration === "all" || integration === "whatsapp") {
-      try {
-        const { data: instances } = await supabaseAdmin
-          .from("wa_instances")
-          .select("id, nome, status, evolution_api_url, evolution_instance_key, api_key, last_seen_at, phone_number, profile_name, updated_at")
-          .eq("tenant_id", tenantId)
-          .limit(20);
-
-        if (!instances || instances.length === 0) {
-          results.push({
-            id: "whatsapp",
-            name: "WhatsApp (Evolution API)",
-            status: "not_configured",
-            details: "Nenhuma instância configurada",
-            checked_at: now,
-          });
-        } else {
-          const globalApiKey = Deno.env.get("EVOLUTION_API_KEY") || "";
-          let onlineCount = 0;
-          const totalCount = instances.length;
-          const latencies: number[] = [];
-
-          for (const inst of instances) {
-            const apiUrl = inst.evolution_api_url?.replace(/\/$/, "");
-            const instanceKey = inst.evolution_instance_key;
-            const apiKey = inst.api_key || globalApiKey;
-
-            const health: InstanceHealth = {
-              instance_id: inst.id,
-              instance_name: inst.nome,
-              phone_number: inst.phone_number,
-              profile_name: inst.profile_name,
-              ok: false,
-              evolution_state: null,
-              latency_ms: null,
-              error_message: null,
-              last_seen_at: inst.last_seen_at,
-              last_webhook_at: null,
-              last_send_ok_at: null,
-              outbox_pending_count: 0,
-              consultores: [],
-            };
-
-            // Fetch consultores linked to this instance
-            const { data: vendedorLinks } = await supabaseAdmin
-              .from("wa_instance_consultores")
-              .select("consultor_id")
-              .eq("instance_id", inst.id);
-
-            if (vendedorLinks && vendedorLinks.length > 0) {
-              const vIds = vendedorLinks.map((vl: { consultor_id: string }) => vl.consultor_id);
-              const { data: vendedores } = await supabaseAdmin
-                .from("consultores")
-                .select("id, nome, codigo")
-                .in("id", vIds);
-              health.consultores = (vendedores || []) as { id: string; nome: string; codigo: string }[];
-            }
-
-            // Fetch last webhook event for this instance
-            const { data: lastWebhook } = await supabaseAdmin
-              .from("wa_webhook_events")
-              .select("created_at")
-              .eq("instance_id", inst.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            health.last_webhook_at = lastWebhook?.created_at || null;
-
-            // Fetch last successful send (wa_messages has no instance_id — join via conversation)
-            const { data: lastSend } = await supabaseAdmin
-              .from("wa_messages")
-              .select("created_at, conversation_id!inner(instance_id)")
-              .eq("conversation_id.instance_id", inst.id)
-              .eq("direction", "out")
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            health.last_send_ok_at = lastSend?.created_at || null;
-
-            // Outbox pending count
-            const { count: pendingCount } = await supabaseAdmin
-              .from("wa_outbox")
-              .select("*", { count: "exact", head: true })
-              .eq("instance_id", inst.id)
-              .eq("status", "pending");
-            health.outbox_pending_count = pendingCount || 0;
-
-            // Check Evolution API connectivity
-            if (!apiUrl || !instanceKey) {
-              health.error_message = "URL ou chave da instância não configurada";
-            } else {
-              try {
-                const start = Date.now();
-                const encodedKey = encodeURIComponent(instanceKey);
-                const stateRes = await fetch(
-                  `${apiUrl}/instance/connectionState/${encodedKey}`,
-                  {
-                    method: "GET",
-                    headers: { apikey: apiKey, "Content-Type": "application/json" },
-                    signal: AbortSignal.timeout(10000),
-                  }
-                );
-                const latency = Date.now() - start;
-                health.latency_ms = latency;
-                latencies.push(latency);
-
-                if (stateRes.ok) {
-                  const stateJson = await stateRes.json();
-                  const state = stateJson?.instance?.state || stateJson?.state;
-                  health.evolution_state = state || "unknown";
-                  if (state === "open") {
-                    health.ok = true;
-                    onlineCount++;
-                  }
-                } else {
-                  const errText = await stateRes.text();
-                  health.error_message = `HTTP ${stateRes.status}: ${errText.slice(0, 150)}`;
-                }
-              } catch (err: any) {
-                health.error_message = err.message || "Timeout ao conectar com Evolution API";
-              }
-            }
-
-            instanceHealthList.push(health);
-
-            // Persist health check
-            if (tenantId) {
-              await supabaseAdmin.from("wa_health_checks").insert({
-                tenant_id: tenantId,
-                instance_id: inst.id,
-                ok: health.ok,
-                latency_ms: health.latency_ms,
-                evolution_state: health.evolution_state,
-                error_message: health.error_message,
-                checked_at: now,
-              });
-            }
-          }
-
-          const avgLatency = latencies.length > 0
-            ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
-            : undefined;
-
-          let status: IntegrationResult["status"] = "offline";
-          if (onlineCount === totalCount) status = "online";
-          else if (onlineCount > 0) status = "degraded";
-
-          results.push({
-            id: "whatsapp",
-            name: "WhatsApp (Evolution API)",
-            status,
-            latency_ms: avgLatency,
-            details: `${onlineCount}/${totalCount} instâncias conectadas`,
-            last_event: instances[0]?.updated_at || undefined,
-            checked_at: now,
-          });
-        }
-      } catch (err: any) {
-        results.push({
-          id: "whatsapp",
-          name: "WhatsApp (Evolution API)",
-          status: "offline",
-          details: err.message || "Erro ao verificar",
-          checked_at: now,
+    if (authHeader?.startsWith("Bearer ")) {
+      // Authenticated mode — resolve single tenant
+      const supabaseUser = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_ANON_KEY")!,
+        { global: { headers: { Authorization: authHeader } } }
+      );
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } = await supabaseUser.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      const userId = claimsData.claims.sub;
+
+      // Admin check
+      const { data: roleData } = await supabaseUser
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["admin", "gerente"])
+        .limit(1)
+        .maybeSingle();
+
+      if (!roleData) {
+        return new Response(JSON.stringify({ error: "Admin access required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", userId)
+        .single();
+
+      if (!profile?.tenant_id) {
+        return new Response(JSON.stringify({ error: "Tenant not found" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      tenantIds = [profile.tenant_id];
+      isManualRefresh = true;
+    } else {
+      // Cron mode — check all active tenants
+      const { data: tenants } = await supabaseAdmin
+        .from("tenants")
+        .select("id")
+        .eq("ativo", true)
+        .limit(100); // Safety limit
+
+      tenantIds = (tenants || []).map((t: { id: string }) => t.id);
     }
 
-    // ── SolarMarket ──
-    if (integration === "all" || integration === "solarmarket") {
-      try {
-        const smToken = Deno.env.get("SOLARMARKET_TOKEN");
-        if (!smToken) {
-          results.push({
-            id: "solarmarket",
-            name: "SolarMarket",
-            status: "not_configured",
-            details: "Token não configurado",
-            checked_at: now,
-          });
-        } else {
-          const start = Date.now();
-          const smRes = await fetch("https://api.solarmarket.com.br/v2/clientes?page=1&per_page=1", {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${smToken}`,
-              Accept: "application/json",
-            },
-            signal: AbortSignal.timeout(10000),
-          });
-          const latency = Date.now() - start;
-
-          const { data: lastJob } = await supabaseAdmin
-            .from("solar_market_sync_logs")
-            .select("status, finished_at, error, created_at")
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (smRes.ok) {
-            await smRes.text();
-            results.push({
-              id: "solarmarket",
-              name: "SolarMarket",
-              status: "online",
-              latency_ms: latency,
-              details: lastJob ? `Última sync: ${lastJob.status}` : "API acessível",
-              last_event: lastJob?.finished_at || lastJob?.created_at || undefined,
-              checked_at: now,
-            });
-          } else {
-            const errText = await smRes.text();
-            results.push({
-              id: "solarmarket",
-              name: "SolarMarket",
-              status: smRes.status === 401 ? "offline" : "degraded",
-              latency_ms: latency,
-              details: `HTTP ${smRes.status}: ${errText.slice(0, 100)}`,
-              last_event: lastJob?.finished_at || undefined,
-              checked_at: now,
-            });
-          }
-        }
-      } catch (err: any) {
-        results.push({
-          id: "solarmarket",
-          name: "SolarMarket",
-          status: "offline",
-          details: err.message || "Timeout ou erro de conexão",
-          checked_at: now,
-        });
-      }
+    if (tenantIds.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, message: "No tenants to check" }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // ── OpenAI ──
-    if (integration === "all" || integration === "openai") {
-      try {
-        let openaiKey: string | null = null;
-        if (tenantId) {
-          const { data: configRow } = await supabaseAdmin
-            .from("integration_configs")
-            .select("api_key")
-            .eq("tenant_id", tenantId)
-            .eq("service_key", "openai")
-            .eq("is_active", true)
-            .maybeSingle();
-          openaiKey = configRow?.api_key || null;
-        }
-        if (!openaiKey) {
-          openaiKey = Deno.env.get("OPENAI_API_KEY") || null;
-        }
+    const allResults: Record<string, CheckResult[]> = {};
 
-        if (!openaiKey) {
-          results.push({
-            id: "openai",
-            name: "OpenAI",
-            status: "not_configured",
-            details: "API key não configurada",
-            checked_at: now,
-          });
-        } else {
-          const start = Date.now();
-          const oaiRes = await fetch("https://api.openai.com/v1/models", {
-            method: "GET",
-            headers: { Authorization: `Bearer ${openaiKey}` },
-            signal: AbortSignal.timeout(10000),
-          });
-          const latency = Date.now() - start;
+    for (const tenantId of tenantIds) {
+      const results: CheckResult[] = [];
 
-          if (oaiRes.ok) {
-            await oaiRes.text();
-            results.push({
-              id: "openai",
-              name: "OpenAI",
-              status: "online",
-              latency_ms: latency,
-              details: "API acessível",
-              checked_at: now,
-            });
-          } else {
-            const errText = await oaiRes.text();
-            results.push({
-              id: "openai",
-              name: "OpenAI",
-              status: oaiRes.status === 401 ? "offline" : "degraded",
-              latency_ms: latency,
-              details: `HTTP ${oaiRes.status}: ${errText.slice(0, 100)}`,
-              checked_at: now,
-            });
-          }
-        }
-      } catch (err: any) {
-        results.push({
-          id: "openai",
-          name: "OpenAI",
-          status: "offline",
-          details: err.message || "Timeout ou erro de conexão",
-          checked_at: now,
-        });
+      // ── WhatsApp ──
+      results.push(await checkWhatsApp(supabaseAdmin, tenantId));
+
+      // ── OpenAI ──
+      results.push(await checkOpenAI(supabaseAdmin, tenantId));
+
+      // ── Google Gemini ──
+      results.push(await checkGemini(supabaseAdmin, tenantId));
+
+      // ── SolarMarket ──
+      results.push(await checkSolarMarket(supabaseAdmin, tenantId));
+
+      // ── Google Calendar ──
+      results.push(await checkGoogleCalendar(supabaseAdmin, tenantId));
+
+      // Persist all results to cache
+      const now = new Date().toISOString();
+      for (const r of results) {
+        await supabaseAdmin.from("integration_health_cache").upsert(
+          {
+            tenant_id: tenantId,
+            integration_name: r.integration_name,
+            status: r.status,
+            latency_ms: r.latency_ms,
+            error_message: r.error_message,
+            details: r.details,
+            last_check_at: now,
+          },
+          { onConflict: "tenant_id,integration_name" }
+        );
       }
+
+      allResults[tenantId] = results;
     }
 
-    // ── Google Gemini ──
-    if (integration === "all" || integration === "google_gemini") {
-      try {
-        let geminiKey: string | null = null;
-        if (tenantId) {
-          const { data: configRow } = await supabaseAdmin
-            .from("integration_configs")
-            .select("api_key")
-            .eq("tenant_id", tenantId)
-            .eq("service_key", "google_gemini")
-            .eq("is_active", true)
-            .maybeSingle();
-          geminiKey = configRow?.api_key || null;
-        }
-
-        if (!geminiKey) {
-          results.push({
-            id: "google_gemini",
-            name: "Google Gemini",
-            status: "not_configured",
-            details: "API key não configurada",
-            checked_at: now,
-          });
-        } else {
-          const start = Date.now();
-          const gemRes = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`,
-            { method: "GET", signal: AbortSignal.timeout(10000) }
-          );
-          const latency = Date.now() - start;
-
-          if (gemRes.ok) {
-            await gemRes.text();
-            results.push({
-              id: "google_gemini",
-              name: "Google Gemini",
-              status: "online",
-              latency_ms: latency,
-              details: "API acessível",
-              checked_at: now,
-            });
-          } else {
-            const errText = await gemRes.text();
-            results.push({
-              id: "google_gemini",
-              name: "Google Gemini",
-              status: gemRes.status === 400 || gemRes.status === 403 ? "offline" : "degraded",
-              latency_ms: latency,
-              details: `HTTP ${gemRes.status}: ${errText.slice(0, 100)}`,
-              checked_at: now,
-            });
-          }
-        }
-      } catch (err: any) {
-        results.push({
-          id: "google_gemini",
-          name: "Google Gemini",
-          status: "offline",
-          details: err.message || "Timeout ou erro de conexão",
-          checked_at: now,
-        });
-      }
+    // For manual refresh, return results for immediate UI update
+    if (isManualRefresh && tenantIds.length === 1) {
+      return new Response(
+        JSON.stringify({ success: true, results: allResults[tenantIds[0]] }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(
-      JSON.stringify({ success: true, results, instance_health: instanceHealthList }),
+      JSON.stringify({
+        success: true,
+        tenants_checked: tenantIds.length,
+        message: `Checked ${tenantIds.length} tenant(s)`,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
@@ -478,3 +173,234 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// ─── Check Functions ───
+
+async function checkWhatsApp(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: instances } = await admin
+      .from("wa_instances")
+      .select("id, nome, status, evolution_api_url, evolution_instance_key, api_key, phone_number")
+      .eq("tenant_id", tenantId)
+      .limit(20);
+
+    if (!instances || instances.length === 0) {
+      return { integration_name: "whatsapp", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Nenhuma instância configurada" } };
+    }
+
+    const globalApiKey = Deno.env.get("EVOLUTION_API_KEY") || "";
+    let onlineCount = 0;
+    const latencies: number[] = [];
+    const instanceDetails: Record<string, unknown>[] = [];
+
+    for (const inst of instances) {
+      const apiUrl = inst.evolution_api_url?.replace(/\/$/, "");
+      const instanceKey = inst.evolution_instance_key;
+      const apiKey = inst.api_key || globalApiKey;
+
+      if (!apiUrl || !instanceKey) {
+        instanceDetails.push({ name: inst.nome, ok: false, error: "URL/key missing" });
+        continue;
+      }
+
+      try {
+        const start = Date.now();
+        const stateRes = await fetch(
+          `${apiUrl}/instance/connectionState/${encodeURIComponent(instanceKey)}`,
+          {
+            method: "GET",
+            headers: { apikey: apiKey, "Content-Type": "application/json" },
+            signal: AbortSignal.timeout(10000),
+          }
+        );
+        const latency = Date.now() - start;
+        latencies.push(latency);
+
+        if (stateRes.ok) {
+          const stateJson = await stateRes.json();
+          const state = stateJson?.instance?.state || stateJson?.state;
+          const ok = state === "open";
+          if (ok) onlineCount++;
+          instanceDetails.push({ name: inst.nome, ok, state, latency_ms: latency, phone: inst.phone_number });
+        } else {
+          const errText = await stateRes.text();
+          instanceDetails.push({ name: inst.nome, ok: false, error: `HTTP ${stateRes.status}`, latency_ms: latency });
+        }
+      } catch (err: any) {
+        instanceDetails.push({ name: inst.nome, ok: false, error: err.message });
+      }
+    }
+
+    const avgLatency = latencies.length > 0
+      ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length)
+      : null;
+
+    let status: HealthStatus = "down";
+    if (onlineCount === instances.length) status = "healthy";
+    else if (onlineCount > 0) status = "degraded";
+
+    return {
+      integration_name: "whatsapp",
+      status,
+      latency_ms: avgLatency,
+      error_message: onlineCount < instances.length ? `${instances.length - onlineCount}/${instances.length} instâncias offline` : null,
+      details: { online: onlineCount, total: instances.length, instances: instanceDetails },
+    };
+  } catch (err: any) {
+    return { integration_name: "whatsapp", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkOpenAI(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: configRow } = await admin
+      .from("integration_configs")
+      .select("api_key")
+      .eq("tenant_id", tenantId)
+      .eq("service_key", "openai")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    const key = configRow?.api_key || Deno.env.get("OPENAI_API_KEY") || null;
+    if (!key) {
+      return { integration_name: "openai", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+    }
+
+    const start = Date.now();
+    const res = await fetch("https://api.openai.com/v1/models", {
+      headers: { Authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    const latency = Date.now() - start;
+
+    if (res.ok) {
+      await res.text();
+      return { integration_name: "openai", status: "healthy", latency_ms: latency, error_message: null, details: {} };
+    }
+    const errText = await res.text();
+    return {
+      integration_name: "openai",
+      status: res.status === 401 ? "down" : "degraded",
+      latency_ms: latency,
+      error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+      details: {},
+    };
+  } catch (err: any) {
+    return { integration_name: "openai", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkGemini(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: configRow } = await admin
+      .from("integration_configs")
+      .select("api_key")
+      .eq("tenant_id", tenantId)
+      .eq("service_key", "google_gemini")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!configRow?.api_key) {
+      return { integration_name: "google_gemini", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+    }
+
+    const start = Date.now();
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${configRow.api_key}`,
+      { method: "GET", signal: AbortSignal.timeout(10000) }
+    );
+    const latency = Date.now() - start;
+
+    if (res.ok) {
+      await res.text();
+      return { integration_name: "google_gemini", status: "healthy", latency_ms: latency, error_message: null, details: {} };
+    }
+    const errText = await res.text();
+    return {
+      integration_name: "google_gemini",
+      status: res.status === 400 || res.status === 403 ? "down" : "degraded",
+      latency_ms: latency,
+      error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+      details: {},
+    };
+  } catch (err: any) {
+    return { integration_name: "google_gemini", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkSolarMarket(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const smToken = Deno.env.get("SOLARMARKET_TOKEN");
+    if (!smToken) {
+      return { integration_name: "solarmarket", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+    }
+
+    const start = Date.now();
+    const res = await fetch("https://api.solarmarket.com.br/v2/clientes?page=1&per_page=1", {
+      method: "GET",
+      headers: { Authorization: `Bearer ${smToken}`, Accept: "application/json" },
+      signal: AbortSignal.timeout(10000),
+    });
+    const latency = Date.now() - start;
+
+    if (res.ok) {
+      await res.text();
+      return { integration_name: "solarmarket", status: "healthy", latency_ms: latency, error_message: null, details: {} };
+    }
+    const errText = await res.text();
+    return {
+      integration_name: "solarmarket",
+      status: res.status === 401 ? "down" : "degraded",
+      latency_ms: latency,
+      error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+      details: {},
+    };
+  } catch (err: any) {
+    return { integration_name: "solarmarket", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkGoogleCalendar(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: configs } = await admin
+      .from("integration_configs")
+      .select("service_key")
+      .eq("tenant_id", tenantId)
+      .in("service_key", ["google_calendar_client_id", "google_calendar_client_secret"])
+      .eq("is_active", true);
+
+    const hasClientId = configs?.some((c: any) => c.service_key === "google_calendar_client_id");
+    const hasSecret = configs?.some((c: any) => c.service_key === "google_calendar_client_secret");
+
+    if (!hasClientId || !hasSecret) {
+      return { integration_name: "google_calendar", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+    }
+
+    // Check if any user has active tokens
+    const { count } = await admin
+      .from("google_calendar_tokens")
+      .select("*", { count: "exact", head: true })
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true);
+
+    if (!count || count === 0) {
+      return {
+        integration_name: "google_calendar",
+        status: "degraded",
+        latency_ms: null,
+        error_message: "Credenciais configuradas mas nenhum usuário conectou",
+        details: { configured: true, connected_users: 0 },
+      };
+    }
+
+    return {
+      integration_name: "google_calendar",
+      status: "healthy",
+      latency_ms: null,
+      error_message: null,
+      details: { configured: true, connected_users: count },
+    };
+  } catch (err: any) {
+    return { integration_name: "google_calendar", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
