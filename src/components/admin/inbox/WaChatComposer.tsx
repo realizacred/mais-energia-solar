@@ -598,6 +598,21 @@ export function WaChatComposer({
                 const next = !spellCheckEnabled;
                 setSpellCheckEnabled(next);
                 localStorage.setItem("wa-spellcheck", String(next));
+                if (next) {
+                  // Check if browser actually supports spellcheck for pt-BR
+                  const testDiv = document.createElement("div");
+                  testDiv.contentEditable = "true";
+                  testDiv.spellcheck = true;
+                  testDiv.lang = "pt-BR";
+                  document.body.appendChild(testDiv);
+                  testDiv.focus();
+                  document.body.removeChild(testDiv);
+                  
+                  toast({
+                    title: "Corretor ativado",
+                    description: "O corretor depende do seu navegador. Se não aparecerem sugestões, ative o idioma Português nas configurações do navegador (chrome://settings/languages).",
+                  });
+                }
               }}
             >
               <SpellCheck className="h-3.5 w-3.5" />
