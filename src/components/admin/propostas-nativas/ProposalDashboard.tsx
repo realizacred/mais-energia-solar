@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   FileText, TrendingUp, CheckCircle2, XCircle, Send, Clock,
-  DollarSign, Timer, BarChart3, PieChart,
+  DollarSign, Timer, BarChart3, PieChart, Eye, Layers,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
 const formatBRL = (v: number) =>
@@ -20,7 +21,11 @@ interface DashMetrics {
   taxa_aceite: number;
   ticket_medio: number;
   payback_medio: number;
+  cenarios_total: number;
+  envios_total: number;
   por_mes: Array<{ mes: string; total: number; aceitas: number; valor: number }>;
+  top_cenarios: Array<{ tipo: string; count: number; valor_medio: number }>;
+  canais_envio: Record<string, number>;
 }
 
 export function ProposalDashboard() {
@@ -35,12 +40,24 @@ export function ProposalDashboard() {
   const loadMetrics = async () => {
     setLoading(true);
     try {
-      const { data: propostas } = await supabase
-        .from("propostas_nativas")
-        .select("id, status, created_at, proposta_versoes(valor_total, payback_meses, economia_mensal)")
-        .order("created_at", { ascending: false })
-        .limit(500);
+      // Parallel fetch: proposals+versions, scenarios, sends
+      const [propostasRes, cenariosRes, enviosRes] = await Promise.all([
+        supabase
+          .from("propostas_nativas")
+          .select("id, status, created_at, proposta_versoes(valor_total, payback_meses, economia_mensal, engine_version)")
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase
+          .from("proposta_cenarios")
+          .select("tipo, preco_final, payback_meses, is_default")
+          .limit(1000),
+        supabase
+          .from("proposta_envios")
+          .select("canal, status")
+          .limit(1000),
+      ]);
 
+      const propostas = propostasRes.data;
       if (!propostas) { setLoading(false); return; }
 
       const statusMap: Record<string, string> = {
@@ -79,6 +96,27 @@ export function ProposalDashboard() {
       const total = propostas.length;
       const totalEnviadas = (por_status.enviada || 0) + count_aceitas + (por_status.recusada || 0);
 
+      // Aggregate scenarios by type
+      const cenarios = cenariosRes.data || [];
+      const cenarioMap = new Map<string, { count: number; sum: number }>();
+      for (const c of cenarios) {
+        const entry = cenarioMap.get(c.tipo) || { count: 0, sum: 0 };
+        entry.count++;
+        entry.sum += c.preco_final || 0;
+        cenarioMap.set(c.tipo, entry);
+      }
+      const top_cenarios = Array.from(cenarioMap.entries())
+        .map(([tipo, d]) => ({ tipo, count: d.count, valor_medio: d.count > 0 ? Math.round(d.sum / d.count) : 0 }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+
+      // Aggregate sends by channel
+      const envios = enviosRes.data || [];
+      const canais_envio: Record<string, number> = {};
+      for (const e of envios) {
+        canais_envio[e.canal] = (canais_envio[e.canal] || 0) + 1;
+      }
+
       setMetrics({
         total,
         por_status,
@@ -87,10 +125,14 @@ export function ProposalDashboard() {
         taxa_aceite: totalEnviadas > 0 ? Math.round((count_aceitas / totalEnviadas) * 100) : 0,
         ticket_medio: total > 0 ? Math.round(valor_total / total) : 0,
         payback_medio: payback_count > 0 ? Math.round(payback_sum / payback_count) : 0,
+        cenarios_total: cenarios.length,
+        envios_total: envios.length,
         por_mes: Array.from(mesMap.entries())
           .sort(([a], [b]) => b.localeCompare(a))
           .slice(0, 6)
           .map(([mes, data]) => ({ mes, ...data })),
+        top_cenarios,
+        canais_envio,
       });
     } catch (e) {
       console.error("Erro ao carregar métricas:", e);
@@ -119,6 +161,10 @@ export function ProposalDashboard() {
     { key: "aceita", label: "Aceitas", icon: CheckCircle2, color: "border-l-success" },
     { key: "recusada", label: "Recusadas", icon: XCircle, color: "border-l-destructive" },
   ];
+
+  const canalLabels: Record<string, string> = {
+    whatsapp: "WhatsApp", email: "E-mail", link: "Link", sms: "SMS",
+  };
 
   return (
     <div className="space-y-6">
@@ -173,6 +219,65 @@ export function ProposalDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Cenários + Envios */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Cenários por tipo */}
+        <Card className="border-border/60">
+          <CardContent className="py-4">
+            <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Layers className="h-4 w-4 text-muted-foreground" /> Cenários ({metrics.cenarios_total})
+            </p>
+            {metrics.top_cenarios.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sem cenários gerados.</p>
+            ) : (
+              <div className="space-y-2">
+                {metrics.top_cenarios.map(c => (
+                  <div key={c.tipo} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[10px] capitalize">{c.tipo}</Badge>
+                      <span className="text-xs text-muted-foreground">{c.count} cenários</span>
+                    </div>
+                    <span className="text-xs font-semibold">{formatBRL(c.valor_medio)} médio</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Envios por canal */}
+        <Card className="border-border/60">
+          <CardContent className="py-4">
+            <p className="text-sm font-semibold mb-3 flex items-center gap-2">
+              <Send className="h-4 w-4 text-muted-foreground" /> Envios ({metrics.envios_total})
+            </p>
+            {Object.keys(metrics.canais_envio).length === 0 ? (
+              <p className="text-sm text-muted-foreground">Nenhum envio registrado.</p>
+            ) : (
+              <div className="space-y-2">
+                {Object.entries(metrics.canais_envio)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([canal, count]) => {
+                    const maxCount = Math.max(...Object.values(metrics.canais_envio), 1);
+                    const pct = (count / maxCount) * 100;
+                    return (
+                      <div key={canal} className="space-y-1">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">{canalLabels[canal] || canal}</span>
+                          <span className="font-semibold">{count}</span>
+                        </div>
+                        <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                          <div className="h-full bg-primary/30 rounded-full" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Volume por mês */}
       <Card className="border-border/60">
