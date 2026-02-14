@@ -1,4 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -17,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Search, User, Building2, FileText, Tag, Users } from "lucide-react";
+import { Search, User, Building2, FileText, Tag, Users, Phone, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -72,11 +73,44 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
   const [notas, setNotas] = useState("");
   const [cliente, setCliente] = useState(emptyCliente);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [similares, setSimilares] = useState<{ id: string; nome: string; telefone: string; email: string | null }[]>([]);
+  const [buscando, setBuscando] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const updateCliente = useCallback((field: string, value: string) => {
     setCliente(prev => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }));
   }, [errors]);
+
+  // Debounced search for similar clients
+  useEffect(() => {
+    const term = cliente.nome.trim();
+    if (term.length < 2) {
+      setSimilares([]);
+      return;
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setBuscando(true);
+      try {
+        const { data } = await supabase
+          .from("clientes")
+          .select("id, nome, telefone, email")
+          .ilike("nome", `%${term}%`)
+          .limit(8);
+        setSimilares(data ?? []);
+      } catch {
+        setSimilares([]);
+      } finally {
+        setBuscando(false);
+      }
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [cliente.nome]);
 
   const handleSubmit = () => {
     const newErrors: Record<string, boolean> = {};
@@ -316,22 +350,59 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
           <Separator orientation="vertical" className="h-auto" />
 
           {/* ── Column 3: Clientes Similares ── */}
-          <div className="w-[240px] shrink-0 p-5 flex flex-col">
+          <div className="w-[260px] shrink-0 p-5 flex flex-col">
             <SectionTitle icon={Search} label="Clientes similares" />
 
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center space-y-2">
-                <div className="mx-auto w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center">
-                  <Users className="h-5 w-5 text-muted-foreground/50" />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {cliente.nome.trim()
-                    ? "Nenhum cliente similar encontrado"
-                    : "Digite o nome do cliente para buscar similares"
-                  }
-                </p>
+            {buscando ? (
+              <div className="flex-1 flex items-center justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
               </div>
-            </div>
+            ) : similares.length > 0 ? (
+              <div className="mt-2 space-y-2 overflow-y-auto flex-1">
+                {similares.map(c => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setCliente(prev => ({
+                        ...prev,
+                        nome: c.nome,
+                        telefone: c.telefone || prev.telefone,
+                        email: c.email || prev.email,
+                      }));
+                    }}
+                    className="w-full text-left rounded-lg border border-border/50 p-3 hover:border-primary/40 hover:bg-primary/5 transition-all space-y-1"
+                  >
+                    <p className="text-sm font-medium text-foreground truncate">{c.nome}</p>
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      {c.telefone && (
+                        <span className="flex items-center gap-0.5">
+                          <Phone className="h-3 w-3" />
+                          {c.telefone}
+                        </span>
+                      )}
+                      {c.email && (
+                        <span className="truncate">{c.email}</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center space-y-2">
+                  <div className="mx-auto w-12 h-12 rounded-xl bg-muted/50 flex items-center justify-center">
+                    <Users className="h-5 w-5 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {cliente.nome.trim().length >= 2
+                      ? "Nenhum cliente similar encontrado"
+                      : "Digite o nome do cliente para buscar similares"
+                    }
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
