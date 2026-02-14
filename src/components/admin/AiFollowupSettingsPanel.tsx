@@ -344,12 +344,35 @@ export function AiFollowupSettingsPanel() {
       {/* Writing Assistant Model */}
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Assistente de Escrita</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <CardTitle className="text-base">Assistente de Escrita</CardTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="writing-assistant-toggle" className="text-xs text-muted-foreground">
+                {settings.templates?.writing_assistant?.enabled !== false ? "Ativado" : "Desativado"}
+              </Label>
+              <Switch
+                id="writing-assistant-toggle"
+                checked={settings.templates?.writing_assistant?.enabled !== false}
+                onCheckedChange={(checked) =>
+                  setSettings({
+                    ...settings,
+                    templates: {
+                      ...settings.templates,
+                      writing_assistant: {
+                        ...(settings.templates?.writing_assistant || {}),
+                        enabled: checked,
+                      },
+                    },
+                  })
+                }
+              />
+            </div>
           </div>
           <CardDescription>
-            Modelo usado pelo assistente de escrita no composer do WhatsApp. Modelos mais caros geram textos melhores.
+            Ative ou desative o assistente de escrita (✨) no composer do WhatsApp. As configurações ficam salvas mesmo quando desativado.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -357,6 +380,7 @@ export function AiFollowupSettingsPanel() {
             <Label>Modelo do Assistente de Escrita</Label>
             <Select
               value={settings.templates?.writing_assistant?.model || "gemini-2.5-flash-preview-05-20"}
+              disabled={settings.templates?.writing_assistant?.enabled === false}
               onValueChange={(v) =>
                 setSettings({
                   ...settings,
