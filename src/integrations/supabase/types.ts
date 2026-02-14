@@ -8524,6 +8524,17 @@ export type Database = {
         }[]
       }
       get_user_tenant_id: { Args: { _user_id?: string }; Returns: string }
+      get_user_unread_conversations: {
+        Args: { _limit?: number }
+        Returns: {
+          cliente_nome: string
+          cliente_telefone: string
+          conversation_id: string
+          last_message_at: string
+          last_message_preview: string
+          unread_for_user: number
+        }[]
+      }
       get_wa_messages: {
         Args: {
           _conversation_id: string
