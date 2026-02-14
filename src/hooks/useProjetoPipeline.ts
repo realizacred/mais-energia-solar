@@ -212,6 +212,35 @@ export function useProjetoPipeline() {
     setEtapas(prev => prev.map(e => e.id === id ? { ...e, nome } : e));
   }, [toast]);
 
+  const updateEtapaCor = useCallback(async (id: string, cor: string) => {
+    const { error } = await supabase.from("projeto_etapas").update({ cor }).eq("id", id);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setEtapas(prev => prev.map(e => e.id === id ? { ...e, cor } : e));
+  }, [toast]);
+
+  const updateEtapaCategoria = useCallback(async (id: string, categoria: ProjetoEtapaCategoria) => {
+    const { error } = await supabase.from("projeto_etapas").update({ categoria }).eq("id", id);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setEtapas(prev => prev.map(e => e.id === id ? { ...e, categoria } : e));
+  }, [toast]);
+
+  const reorderEtapas = useCallback(async (funilId: string, orderedIds: string[]) => {
+    setEtapas(prev => prev.map(e => {
+      const idx = orderedIds.indexOf(e.id);
+      return idx >= 0 ? { ...e, ordem: idx } : e;
+    }));
+    for (let i = 0; i < orderedIds.length; i++) {
+      await supabase.from("projeto_etapas").update({ ordem: i }).eq("id", orderedIds[i]);
+    }
+  }, []);
+
+  const deleteEtapa = useCallback(async (id: string) => {
+    const { error } = await supabase.from("projeto_etapas").delete().eq("id", id);
+    if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
+    setEtapas(prev => prev.filter(e => e.id !== id));
+    toast({ title: "Etapa removida" });
+  }, [toast]);
+
   // ─── Projeto move (drag) ─────────────────────────────────
 
   const moveProjetoToEtapa = useCallback(async (projetoId: string, etapaId: string) => {
@@ -273,6 +302,10 @@ export function useProjetoPipeline() {
     reorderFunis,
     createEtapa,
     renameEtapa,
+    updateEtapaCor,
+    updateEtapaCategoria,
+    reorderEtapas,
+    deleteEtapa,
     moveProjetoToEtapa,
   };
 }

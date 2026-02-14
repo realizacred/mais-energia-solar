@@ -9,6 +9,7 @@ import { ProjetoFunilSelector } from "./ProjetoFunilSelector";
 import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanban } from "./ProjetoKanban";
 import { ProjetoListView } from "./ProjetoListView";
+import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
 
 export function ProjetosManager() {
   const {
@@ -17,6 +18,7 @@ export function ProjetosManager() {
     selectedFunilEtapas, projetosByEtapa,
     consultoresFilter,
     createFunil, renameFunil, toggleFunilAtivo, reorderFunis,
+    createEtapa, renameEtapa, updateEtapaCor, updateEtapaCategoria, reorderEtapas, deleteEtapa,
     moveProjetoToEtapa,
   } = useProjetoPipeline();
 
@@ -66,7 +68,6 @@ export function ProjetosManager() {
     setFilterConsultor("todos");
   };
 
-  // Summary stats
   const totalValue = useMemo(() => {
     return filteredProjetos.reduce((sum, p) => sum + (p.valor_total || 0), 0);
   }, [filteredProjetos]);
@@ -75,6 +76,8 @@ export function ProjetosManager() {
     if (!v) return "R$ 0";
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
   };
+
+  const selectedFunil = funis.find(f => f.id === selectedFunilId);
 
   if (loading) return <LoadingState message="Carregando projetos..." />;
 
@@ -93,18 +96,35 @@ export function ProjetosManager() {
         </Button>
       </div>
 
-      {/* Funnel tabs */}
+      {/* Funnel tabs + toolbar */}
       <div className="rounded-xl border border-border/60 bg-card">
-        <div className="px-4 py-2.5">
-          <ProjetoFunilSelector
-            funis={funis}
-            selectedId={selectedFunilId}
-            onSelect={setSelectedFunilId}
-            onCreate={createFunil}
-            onRename={renameFunil}
-            onToggleAtivo={toggleFunilAtivo}
-            onReorder={reorderFunis}
-          />
+        <div className="px-4 py-2.5 flex items-center gap-2">
+          <div className="flex-1 min-w-0">
+            <ProjetoFunilSelector
+              funis={funis}
+              selectedId={selectedFunilId}
+              onSelect={setSelectedFunilId}
+              onCreate={createFunil}
+              onRename={renameFunil}
+              onToggleAtivo={toggleFunilAtivo}
+              onReorder={reorderFunis}
+            />
+          </div>
+
+          {/* Etapa manager button */}
+          {selectedFunil && (
+            <ProjetoEtapaManager
+              funilId={selectedFunil.id}
+              funilNome={selectedFunil.nome}
+              etapas={selectedFunilEtapas}
+              onCreate={createEtapa}
+              onRename={renameEtapa}
+              onUpdateCor={updateEtapaCor}
+              onUpdateCategoria={updateEtapaCategoria}
+              onReorder={reorderEtapas}
+              onDelete={deleteEtapa}
+            />
+          )}
         </div>
 
         <Separator />
