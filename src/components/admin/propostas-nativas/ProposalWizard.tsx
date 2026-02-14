@@ -38,16 +38,16 @@ interface ItemRow {
 const DRAFT_KEY = "proposal_wizard_draft";
 
 function getOrCreateIdempotencyKey(leadId: string): string {
-  const storageKey = `proposal_wizard_${leadId}_idempotency`;
-  const existing = sessionStorage.getItem(storageKey);
+  const storageKey = `proposal_idem_${leadId}`;
+  const existing = localStorage.getItem(storageKey);
   if (existing) return existing;
   const key = crypto.randomUUID();
-  sessionStorage.setItem(storageKey, key);
+  localStorage.setItem(storageKey, key);
   return key;
 }
 
 function clearIdempotencyKey(leadId: string) {
-  sessionStorage.removeItem(`proposal_wizard_${leadId}_idempotency`);
+  localStorage.removeItem(`proposal_idem_${leadId}`);
 }
 
 export function ProposalWizard() {
