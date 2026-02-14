@@ -385,6 +385,21 @@ async function checkSolarMarket(admin: any, tenantId: string): Promise<CheckResu
     return { integration_name: "solarmarket", status: "not_configured", latency_ms: null, error_message: null, details: {} };
   }
 
+  // Resolve base_url from tenant config (same source as solar-market-auth)
+  let baseUrl = "https://business.solarmarket.com.br/api/v2";
+  try {
+    const { data: smConfig } = await admin
+      .from("integration_configs")
+      .select("api_key")
+      .eq("tenant_id", tenantId)
+      .eq("service_key", "solarmarket_base_url")
+      .eq("is_active", true)
+      .maybeSingle();
+    if (smConfig?.api_key) baseUrl = smConfig.api_key;
+  } catch { /* use default */ }
+
+  const healthUrl = `${baseUrl.replace(/\/+$/, "")}/clientes?page=1&per_page=1`;
+
   // Retry up to 2 times to handle transient DNS failures in Edge Runtime
   const MAX_RETRIES = 2;
   let lastError = "";
@@ -392,10 +407,10 @@ async function checkSolarMarket(admin: any, tenantId: string): Promise<CheckResu
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
-        await new Promise((r) => setTimeout(r, 1000 * attempt)); // backoff
+        await new Promise((r) => setTimeout(r, 1000 * attempt));
       }
       const start = Date.now();
-      const res = await fetch("https://api.solarmarket.com.br/v2/clientes?page=1&per_page=1", {
+      const res = await fetch(healthUrl, {
         method: "GET",
         headers: { Authorization: `Bearer ${smToken}`, Accept: "application/json" },
         signal: AbortSignal.timeout(10000),
@@ -420,7 +435,7 @@ async function checkSolarMarket(admin: any, tenantId: string): Promise<CheckResu
       if (!isDns || attempt === MAX_RETRIES) {
         return {
           integration_name: "solarmarket",
-          status: "degraded", // degraded instead of down for transient network errors
+          status: "degraded",
           latency_ms: null,
           error_message: `${lastError} (${attempt + 1} tentativa${attempt > 0 ? "s" : ""})`,
           details: { retries: attempt, dns_error: isDns },
