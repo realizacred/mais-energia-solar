@@ -1989,6 +1989,7 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           deal_id: string
+          deal_kwp: number | null
           deal_status: string
           deal_title: string
           deal_value: number
@@ -2008,6 +2009,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           deal_id: string
+          deal_kwp?: number | null
           deal_status?: string
           deal_title?: string
           deal_value?: number
@@ -2027,6 +2029,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           deal_id?: string
+          deal_kwp?: number | null
           deal_status?: string
           deal_title?: string
           deal_value?: number
@@ -2121,6 +2124,7 @@ export type Database = {
           etiqueta: string | null
           expected_close_date: string | null
           id: string
+          kwp: number | null
           notas: string | null
           owner_id: string
           pipeline_id: string
@@ -2137,6 +2141,7 @@ export type Database = {
           etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
+          kwp?: number | null
           notas?: string | null
           owner_id: string
           pipeline_id: string
@@ -2153,6 +2158,7 @@ export type Database = {
           etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
+          kwp?: number | null
           notas?: string | null
           owner_id?: string
           pipeline_id?: string
