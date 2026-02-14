@@ -33,7 +33,7 @@ export function ProjetosManager() {
     createDeal,
   } = useDealPipeline();
 
-  const [viewMode, setViewMode] = useState<"kanban" | "kanban-etapa" | "lista">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "kanban-etapa" | "lista">("kanban-etapa");
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
@@ -133,7 +133,7 @@ export function ProjetosManager() {
         }}
       />
 
-      <div className="rounded-xl border border-border/60 bg-card">
+      <div className="rounded-2xl border border-border/60 bg-card" style={{ boxShadow: "var(--shadow-sm)" }}>
         {/* ── Filters row ── */}
         <div className="px-4 py-3">
           <ProjetoFilters

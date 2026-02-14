@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, LayoutGrid, FileText, Phone, Tag } from "lucide-react";
+import { Zap, Plus, LayoutGrid, Phone } from "lucide-react";
 import type { OwnerColumn, DealKanbanCard } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -76,7 +76,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
 
   return (
     <ScrollArea className="w-full">
-      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-4 pb-4 px-1" style={{ minWidth: "max-content" }}>
         {columns.map(col => {
           const isOver = dragOverCol === col.id;
 
@@ -84,16 +84,17 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
             <div
               key={col.id}
               className={cn(
-                "w-[300px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
-                "bg-muted/20",
+                "w-[320px] flex-shrink-0 rounded-2xl border border-border/60 transition-all flex flex-col",
+                "bg-card",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
+              style={{ boxShadow: "var(--shadow-sm)" }}
               onDragOver={e => handleDragOver(e, col.id)}
               onDragLeave={handleDragLeave}
               onDrop={e => handleDrop(e, col.id)}
             >
               {/* ── Column Header ── */}
-              <div className="px-4 pt-4 pb-3 border-b border-border/30">
+              <div className="px-4 pt-4 pb-3 border-b border-border/40">
                 <h3 className="text-sm font-bold text-foreground leading-tight tracking-tight">
                   {col.nome}
                 </h3>
@@ -119,7 +120,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                 <button
                   onClick={() => onCreateProjeto?.(col.id)}
                   className={cn(
-                    "w-full h-9 rounded-lg border-2 border-dashed border-primary/30",
+                    "w-full h-9 rounded-xl border-2 border-dashed border-primary/30",
                     "flex items-center justify-center gap-1.5",
                     "text-xs font-medium text-primary/70",
                     "hover:border-primary/50 hover:text-primary hover:bg-primary/5",
@@ -132,14 +133,14 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
               </div>
 
               {/* ── Cards ── */}
-              <div className="px-3 pb-3 min-h-[180px] space-y-2 flex-1">
+              <div className="px-3 pb-3 min-h-[120px] space-y-2 flex-1">
                 {col.deals.length === 0 && (
-                  <div className="flex items-center justify-center h-24 text-xs text-muted-foreground/50 italic">
+                  <div className="flex items-center justify-center h-20 text-xs text-muted-foreground/50 italic">
                     Arraste projetos aqui
                   </div>
                 )}
                 {col.deals.map(deal => (
-                  <DealCard
+                  <OwnerDealCard
                     key={deal.deal_id}
                     deal={deal}
                     isDragging={draggedId === deal.deal_id}
@@ -159,14 +160,14 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
 
 // ── Deal Card Component ──────────────────────────────────────
 
-interface DealCardProps {
+interface OwnerDealCardProps {
   deal: DealKanbanCard;
   isDragging: boolean;
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
 }
 
-function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
+function OwnerDealCard({ deal, isDragging, onDragStart, onClick }: OwnerDealCardProps) {
   const etiquetaClass = deal.etiqueta ? ETIQUETA_COLORS[deal.etiqueta] : null;
 
   return (
@@ -175,8 +176,8 @@ function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "relative bg-card rounded-lg border border-border/40 p-3.5 cursor-grab active:cursor-grabbing",
-        "hover:shadow-md hover:border-primary/30 transition-all duration-150",
+        "relative bg-card rounded-xl border border-border/50 p-3.5 cursor-grab active:cursor-grabbing",
+        "hover:border-primary/30 transition-all duration-150",
         isDragging && "opacity-40 scale-95"
       )}
       style={{ boxShadow: "var(--shadow-xs)" }}
@@ -211,7 +212,7 @@ function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
           )}
         </div>
         {/* Stage badge */}
-        <Badge variant="outline" className="text-[10px] h-5 px-2 font-medium border-border/60 bg-muted/50">
+        <Badge variant="outline" className="text-[10px] h-5 px-2 font-medium border-border/60 bg-muted/50 rounded-lg">
           {deal.stage_name}
         </Badge>
       </div>
