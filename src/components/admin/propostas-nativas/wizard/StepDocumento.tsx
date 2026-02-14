@@ -189,7 +189,7 @@ export function StepDocumento({
       <div className="flex flex-wrap gap-3 justify-center pt-4">
         <Button onClick={onViewDetail} className="gap-2">Ver Detalhes</Button>
         <Button variant="outline" onClick={onNewVersion} className="gap-2"><Plus className="h-4 w-4" /> Nova Versão</Button>
-        <Button variant="ghost" onClick={() => {}}>Voltar e Editar</Button>
+        <Button variant="ghost" onClick={onNewVersion}>Voltar e Editar</Button>
       </div>
     </div>
   );

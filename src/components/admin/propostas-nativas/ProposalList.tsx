@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Plus, Search, ChevronRight, Loader2, Send, Layers, Eye } from "lucide-react";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -35,21 +36,31 @@ const formatBRL = (v: number | null) => {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
 };
 
+const PAGE_SIZE = 25;
+
 export function ProposalList() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [propostas, setPropostas] = useState<any[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
-  useEffect(() => {
-    loadPropostas();
-  }, []);
-
-  const loadPropostas = async () => {
+  const loadPropostas = useCallback(async () => {
     setLoading(true);
     try {
-      const { data } = await supabase
+      // Count total
+      let countQuery = supabase
+        .from("propostas_nativas")
+        .select("id", { count: "exact", head: true });
+      if (statusFilter !== "all") countQuery = countQuery.eq("status", statusFilter);
+      const { count } = await countQuery;
+      setTotalCount(count || 0);
+
+      // Fetch page
+      const from = (page - 1) * PAGE_SIZE;
+      let query = supabase
         .from("propostas_nativas")
         .select(`
           id, titulo, codigo, versao_atual, status, origem, created_at, enviada_at, aceita_at, lead_id, cliente_id,
@@ -61,15 +72,27 @@ export function ProposalList() {
           proposta_aceite_tokens (view_count, first_viewed_at, decisao)
         `)
         .order("created_at", { ascending: false })
-        .limit(100);
+        .range(from, from + PAGE_SIZE - 1);
 
+      if (statusFilter !== "all") query = query.eq("status", statusFilter);
+
+      const { data } = await query;
       setPropostas(data || []);
     } catch (e) {
       console.error("Erro ao carregar propostas:", e);
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter]);
+
+  useEffect(() => {
+    loadPropostas();
+  }, [loadPropostas]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter]);
 
   const filtered = propostas.filter(p => {
     const matchesSearch = !search || 
@@ -244,6 +267,22 @@ export function ProposalList() {
               );
             })}
           </div>
+        )}
+
+        {/* Pagination */}
+        {totalCount > 0 && (
+          <PaginationControls
+            page={page}
+            totalPages={Math.max(1, Math.ceil(totalCount / PAGE_SIZE))}
+            totalCount={totalCount}
+            pageSize={PAGE_SIZE}
+            isFetching={loading}
+            onGoToPage={setPage}
+            onNextPage={() => setPage(p => p + 1)}
+            onPrevPage={() => setPage(p => Math.max(1, p - 1))}
+            hasNextPage={page < Math.ceil(totalCount / PAGE_SIZE)}
+            hasPrevPage={page > 1}
+          />
         )}
       </div>
     </TooltipProvider>
