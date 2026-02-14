@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowLeft, Settings, MessageSquare, FileText, ShoppingCart, FolderOpen,
+  ArrowLeft, Settings, MessageSquare, FileText, FolderOpen,
   Clock, User, ChevronRight, Zap, DollarSign, CalendarDays, Loader2,
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check
@@ -100,7 +100,6 @@ const TABS = [
   { id: "gerenciamento", label: "Gerenciamento", icon: Settings },
   { id: "chat", label: "Chat Whatsapp", icon: MessageSquare },
   { id: "propostas", label: "Propostas", icon: FileText },
-  { id: "loja", label: "Loja Solarmarket", icon: ShoppingCart },
   { id: "documentos", label: "Documentos", icon: FolderOpen },
 ] as const;
 
@@ -248,7 +247,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const tabBadge = (tabId: string) => {
     if (tabId === "propostas" && propostasCount > 0) return `(${propostasCount})`;
     if (tabId === "documentos" && docsCount > 0) return `(${docsCount})`;
-    if (tabId === "loja") return "(0)";
+    
     return null;
   };
 
@@ -343,7 +342,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
           {activeTab === "propostas" && (
             <PropostasTab customerId={deal.customer_id} dealTitle={deal.title} navigate={navigate} />
           )}
-          {activeTab === "loja" && <LojaTab />}
+          
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} />
           )}
@@ -1245,20 +1244,6 @@ function DocumentosTab({ dealId }: { dealId: string }) {
   );
 }
 
-// ═══════════════════════════════════════════════════
-// ─── TAB: Loja SolarMarket ──────────────────────
-// ═══════════════════════════════════════════════════
-function LojaTab() {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-        <ShoppingCart className="h-10 w-10 mb-3 opacity-30" />
-        <p className="font-medium">Loja SolarMarket</p>
-        <p className="text-xs mt-1">Integração com a loja de kits disponível em breve</p>
-      </CardContent>
-    </Card>
-  );
-}
 
 // ═══════════════════════════════════════════════════
 // ─── Shared Components ──────────────────────────

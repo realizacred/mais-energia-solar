@@ -53,7 +53,7 @@ const LeadStatusManager = lazy(() => import("@/components/admin/LeadStatusManage
 const IntelligenceDashboard = lazy(() => import("@/components/admin/intelligence").then(m => ({ default: m.IntelligenceDashboard })));
 const EngenhariaFinanceiraConfig = lazy(() => import("@/components/admin/EngenhariaFinanceiraConfig").then(m => ({ default: m.EngenhariaFinanceiraConfig })));
 const CommercialDirectorDashboard = lazy(() => import("@/components/admin/director").then(m => ({ default: m.CommercialDirectorDashboard })));
-const SolarMarketManager = lazy(() => import("@/components/admin/SolarMarketManager").then(m => ({ default: m.SolarMarketManager })));
+
 const TasksSlaDashboard = lazy(() => import("@/components/admin/tasks").then(m => ({ default: m.TasksSlaDashboard })));
 const WaInbox = lazy(() => import("@/components/admin/inbox/WaInbox").then(m => ({ default: m.WaInbox })));
 const WaQuickRepliesManager = lazy(() => import("@/components/admin/inbox/WaQuickRepliesManager").then(m => ({ default: m.WaQuickRepliesManager })));
@@ -159,7 +159,7 @@ const TAB_TITLES: Record<string, string> = {
   instagram: "Instagram API",
   webhooks: "Webhooks",
   n8n: "Automações",
-  solarmarket: "SolarMarket",
+  
   "wa-instances": "Instâncias WhatsApp",
   release: "Release Notes",
   propostas: "Propostas Comerciais",
@@ -400,7 +400,7 @@ export default function Admin() {
                 <Route path="wa-instances" element={<WaInstancesManager />} />
                 <Route path="whatsapp" element={<WhatsAppAutomationConfig />} />
                 <Route path="instagram" element={<InstagramConfig />} />
-                <Route path="solarmarket" element={<SolarMarketManager />} />
+                
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
                 <Route path="google-calendar" element={<AgendaConfigPage />} />

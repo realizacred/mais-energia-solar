@@ -84,13 +84,6 @@ const INTEGRATIONS: Record<string, IntegrationMeta> = {
     placeholder: "AIzaSy...",
     helpText: "Chave da API Google Gemini (AI Studio).",
   },
-  solarmarket: {
-    icon: Sun,
-    label: "SolarMarket",
-    description: "Sync de clientes e projetos do marketplace",
-    color: "text-warning",
-    configurable: false,
-  },
   google_calendar: {
     icon: Calendar,
     label: "Google Calendar",
@@ -455,7 +448,7 @@ function IntegrationHealthCard({
                 <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
                   {name === "whatsapp" && "Configure instâncias em Admin > WhatsApp"}
-                  {name === "solarmarket" && "Token configurado via variáveis de ambiente"}
+                  
                   {name === "google_calendar" && "Configure credenciais em Admin > Google Calendar"}
                 </span>
               </div>
