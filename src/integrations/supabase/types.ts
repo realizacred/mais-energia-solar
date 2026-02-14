@@ -1981,6 +1981,204 @@ export type Database = {
           },
         ]
       }
+      deal_kanban_projection: {
+        Row: {
+          customer_name: string
+          deal_id: string
+          deal_status: string
+          deal_title: string
+          deal_value: number
+          last_stage_change: string
+          owner_id: string
+          owner_name: string
+          pipeline_id: string
+          stage_id: string
+          stage_name: string
+          stage_position: number
+          stage_probability: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          customer_name?: string
+          deal_id: string
+          deal_status?: string
+          deal_title?: string
+          deal_value?: number
+          last_stage_change?: string
+          owner_id: string
+          owner_name?: string
+          pipeline_id: string
+          stage_id: string
+          stage_name: string
+          stage_position?: number
+          stage_probability?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          customer_name?: string
+          deal_id?: string
+          deal_status?: string
+          deal_title?: string
+          deal_value?: number
+          last_stage_change?: string
+          owner_id?: string
+          owner_name?: string
+          pipeline_id?: string
+          stage_id?: string
+          stage_name?: string
+          stage_position?: number
+          stage_probability?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_kanban_projection_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_stage_history: {
+        Row: {
+          deal_id: string
+          from_stage_id: string | null
+          id: string
+          metadata: Json | null
+          moved_at: string
+          moved_by: string | null
+          tenant_id: string
+          to_stage_id: string
+        }
+        Insert: {
+          deal_id: string
+          from_stage_id?: string | null
+          id?: string
+          metadata?: Json | null
+          moved_at?: string
+          moved_by?: string | null
+          tenant_id: string
+          to_stage_id: string
+        }
+        Update: {
+          deal_id?: string
+          from_stage_id?: string | null
+          id?: string
+          metadata?: Json | null
+          moved_at?: string
+          moved_by?: string | null
+          tenant_id?: string
+          to_stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_stage_history_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_from_stage_id_fkey"
+            columns: ["from_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_to_stage_id_fkey"
+            columns: ["to_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deals: {
+        Row: {
+          created_at: string
+          customer_id: string | null
+          expected_close_date: string | null
+          id: string
+          owner_id: string
+          pipeline_id: string
+          stage_id: string
+          status: string
+          tenant_id: string
+          title: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          customer_id?: string | null
+          expected_close_date?: string | null
+          id?: string
+          owner_id: string
+          pipeline_id: string
+          stage_id: string
+          status?: string
+          tenant_id: string
+          title: string
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          created_at?: string
+          customer_id?: string | null
+          expected_close_date?: string | null
+          id?: string
+          owner_id?: string
+          pipeline_id?: string
+          stage_id?: string
+          status?: string
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deals_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disjuntores: {
         Row: {
           amperagem: number
@@ -4322,6 +4520,102 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pipeline_stages: {
+        Row: {
+          created_at: string
+          id: string
+          is_closed: boolean
+          is_won: boolean
+          name: string
+          pipeline_id: string
+          position: number
+          probability: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_closed?: boolean
+          is_won?: boolean
+          name: string
+          pipeline_id: string
+          position?: number
+          probability?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_closed?: boolean
+          is_won?: boolean
+          name?: string
+          pipeline_id?: string
+          position?: number
+          probability?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stages_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipelines: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          parent_pipeline_id: string | null
+          tenant_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          parent_pipeline_id?: string | null
+          tenant_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          parent_pipeline_id?: string | null
+          tenant_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipelines_parent_pipeline_id_fkey"
+            columns: ["parent_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipelines_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       plan_features: {
         Row: {
@@ -9260,6 +9554,10 @@ export type Database = {
       }
       is_super_admin: { Args: { _user_id?: string }; Returns: boolean }
       is_tenant_active: { Args: { _tenant_id: string }; Returns: boolean }
+      move_deal_to_stage: {
+        Args: { _deal_id: string; _to_stage_id: string }
+        Returns: Json
+      }
       next_proposta_versao_numero: {
         Args: { _proposta_id: string }
         Returns: number
