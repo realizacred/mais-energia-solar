@@ -23,6 +23,7 @@ import {
   PanelRightOpen,
   PanelRightClose,
   CalendarPlus,
+  UserMinus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -78,7 +79,10 @@ interface WaChatPanelProps {
   onOpenAssign: () => void;
   onLinkLead: () => void;
   onAccept?: () => void;
+  onRelease?: () => void;
   isAccepting?: boolean;
+  isReleasing?: boolean;
+  currentUserId?: string;
   vendedores: { id: string; nome: string; user_id: string | null }[];
   lastReadMessageId?: string | null;
   onMarkAsRead?: (messageId: string) => void;
@@ -108,7 +112,10 @@ export function WaChatPanel({
   onOpenAssign,
   onLinkLead,
   onAccept,
+  onRelease,
   isAccepting,
+  isReleasing,
+  currentUserId,
   vendedores,
   lastReadMessageId,
   onMarkAsRead,
@@ -399,6 +406,27 @@ export function WaChatPanel({
                 )}
               </Button>
             )}
+            {/* Release button for conversations assigned to current user */}
+            {conversation.assigned_to && conversation.assigned_to === currentUserId && onRelease && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-8 gap-1.5 text-xs border-warning/40 text-warning hover:bg-warning/10 hover:text-warning"
+                    onClick={onRelease}
+                    disabled={isReleasing}
+                  >
+                    {isReleasing ? (
+                      <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-warning border-t-transparent" /> Liberando...</>
+                    ) : (
+                      <><UserMinus className="h-3.5 w-3.5" /> Liberar</>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Devolver à fila da equipe</TooltipContent>
+              </Tooltip>
+            )}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -602,7 +630,7 @@ export function WaChatPanel({
           prefillMessage={prefillMessage}
         />
 
-        {/* Accept button below composer — visible only for unassigned conversations */}
+        {/* Accept / Release buttons below composer */}
         {!conversation.assigned_to && onAccept && (
           <div className="px-3 pb-3 pt-1 border-t border-border/20 bg-card">
             <Button
@@ -615,6 +643,23 @@ export function WaChatPanel({
                 <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Aceitando...</>
               ) : (
                 <><CheckCircle2 className="h-4 w-4" /> Aceitar atendimento</>
+              )}
+            </Button>
+          </div>
+        )}
+        {conversation.assigned_to && conversation.assigned_to === currentUserId && onRelease && (
+          <div className="px-3 pb-3 pt-1 border-t border-border/20 bg-card">
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full gap-2 border-warning/40 text-warning hover:bg-warning/10 font-medium py-2.5"
+              onClick={onRelease}
+              disabled={isReleasing}
+            >
+              {isReleasing ? (
+                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-warning border-t-transparent" /> Liberando...</>
+              ) : (
+                <><UserMinus className="h-4 w-4" /> Liberar atendimento</>
               )}
             </Button>
           </div>
