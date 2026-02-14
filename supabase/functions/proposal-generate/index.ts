@@ -311,11 +311,35 @@ Deno.serve(async (req) => {
     const uc1 = body.ucs[0];
     const estado = uc1.estado;
     const anoAtual = new Date().getFullYear();
-    const premissas = body.premissas ?? {
-      imposto: 0, inflacao_energetica: 6.5, inflacao_ipca: 4.5,
-      perda_eficiencia_anual: 0.5, sobredimensionamento: 0,
-      troca_inversor_anos: 15, troca_inversor_custo: 30, vpl_taxa_desconto: 10,
-    };
+
+    // Load tenant default premissas (fallback to payload or hardcoded)
+    let premissas = body.premissas;
+    if (!premissas || Object.keys(premissas).length === 0) {
+      const { data: defaults } = await adminClient
+        .from("premissas_default_tenant")
+        .select("inflacao_energetica, inflacao_ipca, taxa_desconto_vpl, perda_eficiencia_anual, sobredimensionamento, troca_inversor_ano, troca_inversor_custo_percentual")
+        .eq("tenant_id", tenantId)
+        .maybeSingle();
+
+      if (defaults) {
+        premissas = {
+          imposto: 0,
+          inflacao_energetica: defaults.inflacao_energetica ?? 6.5,
+          inflacao_ipca: defaults.inflacao_ipca ?? 4.5,
+          perda_eficiencia_anual: defaults.perda_eficiencia_anual ?? 0.5,
+          sobredimensionamento: defaults.sobredimensionamento ?? 0,
+          troca_inversor_anos: defaults.troca_inversor_ano ?? 15,
+          troca_inversor_custo: defaults.troca_inversor_custo_percentual ?? 30,
+          vpl_taxa_desconto: defaults.taxa_desconto_vpl ?? 10,
+        };
+      } else {
+        premissas = {
+          imposto: 0, inflacao_energetica: 6.5, inflacao_ipca: 4.5,
+          perda_eficiencia_anual: 0.5, sobredimensionamento: 0,
+          troca_inversor_anos: 15, troca_inversor_custo: 30, vpl_taxa_desconto: 10,
+        };
+      }
+    }
 
     // Fio B
     const { data: fioBRows } = await adminClient
@@ -564,7 +588,12 @@ Deno.serve(async (req) => {
 
     const versaoId = versao!.id;
 
-    // ── 10. PERSISTIR DADOS GRANULARES (parallel) ───────────
+    // ── 9b. ATUALIZAR STATUS DA PROPOSTA ────────────────────
+    await adminClient
+      .from("propostas_nativas")
+      .update({ status: "gerada", versao_atual: versao!.versao_numero })
+      .eq("id", propostaId)
+      .eq("tenant_id", tenantId);
     // Fire-and-forget: non-critical, snapshot is the source of truth
     try {
       const granularOps = [];
