@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Plus, Pencil, Check, X, MoreHorizontal, EyeOff, Eye, ArrowUp, ArrowDown, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -25,10 +26,11 @@ interface Props {
   onRename: (id: string, nome: string) => void;
   onToggleAtivo: (id: string, ativo: boolean) => void;
   onReorder: (orderedIds: string[]) => void;
+  onEditEtapas?: (funilId: string) => void;
 }
 
 export function ProjetoFunilSelector({
-  funis, selectedId, onSelect, onCreate, onRename, onToggleAtivo, onReorder,
+  funis, selectedId, onSelect, onCreate, onRename, onToggleAtivo, onReorder, onEditEtapas,
 }: Props) {
   const [creatingNew, setCreatingNew] = useState(false);
   const [newName, setNewName] = useState("");
@@ -116,10 +118,28 @@ export function ProjetoFunilSelector({
                 {funil.nome}
               </button>
 
+              {/* Pencil icon to edit stages - always visible */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditEtapas?.(funil.id);
+                    }}
+                    className="p-1 rounded hover:bg-muted transition-colors -ml-0.5 mr-0.5"
+                  >
+                    <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground transition-colors" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Editar etapas de "{funil.nome}"
+                </TooltipContent>
+              </Tooltip>
+
               {isSelected && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-0.5 rounded hover:bg-muted transition-colors -ml-1 mr-0.5">
+                    <button className="p-0.5 rounded hover:bg-muted transition-colors mr-0.5">
                       <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
                     </button>
                   </DropdownMenuTrigger>
