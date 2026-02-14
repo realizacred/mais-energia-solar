@@ -36,18 +36,19 @@ interface ItemRow {
 }
 
 const DRAFT_KEY = "proposal_wizard_draft";
+const IDEM_KEY_PREFIX = "proposal_idem_";
 
 function getOrCreateIdempotencyKey(leadId: string): string {
-  const storageKey = `proposal_idem_${leadId}`;
-  const existing = localStorage.getItem(storageKey);
+  const k = `${IDEM_KEY_PREFIX}${leadId}`;
+  const existing = localStorage.getItem(k);
   if (existing) return existing;
-  const key = crypto.randomUUID();
-  localStorage.setItem(storageKey, key);
-  return key;
+  const created = crypto.randomUUID();
+  localStorage.setItem(k, created);
+  return created;
 }
 
 function clearIdempotencyKey(leadId: string) {
-  localStorage.removeItem(`proposal_idem_${leadId}`);
+  localStorage.removeItem(`${IDEM_KEY_PREFIX}${leadId}`);
 }
 
 export function ProposalWizard() {

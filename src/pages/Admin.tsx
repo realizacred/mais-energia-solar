@@ -75,9 +75,23 @@ const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
 const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
-const ProposalWizardPage = lazy(() => import("@/components/admin/propostas-nativas/ProposalWizard").then(m => ({ default: m.ProposalWizard })));
-const ProposalListPage = lazy(() => import("@/components/admin/propostas-nativas/ProposalList").then(m => ({ default: m.ProposalList })));
-const ProposalDetailPage = lazy(() => import("@/components/admin/propostas-nativas/ProposalDetail").then(m => ({ default: m.ProposalDetail })));
+const ProposalWizardPage = lazy(() =>
+  import("@/components/admin/propostas-nativas/ProposalWizard").then((m) => ({
+    default: m.ProposalWizard,
+  }))
+);
+
+const ProposalListPage = lazy(() =>
+  import("@/components/admin/propostas-nativas/ProposalList").then((m) => ({
+    default: m.ProposalList,
+  }))
+);
+
+const ProposalDetailPage = lazy(() =>
+  import("@/components/admin/propostas-nativas/ProposalDetail").then((m) => ({
+    default: m.ProposalDetail,
+  }))
+);
 
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
