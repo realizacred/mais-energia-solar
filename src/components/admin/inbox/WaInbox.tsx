@@ -8,12 +8,14 @@ import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferenc
 import { useAuth } from "@/hooks/useAuth";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useToast } from "@/hooks/use-toast";
+import { useWaSlaAlerts } from "@/hooks/useWaSlaAlerts";
 import { WaConversationList } from "./WaConversationList";
 import { WaChatPanel } from "./WaChatPanel";
 import { WaTransferDialog, WaAssignDialog, WaTagsDialog } from "./WaInboxDialogs";
 import { WaLinkLeadSearch } from "./WaLinkLeadSearch";
 import { WaInboxStats } from "./WaInboxStats";
 import { WaResolveDialog } from "./WaResolveDialog";
+import { WaSlaAlertBanner } from "./WaSlaAlertBanner";
 import { WaFollowupWidget } from "@/components/admin/widgets/WaFollowupWidget";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
@@ -138,6 +140,16 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   const { tags, createTag, deleteTag, toggleConversationTag } = useWaTags();
   const { mutedIds, hiddenIds, isMuted, isHidden, toggleMute, toggleHide } = useWaConversationPreferences();
+
+  // SLA Alerts
+  const {
+    alerts: slaAlerts,
+    myAlerts: mySlaAlerts,
+    unacknowledgedCount: slaUnackedCount,
+    acknowledgeAlert: acknowledgeSlaAlert,
+    acknowledgeAll: acknowledgeAllSla,
+    isEnabled: slaEnabled,
+  } = useWaSlaAlerts();
 
   // Follow-up queue: pending follow-ups for badge indicators
   const { data: pendingFollowups = [] } = useQuery({
@@ -545,6 +557,20 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
       {/* Compact stats for vendor/mobile mode */}
       {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
+
+      {/* SLA Alerts Banner */}
+      {slaEnabled && (
+        <WaSlaAlertBanner
+          alerts={isAdminUser ? slaAlerts : mySlaAlerts}
+          onOpenConversation={(convId) => {
+            const conv = allConversations.find((c) => c.id === convId);
+            if (conv) handleSelectConversation(conv);
+          }}
+          onAcknowledge={acknowledgeSlaAlert}
+          onAcknowledgeAll={acknowledgeAllSla}
+          isAdmin={isAdminUser}
+        />
+      )}
 
       {/* Follow-up Widget */}
       <WaFollowupWidget
