@@ -5201,6 +5201,84 @@ export type Database = {
           },
         ]
       }
+      proposta_aceite_tokens: {
+        Row: {
+          aceite_documento: string | null
+          aceite_ip: string | null
+          aceite_nome: string | null
+          aceite_observacoes: string | null
+          aceite_user_agent: string | null
+          assinatura_url: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          first_viewed_at: string | null
+          id: string
+          last_viewed_at: string | null
+          proposta_id: string
+          tenant_id: string
+          token: string
+          used_at: string | null
+          versao_id: string
+          view_count: number | null
+        }
+        Insert: {
+          aceite_documento?: string | null
+          aceite_ip?: string | null
+          aceite_nome?: string | null
+          aceite_observacoes?: string | null
+          aceite_user_agent?: string | null
+          assinatura_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          first_viewed_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          proposta_id: string
+          tenant_id: string
+          token?: string
+          used_at?: string | null
+          versao_id: string
+          view_count?: number | null
+        }
+        Update: {
+          aceite_documento?: string | null
+          aceite_ip?: string | null
+          aceite_nome?: string | null
+          aceite_observacoes?: string | null
+          aceite_user_agent?: string | null
+          assinatura_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          first_viewed_at?: string | null
+          id?: string
+          last_viewed_at?: string | null
+          proposta_id?: string
+          tenant_id?: string
+          token?: string
+          used_at?: string | null
+          versao_id?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_aceite_tokens_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_aceite_tokens_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_campos_distribuidora: {
         Row: {
           campo_key: string
@@ -6511,6 +6589,64 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      proposta_views: {
+        Row: {
+          created_at: string
+          id: string
+          ip_address: string | null
+          proposta_id: string
+          referrer: string | null
+          tenant_id: string
+          token_id: string
+          user_agent: string | null
+          versao_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          proposta_id: string
+          referrer?: string | null
+          tenant_id: string
+          token_id: string
+          user_agent?: string | null
+          versao_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          proposta_id?: string
+          referrer?: string | null
+          tenant_id?: string
+          token_id?: string
+          user_agent?: string | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_views_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_views_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "proposta_views_token_id_fkey"
+            columns: ["token_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_aceite_tokens"
             referencedColumns: ["id"]
           },
         ]
@@ -8526,6 +8662,59 @@ export type Database = {
         }
         Relationships: []
       }
+      tenant_smtp_config: {
+        Row: {
+          ativo: boolean | null
+          created_at: string
+          from_email: string
+          from_name: string | null
+          host: string
+          id: string
+          password_encrypted: string
+          port: number
+          tenant_id: string
+          updated_at: string
+          use_tls: boolean | null
+          username: string
+        }
+        Insert: {
+          ativo?: boolean | null
+          created_at?: string
+          from_email: string
+          from_name?: string | null
+          host: string
+          id?: string
+          password_encrypted: string
+          port?: number
+          tenant_id: string
+          updated_at?: string
+          use_tls?: boolean | null
+          username: string
+        }
+        Update: {
+          ativo?: boolean | null
+          created_at?: string
+          from_email?: string
+          from_name?: string | null
+          host?: string
+          id?: string
+          password_encrypted?: string
+          port?: number
+          tenant_id?: string
+          updated_at?: string
+          use_tls?: boolean | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_smtp_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenants: {
         Row: {
           ativo: boolean
@@ -10325,6 +10514,7 @@ export type Database = {
         Args: { _delta?: number; _metric_key: string }
         Returns: undefined
       }
+      expire_proposals: { Args: never; Returns: undefined }
       find_leads_by_phone: {
         Args: { _telefone: string }
         Returns: {

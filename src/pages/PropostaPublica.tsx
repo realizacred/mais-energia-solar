@@ -28,6 +28,7 @@ export default function PropostaPublica() {
   const [submitting, setSubmitting] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [showSignature, setShowSignature] = useState(false);
+  const [versaoData, setVersaoData] = useState<any>(null);
 
   const [nome, setNome] = useState("");
   const [documento, setDocumento] = useState("");
@@ -39,12 +40,45 @@ export default function PropostaPublica() {
     if (token) loadProposal();
   }, [token]);
 
+  const trackView = async (td: TokenData) => {
+    try {
+      // Get proposta to find tenant_id
+      const { data: proposta } = await supabase
+        .from("propostas_nativas")
+        .select("tenant_id")
+        .eq("id", td.proposta_id)
+        .single();
+
+      if (proposta?.tenant_id) {
+        await (supabase as any).from("proposta_views").insert({
+          tenant_id: proposta.tenant_id,
+          token_id: td.id,
+          proposta_id: td.proposta_id,
+          versao_id: td.versao_id,
+          user_agent: navigator.userAgent,
+        });
+
+        // Increment view count
+        await (supabase as any)
+          .from("proposta_aceite_tokens")
+          .update({
+            view_count: (td as any).view_count ? (td as any).view_count + 1 : 1,
+            first_viewed_at: (td as any).first_viewed_at || new Date().toISOString(),
+            last_viewed_at: new Date().toISOString(),
+          })
+          .eq("id", td.id);
+      }
+    } catch {
+      // Silent - tracking shouldn't block UX
+    }
+  };
+
   const loadProposal = async () => {
     setLoading(true);
     try {
       const { data: td, error: tdErr } = await (supabase as any)
         .from("proposta_aceite_tokens")
-        .select("id, proposta_id, versao_id, expires_at, used_at, aceite_nome")
+        .select("id, proposta_id, versao_id, expires_at, used_at, aceite_nome, view_count, first_viewed_at")
         .eq("token", token!)
         .maybeSingle();
 
@@ -69,6 +103,9 @@ export default function PropostaPublica() {
 
       setTokenData(td);
 
+      // Track view
+      trackView(td);
+
       // Load rendered HTML
       const { data: render } = await supabase
         .from("proposta_renders")
@@ -78,6 +115,15 @@ export default function PropostaPublica() {
         .maybeSingle();
 
       if (render?.html) setHtml(render.html);
+
+      // Load versão data for financing display
+      const { data: versao } = await supabase
+        .from("proposta_versoes")
+        .select("id, valor_total, economia_mensal, payback_meses, potencia_kwp, snapshot")
+        .eq("id", td.versao_id)
+        .single();
+
+      if (versao) setVersaoData(versao);
     } catch {
       setError("Erro ao carregar proposta.");
     } finally {
@@ -181,6 +227,14 @@ export default function PropostaPublica() {
     );
   }
 
+  const formatBRL = (v: number | null) => {
+    if (!v) return "—";
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  };
+
+  // Extract payment options from snapshot
+  const pagamentoOpcoes = versaoData?.snapshot?.pagamento_opcoes || [];
+
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Proposal Preview */}
@@ -194,6 +248,55 @@ export default function PropostaPublica() {
               style={{ height: 700 }}
             />
           </div>
+        </div>
+      )}
+
+      {/* Financing Summary (Read-only) */}
+      {versaoData && (
+        <div className="max-w-lg mx-auto px-4 pb-4">
+          <Card className="border-border/60">
+            <CardContent className="py-4">
+              <h3 className="text-sm font-semibold mb-3">📊 Resumo Financeiro</h3>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Investimento</p>
+                  <p className="text-sm font-bold">{formatBRL(versaoData.valor_total)}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Economia/mês</p>
+                  <p className="text-sm font-bold text-success">{formatBRL(versaoData.economia_mensal)}</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Payback</p>
+                  <p className="text-sm font-bold">{versaoData.payback_meses} meses</p>
+                </div>
+                <div className="bg-muted/50 rounded-lg p-3 text-center">
+                  <p className="text-[10px] text-muted-foreground uppercase">Potência</p>
+                  <p className="text-sm font-bold">{versaoData.potencia_kwp} kWp</p>
+                </div>
+              </div>
+
+              {pagamentoOpcoes.length > 0 && (
+                <>
+                  <h4 className="text-xs font-semibold text-muted-foreground mb-2">Opções de Pagamento</h4>
+                  <div className="space-y-2">
+                    {pagamentoOpcoes.map((op: any, idx: number) => (
+                      <div key={idx} className="border rounded-lg p-3">
+                        <p className="text-xs font-semibold">{op.nome}</p>
+                        <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
+                          {op.entrada > 0 && <span>Entrada: {formatBRL(op.entrada)}</span>}
+                          {op.num_parcelas > 0 && (
+                            <span>{op.num_parcelas}x de {formatBRL(op.valor_parcela)}</span>
+                          )}
+                          {op.taxa_mensal > 0 && <span>Taxa: {(op.taxa_mensal * 100).toFixed(2)}%</span>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
       )}
 
