@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronLeft, ChevronRight, Zap, Loader2, Check, Search, Plus, Trash2,
-  MapPin, BarChart3, Package, DollarSign, CreditCard, FileText, Sun,
-  Building2, SlidersHorizontal,
+  ChevronLeft, ChevronRight, Zap, Loader2, Check, Plus, Trash2,
+  User, Briefcase, BarChart3, Settings2, Package, Wrench,
+  DollarSign, CreditCard, FileText, Sun, Building2, SlidersHorizontal, Search,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -20,31 +20,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateProposal, renderProposal, type GenerateProposalPayload } from "@/services/proposalApi";
 import { cn } from "@/lib/utils";
 
-// ─── Constants ─────────────────────────────────────────────
+// ── Step Components (Fase 2)
+import { StepCliente } from "./wizard/StepCliente";
+import { StepComercial } from "./wizard/StepComercial";
+import { StepUCsEnergia } from "./wizard/StepUCsEnergia";
+import { StepPremissas } from "./wizard/StepPremissas";
+
+// ── Types
+import {
+  type LeadSelection, type ClienteData, type ComercialData, type UCData,
+  type PremissasData, type KitItemRow, type BancoFinanciamento,
+  type CatalogoModulo, type CatalogoInversor,
+  EMPTY_CLIENTE, EMPTY_COMERCIAL, DEFAULT_PREMISSAS, createEmptyUC, formatBRL,
+  TIPO_TELHADO_OPTIONS,
+} from "./wizard/types";
+
+// ─── Steps Config ──────────────────────────────────────────
 
 const STEPS = [
-  { label: "Localização", icon: MapPin },
-  { label: "Consumo", icon: BarChart3 },
-  { label: "Dimensionamento", icon: Package },
-  { label: "Precificação", icon: SlidersHorizontal },
+  { label: "Cliente", icon: User },
+  { label: "Comercial", icon: Briefcase },
+  { label: "UCs / Energia", icon: BarChart3 },
+  { label: "Premissas", icon: Settings2 },
+  { label: "Kit / Layout", icon: Package },
+  { label: "Serviços", icon: Wrench },
+  { label: "Venda", icon: SlidersHorizontal },
   { label: "Pagamento", icon: CreditCard },
   { label: "Documento", icon: FileText },
-];
-
-const UF_LIST = [
-  "AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
-  "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO",
-];
-
-const TIPO_TELHADO_OPTIONS = [
-  "Fibrocimento", "Metálico", "Laje", "Cerâmico", "Solo", "Outro",
-];
-
-const GRUPO_OPTIONS = [
-  { value: "B1", label: "B1 - Residencial" },
-  { value: "B2", label: "B2 - Rural" },
-  { value: "B3", label: "B3 - Comercial" },
-  { value: "A", label: "Grupo A - Alta Tensão" },
 ];
 
 const CATEGORIAS = [
@@ -55,45 +57,7 @@ const CATEGORIAS = [
   { value: "outros", label: "Outros" },
 ];
 
-interface ItemRow {
-  id: string;
-  descricao: string;
-  quantidade: number;
-  preco_unitario: number;
-  categoria: string;
-}
-
-interface Concessionaria {
-  id: string;
-  nome: string;
-  sigla: string | null;
-  estado: string | null;
-  tarifa_energia: number | null;
-  tarifa_fio_b: number | null;
-}
-
-interface Modulo {
-  id: string;
-  fabricante: string;
-  modelo: string;
-  potencia_w: number | null;
-}
-
-interface Inversor {
-  id: string;
-  fabricante: string;
-  modelo: string;
-  potencia_nominal_w: number | null;
-}
-
-interface BancoFinanciamento {
-  id: string;
-  nome: string;
-  taxa_mensal: number;
-  max_parcelas: number;
-}
-
-const DRAFT_KEY = "proposal_wizard_draft_v2";
+const DRAFT_KEY = "proposal_wizard_draft_v3";
 const IDEM_KEY_PREFIX = "proposal_idem_";
 
 function getOrCreateIdempotencyKey(leadId: string): string {
@@ -109,10 +73,7 @@ function clearIdempotencyKey(leadId: string) {
   localStorage.removeItem(`${IDEM_KEY_PREFIX}${leadId}`);
 }
 
-const formatBRL = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-
-// ─── Sun Loading Spinner ──────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────
 
 function SunSpinner({ message }: { message?: string }) {
   return (
@@ -123,16 +84,9 @@ function SunSpinner({ message }: { message?: string }) {
   );
 }
 
-// ─── Step Content Wrapper ─────────────────────────────────
-
 function StepContent({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.25 }}
-    >
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
       {children}
     </motion.div>
   );
@@ -144,173 +98,118 @@ export function ProposalWizard() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
 
-  // Step 0 - Localização / Lead
-  const [leadSearch, setLeadSearch] = useState("");
-  const [leads, setLeads] = useState<any[]>([]);
-  const [searchingLeads, setSearchingLeads] = useState(false);
-  const [selectedLead, setSelectedLead] = useState<any>(null);
-  const [estado, setEstado] = useState("");
-  const [tipoTelhado, setTipoTelhado] = useState("");
-  const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
-  const [selectedConcessionaria, setSelectedConcessionaria] = useState("");
-  const [loadingConc, setLoadingConc] = useState(false);
+  // Step 0 - Cliente
+  const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
+  const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
 
-  // Step 1 - Consumo
+  // Step 1 - Comercial
+  const [comercial, setComercial] = useState<ComercialData>(EMPTY_COMERCIAL);
+
+  // Step 2 - UCs + Energia
+  const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
   const [grupo, setGrupo] = useState("B1");
-  const [tipoFase, setTipoFase] = useState<"monofasico" | "bifasico" | "trifasico">("bifasico");
-  const [consumoMedio, setConsumoMedio] = useState<number>(0);
   const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
-  const [tarifaTE, setTarifaTE] = useState<number>(0);
-  const [tarifaTUSD, setTarifaTUSD] = useState<number>(0);
 
-  // Step 2 - Dimensionamento
-  const [modulos, setModulos] = useState<Modulo[]>([]);
-  const [inversores, setInversores] = useState<Inversor[]>([]);
+  // Step 3 - Premissas
+  const [premissas, setPremissas] = useState<PremissasData>(DEFAULT_PREMISSAS);
+
+  // Step 4 - Kit / Dimensionamento
+  const [modulos, setModulos] = useState<CatalogoModulo[]>([]);
+  const [inversores, setInversores] = useState<CatalogoInversor[]>([]);
   const [loadingEquip, setLoadingEquip] = useState(false);
-  const [itens, setItens] = useState<ItemRow[]>([
-    { id: crypto.randomUUID(), descricao: "", quantidade: 1, preco_unitario: 0, categoria: "modulo" },
+  const [itens, setItens] = useState<KitItemRow[]>([
+    { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
   ]);
 
-  // Step 3 - Precificação
-  const [margem, setMargem] = useState(20);
+  // Step 5 - Serviços (placeholder)
   const [custoInstalacao, setCustoInstalacao] = useState(0);
+
+  // Step 6 - Venda
+  const [margem, setMargem] = useState(20);
   const [desconto, setDesconto] = useState(0);
   const [observacoes, setObservacoes] = useState("");
 
-  // Step 4 - Pagamento
+  // Step 7 - Pagamento
   const [bancos, setBancos] = useState<BancoFinanciamento[]>([]);
   const [selectedBanco, setSelectedBanco] = useState(0);
   const [parcelas, setParcelas] = useState(36);
   const [loadingBancos, setLoadingBancos] = useState(false);
 
-  // Step 5 - Documento
+  // Step 8 - Documento
   const [generating, setGenerating] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("modelo_1");
 
-  // ─── Data fetching ─────────────────────────────────────
-
-  // Fetch leads
-  const fetchLeads = useCallback(async (q: string) => {
-    setSearchingLeads(true);
-    try {
-      let query = supabase
-        .from("leads")
-        .select("id, nome, telefone, lead_code, estado, consumo_kwh, media_consumo, status, cidade, tipo_telhado, rede_atendimento")
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (q.length >= 2) {
-        query = query.or(`nome.ilike.%${q}%,telefone.ilike.%${q}%,lead_code.ilike.%${q}%`);
-      }
-      const { data } = await query;
-      setLeads(data || []);
-    } catch { setLeads([]); }
-    finally { setSearchingLeads(false); }
-  }, []);
-
-  useEffect(() => { fetchLeads(""); }, [fetchLeads]);
-  useEffect(() => {
-    const t = setTimeout(() => fetchLeads(leadSearch), 300);
-    return () => clearTimeout(t);
-  }, [leadSearch, fetchLeads]);
-
-  // Fetch concessionárias by estado
-  useEffect(() => {
-    if (!estado) { setConcessionarias([]); return; }
-    setLoadingConc(true);
-    supabase
-      .from("concessionarias")
-      .select("id, nome, sigla, estado, tarifa_energia, tarifa_fio_b")
-      .eq("ativo", true)
-      .eq("estado", estado)
-      .order("nome")
-      .then(({ data }) => {
-        setConcessionarias((data || []) as Concessionaria[]);
-        setLoadingConc(false);
-      });
-  }, [estado]);
-
-  // Fetch equipment
+  // ─── Data fetching ───────────────────────────────────
   useEffect(() => {
     setLoadingEquip(true);
     Promise.all([
       supabase.from("modulos_fotovoltaicos").select("id, fabricante, modelo, potencia_w").eq("ativo", true).order("potencia_w", { ascending: false }),
       supabase.from("inversores").select("id, fabricante, modelo, potencia_nominal_w").eq("ativo", true).order("potencia_nominal_w", { ascending: false }),
     ]).then(([modRes, invRes]) => {
-      setModulos((modRes.data || []) as Modulo[]);
-      setInversores((invRes.data || []) as Inversor[]);
+      setModulos((modRes.data || []) as CatalogoModulo[]);
+      setInversores((invRes.data || []) as CatalogoInversor[]);
       setLoadingEquip(false);
     });
   }, []);
 
-  // Fetch banks
   useEffect(() => {
     setLoadingBancos(true);
     supabase.rpc("get_active_financing_banks").then(({ data }) => {
-      const banks = (data || []) as BancoFinanciamento[];
-      setBancos(banks);
+      setBancos((data || []) as BancoFinanciamento[]);
       setLoadingBancos(false);
     });
   }, []);
 
-  // ─── Select lead ─────────────────────────────────────
-
-  const handleSelectLead = (lead: any) => {
+  // ─── Lead selection handler ──────────────────────────
+  const handleSelectLead = (lead: LeadSelection) => {
     setSelectedLead(lead);
-    if (lead.estado) setEstado(lead.estado);
-    if (lead.consumo_kwh || lead.media_consumo) setConsumoMedio(lead.consumo_kwh || lead.media_consumo);
-    if (lead.tipo_telhado) setTipoTelhado(lead.tipo_telhado);
-    setLeadSearch("");
+    if (lead.estado && ucs[0]) {
+      const updated = [...ucs];
+      updated[0] = { ...updated[0], estado: lead.estado, cidade: lead.cidade || "" };
+      if (lead.tipo_telhado) updated[0].tipo_telhado = lead.tipo_telhado;
+      setUcs(updated);
+    }
+    if (lead.consumo_kwh || lead.media_consumo) {
+      const consumo = lead.consumo_kwh || lead.media_consumo || 0;
+      const updated = [...ucs];
+      updated[0] = { ...updated[0], consumo_mensal: consumo };
+      setUcs(updated);
+    }
   };
 
-  // ─── Update tariff from concessionária ───────────────
-
-  useEffect(() => {
-    const conc = concessionarias.find(c => c.id === selectedConcessionaria);
-    if (conc) {
-      setTarifaTE(conc.tarifa_energia || 0);
-      setTarifaTUSD(conc.tarifa_fio_b || 0);
-    }
-  }, [selectedConcessionaria, concessionarias]);
-
-  // ─── Itens management ────────────────────────────────
-
+  // ─── Kit items management ────────────────────────────
   const addItem = () => {
-    setItens(prev => [...prev, { id: crypto.randomUUID(), descricao: "", quantidade: 1, preco_unitario: 0, categoria: "modulo" }]);
+    setItens(prev => [...prev, { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false }]);
   };
   const removeItem = (id: string) => setItens(prev => prev.filter(i => i.id !== id));
-  const updateItem = (id: string, field: keyof ItemRow, value: any) => {
+  const updateItem = (id: string, field: keyof KitItemRow, value: any) => {
     setItens(prev => prev.map(i => i.id === id ? { ...i, [field]: value } : i));
   };
 
-  const addModuloAsItem = (mod: Modulo) => {
+  const addModuloAsItem = (mod: CatalogoModulo) => {
     const potW = mod.potencia_w || 0;
     const numPlacas = potenciaKwp > 0 ? Math.ceil((potenciaKwp * 1000) / potW) : 10;
     setItens(prev => [...prev, {
-      id: crypto.randomUUID(),
-      descricao: `${mod.fabricante} ${mod.modelo} ${potW}W`,
-      quantidade: numPlacas,
-      preco_unitario: 0,
-      categoria: "modulo",
+      id: crypto.randomUUID(), descricao: `${mod.fabricante} ${mod.modelo} ${potW}W`,
+      fabricante: mod.fabricante, modelo: mod.modelo, potencia_w: potW,
+      quantidade: numPlacas, preco_unitario: 0, categoria: "modulo", avulso: false,
     }]);
     toast({ title: `${mod.modelo} adicionado`, description: `${numPlacas} unidades` });
   };
 
-  const addInversorAsItem = (inv: Inversor) => {
+  const addInversorAsItem = (inv: CatalogoInversor) => {
     setItens(prev => [...prev, {
-      id: crypto.randomUUID(),
-      descricao: `${inv.fabricante} ${inv.modelo} ${((inv.potencia_nominal_w || 0) / 1000).toFixed(1)}kW`,
-      quantidade: 1,
-      preco_unitario: 0,
-      categoria: "inversor",
+      id: crypto.randomUUID(), descricao: `${inv.fabricante} ${inv.modelo} ${((inv.potencia_nominal_w || 0) / 1000).toFixed(1)}kW`,
+      fabricante: inv.fabricante, modelo: inv.modelo, potencia_w: inv.potencia_nominal_w || 0,
+      quantidade: 1, preco_unitario: 0, categoria: "inversor", avulso: false,
     }]);
     toast({ title: `${inv.modelo} adicionado` });
   };
 
   // ─── Calculations ────────────────────────────────────
-
   const subtotal = useMemo(() => itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0), [itens]);
   const custoTotal = subtotal + custoInstalacao;
   const margemValor = custoTotal * (margem / 100);
@@ -327,18 +226,21 @@ export function ProposalWizard() {
   }, [selectedBanco, parcelas, precoFinal, bancos]);
 
   // ─── Validations ─────────────────────────────────────
+  const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
   const canStep = [
-    /* 0 */ !!selectedLead && !!estado && !!tipoTelhado,
-    /* 1 */ consumoMedio > 0 && potenciaKwp > 0,
-    /* 2 */ itens.length > 0 && itens.some(i => i.descricao),
-    /* 3 */ margem >= 0,
-    /* 4 */ true,
-    /* 5 */ true,
+    /* 0 Cliente     */ !!selectedLead && !!cliente.nome,
+    /* 1 Comercial   */ true, // optional
+    /* 2 UCs         */ consumoTotal > 0 && potenciaKwp > 0,
+    /* 3 Premissas   */ true, // has defaults
+    /* 4 Kit         */ itens.length > 0 && itens.some(i => i.descricao),
+    /* 5 Serviços    */ true,
+    /* 6 Venda       */ margem >= 0,
+    /* 7 Pagamento   */ true,
+    /* 8 Documento   */ true,
   ];
 
   // ─── Generate ────────────────────────────────────────
-
   const handleGenerate = async () => {
     if (!selectedLead) return;
     setGenerating(true);
@@ -347,15 +249,16 @@ export function ProposalWizard() {
 
     try {
       const idempotencyKey = getOrCreateIdempotencyKey(selectedLead.id);
+      const uc1 = ucs[0];
       const payload: GenerateProposalPayload = {
         lead_id: selectedLead.id,
         grupo: grupo.startsWith("B") ? "B" : "A",
         idempotency_key: idempotencyKey,
         dados_tecnicos: {
           potencia_kwp: potenciaKwp,
-          consumo_medio_kwh: consumoMedio,
-          tipo_fase: tipoFase,
-          estado,
+          consumo_medio_kwh: consumoTotal,
+          tipo_fase: uc1?.fase || "bifasico",
+          estado: uc1?.estado || cliente.estado,
         },
         itens: itens.filter(i => i.descricao).map(({ descricao, quantidade, preco_unitario, categoria }) => ({
           descricao, quantidade, preco_unitario, categoria,
@@ -386,7 +289,7 @@ export function ProposalWizard() {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
     setResult(null);
     setHtmlPreview(null);
-    setStep(1);
+    setStep(2);
   };
 
   const handleViewDetail = () => {
@@ -394,37 +297,36 @@ export function ProposalWizard() {
   };
 
   // ─── Render ──────────────────────────────────────────
-
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       {/* ── Stepper ── */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5 overflow-x-auto pb-1">
         {STEPS.map((s, i) => {
           const Icon = s.icon;
           const isActive = i === step;
           const isDone = i < step;
           return (
-            <div key={s.label} className="flex items-center gap-1 flex-1">
+            <div key={s.label} className="flex items-center gap-0.5 flex-shrink-0">
               <button
                 onClick={() => { if (isDone) setStep(i); }}
                 className={cn(
-                  "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all",
+                  "flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap",
                   isActive && "bg-primary text-primary-foreground shadow-sm",
                   isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15",
                   !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
                 )}
               >
                 <span className={cn(
-                  "flex items-center justify-center h-6 w-6 rounded-full text-[10px] shrink-0",
+                  "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0",
                   isActive && "bg-primary-foreground/20",
                   isDone && "bg-primary/20",
                   !isActive && !isDone && "bg-muted",
                 )}>
-                  {isDone ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
+                  {isDone ? <Check className="h-2.5 w-2.5" /> : <Icon className="h-2.5 w-2.5" />}
                 </span>
-                <span className="hidden lg:block truncate">{s.label}</span>
+                <span className="hidden xl:block">{s.label}</span>
               </button>
-              {i < STEPS.length - 1 && <div className="flex-1 h-px bg-border min-w-[12px]" />}
+              {i < STEPS.length - 1 && <div className="w-2 h-px bg-border shrink-0" />}
             </div>
           );
         })}
@@ -434,151 +336,51 @@ export function ProposalWizard() {
       <Card className="border-border/60 overflow-hidden">
         <CardContent className="pt-6 pb-6">
           <AnimatePresence mode="wait">
-            {/* ── STEP 0: Localização ── */}
+
+            {/* ── STEP 0: Cliente ── */}
             {step === 0 && (
               <StepContent key="step0">
-                <div className="space-y-5">
-                  <h3 className="text-base font-bold flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-primary" /> Localização e Cliente
-                  </h3>
-
-                  {/* Lead selection */}
-                  {selectedLead ? (
-                    <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/15">
-                      <div>
-                        <p className="font-semibold">{selectedLead.nome}</p>
-                        <p className="text-sm text-muted-foreground">{selectedLead.telefone} • {selectedLead.lead_code}</p>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedLead(null)}>Trocar</Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input placeholder="Buscar lead..." className="pl-9" value={leadSearch} onChange={e => setLeadSearch(e.target.value)} />
-                      </div>
-                      {searchingLeads ? <SunSpinner message="Buscando leads..." /> : leads.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">Nenhum lead encontrado.</p>
-                      ) : (
-                        <div className="border rounded-xl divide-y max-h-60 overflow-y-auto">
-                          {leads.map(l => (
-                            <button key={l.id} className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors" onClick={() => handleSelectLead(l)}>
-                              <p className="font-medium text-sm truncate">{l.nome}</p>
-                              <p className="text-xs text-muted-foreground">{l.telefone} • {l.lead_code}{l.estado ? ` • ${l.estado}` : ""}</p>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-2">
-                      <Label>Tipo de Telhado *</Label>
-                      <Select value={tipoTelhado} onValueChange={setTipoTelhado}>
-                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {TIPO_TELHADO_OPTIONS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Estado (UF) *</Label>
-                      <Select value={estado} onValueChange={setEstado}>
-                        <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                        <SelectContent>
-                          {UF_LIST.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Distribuidora de Energia</Label>
-                      {loadingConc ? (
-                        <Skeleton className="h-10 w-full rounded-md" />
-                      ) : (
-                        <Select value={selectedConcessionaria} onValueChange={setSelectedConcessionaria}>
-                          <SelectTrigger><SelectValue placeholder={concessionarias.length ? "Selecione..." : "Selecione o estado primeiro"} /></SelectTrigger>
-                          <SelectContent>
-                            {concessionarias.map(c => (
-                              <SelectItem key={c.id} value={c.id}>{c.sigla ? `${c.sigla} - ` : ""}{c.nome}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <StepCliente
+                  selectedLead={selectedLead}
+                  onSelectLead={handleSelectLead}
+                  onClearLead={() => setSelectedLead(null)}
+                  cliente={cliente}
+                  onClienteChange={setCliente}
+                />
               </StepContent>
             )}
 
-            {/* ── STEP 1: Consumo ── */}
+            {/* ── STEP 1: Comercial ── */}
             {step === 1 && (
               <StepContent key="step1">
-                <div className="space-y-5">
-                  <h3 className="text-base font-bold flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-primary" /> Consumo e Tarifas
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Grupo Tarifário</Label>
-                      <Select value={grupo} onValueChange={setGrupo}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {GRUPO_OPTIONS.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Tipo de Fase</Label>
-                      <Select value={tipoFase} onValueChange={v => setTipoFase(v as any)}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="monofasico">Monofásico</SelectItem>
-                          <SelectItem value="bifasico">Bifásico</SelectItem>
-                          <SelectItem value="trifasico">Trifásico</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Tariff table */}
-                  <div className="rounded-xl border border-border/50 overflow-hidden">
-                    <div className="bg-muted/30 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Tarifas
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 p-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">TE (R$/kWh)</Label>
-                        <Input type="number" step={0.01} value={tarifaTE || ""} onChange={e => setTarifaTE(Number(e.target.value))} className="h-9" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">TUSD (R$/kWh)</Label>
-                        <Input type="number" step={0.01} value={tarifaTUSD || ""} onChange={e => setTarifaTUSD(Number(e.target.value))} className="h-9" />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label>Consumo Médio (kWh/mês) *</Label>
-                      <Input type="number" min={0} value={consumoMedio || ""} onChange={e => setConsumoMedio(Number(e.target.value))} placeholder="Ex: 500" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Potência do Sistema (kWp) *</Label>
-                      <Input type="number" min={0} step={0.1} value={potenciaKwp || ""} onChange={e => setPotenciaKwp(Number(e.target.value))} placeholder="Ex: 6.6" />
-                    </div>
-                  </div>
-                </div>
+                <StepComercial comercial={comercial} onComercialChange={setComercial} />
               </StepContent>
             )}
 
-            {/* ── STEP 2: Dimensionamento ── */}
+            {/* ── STEP 2: UCs + Energia ── */}
             {step === 2 && (
               <StepContent key="step2">
+                <StepUCsEnergia
+                  ucs={ucs} onUcsChange={setUcs}
+                  grupo={grupo} onGrupoChange={setGrupo}
+                  potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp}
+                />
+              </StepContent>
+            )}
+
+            {/* ── STEP 3: Premissas ── */}
+            {step === 3 && (
+              <StepContent key="step3">
+                <StepPremissas premissas={premissas} onPremissasChange={setPremissas} />
+              </StepContent>
+            )}
+
+            {/* ── STEP 4: Kit / Dimensionamento ── */}
+            {step === 4 && (
+              <StepContent key="step4">
                 <div className="space-y-5">
                   <h3 className="text-base font-bold flex items-center gap-2">
-                    <Package className="h-4 w-4 text-primary" /> Dimensionamento e Kits
+                    <Package className="h-4 w-4 text-primary" /> Kit e Equipamentos
                   </h3>
 
                   {loadingEquip ? <SunSpinner message="Carregando equipamentos..." /> : (
@@ -593,7 +395,7 @@ export function ProposalWizard() {
                                 <p className="font-medium text-xs truncate">{m.fabricante} {m.modelo}</p>
                                 <p className="text-[11px] text-muted-foreground">{m.potencia_w}W</p>
                               </div>
-                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary hover:text-primary" onClick={() => addModuloAsItem(m)}>
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => addModuloAsItem(m)}>
                                 <Plus className="h-3 w-3 mr-0.5" /> Add
                               </Button>
                             </div>
@@ -612,7 +414,7 @@ export function ProposalWizard() {
                                 <p className="font-medium text-xs truncate">{inv.fabricante} {inv.modelo}</p>
                                 <p className="text-[11px] text-muted-foreground">{((inv.potencia_nominal_w || 0) / 1000).toFixed(1)}kW</p>
                               </div>
-                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary hover:text-primary" onClick={() => addInversorAsItem(inv)}>
+                              <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => addInversorAsItem(inv)}>
                                 <Plus className="h-3 w-3 mr-0.5" /> Add
                               </Button>
                             </div>
@@ -658,15 +460,34 @@ export function ProposalWizard() {
               </StepContent>
             )}
 
-            {/* ── STEP 3: Precificação ── */}
-            {step === 3 && (
-              <StepContent key="step3">
+            {/* ── STEP 5: Serviços ── */}
+            {step === 5 && (
+              <StepContent key="step5">
+                <div className="space-y-5">
+                  <h3 className="text-base font-bold flex items-center gap-2">
+                    <Wrench className="h-4 w-4 text-primary" /> Serviços Adicionais
+                  </h3>
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Custo de Instalação (R$)</Label>
+                      <Input type="number" min={0} value={custoInstalacao || ""} onChange={e => setCustoInstalacao(Number(e.target.value))} placeholder="R$ 0,00" className="h-9" />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Serviços detalhados (múltiplos itens, comissão, etc.) serão expandidos nas próximas fases.
+                    </p>
+                  </div>
+                </div>
+              </StepContent>
+            )}
+
+            {/* ── STEP 6: Venda ── */}
+            {step === 6 && (
+              <StepContent key="step6">
                 <div className="space-y-5">
                   <h3 className="text-base font-bold flex items-center gap-2">
                     <SlidersHorizontal className="h-4 w-4 text-primary" /> Precificação
                   </h3>
 
-                  {/* Margin Slider */}
                   <div className="space-y-3 p-4 rounded-xl border border-border/50 bg-muted/10">
                     <div className="flex items-center justify-between">
                       <Label className="font-semibold">Margem de Lucro</Label>
@@ -680,20 +501,14 @@ export function ProposalWizard() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Custo de Instalação (R$)</Label>
-                      <Input type="number" min={0} value={custoInstalacao || ""} onChange={e => setCustoInstalacao(Number(e.target.value))} placeholder="R$ 0,00" />
-                    </div>
-                    <div className="space-y-2">
                       <Label>Desconto (%)</Label>
                       <Input type="number" min={0} max={100} value={desconto || ""} onChange={e => setDesconto(Number(e.target.value))} />
                     </div>
                   </div>
 
-                  {/* Cost summary table */}
+                  {/* Cost summary */}
                   <div className="rounded-xl border border-border/50 overflow-hidden">
-                    <div className="bg-muted/30 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                      Resumo de Custos
-                    </div>
+                    <div className="bg-muted/30 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo de Custos</div>
                     <div className="divide-y divide-border/30">
                       <div className="flex justify-between px-4 py-2.5 text-sm">
                         <span className="text-muted-foreground">Custo Equipamentos</span>
@@ -728,9 +543,9 @@ export function ProposalWizard() {
               </StepContent>
             )}
 
-            {/* ── STEP 4: Pagamento ── */}
-            {step === 4 && (
-              <StepContent key="step4">
+            {/* ── STEP 7: Pagamento ── */}
+            {step === 7 && (
+              <StepContent key="step7">
                 <div className="space-y-5">
                   <h3 className="text-base font-bold flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-primary" /> Simulação de Financiamento
@@ -740,19 +555,12 @@ export function ProposalWizard() {
                     <p className="text-sm text-muted-foreground text-center py-8">Nenhum banco de financiamento cadastrado.</p>
                   ) : (
                     <div className="space-y-4">
-                      {/* Bank list */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {bancos.map((bank, idx) => (
-                          <button
-                            key={bank.id || idx}
-                            onClick={() => setSelectedBanco(idx)}
-                            className={cn(
-                              "p-4 rounded-xl border-2 text-left transition-all",
-                              selectedBanco === idx
-                                ? "border-primary bg-primary/5 shadow-sm"
-                                : "border-border/40 hover:border-border/70"
-                            )}
-                          >
+                          <button key={bank.id || idx} onClick={() => setSelectedBanco(idx)} className={cn(
+                            "p-4 rounded-xl border-2 text-left transition-all",
+                            selectedBanco === idx ? "border-primary bg-primary/5 shadow-sm" : "border-border/40 hover:border-border/70"
+                          )}>
                             <div className="flex items-center gap-2 mb-1">
                               <Building2 className="h-4 w-4 text-muted-foreground" />
                               <span className="font-semibold text-sm">{bank.nome}</span>
@@ -762,25 +570,14 @@ export function ProposalWizard() {
                         ))}
                       </div>
 
-                      {/* Parcelas slider */}
                       <div className="space-y-3 p-4 rounded-xl border border-border/50">
                         <div className="flex items-center justify-between">
                           <Label className="font-semibold">Parcelas</Label>
                           <Badge variant="secondary" className="text-sm font-bold">{parcelas}x</Badge>
                         </div>
-                        <Slider
-                          value={[parcelas]}
-                          onValueChange={v => setParcelas(v[0])}
-                          min={12}
-                          max={bancos[selectedBanco]?.max_parcelas || 60}
-                          step={6}
-                        />
-                        <div className="flex justify-between text-[10px] text-muted-foreground">
-                          <span>12x</span><span>24x</span><span>36x</span><span>48x</span><span>60x</span>
-                        </div>
+                        <Slider value={[parcelas]} onValueChange={v => setParcelas(v[0])} min={12} max={bancos[selectedBanco]?.max_parcelas || 60} step={6} />
                       </div>
 
-                      {/* Result */}
                       {financingCalc && (
                         <div className="grid grid-cols-2 gap-4">
                           <div className="p-4 rounded-xl bg-primary/5 border border-primary/15 text-center">
@@ -800,9 +597,9 @@ export function ProposalWizard() {
               </StepContent>
             )}
 
-            {/* ── STEP 5: Documento ── */}
-            {step === 5 && (
-              <StepContent key="step5">
+            {/* ── STEP 8: Documento ── */}
+            {step === 8 && (
+              <StepContent key="step8">
                 <div className="space-y-6">
                   {!result ? (
                     <div className="space-y-6">
@@ -810,42 +607,33 @@ export function ProposalWizard() {
                         <FileText className="h-4 w-4 text-primary" /> Gerar Proposta
                       </h3>
 
-                      {/* Template selection */}
                       <div className="space-y-2">
                         <Label>Template</Label>
                         <div className="grid grid-cols-2 gap-3">
                           {["modelo_1", "modelo_2"].map(t => (
-                            <button
-                              key={t}
-                              onClick={() => setTemplateSelecionado(t)}
-                              className={cn(
-                                "p-4 rounded-xl border-2 text-center transition-all",
-                                templateSelecionado === t
-                                  ? "border-primary bg-primary/5"
-                                  : "border-border/40 hover:border-border/70"
-                              )}
-                            >
+                            <button key={t} onClick={() => setTemplateSelecionado(t)} className={cn(
+                              "p-4 rounded-xl border-2 text-center transition-all",
+                              templateSelecionado === t ? "border-primary bg-primary/5" : "border-border/40 hover:border-border/70"
+                            )}>
                               <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
                               <p className="text-sm font-medium">{t === "modelo_1" ? "Modelo 1" : "Modelo 2"}</p>
-                              <p className="text-[10px] text-muted-foreground">Proposta Comercial</p>
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      {/* Summary */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div className="p-3 rounded-lg bg-muted/50">
                           <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cliente</p>
-                          <p className="text-sm font-semibold truncate">{selectedLead?.nome}</p>
+                          <p className="text-sm font-semibold truncate">{cliente.nome || selectedLead?.nome}</p>
                         </div>
                         <div className="p-3 rounded-lg bg-muted/50">
                           <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Potência</p>
                           <p className="text-sm font-semibold">{potenciaKwp} kWp</p>
                         </div>
                         <div className="p-3 rounded-lg bg-muted/50">
-                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Grupo</p>
-                          <p className="text-sm font-semibold">{grupo}</p>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wide">UCs</p>
+                          <p className="text-sm font-semibold">{ucs.length}</p>
                         </div>
                         <div className="p-3 rounded-lg bg-muted/50">
                           <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Investimento</p>
@@ -853,7 +641,6 @@ export function ProposalWizard() {
                         </div>
                       </div>
 
-                      {/* Generate button */}
                       <div className="text-center">
                         <Button size="lg" className="gap-2 min-w-[200px]" onClick={handleGenerate} disabled={generating}>
                           {generating ? <Sun className="h-5 w-5 animate-spin" style={{ animationDuration: "2s" }} /> : <Zap className="h-5 w-5" />}
@@ -865,7 +652,6 @@ export function ProposalWizard() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {/* Result summary */}
                       <div className="grid grid-cols-3 gap-4">
                         <div className="p-4 rounded-xl bg-primary/5 border border-primary/15 text-center">
                           <p className="text-xs text-muted-foreground">Investimento</p>
@@ -893,31 +679,35 @@ export function ProposalWizard() {
                       <div className="flex flex-wrap gap-3 justify-center pt-4">
                         <Button onClick={handleViewDetail} className="gap-2">Ver Detalhes</Button>
                         <Button variant="outline" onClick={handleNewVersion} className="gap-2"><Plus className="h-4 w-4" /> Nova Versão</Button>
-                        <Button variant="ghost" onClick={() => setStep(1)}>Voltar e Editar</Button>
+                        <Button variant="ghost" onClick={() => setStep(2)}>Voltar e Editar</Button>
                       </div>
                     </div>
                   )}
                 </div>
               </StepContent>
             )}
+
           </AnimatePresence>
         </CardContent>
       </Card>
 
       {/* ── Navigation Footer ── */}
-      {step < 5 && !result && (
+      {step < 8 && !result && (
         <div className="flex items-center justify-between">
           <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} className="gap-1">
             <ChevronLeft className="h-4 w-4" /> Voltar
           </Button>
-          <Button onClick={() => setStep(step + 1)} disabled={!canStep[step]} className="gap-1">
-            Próximo <ChevronRight className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{step + 1} / {STEPS.length}</span>
+            <Button onClick={() => setStep(step + 1)} disabled={!canStep[step]} className="gap-1">
+              Próximo <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
-      {step === 5 && !result && (
+      {step === 8 && !result && (
         <div className="flex justify-start">
-          <Button variant="ghost" onClick={() => setStep(4)} className="gap-1">
+          <Button variant="ghost" onClick={() => setStep(7)} className="gap-1">
             <ChevronLeft className="h-4 w-4" /> Voltar
           </Button>
         </div>
