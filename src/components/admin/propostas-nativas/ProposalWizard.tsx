@@ -120,17 +120,21 @@ export function ProposalWizard() {
     } catch { /* ignore */ }
   }, []);
 
-  // Search leads
-  const searchLeads = useCallback(async (q: string) => {
-    if (q.length < 2) { setLeads([]); return; }
+  // Load recent leads on mount + search
+  const fetchLeads = useCallback(async (q: string) => {
     setSearchingLeads(true);
     try {
-      const { data } = await supabase
+      let query = supabase
         .from("leads")
-        .select("id, nome, telefone, lead_code, estado, consumo_kwh")
-        .or(`nome.ilike.%${q}%,telefone.ilike.%${q}%,lead_code.ilike.%${q}%`)
+        .select("id, nome, telefone, lead_code, estado, consumo_kwh, status")
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(20);
+
+      if (q.length >= 2) {
+        query = query.or(`nome.ilike.%${q}%,telefone.ilike.%${q}%,lead_code.ilike.%${q}%`);
+      }
+
+      const { data } = await query;
       setLeads(data || []);
     } catch {
       setLeads([]);
@@ -139,10 +143,16 @@ export function ProposalWizard() {
     }
   }, []);
 
+  // Load on mount
   useEffect(() => {
-    const t = setTimeout(() => searchLeads(leadSearch), 300);
+    fetchLeads("");
+  }, [fetchLeads]);
+
+  // Debounced search
+  useEffect(() => {
+    const t = setTimeout(() => fetchLeads(leadSearch), 300);
     return () => clearTimeout(t);
-  }, [leadSearch, searchLeads]);
+  }, [leadSearch, fetchLeads]);
 
   // Select lead and pre-fill
   const handleSelectLead = (lead: any) => {
@@ -150,7 +160,6 @@ export function ProposalWizard() {
     if (lead.estado) setEstado(lead.estado);
     if (lead.consumo_kwh) setConsumoMedio(lead.consumo_kwh);
     setLeadSearch("");
-    setLeads([]);
   };
 
   // Itens management
@@ -288,23 +297,40 @@ export function ProposalWizard() {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Buscar por nome, telefone ou código..."
+                      placeholder="Filtrar por nome, telefone ou código..."
                       className="pl-9"
                       value={leadSearch}
                       onChange={(e) => setLeadSearch(e.target.value)}
                     />
                   </div>
-                  {searchingLeads && <p className="text-sm text-muted-foreground">Buscando...</p>}
-                  {leads.length > 0 && (
-                    <div className="border rounded-xl divide-y max-h-64 overflow-y-auto">
+
+                  {searchingLeads ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground py-4 justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Buscando leads...
+                    </div>
+                  ) : leads.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum lead encontrado.</p>
+                  ) : (
+                    <div className="border rounded-xl divide-y max-h-80 overflow-y-auto">
                       {leads.map((l) => (
                         <button
                           key={l.id}
-                          className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
+                          className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors flex items-center justify-between gap-3"
                           onClick={() => handleSelectLead(l)}
                         >
-                          <p className="font-medium text-sm">{l.nome}</p>
-                          <p className="text-xs text-muted-foreground">{l.telefone} • {l.lead_code} • {l.estado}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{l.nome}</p>
+                            <p className="text-xs text-muted-foreground truncate">
+                              {l.telefone} • {l.lead_code}{l.estado ? ` • ${l.estado}` : ""}
+                              {l.consumo_kwh ? ` • ${l.consumo_kwh} kWh` : ""}
+                            </p>
+                          </div>
+                          {l.status && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground whitespace-nowrap shrink-0">
+                              {l.status}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
@@ -313,6 +339,7 @@ export function ProposalWizard() {
               )}
             </div>
           )}
+
 
           {/* STEP 2: Dados Técnicos */}
           {step === 1 && (
