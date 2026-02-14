@@ -4502,7 +4502,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
@@ -4576,7 +4576,7 @@ export type Database = {
           created_at?: string
           id?: string
           nome: string
-          tenant_id: string
+          tenant_id?: string
         }
         Update: {
           cor?: string
@@ -4611,7 +4611,7 @@ export type Database = {
           id?: string
           nome: string
           ordem?: number
-          tenant_id: string
+          tenant_id?: string
           updated_at?: string
         }
         Update: {
