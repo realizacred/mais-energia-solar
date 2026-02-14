@@ -18,11 +18,11 @@ import {
 import {
   Brain,
   Save,
-  
   RefreshCw,
   ShieldCheck,
   Zap,
   Info,
+  Sparkles,
 } from "lucide-react";
 
 interface AiSettings {
@@ -52,6 +52,13 @@ const MODELOS = [
   { value: "gpt-4o-mini", label: "GPT-4o Mini (rápido, econômico)" },
   { value: "gpt-4o", label: "GPT-4o (alta qualidade)" },
   { value: "gpt-4.1-mini", label: "GPT-4.1 Mini (mais recente)" },
+];
+
+const WRITING_ASSISTANT_MODELS = [
+  { value: "google/gemini-2.5-flash-lite", label: "Gemini Flash Lite", cost: "💰", desc: "Mais barato, básico" },
+  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", cost: "💰💰", desc: "Bom equilíbrio (padrão)" },
+  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash", cost: "💰💰", desc: "Mais recente, rápido" },
+  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", cost: "💰💰💰", desc: "Premium, alta qualidade" },
 ];
 
 export function AiFollowupSettingsPanel() {
@@ -326,6 +333,57 @@ export function AiFollowupSettingsPanel() {
                 Abaixo deste valor a IA bloqueia o envio automático (0-59 bloqueia, 60-84 sugere, 85+ envia)
               </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Writing Assistant Model */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-primary" />
+            <CardTitle className="text-base">Assistente de Escrita</CardTitle>
+          </div>
+          <CardDescription>
+            Modelo usado pelo assistente de escrita no composer do WhatsApp. Modelos mais caros geram textos melhores.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Modelo do Assistente de Escrita</Label>
+            <Select
+              value={settings.templates?.writing_assistant?.model || "google/gemini-2.5-flash"}
+              onValueChange={(v) =>
+                setSettings({
+                  ...settings,
+                  templates: {
+                    ...settings.templates,
+                    writing_assistant: {
+                      ...(settings.templates?.writing_assistant || {}),
+                      model: v,
+                    },
+                  },
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {WRITING_ASSISTANT_MODELS.map((m) => (
+                  <SelectItem key={m.value} value={m.value}>
+                    <span className="flex items-center gap-2">
+                      <span>{m.cost}</span>
+                      <span>{m.label}</span>
+                      <span className="text-muted-foreground">— {m.desc}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              Se o modelo primário falhar, o sistema usa automaticamente o Gemini Flash Lite como fallback.
+            </p>
           </div>
         </CardContent>
       </Card>

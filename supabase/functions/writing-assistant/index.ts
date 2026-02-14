@@ -33,8 +33,14 @@ const ACTION_INSTRUCTIONS: Record<Action, string> = {
   translate_es: "Traduce este texto al español. Devuelve SOLO el texto traducido.",
 };
 
-const PRIMARY_MODEL = "google/gemini-2.5-flash";
+const DEFAULT_PRIMARY_MODEL = "google/gemini-2.5-flash";
 const FALLBACK_MODEL = "google/gemini-2.5-flash-lite";
+const ALLOWED_MODELS = [
+  "google/gemini-2.5-flash-lite",
+  "google/gemini-2.5-flash",
+  "google/gemini-3-flash-preview",
+  "google/gemini-2.5-pro",
+];
 const AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MAX_TEXT_LENGTH = 2000;
 const AI_TIMEOUT_MS = 8000;
@@ -150,6 +156,21 @@ serve(async (req) => {
     }
     tenantId = profile.tenant_id;
 
+    // ── Resolve preferred model from tenant settings (user-scoped, RLS safe) ──
+    let primaryModel = DEFAULT_PRIMARY_MODEL;
+    const { data: aiSettings } = await supabase
+      .from("wa_ai_settings")
+      .select("templates")
+      .maybeSingle();
+
+    if (aiSettings?.templates) {
+      const tpl = aiSettings.templates as Record<string, any>;
+      const configuredModel = tpl?.writing_assistant?.model;
+      if (configuredModel && ALLOWED_MODELS.includes(configuredModel)) {
+        primaryModel = configuredModel;
+      }
+    }
+
     // ── Rate limit ──
     // GUARDRAIL: service_role client is used EXCLUSIVELY for check_rate_limit RPC.
     // It bypasses RLS by design — DO NOT reuse for any data query.
@@ -218,8 +239,8 @@ serve(async (req) => {
     // ── Call AI with fallback ──
     let suggestion: string;
     try {
-      suggestion = await callAI(LOVABLE_API_KEY, PRIMARY_MODEL, action, text.trim(), locale);
-      logModel = PRIMARY_MODEL;
+      suggestion = await callAI(LOVABLE_API_KEY, primaryModel, action, text.trim(), locale);
+      logModel = primaryModel;
     } catch (primaryError) {
       console.warn(
         `[writing-assistant] Primary model failed: ${primaryError instanceof Error ? primaryError.message : "unknown"}`
