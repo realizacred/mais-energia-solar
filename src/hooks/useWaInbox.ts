@@ -231,16 +231,34 @@ export function useWaConversations(filters?: {
   });
 
   const assignConversation = useMutation({
-    mutationFn: async ({ conversationId, userId }: { conversationId: string; userId: string | null }) => {
-      const { error } = await supabase
+    mutationFn: async ({ conversationId, userId, requireUnassigned }: { conversationId: string; userId: string | null; requireUnassigned?: boolean }) => {
+      let query = supabase
         .from("wa_conversations")
         .update({ assigned_to: userId, status: userId ? "open" : "pending" })
         .eq("id", conversationId);
+      
+      // HMV5: Atomic guard — only assign if still unassigned (prevents race condition)
+      if (requireUnassigned) {
+        query = query.is("assigned_to", null);
+      }
+      
+      const { data, error, count } = await query.select("id").maybeSingle();
       if (error) throw error;
+      
+      // If requireUnassigned was set and no row was updated, someone else took it
+      if (requireUnassigned && !data) {
+        return { accepted: false, reason: "already_taken" as const };
+      }
+      
+      return { accepted: true };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-      toast({ title: "Conversa atribuída" });
+      if (result?.accepted === false) {
+        toast({ title: "Atendimento já aceito", description: "Outro consultor já aceitou este atendimento.", variant: "destructive" });
+      } else {
+        toast({ title: "Conversa atribuída" });
+      }
     },
     onError: (err: any) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
@@ -322,6 +340,8 @@ export function useWaConversations(filters?: {
     refetch: conversationsQuery.refetch,
     updateConversation: updateConversation.mutate,
     assignConversation: assignConversation.mutate,
+    assignConversationAsync: assignConversation.mutateAsync,
+    isAccepting: assignConversation.isPending,
     transferConversation: transferConversation.mutateAsync,
     resolveConversation: resolveConversation.mutate,
     reopenConversation: reopenConversation.mutate,

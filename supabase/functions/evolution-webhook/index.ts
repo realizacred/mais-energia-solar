@@ -99,22 +99,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Strategy 4: If only one instance exists, use it as fallback
+    // No fallback — if no strategy matched, reject
     if (!instance) {
-      const { data: allInstances } = await supabase
-        .from("wa_instances")
-        .select("id, tenant_id, webhook_secret");
-      
-      if (allInstances && allInstances.length === 1) {
-        instance = allInstances[0];
-        console.log(`[evolution-webhook] Single instance fallback: ${instance.id} (webhook sent instance=${instanceKey})`);
-      } else {
-        console.error(`[evolution-webhook] Instance not found: ${instanceKey}. ${allInstances?.length || 0} instances exist.`);
-        return new Response(JSON.stringify({ error: "Instance not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      console.error(`[evolution-webhook] Instance not found by any strategy: ${instanceKey}`);
+      return new Response(JSON.stringify({ error: "Instance not found" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Validate webhook secret if both are provided

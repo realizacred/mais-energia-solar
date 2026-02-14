@@ -78,6 +78,7 @@ interface WaChatPanelProps {
   onOpenAssign: () => void;
   onLinkLead: () => void;
   onAccept?: () => void;
+  isAccepting?: boolean;
   vendedores: { id: string; nome: string; user_id: string | null }[];
   lastReadMessageId?: string | null;
   onMarkAsRead?: (messageId: string) => void;
@@ -107,6 +108,7 @@ export function WaChatPanel({
   onOpenAssign,
   onLinkLead,
   onAccept,
+  isAccepting,
   vendedores,
   lastReadMessageId,
   onMarkAsRead,
@@ -388,9 +390,13 @@ export function WaChatPanel({
                 variant="default"
                 className="h-8 gap-1.5 bg-success hover:bg-success/90 text-white text-xs"
                 onClick={onAccept}
+                disabled={isAccepting}
               >
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                Aceitar
+                {isAccepting ? (
+                  <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> Aceitando...</>
+                ) : (
+                  <><CheckCircle2 className="h-3.5 w-3.5" /> Aceitar</>
+                )}
               </Button>
             )}
             <Tooltip>
@@ -603,9 +609,13 @@ export function WaChatPanel({
               size="sm"
               className="w-full gap-2 bg-success hover:bg-success/90 text-white font-medium py-2.5"
               onClick={onAccept}
+              disabled={isAccepting}
             >
-              <CheckCircle2 className="h-4 w-4" />
-              Aceitar atendimento
+              {isAccepting ? (
+                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Aceitando...</>
+              ) : (
+                <><CheckCircle2 className="h-4 w-4" /> Aceitar atendimento</>
+              )}
             </Button>
           </div>
         )}

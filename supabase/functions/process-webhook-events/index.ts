@@ -283,13 +283,16 @@ async function handleMessageUpsert(
     }
 
     // ── HARDENING: Smart auto-assign conversations ──
+    // HMV4: Auto-assign ONLY on conversation creation (INSERT), never on subsequent messages.
+    // This prevents flip-flop when conversations are returned to team queue.
     // Priority:
     //   A) #CANAL:slug marker → ALWAYS auto-assign to that consultor
     //   B) No marker:
     //      - 1 active consultor on instance → auto-assign
     //      - 2+ active consultores → leave null (team queue, "Equipe")
     //      - 0 consultores → fallback to instance owner, else null
-    if (!isGroup) {
+    const isNewConversation = !existingConv;
+    if (!isGroup && isNewConversation) {
       const { data: convCheck } = await supabase
         .from("wa_conversations")
         .select("assigned_to")
