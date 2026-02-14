@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { renderProposal } from "@/services/proposalApi";
+import { renderProposal, sendProposal } from "@/services/proposalApi";
 
 const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; icon: any }> = {
   rascunho: { label: "Rascunho", variant: "secondary", icon: Clock },
@@ -52,6 +52,9 @@ export function ProposalDetail() {
   const [rendering, setRendering] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [recusaMotivo, setRecusaMotivo] = useState("");
+  const [sending, setSending] = useState(false);
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
+  const [showSendDialog, setShowSendDialog] = useState(false);
 
   useEffect(() => {
     if (versaoId) loadData();
@@ -131,6 +134,39 @@ export function ProposalDetail() {
       toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" });
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleSend = async (canal: "link" | "whatsapp") => {
+    if (!proposta?.id || !versaoId) return;
+    setSending(true);
+    try {
+      const result = await sendProposal({
+        proposta_id: proposta.id,
+        versao_id: versaoId,
+        canal,
+        lead_id: proposta.lead_id,
+      });
+      setPublicUrl(result.public_url);
+      setProposta((prev: any) => ({ ...prev, status: "enviada" }));
+      setShowSendDialog(false);
+
+      if (canal === "whatsapp" && result.whatsapp_sent) {
+        toast({ title: "Proposta enviada via WhatsApp! ✅" });
+      } else {
+        toast({ title: "Link gerado com sucesso!" });
+      }
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const copyLink = () => {
+    if (publicUrl) {
+      navigator.clipboard.writeText(publicUrl);
+      toast({ title: "Link copiado!" });
     }
   };
 
@@ -218,14 +254,47 @@ export function ProposalDetail() {
             <p className="text-sm font-medium">Ações</p>
             <div className="flex flex-wrap gap-2">
               {canSend && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="gap-1.5"
-                  onClick={() => updatePropostaStatus("enviada")}
-                  disabled={updatingStatus}
-                >
-                  <Send className="h-3.5 w-3.5" /> Marcar como Enviada
+                <AlertDialog open={showSendDialog} onOpenChange={setShowSendDialog}>
+                  <AlertDialogTrigger asChild>
+                    <Button size="sm" className="gap-1.5" disabled={sending}>
+                      <Send className="h-3.5 w-3.5" /> Enviar Proposta
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Enviar proposta ao cliente</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Escolha o canal de envio. Um link público será gerado automaticamente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <div className="flex flex-col gap-2 py-2">
+                      <Button
+                        className="gap-2 justify-start"
+                        variant="outline"
+                        onClick={() => handleSend("link")}
+                        disabled={sending}
+                      >
+                        <Link2 className="h-4 w-4" /> Gerar Link Público
+                      </Button>
+                      <Button
+                        className="gap-2 justify-start"
+                        variant="outline"
+                        onClick={() => handleSend("whatsapp")}
+                        disabled={sending}
+                      >
+                        <MessageCircle className="h-4 w-4" /> Enviar via WhatsApp
+                      </Button>
+                    </div>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel disabled={sending}>Cancelar</AlertDialogCancel>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
+              {publicUrl && (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={copyLink}>
+                  <Copy className="h-3.5 w-3.5" /> Copiar Link
                 </Button>
               )}
 
@@ -277,6 +346,16 @@ export function ProposalDetail() {
               )}
             </div>
           </div>
+
+          {publicUrl && (
+            <div className="mt-3 flex items-center gap-2 p-2 bg-muted rounded-lg">
+              <Link2 className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Input value={publicUrl} readOnly className="text-xs h-8 bg-background" />
+              <Button size="sm" variant="ghost" onClick={copyLink}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
