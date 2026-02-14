@@ -499,6 +499,12 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     }
   };
 
+  const handleRelease = () => {
+    if (!selectedConv) return;
+    assignConversation({ conversationId: selectedConv.id, userId: null });
+    setSelectedConv({ ...selectedConv, assigned_to: null });
+  };
+
   const handleLinkLead = (leadId: string | null) => {
     if (!selectedConv) return;
     updateConversation({ id: selectedConv.id, updates: { lead_id: leadId } as any });
@@ -516,13 +522,18 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       {!vendorMode && (
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-gradient-to-br from-success/20 to-success/5 border border-success/10">
+            <div className="p-2.5 rounded-xl bg-success/10 border border-success/20">
               <MessageCircle className="h-6 w-6 text-success" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-foreground">Central WhatsApp</h2>
+              <h2 className="text-xl font-bold text-foreground">Central de Atendimento</h2>
               <p className="text-sm text-muted-foreground">
-                {instances.length > 0 && `${instances.filter(i => i.status === "connected").length}/${instances.length} instâncias online`}
+                {instances.length > 0 && (
+                  <span className="flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${instances.some(i => i.status === "connected") ? "bg-success animate-pulse" : "bg-destructive"}`} />
+                    {instances.filter(i => i.status === "connected").length}/{instances.length} instâncias online
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -623,7 +634,10 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   onOpenAssign={() => setShowAssign(true)}
                   onLinkLead={() => setShowLinkLead(true)}
                   onAccept={handleAccept}
+                  onRelease={handleRelease}
                   isAccepting={isAccepting}
+                  isReleasing={isAccepting}
+                  currentUserId={user?.id}
                   vendedores={vendedores}
                   lastReadMessageId={lastReadMessageId}
                   onMarkAsRead={markAsRead}
@@ -737,7 +751,10 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 onOpenAssign={() => setShowAssign(true)}
                 onLinkLead={() => setShowLinkLead(true)}
                 onAccept={handleAccept}
+                onRelease={handleRelease}
                 isAccepting={isAccepting}
+                isReleasing={isAccepting}
+                currentUserId={user?.id}
                 vendedores={vendedores}
                 lastReadMessageId={lastReadMessageId}
                 onMarkAsRead={markAsRead}
