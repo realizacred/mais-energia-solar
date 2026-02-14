@@ -1,10 +1,9 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
-  Plus, Pencil, Check, X, Trash2, ArrowUp, ArrowDown, Settings2, Palette,
+  Plus, Pencil, Check, X, Trash2, GripHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -23,28 +22,31 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import type { ProjetoEtapa, ProjetoEtapaCategoria } from "@/hooks/useProjetoPipeline";
+import type { ProjetoEtapaCategoria } from "@/hooks/useProjetoPipeline";
 
-const CORES = [
-  "#3B82F6", "#2563EB", "#06B6D4", "#14B8A6",
-  "#10B981", "#22C55E", "#84CC16", "#EAB308",
-  "#F59E0B", "#F97316", "#EF4444", "#E11D48",
-  "#EC4899", "#A855F7", "#8B5CF6", "#6366F1",
-  "#64748B", "#374151",
+const CATEGORIAS: { value: ProjetoEtapaCategoria; label: string; dot: string; bg: string }[] = [
+  { value: "aberto", label: "Aberto", dot: "bg-blue-500", bg: "border-blue-500/40 bg-blue-500/5" },
+  { value: "ganho", label: "Ganho", dot: "bg-emerald-500", bg: "border-emerald-500/40 bg-emerald-500/5" },
+  { value: "perdido", label: "Perdido", dot: "bg-red-500", bg: "border-red-500/40 bg-red-500/5" },
+  { value: "excluido", label: "Excluído", dot: "bg-muted-foreground", bg: "border-muted-foreground/40 bg-muted/30" },
 ];
 
-const CATEGORIAS: { value: ProjetoEtapaCategoria; label: string; dot: string }[] = [
-  { value: "aberto", label: "Aberto", dot: "bg-blue-500" },
-  { value: "ganho", label: "Ganho", dot: "bg-emerald-500" },
-  { value: "perdido", label: "Perdido", dot: "bg-red-500" },
-  { value: "excluido", label: "Excluído", dot: "bg-muted-foreground" },
-];
+interface EtapaItem {
+  id: string;
+  funil_id: string;
+  nome: string;
+  cor: string;
+  ordem: number;
+  categoria: ProjetoEtapaCategoria;
+  tenant_id: string;
+}
 
 interface Props {
   funilId: string;
   funilNome: string;
-  etapas: ProjetoEtapa[];
+  etapas: EtapaItem[];
   onCreate: (funilId: string, nome: string, categoria?: ProjetoEtapaCategoria) => void;
   onRename: (id: string, nome: string) => void;
   onUpdateCor: (id: string, cor: string) => void;
@@ -62,22 +64,39 @@ export function ProjetoEtapaManager({
   const [newCategoria, setNewCategoria] = useState<ProjetoEtapaCategoria>("aberto");
   const [showCreate, setShowCreate] = useState(false);
 
+  // Drag state
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+
   const sorted = [...etapas].sort((a, b) => a.ordem - b.ordem);
 
-  const moveUp = (id: string) => {
-    const ids = sorted.map(e => e.id);
-    const idx = ids.indexOf(id);
-    if (idx <= 0) return;
-    [ids[idx - 1], ids[idx]] = [ids[idx], ids[idx - 1]];
-    onReorder(funilId, ids);
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = "move";
   };
 
-  const moveDown = (id: string) => {
-    const ids = sorted.map(e => e.id);
-    const idx = ids.indexOf(id);
-    if (idx < 0 || idx >= ids.length - 1) return;
-    [ids[idx], ids[idx + 1]] = [ids[idx + 1], ids[idx]];
+  const handleDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (id !== draggedId) setDragOverId(id);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    if (!draggedId || draggedId === targetId) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+    const ids = sorted.map(et => et.id);
+    const fromIdx = ids.indexOf(draggedId);
+    const toIdx = ids.indexOf(targetId);
+    if (fromIdx < 0 || toIdx < 0) return;
+    ids.splice(fromIdx, 1);
+    ids.splice(toIdx, 0, draggedId);
     onReorder(funilId, ids);
+    setDraggedId(null);
+    setDragOverId(null);
   };
 
   const handleCreate = () => {
@@ -99,187 +118,183 @@ export function ProjetoEtapaManager({
   const catInfo = (cat: ProjetoEtapaCategoria) => CATEGORIAS.find(c => c.value === cat) || CATEGORIAS[0];
 
   return (
-    <div>
+    <div className="space-y-4">
+      {/* Instruction */}
+      <p className="text-xs text-muted-foreground">
+        Arraste os cards para reordenar as etapas. A ordem define o fluxo do funil.
+      </p>
 
-        <div className="space-y-1 mt-2">
+      {/* Kanban horizontal */}
+      <ScrollArea className="w-full">
+        <div className="flex gap-3 pb-3 px-1" style={{ minWidth: "max-content" }}>
           {sorted.map((etapa, i) => {
             const cat = catInfo(etapa.categoria);
-
-            if (editingId === etapa.id) {
-              return (
-                <div key={etapa.id} className="flex items-center gap-1.5 p-2 rounded-lg bg-muted/50">
-                  <Input
-                    value={editName}
-                    onChange={e => setEditName(e.target.value)}
-                    className="h-8 text-sm flex-1"
-                    autoFocus
-                    onKeyDown={e => {
-                      if (e.key === "Enter") handleRename(etapa.id);
-                      if (e.key === "Escape") setEditingId(null);
-                    }}
-                  />
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => handleRename(etapa.id)}>
-                    <Check className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={() => setEditingId(null)}>
-                    <X className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              );
-            }
+            const isDragging = draggedId === etapa.id;
+            const isDragOver = dragOverId === etapa.id;
 
             return (
               <div
                 key={etapa.id}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-muted/40 transition-colors group"
+                draggable={editingId !== etapa.id}
+                onDragStart={e => handleDragStart(e, etapa.id)}
+                onDragOver={e => handleDragOver(e, etapa.id)}
+                onDragLeave={() => setDragOverId(null)}
+                onDrop={e => handleDrop(e, etapa.id)}
+                onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+                className={cn(
+                  "w-[180px] flex-shrink-0 rounded-2xl border-2 p-3 transition-all duration-150",
+                  "cursor-grab active:cursor-grabbing",
+                  cat.bg,
+                  isDragging && "opacity-40 scale-95",
+                  isDragOver && "ring-2 ring-primary/50 scale-[1.02]"
+                )}
               >
-                {/* Order arrows */}
-                <div className="flex flex-col shrink-0">
-                  <button
-                    onClick={() => moveUp(etapa.id)}
-                    disabled={i === 0}
-                    className="p-0.5 rounded hover:bg-muted disabled:opacity-20 transition-colors"
-                  >
-                    <ArrowUp className="h-3 w-3 text-muted-foreground" />
-                  </button>
-                  <button
-                    onClick={() => moveDown(etapa.id)}
-                    disabled={i === sorted.length - 1}
-                    className="p-0.5 rounded hover:bg-muted disabled:opacity-20 transition-colors"
-                  >
-                    <ArrowDown className="h-3 w-3 text-muted-foreground" />
-                  </button>
+                {/* Position badge */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-muted-foreground bg-background/80 rounded-full px-2 py-0.5">
+                    #{i + 1}
+                  </span>
+                  <GripHorizontal className="h-3.5 w-3.5 text-muted-foreground/50" />
                 </div>
 
-                {/* Color dot / picker */}
-                <div className="relative shrink-0 group/cor">
-                  <div
-                    className="w-4 h-4 rounded-full cursor-pointer ring-2 ring-transparent hover:ring-border transition-all"
-                    style={{ backgroundColor: etapa.cor }}
-                  />
-                  <div className="absolute left-0 top-6 z-50 hidden group-hover/cor:grid grid-cols-6 gap-1 p-2 rounded-lg bg-popover border shadow-lg min-w-[160px]">
-                    {CORES.map(cor => (
-                      <button
-                        key={cor}
-                        onClick={() => onUpdateCor(etapa.id, cor)}
-                        className={cn(
-                          "w-5 h-5 rounded-full transition-transform hover:scale-125",
-                          etapa.cor === cor && "ring-2 ring-foreground ring-offset-2 ring-offset-background"
-                        )}
-                        style={{ backgroundColor: cor }}
-                      />
-                    ))}
+                {/* Name - editable */}
+                {editingId === etapa.id ? (
+                  <div className="space-y-2">
+                    <Input
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      className="h-8 text-sm"
+                      autoFocus
+                      onKeyDown={e => {
+                        if (e.key === "Enter") handleRename(etapa.id);
+                        if (e.key === "Escape") setEditingId(null);
+                      }}
+                    />
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRename(etapa.id)}>
+                        <Check className="h-3.5 w-3.5 text-success" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}>
+                        <X className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  <h4 className="text-sm font-bold text-foreground truncate mb-2" title={etapa.nome}>
+                    {etapa.nome}
+                  </h4>
+                )}
+
+                {/* Categoria */}
+                <div className="flex items-center gap-1.5 mb-3">
+                  <span className={cn("w-2 h-2 rounded-full shrink-0", cat.dot)} />
+                  <span className="text-[10px] font-medium text-muted-foreground">{cat.label}</span>
                 </div>
-
-                {/* Name */}
-                <span className="text-sm font-medium flex-1 truncate">{etapa.nome}</span>
-
-                {/* Categoria badge */}
-                <Select
-                  value={etapa.categoria}
-                  onValueChange={(v) => onUpdateCategoria(etapa.id, v as ProjetoEtapaCategoria)}
-                >
-                  <SelectTrigger className="h-6 w-24 text-[10px] border-0 bg-muted/50">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIAS.map(c => (
-                      <SelectItem key={c.value} value={c.value} className="text-xs">
-                        <span className="flex items-center gap-1.5">
-                          <span className={cn("w-2 h-2 rounded-full", c.dot)} />
-                          {c.label}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
 
                 {/* Actions */}
-                <Button
-                  variant="ghost" size="icon" className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => { setEditingId(etapa.id); setEditName(etapa.nome); }}
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
+                {editingId !== etapa.id && (
+                  <div className="flex items-center gap-1 border-t border-border/40 pt-2">
                     <Button
-                      variant="ghost" size="icon"
-                      className="h-7 w-7 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => { setEditingId(etapa.id); setEditName(etapa.nome); }}
+                      title="Renomear"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Pencil className="h-3 w-3" />
                     </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remover etapa "{etapa.nome}"?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Projetos nesta etapa ficarão sem etapa definida. Esta ação não pode ser desfeita.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDelete(etapa.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                        Remover
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive hover:text-destructive"
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Remover etapa "{etapa.nome}"?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Projetos nesta etapa ficarão sem etapa definida. Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => onDelete(etapa.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Remover
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
+                )}
               </div>
             );
           })}
-        </div>
 
-        {/* Add new */}
-        {showCreate ? (
-          <div className="flex items-center gap-2 mt-3 p-3 rounded-lg border border-dashed border-border">
-            <Input
-              value={newName}
-              onChange={e => setNewName(e.target.value)}
-              placeholder="Nome da etapa..."
-              className="h-8 text-sm flex-1"
-              autoFocus
-              onKeyDown={e => {
-                if (e.key === "Enter") handleCreate();
-                if (e.key === "Escape") { setShowCreate(false); setNewName(""); }
-              }}
-            />
-            <Select value={newCategoria} onValueChange={v => setNewCategoria(v as ProjetoEtapaCategoria)}>
-              <SelectTrigger className="h-8 w-28 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {CATEGORIAS.map(c => (
-                  <SelectItem key={c.value} value={c.value} className="text-xs">
-                    <span className="flex items-center gap-1.5">
-                      <span className={cn("w-2 h-2 rounded-full", c.dot)} />
-                      {c.label}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button size="sm" className="h-8" onClick={handleCreate}>
-              <Check className="h-3.5 w-3.5 mr-1" />
-              Criar
-            </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setShowCreate(false); setNewName(""); }}>
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-3 w-full gap-1.5 border-dashed"
-            onClick={() => setShowCreate(true)}
-          >
-            <Plus className="h-3.5 w-3.5" />
-            Nova Etapa
-          </Button>
-        )}
+          {/* Add new card */}
+          {showCreate ? (
+            <div className="w-[200px] flex-shrink-0 rounded-2xl border-2 border-dashed border-primary/30 p-3 bg-primary/5 space-y-2">
+              <Input
+                value={newName}
+                onChange={e => setNewName(e.target.value)}
+                placeholder="Nome da etapa..."
+                className="h-8 text-sm"
+                autoFocus
+                onKeyDown={e => {
+                  if (e.key === "Enter") handleCreate();
+                  if (e.key === "Escape") { setShowCreate(false); setNewName(""); }
+                }}
+              />
+              <Select value={newCategoria} onValueChange={v => setNewCategoria(v as ProjetoEtapaCategoria)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CATEGORIAS.map(c => (
+                    <SelectItem key={c.value} value={c.value} className="text-xs">
+                      <span className="flex items-center gap-1.5">
+                        <span className={cn("w-2 h-2 rounded-full", c.dot)} />
+                        {c.label}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-1">
+                <Button size="sm" className="h-8 flex-1 text-xs" onClick={handleCreate}>
+                  <Check className="h-3.5 w-3.5 mr-1" />
+                  Criar
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setShowCreate(false); setNewName(""); }}>
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowCreate(true)}
+              className={cn(
+                "w-[140px] flex-shrink-0 rounded-2xl border-2 border-dashed border-primary/30",
+                "flex flex-col items-center justify-center gap-2 py-6",
+                "text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5",
+                "transition-all duration-200 cursor-pointer"
+              )}
+            >
+              <Plus className="h-5 w-5" />
+              <span className="text-xs font-medium">Nova Etapa</span>
+            </button>
+          )}
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
     </div>
   );
 }

@@ -194,7 +194,7 @@ export function ProjetosManager() {
           if (!pipeline) return null;
           return (
             <Dialog open={true} onOpenChange={(open) => { if (!open) setEditingEtapasFunilId(null); }}>
-              <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+              <DialogContent className="sm:max-w-4xl max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     Etapas do funil "{pipeline.name}"
