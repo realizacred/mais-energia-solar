@@ -143,3 +143,6 @@ verify_jwt = false
 
 [functions.writing-assistant]
 verify_jwt = false
+
+[functions.super-admin-action]
+verify_jwt = false
