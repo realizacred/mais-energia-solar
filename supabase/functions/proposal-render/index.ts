@@ -17,9 +17,7 @@ Deno.serve(async (req) => {
   try {
     // ── 1. AUTH + TENANT ────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonError("Não autorizado", 401);
-    }
+    if (!authHeader?.startsWith("Bearer ")) return jsonError("Não autorizado", 401);
 
     const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
       global: { headers: { Authorization: authHeader } },
@@ -48,10 +46,10 @@ Deno.serve(async (req) => {
     const { versao_id } = body;
     if (!versao_id) return jsonError("versao_id é obrigatório", 400);
 
-    // ── 3. BUSCAR VERSÃO + SNAPSHOT ─────────────────────────
+    // ── 3. BUSCAR VERSÃO ────────────────────────────────────
     const { data: versao, error: versaoErr } = await adminClient
       .from("proposta_versoes")
-      .select("id, proposta_id, versao_numero, status, grupo, snapshot, potencia_kwp, valor_total, economia_mensal, payback_meses, valido_ate, observacoes")
+      .select("id, proposta_id, versao_numero, status, grupo, snapshot, potencia_kwp, valor_total, economia_mensal, payback_meses, valido_ate, observacoes, calc_hash, engine_version")
       .eq("id", versao_id)
       .eq("tenant_id", tenantId)
       .single();
@@ -72,14 +70,28 @@ Deno.serve(async (req) => {
       return jsonOk({ success: true, idempotent: true, render_id: existingRender.id, url: existingRender.url, html: existingRender.html });
     }
 
-    // ── 5. BUSCAR DADOS PARA RENDER ─────────────────────────
-    const { data: proposta } = await adminClient
-      .from("propostas_nativas")
-      .select("id, titulo, codigo, lead_id, cliente_id, template_id")
-      .eq("id", versao.proposta_id)
-      .eq("tenant_id", tenantId)
-      .single();
+    // ── 5. DADOS PARALELOS ──────────────────────────────────
+    const [propostaRes, brandRes, cenariosRes, seriesRes] = await Promise.all([
+      adminClient.from("propostas_nativas")
+        .select("id, titulo, codigo, lead_id, cliente_id, template_id")
+        .eq("id", versao.proposta_id).eq("tenant_id", tenantId).single(),
+      adminClient.from("brand_settings")
+        .select("logo_url, color_primary, color_primary_foreground, color_background, color_foreground, font_heading, font_body")
+        .eq("tenant_id", tenantId).maybeSingle(),
+      adminClient.from("proposta_cenarios")
+        .select("id, ordem, nome, tipo, is_default, preco_final, entrada_valor, entrada_percent, taxa_juros_mensal, taxa_juros_anual, cet_anual, num_parcelas, valor_parcela, valor_financiado, payback_meses, tir_anual, roi_25_anos, economia_primeiro_ano, financiador_id")
+        .eq("versao_id", versao_id).eq("tenant_id", tenantId).order("ordem"),
+      adminClient.from("proposta_versao_series")
+        .select("cenario_id, ano, geracao_kwh, tarifa_vigente, degradacao_acumulada, economia_rs, economia_acumulada_rs, fluxo_caixa, fluxo_caixa_acumulado, parcela_financiamento")
+        .eq("versao_id", versao_id).eq("tenant_id", tenantId).order("ano"),
+    ]);
 
+    const proposta = propostaRes.data;
+    const brand = brandRes.data;
+    const cenarios = cenariosRes.data ?? [];
+    const allSeries = seriesRes.data ?? [];
+
+    // Resolve client name
     let clienteNome = "Cliente";
     let clienteTelefone = "";
     if (proposta?.cliente_id) {
@@ -91,11 +103,13 @@ Deno.serve(async (req) => {
       if (lead) { clienteNome = lead.nome; clienteTelefone = lead.telefone ?? ""; }
     }
 
-    const { data: brand } = await adminClient
-      .from("brand_settings")
-      .select("logo_url, color_primary, color_primary_foreground, color_background, color_foreground, font_heading, font_body")
-      .eq("tenant_id", tenantId)
-      .maybeSingle();
+    // Group series by cenário
+    const seriesByCenario = new Map<string, typeof allSeries>();
+    for (const s of allSeries) {
+      const key = s.cenario_id ?? "__base__";
+      if (!seriesByCenario.has(key)) seriesByCenario.set(key, []);
+      seriesByCenario.get(key)!.push(s);
+    }
 
     // ── 6. GERAR HTML ───────────────────────────────────────
     const snap = versao.snapshot as any;
@@ -111,7 +125,11 @@ Deno.serve(async (req) => {
       versaoNumero: versao.versao_numero,
       grupo: versao.grupo ?? snap.grupo ?? "B",
       validoAte: versao.valido_ate,
+      engineVersion: versao.engine_version ?? snap.engine_version ?? null,
+      calcHash: versao.calc_hash ?? snap.calc_hash ?? null,
       snap,
+      cenarios,
+      seriesByCenario,
     });
 
     // ── 7. SALVAR ───────────────────────────────────────────
@@ -141,7 +159,26 @@ Deno.serve(async (req) => {
   }
 });
 
-// ── HTML RENDERER ───────────────────────────────────────────
+// ── TYPES ──────────────────────────────────────────────────
+
+interface CenarioRow {
+  id: string; ordem: number; nome: string; tipo: string;
+  is_default: boolean; preco_final: number;
+  entrada_valor: number; entrada_percent: number;
+  taxa_juros_mensal: number; taxa_juros_anual: number;
+  cet_anual: number; num_parcelas: number; valor_parcela: number;
+  valor_financiado: number; payback_meses: number;
+  tir_anual: number; roi_25_anos: number;
+  economia_primeiro_ano: number; financiador_id: string | null;
+}
+
+interface SeriesRow {
+  cenario_id: string | null; ano: number; geracao_kwh: number;
+  tarifa_vigente: number; degradacao_acumulada: number;
+  economia_rs: number; economia_acumulada_rs: number;
+  fluxo_caixa: number; fluxo_caixa_acumulado: number;
+  parcela_financiamento: number;
+}
 
 interface RenderParams {
   tenantNome: string;
@@ -155,22 +192,33 @@ interface RenderParams {
   versaoNumero: number;
   grupo: string;
   validoAte: string | null;
+  engineVersion: string | null;
+  calcHash: string | null;
   snap: any;
+  cenarios: CenarioRow[];
+  seriesByCenario: Map<string, SeriesRow[]>;
 }
+
+// ── HTML RENDERER ──────────────────────────────────────────
 
 function renderProposalHtml(p: RenderParams): string {
   const fin = p.snap.financeiro ?? {};
   const tec = p.snap.tecnico ?? {};
-  const trib = p.snap.tributacao ?? {};
   const lei = p.snap.regra_lei_14300 ?? {};
   const itens = p.snap.itens ?? [];
   const premissas = p.snap.premissas ?? {};
   const ucs = p.snap.ucs ?? [];
   const servicos = p.snap.servicos ?? [];
-  const pagamentos = p.snap.pagamento_opcoes ?? [];
-  const venda = p.snap.venda ?? {};
+  const vcResults = p.snap.variaveis_custom ?? [];
+
+  // Use cenários granulares se existirem, fallback para snapshot
+  const hasCenarios = p.cenarios.length > 0;
+  const pagamentos = !hasCenarios ? (p.snap.pagamento_opcoes ?? []) : [];
 
   const fmt = (v: number) => `R$ ${(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtPct = (v: number) => `${(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+
+  // ── Sections ──────────────────────────────────────────
 
   const itensRows = itens.map((it: any) => `
     <tr>
@@ -210,20 +258,8 @@ function renderProposalHtml(p: RenderParams): string {
     </table>
   </div>` : "";
 
-  const pagamentoSection = pagamentos.length > 0 ? `
-  <div class="section">
-    <div class="section-title">Opções de Pagamento</div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-      ${pagamentos.map((pg: any, i: number) => `
-      <div style="padding:16px;border:2px solid hsl(${p.primaryColor}/0.2);border-radius:12px;text-align:center">
-        <div style="font-size:11px;color:#666;text-transform:uppercase;margin-bottom:4px">Opção ${i + 1}</div>
-        <div style="font-weight:700;margin-bottom:4px">${pg.nome}</div>
-        <div style="font-size:22px;font-weight:700;color:hsl(${p.primaryColor})">${pg.tipo === "a_vista" ? fmt(pg.valor_parcela) : `${pg.num_parcelas}x ${fmt(pg.valor_parcela)}`}</div>
-        ${pg.entrada > 0 ? `<div style="font-size:12px;color:#666;margin-top:4px">+ entrada ${fmt(pg.entrada)}</div>` : ""}
-        ${pg.taxa_mensal > 0 ? `<div style="font-size:11px;color:#999">${pg.taxa_mensal}% a.m.</div>` : ""}
-      </div>`).join("")}
-    </div>
-  </div>` : "";
+  // ── CENÁRIOS COMPARATIVOS (novo v2) ───────────────────
+  const cenariosSection = hasCenarios ? renderCenariosSection(p) : renderLegacyPagamentos(pagamentos, p.primaryColor, fmt);
 
   const premissasSection = premissas ? `
   <div class="section">
@@ -248,6 +284,52 @@ function renderProposalHtml(p: RenderParams): string {
       <div style="display:flex;justify-content:space-between;padding:12px 16px;background:hsl(${p.primaryColor}/0.06);font-weight:700;font-size:16px"><span>Investimento Total</span><span style="color:hsl(${p.primaryColor})">${fmt(fin.valor_total ?? 0)}</span></div>
     </div>
   </div>`;
+
+  // ── SÉRIES TEMPORAIS (gráfico tabular) ────────────────
+  const baseSeries = p.seriesByCenario.get("__base__") ?? [];
+  const defaultCenario = p.cenarios.find(c => c.is_default) ?? p.cenarios[0];
+  const defaultSeries = defaultCenario ? (p.seriesByCenario.get(defaultCenario.id) ?? []) : baseSeries;
+  const showSeries = defaultSeries.length > 0 ? defaultSeries : baseSeries;
+
+  const seriesSection = showSeries.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Projeção Financeira — 25 Anos${defaultCenario ? ` (${defaultCenario.nome})` : ""}</div>
+    <div style="overflow-x:auto">
+      <table style="font-size:12px;min-width:700px">
+        <thead>
+          <tr>
+            <th>Ano</th>
+            <th style="text-align:right">Geração kWh</th>
+            <th style="text-align:right">Tarifa R$/kWh</th>
+            <th style="text-align:right">Economia/Ano</th>
+            <th style="text-align:right">Acumulado</th>
+            <th style="text-align:right">Fluxo Caixa Ac.</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${showSeries.filter((_: any, i: number) => i < 5 || i === 9 || i === 14 || i === 19 || i === 24).map((s: any) => `
+          <tr${s.fluxo_caixa_acumulado >= 0 ? ' style="color:#16a34a"' : ""}>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;font-weight:600">${s.ano}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${Math.round(s.geracao_kwh).toLocaleString("pt-BR")}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">R$ ${s.tarifa_vigente?.toFixed(3) ?? "-"}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${fmt(s.economia_rs)}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right">${fmt(s.economia_acumulada_rs)}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-weight:600">${fmt(s.fluxo_caixa_acumulado)}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+  </div>` : "";
+
+  // ── VARIÁVEIS CUSTOM ──────────────────────────────────
+  const vcSection = vcResults.length > 0 ? `
+  <div class="section">
+    <div class="section-title">Dados Complementares</div>
+    <div class="grid">
+      ${vcResults.map((vc: any) => `
+      <div><span class="label">${vc.label}</span><div class="value">${vc.valor_calculado ?? "-"}</div></div>`).join("")}
+    </div>
+  </div>` : "";
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -276,6 +358,17 @@ function renderProposalHtml(p: RenderParams): string {
   .highlight .value { font-size:24px; color:hsl(${p.primaryColor}); margin-bottom:0; }
   .footer { padding:20px 32px; font-size:11px; color:#999; text-align:center; border-top:1px solid #eee; }
   .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; background:hsl(${p.primaryColor}/0.1); color:hsl(${p.primaryColor}); }
+  .cenario-card { border:2px solid hsl(${p.primaryColor}/0.15); border-radius:12px; padding:20px; text-align:center; }
+  .cenario-card.default { border-color:hsl(${p.primaryColor}); box-shadow:0 4px 12px hsl(${p.primaryColor}/0.15); }
+  .cenario-card .cenario-name { font-family:'${p.fontHeading}',sans-serif; font-weight:700; font-size:14px; margin-bottom:8px; }
+  .cenario-card .cenario-price { font-size:24px; font-weight:800; color:hsl(${p.primaryColor}); margin-bottom:4px; }
+  .cenario-card .cenario-detail { font-size:12px; color:#666; margin-bottom:2px; }
+  .cenario-card .cenario-badge { display:inline-block; padding:2px 8px; border-radius:8px; font-size:10px; font-weight:700; text-transform:uppercase; margin-top:8px; }
+  .cenario-metrics { display:grid; grid-template-columns:1fr 1fr 1fr; gap:4px; margin-top:12px; padding-top:12px; border-top:1px solid #eee; }
+  .cenario-metrics .metric { text-align:center; }
+  .cenario-metrics .metric-value { font-size:14px; font-weight:700; color:hsl(${p.primaryColor}); }
+  .cenario-metrics .metric-label { font-size:10px; color:#888; text-transform:uppercase; }
+  @media print { body { background:#fff; } .container { box-shadow:none; } }
 </style>
 </head>
 <body>
@@ -313,7 +406,7 @@ function renderProposalHtml(p: RenderParams): string {
     <div class="section-title">Lei 14.300 — Regime de Compensação</div>
     <div class="grid">
       <div><span class="label">Ano de Referência</span><div class="value">${lei.fio_b_ano ?? "-"}</div></div>
-      <div><span class="label">Fio B (não compensado)</span><div class="value">${lei.percentual_nao_compensado ?? "-"}%</div></div>
+      <div><span class="label">Fio B (não compensado)</span><div class="value">${lei.percentual_nao_compensado ?? lei.percentual_fio_b != null ? (lei.percentual_fio_b * 100).toFixed(0) : "-"}%</div></div>
     </div>
   </div>
 
@@ -351,7 +444,7 @@ function renderProposalHtml(p: RenderParams): string {
       </div>
       <div class="highlight">
         <span class="label">TIR</span>
-        <div class="value" style="font-size:18px">${(fin.tir ?? 0).toFixed(1)}%</div>
+        <div class="value" style="font-size:18px">${fmtPct(fin.tir ?? 0)}</div>
       </div>
       <div class="highlight">
         <span class="label">ROI 25 anos</span>
@@ -360,16 +453,91 @@ function renderProposalHtml(p: RenderParams): string {
     </div>` : ""}
   </div>
 
+  ${cenariosSection}
+  ${seriesSection}
   ${premissasSection}
-  ${pagamentoSection}
+  ${vcSection}
 
   <div class="footer">
-    Proposta gerada em ${new Date().toLocaleDateString("pt-BR")} • ${p.tenantNome} • Válida até ${p.validoAte ?? "consultar"}
+    <div>Proposta gerada em ${new Date().toLocaleDateString("pt-BR")} • ${p.tenantNome} • Válida até ${p.validoAte ?? "consultar"}</div>
+    ${p.engineVersion ? `<div style="margin-top:4px;font-size:10px;color:#bbb">Engine v${p.engineVersion}${p.calcHash ? ` • Hash ${p.calcHash.slice(0, 12)}` : ""}</div>` : ""}
   </div>
 </div>
 </body>
 </html>`;
 }
+
+// ── Cenários Comparativos (v2) ─────────────────────────────
+
+function renderCenariosSection(p: RenderParams): string {
+  if (p.cenarios.length === 0) return "";
+
+  const fmt = (v: number) => `R$ ${(v ?? 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const cols = Math.min(p.cenarios.length, 3);
+  const cards = p.cenarios.map(c => {
+    const isDefault = c.is_default;
+    const tipoLabel = c.tipo === "a_vista" ? "À Vista" : c.tipo === "financiamento" ? "Financiamento" : c.tipo === "parcelado" ? "Parcelado" : c.tipo;
+
+    return `
+    <div class="cenario-card${isDefault ? " default" : ""}">
+      ${isDefault ? `<div class="cenario-badge" style="background:hsl(${p.primaryColor}/0.1);color:hsl(${p.primaryColor})">★ Recomendado</div>` : ""}
+      <div class="cenario-name">${c.nome}</div>
+      <div style="font-size:11px;color:#888;text-transform:uppercase;margin-bottom:4px">${tipoLabel}</div>
+      <div class="cenario-price">${c.tipo === "a_vista"
+        ? fmt(c.preco_final)
+        : `${c.num_parcelas}x ${fmt(c.valor_parcela)}`
+      }</div>
+      ${c.entrada_valor > 0 ? `<div class="cenario-detail">+ Entrada: ${fmt(c.entrada_valor)}</div>` : ""}
+      ${c.taxa_juros_mensal > 0 ? `<div class="cenario-detail">${c.taxa_juros_mensal.toFixed(2)}% a.m. (CET ${c.cet_anual.toFixed(1)}% a.a.)</div>` : ""}
+      <div class="cenario-metrics">
+        <div class="metric">
+          <div class="metric-value">${c.payback_meses} m</div>
+          <div class="metric-label">Payback</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">${c.tir_anual.toFixed(1)}%</div>
+          <div class="metric-label">TIR</div>
+        </div>
+        <div class="metric">
+          <div class="metric-value">${fmt(c.roi_25_anos)}</div>
+          <div class="metric-label">ROI 25a</div>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  return `
+  <div class="section">
+    <div class="section-title">Cenários de Investimento (${p.cenarios.length})</div>
+    <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:16px">
+      ${cards}
+    </div>
+  </div>`;
+}
+
+// ── Legacy Pagamentos Fallback ─────────────────────────────
+
+function renderLegacyPagamentos(pagamentos: any[], primaryColor: string, fmt: (v: number) => string): string {
+  if (pagamentos.length === 0) return "";
+
+  return `
+  <div class="section">
+    <div class="section-title">Opções de Pagamento</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+      ${pagamentos.map((pg: any, i: number) => `
+      <div style="padding:16px;border:2px solid hsl(${primaryColor}/0.2);border-radius:12px;text-align:center">
+        <div style="font-size:11px;color:#666;text-transform:uppercase;margin-bottom:4px">Opção ${i + 1}</div>
+        <div style="font-weight:700;margin-bottom:4px">${pg.nome}</div>
+        <div style="font-size:22px;font-weight:700;color:hsl(${primaryColor})">${pg.tipo === "a_vista" ? fmt(pg.valor_parcela) : `${pg.num_parcelas}x ${fmt(pg.valor_parcela)}`}</div>
+        ${pg.entrada > 0 ? `<div style="font-size:12px;color:#666;margin-top:4px">+ entrada ${fmt(pg.entrada)}</div>` : ""}
+        ${pg.taxa_mensal > 0 ? `<div style="font-size:11px;color:#999">${pg.taxa_mensal}% a.m.</div>` : ""}
+      </div>`).join("")}
+    </div>
+  </div>`;
+}
+
+// ── Helpers ─────────────────────────────────────────────────
 
 function jsonOk(data: any) {
   return new Response(JSON.stringify(data), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
