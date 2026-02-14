@@ -74,7 +74,7 @@ export function useProjetoPipeline() {
         supabase.from("projeto_etiquetas").select("id, nome, cor, tenant_id"),
         supabase
           .from("projetos")
-          .select("id, codigo, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone), consultores:consultor_id(nome)")
+          .select("id, codigo, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
           .order("created_at", { ascending: false })
           .limit(500),
         supabase.from("projeto_etiqueta_rel").select("projeto_id, etiqueta_id"),
@@ -97,12 +97,22 @@ export function useProjetoPipeline() {
         relMap.set(r.projeto_id, arr);
       });
 
+      // Fetch consultant names for unique consultor_ids
+      const consultorIds = [...new Set((projetosRes.data || []).map((p: any) => p.consultor_id).filter(Boolean))];
+      const consultorMap = new Map<string, string>();
+      if (consultorIds.length > 0) {
+        const { data: consultoresData } = await supabase
+          .from("consultores")
+          .select("id, nome")
+          .in("id", consultorIds);
+        (consultoresData || []).forEach((c: any) => consultorMap.set(c.id, c.nome));
+      }
+
       const enriched: ProjetoItem[] = (projetosRes.data || []).map((p: any) => ({
         ...p,
         cliente: p.clientes || null,
-        consultor: p.consultores || null,
+        consultor: p.consultor_id && consultorMap.has(p.consultor_id) ? { nome: consultorMap.get(p.consultor_id)! } : null,
         clientes: undefined,
-        consultores: undefined,
         etiquetas: relMap.get(p.id) || [],
       }));
 
