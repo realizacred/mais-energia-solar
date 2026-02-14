@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, LayoutGrid, Phone } from "lucide-react";
+import { Zap, LayoutGrid, Phone, ChevronRight } from "lucide-react";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 interface Props {
   stages: PipelineStage[];
@@ -64,92 +63,51 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
 
   return (
     <ScrollArea className="w-full">
-      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-4 pb-4 px-1" style={{ minWidth: "max-content" }}>
         {sortedStages.map(stage => {
           const stageDeals = deals.filter(d => d.stage_id === stage.id);
           const totalValue = stageDeals.reduce((s, d) => s + (d.deal_value || 0), 0);
           const isOver = dragOverCol === stage.id;
-          const stageColor = stage.is_won ? "border-t-success" : stage.is_closed ? "border-t-destructive" : "border-t-primary";
 
           return (
             <div
               key={stage.id}
               className={cn(
-                "w-[300px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col border-t-[3px]",
-                stageColor,
-                "bg-muted/20",
+                "w-[320px] flex-shrink-0 rounded-2xl border border-border/60 transition-all flex flex-col",
+                "bg-card",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
+              style={{ boxShadow: "var(--shadow-sm)" }}
               onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(stage.id); }}
               onDragLeave={() => setDragOverCol(null)}
               onDrop={e => handleDrop(e, stage.id)}
             >
-              {/* Header */}
-              <div className="px-4 pt-4 pb-3 border-b border-border/30">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-bold text-foreground leading-tight tracking-tight">
-                    {stage.name}
-                  </h3>
-                  <span className="text-[10px] font-bold text-muted-foreground bg-muted rounded-full px-2 py-0.5">
-                    {stage.probability}%
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
-                  <span className="font-bold text-foreground text-[13px]">
-                    {formatBRL(totalValue)}
-                  </span>
-                  <span className="flex items-center gap-0.5 ml-auto font-semibold text-muted-foreground">
-                    <LayoutGrid className="h-3 w-3" />
-                    {stageDeals.length}
-                  </span>
-                </div>
-              </div>
+              {/* ── Column Header ── */}
+              <ColumnHeader
+                name={stage.name}
+                probability={stage.probability}
+                totalValue={totalValue}
+                count={stageDeals.length}
+                isWon={stage.is_won}
+                isClosed={stage.is_closed}
+              />
 
-              {/* Cards */}
-              <div className="px-3 py-3 min-h-[180px] space-y-2 flex-1">
+              {/* ── Cards ── */}
+              <div className="px-3 pb-3 min-h-[120px] space-y-2 flex-1">
                 {stageDeals.length === 0 && (
-                  <div className="flex items-center justify-center h-24 text-xs text-muted-foreground/50 italic">
+                  <div className="flex items-center justify-center h-20 text-xs text-muted-foreground/50 italic">
                     Arraste projetos aqui
                   </div>
                 )}
-                {stageDeals.map(deal => {
-                  const etiquetaClass = deal.etiqueta ? ETIQUETA_COLORS[deal.etiqueta] : null;
-                  return (
-                    <div
-                      key={deal.deal_id}
-                      draggable
-                      onDragStart={e => handleDragStart(e, deal.deal_id)}
-                      onClick={() => onViewProjeto?.(deal)}
-                      className={cn(
-                        "bg-card rounded-lg border border-border/40 p-3.5 cursor-grab active:cursor-grabbing",
-                        "hover:shadow-md hover:border-primary/30 transition-all duration-150",
-                        draggedId === deal.deal_id && "opacity-40 scale-95"
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <p className="text-[13px] font-bold text-foreground leading-snug line-clamp-2">
-                          {deal.customer_name || deal.deal_title || "Sem nome"}
-                        </p>
-                        {etiquetaClass && (
-                          <span className={cn("text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0", etiquetaClass)}>
-                            {deal.etiqueta}
-                          </span>
-                        )}
-                      </div>
-                      {deal.customer_phone && (
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-1.5">
-                          <Phone className="h-3 w-3" /> {deal.customer_phone}
-                        </div>
-                      )}
-                      <div className="flex items-center justify-between text-xs text-muted-foreground">
-                        {deal.deal_value > 0 && (
-                          <span className="font-bold text-foreground text-[12px]">{formatBRLCard(deal.deal_value)}</span>
-                        )}
-                        <span className="text-[10px] font-medium truncate ml-auto">{deal.owner_name}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                {stageDeals.map(deal => (
+                  <StageDealCard
+                    key={deal.deal_id}
+                    deal={deal}
+                    isDragging={draggedId === deal.deal_id}
+                    onDragStart={handleDragStart}
+                    onClick={() => onViewProjeto?.(deal)}
+                  />
+                ))}
               </div>
             </div>
           );
@@ -157,5 +115,100 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
       </div>
       <ScrollBar orientation="horizontal" />
     </ScrollArea>
+  );
+}
+
+// ── Column Header ──────────────────────────────────────────
+
+interface ColumnHeaderProps {
+  name: string;
+  probability: number;
+  totalValue: number;
+  count: number;
+  isWon: boolean;
+  isClosed: boolean;
+}
+
+function ColumnHeader({ name, probability, totalValue, count, isWon, isClosed }: ColumnHeaderProps) {
+  const accentClass = isWon
+    ? "bg-success/10 text-success"
+    : isClosed
+    ? "bg-destructive/10 text-destructive"
+    : "bg-secondary/10 text-secondary";
+
+  return (
+    <div className="px-4 pt-4 pb-3 border-b border-border/40">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-sm font-bold text-foreground leading-tight tracking-tight">
+          {name}
+        </h3>
+        <span className={cn("text-[10px] font-bold rounded-full px-2 py-0.5", accentClass)}>
+          {probability}%
+        </span>
+      </div>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="font-bold text-foreground text-[13px]">
+          {formatBRL(totalValue)}
+        </span>
+        <span className="flex items-center gap-0.5 ml-auto font-semibold text-muted-foreground">
+          <LayoutGrid className="h-3 w-3" />
+          {count} {count === 1 ? "projeto" : "projetos"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Deal Card ──────────────────────────────────────────
+
+interface StageDealCardProps {
+  deal: DealKanbanCard;
+  isDragging: boolean;
+  onDragStart: (e: React.DragEvent, id: string) => void;
+  onClick: () => void;
+}
+
+function StageDealCard({ deal, isDragging, onDragStart, onClick }: StageDealCardProps) {
+  const etiquetaClass = deal.etiqueta ? ETIQUETA_COLORS[deal.etiqueta] : null;
+
+  return (
+    <div
+      draggable
+      onDragStart={e => onDragStart(e, deal.deal_id)}
+      onClick={onClick}
+      className={cn(
+        "bg-card rounded-xl border border-border/50 p-3.5 cursor-grab active:cursor-grabbing",
+        "hover:border-primary/30 transition-all duration-150",
+        isDragging && "opacity-40 scale-95"
+      )}
+      style={{ boxShadow: "var(--shadow-xs)" }}
+    >
+      {/* Title row */}
+      <div className="flex items-start justify-between gap-2 mb-1.5">
+        <p className="text-[13px] font-bold text-foreground leading-snug line-clamp-2">
+          {deal.customer_name || deal.deal_title || "Sem nome"}
+        </p>
+        {etiquetaClass && (
+          <span className={cn("text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0", etiquetaClass)}>
+            {deal.etiqueta}
+          </span>
+        )}
+      </div>
+
+      {/* Phone */}
+      {deal.customer_phone && (
+        <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-1.5">
+          <Phone className="h-3 w-3" /> {deal.customer_phone}
+        </div>
+      )}
+
+      {/* Footer */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        {deal.deal_value > 0 && (
+          <span className="font-bold text-foreground text-[12px]">{formatBRLCard(deal.deal_value)}</span>
+        )}
+        <span className="text-[10px] font-medium truncate ml-auto">{deal.owner_name}</span>
+      </div>
+    </div>
   );
 }
