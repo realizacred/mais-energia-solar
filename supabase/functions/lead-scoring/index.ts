@@ -31,65 +31,39 @@ interface ScoreResult {
   recommendation: string;
 }
 
-// Dual-mode AI: tenant OpenAI key first, Lovable gateway as fallback
+// AI caller — tenant OpenAI key ONLY (no external gateway)
 async function callAI(
   tenantApiKey: string | null,
-  lovableApiKey: string | null,
   messages: Array<{ role: string; content: string }>,
   options: { temperature?: number; max_tokens?: number } = {}
 ): Promise<{ content: string; provider: string }> {
   const { temperature = 0.3, max_tokens = 2000 } = options;
 
-  // 1) Try tenant's own OpenAI key
-  if (tenantApiKey) {
-    try {
-      const res = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${tenantApiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages,
-          temperature,
-          max_tokens,
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return { content: data.choices?.[0]?.message?.content || "", provider: "openai_tenant" };
-      }
-      console.warn(`[lead-scoring] Tenant OpenAI failed (${res.status}), trying fallback...`);
-    } catch (e) {
-      console.warn("[lead-scoring] Tenant OpenAI error, trying fallback:", e);
-    }
+  if (!tenantApiKey) {
+    throw new Error("No AI provider available. Configure OpenAI key in Admin > Integrations.");
   }
 
-  // 2) Fallback: Lovable AI Gateway
-  if (lovableApiKey) {
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${lovableApiKey}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages,
-        temperature,
-        max_tokens,
-      }),
-    });
-    if (!res.ok) {
-      const errText = await res.text();
-      throw new Error(`AI fallback error: ${res.status} - ${errText}`);
-    }
-    const data = await res.json();
-    return { content: data.choices?.[0]?.message?.content || "", provider: "lovable_fallback" };
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${tenantApiKey}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages,
+      temperature,
+      max_tokens,
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`OpenAI API error: ${res.status} - ${errText}`);
   }
 
-  throw new Error("No AI provider available. Configure OpenAI key in Admin > Integrations.");
+  const data = await res.json();
+  return { content: data.choices?.[0]?.message?.content || "", provider: "openai_tenant" };
 }
 
 Deno.serve(async (req) => {
@@ -109,7 +83,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-    const lovableApiKey = Deno.env.get("LOVABLE_API_KEY") || null;
 
     const userClient = createClient(supabaseUrl, supabaseAnon, {
       global: { headers: { Authorization: authHeader } },
@@ -215,11 +188,10 @@ Critérios de level:
 - warm: score 40-69 (acompanhar)
 - cold: score < 40 (nutrir)`;
 
-    console.log(`[lead-scoring] Calling AI (tenant_key: ${!!tenantApiKey}, lovable_key: ${!!lovableApiKey})...`);
+    console.log(`[lead-scoring] Calling AI (tenant_key: ${!!tenantApiKey})...`);
 
     const { content, provider } = await callAI(
       tenantApiKey,
-      lovableApiKey,
       [{ role: "user", content: prompt }],
       { temperature: 0.3, max_tokens: 2000 }
     );
