@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { Menu, ShieldAlert, Sun } from "lucide-react";
+import { Menu, ShieldAlert } from "lucide-react";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { usePendingValidations } from "@/hooks/usePendingValidations";
@@ -231,12 +231,7 @@ export default function Admin() {
   if (authLoading || checkingAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4 animate-pulse-soft">
-          <div className="p-4 rounded-2xl bg-primary/10">
-            <Sun className="w-8 h-8 text-primary animate-spin-slow" />
-          </div>
-          <p className="text-sm text-muted-foreground font-medium">Carregando painel...</p>
-        </div>
+        <LoadingState message="Carregando painel..." size="lg" />
       </div>
     );
   }

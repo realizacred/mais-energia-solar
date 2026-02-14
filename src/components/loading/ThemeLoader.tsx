@@ -76,16 +76,28 @@ const ANIM_CLASSES: Record<LoaderAnimation, string> = {
   "none": "",
 };
 
+const VALID_THEMES = new Set<LoaderTheme>(["sun", "lightning", "gear", "solar-panel", "battery", "leaf", "orbit", "logo", "custom"]);
+
+function safeTheme(input: string | undefined): LoaderTheme {
+  return VALID_THEMES.has(input as LoaderTheme) ? (input as LoaderTheme) : "sun";
+}
+
+function safeAnimation(input: string | undefined): LoaderAnimation {
+  return input && input in ANIM_CLASSES ? (input as LoaderAnimation) : "pulse";
+}
+
 export function ThemeLoader({
-  theme = "sun",
-  animation = "pulse",
+  theme: rawTheme = "sun",
+  animation: rawAnimation = "pulse",
   size = "md",
   logoUrl,
   customUrl,
   className = "",
 }: ThemeLoaderProps) {
+  const theme = safeTheme(rawTheme);
+  const animation = safeAnimation(rawAnimation);
   const px = SIZES[size];
-  const animClass = ANIM_CLASSES[animation] || ANIM_CLASSES.pulse;
+  const animClass = ANIM_CLASSES[animation];
 
   // Image-based loaders (logo / custom upload)
   if (theme === "logo") {

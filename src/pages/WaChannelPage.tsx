@@ -1,7 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { MessageCircle, Loader2, AlertCircle } from "lucide-react";
+import { MessageCircle, AlertCircle } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Button } from "@/components/ui/button";
 
 export default function WaChannelPage() {
@@ -37,10 +38,7 @@ export default function WaChannelPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted/30 p-4">
       <div className="w-full max-w-sm text-center space-y-6">
         {isLoading && (
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Carregando...</p>
-          </div>
+          <LoadingState message="Carregando..." size="md" />
         )}
 
         {error && (
