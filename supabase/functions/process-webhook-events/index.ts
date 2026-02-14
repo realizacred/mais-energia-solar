@@ -282,8 +282,13 @@ async function handleMessageUpsert(
       conversationId = newConv.id;
     }
 
-    // ── HARDENING: Auto-assign conversations ──
-    // Priority: #CANAL:slug marker > instance owner > first linked consultor
+    // ── HARDENING: Smart auto-assign conversations ──
+    // Priority:
+    //   A) #CANAL:slug marker → ALWAYS auto-assign to that consultor
+    //   B) No marker:
+    //      - 1 active consultor on instance → auto-assign
+    //      - 2+ active consultores → leave null (team queue, "Equipe")
+    //      - 0 consultores → fallback to instance owner, else null
     if (!isGroup) {
       const { data: convCheck } = await supabase
         .from("wa_conversations")
@@ -295,7 +300,7 @@ async function handleMessageUpsert(
         let ownerId: string | null = null;
         let assignSource = "unknown";
 
-        // 1. Check #CANAL:slug marker in first inbound message
+        // A. Check #CANAL:slug marker in first inbound message
         if (!fromMe && content) {
           const canalMatch = content.match(/#CANAL:([a-zA-Z0-9_-]+)/);
           if (canalMatch) {
@@ -305,7 +310,6 @@ async function handleMessageUpsert(
               .maybeSingle();
 
             if (canalConsultor && canalConsultor.tenant_id === tenantId && canalConsultor.id) {
-              // Get user_id from consultores
               const { data: consultorData } = await supabase
                 .from("consultores")
                 .select("user_id")
@@ -321,42 +325,58 @@ async function handleMessageUpsert(
           }
         }
 
-        // 2. Fallback: instance owner_user_id
+        // B. No canal marker → count-based logic (single query, no N+1)
         if (!ownerId) {
-          const { data: instData } = await supabase
-            .from("wa_instances")
-            .select("owner_user_id")
-            .eq("id", instanceId)
-            .maybeSingle();
-
-          if (instData?.owner_user_id) {
-            ownerId = instData.owner_user_id;
-            assignSource = "instance_owner";
-          }
-        }
-
-        // 3. Fallback: first linked consultor
-        if (!ownerId) {
-          const { data: links } = await supabase
+          const { data: linkedConsultores } = await supabase
             .from("wa_instance_consultores")
-            .select("consultor_id, consultores:consultor_id(user_id)")
-            .eq("instance_id", instanceId)
-            .limit(1);
+            .select("consultor_id, consultores:consultor_id(user_id, ativo)")
+            .eq("instance_id", instanceId);
 
-          if (links && links.length > 0) {
-            ownerId = (links[0].consultores as any)?.user_id || null;
-            if (ownerId) assignSource = "linked_consultor";
+          // Filter to active consultores with user_id
+          const activeConsultores = (linkedConsultores || []).filter(
+            (lc: any) => lc.consultores?.ativo === true && lc.consultores?.user_id
+          );
+
+          const activeCount = activeConsultores.length;
+
+          if (activeCount === 1) {
+            // Single consultor → auto-assign (makes sense operationally)
+            ownerId = (activeConsultores[0].consultores as any).user_id;
+            assignSource = "single_consultor";
+            console.log(`[process-webhook-events] Single active consultor on instance → auto-assign to ${ownerId}`);
+          } else if (activeCount > 1) {
+            // Multiple consultores → leave as team queue (assigned_to = null)
+            assignSource = "team_queue";
+            console.log(`[process-webhook-events] ${activeCount} active consultores on instance → team queue (assigned_to=null)`);
+          } else {
+            // No linked consultores → fallback to instance owner
+            const { data: instData } = await supabase
+              .from("wa_instances")
+              .select("owner_user_id")
+              .eq("id", instanceId)
+              .maybeSingle();
+
+            if (instData?.owner_user_id) {
+              ownerId = instData.owner_user_id;
+              assignSource = "instance_owner_fallback";
+              console.log(`[process-webhook-events] No linked consultores → fallback to instance owner ${ownerId}`);
+            } else {
+              console.warn(`[process-webhook-events] Conversation ${conversationId} has no consultores and no owner → stays unassigned`);
+            }
           }
         }
 
+        // Idempotent: only assign if still null
         if (ownerId) {
-          await supabase
+          const { error: assignErr } = await supabase
             .from("wa_conversations")
             .update({ assigned_to: ownerId, status: "open" })
-            .eq("id", conversationId);
-          console.log(`[process-webhook-events] Auto-assigned conversation ${conversationId} to ${ownerId} (source=${assignSource})`);
-        } else {
-          console.warn(`[process-webhook-events] Conversation ${conversationId} has no assigned_to and no owner found`);
+            .eq("id", conversationId)
+            .is("assigned_to", null);
+
+          if (!assignErr) {
+            console.log(`[process-webhook-events] Auto-assigned conversation ${conversationId} to ${ownerId} (source=${assignSource})`);
+          }
         }
       }
     }
