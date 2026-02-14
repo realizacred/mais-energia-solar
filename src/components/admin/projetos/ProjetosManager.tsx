@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { FolderKanban, Zap, DollarSign, LayoutGrid } from "lucide-react";
+import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { useDealPipeline } from "@/hooks/useDealPipeline";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { ProjetoFunilSelector } from "./ProjetoFunilSelector";
@@ -63,14 +64,21 @@ export function ProjetosManager() {
 
   return (
     <div className="space-y-4">
-      <PageHeader
-        icon={FolderKanban}
-        title="Projetos"
-        description="Pipeline de vendas e gestão de projetos"
-      />
+      {/* ── Header with action button ── */}
+      <div className="flex items-center justify-between">
+        <PageHeader
+          icon={FolderKanban}
+          title="Projetos"
+          description="Pipeline de vendas e gestão de projetos"
+        />
+        <Button className="gap-1.5 h-9 px-4 text-sm font-medium shadow-sm">
+          <Plus className="h-4 w-4" />
+          Novo Projeto
+        </Button>
+      </div>
 
       <div className="rounded-xl border border-border/60 bg-card">
-        {/* ── Filters row with view toggle ── */}
+        {/* ── Filters row ── */}
         <div className="px-4 py-3">
           <ProjetoFilters
             searchTerm={filters.search}
@@ -98,7 +106,7 @@ export function ProjetosManager() {
           />
         </div>
 
-        <Separator />
+        <Separator className="opacity-60" />
 
         {/* ── Pipeline tabs ── */}
         <div className="px-4 py-2.5">
@@ -123,7 +131,7 @@ export function ProjetosManager() {
           />
         </div>
 
-        {/* ── Etapa Manager Dialog (opened by pencil icon) ── */}
+        {/* ── Etapa Manager Dialog ── */}
         {editingEtapasFunilId && (() => {
           const pipeline = pipelines.find(p => p.id === editingEtapasFunilId);
           const pipelineStages = stages.filter(s => s.pipeline_id === editingEtapasFunilId).sort((a, b) => a.position - b.position);
@@ -162,16 +170,16 @@ export function ProjetosManager() {
 
         {/* ── Summary bar ── */}
         <div className="px-4 pb-3 flex items-center justify-between">
-          <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-5 flex-wrap">
             <div className="flex items-center gap-1.5">
               <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm font-semibold text-foreground">{deals.length}</span>
+              <span className="text-sm font-bold text-foreground">{deals.length}</span>
               <span className="text-xs text-muted-foreground">projetos</span>
             </div>
             {totalValue > 0 && (
               <div className="flex items-center gap-1.5">
                 <DollarSign className="h-3.5 w-3.5 text-success" />
-                <span className="text-sm font-semibold text-foreground">{formatBRL(totalValue)}</span>
+                <span className="text-sm font-bold text-foreground">{formatBRL(totalValue)}</span>
               </div>
             )}
             <span className="text-xs text-muted-foreground">

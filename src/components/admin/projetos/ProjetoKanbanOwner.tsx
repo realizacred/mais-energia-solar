@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
 import { Zap, Plus, LayoutGrid } from "lucide-react";
 import type { OwnerColumn, DealKanbanCard } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
@@ -21,7 +20,7 @@ const formatBRL = (v: number) => {
 
 const formatKwp = (v: number) => {
   if (!v) return "0";
-  if (v >= 1_000) return `${(v / 1_000).toFixed(0)}.${((v % 1_000) / 100).toFixed(0)}`;
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1).replace(".", ",")}`;
   return v.toFixed(2).replace(".", ",");
 };
 
@@ -69,7 +68,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
 
   return (
     <ScrollArea className="w-full">
-      <div className="flex gap-4 pb-4" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
         {columns.map(col => {
           const isOver = dragOverCol === col.id;
 
@@ -77,7 +76,8 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
             <div
               key={col.id}
               className={cn(
-                "w-[260px] flex-shrink-0 rounded-lg bg-muted/30 border border-border/40 transition-colors flex flex-col",
+                "w-[272px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
+                "bg-muted/20",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
               onDragOver={e => handleDragOver(e, col.id)}
@@ -85,11 +85,11 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
               onDrop={e => handleDrop(e, col.id)}
             >
               {/* ── Column Header ── */}
-              <div className="px-4 pt-4 pb-2 space-y-1.5">
-                <h3 className="text-base font-bold text-foreground leading-tight">
+              <div className="px-4 pt-4 pb-3">
+                <h3 className="text-sm font-bold text-foreground leading-tight tracking-tight">
                   {col.nome}
                 </h3>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                   <span className="font-semibold text-foreground">
                     {formatBRL(col.totalValor)}
                   </span>
@@ -101,28 +101,32 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                   )}
                   <span className="flex items-center gap-0.5">
                     <LayoutGrid className="h-3 w-3" />
-                    {col.count} projetos
+                    {col.count}
                   </span>
                 </div>
               </div>
 
-              {/* ── New Project Button ── */}
+              {/* ── New Project Button (dashed) ── */}
               <div className="px-3 pb-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full h-9 text-sm font-medium text-primary border-primary/40 hover:bg-primary/5 hover:text-primary gap-1"
+                <button
                   onClick={() => onCreateProjeto?.(col.id)}
+                  className={cn(
+                    "w-full h-9 rounded-lg border-2 border-dashed border-primary/30",
+                    "flex items-center justify-center gap-1.5",
+                    "text-xs font-medium text-primary/70",
+                    "hover:border-primary/50 hover:text-primary hover:bg-primary/5",
+                    "transition-all duration-200"
+                  )}
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Novo projeto
-                </Button>
+                </button>
               </div>
 
               {/* ── Cards ── */}
-              <div className="px-3 pb-3 min-h-[200px] space-y-2 flex-1">
+              <div className="px-3 pb-3 min-h-[180px] space-y-2 flex-1">
                 {col.deals.length === 0 && (
-                  <div className="flex items-center justify-center h-24 text-xs text-muted-foreground/60">
+                  <div className="flex items-center justify-center h-24 text-xs text-muted-foreground/50 italic">
                     Arraste projetos aqui
                   </div>
                 )}
@@ -155,8 +159,14 @@ interface DealCardProps {
 }
 
 function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
-  // Get first letter of stage category for the badge
   const stageInitial = deal.stage_name ? deal.stage_name.charAt(0).toUpperCase() : "";
+
+  // Determine left border color based on status
+  const borderColor = deal.deal_status === "won"
+    ? "border-l-success"
+    : deal.deal_status === "lost"
+      ? "border-l-destructive"
+      : "border-l-primary";
 
   return (
     <div
@@ -164,40 +174,39 @@ function DealCard({ deal, isDragging, onDragStart, onClick }: DealCardProps) {
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "relative bg-card rounded-lg border border-border/50 p-3 cursor-grab active:cursor-grabbing",
-        "hover:shadow-md hover:border-border transition-all",
-        "border-l-[3px] border-l-primary",
+        "relative bg-card rounded-lg border border-border/40 p-3 cursor-grab active:cursor-grabbing",
+        "hover:shadow-md hover:border-border/70 transition-all duration-150",
+        "border-l-[3px]",
+        borderColor,
         isDragging && "opacity-40 scale-95"
       )}
+      style={{ boxShadow: "var(--shadow-xs)" }}
     >
-      {/* Title row with badge */}
+      {/* Title row with stage badge */}
       <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-sm font-medium text-foreground leading-snug line-clamp-2">
+        <p className="text-[13px] font-semibold text-foreground leading-snug line-clamp-2">
           {deal.customer_name || deal.deal_title || "Sem nome"}
         </p>
-        <span className="shrink-0 flex items-center justify-center h-5 min-w-[20px] px-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold">
-          0
-        </span>
+        {stageInitial && (
+          <span className="shrink-0 flex items-center justify-center h-5 min-w-[20px] px-1.5 rounded bg-primary/10 text-primary text-[10px] font-bold">
+            {stageInitial}
+          </span>
+        )}
       </div>
 
       {/* Stats row */}
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {deal.deal_value > 0 && (
-            <span className="font-bold text-foreground">
+            <span className="font-bold text-foreground text-[12px]">
               {formatBRLCard(deal.deal_value)}
             </span>
           )}
           <span className="flex items-center gap-0.5">
             <Zap className="h-3 w-3 text-warning" />
-            - kWp
+            <span className="text-[11px]">— kWp</span>
           </span>
         </div>
-        {stageInitial && (
-          <span className="font-semibold text-foreground/70 text-xs">
-            {stageInitial}
-          </span>
-        )}
       </div>
     </div>
   );
