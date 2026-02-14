@@ -173,7 +173,7 @@ export function ProposalWizard() {
 
   // ─── Validations ─────────────────────────────────────
   const canStep = [
-    /* 0 */ !!selectedLead && !!cliente.nome,
+    /* 0 */ !!cliente.nome && !!cliente.celular,
     /* 1 */ true,
     /* 2 */ consumoTotal > 0 && potenciaKwp > 0,
     /* 3 */ true,
