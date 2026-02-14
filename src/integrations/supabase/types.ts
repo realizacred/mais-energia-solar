@@ -6638,13 +6638,16 @@ export type Database = {
       tenants: {
         Row: {
           ativo: boolean
+          cidade: string | null
           created_at: string
           deleted_at: string | null
           deleted_by: string | null
           deleted_reason: string | null
           documento: string | null
           dominio_customizado: string | null
+          estado: string | null
           id: string
+          inscricao_estadual: string | null
           nome: string
           owner_user_id: string | null
           plano: string
@@ -6653,17 +6656,21 @@ export type Database = {
           subdominio: string | null
           suspended_at: string | null
           suspended_reason: string | null
+          tenant_config: Json
           updated_at: string
         }
         Insert: {
           ativo?: boolean
+          cidade?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
           deleted_reason?: string | null
           documento?: string | null
           dominio_customizado?: string | null
+          estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           nome: string
           owner_user_id?: string | null
           plano?: string
@@ -6672,17 +6679,21 @@ export type Database = {
           subdominio?: string | null
           suspended_at?: string | null
           suspended_reason?: string | null
+          tenant_config?: Json
           updated_at?: string
         }
         Update: {
           ativo?: boolean
+          cidade?: string | null
           created_at?: string
           deleted_at?: string | null
           deleted_by?: string | null
           deleted_reason?: string | null
           documento?: string | null
           dominio_customizado?: string | null
+          estado?: string | null
           id?: string
+          inscricao_estadual?: string | null
           nome?: string
           owner_user_id?: string | null
           plano?: string
@@ -6691,6 +6702,7 @@ export type Database = {
           subdominio?: string | null
           suspended_at?: string | null
           suspended_reason?: string | null
+          tenant_config?: Json
           updated_at?: string
         }
         Relationships: []
