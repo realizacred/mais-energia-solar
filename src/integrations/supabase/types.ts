@@ -4906,6 +4906,7 @@ export type Database = {
           gerado_por: string | null
           grupo: string | null
           id: string
+          idempotency_key: string | null
           motivo_rejeicao: string | null
           observacoes: string | null
           payback_meses: number | null
@@ -4913,6 +4914,7 @@ export type Database = {
           proposta_id: string
           rejeitado_em: string | null
           snapshot: Json | null
+          snapshot_locked: boolean
           status: Database["public"]["Enums"]["proposta_nativa_status"]
           tenant_id: string
           updated_at: string
@@ -4929,6 +4931,7 @@ export type Database = {
           gerado_por?: string | null
           grupo?: string | null
           id?: string
+          idempotency_key?: string | null
           motivo_rejeicao?: string | null
           observacoes?: string | null
           payback_meses?: number | null
@@ -4936,6 +4939,7 @@ export type Database = {
           proposta_id: string
           rejeitado_em?: string | null
           snapshot?: Json | null
+          snapshot_locked?: boolean
           status?: Database["public"]["Enums"]["proposta_nativa_status"]
           tenant_id: string
           updated_at?: string
@@ -4952,6 +4956,7 @@ export type Database = {
           gerado_por?: string | null
           grupo?: string | null
           id?: string
+          idempotency_key?: string | null
           motivo_rejeicao?: string | null
           observacoes?: string | null
           payback_meses?: number | null
@@ -4959,6 +4964,7 @@ export type Database = {
           proposta_id?: string
           rejeitado_em?: string | null
           snapshot?: Json | null
+          snapshot_locked?: boolean
           status?: Database["public"]["Enums"]["proposta_nativa_status"]
           tenant_id?: string
           updated_at?: string

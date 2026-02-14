@@ -146,3 +146,9 @@ verify_jwt = false
 
 [functions.super-admin-action]
 verify_jwt = false
+
+[functions.proposal-generate]
+verify_jwt = false
+
+[functions.proposal-render]
+verify_jwt = false
