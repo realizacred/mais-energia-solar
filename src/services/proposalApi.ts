@@ -146,3 +146,33 @@ export async function renderProposal(
   }
   return data as RenderProposalResult;
 }
+
+export interface SendProposalPayload {
+  proposta_id: string;
+  versao_id: string;
+  canal: "link" | "whatsapp";
+  lead_id?: string;
+}
+
+export interface SendProposalResult {
+  success: boolean;
+  token: string;
+  public_url: string;
+  whatsapp_sent: boolean;
+}
+
+export async function sendProposal(
+  payload: SendProposalPayload
+): Promise<SendProposalResult> {
+  const { data, error } = await supabase.functions.invoke("proposal-send", {
+    body: payload,
+  });
+
+  if (error) {
+    throw new Error(error.message || "Erro ao enviar proposta");
+  }
+  if (!data?.success) {
+    throw new Error(data?.error || "Erro desconhecido ao enviar");
+  }
+  return data as SendProposalResult;
+}
