@@ -115,6 +115,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     conversations: allConversations,
     loading: convsLoading,
     assignConversation,
+    assignConversationAsync,
+    isAccepting,
     transferConversation,
     resolveConversation,
     reopenConversation,
@@ -477,9 +479,13 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   const handleAccept = async () => {
     if (!selectedConv || !user) return;
-    assignConversation({ conversationId: selectedConv.id, userId: user.id });
-    setSelectedConv({ ...selectedConv, assigned_to: user.id });
-    toast({ title: "Atendimento aceito", description: "Conversa atribuída a você." });
+    const result = await assignConversationAsync({ conversationId: selectedConv.id, userId: user.id, requireUnassigned: true });
+    if (result?.accepted) {
+      setSelectedConv({ ...selectedConv, assigned_to: user.id });
+    } else {
+      // Race lost — refresh list to remove the conversation
+      setSelectedConv(null);
+    }
   };
 
   const handleLinkLead = (leadId: string | null) => {
@@ -606,6 +612,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                   onOpenAssign={() => setShowAssign(true)}
                   onLinkLead={() => setShowLinkLead(true)}
                   onAccept={handleAccept}
+                  isAccepting={isAccepting}
                   vendedores={vendedores}
                   lastReadMessageId={lastReadMessageId}
                   onMarkAsRead={markAsRead}
@@ -719,6 +726,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
                 onOpenAssign={() => setShowAssign(true)}
                 onLinkLead={() => setShowLinkLead(true)}
                 onAccept={handleAccept}
+                isAccepting={isAccepting}
                 vendedores={vendedores}
                 lastReadMessageId={lastReadMessageId}
                 onMarkAsRead={markAsRead}
