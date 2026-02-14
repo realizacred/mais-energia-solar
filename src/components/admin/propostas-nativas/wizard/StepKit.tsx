@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { type KitItemRow, type CatalogoModulo, type CatalogoInversor, formatBRL } from "./types";
+import { type KitItemRow, formatBRL } from "./types";
 
 const CATEGORIAS = [
   { value: "modulo", label: "Módulo" },
@@ -20,11 +20,31 @@ const CATEGORIAS = [
   { value: "outros", label: "Outros" },
 ];
 
+// Unified catalog types (modulos_solares + inversores_catalogo)
+interface CatalogoModuloUnificado {
+  id: string;
+  fabricante: string;
+  modelo: string;
+  potencia_wp: number | null;
+  tipo_celula: string | null;
+  eficiencia_percent: number | null;
+}
+
+interface CatalogoInversorUnificado {
+  id: string;
+  fabricante: string;
+  modelo: string;
+  potencia_nominal_kw: number | null;
+  tipo: string | null;
+  mppt_count: number | null;
+  fases: string | null;
+}
+
 interface StepKitProps {
   itens: KitItemRow[];
   onItensChange: (itens: KitItemRow[]) => void;
-  modulos: CatalogoModulo[];
-  inversores: CatalogoInversor[];
+  modulos: CatalogoModuloUnificado[];
+  inversores: CatalogoInversorUnificado[];
   loadingEquip: boolean;
   potenciaKwp: number;
 }
@@ -46,8 +66,8 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
     onItensChange(itens.map(i => i.id === id ? { ...i, [field]: value } : i));
   };
 
-  const addModulo = (mod: CatalogoModulo) => {
-    const potW = mod.potencia_w || 0;
+  const addModulo = (mod: CatalogoModuloUnificado) => {
+    const potW = mod.potencia_wp || 0;
     const numPlacas = potenciaKwp > 0 && potW > 0 ? Math.ceil((potenciaKwp * 1000) / potW) : 10;
     onItensChange([...itens, {
       id: crypto.randomUUID(), descricao: `${mod.fabricante} ${mod.modelo} ${potW}W`,
@@ -57,10 +77,11 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
     toast({ title: `${mod.modelo} adicionado`, description: `${numPlacas} unidades` });
   };
 
-  const addInversor = (inv: CatalogoInversor) => {
+  const addInversor = (inv: CatalogoInversorUnificado) => {
+    const potKw = inv.potencia_nominal_kw || 0;
     onItensChange([...itens, {
-      id: crypto.randomUUID(), descricao: `${inv.fabricante} ${inv.modelo} ${((inv.potencia_nominal_w || 0) / 1000).toFixed(1)}kW`,
-      fabricante: inv.fabricante, modelo: inv.modelo, potencia_w: inv.potencia_nominal_w || 0,
+      id: crypto.randomUUID(), descricao: `${inv.fabricante} ${inv.modelo} ${potKw.toFixed(1)}kW`,
+      fabricante: inv.fabricante, modelo: inv.modelo, potencia_w: potKw * 1000,
       quantidade: 1, preco_unitario: 0, categoria: "inversor", avulso: false,
     }]);
     toast({ title: `${inv.modelo} adicionado` });
@@ -92,7 +113,7 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Módulos Catálogo */}
+          {/* Módulos Catálogo Unificado */}
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Módulos ({modulos.length})
@@ -106,7 +127,11 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
                 <div key={m.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border/40 hover:border-primary/30 transition-colors bg-card text-sm">
                   <div className="min-w-0">
                     <p className="font-medium text-xs truncate">{m.fabricante} {m.modelo}</p>
-                    <p className="text-[11px] text-muted-foreground">{m.potencia_w}W</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {m.potencia_wp}W
+                      {m.tipo_celula && <span className="ml-1.5 opacity-70">• {m.tipo_celula}</span>}
+                      {m.eficiencia_percent && <span className="ml-1.5 opacity-70">• {m.eficiencia_percent}%</span>}
+                    </p>
                   </div>
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => addModulo(m)}>
                     <Plus className="h-3 w-3 mr-0.5" /> Add
@@ -117,7 +142,7 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
             </div>
           </div>
 
-          {/* Inversores Catálogo */}
+          {/* Inversores Catálogo Unificado */}
           <div className="space-y-2">
             <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
               Inversores ({inversores.length})
@@ -131,7 +156,12 @@ export function StepKit({ itens, onItensChange, modulos, inversores, loadingEqui
                 <div key={inv.id} className="flex items-center justify-between p-2.5 rounded-lg border border-border/40 hover:border-primary/30 transition-colors bg-card text-sm">
                   <div className="min-w-0">
                     <p className="font-medium text-xs truncate">{inv.fabricante} {inv.modelo}</p>
-                    <p className="text-[11px] text-muted-foreground">{((inv.potencia_nominal_w || 0) / 1000).toFixed(1)}kW</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {(inv.potencia_nominal_kw || 0).toFixed(1)}kW
+                      {inv.tipo && <span className="ml-1.5 opacity-70">• {inv.tipo}</span>}
+                      {inv.fases && <span className="ml-1.5 opacity-70">• {inv.fases}</span>}
+                      {inv.mppt_count && <span className="ml-1.5 opacity-70">• {inv.mppt_count} MPPT</span>}
+                    </p>
                   </div>
                   <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-primary" onClick={() => addInversor(inv)}>
                     <Plus className="h-3 w-3 mr-0.5" /> Add
