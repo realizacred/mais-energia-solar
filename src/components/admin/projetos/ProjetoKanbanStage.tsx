@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, LayoutGrid, Phone, ChevronRight } from "lucide-react";
+import { Zap, Phone, ChevronRight } from "lucide-react";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 
@@ -67,6 +67,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
         {sortedStages.map(stage => {
           const stageDeals = deals.filter(d => d.stage_id === stage.id);
           const totalValue = stageDeals.reduce((s, d) => s + (d.deal_value || 0), 0);
+          const totalKwp = stageDeals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
           const isOver = dragOverCol === stage.id;
 
           return (
@@ -86,6 +87,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               <ColumnHeader
                 name={stage.name}
                 totalValue={totalValue}
+                totalKwp={totalKwp}
                 count={stageDeals.length}
                 isWon={stage.is_won}
                 isClosed={stage.is_closed}
@@ -122,12 +124,13 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
 interface ColumnHeaderProps {
   name: string;
   totalValue: number;
+  totalKwp: number;
   count: number;
   isWon: boolean;
   isClosed: boolean;
 }
 
-function ColumnHeader({ name, totalValue, count, isWon, isClosed }: ColumnHeaderProps) {
+function ColumnHeader({ name, totalValue, totalKwp, count, isWon, isClosed }: ColumnHeaderProps) {
   const dotClass = isWon
     ? "bg-success"
     : isClosed
@@ -141,15 +144,20 @@ function ColumnHeader({ name, totalValue, count, isWon, isClosed }: ColumnHeader
         <h3 className="text-sm font-bold text-foreground leading-tight tracking-tight truncate">
           {name}
         </h3>
+        <span className="ml-auto text-[11px] font-semibold text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-full">
+          {count}
+        </span>
       </div>
-      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
         <span className="font-bold text-foreground text-[13px]">
           {formatBRL(totalValue)}
         </span>
-        <span className="flex items-center gap-0.5 ml-auto font-semibold text-muted-foreground">
-          <LayoutGrid className="h-3 w-3" />
-          {count} {count === 1 ? "projeto" : "projetos"}
-        </span>
+        {totalKwp > 0 && (
+          <span className="flex items-center gap-0.5 font-semibold">
+            <Zap className="h-3 w-3 text-warning" />
+            {totalKwp.toFixed(1)} kWp
+          </span>
+        )}
       </div>
     </div>
   );
