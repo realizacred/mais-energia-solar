@@ -50,8 +50,8 @@ export function useWritingAssistant() {
   const requestSuggestion = useCallback(
     async (text: string, action: WritingAction) => {
       // ── Validations ──
-      if (!text || text.trim().length < 3) {
-        toast.warning("Digite pelo menos 3 caracteres.");
+      if (!text || text.trim().length === 0) {
+        toast.info("Digite algo no campo de mensagem para usar o assistente.");
         return;
       }
 
