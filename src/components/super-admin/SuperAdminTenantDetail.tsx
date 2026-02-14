@@ -277,8 +277,8 @@ export function SuperAdminTenantDetail({ tenantId, onBack }: Props) {
                   <p className="text-sm text-muted-foreground">Nenhuma integração verificada</p>
                 ) : (
                   health.map((h: any) => (
-                    <div key={h.service_key} className="flex items-center justify-between text-sm">
-                      <span>{h.service_key}</span>
+                    <div key={h.integration_name} className="flex items-center justify-between text-sm">
+                      <span>{h.integration_name}</span>
                       <Badge variant="outline" className={`text-xs ${HEALTH_COLORS[h.status] || HEALTH_COLORS.unknown}`}>
                         {h.status}
                       </Badge>
