@@ -508,8 +508,8 @@ export function ProposalDetail() {
         </CardContent>
       </Card>
 
-      {/* Views tracking */}
-      {proposta?.id && <ProposalViewsCard propostaId={proposta.id} />}
+      {/* Tracking Panel */}
+      {proposta?.id && <ProposalViewsCard propostaId={proposta.id} versaoId={versaoId} />}
     </div>
   );
 }

@@ -57,7 +57,8 @@ export function ProposalList() {
             id, versao_numero, status, valor_total, economia_mensal, payback_meses, potencia_kwp, grupo, engine_version, created_at,
             proposta_cenarios (id, tipo, preco_final, is_default),
             proposta_envios (id, canal, status, enviado_em)
-          )
+          ),
+          proposta_aceite_tokens (view_count, first_viewed_at, decisao)
         `)
         .order("created_at", { ascending: false })
         .limit(100);
@@ -158,6 +159,11 @@ export function ProposalList() {
               const enviosCount = envios.length;
               const engineVersion = latestVersion?.engine_version;
 
+              // View tracking from tokens
+              const tokensList = (p.proposta_aceite_tokens || []) as any[];
+              const totalViewCount = tokensList.reduce((sum: number, t: any) => sum + (t.view_count || 0), 0);
+              const hasDecision = tokensList.some((t: any) => t.decisao);
+
               return (
                 <Card
                   key={p.id}
@@ -213,6 +219,12 @@ export function ProposalList() {
                         {engineVersion && (
                           <span className="text-[10px] text-muted-foreground/60">
                             engine {engineVersion}
+                          </span>
+                        )}
+                        {totalViewCount > 0 && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5">
+                            <Eye className="h-3 w-3" />
+                            {totalViewCount} view{totalViewCount > 1 ? "s" : ""}
                           </span>
                         )}
                       </div>
