@@ -34,11 +34,13 @@ export interface DealKanbanCard {
   owner_id: string;
   owner_name: string;
   customer_name: string;
+  customer_phone: string;
   deal_title: string;
   deal_value: number;
   deal_status: string;
   stage_probability: number;
   last_stage_change: string;
+  etiqueta: string | null;
 }
 
 export interface OwnerColumn {
@@ -107,7 +109,7 @@ export function useDealPipeline() {
   const fetchDeals = useCallback(async (f: DealFilters) => {
     let query = supabase
       .from("deal_kanban_projection")
-      .select("deal_id, tenant_id, pipeline_id, stage_id, stage_name, stage_position, owner_id, owner_name, customer_name, deal_title, deal_value, deal_status, stage_probability, last_stage_change")
+      .select("deal_id, tenant_id, pipeline_id, stage_id, stage_name, stage_position, owner_id, owner_name, customer_name, customer_phone, deal_title, deal_value, deal_status, stage_probability, last_stage_change, etiqueta")
       .order("last_stage_change", { ascending: false })
       .limit(500);
 
@@ -364,6 +366,8 @@ export function useDealPipeline() {
     pipelineId?: string;
     customerId?: string;
     value?: number;
+    etiqueta?: string;
+    notas?: string;
   }) => {
     const pipeId = params.pipelineId || selectedPipelineId || pipelines[0]?.id;
     if (!pipeId) {
@@ -391,6 +395,8 @@ export function useDealPipeline() {
         customer_id: params.customerId || null,
         value: params.value || 0,
         status: "open",
+        etiqueta: params.etiqueta || null,
+        notas: params.notas || null,
       } as any)
       .select("id")
       .single();

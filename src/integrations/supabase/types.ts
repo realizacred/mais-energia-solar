@@ -1261,6 +1261,7 @@ export type Database = {
           data_nascimento: string | null
           disjuntor_id: string | null
           email: string | null
+          empresa: string | null
           estado: string | null
           id: string
           identidade_url: string | null
@@ -1297,6 +1298,7 @@ export type Database = {
           data_nascimento?: string | null
           disjuntor_id?: string | null
           email?: string | null
+          empresa?: string | null
           estado?: string | null
           id?: string
           identidade_url?: string | null
@@ -1333,6 +1335,7 @@ export type Database = {
           data_nascimento?: string | null
           disjuntor_id?: string | null
           email?: string | null
+          empresa?: string | null
           estado?: string | null
           id?: string
           identidade_url?: string | null
@@ -1984,10 +1987,12 @@ export type Database = {
       deal_kanban_projection: {
         Row: {
           customer_name: string
+          customer_phone: string | null
           deal_id: string
           deal_status: string
           deal_title: string
           deal_value: number
+          etiqueta: string | null
           last_stage_change: string
           owner_id: string
           owner_name: string
@@ -2001,10 +2006,12 @@ export type Database = {
         }
         Insert: {
           customer_name?: string
+          customer_phone?: string | null
           deal_id: string
           deal_status?: string
           deal_title?: string
           deal_value?: number
+          etiqueta?: string | null
           last_stage_change?: string
           owner_id: string
           owner_name?: string
@@ -2018,10 +2025,12 @@ export type Database = {
         }
         Update: {
           customer_name?: string
+          customer_phone?: string | null
           deal_id?: string
           deal_status?: string
           deal_title?: string
           deal_value?: number
+          etiqueta?: string | null
           last_stage_change?: string
           owner_id?: string
           owner_name?: string
@@ -2109,8 +2118,10 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string | null
+          etiqueta: string | null
           expected_close_date: string | null
           id: string
+          notas: string | null
           owner_id: string
           pipeline_id: string
           stage_id: string
@@ -2123,8 +2134,10 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id?: string | null
+          etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
+          notas?: string | null
           owner_id: string
           pipeline_id: string
           stage_id: string
@@ -2137,8 +2150,10 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string | null
+          etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
+          notas?: string | null
           owner_id?: string
           pipeline_id?: string
           stage_id?: string
