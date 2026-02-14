@@ -8,6 +8,14 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  rascunho: { label: "Rascunho", variant: "secondary" },
+  gerada: { label: "Gerada", variant: "default" },
+  enviada: { label: "Enviada", variant: "outline" },
+  aceita: { label: "Aceita", variant: "default" },
+  recusada: { label: "Recusada", variant: "destructive" },
+  expirada: { label: "Expirada", variant: "secondary" },
+  cancelada: { label: "Cancelada", variant: "destructive" },
+  // Legacy english keys
   draft: { label: "Rascunho", variant: "secondary" },
   generated: { label: "Gerada", variant: "default" },
   sent: { label: "Enviada", variant: "outline" },
@@ -37,7 +45,7 @@ export function ProposalList() {
       const { data } = await supabase
         .from("propostas_nativas")
         .select(`
-          id, titulo, codigo, versao_atual, created_at, lead_id, cliente_id,
+          id, titulo, codigo, versao_atual, status, origem, created_at, lead_id, cliente_id,
           proposta_versoes (
             id, versao_numero, status, valor_total, economia_mensal, payback_meses, potencia_kwp, grupo, created_at
           )
@@ -104,7 +112,8 @@ export function ProposalList() {
           {filtered.map((p) => {
             const latestVersion = p.proposta_versoes
               ?.sort((a: any, b: any) => b.versao_numero - a.versao_numero)?.[0];
-            const statusInfo = STATUS_LABELS[latestVersion?.status] || STATUS_LABELS.draft;
+            const statusKey = p.status || latestVersion?.status || "rascunho";
+            const statusInfo = STATUS_LABELS[statusKey] || STATUS_LABELS.rascunho;
 
             return (
               <Card

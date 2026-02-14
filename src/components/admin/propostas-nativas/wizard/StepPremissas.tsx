@@ -1,6 +1,9 @@
-import { Settings2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings2, RotateCcw, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { type PremissasData } from "./types";
 
 interface Props {
@@ -9,6 +12,45 @@ interface Props {
 }
 
 export function StepPremissas({ premissas, onPremissasChange }: Props) {
+  const [loadingDefaults, setLoadingDefaults] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  // Load tenant defaults on mount (once)
+  useEffect(() => {
+    if (hasLoaded) return;
+    loadTenantDefaults();
+  }, []);
+
+  const loadTenantDefaults = async () => {
+    setLoadingDefaults(true);
+    try {
+      const { data } = await supabase
+        .from("premissas_default_tenant" as any)
+        .select("inflacao_energetica, inflacao_ipca, taxa_desconto_vpl, perda_eficiencia_anual, sobredimensionamento, troca_inversor_ano, troca_inversor_custo_percentual, fator_simultaneidade, vida_util_sistema")
+        .limit(1)
+        .maybeSingle();
+
+      if (data) {
+        const d = data as any;
+        onPremissasChange({
+          ...premissas,
+          inflacao_energetica: d.inflacao_energetica ?? premissas.inflacao_energetica,
+          inflacao_ipca: d.inflacao_ipca ?? premissas.inflacao_ipca,
+          perda_eficiencia_anual: d.perda_eficiencia_anual ?? premissas.perda_eficiencia_anual,
+          sobredimensionamento: d.sobredimensionamento ?? premissas.sobredimensionamento,
+          troca_inversor_anos: d.troca_inversor_ano ?? premissas.troca_inversor_anos,
+          troca_inversor_custo: d.troca_inversor_custo_percentual ?? premissas.troca_inversor_custo,
+          vpl_taxa_desconto: d.taxa_desconto_vpl ?? premissas.vpl_taxa_desconto,
+        });
+      }
+    } catch (e) {
+      console.warn("Falha ao carregar premissas default:", e);
+    } finally {
+      setLoadingDefaults(false);
+      setHasLoaded(true);
+    }
+  };
+
   const update = (field: keyof PremissasData, value: number) => {
     onPremissasChange({ ...premissas, [field]: value });
   };
@@ -26,13 +68,25 @@ export function StepPremissas({ premissas, onPremissasChange }: Props) {
 
   return (
     <div className="space-y-5">
-      <h3 className="text-base font-bold flex items-center gap-2">
-        <Settings2 className="h-4 w-4 text-primary" /> Premissas de Cálculo
-      </h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-base font-bold flex items-center gap-2">
+          <Settings2 className="h-4 w-4 text-primary" /> Premissas de Cálculo
+        </h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={loadTenantDefaults}
+          disabled={loadingDefaults}
+        >
+          {loadingDefaults ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />}
+          Restaurar padrões
+        </Button>
+      </div>
 
       <p className="text-sm text-muted-foreground">
         Configure as premissas técnicas e financeiras para o dimensionamento e cálculo de retorno.
-        Os valores padrão podem ser ajustados nas configurações do tenant.
+        Os valores padrão são carregados das configurações do tenant.
       </p>
 
       <div className="rounded-xl border border-border/50 p-4">
@@ -57,7 +111,6 @@ export function StepPremissas({ premissas, onPremissasChange }: Props) {
         </div>
       </div>
 
-      {/* Summary info */}
       <div className="rounded-xl bg-muted/30 border border-border/30 p-4 text-xs text-muted-foreground space-y-1">
         <p>• <strong>Inflação energética</strong>: reajuste anual estimado da tarifa de energia.</p>
         <p>• <strong>Perda de eficiência</strong>: degradação anual dos módulos fotovoltaicos (~0.5%).</p>
