@@ -8,6 +8,25 @@ import { createClient } from "npm:@supabase/supabase-js@2.39.3";
  * HARDENING: Preserves existing refresh_token if Google doesn't return a new one
  * (happens on re-authorization flows).
  */
+
+async function resolveAppUrl(supabaseAdmin: any, tenantId?: string): Promise<string | null> {
+  // 1) Try DB config (integration_configs.app_url) for the tenant
+  if (tenantId) {
+    const { data } = await supabaseAdmin
+      .from("integration_configs")
+      .select("api_key")
+      .eq("service_key", "app_url")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (data?.api_key) return data.api_key.replace(/\/+$/, "");
+  }
+  // 2) Fallback to env var
+  const envUrl = Deno.env.get("APP_URL");
+  if (envUrl) return envUrl.replace(/\/+$/, "");
+  return null;
+}
+
 Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
@@ -15,9 +34,20 @@ Deno.serve(async (req) => {
     const stateParam = url.searchParams.get("state");
     const error = url.searchParams.get("error");
 
-    const appUrl = Deno.env.get("APP_URL");
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Try to parse state early for tenant context
+    let parsedState: { userId: string; tenantId: string } | null = null;
+    if (stateParam) {
+      try { parsedState = JSON.parse(atob(stateParam)); } catch {}
+    }
+
+    const appUrl = await resolveAppUrl(supabaseAdmin, parsedState?.tenantId);
     if (!appUrl) {
-      console.error("APP_URL env var is not set — cannot redirect user.");
+      console.error("APP_URL not configured (neither DB nor env var).");
       return new Response("APP_URL not configured", { status: 500 });
     }
 
@@ -40,10 +70,7 @@ Deno.serve(async (req) => {
       return redirectTo(`${appUrl}/admin/google-calendar?error=invalid_state`);
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+    // supabaseAdmin already created above
 
     // Get OAuth credentials for this tenant
     const { data: configs } = await supabaseAdmin
@@ -167,9 +194,10 @@ Deno.serve(async (req) => {
     return redirectTo(`${appUrl}/admin/google-calendar?success=true`);
   } catch (error: any) {
     console.error("Error in google-calendar-callback:", error);
-    const appUrl = Deno.env.get("APP_URL") || "";
-    if (!appUrl) return new Response("APP_URL not configured", { status: 500 });
-    return redirectTo(`${appUrl}/admin/google-calendar?error=internal_error`);
+    // Best effort: try to redirect with env var fallback
+    const fallbackUrl = Deno.env.get("APP_URL");
+    if (!fallbackUrl) return new Response("Internal error and APP_URL not configured", { status: 500 });
+    return redirectTo(`${fallbackUrl}/admin/google-calendar?error=internal_error`);
   }
 });
 
