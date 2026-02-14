@@ -145,3 +145,9 @@ verify_jwt = false
 
 [functions.proposal-render]
 verify_jwt = false
+
+[functions.proposal-decision-notify]
+verify_jwt = false
+
+[functions.proposal-send]
+verify_jwt = false

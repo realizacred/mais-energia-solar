@@ -197,6 +197,11 @@ export default function PropostaPublica() {
         .update({ status: "aceita", aceita_at: new Date().toISOString() })
         .eq("id", tokenData.proposta_id);
 
+      // Fire-and-forget notification to consultant/admin
+      supabase.functions.invoke("proposal-decision-notify", {
+        body: { token_id: tokenData.id, decisao: "aceita" },
+      }).catch(() => {});
+
       setDecision("aceita");
       toast({ title: "Proposta aceita com sucesso!" });
     } catch (e: any) {
@@ -231,6 +236,11 @@ export default function PropostaPublica() {
           recusa_motivo: recusaMotivo || null,
         })
         .eq("id", tokenData.proposta_id);
+
+      // Fire-and-forget notification
+      supabase.functions.invoke("proposal-decision-notify", {
+        body: { token_id: tokenData.id, decisao: "recusada" },
+      }).catch(() => {});
 
       setDecision("recusada");
       setShowRejectConfirm(false);
