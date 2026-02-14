@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
@@ -280,6 +281,21 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
               customerName={customerName} ownerName={ownerName}
               currentStage={currentStage}
               formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
+              onDealUpdated={async () => {
+                setLoading(true);
+                try {
+                  const { data: d } = await supabase.from("deals").select("id, title, value, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date").eq("id", dealId).single();
+                  if (d) {
+                    setDeal(d as DealDetail);
+                    const [stagesRes, historyRes] = await Promise.all([
+                      supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", (d as any).pipeline_id).order("position"),
+                      supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
+                    ]);
+                    setStages((stagesRes.data || []) as StageInfo[]);
+                    setHistory((historyRes.data || []) as StageHistory[]);
+                  }
+                } finally { setLoading(false); }
+              }}
             />
           )}
           {activeTab === "chat" && (
@@ -323,15 +339,65 @@ interface UnifiedTimelineItem {
 
 function GerenciamentoTab({
   deal, history, stages, customerName, ownerName, currentStage,
-  formatDate, formatBRL, getStageNameById,
+  formatDate, formatBRL, getStageNameById, onDealUpdated,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
   customerName: string; ownerName: string; currentStage?: StageInfo;
   formatDate: (d: string) => string; formatBRL: (v: number) => string;
   getStageNameById: (id: string | null) => string;
+  onDealUpdated: () => void;
 }) {
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
+  const [pipelines, setPipelines] = useState<{ id: string; name: string }[]>([]);
+  const [allStagesMap, setAllStagesMap] = useState<Map<string, { id: string; name: string; position: number }[]>>(new Map());
+  const [changingPipeline, setChangingPipeline] = useState(false);
+
+  // Load pipelines
+  useEffect(() => {
+    supabase.from("pipelines").select("id, name").eq("is_active", true).order("name")
+      .then(({ data }) => {
+        if (data) setPipelines(data as { id: string; name: string }[]);
+      });
+    supabase.from("pipeline_stages").select("id, name, position, pipeline_id").order("position")
+      .then(({ data }) => {
+        if (data) {
+          const map = new Map<string, { id: string; name: string; position: number }[]>();
+          (data as any[]).forEach(s => {
+            const arr = map.get(s.pipeline_id) || [];
+            arr.push({ id: s.id, name: s.name, position: s.position });
+            map.set(s.pipeline_id, arr);
+          });
+          setAllStagesMap(map);
+        }
+      });
+  }, []);
+
+  const handlePipelineChange = async (pipelineId: string) => {
+    if (pipelineId === deal.pipeline_id) return;
+    setChangingPipeline(true);
+    try {
+      // Get first stage of the target pipeline
+      const targetStages = allStagesMap.get(pipelineId);
+      const firstStage = targetStages?.sort((a, b) => a.position - b.position)[0];
+      if (!firstStage) {
+        toast({ title: "Este funil não tem etapas configuradas", variant: "destructive" });
+        return;
+      }
+
+      const { error } = await supabase.from("deals")
+        .update({ pipeline_id: pipelineId, stage_id: firstStage.id })
+        .eq("id", deal.id);
+      if (error) throw error;
+
+      toast({ title: "Funil alterado com sucesso" });
+      onDealUpdated();
+    } catch (err: any) {
+      toast({ title: "Erro ao alterar funil", description: err.message, variant: "destructive" });
+    } finally {
+      setChangingPipeline(false);
+    }
+  };
 
   // Load document activity for timeline
   useEffect(() => {
@@ -437,10 +503,26 @@ function GerenciamentoTab({
             <CardTitle className="text-sm font-bold">Informações</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">Funil</span>
+              <Select
+                value={deal.pipeline_id}
+                onValueChange={handlePipelineChange}
+                disabled={changingPipeline}
+              >
+                <SelectTrigger className="h-7 w-[160px] text-xs font-medium">
+                  <SelectValue placeholder="Selecionar funil" />
+                </SelectTrigger>
+                <SelectContent>
+                  {pipelines.map(p => (
+                    <SelectItem key={p.id} value={p.id} className="text-xs">{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <InfoRow label="Cliente" value={customerName || "—"} />
             <InfoRow label="Responsável" value={ownerName} />
             <InfoRow label="Etapa Atual" value={currentStage?.name || "—"} />
-            <InfoRow label="Probabilidade" value={currentStage ? `${currentStage.probability}%` : "—"} />
             <InfoRow label="Valor" value={formatBRL(deal.value)} />
             <InfoRow label="Status" value={deal.status} />
             <InfoRow label="Criado em" value={formatDate(deal.created_at)} />
