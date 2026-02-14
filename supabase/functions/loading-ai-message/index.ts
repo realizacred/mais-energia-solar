@@ -11,9 +11,10 @@ Deno.serve(async (req) => {
   try {
     const { context, operation_description } = await req.json();
 
+    // Try LOVABLE_API_KEY as fallback (this function has no auth context for tenant key)
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      // IA não configurada — retorna fallback
+      // No AI available — return fallback silently
       return new Response(
         JSON.stringify({ message: null, fallback: true }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -30,7 +31,7 @@ ${operation_description ? `Descrição: ${operation_description}` : ""}
 Responda APENAS com a mensagem, sem aspas, sem explicação.`;
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 3000); // 3s hard timeout
+    const timeout = setTimeout(() => controller.abort(), 3000);
 
     try {
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -75,7 +76,6 @@ Responda APENAS com a mensagem, sem aspas, sem explicação.`;
       );
     } catch (fetchError) {
       clearTimeout(timeout);
-      // Timeout or network error — graceful fallback
       return new Response(
         JSON.stringify({ message: null, fallback: true, reason: "timeout" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
