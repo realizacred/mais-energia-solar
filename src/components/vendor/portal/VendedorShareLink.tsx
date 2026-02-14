@@ -1,15 +1,16 @@
- import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
- import { Input } from "@/components/ui/input";
- import { Button } from "@/components/ui/button";
- import { Copy, ExternalLink } from "lucide-react";
- 
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Copy, ExternalLink } from "lucide-react";
+import { getPublicUrl } from "@/lib/getPublicUrl";
+
 interface VendedorShareLinkProps {
   slug: string;
   onCopy: () => void;
 }
 
 export function VendedorShareLink({ slug, onCopy }: VendedorShareLinkProps) {
-  const link = `${window.location.origin}/v/${slug}`;
+  const link = `${getPublicUrl()}/v/${slug}`;
  
    return (
      <Card className="border-primary/20">
