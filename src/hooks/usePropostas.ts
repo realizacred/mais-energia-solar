@@ -60,7 +60,7 @@ export function usePropostas() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("propostas")
+        .from("propostas_sm_legado" as any)
         .select("*, consultor_ref:consultores(nome)")
         .order("created_at", { ascending: false })
         .limit(200);
@@ -87,7 +87,7 @@ export function usePropostas() {
     async (data: PropostaFormData) => {
       setCreating(true);
       try {
-        const { error } = await supabase.from("propostas").insert({
+        const { error } = await supabase.from("propostas_sm_legado" as any).insert({
           nome: data.nome,
           cliente_nome: data.cliente_nome,
           cliente_celular: data.cliente_celular,
@@ -130,7 +130,7 @@ export function usePropostas() {
     async (id: string) => {
       try {
         const { error } = await supabase
-          .from("propostas")
+          .from("propostas_sm_legado" as any)
           .delete()
           .eq("id", id);
         if (error) throw error;
@@ -151,7 +151,7 @@ export function usePropostas() {
     async (id: string, status: string) => {
       try {
         const { error } = await supabase
-          .from("propostas")
+          .from("propostas_sm_legado" as any)
           .update({ status })
           .eq("id", id);
         if (error) throw error;

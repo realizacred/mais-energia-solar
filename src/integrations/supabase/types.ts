@@ -4744,6 +4744,71 @@ export type Database = {
         }
         Relationships: []
       }
+      premissas_default_tenant: {
+        Row: {
+          created_at: string
+          custo_disponibilidade_bifasico: number
+          custo_disponibilidade_monofasico: number
+          custo_disponibilidade_trifasico: number
+          fator_simultaneidade: number
+          id: string
+          inflacao_energetica: number
+          inflacao_ipca: number
+          perda_eficiencia_anual: number
+          sobredimensionamento: number
+          taxa_desconto_vpl: number
+          tenant_id: string
+          troca_inversor_ano: number
+          troca_inversor_custo_percentual: number
+          updated_at: string
+          vida_util_sistema: number
+        }
+        Insert: {
+          created_at?: string
+          custo_disponibilidade_bifasico?: number
+          custo_disponibilidade_monofasico?: number
+          custo_disponibilidade_trifasico?: number
+          fator_simultaneidade?: number
+          id?: string
+          inflacao_energetica?: number
+          inflacao_ipca?: number
+          perda_eficiencia_anual?: number
+          sobredimensionamento?: number
+          taxa_desconto_vpl?: number
+          tenant_id: string
+          troca_inversor_ano?: number
+          troca_inversor_custo_percentual?: number
+          updated_at?: string
+          vida_util_sistema?: number
+        }
+        Update: {
+          created_at?: string
+          custo_disponibilidade_bifasico?: number
+          custo_disponibilidade_monofasico?: number
+          custo_disponibilidade_trifasico?: number
+          fator_simultaneidade?: number
+          id?: string
+          inflacao_energetica?: number
+          inflacao_ipca?: number
+          perda_eficiencia_anual?: number
+          sobredimensionamento?: number
+          taxa_desconto_vpl?: number
+          tenant_id?: string
+          troca_inversor_ano?: number
+          troca_inversor_custo_percentual?: number
+          updated_at?: string
+          vida_util_sistema?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premissas_default_tenant_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ativo: boolean
@@ -5124,7 +5189,7 @@ export type Database = {
             foreignKeyName: "proposal_variables_proposta_id_fkey"
             columns: ["proposta_id"]
             isOneToOne: false
-            referencedRelation: "propostas"
+            referencedRelation: "propostas_sm_legado"
             referencedColumns: ["id"]
           },
           {
@@ -5300,60 +5365,6 @@ export type Database = {
             columns: ["versao_id"]
             isOneToOne: false
             referencedRelation: "proposta_versoes"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      proposta_itens: {
-        Row: {
-          category: string | null
-          created_at: string
-          custo_total: number
-          custo_unitario: number
-          id: string
-          item: string
-          proposta_id: string
-          quantidade: number
-          tenant_id: string
-          valor_venda: number
-        }
-        Insert: {
-          category?: string | null
-          created_at?: string
-          custo_total?: number
-          custo_unitario?: number
-          id?: string
-          item: string
-          proposta_id: string
-          quantidade?: number
-          tenant_id?: string
-          valor_venda?: number
-        }
-        Update: {
-          category?: string | null
-          created_at?: string
-          custo_total?: number
-          custo_unitario?: number
-          id?: string
-          item?: string
-          proposta_id?: string
-          quantidade?: number
-          tenant_id?: string
-          valor_venda?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "proposta_itens_proposta_id_fkey"
-            columns: ["proposta_id"]
-            isOneToOne: false
-            referencedRelation: "propostas"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "proposta_itens_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -6204,7 +6215,7 @@ export type Database = {
             foreignKeyName: "proposta_variaveis_proposta_id_fkey"
             columns: ["proposta_id"]
             isOneToOne: false
-            referencedRelation: "propostas"
+            referencedRelation: "propostas_sm_legado"
             referencedColumns: ["id"]
           },
           {
@@ -6381,7 +6392,128 @@ export type Database = {
           },
         ]
       }
-      propostas: {
+      propostas_nativas: {
+        Row: {
+          aceita_at: string | null
+          cliente_id: string | null
+          codigo: string | null
+          consultor_id: string | null
+          created_at: string
+          created_by: string | null
+          enviada_at: string | null
+          id: string
+          lead_id: string | null
+          origem: string
+          projeto_id: string | null
+          recusa_motivo: string | null
+          recusada_at: string | null
+          sm_id: string | null
+          sm_project_id: string | null
+          sm_raw_payload: Json | null
+          status: string
+          template_id: string | null
+          tenant_id: string
+          titulo: string
+          updated_at: string
+          validade_dias: number | null
+          versao_atual: number
+        }
+        Insert: {
+          aceita_at?: string | null
+          cliente_id?: string | null
+          codigo?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enviada_at?: string | null
+          id?: string
+          lead_id?: string | null
+          origem?: string
+          projeto_id?: string | null
+          recusa_motivo?: string | null
+          recusada_at?: string | null
+          sm_id?: string | null
+          sm_project_id?: string | null
+          sm_raw_payload?: Json | null
+          status?: string
+          template_id?: string | null
+          tenant_id: string
+          titulo: string
+          updated_at?: string
+          validade_dias?: number | null
+          versao_atual?: number
+        }
+        Update: {
+          aceita_at?: string | null
+          cliente_id?: string | null
+          codigo?: string | null
+          consultor_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          enviada_at?: string | null
+          id?: string
+          lead_id?: string | null
+          origem?: string
+          projeto_id?: string | null
+          recusa_motivo?: string | null
+          recusada_at?: string | null
+          sm_id?: string | null
+          sm_project_id?: string | null
+          sm_raw_payload?: Json | null
+          status?: string
+          template_id?: string | null
+          tenant_id?: string
+          titulo?: string
+          updated_at?: string
+          validade_dias?: number | null
+          versao_atual?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "propostas_nativas_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_consultor_id_fkey"
+            columns: ["consultor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      propostas_sm_legado: {
         Row: {
           area_necessaria: number | null
           cliente_celular: string | null
@@ -6506,97 +6638,6 @@ export type Database = {
             columns: ["consultor_id"]
             isOneToOne: false
             referencedRelation: "consultores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      propostas_nativas: {
-        Row: {
-          cliente_id: string | null
-          codigo: string | null
-          consultor_id: string | null
-          created_at: string
-          created_by: string | null
-          id: string
-          lead_id: string | null
-          projeto_id: string | null
-          template_id: string | null
-          tenant_id: string
-          titulo: string
-          updated_at: string
-          versao_atual: number
-        }
-        Insert: {
-          cliente_id?: string | null
-          codigo?: string | null
-          consultor_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          lead_id?: string | null
-          projeto_id?: string | null
-          template_id?: string | null
-          tenant_id: string
-          titulo: string
-          updated_at?: string
-          versao_atual?: number
-        }
-        Update: {
-          cliente_id?: string | null
-          codigo?: string | null
-          consultor_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          lead_id?: string | null
-          projeto_id?: string | null
-          template_id?: string | null
-          tenant_id?: string
-          titulo?: string
-          updated_at?: string
-          versao_atual?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "propostas_nativas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "propostas_nativas_consultor_id_fkey"
-            columns: ["consultor_id"]
-            isOneToOne: false
-            referencedRelation: "consultores"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "propostas_nativas_lead_id_fkey"
-            columns: ["lead_id"]
-            isOneToOne: false
-            referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "propostas_nativas_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "propostas_nativas_template_id_fkey"
-            columns: ["template_id"]
-            isOneToOne: false
-            referencedRelation: "proposta_templates"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "propostas_nativas_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
