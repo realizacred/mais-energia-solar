@@ -8,6 +8,12 @@ import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanOwner } from "./ProjetoKanbanOwner";
 import { ProjetoListView } from "./ProjetoListView";
 import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function ProjetosManager() {
   const {
@@ -22,6 +28,7 @@ export function ProjetosManager() {
   } = useDealPipeline();
 
   const [viewMode, setViewMode] = useState<"kanban" | "lista">("kanban");
+  const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
 
   const handleFilterChange = (key: string, value: any) => {
     if (key === "pipelineId") {
@@ -93,51 +100,65 @@ export function ProjetosManager() {
 
         <Separator />
 
-        {/* ── Pipeline tabs + Stage manager ── */}
-        <div className="px-4 py-2.5 flex items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <ProjetoFunilSelector
-              funis={pipelines.map(p => ({
-                id: p.id,
-                nome: p.name,
-                ordem: 0,
-                ativo: p.is_active,
-                tenant_id: p.tenant_id,
-              }))}
-              selectedId={selectedPipelineId}
-              onSelect={(id) => {
-                setSelectedPipelineId(id);
-                applyFilters({ pipelineId: id });
-              }}
-              onCreate={createPipeline}
-              onRename={renamePipeline}
-              onToggleAtivo={togglePipelineActive}
-              onReorder={reorderPipelines}
-            />
-          </div>
-
-          {selectedPipeline && (
-            <ProjetoEtapaManager
-              funilId={selectedPipeline.id}
-              funilNome={selectedPipeline.name}
-              etapas={selectedPipelineStages.map(s => ({
-                id: s.id,
-                funil_id: s.pipeline_id,
-                nome: s.name,
-                cor: s.is_won ? "#10B981" : s.is_closed ? "#EF4444" : "#3B82F6",
-                ordem: s.position,
-                categoria: (s.is_won ? "ganho" : s.is_closed ? "perdido" : "aberto") as any,
-                tenant_id: s.tenant_id,
-              }))}
-              onCreate={createStage}
-              onRename={renameStage}
-              onUpdateCor={() => {}}
-              onUpdateCategoria={() => {}}
-              onReorder={reorderStages}
-              onDelete={deleteStage}
-            />
-          )}
+        {/* ── Pipeline tabs ── */}
+        <div className="px-4 py-2.5">
+          <ProjetoFunilSelector
+            funis={pipelines.map(p => ({
+              id: p.id,
+              nome: p.name,
+              ordem: 0,
+              ativo: p.is_active,
+              tenant_id: p.tenant_id,
+            }))}
+            selectedId={selectedPipelineId}
+            onSelect={(id) => {
+              setSelectedPipelineId(id);
+              applyFilters({ pipelineId: id });
+            }}
+            onCreate={createPipeline}
+            onRename={renamePipeline}
+            onToggleAtivo={togglePipelineActive}
+            onReorder={reorderPipelines}
+            onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
+          />
         </div>
+
+        {/* ── Etapa Manager Dialog (opened by pencil icon) ── */}
+        {editingEtapasFunilId && (() => {
+          const pipeline = pipelines.find(p => p.id === editingEtapasFunilId);
+          const pipelineStages = stages.filter(s => s.pipeline_id === editingEtapasFunilId).sort((a, b) => a.position - b.position);
+          if (!pipeline) return null;
+          return (
+            <Dialog open={true} onOpenChange={(open) => { if (!open) setEditingEtapasFunilId(null); }}>
+              <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    Etapas do funil "{pipeline.name}"
+                  </DialogTitle>
+                </DialogHeader>
+                <ProjetoEtapaManager
+                  funilId={pipeline.id}
+                  funilNome={pipeline.name}
+                  etapas={pipelineStages.map(s => ({
+                    id: s.id,
+                    funil_id: s.pipeline_id,
+                    nome: s.name,
+                    cor: s.is_won ? "#10B981" : s.is_closed ? "#EF4444" : "#3B82F6",
+                    ordem: s.position,
+                    categoria: (s.is_won ? "ganho" : s.is_closed ? "perdido" : "aberto") as any,
+                    tenant_id: s.tenant_id,
+                  }))}
+                  onCreate={createStage}
+                  onRename={renameStage}
+                  onUpdateCor={() => {}}
+                  onUpdateCategoria={() => {}}
+                  onReorder={reorderStages}
+                  onDelete={deleteStage}
+                />
+              </DialogContent>
+            </Dialog>
+          );
+        })()}
 
         {/* ── Summary bar ── */}
         <div className="px-4 pb-3 flex items-center justify-between">

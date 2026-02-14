@@ -6,13 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -63,7 +56,6 @@ interface Props {
 export function ProjetoEtapaManager({
   funilId, funilNome, etapas, onCreate, onRename, onUpdateCor, onUpdateCategoria, onReorder, onDelete,
 }: Props) {
-  const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [newName, setNewName] = useState("");
@@ -107,20 +99,7 @@ export function ProjetoEtapaManager({
   const catInfo = (cat: ProjetoEtapaCategoria) => CATEGORIAS.find(c => c.value === cat) || CATEGORIAS[0];
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground gap-1">
-          <Settings2 className="h-3.5 w-3.5" />
-          Etapas
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4" />
-            Etapas do funil "{funilNome}"
-          </DialogTitle>
-        </DialogHeader>
+    <div>
 
         <div className="space-y-1 mt-2">
           {sorted.map((etapa, i) => {
@@ -301,7 +280,6 @@ export function ProjetoEtapaManager({
             Nova Etapa
           </Button>
         )}
-      </DialogContent>
-    </Dialog>
+    </div>
   );
 }
