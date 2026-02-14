@@ -1,11 +1,16 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock } from "lucide-react";
+import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import ReactSignatureCanvas from "react-signature-canvas";
@@ -17,6 +22,7 @@ type TokenData = {
   expires_at: string;
   used_at: string | null;
   aceite_nome: string | null;
+  decisao: string | null;
   view_count: number;
   first_viewed_at: string | null;
 };
@@ -46,15 +52,20 @@ export default function PropostaPublica() {
   const [html, setHtml] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [accepted, setAccepted] = useState(false);
+  const [decision, setDecision] = useState<"aceita" | "recusada" | null>(null);
   const [showSignature, setShowSignature] = useState(false);
   const [versaoData, setVersaoData] = useState<any>(null);
   const [cenarios, setCenarios] = useState<CenarioData[]>([]);
   const [selectedCenario, setSelectedCenario] = useState<string | null>(null);
 
+  // Accept fields
   const [nome, setNome] = useState("");
   const [documento, setDocumento] = useState("");
   const [observacoes, setObservacoes] = useState("");
+
+  // Reject fields
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [recusaMotivo, setRecusaMotivo] = useState("");
 
   const sigRef = useRef<ReactSignatureCanvas | null>(null);
 
@@ -98,18 +109,22 @@ export default function PropostaPublica() {
     try {
       const { data: td, error: tdErr } = await (supabase as any)
         .from("proposta_aceite_tokens")
-        .select("id, proposta_id, versao_id, expires_at, used_at, aceite_nome, view_count, first_viewed_at")
+        .select("id, proposta_id, versao_id, expires_at, used_at, aceite_nome, decisao, view_count, first_viewed_at")
         .eq("token", token!)
         .maybeSingle();
 
       if (tdErr || !td) { setError("Link inválido ou expirado."); setLoading(false); return; }
-      if (td.used_at) { setAccepted(true); setTokenData(td); setLoading(false); return; }
+      if (td.used_at) {
+        setDecision(td.decisao || "aceita");
+        setTokenData(td);
+        setLoading(false);
+        return;
+      }
       if (new Date(td.expires_at) < new Date()) { setError("Este link expirou."); setLoading(false); return; }
 
       setTokenData(td);
       trackView(td);
 
-      // Load render, versão and cenários in parallel
       const [renderRes, versaoRes, cenariosRes] = await Promise.all([
         supabase.from("proposta_renders")
           .select("html").eq("versao_id", td.versao_id).eq("tipo", "html").maybeSingle(),
@@ -165,6 +180,7 @@ export default function PropostaPublica() {
         .from("proposta_aceite_tokens")
         .update({
           used_at: new Date().toISOString(),
+          decisao: "aceita",
           aceite_nome: nome,
           aceite_documento: documento || null,
           aceite_observacoes: observacoes || null,
@@ -181,10 +197,46 @@ export default function PropostaPublica() {
         .update({ status: "aceita", aceita_at: new Date().toISOString() })
         .eq("id", tokenData.proposta_id);
 
-      setAccepted(true);
+      setDecision("aceita");
       toast({ title: "Proposta aceita com sucesso!" });
     } catch (e: any) {
       toast({ title: "Erro ao aceitar", description: e.message, variant: "destructive" });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!tokenData) return;
+
+    setSubmitting(true);
+    try {
+      const { error: updateErr } = await (supabase as any)
+        .from("proposta_aceite_tokens")
+        .update({
+          used_at: new Date().toISOString(),
+          decisao: "recusada",
+          recusa_motivo: recusaMotivo || null,
+          recusa_at: new Date().toISOString(),
+          aceite_user_agent: navigator.userAgent,
+        })
+        .eq("id", tokenData.id);
+
+      if (updateErr) throw updateErr;
+
+      await supabase.from("propostas_nativas")
+        .update({
+          status: "recusada",
+          recusada_at: new Date().toISOString(),
+          recusa_motivo: recusaMotivo || null,
+        })
+        .eq("id", tokenData.proposta_id);
+
+      setDecision("recusada");
+      setShowRejectConfirm(false);
+      toast({ title: "Resposta registrada" });
+    } catch (e: any) {
+      toast({ title: "Erro ao registrar", description: e.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -226,17 +278,30 @@ export default function PropostaPublica() {
     );
   }
 
-  // ── ACCEPTED ──────────────────────────────────────────
-  if (accepted) {
+  // ── DECISION MADE ─────────────────────────────────────
+  if (decision) {
+    const isAccepted = decision === "aceita";
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="max-w-md w-full">
           <CardContent className="flex flex-col items-center gap-4 py-8">
-            <CheckCircle2 className="h-14 w-14 text-success" />
-            <h2 className="text-xl font-semibold">Proposta Aceita!</h2>
-            <p className="text-sm text-muted-foreground text-center">
-              {tokenData?.aceite_nome ? `Obrigado, ${tokenData.aceite_nome}!` : "Obrigado!"} Sua aceitação foi registrada com sucesso.
-            </p>
+            {isAccepted ? (
+              <>
+                <CheckCircle2 className="h-14 w-14 text-success" />
+                <h2 className="text-xl font-semibold">Proposta Aceita!</h2>
+                <p className="text-sm text-muted-foreground text-center">
+                  {tokenData?.aceite_nome ? `Obrigado, ${tokenData.aceite_nome}!` : "Obrigado!"} Sua aceitação foi registrada com sucesso.
+                </p>
+              </>
+            ) : (
+              <>
+                <XCircle className="h-14 w-14 text-destructive" />
+                <h2 className="text-xl font-semibold">Proposta Recusada</h2>
+                <p className="text-sm text-muted-foreground text-center">
+                  Sua resposta foi registrada. A equipe comercial será notificada.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -262,7 +327,7 @@ export default function PropostaPublica() {
         </div>
       )}
 
-      {/* ── CENÁRIOS INTERATIVOS (v2) ──────────────────── */}
+      {/* ── CENÁRIOS INTERATIVOS ──────────────────────── */}
       {hasCenarios && (
         <div className="max-w-3xl mx-auto px-4 pb-4">
           <h3 className="text-base font-semibold mb-3 text-center">
@@ -331,7 +396,7 @@ export default function PropostaPublica() {
         </div>
       )}
 
-      {/* Financial Summary (legacy fallback or selected cenário) */}
+      {/* Financial Summary */}
       {versaoData && (
         <div className="max-w-lg mx-auto px-4 pb-4">
           <Card className="border-border/60">
@@ -356,7 +421,7 @@ export default function PropostaPublica() {
                 </div>
               </div>
 
-              {/* Legacy fallback for proposals without cenários */}
+              {/* Legacy fallback */}
               {pagamentoOpcoes.length > 0 && (
                 <>
                   <h4 className="text-xs font-semibold text-muted-foreground mb-2">Opções de Pagamento</h4>
@@ -379,11 +444,11 @@ export default function PropostaPublica() {
         </div>
       )}
 
-      {/* Acceptance Form */}
+      {/* ── ACCEPTANCE / REJECTION FORM ──────────────── */}
       <div className="max-w-lg mx-auto px-4 pb-12">
         <Card className="border-border/60">
           <CardContent className="py-6 space-y-4">
-            <h3 className="text-lg font-semibold text-center">Aceitar Proposta</h3>
+            <h3 className="text-lg font-semibold text-center">Sua Decisão</h3>
 
             {hasCenarios && activeCenario && (
               <div className="text-center text-sm text-muted-foreground bg-muted/50 rounded-lg py-2 px-3">
@@ -393,17 +458,17 @@ export default function PropostaPublica() {
 
             <div className="space-y-2">
               <Label htmlFor="nome">Nome completo *</Label>
-              <Input id="nome" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome completo" />
+              <Input id="nome" value={nome} onChange={e => setNome(e.target.value)} placeholder="Seu nome completo" maxLength={100} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="doc">CPF / CNPJ</Label>
-              <Input id="doc" value={documento} onChange={e => setDocumento(e.target.value)} placeholder="000.000.000-00" />
+              <Input id="doc" value={documento} onChange={e => setDocumento(e.target.value)} placeholder="000.000.000-00" maxLength={20} />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="obs">Observações</Label>
-              <Textarea id="obs" value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Alguma observação? (opcional)" className="min-h-[60px]" />
+              <Textarea id="obs" value={observacoes} onChange={e => setObservacoes(e.target.value)} placeholder="Alguma observação? (opcional)" className="min-h-[60px]" maxLength={500} />
             </div>
 
             {/* Signature toggle */}
@@ -434,10 +499,28 @@ export default function PropostaPublica() {
               </div>
             )}
 
-            <Button className="w-full gap-2" size="lg" onClick={handleAccept} disabled={submitting || !nome.trim()}>
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              Aceitar Proposta
-            </Button>
+            {/* Action buttons */}
+            <div className="flex gap-3 pt-2">
+              <Button
+                className="flex-1 gap-2"
+                size="lg"
+                onClick={handleAccept}
+                disabled={submitting || !nome.trim()}
+              >
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Aceitar Proposta
+              </Button>
+              <Button
+                variant="outline"
+                size="lg"
+                className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/5"
+                onClick={() => setShowRejectConfirm(true)}
+                disabled={submitting}
+              >
+                <ThumbsDown className="h-4 w-4" />
+                Recusar
+              </Button>
+            </div>
 
             <p className="text-[10px] text-muted-foreground text-center">
               Ao aceitar, você concorda com os termos desta proposta. Seu IP e data/hora serão registrados.
@@ -445,6 +528,40 @@ export default function PropostaPublica() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reject Confirmation Dialog */}
+      <AlertDialog open={showRejectConfirm} onOpenChange={setShowRejectConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recusar esta proposta?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Sua decisão será registrada e a equipe comercial será notificada. Se desejar, informe o motivo abaixo.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2 py-2">
+            <Label htmlFor="recusa-motivo">Motivo da recusa (opcional)</Label>
+            <Textarea
+              id="recusa-motivo"
+              value={recusaMotivo}
+              onChange={e => setRecusaMotivo(e.target.value)}
+              placeholder="Preço alto, optei por outro fornecedor, etc."
+              className="min-h-[80px]"
+              maxLength={500}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={handleReject}
+              disabled={submitting}
+            >
+              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirmar Recusa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
