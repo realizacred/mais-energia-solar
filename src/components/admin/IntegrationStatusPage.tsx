@@ -576,14 +576,29 @@ export function IntegrationStatusPage() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     try {
+      // Use fetch directly to have full control over headers
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         throw new Error("Sessão não encontrada. Faça login novamente.");
       }
-      const { error } = await supabase.functions.invoke("integration-health-check", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
+      const res = await fetch(`${supabaseUrl}/functions/v1/integration-health-check`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": anonKey,
+          "Authorization": `Bearer ${session.access_token}`,
+        },
       });
-      if (error) throw error;
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`HTTP ${res.status}: ${body}`);
+      }
+
       await queryClient.invalidateQueries({ queryKey: ["integration-health-cache"] });
     } catch (err: any) {
       console.error("Health check error:", err);

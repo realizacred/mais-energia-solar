@@ -43,74 +43,89 @@ Deno.serve(async (req) => {
     let tenantIds: string[] = [];
     let isManualRefresh = false;
 
-    // Try to resolve user from Authorization header (manual mode)
-    let resolvedUser = false;
+    console.log("[integration-health-check] Request received", {
+      hasAuth: !!authHeader,
+      hasCronSecret: !!cronSecretHeader,
+      method: req.method,
+    });
 
-    if (authHeader?.startsWith("Bearer ")) {
-      const token = authHeader.replace("Bearer ", "");
-      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
-
-      if (token && token !== anonKey) {
-        // Use service_role admin client to validate the token directly
-        const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
-
-        if (user && !userError) {
-          const userId = user.id;
-
-          const { data: roleData } = await supabaseAdmin
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", userId)
-            .in("role", ["admin", "gerente"])
-            .limit(1)
-            .maybeSingle();
-
-          if (!roleData) {
-            return new Response(JSON.stringify({ error: "Admin access required" }), {
-              status: 403,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-
-          const { data: profile } = await supabaseAdmin
-            .from("profiles")
-            .select("tenant_id")
-            .eq("user_id", userId)
-            .single();
-
-          if (!profile?.tenant_id) {
-            return new Response(JSON.stringify({ error: "Tenant not found" }), {
-              status: 400,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
-
-          tenantIds = [profile.tenant_id];
-          isManualRefresh = true;
-          resolvedUser = true;
-        }
-      }
-    }
-
-    if (!resolvedUser) {
-      // ── Cron mode: require x-cron-secret ──
+    // ── Mode 1: Cron (check first, cron never sends Bearer with user token) ──
+    if (cronSecretHeader) {
       const expectedSecret = Deno.env.get("CRON_SECRET");
-      if (!expectedSecret) {
-        console.error("[integration-health-check] CRON_SECRET not configured");
-        return new Response(JSON.stringify({ error: "Server misconfigured" }), {
-          status: 500,
+      if (!expectedSecret || cronSecretHeader !== expectedSecret) {
+        return new Response(JSON.stringify({ error: "Invalid cron secret" }), {
+          status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      console.log("[integration-health-check] Cron mode authenticated");
+      tenantIds = await fetchAllActiveTenants(supabaseAdmin);
+    }
+    // ── Mode 2: Manual refresh via admin user JWT ──
+    else if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
-      if (!cronSecretHeader || cronSecretHeader !== expectedSecret) {
-        return new Response(JSON.stringify({ error: "Unauthorized: login required or invalid cron secret" }), {
+      // Skip if token is the anon key (no user session)
+      if (!token || token === anonKey) {
+        console.log("[integration-health-check] Token is anon key, rejecting");
+        return new Response(JSON.stringify({ error: "Authentication required. Please log in." }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
-      tenantIds = await fetchAllActiveTenants(supabaseAdmin);
+      const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
+
+      if (!user || userError) {
+        console.log("[integration-health-check] getUser failed:", userError?.message);
+        return new Response(JSON.stringify({ error: "Invalid or expired token" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const userId = user.id;
+      console.log("[integration-health-check] User resolved:", userId);
+
+      const { data: roleData } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .in("role", ["admin", "gerente"])
+        .limit(1)
+        .maybeSingle();
+
+      if (!roleData) {
+        return new Response(JSON.stringify({ error: "Admin access required" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", userId)
+        .single();
+
+      if (!profile?.tenant_id) {
+        return new Response(JSON.stringify({ error: "Tenant not found" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      tenantIds = [profile.tenant_id];
+      isManualRefresh = true;
+      console.log("[integration-health-check] Manual refresh for tenant:", profile.tenant_id);
+    }
+    // ── No auth at all ──
+    else {
+      return new Response(JSON.stringify({ error: "Authorization header required" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (tenantIds.length === 0) {
