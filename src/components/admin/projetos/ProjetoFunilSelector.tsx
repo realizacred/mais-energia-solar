@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Pencil, Check, X, MoreVertical, EyeOff, Eye, ArrowUp, ArrowDown, GripVertical } from "lucide-react";
+import { Plus, Pencil, Check, X, MoreHorizontal, EyeOff, Eye, ArrowUp, ArrowDown, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
 import type { ProjetoFunil } from "@/hooks/useProjetoPipeline";
 
 interface Props {
@@ -71,163 +70,158 @@ export function ProjetoFunilSelector({
     onReorder(ids);
   };
 
-  const renderFunilButton = (funil: ProjetoFunil, index: number, total: number) => {
-    if (editingId === funil.id) {
-      return (
-        <div key={funil.id} className="flex items-center gap-1">
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+      <Layers className="h-4 w-4 text-muted-foreground shrink-0 mr-1" />
+
+      {/* Tabs-style funnel selector */}
+      <div className="flex items-center border rounded-lg bg-muted/40 p-0.5 gap-0.5">
+        {activeFunis.map((funil, i) => {
+          const isSelected = selectedId === funil.id;
+
+          if (editingId === funil.id) {
+            return (
+              <div key={funil.id} className="flex items-center gap-0.5 px-1">
+                <Input
+                  value={editName}
+                  onChange={e => setEditName(e.target.value)}
+                  className="h-7 w-28 text-xs"
+                  autoFocus
+                  onKeyDown={e => {
+                    if (e.key === "Enter") handleRename(funil.id);
+                    if (e.key === "Escape") setEditingId(null);
+                  }}
+                />
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRename(funil.id)}>
+                  <Check className="h-3 w-3" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setEditingId(null)}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            );
+          }
+
+          return (
+            <div key={funil.id} className="flex items-center">
+              <button
+                onClick={() => onSelect(funil.id)}
+                className={cn(
+                  "px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap",
+                  isSelected
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                )}
+              >
+                {funil.nome}
+              </button>
+
+              {isSelected && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="p-0.5 rounded hover:bg-muted transition-colors -ml-1 mr-0.5">
+                      <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-44">
+                    <DropdownMenuItem onClick={() => {
+                      setEditingId(funil.id);
+                      setEditName(funil.nome);
+                    }}>
+                      <Pencil className="h-3.5 w-3.5 mr-2" />
+                      Renomear
+                    </DropdownMenuItem>
+                    {i > 0 && (
+                      <DropdownMenuItem onClick={() => moveUp(funil.id)}>
+                        <ArrowUp className="h-3.5 w-3.5 mr-2" />
+                        Mover para esquerda
+                      </DropdownMenuItem>
+                    )}
+                    {i < activeFunis.length - 1 && (
+                      <DropdownMenuItem onClick={() => moveDown(funil.id)}>
+                        <ArrowDown className="h-3.5 w-3.5 mr-2" />
+                        Mover para direita
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => onToggleAtivo(funil.id, false)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <EyeOff className="h-3.5 w-3.5 mr-2" />
+                      Desativar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Create new */}
+      {creatingNew ? (
+        <div className="flex items-center gap-0.5 ml-1">
           <Input
-            value={editName}
-            onChange={e => setEditName(e.target.value)}
-            className="h-8 w-32 text-sm"
+            value={newName}
+            onChange={e => setNewName(e.target.value)}
+            placeholder="Nome do funil..."
+            className="h-7 w-32 text-xs"
             autoFocus
             onKeyDown={e => {
-              if (e.key === "Enter") handleRename(funil.id);
-              if (e.key === "Escape") setEditingId(null);
+              if (e.key === "Enter") handleCreate();
+              if (e.key === "Escape") { setCreatingNew(false); setNewName(""); }
             }}
           />
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleRename(funil.id)}>
-            <Check className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCreate}>
+            <Check className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingId(null)}>
-            <X className="h-3.5 w-3.5" />
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setCreatingNew(false); setNewName(""); }}>
+            <X className="h-3 w-3" />
           </Button>
         </div>
-      );
-    }
-
-    return (
-      <div key={funil.id} className="flex items-center group/funil">
+      ) : (
         <Button
-          variant={selectedId === funil.id ? "default" : "outline"}
+          variant="ghost"
           size="sm"
-          className={cn(
-            "gap-1.5 pr-1",
-            selectedId === funil.id && "shadow-sm",
-            !funil.ativo && "opacity-50"
-          )}
-          onClick={() => funil.ativo && onSelect(funil.id)}
+          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 shrink-0"
+          onClick={() => setCreatingNew(true)}
         >
-          {funil.nome}
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <span
-                role="button"
-                className="ml-1 p-0.5 rounded hover:bg-primary-foreground/20 transition-colors cursor-pointer"
-                onClick={e => e.stopPropagation()}
-              >
-                <MoreVertical className="h-3.5 w-3.5" />
-              </span>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-44">
-              <DropdownMenuItem onClick={() => {
-                setEditingId(funil.id);
-                setEditName(funil.nome);
-              }}>
-                <Pencil className="h-3.5 w-3.5 mr-2" />
-                Renomear
-              </DropdownMenuItem>
-
-              {funil.ativo && index > 0 && (
-                <DropdownMenuItem onClick={() => moveUp(funil.id)}>
-                  <ArrowUp className="h-3.5 w-3.5 mr-2" />
-                  Mover para cima
-                </DropdownMenuItem>
-              )}
-              {funil.ativo && index < total - 1 && (
-                <DropdownMenuItem onClick={() => moveDown(funil.id)}>
-                  <ArrowDown className="h-3.5 w-3.5 mr-2" />
-                  Mover para baixo
-                </DropdownMenuItem>
-              )}
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuItem
-                onClick={() => onToggleAtivo(funil.id, !funil.ativo)}
-                className={!funil.ativo ? "text-green-600" : "text-destructive"}
-              >
-                {funil.ativo ? (
-                  <>
-                    <EyeOff className="h-3.5 w-3.5 mr-2" />
-                    Desativar
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-3.5 w-3.5 mr-2" />
-                    Reativar
-                  </>
-                )}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Plus className="h-3 w-3" />
+          Novo
         </Button>
-      </div>
-    );
-  };
+      )}
 
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      {activeFunis.map((funil, i) => renderFunilButton(funil, i, activeFunis.length))}
-
-      {/* Inactive funnels popover */}
+      {/* Inactive funnels */}
       {inactiveFunis.length > 0 && (
         <Popover open={showInactive} onOpenChange={setShowInactive}>
           <PopoverTrigger asChild>
-            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
-              <EyeOff className="h-3.5 w-3.5" />
-              {inactiveFunis.length} inativos
+            <Button variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground gap-1 shrink-0 ml-auto">
+              <EyeOff className="h-3 w-3" />
+              {inactiveFunis.length}
             </Button>
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-56 p-2">
-            <p className="text-xs font-medium text-muted-foreground px-2 py-1">Funis inativos</p>
-            {inactiveFunis.map((funil, i) => (
-              <div key={funil.id} className="flex items-center justify-between px-2 py-1.5 rounded hover:bg-muted/50">
+          <PopoverContent align="end" className="w-52 p-2">
+            <p className="text-[11px] font-medium text-muted-foreground px-2 pb-1.5 uppercase tracking-wider">Inativos</p>
+            {inactiveFunis.map(funil => (
+              <div key={funil.id} className="flex items-center justify-between px-2 py-1.5 rounded-md hover:bg-muted/50">
                 <span className="text-sm text-muted-foreground">{funil.nome}</span>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-6 text-xs text-green-600"
+                  className="h-6 px-2 text-xs"
                   onClick={() => {
                     onToggleAtivo(funil.id, true);
                     if (inactiveFunis.length <= 1) setShowInactive(false);
                   }}
                 >
                   <Eye className="h-3 w-3 mr-1" />
-                  Reativar
+                  Ativar
                 </Button>
               </div>
             ))}
           </PopoverContent>
         </Popover>
-      )}
-
-      {/* Create new */}
-      {creatingNew ? (
-        <div className="flex items-center gap-1">
-          <Input
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            placeholder="Nome do funil..."
-            className="h-8 w-36 text-sm"
-            autoFocus
-            onKeyDown={e => {
-              if (e.key === "Enter") handleCreate();
-              if (e.key === "Escape") setCreatingNew(false);
-            }}
-          />
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleCreate}>
-            <Check className="h-3.5 w-3.5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setCreatingNew(false)}>
-            <X className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      ) : (
-        <Button variant="outline" size="sm" className="gap-1.5 border-dashed" onClick={() => setCreatingNew(true)}>
-          <Plus className="h-3.5 w-3.5" />
-          Novo Funil
-        </Button>
       )}
     </div>
   );
