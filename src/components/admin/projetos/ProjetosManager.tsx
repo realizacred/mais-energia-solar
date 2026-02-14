@@ -11,6 +11,7 @@ import { ProjetoKanbanOwner } from "./ProjetoKanbanOwner";
 import { ProjetoListView } from "./ProjetoListView";
 import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
 import { NovoProjetoModal } from "./NovoProjetoModal";
+import { ProjetoDetalhe } from "./ProjetoDetalhe";
 import {
   Dialog,
   DialogContent,
@@ -34,6 +35,7 @@ export function ProjetosManager() {
   const [viewMode, setViewMode] = useState<"kanban" | "lista">("kanban");
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
+  const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
 
   const handleFilterChange = (key: string, value: any) => {
     if (key === "pipelineId") {
@@ -65,6 +67,16 @@ export function ProjetosManager() {
   const selectedPipeline = pipelines.find(p => p.id === selectedPipelineId);
 
   if (loading) return <LoadingState message="Carregando projetos..." />;
+
+  // ── Detail View ──
+  if (selectedDealId) {
+    return (
+      <ProjetoDetalhe
+        dealId={selectedDealId}
+        onBack={() => setSelectedDealId(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -234,6 +246,7 @@ export function ProjetosManager() {
         <ProjetoKanbanOwner
           columns={ownerColumns}
           onMoveProjeto={moveDealToOwner}
+          onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
         />
       ) : (
         <ProjetoListView

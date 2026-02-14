@@ -253,14 +253,95 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
             <Field label="Telefone Celular *" error={errors["cliente.telefone"]}>
               <Input
-                placeholder=""
+                placeholder="(00) 00000-0000"
                 value={cliente.telefone}
-                onChange={e => updateCliente("telefone", e.target.value)}
+                onChange={e => {
+                  // Phone mask
+                  let v = e.target.value.replace(/\D/g, "").slice(0, 11);
+                  if (v.length > 6) v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+                  else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+                  updateCliente("telefone", v);
+                }}
                 className={cn("h-10 text-sm border-border/60", errors["cliente.telefone"] && "border-destructive ring-1 ring-destructive/30")}
               />
               {errors["cliente.telefone"] && (
                 <p className="text-xs text-destructive mt-1">Telefone é obrigatório!</p>
               )}
+            </Field>
+
+            <Separator className="my-3 opacity-40" />
+            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Endereço</h4>
+
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="CEP">
+                <Input
+                  placeholder="00000-000"
+                  value={cliente.cep}
+                  onChange={e => {
+                    let v = e.target.value.replace(/\D/g, "").slice(0, 8);
+                    if (v.length > 5) v = `${v.slice(0,5)}-${v.slice(5)}`;
+                    updateCliente("cep", v);
+                  }}
+                  className="h-9 text-sm border-border/60"
+                />
+              </Field>
+              <Field label="Estado">
+                <Input
+                  placeholder="UF"
+                  maxLength={2}
+                  value={cliente.estado}
+                  onChange={e => updateCliente("estado", e.target.value.toUpperCase())}
+                  className="h-9 text-sm border-border/60"
+                />
+              </Field>
+            </div>
+
+            <Field label="Cidade">
+              <Input
+                placeholder="Cidade"
+                value={cliente.cidade}
+                onChange={e => updateCliente("cidade", e.target.value)}
+                className="h-9 text-sm border-border/60"
+              />
+            </Field>
+
+            <Field label="Bairro">
+              <Input
+                placeholder="Bairro"
+                value={cliente.bairro}
+                onChange={e => updateCliente("bairro", e.target.value)}
+                className="h-9 text-sm border-border/60"
+              />
+            </Field>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div className="col-span-2">
+                <Field label="Endereço">
+                  <Input
+                    placeholder="Rua, Avenida..."
+                    value={cliente.endereco}
+                    onChange={e => updateCliente("endereco", e.target.value)}
+                    className="h-9 text-sm border-border/60"
+                  />
+                </Field>
+              </div>
+              <Field label="Nº">
+                <Input
+                  placeholder="Nº"
+                  value={cliente.numero}
+                  onChange={e => updateCliente("numero", e.target.value)}
+                  className="h-9 text-sm border-border/60"
+                />
+              </Field>
+            </div>
+
+            <Field label="Complemento">
+              <Input
+                placeholder="Apto, Bloco..."
+                value={cliente.complemento}
+                onChange={e => updateCliente("complemento", e.target.value)}
+                className="h-9 text-sm border-border/60"
+              />
             </Field>
           </div>
 
