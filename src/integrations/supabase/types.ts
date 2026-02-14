@@ -5342,13 +5342,17 @@ export type Database = {
           aceite_observacoes: string | null
           aceite_user_agent: string | null
           assinatura_url: string | null
+          cenario_aceito_id: string | null
           created_at: string
           created_by: string | null
+          decisao: string | null
           expires_at: string
           first_viewed_at: string | null
           id: string
           last_viewed_at: string | null
           proposta_id: string
+          recusa_at: string | null
+          recusa_motivo: string | null
           tenant_id: string
           token: string
           used_at: string | null
@@ -5362,13 +5366,17 @@ export type Database = {
           aceite_observacoes?: string | null
           aceite_user_agent?: string | null
           assinatura_url?: string | null
+          cenario_aceito_id?: string | null
           created_at?: string
           created_by?: string | null
+          decisao?: string | null
           expires_at?: string
           first_viewed_at?: string | null
           id?: string
           last_viewed_at?: string | null
           proposta_id: string
+          recusa_at?: string | null
+          recusa_motivo?: string | null
           tenant_id: string
           token?: string
           used_at?: string | null
@@ -5382,13 +5390,17 @@ export type Database = {
           aceite_observacoes?: string | null
           aceite_user_agent?: string | null
           assinatura_url?: string | null
+          cenario_aceito_id?: string | null
           created_at?: string
           created_by?: string | null
+          decisao?: string | null
           expires_at?: string
           first_viewed_at?: string | null
           id?: string
           last_viewed_at?: string | null
           proposta_id?: string
+          recusa_at?: string | null
+          recusa_motivo?: string | null
           tenant_id?: string
           token?: string
           used_at?: string | null
@@ -5396,6 +5408,13 @@ export type Database = {
           view_count?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "proposta_aceite_tokens_cenario_aceito_id_fkey"
+            columns: ["cenario_aceito_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_cenarios"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proposta_aceite_tokens_proposta_id_fkey"
             columns: ["proposta_id"]
