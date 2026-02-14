@@ -44,25 +44,27 @@ export function ProjetoFilters({
   const hasActive = filterCategoria !== "todos" || filterConsultor !== "todos";
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
+    <div className="flex flex-wrap items-end gap-3">
+      {/* Busca */}
+      <div className="flex-1 min-w-[180px] max-w-sm space-y-1">
+        <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Buscar</label>
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por nome, código..."
+            placeholder="Nome, código..."
             value={searchTerm}
             onChange={e => onSearchChange(e.target.value)}
             className="pl-9 h-9"
           />
         </div>
+      </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Filter className="w-4 h-4" />
-        </div>
-
+      {/* Status */}
+      <div className="space-y-1">
+        <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
         <Select value={filterCategoria} onValueChange={onFilterCategoriaChange}>
           <SelectTrigger className="w-[140px] h-9">
-            <SelectValue placeholder="Status" />
+            <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
             {CATEGORIAS.map(c => (
@@ -70,10 +72,14 @@ export function ProjetoFilters({
             ))}
           </SelectContent>
         </Select>
+      </div>
 
+      {/* Responsável */}
+      <div className="space-y-1">
+        <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Responsável</label>
         <Select value={filterConsultor} onValueChange={onFilterConsultorChange}>
           <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="Responsável" />
+            <SelectValue placeholder="Todos" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="todos">Todos</SelectItem>
@@ -82,31 +88,33 @@ export function ProjetoFilters({
             ))}
           </SelectContent>
         </Select>
+      </div>
 
-        {hasActive && (
-          <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground">
-            Limpar filtros
-          </Button>
-        )}
+      {/* Limpar */}
+      {hasActive && (
+        <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground h-9">
+          Limpar filtros
+        </Button>
+      )}
 
-        <div className="ml-auto flex gap-1">
-          <Button
-            variant={viewMode === "kanban" ? "default" : "outline"}
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => onViewModeChange("kanban")}
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "lista" ? "default" : "outline"}
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => onViewModeChange("lista")}
-          >
-            <List className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* View toggle */}
+      <div className="ml-auto flex gap-1">
+        <Button
+          variant={viewMode === "kanban" ? "default" : "outline"}
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => onViewModeChange("kanban")}
+        >
+          <LayoutGrid className="h-4 w-4" />
+        </Button>
+        <Button
+          variant={viewMode === "lista" ? "default" : "outline"}
+          size="icon"
+          className="h-9 w-9"
+          onClick={() => onViewModeChange("lista")}
+        >
+          <List className="h-4 w-4" />
+        </Button>
       </div>
     </div>
   );
