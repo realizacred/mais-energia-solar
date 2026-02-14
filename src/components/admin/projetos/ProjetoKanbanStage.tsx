@@ -85,7 +85,6 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               {/* ── Column Header ── */}
               <ColumnHeader
                 name={stage.name}
-                probability={stage.probability}
                 totalValue={totalValue}
                 count={stageDeals.length}
                 isWon={stage.is_won}
@@ -122,29 +121,26 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
 
 interface ColumnHeaderProps {
   name: string;
-  probability: number;
   totalValue: number;
   count: number;
   isWon: boolean;
   isClosed: boolean;
 }
 
-function ColumnHeader({ name, probability, totalValue, count, isWon, isClosed }: ColumnHeaderProps) {
-  const accentClass = isWon
-    ? "bg-success/10 text-success"
+function ColumnHeader({ name, totalValue, count, isWon, isClosed }: ColumnHeaderProps) {
+  const dotClass = isWon
+    ? "bg-success"
     : isClosed
-    ? "bg-destructive/10 text-destructive"
-    : "bg-secondary/10 text-secondary";
+    ? "bg-destructive"
+    : "bg-primary";
 
   return (
     <div className="px-4 pt-4 pb-3 border-b border-border/40">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-bold text-foreground leading-tight tracking-tight">
+      <div className="flex items-center gap-2 mb-2">
+        <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", dotClass)} />
+        <h3 className="text-sm font-bold text-foreground leading-tight tracking-tight truncate">
           {name}
         </h3>
-        <span className={cn("text-[10px] font-bold rounded-full px-2 py-0.5", accentClass)}>
-          {probability}%
-        </span>
       </div>
       <div className="flex items-center gap-3 text-xs text-muted-foreground">
         <span className="font-bold text-foreground text-[13px]">
