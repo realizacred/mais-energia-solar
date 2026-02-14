@@ -62,9 +62,25 @@ export function TenantSettings() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // 1) Resolve tenant_id via profiles (nunca assumir .single() em tenants direto)
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (profileError || !profile?.tenant_id) {
+      console.error("Error loading profile:", profileError);
+      toast({ title: "Erro ao identificar empresa", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    // 2) Busca tenant pelo id resolvido
     const { data, error } = await supabase
       .from("tenants")
       .select("id, nome, slug, documento, inscricao_estadual, estado, cidade, tenant_config")
+      .eq("id", profile.tenant_id)
       .single();
 
     if (error) {
