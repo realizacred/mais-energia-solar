@@ -55,10 +55,14 @@ const MODELOS = [
 ];
 
 const WRITING_ASSISTANT_MODELS = [
-  { value: "google/gemini-2.5-flash-lite", label: "Gemini Flash Lite", cost: "💰", desc: "Mais barato, básico" },
-  { value: "google/gemini-2.5-flash", label: "Gemini 2.5 Flash", cost: "💰💰", desc: "Bom equilíbrio (padrão)" },
-  { value: "google/gemini-3-flash-preview", label: "Gemini 3 Flash", cost: "💰💰", desc: "Mais recente, rápido" },
-  { value: "google/gemini-2.5-pro", label: "Gemini 2.5 Pro", cost: "💰💰💰", desc: "Premium, alta qualidade" },
+  // Google Gemini (requer chave google_gemini em Integrações)
+  { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite", cost: "💰", desc: "Mais barato, básico", provider: "google_gemini" },
+  { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash", cost: "💰💰", desc: "Bom equilíbrio", provider: "google_gemini" },
+  { value: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash", cost: "💰💰", desc: "Mais recente (padrão)", provider: "google_gemini" },
+  { value: "gemini-2.5-pro-preview-06-05", label: "Gemini 2.5 Pro", cost: "💰💰💰", desc: "Premium", provider: "google_gemini" },
+  // OpenAI (requer chave openai em Integrações)
+  { value: "gpt-4o-mini", label: "GPT-4o Mini", cost: "💰", desc: "Rápido, econômico", provider: "openai" },
+  { value: "gpt-4o", label: "GPT-4o", cost: "💰💰💰", desc: "Alta qualidade", provider: "openai" },
 ];
 
 export function AiFollowupSettingsPanel() {
@@ -352,7 +356,7 @@ export function AiFollowupSettingsPanel() {
           <div className="space-y-2">
             <Label>Modelo do Assistente de Escrita</Label>
             <Select
-              value={settings.templates?.writing_assistant?.model || "google/gemini-2.5-flash"}
+              value={settings.templates?.writing_assistant?.model || "gemini-2.5-flash-preview-05-20"}
               onValueChange={(v) =>
                 setSettings({
                   ...settings,
@@ -375,14 +379,15 @@ export function AiFollowupSettingsPanel() {
                     <span className="flex items-center gap-2">
                       <span>{m.cost}</span>
                       <span>{m.label}</span>
-                      <span className="text-muted-foreground">— {m.desc}</span>
+                      <span className="text-muted-foreground text-xs">({m.provider === "google_gemini" ? "Gemini" : "OpenAI"}) — {m.desc}</span>
                     </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Se o modelo primário falhar, o sistema usa automaticamente o Gemini Flash Lite como fallback.
+              Configure a API key correspondente em Admin → Integrações. 
+              Se a chave do provedor não estiver configurada, o assistente ficará indisponível.
             </p>
           </div>
         </CardContent>

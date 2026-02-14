@@ -402,6 +402,70 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Google Gemini ──
+    if (integration === "all" || integration === "google_gemini") {
+      try {
+        let geminiKey: string | null = null;
+        if (tenantId) {
+          const { data: configRow } = await supabaseAdmin
+            .from("integration_configs")
+            .select("api_key")
+            .eq("tenant_id", tenantId)
+            .eq("service_key", "google_gemini")
+            .eq("is_active", true)
+            .maybeSingle();
+          geminiKey = configRow?.api_key || null;
+        }
+
+        if (!geminiKey) {
+          results.push({
+            id: "google_gemini",
+            name: "Google Gemini",
+            status: "not_configured",
+            details: "API key não configurada",
+            checked_at: now,
+          });
+        } else {
+          const start = Date.now();
+          const gemRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`,
+            { method: "GET", signal: AbortSignal.timeout(10000) }
+          );
+          const latency = Date.now() - start;
+
+          if (gemRes.ok) {
+            await gemRes.text();
+            results.push({
+              id: "google_gemini",
+              name: "Google Gemini",
+              status: "online",
+              latency_ms: latency,
+              details: "API acessível",
+              checked_at: now,
+            });
+          } else {
+            const errText = await gemRes.text();
+            results.push({
+              id: "google_gemini",
+              name: "Google Gemini",
+              status: gemRes.status === 400 || gemRes.status === 403 ? "offline" : "degraded",
+              latency_ms: latency,
+              details: `HTTP ${gemRes.status}: ${errText.slice(0, 100)}`,
+              checked_at: now,
+            });
+          }
+        }
+      } catch (err: any) {
+        results.push({
+          id: "google_gemini",
+          name: "Google Gemini",
+          status: "offline",
+          details: err.message || "Timeout ou erro de conexão",
+          checked_at: now,
+        });
+      }
+    }
+
     return new Response(
       JSON.stringify({ success: true, results, instance_health: instanceHealthList }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
