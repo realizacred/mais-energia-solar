@@ -39,14 +39,10 @@ interface Props {
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "todos", label: "Todos" },
-  { value: "aguardando_documentacao", label: "Aguard. Doc" },
-  { value: "em_analise", label: "Em Análise" },
-  { value: "aprovado", label: "Aprovado" },
-  { value: "em_instalacao", label: "Em Instalação" },
-  { value: "instalado", label: "Instalado" },
-  { value: "comissionado", label: "Comissionado" },
-  { value: "concluido", label: "Concluído" },
-  { value: "cancelado", label: "Cancelado" },
+  { value: "open", label: "Aberto" },
+  { value: "won", label: "Ganho" },
+  { value: "lost", label: "Perdido" },
+  { value: "archived", label: "Arquivado" },
 ];
 
 export function ProjetoFilters({
