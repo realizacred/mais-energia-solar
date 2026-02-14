@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { getPublicUrl } from "@/lib/getPublicUrl";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -253,7 +254,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
     setIsResettingPassword(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-        redirectTo: `${window.location.origin}/auth?type=recovery`,
+        redirectTo: `${getPublicUrl()}/auth?type=recovery`,
       });
 
       if (error) {

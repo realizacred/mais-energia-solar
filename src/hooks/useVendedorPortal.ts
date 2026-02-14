@@ -1,5 +1,6 @@
  import { useState, useEffect, useMemo, useCallback, useRef } from "react";
  import { useNavigate, useSearchParams } from "react-router-dom";
+ import { getPublicUrl } from "@/lib/getPublicUrl";
  import { useAuth } from "@/hooks/useAuth";
  import { supabase } from "@/integrations/supabase/client";
  import { toast } from "@/hooks/use-toast";
@@ -191,7 +192,7 @@ const ADMIN_PROFILE: VendedorProfile = {
  
     const copyLink = useCallback(() => {
       if (!vendedor) return;
-      const link = `${window.location.origin}/v/${vendedor.slug || vendedor.codigo}`;
+      const link = `${getPublicUrl()}/v/${vendedor.slug || vendedor.codigo}`;
       navigator.clipboard.writeText(link);
        toast({
          title: "Link copiado!",
