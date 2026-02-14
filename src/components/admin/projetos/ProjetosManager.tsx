@@ -9,6 +9,7 @@ import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanOwner } from "./ProjetoKanbanOwner";
 import { ProjetoListView } from "./ProjetoListView";
 import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
+import { NovoProjetoModal } from "./NovoProjetoModal";
 import {
   Dialog,
   DialogContent,
@@ -30,6 +31,7 @@ export function ProjetosManager() {
 
   const [viewMode, setViewMode] = useState<"kanban" | "lista">("kanban");
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
+  const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
 
   const handleFilterChange = (key: string, value: any) => {
     if (key === "pipelineId") {
@@ -64,18 +66,24 @@ export function ProjetosManager() {
 
   return (
     <div className="space-y-4">
-      {/* ── Header with action button ── */}
       <div className="flex items-center justify-between">
         <PageHeader
           icon={FolderKanban}
           title="Projetos"
           description="Pipeline de vendas e gestão de projetos"
         />
-        <Button className="gap-1.5 h-9 px-4 text-sm font-medium shadow-sm">
+        <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5 h-9 px-4 text-sm font-medium shadow-sm">
           <Plus className="h-4 w-4" />
           Novo Projeto
         </Button>
       </div>
+
+      {/* ── Novo Projeto Modal ── */}
+      <NovoProjetoModal
+        open={novoProjetoOpen}
+        onOpenChange={setNovoProjetoOpen}
+        consultores={consultoresFilter}
+      />
 
       <div className="rounded-xl border border-border/60 bg-card">
         {/* ── Filters row ── */}
