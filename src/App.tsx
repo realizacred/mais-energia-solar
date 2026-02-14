@@ -29,6 +29,7 @@ const Instalador = lazy(() => import("./pages/Instalador"));
 const PendingApproval = lazy(() => import("./pages/PendingApproval"));
 const SuperAdmin = lazy(() => import("./pages/SuperAdmin"));
 const AtivarConta = lazy(() => import("./pages/AtivarConta"));
+const PropostaPublica = lazy(() => import("./pages/PropostaPublica"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const WaChannelPage = lazy(() => import("./pages/WaChannelPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="/avaliacao" element={<Avaliacao />} />
               <Route path="/ativar-conta" element={<AtivarConta />} />
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
+              <Route path="/proposta/:token" element={<PropostaPublica />} />
 
               {/* Protected routes — tenant guard active */}
               <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />
