@@ -596,6 +596,20 @@ export function WaChatPanel({
           prefillMessage={prefillMessage}
         />
 
+        {/* Accept button below composer — visible only for unassigned conversations */}
+        {!conversation.assigned_to && onAccept && (
+          <div className="px-3 pb-3 pt-1 border-t border-border/20 bg-card">
+            <Button
+              size="sm"
+              className="w-full gap-2 bg-success hover:bg-success/90 text-white font-medium py-2.5"
+              onClick={onAccept}
+            >
+              <CheckCircle2 className="h-4 w-4" />
+              Aceitar atendimento
+            </Button>
+          </div>
+        )}
+
         {/* Lead Info Card */}
         {conversation.lead_id && (
           <WaLeadInfoCard
