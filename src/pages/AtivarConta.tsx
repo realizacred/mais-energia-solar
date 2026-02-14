@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Sun, Lock, CheckCircle, AlertTriangle, ArrowRight, ShieldCheck } from "lucide-react";
+import { Lock, CheckCircle, AlertTriangle, ArrowRight, ShieldCheck } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -188,12 +189,7 @@ export default function AtivarConta() {
   if (state === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4 animate-pulse">
-          <div className="p-4 rounded-2xl bg-primary/10">
-            <Sun className="w-8 h-8 text-primary animate-spin" style={{ animationDuration: "3s" }} />
-          </div>
-          <p className="text-sm text-muted-foreground">Validando convite...</p>
-        </div>
+        <LoadingState message="Validando convite..." size="lg" />
       </div>
     );
   }

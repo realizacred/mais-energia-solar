@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, useEffect, useMemo } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
-import { Menu, Sun } from "lucide-react";
+import { Menu } from "lucide-react";
+import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { VendorSidebar, VENDOR_TAB_TITLES } from "@/components/vendor/sidebar";
@@ -42,12 +43,7 @@ export default function VendedorPortal() {
   if (authLoading || portal.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4 animate-pulse-soft">
-          <div className="p-4 rounded-2xl bg-primary/10">
-            <Sun className="w-8 h-8 text-primary animate-spin-slow" />
-          </div>
-          <p className="text-sm text-muted-foreground font-medium">Carregando portal...</p>
-        </div>
+        <LoadingState message="Carregando portal..." size="lg" />
       </div>
     );
   }
