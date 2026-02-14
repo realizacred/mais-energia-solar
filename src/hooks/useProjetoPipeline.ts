@@ -52,6 +52,23 @@ export interface ProjetoItem {
   etiquetas?: string[]; // etiqueta IDs
 }
 
+export interface ConsultorColumn {
+  id: string;
+  nome: string;
+  projetos: ProjetoItem[];
+  totalValor: number;
+  totalKwp: number;
+  count: number;
+}
+
+export interface ProjetoFiltersState {
+  funilId: string | null;
+  consultorId: string;
+  status: string;
+  etiquetaIds: string[];
+  search: string;
+}
+
 // ─── Hook ────────────────────────────────────────────────────
 
 export function useProjetoPipeline() {
@@ -59,68 +76,137 @@ export function useProjetoPipeline() {
   const [etapas, setEtapas] = useState<ProjetoEtapa[]>([]);
   const [etiquetas, setEtiquetas] = useState<ProjetoEtiqueta[]>([]);
   const [projetos, setProjetos] = useState<ProjetoItem[]>([]);
+  const [consultores, setConsultores] = useState<{ id: string; nome: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedFunilId, setSelectedFunilId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<ProjetoFiltersState>({
+    funilId: null,
+    consultorId: "todos",
+    status: "todos",
+    etiquetaIds: [],
+    search: "",
+  });
   const { toast } = useToast();
 
-  // ─── Fetch all data ──────────────────────────────────────
+  // ─── Fetch metadata (funis, etapas, etiquetas, consultores) ──
+  const fetchMetadata = useCallback(async () => {
+    const [funisRes, etapasRes, etiquetasRes, consultoresRes] = await Promise.all([
+      supabase.from("projeto_funis").select("id, nome, ordem, ativo, tenant_id").order("ordem"),
+      supabase.from("projeto_etapas").select("id, funil_id, nome, cor, ordem, categoria, tenant_id").order("ordem"),
+      supabase.from("projeto_etiquetas").select("id, nome, cor, tenant_id"),
+      supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome"),
+    ]);
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [funisRes, etapasRes, etiquetasRes, projetosRes, relsRes] = await Promise.all([
-        supabase.from("projeto_funis").select("id, nome, ordem, ativo, tenant_id").order("ordem"),
-        supabase.from("projeto_etapas").select("id, funil_id, nome, cor, ordem, categoria, tenant_id").order("ordem"),
-        supabase.from("projeto_etiquetas").select("id, nome, cor, tenant_id"),
-        supabase
-          .from("projetos")
-          .select("id, codigo, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
-          .order("created_at", { ascending: false })
-          .limit(500),
-        supabase.from("projeto_etiqueta_rel").select("projeto_id, etiqueta_id"),
-      ]);
+    if (funisRes.error) throw funisRes.error;
+    if (etapasRes.error) throw etapasRes.error;
 
-      if (funisRes.error) throw funisRes.error;
-      if (etapasRes.error) throw etapasRes.error;
-      if (etiquetasRes.error) throw etiquetasRes.error;
-      if (projetosRes.error) throw projetosRes.error;
+    setFunis(funisRes.data || []);
+    setEtapas(etapasRes.data as ProjetoEtapa[] || []);
+    setEtiquetas(etiquetasRes.data || []);
+    setConsultores(consultoresRes.data || []);
 
-      setFunis(funisRes.data || []);
-      setEtapas(etapasRes.data as ProjetoEtapa[] || []);
-      setEtiquetas(etiquetasRes.data || []);
+    return funisRes.data || [];
+  }, []);
 
-      // Map etiqueta relations
-      const relMap = new Map<string, string[]>();
-      (relsRes.data || []).forEach((r: any) => {
+  // ─── Fetch projetos with backend filters ──────────────────
+  const fetchProjetos = useCallback(async (f: ProjetoFiltersState) => {
+    let query = supabase
+      .from("projetos")
+      .select("id, codigo, lead_id, cliente_id, consultor_id, funil_id, etapa_id, proposta_id, potencia_kwp, valor_total, status, observacoes, created_at, updated_at, clientes:cliente_id(nome, telefone)")
+      .order("created_at", { ascending: false })
+      .limit(500);
+
+    // Backend filters
+    if (f.funilId) {
+      query = query.eq("funil_id", f.funilId);
+    }
+    if (f.consultorId !== "todos") {
+      query = query.eq("consultor_id", f.consultorId);
+    }
+    if (f.status !== "todos") {
+      query = query.eq("status", f.status as any);
+    }
+    if (f.search) {
+      // Search by codigo or client name via ilike on codigo (client search needs post-filter)
+      query = query.or(`codigo.ilike.%${f.search}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    // Fetch etiqueta relations
+    const projetoIds = (data || []).map((p: any) => p.id);
+    let relMap = new Map<string, string[]>();
+    if (projetoIds.length > 0) {
+      const { data: rels } = await supabase
+        .from("projeto_etiqueta_rel")
+        .select("projeto_id, etiqueta_id")
+        .in("projeto_id", projetoIds);
+      (rels || []).forEach((r: any) => {
         const arr = relMap.get(r.projeto_id) || [];
         arr.push(r.etiqueta_id);
         relMap.set(r.projeto_id, arr);
       });
+    }
 
-      // Fetch consultant names for unique consultor_ids
-      const consultorIds = [...new Set((projetosRes.data || []).map((p: any) => p.consultor_id).filter(Boolean))];
-      const consultorMap = new Map<string, string>();
-      if (consultorIds.length > 0) {
-        const { data: consultoresData } = await supabase
-          .from("consultores")
-          .select("id, nome")
-          .in("id", consultorIds);
-        (consultoresData || []).forEach((c: any) => consultorMap.set(c.id, c.nome));
-      }
+    // Filter by etiquetas if any selected
+    let filteredData = data || [];
+    if (f.etiquetaIds.length > 0) {
+      const projetosComEtiqueta = new Set<string>();
+      relMap.forEach((etIds, projId) => {
+        if (f.etiquetaIds.some(eid => etIds.includes(eid))) {
+          projetosComEtiqueta.add(projId);
+        }
+      });
+      filteredData = filteredData.filter((p: any) => projetosComEtiqueta.has(p.id));
+    }
 
-      const enriched: ProjetoItem[] = (projetosRes.data || []).map((p: any) => ({
-        ...p,
-        cliente: p.clientes || null,
-        consultor: p.consultor_id && consultorMap.has(p.consultor_id) ? { nome: consultorMap.get(p.consultor_id)! } : null,
-        clientes: undefined,
-        etiquetas: relMap.get(p.id) || [],
-      }));
+    // Enrich with consultant names
+    const consultorIds = [...new Set(filteredData.map((p: any) => p.consultor_id).filter(Boolean))];
+    const consultorMap = new Map<string, string>();
+    if (consultorIds.length > 0) {
+      const { data: cData } = await supabase
+        .from("consultores")
+        .select("id, nome")
+        .in("id", consultorIds);
+      (cData || []).forEach((c: any) => consultorMap.set(c.id, c.nome));
+    }
 
+    // Post-filter search by client name (not possible via Supabase query on joined field)
+    let enriched: ProjetoItem[] = filteredData.map((p: any) => ({
+      ...p,
+      cliente: p.clientes || null,
+      consultor: p.consultor_id && consultorMap.has(p.consultor_id) ? { nome: consultorMap.get(p.consultor_id)! } : null,
+      clientes: undefined,
+      etiquetas: relMap.get(p.id) || [],
+    }));
+
+    if (f.search) {
+      const q = f.search.toLowerCase();
+      enriched = enriched.filter(p =>
+        (p.cliente?.nome || "").toLowerCase().includes(q) ||
+        (p.codigo || "").toLowerCase().includes(q) ||
+        (p.consultor?.nome || "").toLowerCase().includes(q)
+      );
+    }
+
+    return enriched;
+  }, []);
+
+  // ─── Full fetch ──────────────────────────────────────────
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const funisData = await fetchMetadata();
+      const enriched = await fetchProjetos(filters);
       setProjetos(enriched);
 
       // Auto-select first funil
-      if (funisRes.data && funisRes.data.length > 0 && !selectedFunilId) {
-        setSelectedFunilId(funisRes.data[0].id);
+      if (funisData.length > 0 && !selectedFunilId) {
+        const firstActive = funisData.find((f: any) => f.ativo);
+        if (firstActive) {
+          setSelectedFunilId(firstActive.id);
+        }
       }
     } catch (err: any) {
       console.error("useProjetoPipeline fetchAll:", err);
@@ -128,9 +214,25 @@ export function useProjetoPipeline() {
     } finally {
       setLoading(false);
     }
-  }, [toast, selectedFunilId]);
+  }, [toast, selectedFunilId, filters, fetchMetadata, fetchProjetos]);
 
   useEffect(() => { fetchAll(); }, []);
+
+  // Re-fetch projetos when filters change (but not on initial load)
+  const applyFilters = useCallback(async (newFilters: Partial<ProjetoFiltersState>) => {
+    const merged = { ...filters, ...newFilters };
+    setFilters(merged);
+    setLoading(true);
+    try {
+      const enriched = await fetchProjetos(merged);
+      setProjetos(enriched);
+    } catch (err: any) {
+      console.error("useProjetoPipeline applyFilters:", err);
+      toast({ title: "Erro ao filtrar projetos", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, fetchProjetos, toast]);
 
   // ─── Funil CRUD ──────────────────────────────────────────
 
@@ -144,7 +246,6 @@ export function useProjetoPipeline() {
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return null; }
     setFunis(prev => [...prev, data]);
 
-    // Create default etapas
     const defaultEtapas = [
       { nome: "Novo", cor: "#3B82F6", ordem: 0, categoria: "aberto" as const, funil_id: data.id },
       { nome: "Em Andamento", cor: "#F59E0B", ordem: 1, categoria: "aberto" as const, funil_id: data.id },
@@ -241,10 +342,9 @@ export function useProjetoPipeline() {
     toast({ title: "Etapa removida" });
   }, [toast]);
 
-  // ─── Projeto move (drag) ─────────────────────────────────
+  // ─── Projeto actions ─────────────────────────────────────
 
   const moveProjetoToEtapa = useCallback(async (projetoId: string, etapaId: string) => {
-    // Optimistic
     setProjetos(prev => prev.map(p => p.id === projetoId ? { ...p, etapa_id: etapaId } : p));
     const { error } = await supabase.from("projetos").update({ etapa_id: etapaId }).eq("id", projetoId);
     if (error) {
@@ -252,6 +352,19 @@ export function useProjetoPipeline() {
       fetchAll();
     }
   }, [toast, fetchAll]);
+
+  const moveProjetoToConsultor = useCallback(async (projetoId: string, consultorId: string) => {
+    const consultor = consultores.find(c => c.id === consultorId);
+    setProjetos(prev => prev.map(p => p.id === projetoId
+      ? { ...p, consultor_id: consultorId, consultor: consultor ? { nome: consultor.nome } : null }
+      : p
+    ));
+    const { error } = await supabase.from("projetos").update({ consultor_id: consultorId }).eq("id", projetoId);
+    if (error) {
+      toast({ title: "Erro ao mover projeto", description: error.message, variant: "destructive" });
+      fetchAll();
+    }
+  }, [toast, fetchAll, consultores]);
 
   // ─── Computed ────────────────────────────────────────────
 
@@ -273,27 +386,54 @@ export function useProjetoPipeline() {
     return map;
   }, [projetos, selectedFunilId]);
 
-  // Unique consultores for filter
-  const consultoresFilter = useMemo(() => {
-    const map = new Map<string, string>();
+  // Group by consultant for owner-based Kanban
+  const consultorColumns = useMemo((): ConsultorColumn[] => {
+    const map = new Map<string, ProjetoItem[]>();
+    
     projetos.forEach(p => {
-      if (p.consultor_id && p.consultor?.nome) {
-        map.set(p.consultor_id, p.consultor.nome);
+      if (p.consultor_id) {
+        const arr = map.get(p.consultor_id) || [];
+        arr.push(p);
+        map.set(p.consultor_id, arr);
       }
     });
-    return Array.from(map.entries()).map(([id, nome]) => ({ id, nome })).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [projetos]);
+
+    return consultores
+      .filter(c => map.has(c.id) || true) // Show all active consultores
+      .map(c => {
+        const items = map.get(c.id) || [];
+        return {
+          id: c.id,
+          nome: c.nome,
+          projetos: items,
+          totalValor: items.reduce((sum, p) => sum + (p.valor_total || 0), 0),
+          totalKwp: items.reduce((sum, p) => sum + (p.potencia_kwp || 0), 0),
+          count: items.length,
+        };
+      })
+      .filter(c => c.count > 0) // Only show consultores with projects
+      .sort((a, b) => b.totalValor - a.totalValor);
+  }, [projetos, consultores]);
+
+  // Unique consultores for filter (from loaded consultores)
+  const consultoresFilter = useMemo(() => {
+    return consultores.map(c => ({ id: c.id, nome: c.nome }));
+  }, [consultores]);
 
   return {
     funis,
     etapas,
     etiquetas,
     projetos,
+    consultores,
     loading,
     selectedFunilId,
     setSelectedFunilId,
+    filters,
+    applyFilters,
     selectedFunilEtapas,
     projetosByEtapa,
+    consultorColumns,
     consultoresFilter,
     fetchAll,
     createFunil,
@@ -307,5 +447,6 @@ export function useProjetoPipeline() {
     reorderEtapas,
     deleteEtapa,
     moveProjetoToEtapa,
+    moveProjetoToConsultor,
   };
 }

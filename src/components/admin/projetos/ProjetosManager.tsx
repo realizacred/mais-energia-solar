@@ -7,74 +7,51 @@ import { useProjetoPipeline } from "@/hooks/useProjetoPipeline";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { ProjetoFunilSelector } from "./ProjetoFunilSelector";
 import { ProjetoFilters } from "./ProjetoFilters";
-import { ProjetoKanban } from "./ProjetoKanban";
+import { ProjetoKanbanOwner } from "./ProjetoKanbanOwner";
 import { ProjetoListView } from "./ProjetoListView";
 import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
 
 export function ProjetosManager() {
   const {
-    funis, etapas, projetos, loading,
+    funis, etapas, etiquetas, projetos, consultores, loading,
     selectedFunilId, setSelectedFunilId,
-    selectedFunilEtapas, projetosByEtapa,
+    filters, applyFilters,
+    selectedFunilEtapas, consultorColumns,
     consultoresFilter,
     createFunil, renameFunil, toggleFunilAtivo, reorderFunis,
     createEtapa, renameEtapa, updateEtapaCor, updateEtapaCategoria, reorderEtapas, deleteEtapa,
-    moveProjetoToEtapa,
+    moveProjetoToConsultor,
   } = useProjetoPipeline();
 
   const [viewMode, setViewMode] = useState<"kanban" | "lista">("kanban");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategoria, setFilterCategoria] = useState("todos");
-  const [filterConsultor, setFilterConsultor] = useState("todos");
 
-  const visibleEtapas = useMemo(() => {
-    if (filterCategoria === "todos") return selectedFunilEtapas;
-    return selectedFunilEtapas.filter(e => e.categoria === filterCategoria);
-  }, [selectedFunilEtapas, filterCategoria]);
-
-  const filteredProjetos = useMemo(() => {
-    return projetos.filter(p => {
-      if (selectedFunilId && p.funil_id !== selectedFunilId && p.funil_id !== null) return false;
-      if (searchTerm) {
-        const q = searchTerm.toLowerCase();
-        const matches = (p.cliente?.nome || "").toLowerCase().includes(q) ||
-          (p.codigo || "").toLowerCase().includes(q) ||
-          (p.consultor?.nome || "").toLowerCase().includes(q);
-        if (!matches) return false;
-      }
-      if (filterCategoria !== "todos") {
-        const etapa = etapas.find(e => e.id === p.etapa_id);
-        if (!etapa || etapa.categoria !== filterCategoria) return false;
-      }
-      if (filterConsultor !== "todos" && p.consultor_id !== filterConsultor) return false;
-      return true;
-    });
-  }, [projetos, selectedFunilId, searchTerm, filterCategoria, filterConsultor, etapas]);
-
-  const filteredByEtapa = useMemo(() => {
-    const map = new Map<string | null, typeof filteredProjetos>();
-    filteredProjetos.forEach(p => {
-      const key = p.etapa_id || null;
-      const arr = map.get(key) || [];
-      arr.push(p);
-      map.set(key, arr);
-    });
-    return map;
-  }, [filteredProjetos]);
+  const handleFilterChange = (key: string, value: any) => {
+    if (key === "funilId") {
+      setSelectedFunilId(value === "todos" ? null : value);
+      applyFilters({ funilId: value === "todos" ? null : value });
+    } else if (key === "consultorId") {
+      applyFilters({ consultorId: value });
+    } else if (key === "status") {
+      applyFilters({ status: value });
+    } else if (key === "etiquetaIds") {
+      applyFilters({ etiquetaIds: value });
+    } else if (key === "search") {
+      applyFilters({ search: value });
+    }
+  };
 
   const clearFilters = () => {
-    setSearchTerm("");
-    setFilterCategoria("todos");
-    setFilterConsultor("todos");
+    applyFilters({ funilId: null, consultorId: "todos", status: "todos", etiquetaIds: [], search: "" });
+    setSelectedFunilId(null);
   };
 
   const totalValue = useMemo(() => {
-    return filteredProjetos.reduce((sum, p) => sum + (p.valor_total || 0), 0);
-  }, [filteredProjetos]);
+    return projetos.reduce((sum, p) => sum + (p.valor_total || 0), 0);
+  }, [projetos]);
 
   const totalKwp = useMemo(() => {
-    return filteredProjetos.reduce((sum, p) => sum + (p.potencia_kwp || 0), 0);
-  }, [filteredProjetos]);
+    return projetos.reduce((sum, p) => sum + (p.potencia_kwp || 0), 0);
+  }, [projetos]);
 
   const formatBRL = (v: number) => {
     if (!v) return "R$ 0";
@@ -87,23 +64,25 @@ export function ProjetosManager() {
 
   return (
     <div className="space-y-4">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <PageHeader
-          icon={FolderKanban}
-          title="Projetos"
-          description="Pipeline de vendas e gestão de projetos"
-        />
-      </div>
+      {/* Header */}
+      <PageHeader
+        icon={FolderKanban}
+        title="Projetos"
+        description="Pipeline de vendas e gestão de projetos"
+      />
 
-      {/* Funnel tabs + toolbar */}
+      {/* Main container */}
       <div className="rounded-xl border border-border/60 bg-card">
+        {/* Funnel tabs */}
         <div className="px-4 py-2.5 flex items-center gap-2">
           <div className="flex-1 min-w-0">
             <ProjetoFunilSelector
               funis={funis}
               selectedId={selectedFunilId}
-              onSelect={setSelectedFunilId}
+              onSelect={(id) => {
+                setSelectedFunilId(id);
+                applyFilters({ funilId: id });
+              }}
               onCreate={createFunil}
               onRename={renameFunil}
               onToggleAtivo={toggleFunilAtivo}
@@ -111,7 +90,6 @@ export function ProjetosManager() {
             />
           </div>
 
-          {/* Etapa manager button */}
           {selectedFunil && (
             <ProjetoEtapaManager
               funilId={selectedFunil.id}
@@ -129,28 +107,34 @@ export function ProjetosManager() {
 
         <Separator />
 
-        {/* Toolbar */}
+        {/* Filters */}
         <div className="px-4 py-2.5">
           <ProjetoFilters
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            filterCategoria={filterCategoria}
-            onFilterCategoriaChange={setFilterCategoria}
-            filterConsultor={filterConsultor}
-            onFilterConsultorChange={setFilterConsultor}
+            searchTerm={filters.search}
+            onSearchChange={(v) => handleFilterChange("search", v)}
+            funis={funis}
+            filterFunil={filters.funilId || "todos"}
+            onFilterFunilChange={(v) => handleFilterChange("funilId", v)}
+            filterConsultor={filters.consultorId}
+            onFilterConsultorChange={(v) => handleFilterChange("consultorId", v)}
             consultores={consultoresFilter}
+            filterStatus={filters.status}
+            onFilterStatusChange={(v) => handleFilterChange("status", v)}
+            etiquetas={etiquetas}
+            filterEtiquetas={filters.etiquetaIds}
+            onFilterEtiquetasChange={(ids) => handleFilterChange("etiquetaIds", ids)}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             onClearFilters={clearFilters}
           />
         </div>
 
-        {/* Summary + New Project */}
+        {/* Summary bar */}
         <div className="px-4 pb-3 flex items-center justify-between">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex items-center gap-1.5">
               <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-sm font-semibold text-foreground">{filteredProjetos.length}</span>
+              <span className="text-sm font-semibold text-foreground">{projetos.length}</span>
               <span className="text-xs text-muted-foreground">projetos</span>
             </div>
             {totalValue > 0 && (
@@ -165,29 +149,22 @@ export function ProjetosManager() {
                 <span className="text-sm font-semibold text-foreground">{totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWp</span>
               </div>
             )}
-            {visibleEtapas.length > 0 && (
-              <span className="text-xs text-muted-foreground">
-                {visibleEtapas.length} etapas
-              </span>
-            )}
+            <span className="text-xs text-muted-foreground">
+              {consultorColumns.length} responsáveis
+            </span>
           </div>
-          <Button size="sm" className="gap-1.5">
-            <Plus className="h-4 w-4" />
-            Novo Projeto
-          </Button>
         </div>
       </div>
 
       {/* Kanban / List */}
       {viewMode === "kanban" ? (
-        <ProjetoKanban
-          etapas={visibleEtapas}
-          projetosByEtapa={filteredByEtapa}
-          onMoveProjeto={moveProjetoToEtapa}
+        <ProjetoKanbanOwner
+          columns={consultorColumns}
+          onMoveProjeto={moveProjetoToConsultor}
         />
       ) : (
         <ProjetoListView
-          projetos={filteredProjetos}
+          projetos={projetos}
           etapas={selectedFunilEtapas}
         />
       )}
