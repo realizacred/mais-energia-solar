@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -75,6 +77,8 @@ interface UserWithRoles {
   email?: string;
   ativo: boolean;
   roles: string[];
+  created_at?: string;
+  last_sign_in_at?: string | null;
 }
 
 interface NewUserForm {
@@ -173,7 +177,7 @@ export function UsuariosManager() {
       // Fetch profiles
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("user_id, nome, ativo")
+        .select("user_id, nome, ativo, created_at")
         .order("nome");
 
       if (profilesError) throw profilesError;
@@ -187,6 +191,7 @@ export function UsuariosManager() {
 
       // Fetch emails from edge function (gets from auth.users)
       let emailMap: Record<string, string> = {};
+      let lastSignInMap: Record<string, string | null> = {};
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
@@ -195,6 +200,9 @@ export function UsuariosManager() {
           });
           if (response.data?.emails) {
             emailMap = response.data.emails;
+          }
+          if (response.data?.last_sign_in) {
+            lastSignInMap = response.data.last_sign_in;
           }
         }
       } catch (emailError) {
@@ -206,6 +214,7 @@ export function UsuariosManager() {
         return {
           ...profile,
           email: emailMap[profile.user_id] || undefined,
+          last_sign_in_at: lastSignInMap[profile.user_id] ?? null,
           roles: (roles || [])
             .filter(r => r.user_id === profile.user_id)
             .map(r => r.role),
@@ -494,8 +503,11 @@ export function UsuariosManager() {
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="font-semibold">Nome</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Email</TableHead>
                     <TableHead className="font-semibold">Perfis</TableHead>
+                    <TableHead className="font-semibold">Status</TableHead>
+                    <TableHead className="font-semibold">Criado em</TableHead>
+                    <TableHead className="font-semibold">Último login</TableHead>
                     <TableHead className="text-right font-semibold">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -503,16 +515,8 @@ export function UsuariosManager() {
                   {users.map((user) => (
                     <TableRow key={user.user_id} className="hover:bg-muted/30">
                       <TableCell className="font-medium">{user.nome}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline"
-                          className={user.ativo 
-                            ? "bg-success/10 text-success border-success/30" 
-                            : "bg-muted text-muted-foreground border-border"
-                          }
-                        >
-                          {user.ativo ? "Ativo" : "Inativo"}
-                        </Badge>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {user.email || "—"}
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1.5">
@@ -540,6 +544,27 @@ export function UsuariosManager() {
                             })
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant="outline"
+                          className={user.ativo 
+                            ? "bg-success/10 text-success border-success/30" 
+                            : "bg-muted text-muted-foreground border-border"
+                          }
+                        >
+                          {user.ativo ? "Ativo" : "Inativo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {user.created_at
+                          ? format(new Date(user.created_at), "dd/MM/yyyy", { locale: ptBR })
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                        {user.last_sign_in_at
+                          ? format(new Date(user.last_sign_in_at), "dd/MM/yy HH:mm", { locale: ptBR })
+                          : "Nunca"}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">

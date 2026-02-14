@@ -57,6 +57,8 @@ interface UserWithRoles {
   email?: string;
   ativo: boolean;
   roles: string[];
+  created_at?: string;
+  last_sign_in_at?: string | null;
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
