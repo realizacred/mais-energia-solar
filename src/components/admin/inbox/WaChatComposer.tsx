@@ -89,6 +89,9 @@ export function WaChatComposer({
   prefillMessage,
 }: WaChatComposerProps) {
   const [inputValue, setInputValue] = useState("");
+  const [slashActive, setSlashActive] = useState(false);
+  const [slashQuery, setSlashQuery] = useState("");
+  const [slashIndex, setSlashIndex] = useState(0);
   const prefillAppliedRef = useRef(false);
 
   // Apply prefill message once
@@ -193,15 +196,81 @@ export function WaChatComposer({
     return result;
   }, [quickReplies, selectedCategory, quickReplySearch]);
 
+  // Slash command filtered replies
+  const slashFilteredReplies = useMemo(() => {
+    if (!slashActive) return [];
+    if (!slashQuery.trim()) return quickReplies;
+    const q = slashQuery.toLowerCase();
+    return quickReplies.filter(
+      qr => qr.titulo.toLowerCase().includes(q) || qr.conteudo.toLowerCase().includes(q)
+    );
+  }, [slashActive, slashQuery, quickReplies]);
+
+  // Reset slash index when results change
+  useEffect(() => {
+    setSlashIndex(0);
+  }, [slashFilteredReplies.length]);
+
+  const applySlashReply = useCallback((qr: QuickReplyDb) => {
+    setInputValue(qr.conteudo);
+    setSlashActive(false);
+    setSlashQuery("");
+    setSlashIndex(0);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  }, []);
+
+  const handleInputChange = useCallback((val: string) => {
+    setInputValue(val);
+    if (val.startsWith("/")) {
+      setSlashActive(true);
+      setSlashQuery(val.slice(1));
+    } else {
+      setSlashActive(false);
+      setSlashQuery("");
+    }
+  }, []);
+
   const handleSend = () => {
     if (!inputValue.trim()) return;
     onSendMessage(inputValue.trim(), isNoteMode, replyingTo?.id);
     setInputValue("");
+    setSlashActive(false);
+    setSlashQuery("");
     onNoteModeChange(false);
     onCancelReply?.();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Slash command keyboard navigation
+    if (slashActive && slashFilteredReplies.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSlashIndex(i => (i + 1) % slashFilteredReplies.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSlashIndex(i => (i - 1 + slashFilteredReplies.length) % slashFilteredReplies.length);
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        applySlashReply(slashFilteredReplies[slashIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSlashActive(false);
+        setSlashQuery("");
+        return;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        applySlashReply(slashFilteredReplies[slashIndex]);
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -542,6 +611,52 @@ export function WaChatComposer({
         />
       </div>
 
+      {/* Slash Command Floating Menu */}
+      {slashActive && !isNoteMode && slashFilteredReplies.length > 0 && (
+        <div className="relative mb-1.5">
+          <div className="absolute bottom-0 left-0 right-0 z-50 bg-card border border-border/50 rounded-xl shadow-lg max-h-56 overflow-y-auto">
+            <div className="px-3 py-1.5 border-b border-border/30">
+              <p className="text-[10px] text-muted-foreground font-medium">
+                <Zap className="h-3 w-3 inline mr-1" />
+                Respostas rápidas — <kbd className="px-1 py-0.5 rounded bg-muted text-[9px]">↑↓</kbd> navegar · <kbd className="px-1 py-0.5 rounded bg-muted text-[9px]">Enter</kbd> selecionar · <kbd className="px-1 py-0.5 rounded bg-muted text-[9px]">Esc</kbd> fechar
+              </p>
+            </div>
+            {slashFilteredReplies.map((qr, idx) => {
+              const catMeta = CATEGORY_META[qr.categoria || "geral"] || { label: qr.categoria, color: "bg-muted text-muted-foreground" };
+              return (
+                <button
+                  key={qr.id}
+                  className={`w-full text-left px-3 py-2 transition-colors flex items-start gap-2 ${
+                    idx === slashIndex
+                      ? "bg-primary/10 border-l-2 border-primary"
+                      : "hover:bg-muted/40 border-l-2 border-transparent"
+                  }`}
+                  onMouseEnter={() => setSlashIndex(idx)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    applySlashReply(qr);
+                  }}
+                >
+                  <span className="text-base shrink-0 mt-0.5">{qr.emoji || "💬"}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-semibold text-foreground truncate">{qr.titulo}</span>
+                      <Badge variant="outline" className={`text-[9px] px-1.5 py-0 shrink-0 border-0 ${catMeta.color}`}>
+                        {catMeta.label}
+                      </Badge>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{qr.conteudo}</p>
+                  </div>
+                </button>
+              );
+            })}
+            {slashFilteredReplies.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-3">Nenhuma resposta encontrada</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="flex items-end gap-2">
         <Tooltip>
@@ -561,14 +676,14 @@ export function WaChatComposer({
         <Textarea
           ref={textareaRef}
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={(e) => handleInputChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           spellCheck={spellCheckEnabled}
           autoCorrect={spellCheckEnabled ? "on" : "off"}
           autoCapitalize={spellCheckEnabled ? "sentences" : "off"}
           lang="pt-BR"
-          placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite uma mensagem..."}
+          placeholder={isNoteMode ? "Escreva uma nota interna..." : "Digite / para respostas rápidas..."}
           className={`flex-1 min-h-[40px] max-h-[120px] resize-none text-sm leading-snug py-2.5 rounded-xl ${isNoteMode ? "border-warning/30 bg-warning/5" : "bg-muted/30 border-border/30 focus:bg-background"}`}
           rows={1}
           disabled={busy}
