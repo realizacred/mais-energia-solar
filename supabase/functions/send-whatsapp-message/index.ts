@@ -535,9 +535,8 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (existingConv) {
-          // UPDATE: reopen, refresh preview, assign
-          // For automatic lead messages, always ensure the conversation is assigned to the lead owner
-          // (so it shows up in the consultant's Inbox even if it existed with a stale assigned_to).
+          // P0-4: UPDATE existing — automation NEVER reassigns (removed shouldForceAssignToLeadOwner)
+          // Only fill empty assigned_to, never overwrite existing assignment
           createdConvId = existingConv.id;
           const updates: Record<string, unknown> = {
             status: "open",
@@ -547,15 +546,8 @@ Deno.serve(async (req) => {
             updated_at: new Date().toISOString(),
           };
 
-          const shouldForceAssignToLeadOwner = tipo === "automatico" && !!lead_id && !!assignedTo;
-          if (shouldForceAssignToLeadOwner) {
-            if (existingConv.assigned_to !== assignedTo) {
-              updates.assigned_to = assignedTo;
-              console.log(
-                `[send-wa] Reassigned conversation ${existingConv.id} from ${existingConv.assigned_to || "(null)"} to ${assignedTo} (auto lead message)`
-              );
-            }
-          } else if (!existingConv.assigned_to && assignedTo) {
+          // P0-4: Only assign if currently unassigned — never overwrite
+          if (!existingConv.assigned_to && assignedTo) {
             updates.assigned_to = assignedTo;
           }
 
@@ -569,16 +561,15 @@ Deno.serve(async (req) => {
           console.log(`[send-wa] Conversation updated (existing): ${existingConv.id}`);
           convCreatedOrUpdated = true;
         } else {
-          // INSERT new conversation
+          // P0-3: UPSERT new conversation — onConflict(instance_id,remote_jid) WITHOUT assigned_to
           const { data: newConv, error: convErr } = await supabaseAdmin
             .from("wa_conversations")
-            .insert({
+            .upsert({
               tenant_id: tenantId,
               instance_id: resolvedInstance.id,
               remote_jid: remoteJid,
               cliente_telefone: formattedPhone,
               cliente_nome: clienteNome,
-              assigned_to: assignedTo,
               lead_id: lead_id || null,
               status: "open",
               last_message_at: new Date().toISOString(),
@@ -587,16 +578,25 @@ Deno.serve(async (req) => {
               is_group: false,
               canal: "whatsapp",
               profile_picture_url: profilePicUrl,
-            })
+            }, { onConflict: "instance_id,remote_jid", ignoreDuplicates: false })
             .select("id")
             .single();
 
-          if (convErr) {
-            console.error("[send-wa] Conv insert failed:", convErr);
+          if (convErr || !newConv) {
+            console.error("[ALERT] Conv upsert failed — outbound message may be orphaned:", convErr);
           } else {
-            createdConvId = newConv!.id;
+            createdConvId = newConv.id;
             convCreatedOrUpdated = true;
-            console.log(`[send-wa] Conversation created: ${createdConvId}`);
+            console.log(`[send-wa] Conversation upserted: ${createdConvId}`);
+
+            // P0-3: Assign in separate update with atomic guard (only if still null)
+            if (assignedTo) {
+              await supabaseAdmin
+                .from("wa_conversations")
+                .update({ assigned_to: assignedTo })
+                .eq("id", createdConvId)
+                .is("assigned_to", null);
+            }
           }
         }
 
@@ -641,17 +641,19 @@ Deno.serve(async (req) => {
             }
 
             if (tagId) {
+              // P0-1: Always include tenant_id in wa_conversation_tags upsert
               await supabaseAdmin
                 .from("wa_conversation_tags")
                 .upsert(
-                  { conversation_id: createdConvId, tag_id: tagId },
+                  { conversation_id: createdConvId, tag_id: tagId, tenant_id: tenantId },
                   { onConflict: "conversation_id,tag_id" }
                 );
               console.log(`[send-wa] Tag "Aguardando orçamento" applied to conv ${createdConvId}`);
               tagApplied = true;
             }
           } catch (tagErr) {
-            console.warn("[send-wa] Tag assignment failed (non-blocking):", tagErr);
+            // P0-1: ALERT-level log for security visibility (non-blocking for message delivery)
+            console.error("[ALERT][SECURITY] Tag upsert failed", { conversationId: createdConvId, tenantId, error: tagErr });
           }
         }
       } catch (convErr) {

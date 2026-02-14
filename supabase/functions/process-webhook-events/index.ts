@@ -18,7 +18,20 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // ── P0-2: Advisory lock to prevent concurrent processing ──
+  let lockAcquired = false;
   try {
+    const { data: lockResult } = await supabase.rpc("try_webhook_lock");
+    lockAcquired = lockResult === true;
+
+    if (!lockAcquired) {
+      console.log("[METRIC] webhook_lock_skipped");
+      return new Response(
+        JSON.stringify({ processed: 0, skipped: "locked" }),
+        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Fetch unprocessed events
     const { data: events, error: fetchError } = await supabase
       .from("wa_webhook_events")
@@ -81,6 +94,15 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  } finally {
+    // P0-2: Always release lock in finally (even though session-scoped)
+    if (lockAcquired) {
+      try {
+        await supabase.rpc("release_webhook_lock");
+      } catch (e) {
+        console.warn("[process-webhook-events] Failed to release lock:", e);
+      }
+    }
   }
 });
 
@@ -122,6 +144,27 @@ async function processEvent(supabase: any, event: WebhookEvent) {
     default:
       console.log(`[process-webhook-events] Ignoring event type: ${event_type}`);
   }
+}
+
+// ── P0-5: Defensive epoch parsing ──
+function parseMessageTimestamp(msg: any): Date {
+  const raw = msg.messageTimestamp ?? msg.message_timestamp ?? msg.timestamp;
+  if (raw == null) return new Date();
+
+  let epochMs: number;
+  if (typeof raw === "number") {
+    // Evolution sends seconds; if < 1e12 it's seconds, otherwise ms
+    epochMs = raw < 1e12 ? raw * 1000 : raw;
+  } else if (typeof raw === "string") {
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return new Date();
+    epochMs = parsed < 1e12 ? parsed * 1000 : parsed;
+  } else {
+    return new Date();
+  }
+
+  if (!Number.isFinite(epochMs) || epochMs <= 0) return new Date();
+  return new Date(epochMs);
 }
 
 async function handleMessageUpsert(
@@ -172,10 +215,13 @@ async function handleMessageUpsert(
       groupSubject = await fetchGroupName(supabase, instanceId, remoteJid);
     }
 
-    // Upsert conversation
+    // P0-5: Parse event timestamp defensively
+    const eventDate = parseMessageTimestamp(msg);
+
+    // Upsert conversation — include last_message_at for P0-5 timestamp comparison
     const { data: existingConv } = await supabase
       .from("wa_conversations")
-      .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at")
+      .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
       .eq("instance_id", instanceId)
       .eq("remote_jid", remoteJid)
       .maybeSingle();
@@ -188,11 +234,20 @@ async function handleMessageUpsert(
         ? `${participantName}: ${content ? content.substring(0, 80) : `[${messageType}]`}`
         : content ? content.substring(0, 100) : `[${messageType}]`;
       
-      const updates: any = {
-        last_message_at: new Date().toISOString(),
-        last_message_preview: preview,
-        last_message_direction: direction,
-      };
+      // P0-5: Only update preview/direction/last_message_at if event is newer
+      const existingEpoch = existingConv.last_message_at
+        ? new Date(existingConv.last_message_at).getTime()
+        : 0;
+      const eventEpoch = eventDate.getTime();
+      const isNewer = eventEpoch > existingEpoch;
+
+      const updates: any = {};
+
+      if (isNewer) {
+        updates.last_message_at = eventDate.toISOString();
+        updates.last_message_preview = preview;
+        updates.last_message_direction = direction;
+      }
       
       // Update group name if we got it from payload (always update, even if already set with fallback)
       if (isGroup && groupSubject) {
@@ -200,6 +255,7 @@ async function handleMessageUpsert(
       }
       
       if (!fromMe) {
+        // P0-5: unread_count ALWAYS increments for inbound, regardless of timestamp order
         updates.unread_count = (existingConv.unread_count || 0) + 1;
         // For individual chats, update contact name
         if (!isGroup && contactName) {
@@ -241,10 +297,13 @@ async function handleMessageUpsert(
         updates.is_group = true;
       }
       
-      await supabase
-        .from("wa_conversations")
-        .update(updates)
-        .eq("id", conversationId);
+      // Only update if there are actual changes
+      if (Object.keys(updates).length > 0) {
+        await supabase
+          .from("wa_conversations")
+          .update(updates)
+          .eq("id", conversationId);
+      }
     } else {
       const displayName = isGroup ? (groupSubject || `Grupo ${phone.substring(0, 12)}...`) : contactName;
       
@@ -266,7 +325,7 @@ async function handleMessageUpsert(
           cliente_nome: displayName,
           is_group: isGroup,
           status: "open",
-          last_message_at: new Date().toISOString(),
+          last_message_at: eventDate.toISOString(),
           last_message_preview: content ? content.substring(0, 100) : `[${messageType}]`,
           last_message_direction: direction,
           unread_count: fromMe ? 0 : 1,
@@ -343,16 +402,13 @@ async function handleMessageUpsert(
           const activeCount = activeConsultores.length;
 
           if (activeCount === 1) {
-            // Single consultor → auto-assign (makes sense operationally)
             ownerId = (activeConsultores[0].consultores as any).user_id;
             assignSource = "single_consultor";
             console.log(`[process-webhook-events] Single active consultor on instance → auto-assign to ${ownerId}`);
           } else if (activeCount > 1) {
-            // Multiple consultores → leave as team queue (assigned_to = null)
             assignSource = "team_queue";
             console.log(`[process-webhook-events] ${activeCount} active consultores on instance → team queue (assigned_to=null)`);
           } else {
-            // No linked consultores → fallback to instance owner
             const { data: instData } = await supabase
               .from("wa_instances")
               .select("owner_user_id")
@@ -720,12 +776,11 @@ async function fetchProfilePicture(
 // - Retry every ~24h if still missing after last update
 function shouldRefreshProfilePic(existingConv: any): boolean {
   if (!existingConv.profile_picture_url) {
-    // If updated recently (within last 6 hours), skip to avoid hammering API
     if (existingConv.updated_at) {
       const lastUpdate = new Date(existingConv.updated_at).getTime();
       const sixHoursAgo = Date.now() - 6 * 60 * 60 * 1000;
       if (lastUpdate > sixHoursAgo) {
-        return false; // Updated recently, skip
+        return false;
       }
     }
     return true;
