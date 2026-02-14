@@ -417,19 +417,47 @@ Deno.serve(async (req) => {
           _tenant_id: delProfile.tenant_id,
         });
         if (isLastDel) throw new Error("Não é possível excluir o último admin do tenant");
-        // 1. Remove roles
+        // ── STEP 1: Remove roles ──
         await supabaseAdmin.from("user_roles").delete().eq("user_id", target_user_id);
-        // 2. Deactivate consultores linked to this user
+
+        // ── STEP 2: Deactivate & unlink consultores ──
         await supabaseAdmin.from("consultores").update({ ativo: false, user_id: null }).eq("user_id", target_user_id);
-        // 3. Release open conversations
+
+        // ── STEP 3: Release open conversations ──
         await supabaseAdmin
           .from("wa_conversations")
           .update({ assigned_to: null })
           .eq("assigned_to", target_user_id)
           .eq("status", "open");
-        // 4. Remove user_feature_permissions
+
+        // ── STEP 4: Remove user_feature_permissions ──
         await supabaseAdmin.from("user_feature_permissions").delete().eq("user_id", target_user_id);
-        // 5. Hard-delete profile (auth.users will also be deleted, no orphans)
+
+        // ── STEP 5: Clean Google Calendar data ──
+        await supabaseAdmin.from("google_calendar_events").delete().eq("user_id", target_user_id);
+        await supabaseAdmin.from("google_calendar_tokens").delete().eq("user_id", target_user_id);
+
+        // ── STEP 6: Clean push notification data ──
+        await supabaseAdmin.from("push_subscriptions").delete().eq("user_id", target_user_id);
+        await supabaseAdmin.from("push_preferences").delete().eq("user_id", target_user_id);
+        await supabaseAdmin.from("push_muted_conversations").delete().eq("user_id", target_user_id);
+
+        // ── STEP 7: Clean WhatsApp user data ──
+        await supabaseAdmin.from("wa_reads").delete().eq("user_id", target_user_id);
+        await supabaseAdmin.from("wa_conversation_preferences").delete().eq("user_id", target_user_id);
+        await supabaseAdmin.from("wa_message_hidden").delete().eq("user_id", target_user_id);
+
+        // ── STEP 8: Clean Instagram config ──
+        await supabaseAdmin.from("instagram_config").update({ user_id: null }).eq("user_id", target_user_id);
+
+        // ── STEP 9: Nullify references in operational tables ──
+        await supabaseAdmin.from("appointments").update({ assigned_to: null }).eq("assigned_to", target_user_id);
+        await supabaseAdmin.from("appointments").update({ created_by: null }).eq("created_by", target_user_id);
+        await supabaseAdmin.from("tasks").update({ assigned_to: null }).eq("assigned_to", target_user_id);
+        await supabaseAdmin.from("tasks").update({ created_by: null }).eq("created_by", target_user_id);
+        await supabaseAdmin.from("wa_followup_queue").update({ assigned_to: null }).eq("assigned_to", target_user_id);
+
+        // ── STEP 10: Hard-delete profile ──
         const { error: delProfileErr } = await supabaseAdmin.from("profiles").delete().eq("user_id", target_user_id);
         if (delProfileErr) {
           console.error("[ALERT][SECURITY] Failed to delete profile:", delProfileErr);
