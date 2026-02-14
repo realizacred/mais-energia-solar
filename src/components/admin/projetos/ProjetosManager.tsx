@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { FolderKanban, Plus } from "lucide-react";
+import { FolderKanban, Plus, Zap, DollarSign, LayoutGrid } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -72,6 +72,10 @@ export function ProjetosManager() {
     return filteredProjetos.reduce((sum, p) => sum + (p.valor_total || 0), 0);
   }, [filteredProjetos]);
 
+  const totalKwp = useMemo(() => {
+    return filteredProjetos.reduce((sum, p) => sum + (p.potencia_kwp || 0), 0);
+  }, [filteredProjetos]);
+
   const formatBRL = (v: number) => {
     if (!v) return "R$ 0";
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
@@ -90,10 +94,6 @@ export function ProjetosManager() {
           title="Projetos"
           description="Pipeline de vendas e gestão de projetos"
         />
-        <Button size="sm" className="gap-1.5">
-          <Plus className="h-4 w-4" />
-          Novo Projeto
-        </Button>
       </div>
 
       {/* Funnel tabs + toolbar */}
@@ -145,21 +145,36 @@ export function ProjetosManager() {
           />
         </div>
 
-        {/* Stats bar */}
-        <div className="px-4 pb-3 flex items-center gap-3">
-          <Badge variant="secondary" className="text-xs font-normal">
-            {filteredProjetos.length} projetos
-          </Badge>
-          {totalValue > 0 && (
-            <span className="text-xs text-muted-foreground">
-              Total: <span className="font-semibold text-foreground">{formatBRL(totalValue)}</span>
-            </span>
-          )}
-          {visibleEtapas.length > 0 && (
-            <span className="text-xs text-muted-foreground">
-              {visibleEtapas.length} etapas
-            </span>
-          )}
+        {/* Summary + New Project */}
+        <div className="px-4 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-4 flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-sm font-semibold text-foreground">{filteredProjetos.length}</span>
+              <span className="text-xs text-muted-foreground">projetos</span>
+            </div>
+            {totalValue > 0 && (
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-success" />
+                <span className="text-sm font-semibold text-foreground">{formatBRL(totalValue)}</span>
+              </div>
+            )}
+            {totalKwp > 0 && (
+              <div className="flex items-center gap-1.5">
+                <Zap className="h-3.5 w-3.5 text-warning" />
+                <span className="text-sm font-semibold text-foreground">{totalKwp.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} kWp</span>
+              </div>
+            )}
+            {visibleEtapas.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {visibleEtapas.length} etapas
+              </span>
+            )}
+          </div>
+          <Button size="sm" className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Novo Projeto
+          </Button>
         </div>
       </div>
 
