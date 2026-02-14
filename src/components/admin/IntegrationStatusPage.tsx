@@ -367,7 +367,7 @@ function InstanceHealthCard({ health }: { health: InstanceHealth }) {
   );
 }
 
-// ── App URL Config Card ──
+// ── App URL Config Card (PUBLIC only — NOT for OAuth/callbacks) ──
 
 function AppUrlConfigCard() {
   const { toast } = useToast();
@@ -377,12 +377,12 @@ function AppUrlConfigCard() {
   const [editing, setEditing] = useState(false);
 
   const { data: currentUrl, isLoading } = useQuery({
-    queryKey: ["app_url_config"],
+    queryKey: ["public_app_url"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("integration_configs")
         .select("api_key")
-        .eq("service_key", "app_url")
+        .eq("service_key", "public_app_url")
         .eq("is_active", true)
         .maybeSingle();
       if (error) throw error;
@@ -390,24 +390,40 @@ function AppUrlConfigCard() {
     },
   });
 
+  const validateUrl = (input: string): string | null => {
+    const trimmed = input.trim().replace(/\/+$/, "");
+    if (!trimmed) return "URL é obrigatória.";
+    if (!trimmed.startsWith("https://")) return "A URL deve começar com https://";
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.pathname !== "/" && parsed.pathname !== "") return "A URL não deve conter caminhos (/path).";
+      if (parsed.search) return "A URL não deve conter query strings (?param=value).";
+      if (parsed.hash) return "A URL não deve conter fragmentos (#section).";
+      if (!parsed.hostname.includes(".")) return "Domínio inválido.";
+    } catch {
+      return "URL inválida.";
+    }
+    return null;
+  };
+
   const handleSave = async () => {
     const trimmed = url.trim().replace(/\/+$/, "");
-    if (!trimmed || !trimmed.startsWith("https://")) {
-      toast({ title: "URL inválida", description: "A URL deve começar com https://", variant: "destructive" });
+    const validationError = validateUrl(trimmed);
+    if (validationError) {
+      toast({ title: "URL inválida", description: validationError, variant: "destructive" });
       return;
     }
     setSaving(true);
     try {
-      // Upsert into integration_configs
       const { data, error } = await supabase.functions.invoke("save-integration-key", {
-        body: { service_key: "app_url", api_key: trimmed },
+        body: { service_key: "public_app_url", api_key: trimmed },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.details || data.error);
-      toast({ title: "URL salva", description: "URL de produção atualizada com sucesso." });
+      toast({ title: "URL pública salva", description: "URL atualizada. Links e metatags usarão este domínio." });
       setEditing(false);
       setUrl("");
-      queryClient.invalidateQueries({ queryKey: ["app_url_config"] });
+      queryClient.invalidateQueries({ queryKey: ["public_app_url"] });
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
     } finally {
@@ -420,7 +436,7 @@ function AppUrlConfigCard() {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Globe className="h-4 w-4 text-primary" />
-          URL de Produção
+          URL Pública do App
           {currentUrl && (
             <Badge variant="outline" className="ml-2 bg-success/10 text-success border-success/20 gap-1 text-xs">
               <CheckCircle2 className="h-3 w-3" />
@@ -429,7 +445,8 @@ function AppUrlConfigCard() {
           )}
         </CardTitle>
         <CardDescription>
-          Domínio usado em links, QR codes, OAuth e e-mails. Sem configuração, o sistema usa o domínio atual automaticamente.
+          Domínio usado em links compartilhados, QR codes, canonical e metatags.
+          <strong className="text-foreground"> Não afeta OAuth/callbacks</strong> — esses usam URL de segurança fixa (secret).
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -438,7 +455,7 @@ function AppUrlConfigCard() {
         ) : editing ? (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs">URL de produção</Label>
+              <Label className="text-xs">URL pública (apenas domínio)</Label>
               <Input
                 placeholder="https://app.maisenergiasolar.com.br"
                 value={url}
@@ -446,7 +463,7 @@ function AppUrlConfigCard() {
                 className="font-mono text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Deve ser HTTPS. Esta URL será usada em canonical, OG tags, OAuth callbacks e links compartilhados.
+                HTTPS obrigatório. Sem caminhos ou query strings. Usada para links e metatags apenas.
               </p>
             </div>
             <div className="flex gap-2">
