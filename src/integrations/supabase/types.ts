@@ -2626,6 +2626,53 @@ export type Database = {
           },
         ]
       }
+      integration_health_cache: {
+        Row: {
+          created_at: string
+          details: Json | null
+          error_message: string | null
+          id: string
+          integration_name: string
+          last_check_at: string
+          latency_ms: number | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          integration_name: string
+          last_check_at?: string
+          latency_ms?: number | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          id?: string
+          integration_name?: string
+          last_check_at?: string
+          latency_ms?: number | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_health_cache_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inversores: {
         Row: {
           ativo: boolean
