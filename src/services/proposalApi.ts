@@ -115,6 +115,8 @@ export interface RenderProposalResult {
   render_id: string;
   html: string | null;
   url: string | null;
+  cenarios_count?: number;
+  engine_version?: string;
   error?: string;
 }
 
