@@ -599,19 +599,15 @@ export function WaChatComposer({
                 setSpellCheckEnabled(next);
                 localStorage.setItem("wa-spellcheck", String(next));
                 if (next) {
-                  // Check if browser actually supports spellcheck for pt-BR
-                  const testDiv = document.createElement("div");
-                  testDiv.contentEditable = "true";
-                  testDiv.spellcheck = true;
-                  testDiv.lang = "pt-BR";
-                  document.body.appendChild(testDiv);
-                  testDiv.focus();
-                  document.body.removeChild(testDiv);
-                  
-                  toast({
-                    title: "Corretor ativado",
-                    description: "O corretor depende do seu navegador. Se não aparecerem sugestões, ative o idioma Português nas configurações do navegador (chrome://settings/languages).",
-                  });
+                  // Only show warning if browser doesn't have Portuguese configured
+                  const langs = navigator.languages || [navigator.language];
+                  const hasPt = langs.some(l => l.toLowerCase().startsWith("pt"));
+                  if (!hasPt) {
+                    toast({
+                      title: "Corretor ativado",
+                      description: "Para sugestões em Português, ative o idioma nas configurações do navegador (chrome://settings/languages).",
+                    });
+                  }
                 }
               }}
             >
