@@ -28,9 +28,11 @@ import {
   Calendar,
   Shield,
   ArrowRight,
+  PenTool,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { SignatureTab } from "@/components/admin/documentos/SignatureTab";
 
 // ── Types ──
 
@@ -654,6 +656,15 @@ export function IntegrationStatusPage() {
                 onRefreshed={handleRefresh}
               />
             ))}
+          </div>
+
+          {/* E-Signature Configuration */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+              <PenTool className="h-4 w-4" />
+              Assinatura Eletrônica
+            </h3>
+            <SignatureTab />
           </div>
         </>
       )}
