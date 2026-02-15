@@ -124,7 +124,7 @@ function ListRow({ projeto, etapa, onView }: ListRowProps) {
           )}
           {projeto.potencia_kwp && (
             <span className="flex items-center gap-1">
-              <Zap className="h-3 w-3 text-amarelo-sol" />
+              <Zap className="h-3 w-3 text-warning" />
               {projeto.potencia_kwp} kWp
             </span>
           )}

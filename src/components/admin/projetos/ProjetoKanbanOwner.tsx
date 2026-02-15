@@ -104,7 +104,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
                   </span>
                   {col.totalKwp > 0 && (
                     <span className="flex items-center gap-0.5 font-medium">
-                      <Zap className="h-3 w-3 text-amarelo-sol" />
+                      <Zap className="h-3 w-3 text-warning" />
                       {formatKwp(col.totalKwp)} kWp
                     </span>
                   )}
