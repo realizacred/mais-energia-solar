@@ -8,7 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { Play } from "lucide-react";
 import { useTenantPlan } from "@/hooks/useTenantPlan";
 import { usePlanGuard } from "@/components/plan/PlanGuard";
-import { Lock } from "lucide-react";
+import { Lock, Brain } from "lucide-react";
 import {
   Bell,
   Plus,
@@ -337,6 +337,12 @@ export function WaFollowupRulesManager() {
             <h2 className="text-xl font-bold text-foreground">Regras de Follow-up</h2>
             <p className="text-sm text-muted-foreground">
               Configure quando e como acompanhar conversas sem resposta
+              {hasAiFollowup && (
+                <Badge variant="outline" className="ml-2 text-[10px] gap-0.5 align-middle">
+                  <Brain className="h-2.5 w-2.5" />
+                  IA Ativa
+                </Badge>
+              )}
             </p>
           </div>
         </div>

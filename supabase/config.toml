@@ -154,3 +154,6 @@ verify_jwt = false
 
 [functions.process-sla-alerts]
 verify_jwt = false
+
+[functions.ai-followup-intelligence]
+verify_jwt = false

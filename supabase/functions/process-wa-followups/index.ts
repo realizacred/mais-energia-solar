@@ -88,14 +88,26 @@ Deno.serve(async (req) => {
         m.created_count = ins.length;
       }
 
-      const auto = after.filter((c: any) => c.envio_automatico && c.mensagem_template);
+      // Auto-send: includes both template-based and AI-generated messages
+      const auto = after.filter((c: any) => c.envio_automatico && (c.mensagem_template || aiMap.get(c.tenant_id)?.modo === "automatico"));
       const isc = new Map<string, number>();
       let aiN = 0, tAi = Date.now(), sendAcc = 0;
       for (const c of auto) {
         const ic = isc.get(c.instance_id) || 0;
         if (ic >= MAX_INST) { m.instance_rate_limited++; continue; }
         const s = aiMap.get(c.tenant_id);
-        const base = (c.mensagem_template as string).replace(/\{nome\}/g, c.cliente_nome || "").replace(/\{vendedor\}/g, "").replace(/\{consultor\}/g, "");
+        // If no template but AI is active, generate message via AI
+        let base: string;
+        if (c.mensagem_template) {
+          base = (c.mensagem_template as string).replace(/\{nome\}/g, c.cliente_nome || "").replace(/\{vendedor\}/g, "").replace(/\{consultor\}/g, "");
+        } else if (s?.modo === "automatico") {
+          // AI generates the message from scratch
+          const gen = await aiGenerate(sb, c, s);
+          if (!gen) { m.ai_budget_exhausted++; continue; }
+          base = gen;
+        } else {
+          continue; // No template and not auto-mode, skip
+        }
         let final = base;
         if (s?.modo !== "desativado" && aiN < MAX_AI) {
           aiN++;
@@ -183,6 +195,38 @@ async function loadAi(sb: any, tids: string[]) {
 }
 
 type GR = { confidence: number; reason: string; adj?: string; timeout: boolean };
+
+async function aiGenerate(sb: any, conv: any, ai: any): Promise<string | null> {
+  try {
+    const { data: k } = await sb.from("integration_configs").select("api_key").eq("tenant_id", conv.tenant_id).eq("service_key", "openai").eq("is_active", true).single();
+    if (!k?.api_key) return null;
+    const { data: msgs = [] } = await sb.from("wa_messages").select("direction, content, created_at, source").eq("conversation_id", conv.conversation_id).eq("is_internal_note", false).order("created_at", { ascending: false }).limit(10);
+    const hist = msgs.reverse().map((m: any) => `[${m.direction === "in" ? "cli" : "cons"}]: ${m.content || "(mídia)"}`).join("\n");
+    const last = msgs.length ? msgs[msgs.length - 1] : null;
+    const hrs = last ? Math.round((Date.now() - new Date(last.created_at).getTime()) / 3600000) : null;
+
+    const sys = `Gerador de follow-up solar. Crie uma mensagem curta (máx 3 frases) e natural para WhatsApp. Tom amigável e profissional. Retorne JSON: {"message":"...","confidence":0-100}`;
+    const usr = `Cliente: ${conv.cliente_nome || "?"} | Cenário: ${conv.cenario} | Tentativa: ${conv.attempt_count + 1} | Última msg há: ${hrs ?? "?"}h\nHIST:\n${hist || "(vazio)"}`;
+
+    const ac = new AbortController();
+    const to = setTimeout(() => ac.abort(), AI_TIMEOUT);
+    try {
+      const r = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${k.api_key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model: ai?.modelo_preferido || "gpt-4o-mini", messages: [{ role: "system", content: sys }, { role: "user", content: usr }], max_tokens: 200, temperature: ai?.temperature ?? 0.5 }),
+        signal: ac.signal,
+      });
+      clearTimeout(to);
+      if (!r.ok) return null;
+      const d = await r.json();
+      const raw = d.choices?.[0]?.message?.content?.trim();
+      if (!raw) return null;
+      const p = JSON.parse(raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim());
+      return p.message || null;
+    } catch { return null; }
+  } catch { return null; }
+}
 
 async function aiGate(sb: any, conv: any, proposed: string, ai: any): Promise<GR> {
   try {
