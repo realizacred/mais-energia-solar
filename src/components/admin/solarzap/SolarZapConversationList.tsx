@@ -1,59 +1,55 @@
-import { useState } from "react";
-import { Search, Filter, MessageCircle, Instagram, Phone } from "lucide-react";
+import { MessageCircle, Instagram, Phone, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-
-export interface SolarZapConversation {
-  id: string;
-  nome: string;
-  telefone: string;
-  lastMessage: string;
-  lastMessageAt: string;
-  unreadCount: number;
-  channel: "whatsapp" | "instagram" | "phone";
-  status: "online" | "offline";
-  avatarUrl?: string;
-  assignedTo?: string;
-}
+import type { WaConversation } from "@/hooks/useWaInbox";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Props {
-  conversations: SolarZapConversation[];
+  conversations: WaConversation[];
   selectedId: string | null;
-  onSelect: (conv: SolarZapConversation) => void;
+  onSelect: (conv: WaConversation) => void;
   loading?: boolean;
+  search: string;
+  onSearchChange: (val: string) => void;
+  filter: string;
+  onFilterChange: (val: string) => void;
 }
 
-type FilterType = "todos" | "meus" | "nao_lidos";
+type FilterType = "all" | "meus" | "nao_lidos";
 
-const CHANNEL_ICON = {
+const CHANNEL_ICON: Record<string, any> = {
   whatsapp: MessageCircle,
   instagram: Instagram,
   phone: Phone,
 };
 
-const CHANNEL_COLOR = {
+const CHANNEL_COLOR: Record<string, string> = {
   whatsapp: "bg-success/10 text-success",
   instagram: "bg-info/10 text-info",
   phone: "bg-muted text-muted-foreground",
 };
 
-export function SolarZapConversationList({ conversations, selectedId, onSelect, loading }: Props) {
-  const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<FilterType>("todos");
+function formatTime(dateStr: string | null) {
+  if (!dateStr) return "";
+  try {
+    return formatDistanceToNow(new Date(dateStr), { addSuffix: false, locale: ptBR });
+  } catch {
+    return "";
+  }
+}
 
-  const filtered = conversations.filter((c) => {
-    if (search && !c.nome.toLowerCase().includes(search.toLowerCase()) && !c.telefone.includes(search)) return false;
-    if (filter === "nao_lidos" && c.unreadCount === 0) return false;
-    return true;
-  });
-
+export function SolarZapConversationList({
+  conversations, selectedId, onSelect, loading,
+  search, onSearchChange, filter, onFilterChange,
+}: Props) {
   const filters: { key: FilterType; label: string }[] = [
-    { key: "todos", label: "Todos" },
+    { key: "all", label: "Todos" },
     { key: "meus", label: "Meus" },
     { key: "nao_lidos", label: "Não Lidos" },
   ];
@@ -75,7 +71,7 @@ export function SolarZapConversationList({ conversations, selectedId, onSelect, 
           <Input
             placeholder="Buscar contato..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             className="pl-8 h-8 text-xs"
           />
         </div>
@@ -88,7 +84,7 @@ export function SolarZapConversationList({ conversations, selectedId, onSelect, 
               size="sm"
               variant={filter === f.key ? "default" : "ghost"}
               className="h-7 text-xs px-2.5 flex-1"
-              onClick={() => setFilter(f.key)}
+              onClick={() => onFilterChange(f.key)}
             >
               {f.label}
             </Button>
@@ -110,16 +106,19 @@ export function SolarZapConversationList({ conversations, selectedId, onSelect, 
               </div>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : conversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
             <MessageCircle className="h-8 w-8 text-muted-foreground/30 mb-2" />
             <p className="text-xs text-muted-foreground">Nenhuma conversa encontrada</p>
           </div>
         ) : (
           <div className="divide-y divide-border/30">
-            {filtered.map((conv) => {
-              const ChannelIcon = CHANNEL_ICON[conv.channel];
+            {conversations.map((conv) => {
+              const channel = conv.canal || "whatsapp";
+              const ChannelIcon = CHANNEL_ICON[channel] || MessageCircle;
               const isSelected = selectedId === conv.id;
+              const displayName = conv.cliente_nome || conv.lead_nome || conv.cliente_telefone || "Desconhecido";
+
               return (
                 <button
                   key={conv.id}
@@ -134,11 +133,14 @@ export function SolarZapConversationList({ conversations, selectedId, onSelect, 
                   {/* Avatar */}
                   <div className="relative shrink-0">
                     <Avatar className="h-10 w-10">
+                      {conv.profile_picture_url && (
+                        <AvatarImage src={conv.profile_picture_url} alt={displayName} />
+                      )}
                       <AvatarFallback className="text-xs font-medium bg-muted">
-                        {conv.nome.slice(0, 2).toUpperCase()}
+                        {displayName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    {conv.status === "online" && (
+                    {conv.status === "open" && conv.assigned_to && (
                       <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-success border-2 border-card" />
                     )}
                   </div>
@@ -146,20 +148,27 @@ export function SolarZapConversationList({ conversations, selectedId, onSelect, 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-sm font-medium text-foreground truncate">{conv.nome}</span>
+                      <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
                       <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-                        {conv.lastMessageAt}
+                        {formatTime(conv.last_message_at)}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{conv.lastMessage}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                      {conv.last_message_preview || "Sem mensagens"}
+                    </p>
                     <div className="flex items-center gap-1.5 mt-1">
-                      <Badge variant="outline" className={cn("h-4 px-1 text-[9px] gap-0.5", CHANNEL_COLOR[conv.channel])}>
+                      <Badge variant="outline" className={cn("h-4 px-1 text-[9px] gap-0.5", CHANNEL_COLOR[channel] || "")}>
                         <ChannelIcon className="h-2.5 w-2.5" />
-                        {conv.channel === "whatsapp" ? "WA" : conv.channel === "instagram" ? "IG" : "Tel"}
+                        {channel === "whatsapp" ? "WA" : channel === "instagram" ? "IG" : "Tel"}
                       </Badge>
-                      {conv.unreadCount > 0 && (
-                        <Badge className="h-4 min-w-4 px-1 text-[9px] bg-primary text-primary-foreground">
-                          {conv.unreadCount}
+                      {conv.vendedor_nome && (
+                        <span className="text-[9px] text-muted-foreground truncate max-w-[80px]">
+                          {conv.vendedor_nome}
+                        </span>
+                      )}
+                      {conv.unread_count > 0 && (
+                        <Badge className="h-4 min-w-4 px-1 text-[9px] bg-primary text-primary-foreground ml-auto">
+                          {conv.unread_count}
                         </Badge>
                       )}
                     </div>
