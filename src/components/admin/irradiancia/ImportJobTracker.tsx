@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  Loader2, CheckCircle2, XCircle, Clock, ChevronDown, FileText, AlertTriangle,
+  Loader2, CheckCircle2, XCircle, Clock, ChevronDown, FileText, AlertTriangle, Info,
 } from "lucide-react";
 import {
   type ImportJob,
@@ -22,11 +22,31 @@ import {
 
 // ─── Status config ───────────────────────────────────────────
 
-const STATUS_CONFIG: Record<ImportJobStatus, { icon: React.ElementType; label: string; className: string }> = {
-  queued: { icon: Clock, label: "Na fila", className: "bg-muted text-muted-foreground border-border" },
-  running: { icon: Loader2, label: "Importando…", className: "bg-primary/10 text-primary border-primary/30" },
-  success: { icon: CheckCircle2, label: "Concluído", className: "bg-success/10 text-success border-success/30" },
-  failed: { icon: XCircle, label: "Falhou", className: "bg-destructive/10 text-destructive border-destructive/30" },
+const STATUS_CONFIG: Record<ImportJobStatus, { icon: React.ElementType; label: string; description: string; className: string }> = {
+  queued: {
+    icon: Clock,
+    label: "Na fila",
+    description: "Aguardando início do processamento…",
+    className: "bg-muted text-muted-foreground border-border",
+  },
+  running: {
+    icon: Loader2,
+    label: "Processando",
+    description: "Importação em andamento. Os dados estão sendo buscados e gravados no banco.",
+    className: "bg-primary/10 text-primary border-primary/30",
+  },
+  success: {
+    icon: CheckCircle2,
+    label: "Concluído",
+    description: "Importação finalizada com sucesso! Dados disponíveis para uso.",
+    className: "bg-success/10 text-success border-success/30",
+  },
+  failed: {
+    icon: XCircle,
+    label: "Falhou",
+    description: "A importação encontrou um erro. Verifique os logs para detalhes.",
+    className: "bg-destructive/10 text-destructive border-destructive/30",
+  },
 };
 
 const LOG_LEVEL_COLORS: Record<string, string> = {
@@ -90,13 +110,10 @@ function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJ
         try {
           const updated = await getImportJobStatus(job.job_id);
           onJobUpdate(updated);
-          // Reset attempt on success (status call worked)
           attemptRef.current = Math.min(attemptRef.current + 1, 10);
         } catch {
-          // Increase backoff on failure
           attemptRef.current = Math.min(attemptRef.current + 1, 10);
         }
-        // Schedule next poll if still non-terminal
         schedulePoll();
       }, delay);
     };
@@ -133,15 +150,49 @@ function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJ
     });
   };
 
+  const elapsed = job.started_at
+    ? ((job.finished_at ? new Date(job.finished_at).getTime() : Date.now()) - new Date(job.started_at).getTime()) / 1000
+    : null;
+
+  const formatElapsed = (secs: number) => {
+    if (secs < 60) return `${Math.round(secs)}s`;
+    const mins = Math.floor(secs / 60);
+    const remainSecs = Math.round(secs % 60);
+    return `${mins}m ${remainSecs}s`;
+  };
+
   return (
     <div className="rounded-lg border border-border/50 overflow-hidden">
-      <div className="flex items-center justify-between p-3 gap-3">
-        {/* Status badge */}
-        <div className="flex items-center gap-2 min-w-0">
-          <Badge className={`text-[10px] gap-1 ${config.className}`}>
-            <Icon className={`h-3 w-3 ${job.status === "running" ? "animate-spin" : ""}`} />
+      {/* Status banner with description */}
+      <div className={`px-3 py-2 border-b border-border/30 ${
+        job.status === "running" ? "bg-primary/5" :
+        job.status === "success" ? "bg-success/5" :
+        job.status === "failed" ? "bg-destructive/5" :
+        "bg-muted/30"
+      }`}>
+        <div className="flex items-center gap-2">
+          <Icon className={`h-4 w-4 ${
+            job.status === "running" ? "animate-spin text-primary" :
+            job.status === "success" ? "text-success" :
+            job.status === "failed" ? "text-destructive" :
+            "text-muted-foreground"
+          }`} />
+          <span className={`text-xs font-semibold ${
+            job.status === "running" ? "text-primary" :
+            job.status === "success" ? "text-success" :
+            job.status === "failed" ? "text-destructive" :
+            "text-muted-foreground"
+          }`}>
             {config.label}
-          </Badge>
+          </span>
+          <span className="text-[10px] text-muted-foreground">—</span>
+          <span className="text-[10px] text-muted-foreground">{config.description}</span>
+        </div>
+      </div>
+
+      {/* Main row */}
+      <div className="flex items-center justify-between p-3 gap-3">
+        <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-mono text-muted-foreground truncate" title={job.job_id}>
             {job.job_id.substring(0, 8)}…
           </span>
@@ -151,10 +202,28 @@ function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJ
         {/* Metadata */}
         <div className="flex items-center gap-3 text-[10px] text-muted-foreground shrink-0">
           {job.row_count != null && (
-            <span>{job.row_count.toLocaleString()} pontos</span>
+            <span className="font-medium">{job.row_count.toLocaleString()} pontos</span>
           )}
-          <span title="Início">{formatTimestamp(job.started_at)}</span>
-          {job.finished_at && <span title="Fim">{formatTimestamp(job.finished_at)}</span>}
+          {elapsed != null && (
+            <span title="Tempo decorrido">⏱ {formatElapsed(elapsed)}</span>
+          )}
+          <span title="Início">{formatTimestamp(job.started_at || job.created_at)}</span>
+          {job.finished_at && <span title="Fim">→ {formatTimestamp(job.finished_at)}</span>}
+        </div>
+      </div>
+
+      {/* Timeline steps */}
+      <div className="px-3 pb-2">
+        <div className="flex items-center gap-1 text-[10px]">
+          <StepDot done label="Criado" />
+          <StepLine done={job.status !== "queued"} />
+          <StepDot done={job.status !== "queued"} active={job.status === "running"} label="Processando" />
+          <StepLine done={isTerminal} />
+          <StepDot
+            done={isTerminal}
+            error={job.status === "failed"}
+            label={job.status === "failed" ? "Erro" : "Concluído"}
+          />
         </div>
       </div>
 
@@ -217,5 +286,32 @@ function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJ
         </CollapsibleContent>
       </Collapsible>
     </div>
+  );
+}
+
+// ─── Timeline Step Components ────────────────────────────────
+
+function StepDot({ done, active, error, label }: { done: boolean; active?: boolean; error?: boolean; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <div className={`h-2.5 w-2.5 rounded-full border-2 ${
+        error ? "border-destructive bg-destructive" :
+        done ? "border-success bg-success" :
+        active ? "border-primary bg-primary animate-pulse" :
+        "border-border bg-background"
+      }`} />
+      <span className={`text-[9px] ${
+        error ? "text-destructive" :
+        done ? "text-success" :
+        active ? "text-primary font-medium" :
+        "text-muted-foreground"
+      }`}>{label}</span>
+    </div>
+  );
+}
+
+function StepLine({ done }: { done: boolean }) {
+  return (
+    <div className={`flex-1 h-0.5 min-w-6 ${done ? "bg-success" : "bg-border"}`} />
   );
 }
