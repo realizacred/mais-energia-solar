@@ -452,6 +452,67 @@ async function handleMessageUpsert(
       }
     }
 
+    // ── AUTO-REPLY INSTANTÂNEA: primeiro contato ──
+    // Dispara resposta automática configurável quando um contato novo envia a primeira mensagem
+    if (isNewConversation && !fromMe && !isGroup) {
+      try {
+        // Check if tenant has auto-reply enabled
+        const { data: autoReplyConfig } = await supabase
+          .from("whatsapp_automation_config")
+          .select("auto_reply_enabled, auto_reply_message, auto_reply_cooldown_minutes")
+          .eq("tenant_id", tenantId)
+          .eq("ativo", true)
+          .maybeSingle();
+
+        if (autoReplyConfig?.auto_reply_enabled && autoReplyConfig?.auto_reply_message) {
+          const replyMsg = autoReplyConfig.auto_reply_message
+            .replace(/\{nome\}/g, contactName || "")
+            .replace(/\{telefone\}/g, phone || "");
+
+          // Send via wa_outbox (non-blocking)
+          const { data: outMsg } = await supabase.from("wa_messages").insert({
+            conversation_id: conversationId,
+            direction: "out",
+            message_type: "text",
+            content: replyMsg,
+            is_internal_note: false,
+            status: "pending",
+            tenant_id: tenantId,
+            source: "auto_reply",
+          }).select("id").single();
+
+          if (outMsg) {
+            await supabase.from("wa_outbox").insert({
+              instance_id: instanceId,
+              conversation_id: conversationId,
+              message_id: outMsg.id,
+              remote_jid: remoteJid,
+              message_type: "text",
+              content: replyMsg,
+              status: "pending",
+              tenant_id: tenantId,
+            });
+
+            console.log(`[process-webhook-events] Auto-reply sent for new conversation ${conversationId}`);
+
+            // Fire-and-forget outbox processing
+            try {
+              const outboxUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-wa-outbox`;
+              fetch(outboxUrl, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+                  "Content-Type": "application/json",
+                },
+              }).catch(() => {});
+            } catch {}
+          }
+        }
+      } catch (e) {
+        console.warn(`[process-webhook-events] Auto-reply error:`, e);
+      }
+    }
+
     if (existingConv && !fromMe && !isGroup) {
       const shouldRefresh = shouldRefreshProfilePic(existingConv);
       if (shouldRefresh) {

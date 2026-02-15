@@ -11012,6 +11012,9 @@ export type Database = {
         Row: {
           api_token: string | null
           ativo: boolean
+          auto_reply_cooldown_minutes: number
+          auto_reply_enabled: boolean
+          auto_reply_message: string | null
           automacoes_ativas: boolean
           created_at: string
           evolution_api_key: string | null
@@ -11030,6 +11033,9 @@ export type Database = {
         Insert: {
           api_token?: string | null
           ativo?: boolean
+          auto_reply_cooldown_minutes?: number
+          auto_reply_enabled?: boolean
+          auto_reply_message?: string | null
           automacoes_ativas?: boolean
           created_at?: string
           evolution_api_key?: string | null
@@ -11048,6 +11054,9 @@ export type Database = {
         Update: {
           api_token?: string | null
           ativo?: boolean
+          auto_reply_cooldown_minutes?: number
+          auto_reply_enabled?: boolean
+          auto_reply_message?: string | null
           automacoes_ativas?: boolean
           created_at?: string
           evolution_api_key?: string | null

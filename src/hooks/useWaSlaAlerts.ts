@@ -38,16 +38,41 @@ export function useWaSlaAlerts() {
     enabled: !!user,
   });
 
-  // Fetch active (unresolved) alerts
-  const { data: alerts = [], isLoading } = useQuery({
-    queryKey: ["wa-sla-alerts"],
+  // Determine if user is admin
+  const isAdminRef = useRef(false);
+  const { data: userRoles } = useQuery({
+    queryKey: ["user-roles-sla", user?.id],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user!.id);
+      return data || [];
+    },
+    enabled: !!user,
+    staleTime: 60_000,
+  });
+  isAdminRef.current = (userRoles || []).some((r: any) =>
+    ["admin", "gerente", "financeiro"].includes(r.role)
+  );
+
+  // Fetch active (unresolved) alerts — scoped by role
+  const { data: alerts = [], isLoading } = useQuery({
+    queryKey: ["wa-sla-alerts", isAdminRef.current, user?.id],
+    queryFn: async () => {
+      let query = (supabase as any)
         .from("wa_sla_alerts")
         .select("*")
         .eq("resolved", false)
         .order("created_at", { ascending: false })
         .limit(50);
+
+      // 🔐 Consultores só veem alertas de conversas atribuídas a eles
+      if (!isAdminRef.current && user?.id) {
+        query = query.eq("assigned_to", user.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return (data || []) as SlaAlert[];
     },
