@@ -62,7 +62,7 @@ export function ProjetoEtapaManagerDialog({
               id: s.id,
               funil_id: s.pipeline_id,
               nome: s.name,
-              cor: s.is_won ? "#10B981" : s.is_closed ? "#EF4444" : "#3B82F6",
+              cor: s.is_won ? "hsl(var(--success))" : s.is_closed ? "hsl(var(--destructive))" : "hsl(var(--info))",
               ordem: s.position,
               categoria: (s.is_won ? "ganho" : s.is_closed ? "perdido" : "aberto") as any,
               tenant_id: s.tenant_id,

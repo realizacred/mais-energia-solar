@@ -88,6 +88,12 @@ function getTimeInStage(lastChange: string) {
   return `${days}d`;
 }
 
+function getDelayDays(lastChange: string): number | null {
+  const days = differenceInDays(new Date(), new Date(lastChange));
+  // Consider > 7 days as "delayed"
+  return days > 7 ? days : null;
+}
+
 function getStagnationLevel(lastChange: string) {
   const hours = differenceInHours(new Date(), new Date(lastChange));
   if (hours >= 168) return "critical"; // 7d
@@ -105,12 +111,13 @@ function getInitials(name: string) {
 }
 
 // ── Arrow Progress Bar ─────────────────────────────────
-function ArrowProgressBar({ stages, dealCounts }: { stages: PipelineStage[]; dealCounts: Map<string, number> }) {
+function ArrowProgressBar({ stages, dealCounts, dealKwpByStage }: { stages: PipelineStage[]; dealCounts: Map<string, number>; dealKwpByStage: Map<string, number> }) {
   const sorted = [...stages].sort((a, b) => a.position - b.position);
   return (
     <div className="flex items-stretch w-full mb-3 overflow-x-auto">
       {sorted.map((stage, i) => {
         const count = dealCounts.get(stage.id) || 0;
+        const kwp = dealKwpByStage.get(stage.id) || 0;
         const isFirst = i === 0;
         const isLast = i === sorted.length - 1;
         const isWon = stage.is_won;
@@ -120,7 +127,7 @@ function ArrowProgressBar({ stages, dealCounts }: { stages: PipelineStage[]; dea
           <div
             key={stage.id}
             className={cn(
-              "relative flex items-center justify-center px-4 py-1.5 text-[10px] font-semibold min-w-0 flex-1 truncate",
+              "relative flex flex-col items-center justify-center px-4 py-1.5 text-[10px] font-semibold min-w-0 flex-1",
               isFirst && "rounded-l-md",
               isLast && "rounded-r-md",
               isWon
@@ -137,24 +144,29 @@ function ArrowProgressBar({ stages, dealCounts }: { stages: PipelineStage[]; dea
               <div
                 className="absolute left-0 top-0 bottom-0 w-0 h-0"
                 style={{
-                  borderTop: "16px solid transparent",
-                  borderBottom: "16px solid transparent",
+                  borderTop: "18px solid transparent",
+                  borderBottom: "18px solid transparent",
                   borderLeft: "8px solid hsl(var(--background))",
                   marginLeft: "-1px",
                 }}
               />
             )}
-            <span className="truncate">{stage.name}</span>
-            {count > 0 && (
-              <span className="ml-1 text-[9px] font-mono opacity-80">({count})</span>
-            )}
+            <span className="truncate leading-tight">{stage.name}</span>
+            <div className="flex items-center gap-1.5">
+              {count > 0 && (
+                <span className="text-[9px] font-mono opacity-80">({count})</span>
+              )}
+              {kwp > 0 && (
+                <span className="text-[8px] font-mono opacity-60">{kwp.toFixed(1).replace(".", ",")} kWp</span>
+              )}
+            </div>
             {/* Arrow tip */}
             {!isLast && (
               <div
                 className="absolute right-0 top-0 bottom-0 w-0 h-0 z-10"
                 style={{
-                  borderTop: "16px solid transparent",
-                  borderBottom: "16px solid transparent",
+                  borderTop: "18px solid transparent",
+                  borderBottom: "18px solid transparent",
                   borderLeft: `8px solid currentColor`,
                   opacity: 0.15,
                   marginRight: "-8px",
@@ -221,6 +233,12 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
     return map;
   }, [deals]);
 
+  const dealKwpByStage = useMemo(() => {
+    const map = new Map<string, number>();
+    deals.forEach(d => map.set(d.stage_id, (map.get(d.stage_id) || 0) + (d.deal_kwp || 0)));
+    return map;
+  }, [deals]);
+
   const getStageNameById = (id: string | null) => stages.find(s => s.id === id)?.name || "—";
 
   const handleDragStart = (e: React.DragEvent, dealId: string) => {
@@ -254,7 +272,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
     return (
       <>
         <div className="px-1">
-          <ArrowProgressBar stages={sortedStages} dealCounts={dealCountsByStage} />
+          <ArrowProgressBar stages={sortedStages} dealCounts={dealCountsByStage} dealKwpByStage={dealKwpByStage} />
         </div>
 
         <div className="space-y-2 px-1">
@@ -350,7 +368,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
     <>
       {/* Arrow Progress Bar */}
       <div className="px-1">
-        <ArrowProgressBar stages={sortedStages} dealCounts={dealCountsByStage} />
+        <ArrowProgressBar stages={sortedStages} dealCounts={dealCountsByStage} dealKwpByStage={dealKwpByStage} />
       </div>
 
       <ScrollArea className="w-full">
@@ -549,6 +567,7 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
   const propostaInfo = deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
   const timeInStage = getTimeInStage(deal.last_stage_change);
   const stagnation = getStagnationLevel(deal.last_stage_change);
+  const delayDays = getDelayDays(deal.last_stage_change);
 
   const handleSendWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -645,14 +664,21 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
           </Tooltip>
           <span className="truncate max-w-[100px]">{deal.owner_name}</span>
         </div>
-        <span className={cn(
-          "flex items-center gap-0.5",
-          stagnation === "critical" && "text-destructive font-semibold",
-          stagnation === "warning" && "text-warning font-semibold"
-        )}>
-          <Clock className="h-2.5 w-2.5" />
-          {timeInStage} na etapa
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span className={cn(
+            "flex items-center gap-0.5",
+            stagnation === "critical" && "text-destructive font-semibold",
+            stagnation === "warning" && "text-warning font-semibold"
+          )}>
+            <Clock className="h-2.5 w-2.5" />
+            {timeInStage} na etapa
+          </span>
+          {delayDays && (
+            <Badge variant="outline" className="text-[8px] h-4 px-1 font-mono font-bold bg-destructive/10 text-destructive border-destructive/20">
+              -{delayDays}d
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Row 4: Quick actions (hover) */}
