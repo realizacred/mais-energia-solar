@@ -88,6 +88,12 @@ const ProposalWizardPage = lazy(() =>
   }))
 );
 
+const SolarWizardPageLazy = lazy(() =>
+  import("@/components/admin/propostas-nativas/solar-wizard/SolarWizardPage").then((m) => ({
+    default: m.SolarWizardPage,
+  }))
+);
+
 const ProposalListPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalList").then((m) => ({
     default: m.ProposalList,
@@ -170,6 +176,7 @@ const TAB_TITLES: Record<string, string> = {
   propostas: "Propostas Comerciais",
   projetos: "Projetos",
   "propostas-nativas": "Gerador de Propostas",
+  "propostas/novo": "Nova Proposta Solar",
   "propostas-nativas/nova": "Nova Proposta",
   "propostas-nativas/dashboard": "Painel de Propostas",
   "propostas-nativas/templates": "Templates de Proposta",
@@ -355,6 +362,7 @@ export default function Admin() {
                 <Route path="projetos" element={<ProjetosManagerPage />} />
                 <Route path="propostas-nativas" element={<ProposalListPage />} />
                 <Route path="propostas-nativas/nova" element={<ProposalWizardPage />} />
+                <Route path="propostas/novo" element={<SolarWizardPageLazy />} />
                 <Route path="propostas-nativas/dashboard" element={<ProposalDashboardPage />} />
                 <Route path="propostas-nativas/templates" element={<TemplatesManagerPage />} />
                 <Route path="propostas-nativas/variaveis" element={<VariaveisCustomPage />} />
