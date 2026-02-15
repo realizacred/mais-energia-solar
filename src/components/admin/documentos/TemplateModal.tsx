@@ -86,6 +86,9 @@ export function TemplateModal({ open, onOpenChange, template, onSave, saving }: 
         const { error } = await supabase.storage.from("document-files").upload(fileName, file);
         if (error) throw error;
         storagePath = fileName;
+        // Prevent duplicate resubmits
+        setExistingPath(storagePath);
+        setFile(null);
       } catch (e: any) {
         toast.error(`Erro no upload: ${e.message}`);
         setUploading(false);
