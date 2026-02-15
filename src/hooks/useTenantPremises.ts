@@ -7,6 +7,7 @@ import { toast } from "sonner";
 export interface TenantPremises {
   id?: string;
   tenant_id?: string;
+  concessionaria_id?: string;
   // Tab 1 - Financeiras
   inflacao_energetica: number;
   vpl_taxa_desconto: number;

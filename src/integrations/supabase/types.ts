@@ -9413,6 +9413,7 @@ export type Database = {
       tenant_premises: {
         Row: {
           base_irradiancia: string
+          concessionaria_id: string | null
           considerar_custo_disponibilidade: boolean
           considerar_custo_disponibilidade_solar: boolean
           considerar_kits_transformador: boolean
@@ -9469,6 +9470,7 @@ export type Database = {
         }
         Insert: {
           base_irradiancia?: string
+          concessionaria_id?: string | null
           considerar_custo_disponibilidade?: boolean
           considerar_custo_disponibilidade_solar?: boolean
           considerar_kits_transformador?: boolean
@@ -9525,6 +9527,7 @@ export type Database = {
         }
         Update: {
           base_irradiancia?: string
+          concessionaria_id?: string | null
           considerar_custo_disponibilidade?: boolean
           considerar_custo_disponibilidade_solar?: boolean
           considerar_kits_transformador?: boolean
@@ -9580,6 +9583,13 @@ export type Database = {
           vpl_taxa_desconto?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_premises_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tenant_premises_tenant_id_fkey"
             columns: ["tenant_id"]
