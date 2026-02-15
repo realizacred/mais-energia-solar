@@ -37,8 +37,8 @@ const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini"];
 const GEMINI_MODELS = [
   "gemini-2.0-flash-lite",
   "gemini-2.0-flash",
-  "gemini-2.5-flash-preview-05-20",
-  "gemini-2.5-pro-preview-06-05",
+  "gemini-2.5-flash",
+  "gemini-2.5-pro",
 ];
 
 type Provider = "openai" | "google_gemini";
@@ -48,7 +48,7 @@ function resolveProvider(model: string): Provider {
   return "google_gemini";
 }
 
-const DEFAULT_MODEL = "gemini-2.5-flash-preview-05-20";
+const DEFAULT_MODEL = "gemini-2.5-flash";
 const MAX_TEXT_LENGTH = 2000;
 const AI_TIMEOUT_MS = 8000;
 

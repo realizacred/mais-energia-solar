@@ -1,4 +1,4 @@
-import { Check, Pencil, X, Cpu } from "lucide-react";
+import { Check, X, Cpu, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,7 +26,7 @@ export function WritingAssistantPreview({
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-primary/10">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs font-medium text-primary">✨ Sugestão</span>
+          <span className="text-xs font-medium text-primary">✨ Sugestão da IA</span>
           {model && (
             <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5 text-muted-foreground border-border/50">
               <Cpu className="h-2 w-2" />
@@ -39,29 +39,25 @@ export function WritingAssistantPreview({
         </Button>
       </div>
 
-      {/* Comparison */}
-      <div className="px-3 py-2 space-y-2">
-        {/* Original */}
-        <div>
-          <p className="text-[10px] text-muted-foreground font-medium mb-0.5">Original</p>
-          <p className="text-xs text-muted-foreground bg-muted/50 rounded-lg px-2.5 py-1.5 leading-relaxed">
-            {originalText}
-          </p>
-        </div>
-        {/* Suggestion */}
-        <div>
-          <p className="text-[10px] text-primary font-medium mb-0.5">Sugestão</p>
-          <p className="text-xs text-foreground bg-primary/10 rounded-lg px-2.5 py-1.5 leading-relaxed border border-primary/15">
-            {suggestion}
-          </p>
-        </div>
-      </div>
+      {/* Suggestion text - clickable to apply */}
+      <button
+        type="button"
+        className="w-full text-left px-3 py-2.5 hover:bg-primary/10 transition-colors cursor-pointer group"
+        onClick={() => onAccept(suggestion)}
+      >
+        <p className="text-sm text-foreground leading-relaxed">
+          {suggestion}
+        </p>
+        <p className="text-[10px] text-muted-foreground mt-1.5 group-hover:text-primary transition-colors">
+          Clique para substituir o texto · depois envie com Enter ou ícone
+        </p>
+      </button>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 px-3 py-2 border-t border-primary/10">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 border-t border-primary/10">
         <Button
           size="sm"
-          className="h-7 text-xs gap-1"
+          className="h-6 text-[11px] gap-1"
           onClick={() => onAccept(suggestion)}
         >
           <Check className="h-3 w-3" />
@@ -69,17 +65,17 @@ export function WritingAssistantPreview({
         </Button>
         <Button
           size="sm"
-          variant="secondary"
-          className="h-7 text-xs gap-1"
+          variant="outline"
+          className="h-6 text-[11px] gap-1"
           onClick={() => onEdit(suggestion)}
         >
-          <Pencil className="h-3 w-3" />
-          Editar
+          <ArrowRightLeft className="h-3 w-3" />
+          Editar antes
         </Button>
         <Button
           size="sm"
           variant="ghost"
-          className="h-7 text-xs"
+          className="h-6 text-[11px]"
           onClick={onDismiss}
         >
           Descartar
