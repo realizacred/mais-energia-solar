@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Database, Search, CheckCircle2, AlertTriangle,
-  Globe, Hash, Calendar, Loader2, Sun, MapPin, Download, RefreshCw,
+  Globe, Hash, Calendar, Loader2, Sun, MapPin, Download, RefreshCw, Upload,
 } from "lucide-react";
 import { useIrradianceDatasets } from "@/hooks/useIrradianceDatasets";
 import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/irradiance-provider";
@@ -39,6 +40,12 @@ export function IrradianciaPage() {
   // Per-dataset fetch state
   const [fetchingDs, setFetchingDs] = useState<string | null>(null);
   const [fetchProgress, setFetchProgress] = useState<string | null>(null);
+
+  // CSV upload state
+  const [uploadDs, setUploadDs] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Lookup test state
   const [testLat, setTestLat] = useState("-15.7942");
@@ -93,6 +100,46 @@ export function IrradianciaPage() {
     }
   };
 
+  const handleCsvUpload = async () => {
+    if (!uploadFile || !uploadDs) {
+      toast.error("Selecione um dataset e um arquivo CSV.");
+      return;
+    }
+    setUploading(true);
+    try {
+      const versionTag = generateVersionTag();
+      const filePath = `uploads/${uploadDs}/${versionTag}_${uploadFile.name}`;
+
+      const { error: storageError } = await supabase.storage
+        .from("irradiance-source")
+        .upload(filePath, uploadFile, { upsert: true });
+
+      if (storageError) throw storageError;
+
+      const { data, error } = await supabase.functions.invoke("irradiance-import", {
+        body: {
+          dataset_code: uploadDs,
+          version_tag: versionTag,
+          source_note: `Upload manual: ${uploadFile.name}`,
+          file_path: filePath,
+        },
+      });
+
+      if (error) throw error;
+
+      toast.success(
+        `Importação concluída: ${data?.row_count?.toLocaleString() ?? 0} pontos importados`
+      );
+      setUploadFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      reload();
+    } catch (e: any) {
+      toast.error("Erro na importação CSV", { description: e.message });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -107,6 +154,9 @@ export function IrradianciaPage() {
         <TabsList>
           <TabsTrigger value="datasets" className="gap-1.5">
             <Database className="h-3.5 w-3.5" /> Datasets & Versões
+          </TabsTrigger>
+          <TabsTrigger value="upload" className="gap-1.5">
+            <Upload className="h-3.5 w-3.5" /> Importar Arquivo
           </TabsTrigger>
           <TabsTrigger value="audit" className="gap-1.5">
             <Search className="h-3.5 w-3.5" /> Auditoria & Teste
@@ -221,6 +271,67 @@ export function IrradianciaPage() {
               </Card>
             );
           })}
+        </TabsContent>
+
+        {/* ── Upload CSV Tab ── */}
+        <TabsContent value="upload" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Upload className="h-4 w-4" />
+                Importar Arquivo CSV
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Faça upload de um arquivo CSV com colunas <code className="text-[10px] bg-muted px-1 py-0.5 rounded">lat</code>, <code className="text-[10px] bg-muted px-1 py-0.5 rounded">lon</code>, <code className="text-[10px] bg-muted px-1 py-0.5 rounded">m01</code>…<code className="text-[10px] bg-muted px-1 py-0.5 rounded">m12</code> (valores em kWh/m²/dia).
+                Separadores aceitos: vírgula ou ponto-e-vírgula.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Dataset</Label>
+                  <Select value={uploadDs} onValueChange={setUploadDs}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o dataset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {datasets.map((ds) => (
+                        <SelectItem key={ds.id} value={ds.code}>{ds.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Arquivo CSV</Label>
+                  <Input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.txt"
+                    onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                    className="text-xs"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <Button
+                    onClick={handleCsvUpload}
+                    disabled={uploading || !uploadFile || !uploadDs}
+                    className="gap-1.5 w-full"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    {uploading ? "Importando..." : "Enviar e Importar"}
+                  </Button>
+                </div>
+              </div>
+
+              {uploadFile && (
+                <div className="text-[10px] text-muted-foreground">
+                  Arquivo: <span className="font-medium">{uploadFile.name}</span> ({(uploadFile.size / 1024).toFixed(1)} KB)
+                  • Versão será gerada automaticamente: <Badge variant="outline" className="text-[10px]">{generateVersionTag()}</Badge>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ── Audit & Test Tab ── */}
