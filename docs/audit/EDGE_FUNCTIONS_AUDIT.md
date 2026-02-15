@@ -1,7 +1,7 @@
 # EDGE FUNCTIONS AUDIT
 
-**Data:** 2026-02-14  
-**Total:** 53 Edge Functions
+**Data:** 2026-02-14 (atualizado 2026-02-15)  
+**Total:** 50 Edge Functions (3 órfãs deletadas)
 
 ---
 
@@ -24,7 +24,7 @@
 | ai-proposal-explainer | 🔐 | 🏢 | ❌ | 🔑 | ❌ | propostas_nativas |
 | ai-suggest-message | 🔐 | 🏢 | ❌ | 🔑 | ❌ | wa_messages |
 | check-wa-instance-status | 🔐 | 🏢 | ❌ | 🔑 | ❌ | wa_instances |
-| **cleanup-legacy-storage** | ❌ | ❌ | ❌ | 🔑 | ❌ | storage_migration_log |
+| ~~**cleanup-legacy-storage**~~ | — | — | — | — | — | ~~storage_migration_log~~ | **DELETADA** (2026-02-15) |
 | create-tenant | 🔐 | ❌ | 👤super | 🔑 | ❌ | tenants, profiles |
 | create-vendedor-user | 🔐 | 🏢 | 👤admin | 🔑 | ❌ | consultores, profiles |
 | delete-user | 🔐 | 🏢 | 👤admin | 🔑 | ❌ | profiles, user_roles |
@@ -40,8 +40,8 @@
 | integration-health-check | 🔐 | 🏢 | 👤admin | 🔑 | ❌ | integration_health_cache |
 | lead-scoring | 🔐 | 🏢 | ❌ | 🔑 | ❌ | lead_scores |
 | list-users-emails | 🔐 | 🏢 | 👤admin | 🔑 | ❌ | auth.users |
-| **loading-ai-message** | ❌ | ⚠️ | ❌ | 🔑 | ❌ | integration_configs |
-| **migrate-storage-paths** | ❌ | ❌ | ❌ | 🔑 | ❌ | storage_migration_log |
+| ~~**loading-ai-message**~~ | — | — | — | — | — | ~~integration_configs~~ | **DELETADA** (2026-02-15) |
+| ~~**migrate-storage-paths**~~ | — | — | — | — | — | ~~storage_migration_log~~ | **DELETADA** (2026-02-15) |
 | process-wa-followups | ❌ | 🏢 | ❌ | 🔑 | 🔄lock | wa_followup_queue |
 | process-wa-outbox | ❌ | 🏢 | ❌ | 🔑 | 🔄lock | wa_outbox |
 | process-webhook-events | ❌ | 🏢 | ❌ | 🔑 | 🔄lock | wa_webhook_events |
@@ -72,22 +72,14 @@
 
 ## Findings Críticos
 
-### 🔴 P0 — `loading-ai-message` aceita `tenant_id` no payload
-```json
-{ "context": "...", "tenant_id": "..." }
-```
-O campo `tenant_id` é enviado pelo frontend, permitindo que um usuário passe o tenant_id de outro tenant e acesse suas chaves OpenAI.
+### ~~🔴 P0 — Funções Órfãs~~ ✅ RESOLVIDO (2026-02-15)
 
-**Mitigação:** Função órfã — 0 imports no frontend. **DELETAR.**
+Todas as 3 funções órfãs foram **deletadas**:
+- `cleanup-legacy-storage` — migração concluída
+- `migrate-storage-paths` — migração concluída
+- `loading-ai-message` — órfã com vulnerabilidade de tenant_id no payload
 
-### 🔴 P0 — Funções Órfãs (sem referência no frontend)
-| Função | Motivo |
-|---|---|
-| `cleanup-legacy-storage` | Migração concluída |
-| `migrate-storage-paths` | Migração concluída |
-| `loading-ai-message` | 0 imports + aceita tenant_id |
-
-**Ação:** Deletar todas.
+Tabela `storage_migration_log` também foi deletada.
 
 ### 🟡 P1 — Funções sem auth em endpoints públicos
 Workers cron (process-wa-followups, process-wa-outbox, process-webhook-events) não validam JWT, o que é esperado para workers. Porém, dependem de advisory locks para idempotência — OK.
@@ -95,4 +87,4 @@ Workers cron (process-wa-followups, process-wa-outbox, process-webhook-events) n
 ---
 
 ## Veredito
-53 funções, 3 órfãs (DELETAR), 1 com vulnerabilidade de tenant_id no payload (DELETAR). Restante: ✅
+50 funções ativas. 3 órfãs deletadas em 2026-02-15 (`cleanup-legacy-storage`, `migrate-storage-paths`, `loading-ai-message`). Restante: ✅

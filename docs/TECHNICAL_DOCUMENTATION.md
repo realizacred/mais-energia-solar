@@ -761,12 +761,9 @@ O sistema possui **31 Edge Functions** Deno, todas com `verify_jwt = false` no c
 | `send-push-notification` | POST | Envia push notification |
 | `generate-vapid-keys` | POST | Gera chaves VAPID |
 
-### Storage
+### ~~Storage~~ (Removidas)
 
-| Function | Método | Descrição |
-|----------|--------|-----------|
-| `cleanup-legacy-storage` | POST | Limpa arquivos de storage legado |
-| `migrate-storage-paths` | POST | Migra paths de storage para padrão tenant |
+> As edge functions `cleanup-legacy-storage` e `migrate-storage-paths` foram **deletadas** em 2026-02-15 (migrações concluídas).
 
 ---
 
