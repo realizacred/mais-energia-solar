@@ -36,7 +36,8 @@ export function TemplatesTab() {
 
   const handleDownload = async (path: string | null) => {
     if (!path) return;
-    const { data } = await supabase.storage.from("document-files").createSignedUrl(path, 60);
+    const { data, error } = await supabase.storage.from("document-files").createSignedUrl(path, 60);
+    if (error) { toast.error(`Erro ao gerar link: ${error.message}`); return; }
     if (data?.signedUrl) window.open(data.signedUrl, "_blank");
     else toast.error("Erro ao gerar link de download");
   };

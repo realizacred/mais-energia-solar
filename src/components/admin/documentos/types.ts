@@ -108,7 +108,9 @@ export interface SignatureSettings {
   sandbox_mode: boolean;
   webhook_secret_encrypted: string | null;
   created_at: string;
+  created_by: string | null;
   updated_at: string;
+  updated_by: string | null;
 }
 
 // Available template variables for the variables panel

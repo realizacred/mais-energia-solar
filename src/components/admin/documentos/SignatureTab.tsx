@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import type React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,7 +15,16 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import type { Signer, AuthMethod, SignatureSettings } from "./types";
-import { format } from "date-fns";
+
+// ── Shared helper ────────────────────────────────────────────
+async function getTenantIdOrThrow(): Promise<{ tenantId: string; userId: string }> {
+  const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
+  const tenantId = profile?.tenant_id;
+  if (!tenantId) throw new Error("Tenant não encontrado");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) throw new Error("Usuário não autenticado");
+  return { tenantId, userId: user.id };
+}
 
 const PROVIDERS = [
   { value: "docusign", label: "DocuSign" },
@@ -45,6 +55,8 @@ function SignatureConfig() {
   const [apiToken, setApiToken] = useState("");
   const [sandbox, setSandbox] = useState(true);
   const [webhookSecret, setWebhookSecret] = useState("");
+  const [hasExistingToken, setHasExistingToken] = useState(false);
+  const [hasExistingWebhook, setHasExistingWebhook] = useState(false);
 
   const { data: settings, isLoading } = useQuery({
     queryKey: ["signature_settings"],
@@ -60,33 +72,44 @@ function SignatureConfig() {
       setEnabled(settings.enabled);
       setProvider(settings.provider || "zapsign");
       setSandbox(settings.sandbox_mode);
-      setApiToken(settings.api_token_encrypted || "");
-      setWebhookSecret(settings.webhook_secret_encrypted || "");
+      // SECURITY: Never populate token fields with stored values
+      setApiToken("");
+      setWebhookSecret("");
+      setHasExistingToken(!!settings.api_token_encrypted);
+      setHasExistingWebhook(!!settings.webhook_secret_encrypted);
     }
   }, [settings]);
 
   const save = useMutation({
     mutationFn: async () => {
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
-      const tid = profile?.tenant_id;
-      if (!tid) throw new Error("Tenant não encontrado");
-      const { data: { user } } = await supabase.auth.getUser();
+      const { tenantId, userId } = await getTenantIdOrThrow();
 
-      const payload = {
-        tenant_id: tid,
+      const payload: Record<string, unknown> = {
+        tenant_id: tenantId,
         enabled,
         provider,
-        api_token_encrypted: apiToken || null,
         sandbox_mode: sandbox,
-        webhook_secret_encrypted: webhookSecret || null,
-        updated_by: user?.id,
+        updated_by: userId,
       };
 
+      // Only update secrets if user typed a new value
+      if (apiToken.trim()) {
+        payload.api_token_encrypted = apiToken.trim();
+      }
+      if (webhookSecret.trim()) {
+        payload.webhook_secret_encrypted = webhookSecret.trim();
+      }
+
       if (settings) {
-        const { error } = await supabase.from("signature_settings").update(payload).eq("tenant_id", tid);
+        const { error } = await supabase.from("signature_settings").update(payload).eq("tenant_id", tenantId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("signature_settings").insert({ ...payload, created_by: user?.id } as any);
+        const { error } = await supabase.from("signature_settings").insert({
+          ...payload,
+          api_token_encrypted: apiToken.trim() || null,
+          webhook_secret_encrypted: webhookSecret.trim() || null,
+          created_by: userId,
+        } as any);
         if (error) throw error;
       }
     },
@@ -121,7 +144,13 @@ function SignatureConfig() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">API Token</Label>
-              <Input type="password" value={apiToken} onChange={(e) => setApiToken(e.target.value)} className="h-9 text-sm" placeholder="sk_live_..." />
+              <Input
+                type="password"
+                value={apiToken}
+                onChange={(e) => setApiToken(e.target.value)}
+                className="h-9 text-sm"
+                placeholder={hasExistingToken ? "•••••••• (salvo)" : "sk_live_..."}
+              />
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={sandbox} onCheckedChange={setSandbox} />
@@ -129,7 +158,13 @@ function SignatureConfig() {
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Webhook Secret (opcional)</Label>
-              <Input type="password" value={webhookSecret} onChange={(e) => setWebhookSecret(e.target.value)} className="h-9 text-sm" />
+              <Input
+                type="password"
+                value={webhookSecret}
+                onChange={(e) => setWebhookSecret(e.target.value)}
+                className="h-9 text-sm"
+                placeholder={hasExistingWebhook ? "•••••••• (salvo)" : "whsec_..."}
+              />
             </div>
           </div>
           <div className="flex justify-end">
@@ -284,13 +319,10 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
     if (!fullName.trim() || !email.trim()) { toast.error("Nome e e-mail obrigatórios"); return; }
     setSaving(true);
     try {
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
-      const tid = profile?.tenant_id;
-      if (!tid) throw new Error("Tenant não encontrado");
-      const { data: { user } } = await supabase.auth.getUser();
+      const { tenantId, userId } = await getTenantIdOrThrow();
 
       const payload = {
-        tenant_id: tid,
+        tenant_id: tenantId,
         auth_method: authMethod,
         email: email.trim(),
         full_name: fullName.trim(),
@@ -298,14 +330,14 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
         birth_date: birthDate || null,
         phone: phone.trim() || null,
         options: { doc_oficial: docOficial, selfie, manuscrita, facial },
-        updated_by: user?.id,
+        updated_by: userId,
       };
 
       if (signer?.id) {
         const { error } = await supabase.from("signers").update(payload).eq("id", signer.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("signers").insert({ ...payload, created_by: user?.id } as any);
+        const { error } = await supabase.from("signers").insert({ ...payload, created_by: userId } as any);
         if (error) throw error;
       }
 

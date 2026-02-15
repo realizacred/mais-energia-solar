@@ -1,9 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { DocumentTemplate, DocumentCategory, FormFieldSchema, DefaultSigner } from "./types";
+import type { DocumentTemplate, DocumentCategory } from "./types";
 
 const QUERY_KEY = "document_templates";
+
+// ── Shared helper ────────────────────────────────────────────
+async function getTenantIdOrThrow(): Promise<{ tenantId: string; userId: string }> {
+  const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
+  const tenantId = profile?.tenant_id;
+  if (!tenantId) throw new Error("Tenant não encontrado");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) throw new Error("Usuário não autenticado");
+  return { tenantId, userId: user.id };
+}
 
 export function useDocumentTemplates(categoria?: DocumentCategory) {
   const qc = useQueryClient();
@@ -25,25 +35,32 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
 
   const upsert = useMutation({
     mutationFn: async (tpl: Partial<DocumentTemplate> & { id?: string }) => {
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
-      const tenant_id = profile?.tenant_id;
-      if (!tenant_id) throw new Error("Tenant não encontrado");
+      const { tenantId, userId } = await getTenantIdOrThrow();
 
-      const { data: { user } } = await supabase.auth.getUser();
       const payload = {
         ...tpl,
-        tenant_id,
-        updated_by: user?.id,
-        ...(tpl.id ? {} : { created_by: user?.id }),
+        tenant_id: tenantId,
+        updated_by: userId,
         form_schema: tpl.form_schema ? JSON.parse(JSON.stringify(tpl.form_schema)) : [],
         default_signers: tpl.default_signers ? JSON.parse(JSON.stringify(tpl.default_signers)) : [],
       };
 
       if (tpl.id) {
-        const { error } = await supabase.from("document_templates").update(payload).eq("id", tpl.id);
+        // Update — never overwrite tenant_id, add tenant_id guard
+        const { error } = await supabase
+          .from("document_templates")
+          .update(payload)
+          .eq("id", tpl.id)
+          .eq("tenant_id", tenantId);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("document_templates").insert(payload as any);
+        // Insert — ensure defaults
+        const { error } = await supabase.from("document_templates").insert({
+          ...payload,
+          created_by: userId,
+          status: "active",
+          version: 1,
+        } as any);
         if (error) throw error;
       }
     },
@@ -56,7 +73,12 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
 
   const archive = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("document_templates").update({ status: "archived" }).eq("id", id);
+      const { tenantId } = await getTenantIdOrThrow();
+      const { error } = await supabase
+        .from("document_templates")
+        .update({ status: "archived" })
+        .eq("id", id)
+        .eq("tenant_id", tenantId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -70,10 +92,10 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
     mutationFn: async (id: string) => {
       const tpl = query.data?.find(t => t.id === id);
       if (!tpl) throw new Error("Template não encontrado");
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").single();
-      const { data: { user } } = await supabase.auth.getUser();
+      const { tenantId, userId } = await getTenantIdOrThrow();
+
       const { error } = await supabase.from("document_templates").insert({
-        tenant_id: profile?.tenant_id,
+        tenant_id: tenantId,
         categoria: tpl.categoria,
         subcategoria: tpl.subcategoria,
         nome: `${tpl.nome} (cópia)`,
@@ -84,8 +106,8 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
         requires_signature_default: tpl.requires_signature_default,
         default_signers: JSON.parse(JSON.stringify(tpl.default_signers)),
         form_schema: JSON.parse(JSON.stringify(tpl.form_schema)),
-        created_by: user?.id,
-        updated_by: user?.id,
+        created_by: userId,
+        updated_by: userId,
       } as any);
       if (error) throw error;
     },
