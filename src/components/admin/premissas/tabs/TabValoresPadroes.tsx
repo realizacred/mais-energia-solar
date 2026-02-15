@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HelpCircle, Zap, Loader2 } from "lucide-react";
+import { HelpCircle, Zap, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 
@@ -157,6 +157,19 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
   const isOnGrid = premises.tipo_sistema === "on_grid";
   const selectedConc = concessionarias.find((c) => c.id === (premises as any).concessionaria_id);
 
+  // Detect divergence between premises and linked concessionária
+  const divergencias = useMemo(() => {
+    if (!selectedConc) return [];
+    const diffs: { campo: string; premissa: number; conc: number }[] = [];
+    if (selectedConc.tarifa_energia != null && Math.abs(premises.tarifa - selectedConc.tarifa_energia) > 0.0001)
+      diffs.push({ campo: "Tarifa", premissa: premises.tarifa, conc: selectedConc.tarifa_energia });
+    if (selectedConc.tarifa_fio_b != null && Math.abs(premises.tusd_fio_b_bt - selectedConc.tarifa_fio_b) > 0.0001)
+      diffs.push({ campo: "TUSD Fio B", premissa: premises.tusd_fio_b_bt, conc: selectedConc.tarifa_fio_b });
+    if (selectedConc.aliquota_icms != null && Math.abs(premises.imposto_energia - selectedConc.aliquota_icms) > 0.01)
+      diffs.push({ campo: "ICMS", premissa: premises.imposto_energia, conc: selectedConc.aliquota_icms });
+    return diffs;
+  }, [selectedConc, premises.tarifa, premises.tusd_fio_b_bt, premises.imposto_energia]);
+
   return (
     <Card>
       <CardContent className="pt-6 space-y-6">
@@ -191,6 +204,30 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
               {selectedConc.possui_isencao_scee && (
                 <Badge variant="secondary" className="text-[10px]">Isenção SCEE: {selectedConc.percentual_isencao}%</Badge>
               )}
+            </div>
+           )}
+          {divergencias.length > 0 && (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-warning">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Valores divergentes da concessionária
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {divergencias.map((d) => (
+                  <Badge key={d.campo} variant="outline" className="text-[10px] border-warning/40">
+                    {d.campo}: premissa {d.premissa.toFixed(5)} ≠ conc. {d.conc.toFixed(5)}
+                  </Badge>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="text-[10px] font-medium text-primary hover:underline"
+                onClick={() => {
+                  if (selectedConc) handleConcessionariaChange(selectedConc.id);
+                }}
+              >
+                Atualizar premissas com valores da concessionária
+              </button>
             </div>
           )}
         </div>
