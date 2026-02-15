@@ -41,21 +41,21 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     items: [
       {
         id: "dashboard",
-        title: "Dashboard",
+        title: "Painel",
         icon: LayoutDashboard,
-        description: "Visão geral de performance",
+        description: "Resumo de métricas e indicadores",
       },
       {
         id: "whatsapp",
-        title: "WhatsApp",
+        title: "Atendimento",
         icon: MessageCircle,
-        description: "Central de atendimento",
+        description: "Conversas e mensagens de clientes",
       },
       {
         id: "agenda",
         title: "Agenda",
         icon: ClipboardCheck,
-        description: "Tarefas e compromissos",
+        description: "Compromissos e tarefas do dia",
       },
     ],
   },
@@ -73,13 +73,13 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
         id: "orcamentos",
         title: "Orçamentos",
         icon: FileText,
-        description: "Leads e propostas",
+        description: "Propostas e simulações enviadas",
       },
       {
         id: "gamificacao",
-        title: "Gamificação",
+        title: "Metas & Ranking",
         icon: Trophy,
-        description: "Metas e ranking",
+        description: "Seu desempenho e posição na equipe",
       },
     ],
   },
@@ -95,26 +95,26 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     items: [
       {
         id: "links",
-        title: "Links & App",
+        title: "Captação & App",
         icon: Smartphone,
-        description: "Instalação PWA e links",
+        description: "Links de captação e instalação do app",
       },
       {
         id: "notificacoes",
         title: "Notificações",
         icon: Bell,
-        description: "Configurar alertas",
+        description: "Seus alertas e avisos",
       },
     ],
   },
 ];
 
 export const VENDOR_TAB_TITLES: Record<string, string> = {
-  dashboard: "Dashboard",
-  whatsapp: "WhatsApp",
+  dashboard: "Painel",
+  whatsapp: "Atendimento",
   agenda: "Agenda",
   orcamentos: "Orçamentos",
-  gamificacao: "Gamificação & Ranking",
-  links: "Links & Instalação",
+  gamificacao: "Metas & Ranking",
+  links: "Captação & App",
   notificacoes: "Notificações",
 };
