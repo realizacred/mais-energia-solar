@@ -17,7 +17,6 @@ export function StepPremissas({ premissas, onPremissasChange }: Props) {
   const [hasLoaded, setHasLoaded] = useState(false);
   const [source, setSource] = useState<"manual" | "tenant">("manual");
 
-  // Load tenant defaults from premissas_tecnicas on mount (once)
   useEffect(() => {
     if (hasLoaded) return;
     loadTenantDefaults();
@@ -26,25 +25,48 @@ export function StepPremissas({ premissas, onPremissasChange }: Props) {
   const loadTenantDefaults = async () => {
     setLoadingDefaults(true);
     try {
-      const { data } = await supabase
-        .from("premissas_tecnicas")
-        .select("irradiacao_media_kwh_m2, performance_ratio, degradacao_anual_percent, vida_util_anos, fator_perdas_percent, horas_sol_pico, reajuste_tarifa_anual_percent, taxa_selic_anual, ipca_anual, custo_disponibilidade_mono, custo_disponibilidade_bi, custo_disponibilidade_tri, taxas_fixas_mensais")
+      // Try canonical tenant_premises first
+      const { data: tp } = await supabase
+        .from("tenant_premises")
+        .select("inflacao_energetica, vpl_taxa_desconto, imposto_energia, perda_eficiencia_tradicional, sobredimensionamento_padrao, troca_inversor_anos_tradicional, custo_troca_inversor_tradicional")
         .limit(1)
         .maybeSingle();
 
-      if (data) {
-        const d = data as any;
+      if (tp) {
+        const d = tp as any;
         onPremissasChange({
           ...premissas,
-          inflacao_energetica: d.reajuste_tarifa_anual_percent ?? premissas.inflacao_energetica,
-          inflacao_ipca: d.ipca_anual ?? premissas.inflacao_ipca,
-          perda_eficiencia_anual: d.degradacao_anual_percent ?? premissas.perda_eficiencia_anual,
-          vpl_taxa_desconto: d.taxa_selic_anual ?? premissas.vpl_taxa_desconto,
+          inflacao_energetica: d.inflacao_energetica ?? premissas.inflacao_energetica,
+          vpl_taxa_desconto: d.vpl_taxa_desconto ?? premissas.vpl_taxa_desconto,
+          imposto: d.imposto_energia ?? premissas.imposto,
+          perda_eficiencia_anual: d.perda_eficiencia_tradicional ?? premissas.perda_eficiencia_anual,
+          sobredimensionamento: d.sobredimensionamento_padrao ?? premissas.sobredimensionamento,
+          troca_inversor_anos: d.troca_inversor_anos_tradicional ?? premissas.troca_inversor_anos,
+          troca_inversor_custo: d.custo_troca_inversor_tradicional ?? premissas.troca_inversor_custo,
         });
         setSource("tenant");
+      } else {
+        // Fallback to legacy premissas_tecnicas
+        const { data } = await supabase
+          .from("premissas_tecnicas")
+          .select("reajuste_tarifa_anual_percent, ipca_anual, degradacao_anual_percent, taxa_selic_anual")
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          const d = data as any;
+          onPremissasChange({
+            ...premissas,
+            inflacao_energetica: d.reajuste_tarifa_anual_percent ?? premissas.inflacao_energetica,
+            inflacao_ipca: d.ipca_anual ?? premissas.inflacao_ipca,
+            perda_eficiencia_anual: d.degradacao_anual_percent ?? premissas.perda_eficiencia_anual,
+            vpl_taxa_desconto: d.taxa_selic_anual ?? premissas.vpl_taxa_desconto,
+          });
+          setSource("tenant");
+        }
       }
     } catch (e) {
-      console.warn("Falha ao carregar premissas da tabela premissas_tecnicas:", e);
+      console.warn("Falha ao carregar premissas do tenant:", e);
     } finally {
       setLoadingDefaults(false);
       setHasLoaded(true);

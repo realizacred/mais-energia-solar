@@ -9410,6 +9410,223 @@ export type Database = {
           },
         ]
       }
+      tenant_premises: {
+        Row: {
+          base_irradiancia: string
+          considerar_custo_disponibilidade: boolean
+          considerar_custo_disponibilidade_solar: boolean
+          considerar_kits_transformador: boolean
+          created_at: string
+          created_by: string | null
+          custo_troca_inversor_microinversor: number
+          custo_troca_inversor_otimizador: number
+          custo_troca_inversor_tradicional: number
+          desvio_azimutal: number
+          dod: number
+          fase_tensao_rede: string
+          fator_simultaneidade: number
+          fornecedor_filtro: string
+          grupo_tarifario: string
+          id: string
+          imposto_energia: number
+          inclinacao_modulos: number
+          inflacao_energetica: number
+          margem_potencia_ideal: number
+          outros_encargos_atual: number
+          outros_encargos_novo: number
+          perda_eficiencia_microinversor: number
+          perda_eficiencia_otimizador: number
+          perda_eficiencia_tradicional: number
+          preco_demanda: number
+          preco_demanda_geracao: number
+          sobredimensionamento_padrao: number
+          tarifa: number
+          tarifa_te_fora_ponta: number
+          tarifa_te_ponta: number
+          tarifa_tusd_fora_ponta: number
+          tarifa_tusd_ponta: number
+          tarifacao_compensada_bt: number
+          tarifacao_compensada_fora_ponta: number
+          tarifacao_compensada_ponta: number
+          taxa_desempenho_microinversor: number
+          taxa_desempenho_otimizador: number
+          taxa_desempenho_tradicional: number
+          tenant_id: string
+          tipo_kits: string[]
+          tipo_preco: string
+          tipo_sistema: string
+          tipo_telhado_padrao: string
+          topologias: string[]
+          troca_inversor_anos_microinversor: number
+          troca_inversor_anos_otimizador: number
+          troca_inversor_anos_tradicional: number
+          tusd_fio_b_bt: number
+          tusd_fio_b_fora_ponta: number
+          tusd_fio_b_ponta: number
+          updated_at: string
+          updated_by: string | null
+          vpl_taxa_desconto: number
+        }
+        Insert: {
+          base_irradiancia?: string
+          considerar_custo_disponibilidade?: boolean
+          considerar_custo_disponibilidade_solar?: boolean
+          considerar_kits_transformador?: boolean
+          created_at?: string
+          created_by?: string | null
+          custo_troca_inversor_microinversor?: number
+          custo_troca_inversor_otimizador?: number
+          custo_troca_inversor_tradicional?: number
+          desvio_azimutal?: number
+          dod?: number
+          fase_tensao_rede?: string
+          fator_simultaneidade?: number
+          fornecedor_filtro?: string
+          grupo_tarifario?: string
+          id?: string
+          imposto_energia?: number
+          inclinacao_modulos?: number
+          inflacao_energetica?: number
+          margem_potencia_ideal?: number
+          outros_encargos_atual?: number
+          outros_encargos_novo?: number
+          perda_eficiencia_microinversor?: number
+          perda_eficiencia_otimizador?: number
+          perda_eficiencia_tradicional?: number
+          preco_demanda?: number
+          preco_demanda_geracao?: number
+          sobredimensionamento_padrao?: number
+          tarifa?: number
+          tarifa_te_fora_ponta?: number
+          tarifa_te_ponta?: number
+          tarifa_tusd_fora_ponta?: number
+          tarifa_tusd_ponta?: number
+          tarifacao_compensada_bt?: number
+          tarifacao_compensada_fora_ponta?: number
+          tarifacao_compensada_ponta?: number
+          taxa_desempenho_microinversor?: number
+          taxa_desempenho_otimizador?: number
+          taxa_desempenho_tradicional?: number
+          tenant_id: string
+          tipo_kits?: string[]
+          tipo_preco?: string
+          tipo_sistema?: string
+          tipo_telhado_padrao?: string
+          topologias?: string[]
+          troca_inversor_anos_microinversor?: number
+          troca_inversor_anos_otimizador?: number
+          troca_inversor_anos_tradicional?: number
+          tusd_fio_b_bt?: number
+          tusd_fio_b_fora_ponta?: number
+          tusd_fio_b_ponta?: number
+          updated_at?: string
+          updated_by?: string | null
+          vpl_taxa_desconto?: number
+        }
+        Update: {
+          base_irradiancia?: string
+          considerar_custo_disponibilidade?: boolean
+          considerar_custo_disponibilidade_solar?: boolean
+          considerar_kits_transformador?: boolean
+          created_at?: string
+          created_by?: string | null
+          custo_troca_inversor_microinversor?: number
+          custo_troca_inversor_otimizador?: number
+          custo_troca_inversor_tradicional?: number
+          desvio_azimutal?: number
+          dod?: number
+          fase_tensao_rede?: string
+          fator_simultaneidade?: number
+          fornecedor_filtro?: string
+          grupo_tarifario?: string
+          id?: string
+          imposto_energia?: number
+          inclinacao_modulos?: number
+          inflacao_energetica?: number
+          margem_potencia_ideal?: number
+          outros_encargos_atual?: number
+          outros_encargos_novo?: number
+          perda_eficiencia_microinversor?: number
+          perda_eficiencia_otimizador?: number
+          perda_eficiencia_tradicional?: number
+          preco_demanda?: number
+          preco_demanda_geracao?: number
+          sobredimensionamento_padrao?: number
+          tarifa?: number
+          tarifa_te_fora_ponta?: number
+          tarifa_te_ponta?: number
+          tarifa_tusd_fora_ponta?: number
+          tarifa_tusd_ponta?: number
+          tarifacao_compensada_bt?: number
+          tarifacao_compensada_fora_ponta?: number
+          tarifacao_compensada_ponta?: number
+          taxa_desempenho_microinversor?: number
+          taxa_desempenho_otimizador?: number
+          taxa_desempenho_tradicional?: number
+          tenant_id?: string
+          tipo_kits?: string[]
+          tipo_preco?: string
+          tipo_sistema?: string
+          tipo_telhado_padrao?: string
+          topologias?: string[]
+          troca_inversor_anos_microinversor?: number
+          troca_inversor_anos_otimizador?: number
+          troca_inversor_anos_tradicional?: number
+          tusd_fio_b_bt?: number
+          tusd_fio_b_fora_ponta?: number
+          tusd_fio_b_ponta?: number
+          updated_at?: string
+          updated_by?: string | null
+          vpl_taxa_desconto?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_premises_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_roof_area_factors: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          fator_area: number
+          id: string
+          tenant_id: string
+          tipo_telhado: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          fator_area?: number
+          id?: string
+          tenant_id: string
+          tipo_telhado: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          fator_area?: number
+          id?: string
+          tenant_id?: string
+          tipo_telhado?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_roof_area_factors_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_smtp_config: {
         Row: {
           ativo: boolean | null
