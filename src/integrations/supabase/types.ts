@@ -2238,6 +2238,71 @@ export type Database = {
           },
         ]
       }
+      document_templates: {
+        Row: {
+          categoria: string
+          created_at: string
+          created_by: string | null
+          default_signers: Json | null
+          descricao: string | null
+          docx_storage_path: string | null
+          form_schema: Json | null
+          id: string
+          nome: string
+          requires_signature_default: boolean
+          status: string
+          subcategoria: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+        }
+        Insert: {
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          default_signers?: Json | null
+          descricao?: string | null
+          docx_storage_path?: string | null
+          form_schema?: Json | null
+          id?: string
+          nome: string
+          requires_signature_default?: boolean
+          status?: string
+          subcategoria?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          default_signers?: Json | null
+          descricao?: string | null
+          docx_storage_path?: string | null
+          form_schema?: Json | null
+          id?: string
+          nome?: string
+          requires_signature_default?: boolean
+          status?: string
+          subcategoria?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       edge_rate_limits: {
         Row: {
           function_name: string
@@ -2432,6 +2497,121 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "gamification_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_documents: {
+        Row: {
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          deal_id: string | null
+          docx_filled_path: string | null
+          envelope_id: string | null
+          id: string
+          input_payload: Json | null
+          lead_id: string | null
+          pdf_path: string | null
+          projeto_id: string | null
+          signature_provider: string | null
+          signature_status: string | null
+          signed_at: string | null
+          status: string
+          template_id: string
+          template_version: number
+          tenant_id: string
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string | null
+          docx_filled_path?: string | null
+          envelope_id?: string | null
+          id?: string
+          input_payload?: Json | null
+          lead_id?: string | null
+          pdf_path?: string | null
+          projeto_id?: string | null
+          signature_provider?: string | null
+          signature_status?: string | null
+          signed_at?: string | null
+          status?: string
+          template_id: string
+          template_version?: number
+          tenant_id: string
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string | null
+          docx_filled_path?: string | null
+          envelope_id?: string | null
+          id?: string
+          input_payload?: Json | null
+          lead_id?: string | null
+          pdf_path?: string | null
+          projeto_id?: string | null
+          signature_provider?: string | null
+          signature_status?: string | null
+          signed_at?: string | null
+          status?: string
+          template_id?: string
+          template_version?: number
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -8372,6 +8552,109 @@ export type Database = {
           },
           {
             foreignKeyName: "servicos_agendados_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signature_settings: {
+        Row: {
+          api_token_encrypted: string | null
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          provider: string | null
+          sandbox_mode: boolean
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          webhook_secret_encrypted: string | null
+        }
+        Insert: {
+          api_token_encrypted?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          provider?: string | null
+          sandbox_mode?: boolean
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          webhook_secret_encrypted?: string | null
+        }
+        Update: {
+          api_token_encrypted?: string | null
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          provider?: string | null
+          sandbox_mode?: boolean
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          webhook_secret_encrypted?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signature_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      signers: {
+        Row: {
+          auth_method: string
+          birth_date: string | null
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          email: string
+          full_name: string
+          id: string
+          options: Json | null
+          phone: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auth_method?: string
+          birth_date?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          email: string
+          full_name: string
+          id?: string
+          options?: Json | null
+          phone?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auth_method?: string
+          birth_date?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          options?: Json | null
+          phone?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "signers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
