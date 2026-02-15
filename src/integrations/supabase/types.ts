@@ -5517,6 +5517,7 @@ export type Database = {
       }
       projetos: {
         Row: {
+          area_util_m2: number | null
           cliente_id: string | null
           codigo: string | null
           consultor_id: string | null
@@ -5527,25 +5528,35 @@ export type Database = {
           data_previsao_instalacao: string | null
           data_venda: string | null
           etapa_id: string | null
+          forma_pagamento: string | null
           funil_id: string | null
+          geracao_mensal_media_kwh: number | null
           id: string
           instalador_id: string | null
           lead_id: string | null
           modelo_inversor: string | null
           modelo_modulos: string | null
+          numero_inversores: number | null
           numero_modulos: number | null
+          numero_parcelas: number | null
           observacoes: string | null
           potencia_kwp: number | null
+          prazo_estimado_dias: number | null
+          prazo_vistoria_dias: number | null
           proposta_id: string | null
           status: Database["public"]["Enums"]["projeto_status"]
           tenant_id: string
           tipo_instalacao: string | null
           updated_at: string
+          valor_entrada: number | null
           valor_equipamentos: number | null
+          valor_financiado: number | null
           valor_mao_obra: number | null
+          valor_parcela: number | null
           valor_total: number | null
         }
         Insert: {
+          area_util_m2?: number | null
           cliente_id?: string | null
           codigo?: string | null
           consultor_id?: string | null
@@ -5556,25 +5567,35 @@ export type Database = {
           data_previsao_instalacao?: string | null
           data_venda?: string | null
           etapa_id?: string | null
+          forma_pagamento?: string | null
           funil_id?: string | null
+          geracao_mensal_media_kwh?: number | null
           id?: string
           instalador_id?: string | null
           lead_id?: string | null
           modelo_inversor?: string | null
           modelo_modulos?: string | null
+          numero_inversores?: number | null
           numero_modulos?: number | null
+          numero_parcelas?: number | null
           observacoes?: string | null
           potencia_kwp?: number | null
+          prazo_estimado_dias?: number | null
+          prazo_vistoria_dias?: number | null
           proposta_id?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
           updated_at?: string
+          valor_entrada?: number | null
           valor_equipamentos?: number | null
+          valor_financiado?: number | null
           valor_mao_obra?: number | null
+          valor_parcela?: number | null
           valor_total?: number | null
         }
         Update: {
+          area_util_m2?: number | null
           cliente_id?: string | null
           codigo?: string | null
           consultor_id?: string | null
@@ -5585,22 +5606,31 @@ export type Database = {
           data_previsao_instalacao?: string | null
           data_venda?: string | null
           etapa_id?: string | null
+          forma_pagamento?: string | null
           funil_id?: string | null
+          geracao_mensal_media_kwh?: number | null
           id?: string
           instalador_id?: string | null
           lead_id?: string | null
           modelo_inversor?: string | null
           modelo_modulos?: string | null
+          numero_inversores?: number | null
           numero_modulos?: number | null
+          numero_parcelas?: number | null
           observacoes?: string | null
           potencia_kwp?: number | null
+          prazo_estimado_dias?: number | null
+          prazo_vistoria_dias?: number | null
           proposta_id?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
           updated_at?: string
+          valor_entrada?: number | null
           valor_equipamentos?: number | null
+          valor_financiado?: number | null
           valor_mao_obra?: number | null
+          valor_parcela?: number | null
           valor_total?: number | null
         }
         Relationships: [
