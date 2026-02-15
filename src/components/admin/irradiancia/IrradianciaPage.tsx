@@ -368,9 +368,7 @@ export function IrradianciaPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {(isFetching || importingVersions.has(
-                    versions.find(v => v.dataset_id === ds.id && v.status === "processing")?.id ?? ""
-                  )) && (
+                  {(isFetching || versions.some(v => v.dataset_id === ds.id && v.status === "processing")) && (
                     <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
