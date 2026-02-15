@@ -33,7 +33,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       const [leadsRes, statusesRes] = await Promise.all([
         supabase
           .from("leads")
-          .select("*, consultores:consultor_id(id, nome)", { count: "exact" })
+          .select("*, consultores:consultor_id(id, nome), clientes!clientes_lead_id_fkey(id, potencia_kwp, valor_projeto)", { count: "exact" })
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .range(from, to),
@@ -46,11 +46,19 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       if (leadsRes.error) throw leadsRes.error;
 
       // Resolve vendedor_nome from join, fallback to vendedor text
-      const enrichedLeads: Lead[] = (leadsRes.data || []).map((l: any) => ({
-        ...l,
-        consultor_nome: l.consultores?.nome || l.consultor || null,
-        consultores: undefined, // clean up join artifact
-      }));
+      // Also attach client data if lead was converted
+      const enrichedLeads: Lead[] = (leadsRes.data || []).map((l: any) => {
+        const cliente = Array.isArray(l.clientes) ? l.clientes[0] : l.clientes;
+        return {
+          ...l,
+          consultor_nome: l.consultores?.nome || l.consultor || null,
+          cliente_potencia_kwp: cliente?.potencia_kwp ?? null,
+          cliente_valor_projeto: cliente?.valor_projeto ?? null,
+          cliente_id_vinculado: cliente?.id ?? null,
+          consultores: undefined,
+          clientes: undefined,
+        };
+      });
 
       setLeads(enrichedLeads);
       setTotalCount(leadsRes.count || 0);

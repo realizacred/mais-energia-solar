@@ -34,6 +34,10 @@ export interface Lead {
   updated_at: string;
   /** Joined from consultores table via consultor_id */
   consultor_nome?: string;
+  /** Joined from clientes table via lead_id (reverse FK) */
+  cliente_potencia_kwp?: number | null;
+  cliente_valor_projeto?: number | null;
+  cliente_id_vinculado?: string | null;
   /** @deprecated Use consultor_id + consultor_nome instead */
   _consultor_text_fallback?: string;
 }

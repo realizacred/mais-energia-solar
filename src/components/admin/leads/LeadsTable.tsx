@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,8 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
             <TableHead>Consultor</TableHead>
             <TableHead>Localização</TableHead>
             <TableHead>Consumo</TableHead>
+            <TableHead>Consumo Previsto</TableHead>
+            <TableHead>Contratado</TableHead>
             <TableHead>Data</TableHead>
             <TableHead className="text-right">Ações</TableHead>
           </TableRow>
@@ -100,7 +102,45 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                   {lead.cidade}, {lead.estado}
                 </Badge>
               </TableCell>
-              <TableCell>{lead.media_consumo} kWh</TableCell>
+              <TableCell>
+                <span className="flex items-center gap-1">
+                  <Zap className="w-3 h-3 text-muted-foreground" />
+                  {lead.media_consumo} kWh
+                </span>
+              </TableCell>
+              <TableCell>
+                {lead.consumo_previsto ? (
+                  <span className="flex items-center gap-1">
+                    <TrendingUp className="w-3 h-3 text-muted-foreground" />
+                    {lead.consumo_previsto} kWh
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground text-sm">-</span>
+                )}
+              </TableCell>
+              <TableCell>
+                {lead.cliente_id_vinculado ? (
+                  <div className="space-y-0.5">
+                    {lead.cliente_potencia_kwp != null && (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 text-xs">
+                        {lead.cliente_potencia_kwp} kWp
+                      </Badge>
+                    )}
+                    {lead.cliente_valor_projeto != null && (
+                      <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
+                        R$ {lead.cliente_valor_projeto.toLocaleString("pt-BR")}
+                      </Badge>
+                    )}
+                    {!lead.cliente_potencia_kwp && !lead.cliente_valor_projeto && (
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs">
+                        Sem dados
+                      </Badge>
+                    )}
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-sm">-</span>
+                )}
+              </TableCell>
               <TableCell>
                 {format(new Date(lead.created_at), "dd/MM/yyyy", { locale: ptBR })}
               </TableCell>
