@@ -21,17 +21,15 @@ interface FetchParams {
   dataset_code: string;
   version_tag: string;
   source_note?: string;
-  /** Grid step in degrees (default 1.0) */
   step_deg?: number;
-  /** Optional sub-region */
   lat_min?: number;
   lat_max?: number;
   lon_min?: number;
   lon_max?: number;
-  /** Continuation: existing version to append to */
   append_to_version?: string;
-  /** Continuation: lat to resume from (exclusive) */
   resume_from_lat?: number;
+  /** Internal: user_id for self-chaining calls */
+  _chain_user_id?: string;
 }
 
 function ok(data: unknown) {
@@ -54,27 +52,38 @@ Deno.serve(async (req) => {
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-  // Auth check
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return err("Unauthorized", 401);
+
+  // Support self-chaining: use service role auth with _chain_user_id
+  let userId: string;
+  const body: FetchParams = await req.json();
+
+  if (body._chain_user_id) {
+    // Self-chaining call — validate it comes with service role key
+    if (authHeader !== `Bearer ${serviceKey}`) {
+      return err("Unauthorized chain call", 401);
+    }
+    userId = body._chain_user_id;
+  } else {
+    // Normal user call — validate JWT
+    if (!authHeader?.startsWith("Bearer ")) {
+      return err("Unauthorized", 401);
+    }
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      return err("Unauthorized", 401);
+    }
+    userId = user.id;
   }
 
-  const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: authHeader } },
-  });
-
-  const { data: { user }, error: userError } = await userClient.auth.getUser();
-  if (userError || !user) {
-    return err("Unauthorized", 401);
-  }
-
-  const userId = user.id;
   const admin = createClient(supabaseUrl, serviceKey);
 
   try {
-    const body: FetchParams = await req.json();
     const { dataset_code, version_tag, source_note, append_to_version, resume_from_lat } = body;
     const step = body.step_deg ?? 1.0;
 
@@ -100,7 +109,6 @@ Deno.serve(async (req) => {
     let versionId: string;
 
     if (isResume) {
-      // Validate the version exists and is still processing
       const { data: existingVersion } = await admin
         .from("irradiance_dataset_versions")
         .select("id, status")
@@ -134,7 +142,6 @@ Deno.serve(async (req) => {
     const lonMin = body.lon_min ?? BRAZIL_BBOX.lonMin;
     const lonMax = body.lon_max ?? BRAZIL_BBOX.lonMax;
 
-    // Calculate full grid to report total
     const allLats: number[] = [];
     for (let lat = latMin; lat <= latMax; lat += step) {
       allLats.push(Math.round(lat * 1000) / 1000);
@@ -142,33 +149,27 @@ Deno.serve(async (req) => {
     const lonSteps = Math.floor((lonMax - lonMin) / step) + 1;
     const totalGridPoints = allLats.length * lonSteps;
 
-    // Filter to only process lats after resume point
     const startFromLat = resume_from_lat != null ? resume_from_lat + step : latMin;
     const chunkLats = allLats.filter(lat => lat >= Math.round(startFromLat * 1000) / 1000);
 
-    // Determine how many lat rows we can process in this chunk
     const maxLatRows = Math.ceil(MAX_POINTS_PER_CHUNK / lonSteps);
     const thisChunkLats = chunkLats.slice(0, maxLatRows);
     const hasMore = chunkLats.length > maxLatRows;
 
-    // Generate points for this chunk
     const points: Array<{ lat: number; lon: number }> = [];
     for (const lat of thisChunkLats) {
       for (let lon = lonMin; lon <= lonMax; lon += step) {
-        points.push({
-          lat,
-          lon: Math.round(lon * 1000) / 1000,
-        });
+        points.push({ lat, lon: Math.round(lon * 1000) / 1000 });
       }
     }
 
     if (points.length === 0) {
-      console.log(`[IRRADIANCE_FETCH] No points to process (resume_from_lat=${resume_from_lat})`);
+      console.log(`[IRRADIANCE_FETCH] No points to process`);
       return ok({ success: true, version_id: versionId, chunk_rows: 0, needs_continuation: false });
     }
 
     const lastLatInChunk = thisChunkLats[thisChunkLats.length - 1];
-    console.log(`[IRRADIANCE_FETCH] Chunk: ${points.length} points, lats ${thisChunkLats[0]} to ${lastLatInChunk} (${hasMore ? "more chunks pending" : "final chunk"})`);
+    console.log(`[IRRADIANCE_FETCH] Chunk: ${points.length} points, lats ${thisChunkLats[0]} to ${lastLatInChunk} (${hasMore ? "more pending" : "final"})`);
 
     // 4. Fetch from NASA POWER API
     const BATCH_SIZE = 500;
@@ -184,10 +185,7 @@ Deno.serve(async (req) => {
           try {
             const url = `${NASA_POWER_BASE}?parameters=ALLSKY_SFC_SW_DWN,ALLSKY_SFC_SW_DIFF&community=RE&longitude=${pt.lon}&latitude=${pt.lat}&format=JSON`;
             const resp = await fetch(url);
-            if (!resp.ok) {
-              console.warn(`[IRRADIANCE_FETCH] NASA API error for (${pt.lat},${pt.lon}): ${resp.status}`);
-              return null;
-            }
+            if (!resp.ok) return null;
             const data = await resp.json();
             const ghiMonthly = data?.properties?.parameter?.ALLSKY_SFC_SW_DWN;
             const dhiMonthly = data?.properties?.parameter?.ALLSKY_SFC_SW_DIFF;
@@ -222,24 +220,14 @@ Deno.serve(async (req) => {
         if (r.status === "fulfilled" && r.value) {
           batch.push(r.value);
           rowCount++;
-
           if (batch.length >= BATCH_SIZE) {
-            const { error: insertError } = await admin
-              .from("irradiance_points_monthly")
-              .insert(batch);
-            if (insertError) {
-              console.error(`[IRRADIANCE_FETCH] Batch insert error:`, insertError);
-              errors++;
-            }
+            const { error: insertError } = await admin.from("irradiance_points_monthly").insert(batch);
+            if (insertError) errors++;
             batch = [];
           }
         } else {
           errors++;
         }
-      }
-
-      if ((i + CONCURRENT) % 100 === 0 || i + CONCURRENT >= points.length) {
-        console.log(`[IRRADIANCE_FETCH] Progress: ${Math.min(i + CONCURRENT, points.length)}/${points.length} (${rowCount} ok, ${errors} err)`);
       }
 
       await new Promise((r) => setTimeout(r, DELAY_MS));
@@ -248,13 +236,10 @@ Deno.serve(async (req) => {
     // Final batch
     if (batch.length > 0) {
       const { error: insertError } = await admin.from("irradiance_points_monthly").insert(batch);
-      if (insertError) {
-        console.error(`[IRRADIANCE_FETCH] Final batch insert error:`, insertError);
-        errors++;
-      }
+      if (insertError) errors++;
     }
 
-    // 5. Update version metadata with progress
+    // 5. Update version metadata
     const { data: currentVersion } = await admin
       .from("irradiance_dataset_versions")
       .select("row_count, metadata")
@@ -301,20 +286,7 @@ Deno.serve(async (req) => {
           .neq("id", versionId);
       }
 
-      // Audit log
-      await admin.from("audit_logs").insert({
-        acao: "IRRADIANCE_FETCH_FINISHED",
-        tabela: "irradiance_dataset_versions",
-        registro_id: versionId,
-        dados_novos: {
-          dataset_code, version_tag,
-          row_count: totalRowsSoFar, errors,
-          checksum, source: "NASA_POWER_API",
-        },
-        user_id: userId,
-      });
-
-      console.log(`[IRRADIANCE_FETCH] DONE — ${totalRowsSoFar} total rows, final chunk ${rowCount} rows`);
+      console.log(`[IRRADIANCE_FETCH] DONE — ${totalRowsSoFar} total rows`);
     } else {
       // Update progress
       await admin
@@ -333,7 +305,33 @@ Deno.serve(async (req) => {
         })
         .eq("id", versionId);
 
-      console.log(`[IRRADIANCE_FETCH] CHUNK DONE — ${totalRowsSoFar} rows so far, next resume_from_lat=${lastLatInChunk}`);
+      console.log(`[IRRADIANCE_FETCH] CHUNK DONE — ${totalRowsSoFar} rows so far. Self-chaining next chunk…`);
+
+      // ── SELF-CHAIN: fire-and-forget call to continue processing ──
+      const nextBody: FetchParams = {
+        dataset_code,
+        version_tag,
+        step_deg: step,
+        lat_min: latMin,
+        lat_max: latMax,
+        lon_min: lonMin,
+        lon_max: lonMax,
+        append_to_version: versionId,
+        resume_from_lat: lastLatInChunk,
+        _chain_user_id: userId,
+      };
+
+      // Fire and forget — don't await
+      fetch(`${supabaseUrl}/functions/v1/irradiance-fetch`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceKey}`,
+        },
+        body: JSON.stringify(nextBody),
+      }).catch((e) => {
+        console.error(`[IRRADIANCE_FETCH] Self-chain failed:`, e.message);
+      });
     }
 
     return ok({
@@ -347,17 +345,6 @@ Deno.serve(async (req) => {
     });
   } catch (error: any) {
     console.error("[IRRADIANCE_FETCH] FAILED:", error.message);
-
-    await admin
-      .from("audit_logs")
-      .insert({
-        acao: "IRRADIANCE_FETCH_FAILED",
-        tabela: "irradiance_dataset_versions",
-        dados_novos: { error: error.message },
-        user_id: userId,
-      })
-      .catch(() => {});
-
     return err(error.message, 500);
   }
 });

@@ -45,8 +45,11 @@ export function IrradianciaPage() {
   // ── Async import jobs (persisted in DB, loaded on mount) ──
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
   const [fetchingDs, setFetchingDs] = useState<string | null>(null);
-  const [fetchProgress, setFetchProgress] = useState<{ totalRows: number; gridTotal: number; chunk: number } | null>(null);
   const [notDeployedError, setNotDeployedError] = useState(false);
+
+  // Track versions being imported (for polling)
+  const [importingVersions, setImportingVersions] = useState<Map<string, { versionId: string; datasetCode: string }>>(new Map());
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load persisted jobs from database on mount
   useEffect(() => {
@@ -54,6 +57,127 @@ export function IrradianciaPage() {
       if (jobs.length > 0) setImportJobs(jobs);
     });
   }, []);
+
+  // Poll for processing versions
+  useEffect(() => {
+    if (importingVersions.size === 0) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+      return;
+    }
+
+    const poll = async () => {
+      for (const [key, { versionId, datasetCode }] of importingVersions) {
+        const { data } = await supabase
+          .from("irradiance_dataset_versions")
+          .select("id, status, row_count, metadata")
+          .eq("id", versionId)
+          .single();
+
+        if (!data) continue;
+
+        if (data.status === "active") {
+          toast.success("✅ Importação concluída!", {
+            description: `${datasetCode}: ${(data.row_count ?? 0).toLocaleString("pt-BR")} pontos importados com sucesso.`,
+            duration: 10000,
+          });
+          setImportingVersions((prev) => {
+            const next = new Map(prev);
+            next.delete(key);
+            return next;
+          });
+          reload();
+        } else if (data.status === "failed") {
+          const meta = data.metadata as Record<string, unknown> | null;
+          toast.error("❌ Importação falhou", {
+            description: `${datasetCode}: ${(meta?.error as string) || "Erro durante o processamento."}`,
+            duration: 10000,
+          });
+          setImportingVersions((prev) => {
+            const next = new Map(prev);
+            next.delete(key);
+            return next;
+          });
+          reload();
+        }
+        // Still processing — update progress display
+      }
+    };
+
+    pollingRef.current = setInterval(poll, 5000);
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, [importingVersions, reload]);
+
+  // Also check for already-processing versions on mount
+  useEffect(() => {
+    const checkExisting = async () => {
+      const { data } = await supabase
+        .from("irradiance_dataset_versions")
+        .select("id, dataset_id, status")
+        .eq("status", "processing");
+
+      if (data && data.length > 0) {
+        const map = new Map<string, { versionId: string; datasetCode: string }>();
+        for (const v of data) {
+          const ds = datasets.find((d) => d.id === v.dataset_id);
+          if (ds) {
+            map.set(v.id, { versionId: v.id, datasetCode: ds.code });
+          }
+        }
+        if (map.size > 0) setImportingVersions(map);
+      }
+    };
+    if (datasets.length > 0) checkExisting();
+  }, [datasets]);
+
+  // Trigger NASA POWER fetch — kicks off first chunk, then edge function self-chains
+  const handleFetchDataset = async (datasetCode: string) => {
+    setFetchingDs(datasetCode);
+    setNotDeployedError(false);
+
+    const versionTag = `v${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("irradiance-fetch", {
+        body: {
+          dataset_code: datasetCode,
+          version_tag: versionTag,
+          step_deg: 1,
+        },
+      });
+
+      if (error) {
+        const msg = String(error?.message ?? "").toLowerCase();
+        if (msg.includes("function not found") || msg.includes("404") || msg.includes("relay error") || msg.includes("boot error")) {
+          setNotDeployedError(true);
+          return;
+        }
+        throw error;
+      }
+
+      const versionId = data.version_id;
+
+      toast.success("Importação iniciada em segundo plano", {
+        description: `${datasetCode}: O processamento continuará automaticamente. Você pode navegar para outras páginas.`,
+        duration: 8000,
+      });
+
+      // Start polling this version
+      setImportingVersions((prev) => {
+        const next = new Map(prev);
+        next.set(versionId, { versionId, datasetCode });
+        return next;
+      });
+    } catch (e: any) {
+      toast.error("❌ Falha ao iniciar importação", { description: e.message, duration: 8000 });
+    } finally {
+      setFetchingDs(null);
+    }
+  };
 
   // CSV upload state
   const [uploadDs, setUploadDs] = useState("");
@@ -67,95 +191,6 @@ export function IrradianciaPage() {
   const [testResult, setTestResult] = useState<IrradianceLookupResult | null>(null);
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState("");
-
-  // Warn user if navigating away during import
-  useEffect(() => {
-    if (!fetchingDs) return;
-    const handler = (e: BeforeUnloadEvent) => {
-      e.preventDefault();
-      e.returnValue = "A importação está em andamento. Se sair, o progresso será perdido.";
-    };
-    window.addEventListener("beforeunload", handler);
-    return () => window.removeEventListener("beforeunload", handler);
-  }, [fetchingDs]);
-
-  // Trigger chunked NASA POWER fetch via irradiance-fetch edge function
-  const handleFetchDataset = async (datasetCode: string) => {
-    setFetchingDs(datasetCode);
-    setFetchProgress(null);
-    setNotDeployedError(false);
-
-    const versionTag = `v${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-
-    try {
-      let versionId: string | undefined;
-      let resumeFromLat: number | undefined;
-      let chunk = 0;
-      let totalRows = 0;
-
-      toast.info("Importação iniciada", {
-        description: `Buscando dados de ${datasetCode} via NASA POWER API. Não saia desta página.`,
-        duration: 5000,
-      });
-
-      // Loop: call irradiance-fetch for each chunk until done
-      while (true) {
-        chunk++;
-        const body: Record<string, unknown> = {
-          dataset_code: datasetCode,
-          version_tag: versionTag,
-          step_deg: 1,
-        };
-
-        if (versionId) {
-          body.append_to_version = versionId;
-          body.resume_from_lat = resumeFromLat;
-        }
-
-        const { data, error } = await supabase.functions.invoke("irradiance-fetch", { body });
-
-        if (error) {
-          const msg = String(error?.message ?? "").toLowerCase();
-          if (msg.includes("function not found") || msg.includes("404") || msg.includes("relay error") || msg.includes("boot error")) {
-            setNotDeployedError(true);
-            return;
-          }
-          throw error;
-        }
-
-        versionId = data.version_id;
-        totalRows = data.total_rows ?? totalRows + (data.chunk_rows ?? 0);
-
-        setFetchProgress({
-          totalRows,
-          gridTotal: data.grid_total_points ?? 0,
-          chunk,
-        });
-
-        if (!data.needs_continuation) {
-          // All chunks done
-          toast.success("✅ Importação concluída com sucesso!", {
-            description: `${totalRows.toLocaleString("pt-BR")} pontos importados em ${chunk} etapa${chunk > 1 ? "s" : ""}. Dados prontos para uso.`,
-            duration: 8000,
-          });
-          reload();
-          break;
-        }
-
-        // Continue to next chunk
-        resumeFromLat = data.resume_from_lat;
-        toast.info(`Etapa ${chunk} concluída`, {
-          description: `${totalRows.toLocaleString("pt-BR")} pontos até agora. Continuando…`,
-          duration: 3000,
-        });
-      }
-    } catch (e: any) {
-      toast.error("❌ Importação falhou", { description: e.message, duration: 8000 });
-    } finally {
-      setFetchingDs(null);
-      setFetchProgress(null);
-    }
-  };
 
   // Update job in list when poll returns new data
   const handleJobUpdate = useCallback((updatedJob: ImportJob) => {
@@ -333,25 +368,21 @@ export function IrradianciaPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {isFetching && (
+                  {(isFetching || importingVersions.has(
+                    versions.find(v => v.dataset_id === ds.id && v.status === "processing")?.id ?? ""
+                  )) && (
                     <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
                         <p className="text-xs text-primary font-medium">
-                          {fetchProgress
-                            ? `Etapa ${fetchProgress.chunk} — ${fetchProgress.totalRows.toLocaleString("pt-BR")} de ~${fetchProgress.gridTotal.toLocaleString("pt-BR")} pontos…`
-                            : "⏳ Iniciando importação via NASA POWER API…"}
+                          {isFetching
+                            ? "⏳ Iniciando importação via NASA POWER API…"
+                            : "Importação em andamento em segundo plano…"}
                         </p>
                       </div>
-                      <Progress
-                        className="h-1.5"
-                        value={fetchProgress && fetchProgress.gridTotal > 0
-                          ? Math.round((fetchProgress.totalRows / fetchProgress.gridTotal) * 100)
-                          : undefined}
-                      />
-                      <p className="text-[10px] text-warning flex items-center gap-1">
-                        <AlertTriangle className="h-3 w-3" />
-                        Não saia desta página. A importação será interrompida se você navegar para outro local.
+                      <p className="text-[10px] text-success flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Você pode navegar para outras páginas. Será notificado quando concluir.
                       </p>
                     </div>
                   )}
