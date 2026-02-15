@@ -424,20 +424,16 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
           </div>
         </div>
 
-        {/* DoD - Condicional: só exibe para híbrido/off-grid */}
-        {!isOnGrid && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <NumField
-              label="DoD (Profundidade de Descarga)"
-              suffix="%"
-              value={premises.dod}
-              tooltip="Depth of Discharge — percentual máximo que a bateria pode ser descarregada por ciclo. Valores maiores = mais energia utilizável, mas reduz a vida útil. Recomendado: 80% para lítio, 50% para chumbo-ácido."
-              onChange={(v) => set("dod", v)}
-            />
-            <div />
-            <div />
-          </div>
-        )}
+        {/* DoD */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <NumField
+            label="DoD (Profundidade de Descarga)"
+            suffix="%"
+            value={premises.dod}
+            tooltip="Depth of Discharge — percentual máximo que a bateria pode ser descarregada por ciclo. Valores maiores = mais energia utilizável, mas reduz a vida útil. Recomendado: 80% para lítio, 50% para chumbo-ácido. Aplicável para sistemas híbridos e off-grid."
+            onChange={(v) => set("dod", v)}
+          />
+        </div>
 
         {/* Fornecedores */}
         <div className="rounded-xl border border-border/50 p-4 space-y-3">
