@@ -1,13 +1,11 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ChevronLeft, ChevronRight, Zap, Plus, Sun,
-  User, Briefcase, BarChart3, Settings2, Package, Wrench,
-  SlidersHorizontal, CreditCard, FileText, Check,
+  ChevronLeft, ChevronRight, User, BarChart3, Settings2, Package,
+  Wrench, DollarSign, CreditCard, FileText, Check, Cpu,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,33 +14,33 @@ import { cn } from "@/lib/utils";
 
 // ── Step Components
 import { StepCliente } from "./wizard/StepCliente";
-import { StepComercial } from "./wizard/StepComercial";
-import { StepUCsEnergia } from "./wizard/StepUCsEnergia";
-import { StepPremissas } from "./wizard/StepPremissas";
-import { StepKit } from "./wizard/StepKit";
+import { StepConsumptionIntelligence } from "./wizard/StepConsumptionIntelligence";
+import { StepTechnicalConfig } from "./wizard/StepTechnicalConfig";
+import { StepEngineeringAnalysis } from "./wizard/StepEngineeringAnalysis";
+import { StepKitSelection } from "./wizard/StepKitSelection";
 import { StepServicos } from "./wizard/StepServicos";
-import { StepVenda, calcPrecoFinal } from "./wizard/StepVenda";
+import { StepFinancialCenter, calcPrecoFinal } from "./wizard/StepFinancialCenter";
 import { StepPagamento } from "./wizard/StepPagamento";
+import { StepDocumento } from "./wizard/StepDocumento";
 
 // ── Types
 import {
-  type LeadSelection, type ClienteData, type ComercialData, type UCData,
+  type LeadSelection, type ClienteData, type UCData,
   type PremissasData, type KitItemRow, type ServicoItem, type VendaData,
   type PagamentoOpcao, type BancoFinanciamento,
-  EMPTY_CLIENTE, EMPTY_COMERCIAL, DEFAULT_PREMISSAS, createEmptyUC, formatBRL,
+  EMPTY_CLIENTE, DEFAULT_PREMISSAS, createEmptyUC, formatBRL,
 } from "./wizard/types";
-import { StepDocumento } from "./wizard/StepDocumento";
 
 // ─── Steps Config ──────────────────────────────────────────
 
 const STEPS = [
   { label: "Cliente", icon: User },
-  { label: "Comercial", icon: Briefcase },
-  { label: "UCs / Energia", icon: BarChart3 },
-  { label: "Premissas", icon: Settings2 },
-  { label: "Kit / Layout", icon: Package },
+  { label: "Consumo", icon: BarChart3 },
+  { label: "Técnico", icon: Settings2 },
+  { label: "Análise", icon: Cpu },
+  { label: "Kit", icon: Package },
   { label: "Serviços", icon: Wrench },
-  { label: "Venda", icon: SlidersHorizontal },
+  { label: "Financeiro", icon: DollarSign },
   { label: "Pagamento", icon: CreditCard },
   { label: "Documento", icon: FileText },
 ];
@@ -62,18 +60,9 @@ function clearIdempotencyKey(leadId: string) {
   localStorage.removeItem(`${IDEM_KEY_PREFIX}${leadId}`);
 }
 
-function SunSpinner({ message }: { message?: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12 gap-4">
-      <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-      {message && <p className="text-sm font-medium text-muted-foreground animate-pulse">{message}</p>}
-    </div>
-  );
-}
-
 function StepContent({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }}>
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
       {children}
     </motion.div>
   );
@@ -89,18 +78,15 @@ export function ProposalWizard() {
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
   const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
 
-  // Step 1 - Comercial
-  const [comercial, setComercial] = useState<ComercialData>(EMPTY_COMERCIAL);
-
-  // Step 2 - UCs
+  // Step 1 & 2 - UCs & Technical
   const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
   const [grupo, setGrupo] = useState("B1");
   const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
 
-  // Step 3 - Premissas
+  // Step 3 - Premissas (loaded from tenant defaults)
   const [premissas, setPremissas] = useState<PremissasData>(DEFAULT_PREMISSAS);
 
-  // Step 4 - Kit (unified catalog)
+  // Step 4 - Kit
   const [modulos, setModulos] = useState<any[]>([]);
   const [inversores, setInversores] = useState<any[]>([]);
   const [loadingEquip, setLoadingEquip] = useState(false);
@@ -129,11 +115,14 @@ export function ProposalWizard() {
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
 
+  // Engineering analysis state
+  const [analysisComplete, setAnalysisComplete] = useState(false);
+
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
-  // ─── Data fetching (unified catalog) ─────────────────
+  // ─── Data fetching ─────────────────
   useEffect(() => {
     setLoadingEquip(true);
     Promise.all([
@@ -152,6 +141,27 @@ export function ProposalWizard() {
       setBancos((data || []) as BancoFinanciamento[]);
       setLoadingBancos(false);
     });
+  }, []);
+
+  // Load premissas from tenant
+  useEffect(() => {
+    supabase
+      .from("premissas_tecnicas")
+      .select("reajuste_tarifa_anual_percent, ipca_anual, degradacao_anual_percent, taxa_selic_anual")
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          const d = data as any;
+          setPremissas(prev => ({
+            ...prev,
+            inflacao_energetica: d.reajuste_tarifa_anual_percent ?? prev.inflacao_energetica,
+            inflacao_ipca: d.ipca_anual ?? prev.inflacao_ipca,
+            perda_eficiencia_anual: d.degradacao_anual_percent ?? prev.perda_eficiencia_anual,
+            vpl_taxa_desconto: d.taxa_selic_anual ?? prev.vpl_taxa_desconto,
+          }));
+        }
+      });
   }, []);
 
   // ─── Lead selection handler ──────────────────────────
@@ -173,15 +183,15 @@ export function ProposalWizard() {
 
   // ─── Validations ─────────────────────────────────────
   const canStep = [
-    /* 0 */ !!cliente.nome && !!cliente.celular,
-    /* 1 */ true,
-    /* 2 */ consumoTotal > 0 && potenciaKwp > 0,
-    /* 3 */ true,
-    /* 4 */ itens.length > 0 && itens.some(i => i.descricao),
-    /* 5 */ true,
-    /* 6 */ venda.margem_percentual >= 0,
-    /* 7 */ true,
-    /* 8 */ true,
+    /* 0 Cliente     */ !!cliente.nome && !!cliente.celular,
+    /* 1 Consumo     */ consumoTotal > 0,
+    /* 2 Técnico     */ potenciaKwp > 0,
+    /* 3 Análise     */ true, // auto-advances
+    /* 4 Kit         */ itens.length > 0 && itens.some(i => i.descricao),
+    /* 5 Serviços    */ true,
+    /* 6 Financeiro  */ venda.margem_percentual >= 0,
+    /* 7 Pagamento   */ true,
+    /* 8 Documento   */ true,
   ];
 
   // ─── Generate ────────────────────────────────────────
@@ -193,7 +203,6 @@ export function ProposalWizard() {
 
     try {
       const idempotencyKey = getOrCreateIdempotencyKey(selectedLead.id);
-      const uc1 = ucs[0];
       const payload: GenerateProposalPayload = {
         lead_id: selectedLead.id,
         grupo: grupo.startsWith("B") ? "B" : "A",
@@ -236,60 +245,79 @@ export function ProposalWizard() {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
     setResult(null);
     setHtmlPreview(null);
-    setStep(2);
+    setStep(1);
   };
 
   const handleViewDetail = () => {
     if (result) navigate(`/admin/propostas-nativas/${result.proposta_id}/versoes/${result.versao_id}`);
   };
 
+  const handleAnalysisComplete = useCallback(() => {
+    setAnalysisComplete(true);
+    setStep(4);
+  }, []);
+
+  // If step 3 was already completed, skip analysis on re-visit
+  const goToStep = (target: number) => {
+    if (target === 3 && analysisComplete) {
+      setStep(4); // skip analysis
+      return;
+    }
+    setStep(target);
+  };
+
+  const goNext = () => {
+    if (step === 3) return; // analysis auto-advances
+    goToStep(step + 1);
+  };
+
+  const goPrev = () => {
+    if (step === 4 && analysisComplete) {
+      setStep(2); // skip analysis going back
+      return;
+    }
+    setStep(Math.max(0, step - 1));
+  };
+
   // ─── Render ──────────────────────────────────────────
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-4 max-w-5xl mx-auto">
       {/* ── Stepper ── */}
-      <div className="relative">
-        <div className="flex items-center gap-0.5 overflow-x-auto pb-2 scrollbar-thin snap-x snap-mandatory px-1 -mx-1">
-          {STEPS.map((s, i) => {
-            const Icon = s.icon;
-            const isActive = i === step;
-            const isDone = i < step;
-            return (
-              <div key={s.label} className="flex items-center gap-0.5 flex-shrink-0 snap-start">
-                <button
-                  onClick={() => { if (isDone) setStep(i); }}
-                  className={cn(
-                    "flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-[11px] font-semibold transition-all whitespace-nowrap min-h-[44px]",
-                    isActive && "bg-primary text-primary-foreground shadow-sm",
-                    isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15 active:bg-primary/20",
-                    !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
-                  )}
-                >
-                  <span className={cn(
-                    "flex items-center justify-center h-6 w-6 rounded-full text-[10px] shrink-0",
-                    isActive && "bg-primary-foreground/20",
-                    isDone && "bg-primary/20",
-                    !isActive && !isDone && "bg-muted",
-                  )}>
-                    {isDone ? <Check className="h-3 w-3" /> : <Icon className="h-3 w-3" />}
-                  </span>
-                  <span className="hidden sm:block">{s.label}</span>
-                </button>
-                {i < STEPS.length - 1 && <div className="w-3 h-px bg-border shrink-0" />}
-              </div>
-            );
-          })}
-        </div>
-        {/* Step counter for mobile */}
-        <div className="sm:hidden text-center mt-1">
-          <span className="text-[10px] font-medium text-muted-foreground">
-            {step + 1}/{STEPS.length} — {STEPS[step].label}
-          </span>
-        </div>
+      <div className="flex items-center gap-0.5 overflow-x-auto pb-1 scrollbar-thin px-1 -mx-1">
+        {STEPS.map((s, i) => {
+          const Icon = s.icon;
+          const isActive = i === step;
+          const isDone = i < step || (i === 3 && analysisComplete && step > 3);
+          return (
+            <div key={s.label} className="flex items-center gap-0.5 flex-shrink-0">
+              <button
+                onClick={() => { if (isDone) goToStep(i); }}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all whitespace-nowrap",
+                  isActive && "bg-primary text-primary-foreground shadow-sm",
+                  isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15",
+                  !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
+                )}
+              >
+                <span className={cn(
+                  "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0",
+                  isActive && "bg-primary-foreground/20",
+                  isDone && "bg-primary/20",
+                  !isActive && !isDone && "bg-muted",
+                )}>
+                  {isDone ? <Check className="h-2.5 w-2.5" /> : <Icon className="h-2.5 w-2.5" />}
+                </span>
+                <span className="hidden md:block">{s.label}</span>
+              </button>
+              {i < STEPS.length - 1 && <div className="w-2 h-px bg-border shrink-0" />}
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Step Content ── */}
       <Card className="border-border/60 overflow-hidden">
-        <CardContent className="pt-6 pb-6">
+        <CardContent className="pt-5 pb-5 px-4 sm:px-6">
           <AnimatePresence mode="wait">
 
             {step === 0 && (
@@ -300,25 +328,25 @@ export function ProposalWizard() {
 
             {step === 1 && (
               <StepContent key="step1">
-                <StepComercial comercial={comercial} onComercialChange={setComercial} />
+                <StepConsumptionIntelligence ucs={ucs} onUcsChange={setUcs} potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp} />
               </StepContent>
             )}
 
             {step === 2 && (
               <StepContent key="step2">
-                <StepUCsEnergia ucs={ucs} onUcsChange={setUcs} grupo={grupo} onGrupoChange={setGrupo} potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp} />
+                <StepTechnicalConfig ucs={ucs} onUcsChange={setUcs} grupo={grupo} onGrupoChange={setGrupo} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 3 && (
               <StepContent key="step3">
-                <StepPremissas premissas={premissas} onPremissasChange={setPremissas} />
+                <StepEngineeringAnalysis onComplete={handleAnalysisComplete} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 4 && (
               <StepContent key="step4">
-                <StepKit itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} />
+                <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
@@ -330,7 +358,7 @@ export function ProposalWizard() {
 
             {step === 6 && (
               <StepContent key="step6">
-                <StepVenda venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} />
+                <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
@@ -340,7 +368,6 @@ export function ProposalWizard() {
               </StepContent>
             )}
 
-            {/* ── STEP 8: Documento ── */}
             {step === 8 && (
               <StepContent key="step8">
                 <StepDocumento
@@ -366,23 +393,23 @@ export function ProposalWizard() {
       </Card>
 
       {/* ── Navigation Footer ── */}
-      {step < 8 && !result && (
+      {step !== 3 && step < 8 && !result && (
         <div className="flex items-center justify-between">
-          <Button variant="ghost" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0} className="gap-1 min-h-[44px]">
-            <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar</span>
+          <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
+            <ChevronLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
           <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground hidden sm:inline">{step + 1} / {STEPS.length}</span>
-            <Button onClick={() => setStep(step + 1)} disabled={!canStep[step]} className="gap-1 min-h-[44px]">
-              Próximo <ChevronRight className="h-4 w-4" />
+            <span className="text-[10px] text-muted-foreground font-mono">{step + 1}/{STEPS.length}</span>
+            <Button size="sm" onClick={goNext} disabled={!canStep[step]} className="gap-1 h-8 text-xs">
+              Próximo <ChevronRight className="h-3.5 w-3.5" />
             </Button>
           </div>
         </div>
       )}
       {step === 8 && !result && (
         <div className="flex justify-start">
-          <Button variant="ghost" onClick={() => setStep(7)} className="gap-1 min-h-[44px]">
-            <ChevronLeft className="h-4 w-4" /> <span className="hidden sm:inline">Voltar</span>
+          <Button variant="ghost" size="sm" onClick={goPrev} className="gap-1 h-8 text-xs">
+            <ChevronLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
         </div>
       )}
