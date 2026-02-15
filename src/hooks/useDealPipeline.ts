@@ -253,7 +253,7 @@ export function useDealPipeline() {
   }, [filters, fetchDeals, toast]);
 
   // ─── Pipeline CRUD ──────────────────────────────────
-  const createPipeline = useCallback(async (name: string) => {
+  const createPipeline = useCallback(async (name: string, templateStages?: { name: string; probability: number; is_closed?: boolean; is_won?: boolean }[]) => {
     const { data, error } = await supabase
       .from("pipelines")
       .insert({ name } as any)
@@ -264,18 +264,27 @@ export function useDealPipeline() {
     const pipeline = data as Pipeline;
     setPipelines(prev => [...prev, pipeline]);
 
-    // Create default stages
-    const defaultStages = [
-      { name: "Novo", position: 0, probability: 10, pipeline_id: pipeline.id },
-      { name: "Qualificação", position: 1, probability: 30, pipeline_id: pipeline.id },
-      { name: "Proposta", position: 2, probability: 60, pipeline_id: pipeline.id },
-      { name: "Negociação", position: 3, probability: 80, pipeline_id: pipeline.id },
-      { name: "Ganho", position: 4, probability: 100, is_closed: true, is_won: true, pipeline_id: pipeline.id },
-      { name: "Perdido", position: 5, probability: 0, is_closed: true, is_won: false, pipeline_id: pipeline.id },
-    ];
+    // Create stages from template or defaults
+    const stagesDef = templateStages
+      ? templateStages.map((s, i) => ({
+          name: s.name,
+          position: i,
+          probability: s.probability,
+          is_closed: s.is_closed || false,
+          is_won: s.is_won || false,
+          pipeline_id: pipeline.id,
+        }))
+      : [
+          { name: "Novo", position: 0, probability: 10, pipeline_id: pipeline.id },
+          { name: "Qualificação", position: 1, probability: 30, pipeline_id: pipeline.id },
+          { name: "Proposta", position: 2, probability: 60, pipeline_id: pipeline.id },
+          { name: "Negociação", position: 3, probability: 80, pipeline_id: pipeline.id },
+          { name: "Ganho", position: 4, probability: 100, is_closed: true, is_won: true, pipeline_id: pipeline.id },
+          { name: "Perdido", position: 5, probability: 0, is_closed: true, is_won: false, pipeline_id: pipeline.id },
+        ];
     const { data: newStages, error: stErr } = await supabase
       .from("pipeline_stages")
-      .insert(defaultStages as any)
+      .insert(stagesDef as any)
       .select("id, tenant_id, pipeline_id, name, position, probability, is_closed, is_won");
     if (!stErr && newStages) {
       setStages(prev => [...prev, ...(newStages as PipelineStage[])]);
