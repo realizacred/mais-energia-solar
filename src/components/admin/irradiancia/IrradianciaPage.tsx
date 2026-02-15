@@ -17,7 +17,7 @@ import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/ir
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImportJobTracker } from "./ImportJobTracker";
-import { triggerDatasetImport, EdgeFunctionNotDeployedError, loadRecentImportJobs, type ImportJob } from "@/services/solar-datasets-api";
+import { loadRecentImportJobs, type ImportJob } from "@/services/solar-datasets-api";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-success/10 text-success border-success/30",
@@ -42,6 +42,7 @@ export function IrradianciaPage() {
   // ── Async import jobs (persisted in DB, loaded on mount) ──
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
   const [fetchingDs, setFetchingDs] = useState<string | null>(null);
+  const [fetchProgress, setFetchProgress] = useState<{ totalRows: number; gridTotal: number; chunk: number } | null>(null);
   const [notDeployedError, setNotDeployedError] = useState(false);
 
   // Load persisted jobs from database on mount
@@ -64,27 +65,75 @@ export function IrradianciaPage() {
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState("");
 
-  // Trigger async import job via backend
+  // Trigger chunked NASA POWER fetch via irradiance-fetch edge function
   const handleFetchDataset = async (datasetCode: string) => {
     setFetchingDs(datasetCode);
+    setFetchProgress(null);
     setNotDeployedError(false);
+
+    const versionTag = `v${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+
     try {
-      const job = await triggerDatasetImport(datasetCode);
-      setImportJobs((prev) => {
-        const exists = prev.some((j) => j.job_id === job.job_id);
-        return exists ? prev.map((j) => j.job_id === job.job_id ? job : j) : [job, ...prev];
-      });
-      toast.success("Importação iniciada", {
-        description: `Job ${job.job_id.substring(0, 8)}… criado para ${datasetCode}`,
-      });
-    } catch (e: any) {
-      if (e instanceof EdgeFunctionNotDeployedError) {
-        setNotDeployedError(true);
-      } else {
-        toast.error("Erro ao iniciar importação", { description: e.message });
+      let versionId: string | undefined;
+      let resumeFromLat: number | undefined;
+      let chunk = 0;
+      let totalRows = 0;
+
+      // Loop: call irradiance-fetch for each chunk until done
+      while (true) {
+        chunk++;
+        const body: Record<string, unknown> = {
+          dataset_code: datasetCode,
+          version_tag: versionTag,
+          step_deg: 1,
+        };
+
+        if (versionId) {
+          body.append_to_version = versionId;
+          body.resume_from_lat = resumeFromLat;
+        }
+
+        const { data, error } = await supabase.functions.invoke("irradiance-fetch", { body });
+
+        if (error) {
+          const msg = String(error?.message ?? "").toLowerCase();
+          if (msg.includes("function not found") || msg.includes("404") || msg.includes("relay error") || msg.includes("boot error")) {
+            setNotDeployedError(true);
+            return;
+          }
+          throw error;
+        }
+
+        versionId = data.version_id;
+        totalRows = data.total_rows ?? totalRows + (data.chunk_rows ?? 0);
+
+        setFetchProgress({
+          totalRows,
+          gridTotal: data.grid_total_points ?? 0,
+          chunk,
+        });
+
+        if (!data.needs_continuation) {
+          // All chunks done
+          toast.success("Importação concluída!", {
+            description: `${totalRows.toLocaleString("pt-BR")} pontos importados em ${chunk} etapa${chunk > 1 ? "s" : ""}.`,
+          });
+          reload();
+          break;
+        }
+
+        // Continue to next chunk
+        resumeFromLat = data.resume_from_lat;
+        toast.info(`Etapa ${chunk} concluída`, {
+          description: `${totalRows.toLocaleString("pt-BR")} pontos até agora. Continuando...`,
+          duration: 3000,
+        });
       }
+    } catch (e: any) {
+      toast.error("Erro na importação", { description: e.message });
     } finally {
       setFetchingDs(null);
+      setFetchProgress(null);
     }
   };
 
@@ -259,9 +308,18 @@ export function IrradianciaPage() {
                     <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        <p className="text-xs text-primary font-medium">Iniciando importação via backend…</p>
+                        <p className="text-xs text-primary font-medium">
+                          {fetchProgress
+                            ? `Etapa ${fetchProgress.chunk} — ${fetchProgress.totalRows.toLocaleString("pt-BR")} de ~${fetchProgress.gridTotal.toLocaleString("pt-BR")} pontos…`
+                            : "Iniciando importação via NASA POWER API…"}
+                        </p>
                       </div>
-                      <Progress className="h-1.5" />
+                      <Progress
+                        className="h-1.5"
+                        value={fetchProgress && fetchProgress.gridTotal > 0
+                          ? Math.round((fetchProgress.totalRows / fetchProgress.gridTotal) * 100)
+                          : undefined}
+                      />
                     </div>
                   )}
 
