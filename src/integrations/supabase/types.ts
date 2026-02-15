@@ -1478,6 +1478,50 @@ export type Database = {
           },
         ]
       }
+      commission_plans: {
+        Row: {
+          commission_type: Database["public"]["Enums"]["commission_plan_type"]
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          parameters: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          commission_type?: Database["public"]["Enums"]["commission_plan_type"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          parameters?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          commission_type?: Database["public"]["Enums"]["commission_plan_type"]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          parameters?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concessionarias: {
         Row: {
           aliquota_icms: number | null
@@ -4185,6 +4229,53 @@ export type Database = {
           },
         ]
       }
+      margin_plans: {
+        Row: {
+          created_at: string
+          default_margin_percent: number
+          description: string | null
+          id: string
+          is_active: boolean
+          max_margin_percent: number
+          min_margin_percent: number
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_margin_percent?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_margin_percent?: number
+          min_margin_percent?: number
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_margin_percent?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_margin_percent?: number
+          min_margin_percent?: number
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "margin_plans_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       meta_notifications: {
         Row: {
           ano: number
@@ -5546,6 +5637,209 @@ export type Database = {
             foreignKeyName: "pricing_config_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_cost_components: {
+        Row: {
+          calculation_strategy: Database["public"]["Enums"]["cost_calc_strategy"]
+          category: string
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          is_active: boolean
+          name: string
+          parameters: Json
+          tenant_id: string
+          updated_at: string
+          version_id: string
+        }
+        Insert: {
+          calculation_strategy?: Database["public"]["Enums"]["cost_calc_strategy"]
+          category: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          parameters?: Json
+          tenant_id: string
+          updated_at?: string
+          version_id: string
+        }
+        Update: {
+          calculation_strategy?: Database["public"]["Enums"]["cost_calc_strategy"]
+          category?: string
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          parameters?: Json
+          tenant_id?: string
+          updated_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_cost_components_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_cost_components_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_policy_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_methods: {
+        Row: {
+          created_at: string
+          default_margin_percent: number
+          default_tax_percent: number
+          id: string
+          kit_margin_override_percent: number | null
+          kit_tax_override_percent: number | null
+          method_type: Database["public"]["Enums"]["pricing_method_type"]
+          tenant_id: string
+          updated_at: string
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_margin_percent?: number
+          default_tax_percent?: number
+          id?: string
+          kit_margin_override_percent?: number | null
+          kit_tax_override_percent?: number | null
+          method_type?: Database["public"]["Enums"]["pricing_method_type"]
+          tenant_id: string
+          updated_at?: string
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          default_margin_percent?: number
+          default_tax_percent?: number
+          id?: string
+          kit_margin_override_percent?: number | null
+          kit_tax_override_percent?: number | null
+          method_type?: Database["public"]["Enums"]["pricing_method_type"]
+          tenant_id?: string
+          updated_at?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_methods_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_methods_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: true
+            referencedRelation: "pricing_policy_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_policies: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_policies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pricing_policy_versions: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          policy_id: string
+          published_at: string | null
+          published_by: string | null
+          status: Database["public"]["Enums"]["pricing_policy_status"]
+          tenant_id: string
+          updated_at: string
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          policy_id: string
+          published_at?: string | null
+          published_by?: string | null
+          status?: Database["public"]["Enums"]["pricing_policy_status"]
+          tenant_id: string
+          updated_at?: string
+          version_number?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          policy_id?: string
+          published_at?: string | null
+          published_by?: string | null
+          status?: Database["public"]["Enums"]["pricing_policy_status"]
+          tenant_id?: string
+          updated_at?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_policy_versions_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "pricing_policies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pricing_policy_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -10208,6 +10502,58 @@ export type Database = {
           },
         ]
       }
+      user_pricing_assignments: {
+        Row: {
+          commission_plan_id: string | null
+          created_at: string
+          id: string
+          margin_plan_id: string | null
+          tenant_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          commission_plan_id?: string | null
+          created_at?: string
+          id?: string
+          margin_plan_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          commission_plan_id?: string | null
+          created_at?: string
+          id?: string
+          margin_plan_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_pricing_assignments_commission_plan_id_fkey"
+            columns: ["commission_plan_id"]
+            isOneToOne: false
+            referencedRelation: "commission_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_pricing_assignments_margin_plan_id_fkey"
+            columns: ["margin_plan_id"]
+            isOneToOne: false
+            referencedRelation: "margin_plans"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_pricing_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -12810,7 +13156,18 @@ export type Database = {
         | "pendente_correcao"
         | "finalizado"
         | "cancelado"
+      commission_plan_type: "fixed" | "percentage" | "dynamic"
+      cost_calc_strategy:
+        | "fixed_amount"
+        | "cost_per_kwp"
+        | "cost_per_kva"
+        | "cost_per_km"
+        | "percentage_of_cost"
+        | "composite"
+        | "rule_based"
       gcal_sync_mode: "create_only" | "bidirectional"
+      pricing_method_type: "margin_on_sale" | "margin_on_cost"
+      pricing_policy_status: "draft" | "active" | "archived"
       projeto_etapa_categoria: "aberto" | "ganho" | "perdido" | "excluido"
       projeto_status:
         | "aguardando_documentacao"
@@ -13025,7 +13382,19 @@ export const Constants = {
         "finalizado",
         "cancelado",
       ],
+      commission_plan_type: ["fixed", "percentage", "dynamic"],
+      cost_calc_strategy: [
+        "fixed_amount",
+        "cost_per_kwp",
+        "cost_per_kva",
+        "cost_per_km",
+        "percentage_of_cost",
+        "composite",
+        "rule_based",
+      ],
       gcal_sync_mode: ["create_only", "bidirectional"],
+      pricing_method_type: ["margin_on_sale", "margin_on_cost"],
+      pricing_policy_status: ["draft", "active", "archived"],
       projeto_etapa_categoria: ["aberto", "ganho", "perdido", "excluido"],
       projeto_status: [
         "aguardando_documentacao",
