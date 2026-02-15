@@ -100,11 +100,22 @@ Deno.serve(async (req) => {
         if (s?.modo !== "desativado" && aiN < MAX_AI) {
           aiN++;
           const g = await aiGate(sb, c, base, s);
-          if (g.timeout) { m.ai_timeouts++; m.pending_review++; await updFU(sb, c.conversation_id, c.rule_id, "pendente_revisao", `[IA timeout] ${base}`); continue; }
+          if (g.timeout) {
+            m.ai_timeouts++; m.pending_review++;
+            await updFU(sb, c.conversation_id, c.rule_id, "pendente_revisao", `[IA timeout] ${base}`);
+            await logFollowup(sb, c, "ai_timeout", base, null, 0, "Timeout IA", s?.modelo_preferido);
+            continue;
+          }
           const th = s?.followup_confidence_threshold ?? 60;
-          if (g.confidence < th) { m.pending_review++; await updFU(sb, c.conversation_id, c.rule_id, "pendente_revisao", `[IA: ${g.reason}] ${g.adj || base}`); continue; }
+          if (g.confidence < th) {
+            m.pending_review++;
+            await updFU(sb, c.conversation_id, c.rule_id, "pendente_revisao", `[IA: ${g.reason}] ${g.adj || base}`);
+            await logFollowup(sb, c, "ai_rejected", base, g.adj || null, g.confidence, g.reason, s?.modelo_preferido);
+            continue;
+          }
           m.ai_approved++;
           if (g.adj) final = g.adj;
+          await logFollowup(sb, c, "ai_approved", base, final, g.confidence, g.reason, s?.modelo_preferido);
         } else if (s?.modo !== "desativado" && aiN >= MAX_AI) { m.ai_budget_exhausted++; continue; }
 
         const ts = Date.now();
@@ -115,8 +126,13 @@ Deno.serve(async (req) => {
             await updFU(sb, c.conversation_id, c.rule_id, "enviado", final);
             isc.set(c.instance_id, ic + 1);
             m.sent_count++;
+            await logFollowup(sb, c, "sent", base, final, null, null, null);
           }
-        } catch (e: any) { m.errors++; console.error(`[followup] SEND_ERROR conv=${c.conversation_id}`, e.message); await updFU(sb, c.conversation_id, c.rule_id, "falhou", `[erro] ${e.message}`); }
+        } catch (e: any) {
+          m.errors++; console.error(`[followup] SEND_ERROR conv=${c.conversation_id}`, e.message);
+          await updFU(sb, c.conversation_id, c.rule_id, "falhou", `[erro] ${e.message}`);
+          await logFollowup(sb, c, "failed", base, null, null, e.message, null);
+        }
         sendAcc += Date.now() - ts;
       }
       m.timing.ai_total_ms = Date.now() - tAi - sendAcc;
@@ -215,6 +231,47 @@ async function reconcile(sb: any): Promise<number> {
     const i = li.get(f.conversation_id);
     if (i && i > f.created_at) ids.push(f.id);
   }
-  if (ids.length) await sb.from("wa_followup_queue").update({ status: "respondido", responded_at: new Date().toISOString() }).in("id", ids);
+  if (ids.length) {
+    await sb.from("wa_followup_queue").update({ status: "respondido", responded_at: new Date().toISOString() }).in("id", ids);
+    // Log responded outcomes
+    for (const f of pend.filter((p: any) => ids.includes(p.id))) {
+      try {
+        await sb.from("wa_followup_logs").insert({
+          tenant_id: f.tenant_id || pend.find((p: any) => p.id === f.id)?.tenant_id,
+          conversation_id: f.conversation_id,
+          rule_id: f.rule_id,
+          queue_id: f.id,
+          action: "responded",
+          cenario: (f.rule as any)?.cenario,
+          responded_at: new Date().toISOString(),
+        });
+      } catch {}
+    }
+  }
   return ids.length;
+}
+
+async function logFollowup(
+  sb: any, c: any, action: string,
+  msgOriginal: string | null, msgEnviada: string | null,
+  confidence: number | null, reason: string | null, model: string | null
+) {
+  try {
+    await sb.from("wa_followup_logs").insert({
+      tenant_id: c.tenant_id,
+      conversation_id: c.conversation_id,
+      rule_id: c.rule_id,
+      action,
+      ai_confidence: confidence,
+      ai_reason: reason,
+      ai_model: model,
+      mensagem_original: msgOriginal,
+      mensagem_enviada: msgEnviada,
+      cenario: c.cenario,
+      tentativa: (c.attempt_count || 0) + 1,
+      assigned_to: c.assigned_to,
+    });
+  } catch (e: any) {
+    console.error(`[followup] LOG_ERROR action=${action} conv=${c.conversation_id}`, e.message);
+  }
 }
