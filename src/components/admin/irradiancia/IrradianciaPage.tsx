@@ -6,11 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import {
-  Database, Upload, Search, CheckCircle2, AlertTriangle,
-  Globe, Hash, Calendar, Loader2, Sun, MapPin, Download, Zap,
-} from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import {
+  Database, Search, CheckCircle2, AlertTriangle,
+  Globe, Hash, Calendar, Loader2, Sun, MapPin, Download, RefreshCw,
+} from "lucide-react";
 import { useIrradianceDatasets } from "@/hooks/useIrradianceDatasets";
 import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/irradiance-provider";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,22 +25,19 @@ const STATUS_COLORS: Record<string, string> = {
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
+function generateVersionTag(): string {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  return `v${y}.${m}`;
+}
+
 export function IrradianciaPage() {
   const { datasets, versions, loading, reload, getVersionsForDataset, getActiveVersion } = useIrradianceDatasets();
   const [tab, setTab] = useState("datasets");
 
-  // Import state
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importDatasetCode, setImportDatasetCode] = useState("");
-  const [importVersionTag, setImportVersionTag] = useState("");
-  const [importNote, setImportNote] = useState("");
-  const [importing, setImporting] = useState(false);
-
-  // Auto-fetch state
-  const [fetchDatasetCode, setFetchDatasetCode] = useState("");
-  const [fetchVersionTag, setFetchVersionTag] = useState("");
-  const [fetchStep, setFetchStep] = useState("1");
-  const [fetching, setFetching] = useState(false);
+  // Per-dataset fetch state
+  const [fetchingDs, setFetchingDs] = useState<string | null>(null);
   const [fetchProgress, setFetchProgress] = useState<string | null>(null);
 
   // Lookup test state
@@ -50,59 +47,16 @@ export function IrradianciaPage() {
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState("");
 
-  const handleImport = async () => {
-    if (!importFile || !importDatasetCode || !importVersionTag) {
-      toast.error("Preencha todos os campos de importação");
-      return;
-    }
-
-    setImporting(true);
-    try {
-      // Upload file to storage
-      const filePath = `imports/${importDatasetCode}/${importVersionTag}/${importFile.name}`;
-      const { error: uploadError } = await supabase.storage
-        .from("irradiance-source")
-        .upload(filePath, importFile, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      // Call edge function to process
-      const { data, error } = await supabase.functions.invoke("irradiance-import", {
-        body: {
-          dataset_code: importDatasetCode,
-          version_tag: importVersionTag,
-          source_note: importNote,
-          file_path: filePath,
-        },
-      });
-
-      if (error) throw error;
-
-      toast.success(`Importação iniciada: ${data?.row_count ?? 0} pontos processados`);
-      reload();
-      setImportFile(null);
-      setImportVersionTag("");
-      setImportNote("");
-    } catch (e: any) {
-      toast.error("Erro na importação", { description: e.message });
-    } finally {
-      setImporting(false);
-    }
-  };
-
-  const handleAutoFetch = async () => {
-    if (!fetchDatasetCode || !fetchVersionTag) {
-      toast.error("Selecione o dataset e informe a tag da versão");
-      return;
-    }
-    setFetching(true);
+  const handleFetchDataset = async (datasetCode: string) => {
+    setFetchingDs(datasetCode);
     setFetchProgress("Buscando dados via NASA POWER API... Isso pode levar alguns minutos.");
     try {
+      const versionTag = generateVersionTag();
       const { data, error } = await supabase.functions.invoke("irradiance-fetch", {
         body: {
-          dataset_code: fetchDatasetCode,
-          version_tag: fetchVersionTag,
-          step_deg: Number(fetchStep) || 1,
+          dataset_code: datasetCode,
+          version_tag: versionTag,
+          step_deg: 1,
         },
       });
 
@@ -115,10 +69,10 @@ export function IrradianciaPage() {
       setFetchProgress(null);
       reload();
     } catch (e: any) {
-      toast.error("Erro na importação automática", { description: e.message });
+      toast.error("Erro na importação", { description: e.message });
       setFetchProgress(null);
     } finally {
-      setFetching(false);
+      setFetchingDs(null);
     }
   };
 
@@ -154,9 +108,6 @@ export function IrradianciaPage() {
           <TabsTrigger value="datasets" className="gap-1.5">
             <Database className="h-3.5 w-3.5" /> Datasets & Versões
           </TabsTrigger>
-          <TabsTrigger value="import" className="gap-1.5">
-            <Upload className="h-3.5 w-3.5" /> Importar
-          </TabsTrigger>
           <TabsTrigger value="audit" className="gap-1.5">
             <Search className="h-3.5 w-3.5" /> Auditoria & Teste
           </TabsTrigger>
@@ -164,9 +115,15 @@ export function IrradianciaPage() {
 
         {/* ── Datasets Tab ── */}
         <TabsContent value="datasets" className="space-y-4 mt-4">
+          <p className="text-xs text-muted-foreground">
+            Clique em <strong>"Importar da API"</strong> para buscar dados automaticamente da NASA POWER API.
+            A atualização automática ocorre a cada 6 meses.
+          </p>
+
           {datasets.map((ds) => {
             const dsVersions = getVersionsForDataset(ds.id);
             const activeVersion = getActiveVersion(ds.id);
+            const isFetching = fetchingDs === ds.code;
 
             return (
               <Card key={ds.id}>
@@ -176,10 +133,42 @@ export function IrradianciaPage() {
                       <CardTitle className="text-sm font-semibold">{ds.name}</CardTitle>
                       <p className="text-xs text-muted-foreground mt-1">{ds.description}</p>
                     </div>
-                    <Badge variant="outline" className="font-mono text-[10px]">{ds.code}</Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-[10px]">{ds.code}</Badge>
+                      <Button
+                        size="sm"
+                        variant={activeVersion ? "outline" : "default"}
+                        className="gap-1.5 text-xs h-8"
+                        disabled={!!fetchingDs}
+                        onClick={() => handleFetchDataset(ds.code)}
+                      >
+                        {isFetching ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : activeVersion ? (
+                          <RefreshCw className="h-3.5 w-3.5" />
+                        ) : (
+                          <Download className="h-3.5 w-3.5" />
+                        )}
+                        {isFetching
+                          ? "Importando..."
+                          : activeVersion
+                          ? "Atualizar"
+                          : "Importar da API"}
+                      </Button>
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {isFetching && fetchProgress && (
+                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        <p className="text-xs text-primary font-medium">{fetchProgress}</p>
+                      </div>
+                      <Progress className="h-1.5" />
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-3 text-[10px]">
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Globe className="h-3 w-3" /> {ds.provider}
@@ -195,7 +184,7 @@ export function IrradianciaPage() {
                   </div>
 
                   {dsVersions.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic">Nenhuma versão importada.</p>
+                    <p className="text-xs text-muted-foreground italic">Nenhuma versão importada ainda. Clique em "Importar da API" acima.</p>
                   ) : (
                     <div className="space-y-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Versões</p>
@@ -232,139 +221,6 @@ export function IrradianciaPage() {
               </Card>
             );
           })}
-        </TabsContent>
-
-        {/* ── Import Tab ── */}
-        <TabsContent value="import" className="space-y-4 mt-4">
-          {/* Auto-fetch from API */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Zap className="h-4 w-4 text-warning" />
-                Importar via API (Automático)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Busca dados de irradiância automaticamente da <strong>NASA POWER API</strong> para todo o território brasileiro.
-                Os dados são inseridos diretamente no banco sem necessidade de arquivo CSV.
-              </p>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Dataset</Label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                    value={fetchDatasetCode}
-                    onChange={(e) => setFetchDatasetCode(e.target.value)}
-                  >
-                    <option value="">Selecione...</option>
-                    {datasets.map((ds) => (
-                      <option key={ds.code} value={ds.code}>{ds.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Tag da Versão</Label>
-                  <Input
-                    placeholder="ex: v1-nasa-2024"
-                    value={fetchVersionTag}
-                    onChange={(e) => setFetchVersionTag(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Resolução (graus)</Label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                    value={fetchStep}
-                    onChange={(e) => setFetchStep(e.target.value)}
-                  >
-                    <option value="2">2° (~220km, rápido ~150 pontos)</option>
-                    <option value="1">1° (~110km, ~3.000 pontos)</option>
-                    <option value="0.5">0.5° (~55km, ~12.000 pontos)</option>
-                  </select>
-                </div>
-              </div>
-
-              {fetchProgress && (
-                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                    <p className="text-xs text-primary font-medium">{fetchProgress}</p>
-                  </div>
-                  <Progress className="h-1.5" />
-                </div>
-              )}
-
-              <Button onClick={handleAutoFetch} disabled={fetching || !fetchDatasetCode || !fetchVersionTag} className="gap-1.5">
-                {fetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                {fetching ? "Importando da API..." : "Buscar da NASA POWER API"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Separator />
-
-          {/* Manual CSV import */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Importar via Arquivo CSV (Manual)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Dataset</Label>
-                  <select
-                    className="w-full border rounded-md px-3 py-2 text-sm bg-background"
-                    value={importDatasetCode}
-                    onChange={(e) => setImportDatasetCode(e.target.value)}
-                  >
-                    <option value="">Selecione...</option>
-                    {datasets.map((ds) => (
-                      <option key={ds.code} value={ds.code}>{ds.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Tag da Versão</Label>
-                  <Input
-                    placeholder="ex: v1, 2017-2ed"
-                    value={importVersionTag}
-                    onChange={(e) => setImportVersionTag(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Notas de Origem</Label>
-                <Input
-                  placeholder="Descrição da origem dos dados..."
-                  value={importNote}
-                  onChange={(e) => setImportNote(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs">Arquivo CSV</Label>
-                <p className="text-[10px] text-muted-foreground">
-                  Formato esperado: lat, lon, m01, m02, ..., m12 (valores em kWh/m²/dia). Separador: vírgula ou ponto-e-vírgula.
-                </p>
-                <Input
-                  type="file"
-                  accept=".csv,.txt"
-                  onChange={(e) => setImportFile(e.target.files?.[0] || null)}
-                />
-              </div>
-
-              <Button onClick={handleImport} disabled={importing || !importFile} className="gap-1.5">
-                {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {importing ? "Processando..." : "Iniciar Importação CSV"}
-              </Button>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         {/* ── Audit & Test Tab ── */}
