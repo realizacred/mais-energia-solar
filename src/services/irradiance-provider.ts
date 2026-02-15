@@ -2,7 +2,8 @@
  * IrradianceProvider — Canonical irradiance lookup service.
  *
  * Runtime SEM dependência externa. Consulta apenas a base interna (DB + cache).
- * Retorna série mensal (12 meses) + metadados para auditoria.
+ * Retorna série mensal GHI + DHI (12 meses) + metadados para auditoria.
+ * Suporta transposição para plano inclinado via Liu-Jordan.
  *
  * Fluxo:
  *   1. Resolve config do tenant (dataset_code + version_id + method)
@@ -13,6 +14,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { DhiSeries } from "./solar-transposition";
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -23,7 +25,10 @@ export interface IrradianceSeries {
 }
 
 export interface IrradianceLookupResult {
+  /** GHI monthly series (kWh/m²/day) */
   series: IrradianceSeries;
+  /** DHI monthly series if available (kWh/m²/day) */
+  dhi_series: DhiSeries | null;
   annual_average: number;
   dataset_code: string;
   version_tag: string;
@@ -35,6 +40,8 @@ export interface IrradianceLookupResult {
   distance_km: number;
   cache_hit: boolean;
   resolved_at: string;
+  /** Whether DHI data was available from the dataset */
+  has_dhi: boolean;
 }
 
 export interface IrradianceLookupInput {
@@ -68,6 +75,20 @@ function roundCoord(v: number, decimals = 4): number {
 function seriesAverage(s: IrradianceSeries): number {
   const vals = [s.m01, s.m02, s.m03, s.m04, s.m05, s.m06, s.m07, s.m08, s.m09, s.m10, s.m11, s.m12];
   return vals.reduce((a, b) => a + b, 0) / 12;
+}
+
+function extractDhi(pt: any): DhiSeries | null {
+  const dhi: DhiSeries = {
+    dhi_m01: Number(pt.dhi_m01 ?? 0), dhi_m02: Number(pt.dhi_m02 ?? 0),
+    dhi_m03: Number(pt.dhi_m03 ?? 0), dhi_m04: Number(pt.dhi_m04 ?? 0),
+    dhi_m05: Number(pt.dhi_m05 ?? 0), dhi_m06: Number(pt.dhi_m06 ?? 0),
+    dhi_m07: Number(pt.dhi_m07 ?? 0), dhi_m08: Number(pt.dhi_m08 ?? 0),
+    dhi_m09: Number(pt.dhi_m09 ?? 0), dhi_m10: Number(pt.dhi_m10 ?? 0),
+    dhi_m11: Number(pt.dhi_m11 ?? 0), dhi_m12: Number(pt.dhi_m12 ?? 0),
+  };
+  // Check if any DHI value is > 0 (i.e., data actually exists)
+  const hasData = Object.values(dhi).some(v => v > 0);
+  return hasData ? dhi : null;
 }
 
 // ─── Provider ───────────────────────────────────────────────────
@@ -148,8 +169,11 @@ export async function getMonthlyIrradiance(
 
   if (cached) {
     const series = cached.series as unknown as IrradianceSeries;
+    // Cache doesn't store DHI separately — re-lookup would be needed for DHI
+    // For now, cache hit returns null DHI (transposition will estimate)
     return {
       series,
+      dhi_series: null,
       annual_average: seriesAverage(series),
       dataset_code: config.dataset_code,
       version_tag: versionTag,
@@ -161,10 +185,11 @@ export async function getMonthlyIrradiance(
       distance_km: Number(cached.distance_km),
       cache_hit: true,
       resolved_at: new Date().toISOString(),
+      has_dhi: false,
     };
   }
 
-  // 4. Nearest-point lookup via RPC
+  // 4. Nearest-point lookup via RPC (now returns DHI columns too)
   const { data: points, error } = await supabase.rpc("irradiance_nearest_point", {
     p_version_id: versionId!,
     p_lat: lat,
@@ -184,6 +209,8 @@ export async function getMonthlyIrradiance(
     m09: Number(pt.m09), m10: Number(pt.m10), m11: Number(pt.m11), m12: Number(pt.m12),
   };
 
+  const dhiSeries = extractDhi(pt);
+
   // 5. Persist cache (fire-and-forget)
   supabase
     .from("irradiance_lookup_cache")
@@ -201,6 +228,7 @@ export async function getMonthlyIrradiance(
 
   return {
     series,
+    dhi_series: dhiSeries,
     annual_average: seriesAverage(series),
     dataset_code: config.dataset_code,
     version_tag: versionTag,
@@ -212,6 +240,7 @@ export async function getMonthlyIrradiance(
     distance_km: Number(pt.distance_km),
     cache_hit: false,
     resolved_at: new Date().toISOString(),
+    has_dhi: dhiSeries !== null,
   };
 }
 
@@ -229,9 +258,11 @@ export function buildIrradianceAuditPayload(result: IrradianceLookupResult) {
     irradiance_lon: result.point_lon,
     irradiance_distance_km: result.distance_km,
     irradiance_series: result.series,
+    irradiance_dhi_series: result.dhi_series,
     irradiance_annual_avg: result.annual_average,
     irradiance_unit: result.unit,
     irradiance_cache_hit: result.cache_hit,
     irradiance_resolved_at: result.resolved_at,
+    irradiance_has_dhi: result.has_dhi,
   };
 }

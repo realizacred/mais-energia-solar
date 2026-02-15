@@ -3396,6 +3396,18 @@ export type Database = {
       }
       irradiance_points_monthly: {
         Row: {
+          dhi_m01: number | null
+          dhi_m02: number | null
+          dhi_m03: number | null
+          dhi_m04: number | null
+          dhi_m05: number | null
+          dhi_m06: number | null
+          dhi_m07: number | null
+          dhi_m08: number | null
+          dhi_m09: number | null
+          dhi_m10: number | null
+          dhi_m11: number | null
+          dhi_m12: number | null
           id: number
           lat: number
           lon: number
@@ -3415,6 +3427,18 @@ export type Database = {
           version_id: string
         }
         Insert: {
+          dhi_m01?: number | null
+          dhi_m02?: number | null
+          dhi_m03?: number | null
+          dhi_m04?: number | null
+          dhi_m05?: number | null
+          dhi_m06?: number | null
+          dhi_m07?: number | null
+          dhi_m08?: number | null
+          dhi_m09?: number | null
+          dhi_m10?: number | null
+          dhi_m11?: number | null
+          dhi_m12?: number | null
           id?: number
           lat: number
           lon: number
@@ -3434,6 +3458,18 @@ export type Database = {
           version_id: string
         }
         Update: {
+          dhi_m01?: number | null
+          dhi_m02?: number | null
+          dhi_m03?: number | null
+          dhi_m04?: number | null
+          dhi_m05?: number | null
+          dhi_m06?: number | null
+          dhi_m07?: number | null
+          dhi_m08?: number | null
+          dhi_m09?: number | null
+          dhi_m10?: number | null
+          dhi_m11?: number | null
+          dhi_m12?: number | null
           id?: number
           lat?: number
           lon?: number
@@ -12619,6 +12655,18 @@ export type Database = {
           p_version_id: string
         }
         Returns: {
+          dhi_m01: number
+          dhi_m02: number
+          dhi_m03: number
+          dhi_m04: number
+          dhi_m05: number
+          dhi_m06: number
+          dhi_m07: number
+          dhi_m08: number
+          dhi_m09: number
+          dhi_m10: number
+          dhi_m11: number
+          dhi_m12: number
           distance_km: number
           lat: number
           lon: number
