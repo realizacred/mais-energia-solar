@@ -153,7 +153,6 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
     }));
   }, [concessionarias, onChange]);
 
-  const isBT = premises.grupo_tarifario === "BT";
   const isOnGrid = premises.tipo_sistema === "on_grid";
   const selectedConc = concessionarias.find((c) => c.id === (premises as any).concessionaria_id);
 
@@ -211,31 +210,23 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
             </Select>
           </div>
           <NumField label="Tarifa" suffix="R$/kWh" value={premises.tarifa} step="0.00001" tooltip="Tarifa de energia da concessionária (R$/kWh). Auto-preenchido pela concessionária selecionada." onChange={(v) => set("tarifa", v)} />
-          {!isBT && (
-            <NumField label="Tarifa TE - Ponta" suffix="R$/kWh" value={premises.tarifa_te_ponta} step="0.00001" tooltip="Tarifa de Energia no horário de ponta. Aplicável apenas para Média Tensão." onChange={(v) => set("tarifa_te_ponta", v)} />
-          )}
+          <NumField label="Tarifa TE - Ponta" suffix="R$/kWh" value={premises.tarifa_te_ponta} step="0.00001" tooltip="Tarifa de Energia no horário de ponta. Aplicável para Média Tensão." onChange={(v) => set("tarifa_te_ponta", v)} />
         </div>
 
-        {/* Campos MT - Ponta/Fora Ponta */}
-        {!isBT && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <NumField label="Tarifa TUSD - Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_ponta} step="0.00001" onChange={(v) => set("tarifa_tusd_ponta", v)} />
-            <NumField label="Tarifa TE - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_te_fora_ponta} step="0.00001" onChange={(v) => set("tarifa_te_fora_ponta", v)} />
-            <NumField label="Tarifa TUSD - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_fora_ponta} step="0.00001" onChange={(v) => set("tarifa_tusd_fora_ponta", v)} />
-          </div>
-        )}
+        {/* Linha 2 - TUSD / TE Ponta e Fora Ponta */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <NumField label="Tarifa TUSD - Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_ponta} step="0.00001" onChange={(v) => set("tarifa_tusd_ponta", v)} />
+          <NumField label="Tarifa TE - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_te_fora_ponta} step="0.00001" onChange={(v) => set("tarifa_te_fora_ponta", v)} />
+          <NumField label="Tarifa TUSD - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_fora_ponta} step="0.00001" onChange={(v) => set("tarifa_tusd_fora_ponta", v)} />
+        </div>
 
         {/* Linha 3 - Fio B GD II */}
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">GD II — TUSD Fio B (100%)</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <NumField label="TUSD Fio B - Baixa Tensão" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" tooltip="Componente da tarifa referente ao uso do fio da distribuidora. Auto-preenchido pela concessionária." onChange={(v) => set("tusd_fio_b_bt", v)} />
-            {!isBT && (
-              <>
-                <NumField label="TUSD Fio B - Fora Ponta" suffix="R$/kWh" value={premises.tusd_fio_b_fora_ponta} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_fora_ponta", v)} />
-                <NumField label="TUSD Fio B - Ponta" suffix="R$/kWh" value={premises.tusd_fio_b_ponta} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_ponta", v)} />
-              </>
-            )}
+            <NumField label="TUSD Fio B - Baixa Tensão (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" tooltip="Componente da tarifa referente ao uso do fio da distribuidora. Auto-preenchido pela concessionária." onChange={(v) => set("tusd_fio_b_bt", v)} />
+            <NumField label="TUSD Fio B - Fora Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_fora_ponta} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_fora_ponta", v)} />
+            <NumField label="TUSD Fio B - Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_ponta} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_ponta", v)} />
           </div>
         </div>
 
@@ -246,24 +237,16 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
             <FieldTooltip text="Tarifação aplicada à energia compensada conforme Lei 14.300/2022. Composta por: 100% da TUSD Fio B + 40% da TUSD Fio A + TFSEE (Taxa de Fiscalização) + P&D (Pesquisa e Desenvolvimento). Este valor é cobrado sobre cada kWh de energia injetada e compensada na rede." />
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <NumField label="Tarifação Compensada - Baixa Tensão (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_bt", v)} />
-            {!isBT && (
-              <>
-                <NumField label="Tarifação Compensada - Fora Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
-                <NumField label="Tarifação Compensada - Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_ponta", v)} />
-              </>
-            )}
+            <NumField label="Tarifação Energia Compensada - Baixa Tensão (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_bt", v)} />
+            <NumField label="Tarifação Energia Compensada - Fora Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
+            <NumField label="Tarifação Energia Compensada - Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_ponta", v)} />
           </div>
         </div>
 
         {/* Linha 5 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {!isBT && (
-            <>
-              <NumField label="Preço da Demanda Geração" suffix="R$" value={premises.preco_demanda_geracao} step="0.01" tooltip="Valor da demanda contratada para geração. Aplicável apenas em Média Tensão." onChange={(v) => set("preco_demanda_geracao", v)} />
-              <NumField label="Preço da Demanda" suffix="R$" value={premises.preco_demanda} step="0.01" tooltip="Valor da demanda contratada. Aplicável apenas em Média Tensão." onChange={(v) => set("preco_demanda", v)} />
-            </>
-          )}
+          <NumField label="Preço da Demanda Geração" suffix="R$" value={premises.preco_demanda_geracao} step="0.01" tooltip="Valor da demanda contratada para geração. Aplicável em Média Tensão." onChange={(v) => set("preco_demanda_geracao", v)} />
+          <NumField label="Preço da Demanda" suffix="R$" value={premises.preco_demanda} step="0.01" tooltip="Valor da demanda contratada. Aplicável em Média Tensão." onChange={(v) => set("preco_demanda", v)} />
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
               Fase e Tensão da Rede
