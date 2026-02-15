@@ -1,3 +1,4 @@
+import { useState, useMemo } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -14,6 +15,9 @@ import {
   BellOff,
   Eye,
   Bell,
+  Pin,
+  MailOpen,
+  StickyNote,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -21,14 +25,56 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 import type { WaConversation, WaTag } from "@/hooks/useWaInbox";
 import { deriveConversationStatus, DERIVED_STATUS_CONFIG } from "./useConversationStatus";
 import type { WaInstance } from "@/hooks/useWaInstances";
 
-const statusConfig: Record<string, { label: string; color: string; dotColor: string; icon: typeof MessageCircle }> = {
-  open: { label: "Aberta", color: "bg-success/15 text-success border-success/30", dotColor: "bg-success", icon: MessageCircle },
-  pending: { label: "Pendente", color: "bg-warning/15 text-warning border-warning/30", dotColor: "bg-warning", icon: Clock },
-  resolved: { label: "Resolvida", color: "bg-muted text-muted-foreground border-border", dotColor: "bg-muted-foreground", icon: CheckCircle2 },
+// ── Badge item type ────────────────────────────────────
+interface BadgeItem {
+  key: string;
+  label: string;
+  icon?: typeof MessageCircle;
+  className?: string;
+  style?: React.CSSProperties;
+}
+
+const MAX_VISIBLE_BADGES = 2;
+
+// ── Compact badge ──────────────────────────────────────
+function CompactBadge({ item }: { item: BadgeItem }) {
+  const Icon = item.icon;
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div>
+            <Badge
+              variant="outline"
+              className={cn(
+                "h-[18px] px-1.5 text-[9px] leading-none gap-0.5 font-normal shrink-0 max-w-[88px] cursor-default",
+                item.className,
+              )}
+              style={item.style}
+            >
+              {Icon && <Icon className="h-2.5 w-2.5 shrink-0" />}
+              <span className="truncate">{item.label}</span>
+            </Badge>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="text-[10px]">{item.label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// ── Status config ──────────────────────────────────────
+const statusConfig: Record<string, { label: string; dotColor: string; icon: typeof MessageCircle }> = {
+  open: { label: "Aberta", dotColor: "bg-success", icon: MessageCircle },
+  pending: { label: "Pendente", dotColor: "bg-warning", icon: Clock },
+  resolved: { label: "Resolvida", dotColor: "bg-muted-foreground", icon: CheckCircle2 },
 };
 
 interface WaConversationListProps {
@@ -50,17 +96,238 @@ interface WaConversationListProps {
   instances: WaInstance[];
   tags: WaTag[];
   hideAssignedFilter?: boolean;
-  // Group & preference filters
   showGroups?: boolean;
   onShowGroupsChange?: (v: boolean) => void;
   showHidden?: boolean;
   onShowHiddenChange?: (v: boolean) => void;
   mutedIds?: Set<string>;
   hiddenIds?: Set<string>;
-  // Follow-up data
   followupConvIds?: Set<string>;
 }
 
+// ── Conversation Item ──────────────────────────────────
+function ConversationItem({
+  conv,
+  isSelected,
+  hasUnread,
+  onSelect,
+  vendedores,
+  instances,
+  mutedIds,
+  hiddenIds,
+  followupConvIds,
+}: {
+  conv: WaConversation;
+  isSelected: boolean;
+  hasUnread: boolean;
+  onSelect: (conv: WaConversation) => void;
+  vendedores: { id: string; nome: string; user_id: string | null }[];
+  instances: WaInstance[];
+  mutedIds?: Set<string>;
+  hiddenIds?: Set<string>;
+  followupConvIds?: Set<string>;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const st = statusConfig[conv.status] || statusConfig.open;
+  const derivedStatus = deriveConversationStatus(conv, followupConvIds);
+  const derivedCfg = derivedStatus ? DERIVED_STATUS_CONFIG[derivedStatus] : null;
+  const isMuted = mutedIds?.has(conv.id);
+  const isHidden = hiddenIds?.has(conv.id);
+  const isFollowup = followupConvIds?.has(conv.id);
+  const isNote = conv.last_message_preview?.startsWith("[Nota interna]") || conv.last_message_preview?.startsWith("[Nota]");
+  const displayName = conv.cliente_nome || conv.cliente_telefone || "Desconhecido";
+
+  // Build badges
+  const allBadges = useMemo(() => {
+    const badges: BadgeItem[] = [];
+
+    // Responsible
+    const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
+    badges.push({
+      key: "assigned",
+      label: responsible ? responsible.nome : "Não atribuído",
+      icon: User,
+      className: responsible
+        ? "text-muted-foreground border-border bg-muted/30"
+        : "text-warning border-warning/30 bg-warning/5",
+    });
+
+    // Instance
+    if (instances.length > 1 && conv.instance_name) {
+      badges.push({
+        key: "instance",
+        label: conv.instance_name,
+        icon: Smartphone,
+        className: "text-muted-foreground border-border bg-muted/30",
+      });
+    }
+
+    // Lead origin
+    if (conv.lead_nome) {
+      badges.push({
+        key: "lead",
+        label: conv.lead_nome,
+        icon: Link2,
+        className: "text-primary/70 border-primary/20 bg-primary/5",
+      });
+    }
+
+    // Tags
+    conv.tags?.forEach((ct) => {
+      if (ct.tag) {
+        badges.push({
+          key: `tag-${ct.tag_id}`,
+          label: ct.tag.name,
+          className: "border-border/50",
+          style: {
+            borderColor: ct.tag.color ? ct.tag.color + "60" : undefined,
+            color: ct.tag.color,
+            backgroundColor: ct.tag.color ? ct.tag.color + "10" : undefined,
+          },
+        });
+      }
+    });
+
+    return badges;
+  }, [conv, vendedores, instances]);
+
+  const visibleBadges = allBadges.slice(0, MAX_VISIBLE_BADGES);
+  const overflowBadges = allBadges.slice(MAX_VISIBLE_BADGES);
+
+  return (
+    <button
+      onClick={() => onSelect(conv)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      aria-selected={isSelected}
+      className={cn(
+        "w-full text-left px-3 py-2.5 transition-all duration-150 overflow-hidden",
+        "border-b border-border/20 border-l-2",
+        isSelected
+          ? "bg-primary/[0.06] border-l-primary"
+          : "border-l-transparent hover:bg-muted/40",
+        hasUnread && !isSelected && "bg-primary/[0.03]",
+        isMuted && "opacity-60",
+      )}
+    >
+      <div className="flex items-start gap-2.5">
+        {/* Avatar */}
+        <div className="relative shrink-0 mt-0.5">
+          <div
+            className={cn(
+              "w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-bold",
+              hasUnread
+                ? "bg-primary/12 text-primary ring-2 ring-primary/20"
+                : "bg-muted/60 text-muted-foreground",
+            )}
+          >
+            {conv.profile_picture_url ? (
+              <img src={conv.profile_picture_url} alt="" className="w-full h-full rounded-full object-cover" />
+            ) : conv.is_group ? (
+              <Users className="h-4 w-4" />
+            ) : conv.cliente_nome ? (
+              conv.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
+            ) : (
+              <User className="h-4 w-4" />
+            )}
+          </div>
+          <div className={cn("absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card", st.dotColor)} />
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0 overflow-hidden">
+          {/* Line 1: Name + status/unread + time */}
+          <div className="flex items-center justify-between gap-1.5 mb-0.5">
+            <div className="flex items-center gap-1 min-w-0 flex-1">
+              <span className={cn(
+                "text-[13px] truncate",
+                hasUnread ? "font-bold text-foreground" : "font-medium text-foreground/80",
+              )}>
+                {displayName}
+              </span>
+              {isMuted && <BellOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
+              {isHidden && <EyeOff className="h-3 w-3 text-muted-foreground/50 shrink-0" />}
+              {isFollowup && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {derivedCfg && derivedStatus !== "resolvida" && (
+                <Badge variant="outline" className={cn("text-[9px] h-[16px] px-1.5 gap-0.5", derivedCfg.badgeClass)}>
+                  <span className={cn("w-1.5 h-1.5 rounded-full", derivedCfg.dotClass)} />
+                  {derivedCfg.label}
+                </Badge>
+              )}
+              {conv.status === "resolved" && (
+                <Badge variant="muted" size="sm" className="text-[9px] h-[16px] px-1.5">
+                  Resolvida
+                </Badge>
+              )}
+              {hasUnread && (
+                <span className="flex items-center justify-center min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1 shadow-sm">
+                  {conv.unread_count > 99 ? "99+" : conv.unread_count}
+                </span>
+              )}
+              <span className={cn(
+                "text-[10px] tabular-nums",
+                hasUnread ? "text-primary font-semibold" : "text-muted-foreground",
+              )}>
+                {conv.last_message_at && formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: ptBR })}
+              </span>
+            </div>
+          </div>
+
+          {/* Line 2: Preview */}
+          <div className="flex items-center gap-1 mb-1 min-w-0">
+            {isNote && <StickyNote className="h-3 w-3 shrink-0 text-warning" />}
+            <p className={cn(
+              "text-xs truncate",
+              isNote
+                ? "text-warning/80 italic"
+                : hasUnread ? "text-foreground/80 font-medium" : "text-muted-foreground",
+            )}>
+              {isNote ? "📝 Nota interna" : conv.last_message_preview || "Sem mensagens"}
+            </p>
+          </div>
+
+          {/* Line 3: Badges (max 2 + overflow) */}
+          {allBadges.length > 0 && (
+            <div className="flex items-center gap-1 overflow-hidden max-w-full">
+              {visibleBadges.map((b) => (
+                <CompactBadge key={b.key} item={b} />
+              ))}
+              {overflowBadges.length > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-[18px] px-1.5 text-[9px] font-medium rounded-full border border-border bg-muted/50 text-muted-foreground hover:bg-muted transition-colors shrink-0"
+                    >
+                      +{overflowBadges.length}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    side="right"
+                    align="start"
+                    className="w-auto max-w-[220px] p-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Mais detalhes</p>
+                    <div className="flex flex-wrap gap-1">
+                      {overflowBadges.map((b) => (
+                        <CompactBadge key={b.key} item={b} />
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ── Main list ──────────────────────────────────────────
 export function WaConversationList({
   conversations,
   loading,
@@ -205,12 +472,19 @@ export function WaConversationList({
       <ScrollArea className="flex-1">
         {loading ? (
           <div className="p-2 space-y-1">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-lg">
-                <Skeleton className="h-11 w-11 rounded-full" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-4 w-28" />
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-2.5 px-3 py-2.5">
+                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex justify-between">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-3 w-10" />
+                  </div>
                   <Skeleton className="h-3 w-full" />
+                  <div className="flex gap-1">
+                    <Skeleton className="h-[18px] w-16 rounded-full" />
+                    <Skeleton className="h-[18px] w-14 rounded-full" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -224,131 +498,21 @@ export function WaConversationList({
             <p className="text-xs text-muted-foreground/60 mt-1">Ajuste os filtros ou aguarde novas mensagens.</p>
           </div>
         ) : (
-          <div className="p-1.5 space-y-0.5">
-            {conversations.map((conv) => {
-              const isSelected = conv.id === selectedId;
-              const st = statusConfig[conv.status] || statusConfig.open;
-              const hasUnread = conv.unread_count > 0;
-              const derivedStatus = deriveConversationStatus(conv, followupConvIds);
-              const derivedCfg = derivedStatus ? DERIVED_STATUS_CONFIG[derivedStatus] : null;
-
-              return (
-                <button
-                  key={conv.id}
-                  onClick={() => onSelect(conv)}
-                  className={`w-full text-left p-3 rounded-xl transition-all duration-200
-                    ${isSelected
-                      ? "bg-primary/8 ring-1 ring-primary/20 shadow-sm"
-                      : "hover:bg-muted/40"
-                    }
-                    ${hasUnread && !isSelected ? "bg-primary/4" : ""}
-                  `}
-                >
-                  <div className="flex items-start gap-3">
-                    {/* Avatar with status indicator */}
-                    <div className="relative shrink-0">
-                      <div className={`w-11 h-11 rounded-full flex items-center justify-center text-xs font-bold transition-colors
-                        ${hasUnread ? "bg-primary/12 text-primary ring-2 ring-primary/20" : "bg-muted/60 text-muted-foreground"}`}
-                      >
-                        {conv.profile_picture_url ? (
-                          <img src={conv.profile_picture_url} alt="" className="w-full h-full rounded-full object-cover" />
-                        ) : conv.is_group ? (
-                          <Users className="h-4 w-4" />
-                        ) : conv.cliente_nome ? (
-                          conv.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
-                        ) : (
-                          <User className="h-4 w-4" />
-                        )}
-                      </div>
-                      {/* Status dot */}
-                      <div className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-card ${st.dotColor}`} />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      {/* Name + time */}
-                      <div className="flex items-center justify-between mb-0.5">
-                        <span className={`text-sm truncate flex items-center gap-1 ${hasUnread ? "font-bold text-foreground" : "font-medium text-foreground/80"}`}>
-                          {conv.cliente_nome || conv.cliente_telefone}
-                          {mutedIds?.has(conv.id) && <BellOff className="h-3 w-3 text-muted-foreground/60 shrink-0" />}
-                          {hiddenIds?.has(conv.id) && <EyeOff className="h-3 w-3 text-muted-foreground/60 shrink-0" />}
-                          {followupConvIds?.has(conv.id) && <Bell className="h-3 w-3 text-warning shrink-0 animate-pulse" />}
-                        </span>
-                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                          {derivedCfg && derivedStatus !== "resolvida" && (
-                            <Badge variant="outline" className={`text-[9px] px-1.5 py-0 gap-1 ${derivedCfg.badgeClass}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${derivedCfg.dotClass}`} />
-                              {derivedCfg.label}
-                            </Badge>
-                          )}
-                          {conv.status === "resolved" && (
-                            <Badge variant="muted" size="sm" className="text-[9px] px-1.5 py-0">
-                              Resolvida
-                            </Badge>
-                          )}
-                          {hasUnread && (
-                            <span className="flex items-center justify-center min-w-[20px] h-[20px] rounded-full bg-primary text-primary-foreground text-[10px] font-bold px-1.5 shadow-sm">
-                              {conv.unread_count > 99 ? "99+" : conv.unread_count}
-                            </span>
-                          )}
-                          <span className="text-[10px] text-muted-foreground">
-                            {conv.last_message_at && formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false, locale: ptBR })}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Message preview with type icon */}
-                      <p className={`text-xs truncate mb-1.5 ${hasUnread ? "text-foreground/80 font-medium" : "text-muted-foreground"}`}>
-                        {conv.last_message_preview
-                          ? conv.last_message_preview.startsWith("[Nota interna]")
-                            ? "📝 Nota interna"
-                            : conv.last_message_preview
-                          : "Sem mensagens"}
-                      </p>
-
-                      {/* Metadata badges */}
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {/* Responsável / Assigned to */}
-                        {(() => {
-                          const responsible = vendedores.find((v) => v.user_id === conv.assigned_to);
-                          return (
-                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 bg-accent/30 border-accent/20 text-accent-foreground/80">
-                              <User className="h-2.5 w-2.5" />
-                              {responsible ? responsible.nome : "Não atribuído"}
-                            </Badge>
-                          );
-                        })()}
-                        {conv.lead_nome && (
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 bg-primary/5 border-primary/20 text-primary/80">
-                            <Link2 className="h-2.5 w-2.5" />
-                            {conv.lead_nome}
-                          </Badge>
-                        )}
-                        {instances.length > 1 && conv.instance_name && (
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 border-border/50">
-                            <Smartphone className="h-2.5 w-2.5" />
-                            {conv.instance_name}
-                          </Badge>
-                        )}
-                        {conv.tags?.map((ct) => (
-                          <Badge
-                            key={ct.id}
-                            variant="outline"
-                            className="text-[9px] px-1.5 py-0"
-                            style={{
-                              borderColor: ct.tag?.color ? ct.tag.color + "60" : undefined,
-                              color: ct.tag?.color,
-                              backgroundColor: ct.tag?.color ? ct.tag.color + "10" : undefined,
-                            }}
-                          >
-                            {ct.tag?.name}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          <div role="listbox">
+            {conversations.map((conv) => (
+              <ConversationItem
+                key={conv.id}
+                conv={conv}
+                isSelected={conv.id === selectedId}
+                hasUnread={conv.unread_count > 0}
+                onSelect={onSelect}
+                vendedores={vendedores}
+                instances={instances}
+                mutedIds={mutedIds}
+                hiddenIds={hiddenIds}
+                followupConvIds={followupConvIds}
+              />
+            ))}
           </div>
         )}
       </ScrollArea>
