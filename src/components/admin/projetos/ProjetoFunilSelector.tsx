@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
 import { Plus, Pencil, Check, X, MoreHorizontal, EyeOff, Eye, ArrowUp, ArrowDown, Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,7 @@ interface Props {
   funis: ProjetoFunil[];
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onCreate: (nome: string) => void;
+  onCreate: (nome: string, templateStages?: { name: string; probability: number; is_closed?: boolean; is_won?: boolean }[]) => void;
   onRename: (id: string, nome: string) => void;
   onToggleAtivo: (id: string, ativo: boolean) => void;
   onReorder: (orderedIds: string[]) => void;
@@ -32,22 +33,13 @@ interface Props {
 export function ProjetoFunilSelector({
   funis, selectedId, onSelect, onCreate, onRename, onToggleAtivo, onReorder, onEditEtapas,
 }: Props) {
-  const [creatingNew, setCreatingNew] = useState(false);
-  const [newName, setNewName] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [showInactive, setShowInactive] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
 
   const activeFunis = funis.filter(f => f.ativo).sort((a, b) => a.ordem - b.ordem);
   const inactiveFunis = funis.filter(f => !f.ativo).sort((a, b) => a.ordem - b.ordem);
-
-  const handleCreate = () => {
-    if (newName.trim()) {
-      onCreate(newName.trim());
-      setNewName("");
-      setCreatingNew(false);
-    }
-  };
 
   const handleRename = (id: string) => {
     if (editName.trim()) {
@@ -179,38 +171,23 @@ export function ProjetoFunilSelector({
         })}
       </div>
 
-      {/* Create new */}
-      {creatingNew ? (
-        <div className="flex items-center gap-0.5 ml-1">
-          <Input
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            placeholder="Nome do funil..."
-            className="h-7 w-32 text-xs"
-            autoFocus
-            onKeyDown={e => {
-              if (e.key === "Enter") handleCreate();
-              if (e.key === "Escape") { setCreatingNew(false); setNewName(""); }
-            }}
-          />
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCreate}>
-            <Check className="h-3 w-3" />
-          </Button>
-          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setCreatingNew(false); setNewName(""); }}>
-            <X className="h-3 w-3" />
-          </Button>
-        </div>
-      ) : (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 shrink-0"
-          onClick={() => setCreatingNew(true)}
-        >
-          <Plus className="h-3 w-3" />
-          Novo
-        </Button>
-      )}
+      {/* Create new via template */}
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1 shrink-0"
+        onClick={() => setTemplateDialogOpen(true)}
+      >
+        <Plus className="h-3 w-3" />
+        Novo
+      </Button>
+
+      <ProjetoPipelineTemplates
+        open={templateDialogOpen}
+        onOpenChange={setTemplateDialogOpen}
+        onCreateFromTemplate={(name, stages) => onCreate(name, stages)}
+        onCreateBlank={(name) => onCreate(name)}
+      />
 
       {/* Inactive funnels */}
       {inactiveFunis.length > 0 && (

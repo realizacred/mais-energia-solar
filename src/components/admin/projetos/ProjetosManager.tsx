@@ -180,7 +180,7 @@ export function ProjetosManager() {
               setSelectedPipelineId(id);
               applyFilters({ pipelineId: id });
             }}
-            onCreate={createPipeline}
+            onCreate={(name, templateStages) => createPipeline(name, templateStages)}
             onRename={renamePipeline}
             onToggleAtivo={togglePipelineActive}
             onReorder={reorderPipelines}

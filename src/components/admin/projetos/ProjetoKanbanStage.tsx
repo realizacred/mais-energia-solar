@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, MapPin, Palette, Eye, Workflow } from "lucide-react";
+import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User } from "lucide-react";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -93,13 +93,87 @@ function getStagnationLevel(lastChange: string) {
   return null;
 }
 
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(w => w[0]?.toUpperCase())
+    .join("");
+}
+
+// ── Arrow Progress Bar ─────────────────────────────────
+function ArrowProgressBar({ stages, dealCounts }: { stages: PipelineStage[]; dealCounts: Map<string, number> }) {
+  const sorted = [...stages].sort((a, b) => a.position - b.position);
+  return (
+    <div className="flex items-stretch w-full mb-3 overflow-x-auto">
+      {sorted.map((stage, i) => {
+        const count = dealCounts.get(stage.id) || 0;
+        const isFirst = i === 0;
+        const isLast = i === sorted.length - 1;
+        const isWon = stage.is_won;
+        const isClosed = stage.is_closed && !stage.is_won;
+
+        return (
+          <div
+            key={stage.id}
+            className={cn(
+              "relative flex items-center justify-center px-4 py-1.5 text-[10px] font-semibold min-w-0 flex-1 truncate",
+              isFirst && "rounded-l-md",
+              isLast && "rounded-r-md",
+              isWon
+                ? "bg-success/15 text-success"
+                : isClosed
+                  ? "bg-destructive/10 text-destructive"
+                  : count > 0
+                    ? "bg-primary/10 text-primary"
+                    : "bg-muted/60 text-muted-foreground"
+            )}
+          >
+            {/* Arrow separator */}
+            {!isFirst && (
+              <div
+                className="absolute left-0 top-0 bottom-0 w-0 h-0"
+                style={{
+                  borderTop: "16px solid transparent",
+                  borderBottom: "16px solid transparent",
+                  borderLeft: "8px solid hsl(var(--background))",
+                  marginLeft: "-1px",
+                }}
+              />
+            )}
+            <span className="truncate">{stage.name}</span>
+            {count > 0 && (
+              <span className="ml-1 text-[9px] font-mono opacity-80">({count})</span>
+            )}
+            {/* Arrow tip */}
+            {!isLast && (
+              <div
+                className="absolute right-0 top-0 bottom-0 w-0 h-0 z-10"
+                style={{
+                  borderTop: "16px solid transparent",
+                  borderBottom: "16px solid transparent",
+                  borderLeft: `8px solid currentColor`,
+                  opacity: 0.15,
+                  marginRight: "-8px",
+                }}
+              />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [automations, setAutomations] = useState<AutomationRule[]>([]);
   const [automationDialogStageId, setAutomationDialogStageId] = useState<string | null>(null);
+  const [stagePermissions, setStagePermissions] = useState<Map<string, string>>(new Map());
 
-  // Fetch automations for visual indicators
+  // Fetch automations
   useEffect(() => {
     const pipelineId = stages[0]?.pipeline_id;
     if (!pipelineId) return;
@@ -113,6 +187,21 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
       });
   }, [stages]);
 
+  // Fetch stage permissions
+  useEffect(() => {
+    const stageIds = stages.map(s => s.id);
+    if (stageIds.length === 0) return;
+    supabase
+      .from("pipeline_stage_permissions")
+      .select("stage_id, restricao_tipo")
+      .in("stage_id", stageIds)
+      .then(({ data }) => {
+        const map = new Map<string, string>();
+        (data || []).forEach((p: any) => map.set(p.stage_id, p.restricao_tipo));
+        setStagePermissions(map);
+      });
+  }, [stages]);
+
   const automationsByStage = useMemo(() => {
     const map = new Map<string, AutomationRule[]>();
     automations.forEach(a => {
@@ -122,6 +211,12 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
     });
     return map;
   }, [automations]);
+
+  const dealCountsByStage = useMemo(() => {
+    const map = new Map<string, number>();
+    deals.forEach(d => map.set(d.stage_id, (map.get(d.stage_id) || 0) + 1));
+    return map;
+  }, [deals]);
 
   const getStageNameById = (id: string | null) => stages.find(s => s.id === id)?.name || "—";
 
@@ -153,6 +248,11 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
 
   return (
     <>
+      {/* Arrow Progress Bar */}
+      <div className="px-1">
+        <ArrowProgressBar stages={sortedStages} dealCounts={dealCountsByStage} />
+      </div>
+
       <ScrollArea className="w-full">
         <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
           {sortedStages.map(stage => {
@@ -162,6 +262,8 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
             const isOver = dragOverCol === stage.id;
             const stageAutomations = automationsByStage.get(stage.id) || [];
             const hasActiveAutomation = stageAutomations.length > 0;
+            const permission = stagePermissions.get(stage.id);
+            const hasRestriction = permission && permission !== "todos";
 
             return (
               <div
@@ -192,6 +294,16 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                           </TooltipContent>
                         </Tooltip>
                       )}
+                      {hasRestriction && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Lock className="h-3 w-3 text-warning shrink-0" />
+                          </TooltipTrigger>
+                          <TooltipContent className="text-xs">
+                            {permission === "apenas_responsavel" ? "Apenas o responsável pode mover" : "Restrito por papel"}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
 
                     {/* Gear DropdownMenu */}
@@ -219,6 +331,10 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                         >
                           <Zap className="h-3.5 w-3.5" />
                           Configurar Automação
+                        </DropdownMenuItem>
+                        <DropdownMenuItem disabled className="text-xs gap-2">
+                          <Lock className="h-3.5 w-3.5" />
+                          Permissões da etapa
                         </DropdownMenuItem>
                         <DropdownMenuItem disabled className="text-xs gap-2">
                           <Workflow className="h-3.5 w-3.5" />
@@ -365,10 +481,10 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
       )}
       style={{ boxShadow: "0 1px 3px hsl(var(--foreground) / 0.04)" }}
     >
-      {/* Row 1: Name + badges */}
+      {/* Row 1: Name + Owner Avatar */}
       <div className="flex items-start justify-between gap-1.5 mb-1.5">
         <p className={cn(
-          "text-[12px] font-semibold leading-snug line-clamp-1",
+          "text-[12px] font-semibold leading-snug line-clamp-1 flex-1",
           isInactive ? "text-muted-foreground" : "text-foreground"
         )}>
           {deal.customer_name || deal.deal_title || "Sem nome"}
@@ -411,8 +527,24 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
         )}
       </div>
 
-      {/* Row 3: Time in stage + location */}
+      {/* Row 3: Owner avatar + time in stage */}
       <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Avatar className="h-5 w-5 border border-border/50">
+                <AvatarFallback className="text-[8px] font-bold bg-primary/10 text-primary">
+                  {getInitials(deal.owner_name)}
+                </AvatarFallback>
+              </Avatar>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">
+              <User className="h-3 w-3 inline mr-1" />
+              {deal.owner_name}
+            </TooltipContent>
+          </Tooltip>
+          <span className="truncate max-w-[100px]">{deal.owner_name}</span>
+        </div>
         <span className={cn(
           "flex items-center gap-0.5",
           stagnation === "critical" && "text-destructive font-semibold",
