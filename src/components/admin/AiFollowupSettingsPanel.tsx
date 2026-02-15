@@ -105,6 +105,15 @@ export function AiFollowupSettingsPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", (await supabase.auth.getUser()).data.user?.id ?? "")
+        .single();
+
+      const tenantId = profile?.tenant_id;
+      if (!tenantId) throw new Error("Tenant não encontrado");
+
       const payload = {
         modo: settings.modo,
         modelo_preferido: settings.modelo_preferido,
@@ -125,7 +134,7 @@ export function AiFollowupSettingsPanel() {
       } else {
         const { error } = await supabase
           .from("wa_ai_settings")
-          .insert(payload as any);
+          .insert({ ...payload, tenant_id: tenantId } as any);
         if (error) throw error;
         setHasRecord(true);
       }
