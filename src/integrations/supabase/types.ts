@@ -3258,6 +3258,210 @@ export type Database = {
           },
         ]
       }
+      irradiance_dataset_versions: {
+        Row: {
+          checksum_sha256: string | null
+          created_at: string
+          dataset_id: string
+          id: string
+          ingested_at: string
+          metadata: Json
+          row_count: number
+          source_note: string | null
+          status: string
+          updated_at: string
+          version_tag: string
+        }
+        Insert: {
+          checksum_sha256?: string | null
+          created_at?: string
+          dataset_id: string
+          id?: string
+          ingested_at?: string
+          metadata?: Json
+          row_count?: number
+          source_note?: string | null
+          status?: string
+          updated_at?: string
+          version_tag: string
+        }
+        Update: {
+          checksum_sha256?: string | null
+          created_at?: string
+          dataset_id?: string
+          id?: string
+          ingested_at?: string
+          metadata?: Json
+          row_count?: number
+          source_note?: string | null
+          status?: string
+          updated_at?: string
+          version_tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "irradiance_dataset_versions_dataset_id_fkey"
+            columns: ["dataset_id"]
+            isOneToOne: false
+            referencedRelation: "irradiance_datasets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      irradiance_datasets: {
+        Row: {
+          code: string
+          coverage: Json
+          created_at: string
+          default_unit: string
+          description: string | null
+          id: string
+          name: string
+          provider: string
+          resolution_km: number | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          coverage?: Json
+          created_at?: string
+          default_unit?: string
+          description?: string | null
+          id?: string
+          name: string
+          provider: string
+          resolution_km?: number | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          coverage?: Json
+          created_at?: string
+          default_unit?: string
+          description?: string | null
+          id?: string
+          name?: string
+          provider?: string
+          resolution_km?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      irradiance_lookup_cache: {
+        Row: {
+          created_at: string
+          distance_km: number | null
+          id: number
+          lat_round: number
+          lon_round: number
+          method: string
+          point_lat: number | null
+          point_lon: number | null
+          series: Json
+          version_id: string
+        }
+        Insert: {
+          created_at?: string
+          distance_km?: number | null
+          id?: number
+          lat_round: number
+          lon_round: number
+          method?: string
+          point_lat?: number | null
+          point_lon?: number | null
+          series: Json
+          version_id: string
+        }
+        Update: {
+          created_at?: string
+          distance_km?: number | null
+          id?: number
+          lat_round?: number
+          lon_round?: number
+          method?: string
+          point_lat?: number | null
+          point_lon?: number | null
+          series?: Json
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "irradiance_lookup_cache_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "irradiance_dataset_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      irradiance_points_monthly: {
+        Row: {
+          id: number
+          lat: number
+          lon: number
+          m01: number
+          m02: number
+          m03: number
+          m04: number
+          m05: number
+          m06: number
+          m07: number
+          m08: number
+          m09: number
+          m10: number
+          m11: number
+          m12: number
+          unit: string
+          version_id: string
+        }
+        Insert: {
+          id?: number
+          lat: number
+          lon: number
+          m01?: number
+          m02?: number
+          m03?: number
+          m04?: number
+          m05?: number
+          m06?: number
+          m07?: number
+          m08?: number
+          m09?: number
+          m10?: number
+          m11?: number
+          m12?: number
+          unit?: string
+          version_id: string
+        }
+        Update: {
+          id?: number
+          lat?: number
+          lon?: number
+          m01?: number
+          m02?: number
+          m03?: number
+          m04?: number
+          m05?: number
+          m06?: number
+          m07?: number
+          m08?: number
+          m09?: number
+          m10?: number
+          m11?: number
+          m12?: number
+          unit?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "irradiance_points_monthly_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "irradiance_dataset_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       layouts_solares: {
         Row: {
           cliente_id: string | null
@@ -9410,6 +9614,51 @@ export type Database = {
           },
         ]
       }
+      tenant_irradiance_config: {
+        Row: {
+          created_at: string
+          dataset_code: string
+          lookup_method: string
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+          version_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dataset_code?: string
+          lookup_method?: string
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+          version_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dataset_code?: string
+          lookup_method?: string
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_irradiance_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_irradiance_config_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "irradiance_dataset_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_premises: {
         Row: {
           base_irradiancia: string
@@ -12361,6 +12610,33 @@ export type Database = {
       increment_usage: {
         Args: { _delta?: number; _metric_key: string; _source?: string }
         Returns: undefined
+      }
+      irradiance_nearest_point: {
+        Args: {
+          p_lat: number
+          p_lon: number
+          p_radius_deg?: number
+          p_version_id: string
+        }
+        Returns: {
+          distance_km: number
+          lat: number
+          lon: number
+          m01: number
+          m02: number
+          m03: number
+          m04: number
+          m05: number
+          m06: number
+          m07: number
+          m08: number
+          m09: number
+          m10: number
+          m11: number
+          m12: number
+          point_id: number
+          unit: string
+        }[]
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
       is_last_admin_of_tenant: {

@@ -81,6 +81,7 @@ const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").th
 const DocumentosPage = lazy(() => import("@/components/admin/documentos/DocumentosPage").then(m => ({ default: m.DocumentosPage })));
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const PremissasPage = lazy(() => import("@/components/admin/premissas/PremissasPage").then(m => ({ default: m.PremissasPage })));
+const IrradianciaPage = lazy(() => import("@/components/admin/irradiancia/IrradianciaPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const SolarZapPage = lazy(() => import("@/components/admin/solarzap").then(m => ({ default: m.SolarZapPage })));
 const SolarZapDashboard = lazy(() => import("@/components/admin/solarzap/SolarZapDashboard").then(m => ({ default: m.SolarZapDashboard })));
@@ -417,6 +418,8 @@ export default function Admin() {
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="premissas" element={<PremissasPage />} />
+                <Route path="irradiancia" element={<IrradianciaPage />} />
+                <Route path="auditoria/irradiancia" element={<IrradianciaPage />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
                 <Route path="agenda-config" element={<AgendaConfigPage />} />
