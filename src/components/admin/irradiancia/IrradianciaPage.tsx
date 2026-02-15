@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,8 +37,10 @@ function generateVersionTag(): string {
 }
 
 export function IrradianciaPage() {
-  const { datasets, versions, loading, reload, getVersionsForDataset, getActiveVersion } = useIrradianceDatasets();
-  const [tab, setTab] = useState("datasets");
+  const { datasets, versions, loading, reload, getVersionsForDataset, getActiveVersion, getIntegrity } = useIrradianceDatasets();
+  const location = useLocation();
+  const defaultTab = location.pathname.includes("auditoria") ? "audit" : "datasets";
+  const [tab, setTab] = useState(defaultTab);
 
   // ── Async import jobs (persisted in DB, loaded on mount) ──
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
@@ -65,6 +68,17 @@ export function IrradianciaPage() {
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState("");
 
+  // Warn user if navigating away during import
+  useEffect(() => {
+    if (!fetchingDs) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "A importação está em andamento. Se sair, o progresso será perdido.";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [fetchingDs]);
+
   // Trigger chunked NASA POWER fetch via irradiance-fetch edge function
   const handleFetchDataset = async (datasetCode: string) => {
     setFetchingDs(datasetCode);
@@ -78,6 +92,11 @@ export function IrradianciaPage() {
       let resumeFromLat: number | undefined;
       let chunk = 0;
       let totalRows = 0;
+
+      toast.info("Importação iniciada", {
+        description: `Buscando dados de ${datasetCode} via NASA POWER API. Não saia desta página.`,
+        duration: 5000,
+      });
 
       // Loop: call irradiance-fetch for each chunk until done
       while (true) {
@@ -115,8 +134,9 @@ export function IrradianciaPage() {
 
         if (!data.needs_continuation) {
           // All chunks done
-          toast.success("Importação concluída!", {
-            description: `${totalRows.toLocaleString("pt-BR")} pontos importados em ${chunk} etapa${chunk > 1 ? "s" : ""}.`,
+          toast.success("✅ Importação concluída com sucesso!", {
+            description: `${totalRows.toLocaleString("pt-BR")} pontos importados em ${chunk} etapa${chunk > 1 ? "s" : ""}. Dados prontos para uso.`,
+            duration: 8000,
           });
           reload();
           break;
@@ -125,12 +145,12 @@ export function IrradianciaPage() {
         // Continue to next chunk
         resumeFromLat = data.resume_from_lat;
         toast.info(`Etapa ${chunk} concluída`, {
-          description: `${totalRows.toLocaleString("pt-BR")} pontos até agora. Continuando...`,
+          description: `${totalRows.toLocaleString("pt-BR")} pontos até agora. Continuando…`,
           duration: 3000,
         });
       }
     } catch (e: any) {
-      toast.error("Erro na importação", { description: e.message });
+      toast.error("❌ Importação falhou", { description: e.message, duration: 8000 });
     } finally {
       setFetchingDs(null);
       setFetchProgress(null);
@@ -320,7 +340,7 @@ export function IrradianciaPage() {
                         <p className="text-xs text-primary font-medium">
                           {fetchProgress
                             ? `Etapa ${fetchProgress.chunk} — ${fetchProgress.totalRows.toLocaleString("pt-BR")} de ~${fetchProgress.gridTotal.toLocaleString("pt-BR")} pontos…`
-                            : "Iniciando importação via NASA POWER API…"}
+                            : "⏳ Iniciando importação via NASA POWER API…"}
                         </p>
                       </div>
                       <Progress
@@ -329,6 +349,10 @@ export function IrradianciaPage() {
                           ? Math.round((fetchProgress.totalRows / fetchProgress.gridTotal) * 100)
                           : undefined}
                       />
+                      <p className="text-[10px] text-warning flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Não saia desta página. A importação será interrompida se você navegar para outro local.
+                      </p>
                     </div>
                   )}
 
@@ -458,7 +482,7 @@ export function IrradianciaPage() {
               <CardTitle className="text-sm">Resumo de Auditoria</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="rounded-lg border border-border/50 p-3 text-center">
                   <p className="text-2xl font-bold text-primary">{datasets.length}</p>
                   <p className="text-[10px] text-muted-foreground">Datasets Registrados</p>
@@ -470,12 +494,152 @@ export function IrradianciaPage() {
                   <p className="text-[10px] text-muted-foreground">Versões Ativas</p>
                 </div>
                 <div className="rounded-lg border border-border/50 p-3 text-center">
+                  <p className="text-2xl font-bold text-warning">
+                    {versions.filter((v) => v.status === "processing").length}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">Em Processamento</p>
+                </div>
+                <div className="rounded-lg border border-border/50 p-3 text-center">
                   <p className="text-2xl font-bold text-primary">
                     {versions.reduce((sum, v) => sum + v.row_count, 0).toLocaleString()}
                   </p>
                   <p className="text-[10px] text-muted-foreground">Total de Pontos</p>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Integrity per dataset/version */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Integridade dos Datasets</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {datasets.map((ds) => {
+                const allVersions = getVersionsForDataset(ds.id);
+                const active = getActiveVersion(ds.id);
+
+                // Expected Brazil bounds: lat +6 to -34, lon -74 to -34
+                const BRAZIL_LAT_MIN = -34;
+                const BRAZIL_LAT_MAX = 6;
+                const BRAZIL_LON_MIN = -74;
+                const BRAZIL_LON_MAX = -34;
+
+                return (
+                  <div key={ds.id} className="rounded-lg border border-border/50 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {active ? (
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                        ) : (
+                          <AlertTriangle className="h-4 w-4 text-warning" />
+                        )}
+                        <span className="text-xs font-semibold">{ds.name}</span>
+                        <Badge variant="outline" className="text-[10px] font-mono">{ds.code}</Badge>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{allVersions.length} versão(ões)</span>
+                    </div>
+
+                    {allVersions.length === 0 ? (
+                      <div className="flex items-center gap-2 text-xs text-warning">
+                        <AlertTriangle className="h-3.5 w-3.5" />
+                        Nenhuma versão importada — dataset sem dados.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {allVersions.map((v) => {
+                          const intg = getIntegrity(v.id);
+                          const checks: { label: string; ok: boolean; detail: string }[] = [];
+
+                          // 1. Status check
+                          checks.push({
+                            label: "Status",
+                            ok: v.status === "active",
+                            detail: v.status === "active" ? "Ativo" : v.status === "processing" ? "Em processamento (incompleto)" : v.status,
+                          });
+
+                          // 2. Row count match
+                          if (intg) {
+                            checks.push({
+                              label: "Contagem",
+                              ok: intg.actual_points === v.row_count,
+                              detail: intg.actual_points === v.row_count
+                                ? `${v.row_count.toLocaleString()} pontos ✓`
+                                : `Registrado: ${v.row_count.toLocaleString()}, Real: ${intg.actual_points.toLocaleString()}`,
+                            });
+                          }
+
+                          // 3. Geographic coverage
+                          if (intg && intg.min_lat != null) {
+                            const latOk = intg.min_lat <= BRAZIL_LAT_MIN + 2 && intg.max_lat! >= BRAZIL_LAT_MAX - 2;
+                            const lonOk = intg.min_lon! <= BRAZIL_LON_MIN + 2 && intg.max_lon! >= BRAZIL_LON_MAX + 2;
+                            checks.push({
+                              label: "Cobertura Lat",
+                              ok: latOk,
+                              detail: `${intg.max_lat}° a ${intg.min_lat}° ${latOk ? "✓" : `(esperado: ${BRAZIL_LAT_MAX}° a ${BRAZIL_LAT_MIN}°)`}`,
+                            });
+                            checks.push({
+                              label: "Cobertura Lon",
+                              ok: lonOk,
+                              detail: `${intg.min_lon}° a ${intg.max_lon}° ${lonOk ? "✓" : `(esperado: ${BRAZIL_LON_MIN}° a ${BRAZIL_LON_MAX}°)`}`,
+                            });
+                          }
+
+                          // 4. DHI availability
+                          if (intg) {
+                            checks.push({
+                              label: "DHI (Difusa)",
+                              ok: intg.has_dhi,
+                              detail: intg.has_dhi ? "Dados DHI presentes ✓" : "⚠ Sem dados DHI — cálculos POA usarão estimativa",
+                            });
+                          }
+
+                          // 5. SHA integrity
+                          checks.push({
+                            label: "SHA-256",
+                            ok: !!v.checksum_sha256,
+                            detail: v.checksum_sha256 ? `${v.checksum_sha256.substring(0, 16)}…` : "Sem checksum",
+                          });
+
+                          const failCount = checks.filter((c) => !c.ok).length;
+
+                          return (
+                            <div key={v.id} className="rounded-md border border-border/30 p-3 space-y-2">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Badge className={`text-[10px] ${STATUS_COLORS[v.status] || ""}`}>{v.status}</Badge>
+                                  <span className="text-xs font-medium">{v.version_tag}</span>
+                                </div>
+                                <Badge variant={failCount === 0 ? "secondary" : "destructive"} className="text-[10px]">
+                                  {failCount === 0 ? "✓ Tudo OK" : `${failCount} problema${failCount > 1 ? "s" : ""}`}
+                                </Badge>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                                {checks.map((check) => (
+                                  <div key={check.label} className="flex items-start gap-1.5 text-[10px]">
+                                    {check.ok ? (
+                                      <CheckCircle2 className="h-3 w-3 text-success mt-0.5 shrink-0" />
+                                    ) : (
+                                      <AlertTriangle className="h-3 w-3 text-warning mt-0.5 shrink-0" />
+                                    )}
+                                    <div>
+                                      <span className="font-medium">{check.label}:</span>{" "}
+                                      <span className={check.ok ? "text-muted-foreground" : "text-warning"}>
+                                        {check.detail}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
 
@@ -551,44 +715,6 @@ export function IrradianciaPage() {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-
-          {/* Integrity checks */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-sm">Integridade dos Datasets</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {datasets.map((ds) => {
-                  const active = getActiveVersion(ds.id);
-                  const allVersions = getVersionsForDataset(ds.id);
-                  return (
-                    <div key={ds.id} className="flex items-center justify-between rounded-lg border border-border/50 p-3">
-                      <div className="flex items-center gap-2">
-                        {active ? (
-                          <CheckCircle2 className="h-4 w-4 text-success" />
-                        ) : (
-                          <AlertTriangle className="h-4 w-4 text-warning" />
-                        )}
-                        <span className="text-xs font-medium">{ds.name}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                        <span>{allVersions.length} versão(ões)</span>
-                        {active && (
-                          <>
-                            <span>•</span>
-                            <span className="font-mono">SHA: {active.checksum_sha256?.substring(0, 12) || "—"}</span>
-                            <span>•</span>
-                            <span>{active.row_count.toLocaleString()} pontos</span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
