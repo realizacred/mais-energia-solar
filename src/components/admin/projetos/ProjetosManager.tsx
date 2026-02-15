@@ -264,6 +264,7 @@ export function ProjetosManager() {
           deals={deals}
           onMoveToStage={moveDealToStage}
           onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
+          onNewProject={() => setNovoProjetoOpen(true)}
         />
       ) : (
         <ProjetoListView
