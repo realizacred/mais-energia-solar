@@ -1,4 +1,7 @@
 import { AiFollowupSettingsPanel } from "@/components/admin/AiFollowupSettingsPanel";
+import { FollowupAnalyticsDashboard } from "@/components/admin/FollowupAnalyticsDashboard";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Settings, BarChart3 } from "lucide-react";
 
 export default function AiConfigPage() {
   return (
@@ -9,7 +12,27 @@ export default function AiConfigPage() {
           Modelo, temperatura, limites e gate inteligente de follow-up
         </p>
       </div>
-      <AiFollowupSettingsPanel />
+
+      <Tabs defaultValue="settings" className="w-full">
+        <TabsList>
+          <TabsTrigger value="settings" className="gap-1.5">
+            <Settings className="h-4 w-4" />
+            Configurações
+          </TabsTrigger>
+          <TabsTrigger value="analytics" className="gap-1.5">
+            <BarChart3 className="h-4 w-4" />
+            Analytics
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="settings" className="mt-4">
+          <AiFollowupSettingsPanel />
+        </TabsContent>
+
+        <TabsContent value="analytics" className="mt-4">
+          <FollowupAnalyticsDashboard />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
