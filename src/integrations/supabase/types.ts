@@ -8633,48 +8633,6 @@ export type Database = {
         }
         Relationships: []
       }
-      storage_migration_log: {
-        Row: {
-          bucket: string
-          campo: string | null
-          error: string | null
-          id: string
-          migrated_at: string | null
-          new_path: string | null
-          old_path: string
-          registro_id: string | null
-          status: string
-          tabela: string | null
-          tenant_id: string | null
-        }
-        Insert: {
-          bucket: string
-          campo?: string | null
-          error?: string | null
-          id?: string
-          migrated_at?: string | null
-          new_path?: string | null
-          old_path: string
-          registro_id?: string | null
-          status?: string
-          tabela?: string | null
-          tenant_id?: string | null
-        }
-        Update: {
-          bucket?: string
-          campo?: string | null
-          error?: string | null
-          id?: string
-          migrated_at?: string | null
-          new_path?: string | null
-          old_path?: string
-          registro_id?: string | null
-          status?: string
-          tabela?: string | null
-          tenant_id?: string | null
-        }
-        Relationships: []
-      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
