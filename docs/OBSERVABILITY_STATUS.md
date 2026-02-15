@@ -42,8 +42,8 @@
 | `solar-market-sync` | ✅ | ✅ | Funcional |
 | `solar-market-auth` | ✅ | ✅ | Funcional |
 | `solar-market-webhook` | ✅ | ✅ | Funcional |
-| `migrate-storage-paths` | ✅ | ✅ | One-time migration |
-| `cleanup-legacy-storage` | ✅ | ✅ | One-time cleanup |
+| ~~`migrate-storage-paths`~~ | — | — | **DELETADA** (migração concluída) |
+| ~~`cleanup-legacy-storage`~~ | — | — | **DELETADA** (limpeza concluída) |
 
 ---
 

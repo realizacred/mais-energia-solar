@@ -33,9 +33,8 @@ RETURNS TABLE(...) AS $$
 $$ LANGUAGE sql STABLE SECURITY DEFINER SET search_path = 'public';
 ```
 
-### P0.2 — Edge Functions Órfãs com Vulnerabilidade
-**Impacto:** `loading-ai-message` aceita `tenant_id` no payload  
-**Correção:** Deletar 3 Edge Functions: `cleanup-legacy-storage`, `migrate-storage-paths`, `loading-ai-message`
+### ~~P0.2 — Edge Functions Órfãs com Vulnerabilidade~~ ✅ RESOLVIDO (2026-02-15)
+**Status:** Edge Functions órfãs deletadas. Tabela `storage_migration_log` removida.
 
 ---
 
