@@ -150,7 +150,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
       <DialogContent className="max-w-[95vw] sm:max-w-[600px] lg:max-w-[1000px] max-h-[90vh] overflow-hidden p-0 gap-0 rounded-2xl flex flex-col">
         {/* Header */}
         <DialogHeader className="px-6 pt-5 pb-4 border-b border-border/40 shrink-0">
-          <DialogTitle className="text-lg font-bold text-foreground tracking-tight">
+          <DialogTitle className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
             Novo Projeto
           </DialogTitle>
         </DialogHeader>
@@ -161,7 +161,10 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
 
             {/* ── Coluna 1: Projeto ── */}
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-primary uppercase tracking-wider">Projeto</h3>
+              <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Projeto
+              </h3>
 
               <Field label="Nome do Projeto">
                  <Input
@@ -368,7 +371,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
             <div className="space-y-3">
               <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
                 <Search className="h-3.5 w-3.5" />
-                Similares
+                Clientes similares
               </h3>
 
               {buscando ? (
@@ -420,9 +423,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
-            className="text-sm h-10 px-4"
+            className="text-sm h-10 px-6"
           >
-            Cancelar
+            Fechar
           </Button>
           <Button
             onClick={handleSubmit}
@@ -430,7 +433,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
             className="text-sm px-8 h-10 rounded-xl"
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
-            {submitting ? "Cadastrando..." : "Cadastrar Projeto"}
+            {submitting ? "Cadastrando..." : "Cadastrar"}
           </Button>
         </div>
       </DialogContent>
