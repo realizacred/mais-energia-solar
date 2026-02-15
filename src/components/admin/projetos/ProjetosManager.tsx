@@ -12,6 +12,7 @@ import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
 import { ProjetoListView } from "./ProjetoListView";
 import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
 import { NovoProjetoModal } from "./NovoProjetoModal";
+import { ProjetoAutomacaoConfig } from "./ProjetoAutomacaoConfig";
 import { ProjetoDetalhe } from "./ProjetoDetalhe";
 import {
   Dialog,
@@ -204,7 +205,7 @@ export function ProjetosManager() {
                     Gerencie as etapas do funil. Arraste para reordenar.
                   </p>
                 </DialogHeader>
-                <div className="flex-1 overflow-y-auto py-4">
+                <div className="flex-1 overflow-y-auto py-4 space-y-6">
                   <ProjetoEtapaManager
                     funilId={pipeline.id}
                     funilNome={pipeline.name}
@@ -223,6 +224,11 @@ export function ProjetosManager() {
                     onUpdateCategoria={() => {}}
                     onReorder={reorderStages}
                     onDelete={deleteStage}
+                  />
+                  <Separator />
+                  <ProjetoAutomacaoConfig
+                    pipelineId={pipeline.id}
+                    stages={pipelineStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
                   />
                 </div>
               </DialogContent>

@@ -42,6 +42,11 @@ export interface DealKanbanCard {
   stage_probability: number;
   last_stage_change: string;
   etiqueta: string | null;
+  // Enriched proposal data
+  proposta_status?: string | null;
+  proposta_economia_mensal?: number | null;
+  proposta_id?: string | null;
+  customer_id?: string | null;
 }
 
 export interface OwnerColumn {
@@ -137,6 +142,74 @@ export function useDealPipeline() {
         d.deal_title.toLowerCase().includes(q) ||
         d.owner_name.toLowerCase().includes(q)
       );
+    }
+
+    // Enrich with proposal data
+    if (results.length > 0) {
+      const dealIds = results.map(d => d.deal_id);
+      // Fetch customer_id from deals
+      const { data: dealsData } = await supabase
+        .from("deals")
+        .select("id, customer_id")
+        .in("id", dealIds);
+      
+      const customerMap = new Map<string, string>();
+      (dealsData || []).forEach((d: any) => {
+        if (d.customer_id) customerMap.set(d.id, d.customer_id);
+      });
+
+      // Fetch latest proposal per customer
+      const customerIds = [...new Set(Array.from(customerMap.values()))];
+      if (customerIds.length > 0) {
+        const { data: propostas } = await supabase
+          .from("propostas_nativas")
+          .select("id, cliente_id, status, versao_atual")
+          .in("cliente_id", customerIds)
+          .order("created_at", { ascending: false });
+
+        // Get economia from latest version
+        const propostaIds = (propostas || []).map((p: any) => p.id);
+        let economiaMap = new Map<string, number>();
+        if (propostaIds.length > 0) {
+          const { data: versoes } = await supabase
+            .from("proposta_versoes")
+            .select("proposta_id, economia_mensal")
+            .in("proposta_id", propostaIds)
+            .order("versao_numero", { ascending: false });
+          (versoes || []).forEach((v: any) => {
+            if (v.economia_mensal && !economiaMap.has(v.proposta_id)) {
+              economiaMap.set(v.proposta_id, v.economia_mensal);
+            }
+          });
+        }
+
+        // Map best proposal per customer (latest)
+        const bestPropostaByCustomer = new Map<string, { id: string; status: string; economia: number | null }>();
+        (propostas || []).forEach((p: any) => {
+          if (!bestPropostaByCustomer.has(p.cliente_id)) {
+            bestPropostaByCustomer.set(p.cliente_id, {
+              id: p.id,
+              status: p.status,
+              economia: economiaMap.get(p.id) || null,
+            });
+          }
+        });
+
+        // Enrich results
+        results = results.map(d => {
+          const custId = customerMap.get(d.deal_id);
+          const proposta = custId ? bestPropostaByCustomer.get(custId) : null;
+          return {
+            ...d,
+            customer_id: custId || null,
+            proposta_id: proposta?.id || null,
+            proposta_status: proposta?.status || null,
+            proposta_economia_mensal: proposta?.economia || null,
+          };
+        });
+      } else {
+        results = results.map(d => ({ ...d, customer_id: customerMap.get(d.deal_id) || null }));
+      }
     }
 
     return results;
