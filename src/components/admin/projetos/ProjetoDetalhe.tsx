@@ -6,7 +6,8 @@ import {
   ArrowLeft, Settings, MessageSquare, FileText, FolderOpen,
   Clock, User, ChevronRight, Zap, DollarSign, CalendarDays, Loader2,
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
-  MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2
+  MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2,
+  AlertCircle, CheckCircle, Building, Paperclip
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -131,12 +132,12 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const [deleteBlocking, setDeleteBlocking] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
 
+  // ─── Delete logic (unchanged) ──────────────────
   const handleDeleteProject = async () => {
     if (!deal) return;
     setDeleting(true);
     try {
-      // Check dependencies
-      const propRes = deal.customer_id 
+      const propRes = deal.customer_id
         ? await supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", deal.customer_id)
         : { count: 0 };
       const histRes = await supabase.from("deal_stage_history").select("id", { count: "exact", head: true }).eq("deal_id", deal.id);
@@ -159,7 +160,6 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
         return;
       }
 
-      // Safe to delete — also clean up kanban projection and history
       await supabase.from("deal_kanban_projection").delete().eq("deal_id", deal.id);
       const { error } = await supabase.from("deals").delete().eq("id", deal.id);
       if (error) throw error;
@@ -167,17 +167,13 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
       toast({ title: "Projeto excluído com sucesso!" });
       onBack();
     } catch (err: any) {
-      toast({
-        title: "Erro ao excluir projeto",
-        description: err?.message || "Tente novamente.",
-        variant: "destructive",
-      });
+      toast({ title: "Erro ao excluir projeto", description: err?.message || "Tente novamente.", variant: "destructive" });
     } finally {
       setDeleting(false);
     }
   };
 
-  // Load deal data
+  // ─── Load deal data (unchanged) ────────────────
   useEffect(() => {
     async function load() {
       setLoading(true);
@@ -193,7 +189,6 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
         const historyData = (historyRes.data || []) as StageHistory[];
         setHistory(historyData);
 
-        // Resolve user names for moved_by UUIDs
         const movedByIds = [...new Set(historyData.map(h => h.moved_by).filter(Boolean))] as string[];
         if (movedByIds.length > 0) {
           supabase.from("profiles").select("user_id, nome").in("user_id", movedByIds)
@@ -236,7 +231,6 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
           setAllStagesMap(map);
         }
 
-        // Counts for tab badges
         if (d.customer_id) {
           supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", d.customer_id)
             .then(({ count }) => setPropostasCount(count || 0));
@@ -273,12 +267,10 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
     return stages.find(s => s.id === id)?.name || "—";
   };
 
-  // Optimistic local updater — no loading spinner
   const updateDealLocal = (patch: Partial<DealDetail>) => {
     setDeal(prev => prev ? { ...prev, ...patch } : prev);
   };
 
-  // Background refresh (silent, no loading state)
   const silentRefresh = async () => {
     try {
       const { data: d } = await supabase.from("deals").select("id, title, value, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date").eq("id", dealId).single();
@@ -313,112 +305,286 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   }
 
   const tabBadge = (tabId: string) => {
-    if (tabId === "propostas" && propostasCount > 0) return `(${propostasCount})`;
-    if (tabId === "documentos" && docsCount > 0) return `(${docsCount})`;
-    
+    if (tabId === "propostas" && propostasCount > 0) return propostasCount;
+    if (tabId === "documentos" && docsCount > 0) return docsCount;
     return null;
   };
 
+  const projectCode = deal.title?.match(/#(\d+)/)?.[1] || deal.id.slice(0, 6);
+
   return (
-    <div className="space-y-0">
-      {/* ── Breadcrumb ── */}
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+    <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-4 sm:p-6">
+      {/* ── Breadcrumbs ── */}
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
         <button onClick={onBack} className="hover:text-foreground transition-colors">Projetos</button>
         <ChevronRight className="h-3 w-3" />
-        <span className="text-foreground font-medium">Projeto #{deal.title?.match(/#(\d+)/)?.[1] || deal.id.slice(0, 6)}</span>
+        <span className="text-foreground font-medium">Projeto #{projectCode}</span>
       </div>
 
-      {/* ── Header Row ── */}
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <h1 className="text-xl font-bold text-foreground truncate">
-            {customerName || deal.title}
-          </h1>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon-sm" className="shrink-0">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onClick={() => {
-                  setDeleteBlocking([]);
-                  handleDeleteProject();
-                }}
-                disabled={deleting}
+      {/* ── Header Card ── */}
+      <Card className="mb-4">
+        <CardContent className="p-4 sm:p-5">
+          {/* Row 1: Title + Actions */}
+          <div className="flex items-start justify-between gap-4 mb-4">
+            <div className="flex items-center gap-3 min-w-0">
+              <h1 className="text-2xl font-bold text-foreground truncate">
+                Projeto: {customerName || deal.title}
+              </h1>
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-xs shrink-0 capitalize",
+                  deal.status === "won" && "bg-success/10 text-success border-success/20",
+                  deal.status === "lost" && "bg-destructive/10 text-destructive border-destructive/20",
+                  deal.status === "open" && "bg-info/10 text-info border-info/20"
+                )}
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {deleting ? "Excluindo..." : "Excluir Projeto"}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          {/* Status badges */}
-          {deal.value > 0 && (
-            <Badge className="bg-destructive/90 text-destructive-foreground text-xs shrink-0">
-              {formatBRL(deal.value)}
-            </Badge>
-          )}
-          <Badge variant="secondary" className="text-xs shrink-0 capitalize">{deal.status}</Badge>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="flex -space-x-2">
-            <div className="w-8 h-8 rounded-full bg-muted border-2 border-background flex items-center justify-center">
-              <User className="h-4 w-4 text-muted-foreground" />
+                {deal.status === "won" ? "Ganho" : deal.status === "lost" ? "Perdido" : "Aberto"}
+              </Badge>
+              {deal.value > 0 && (
+                <Badge variant="outline" className="text-xs shrink-0 font-semibold">
+                  {formatBRL(deal.value)}
+                </Badge>
+              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deleting ? "Excluindo..." : "Excluir Projeto"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                onClick={async () => {
+                  if (deal.status === "won" || deal.status === "lost") return;
+                  const prevStatus = deal.status;
+                  const prevStageId = deal.stage_id;
+                  const wonStage = stages.find(s => s.is_won);
+                  const update: any = { status: "won" };
+                  if (wonStage) update.stage_id = wonStage.id;
+                  updateDealLocal(update);
+                  try {
+                    const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
+                    if (error) throw error;
+                    toast({ title: "🎉 Projeto ganho!" });
+                    silentRefresh();
+                  } catch (err: any) {
+                    updateDealLocal({ status: prevStatus, stage_id: prevStageId });
+                    toast({ title: "Erro", description: err.message, variant: "destructive" });
+                  }
+                }}
+                disabled={deal.status === "won" || deal.status === "lost"}
+                className="bg-success hover:bg-success/90 text-success-foreground font-semibold gap-1.5 disabled:opacity-50"
+              >
+                {deal.status === "won" ? <><Check className="h-3.5 w-3.5" /> Ganho</> : <><Trophy className="h-3.5 w-3.5" /> Ganhar</>}
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={async () => {
+                  if (deal.status === "won" || deal.status === "lost") return;
+                  const prevStatus = deal.status;
+                  const prevStageId = deal.stage_id;
+                  const lostStage = stages.find(s => s.is_closed && !s.is_won);
+                  const update: any = { status: "lost" };
+                  if (lostStage) update.stage_id = lostStage.id;
+                  updateDealLocal(update);
+                  try {
+                    const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
+                    if (error) throw error;
+                    toast({ title: "Projeto marcado como perdido" });
+                    silentRefresh();
+                  } catch (err: any) {
+                    updateDealLocal({ status: prevStatus, stage_id: prevStageId });
+                    toast({ title: "Erro", description: err.message, variant: "destructive" });
+                  }
+                }}
+                disabled={deal.status === "won" || deal.status === "lost"}
+                className="font-semibold gap-1.5 disabled:opacity-50"
+              >
+                {deal.status === "lost" ? <><XCircle className="h-3.5 w-3.5" /> Perdido</> : <><XCircle className="h-3.5 w-3.5" /> Perder</>}
+              </Button>
+
+              <Separator orientation="vertical" className="h-7 mx-1" />
+
+              <div className="flex flex-col items-end gap-0.5">
+                <span className="text-[10px] text-muted-foreground font-medium">Responsável</span>
+                <Select value={deal.owner_id} onValueChange={async (ownerId) => {
+                  if (ownerId === deal.owner_id) return;
+                  const prev = deal.owner_id;
+                  updateDealLocal({ owner_id: ownerId });
+                  try {
+                    const { error } = await supabase.from("deals").update({ owner_id: ownerId }).eq("id", deal.id);
+                    if (error) throw error;
+                    toast({ title: "Responsável alterado" });
+                    silentRefresh();
+                  } catch (err: any) {
+                    updateDealLocal({ owner_id: prev });
+                    toast({ title: "Erro", description: err.message, variant: "destructive" });
+                  }
+                }}>
+                  <SelectTrigger className="h-8 w-[180px] text-sm">
+                    <SelectValue placeholder="Selecionar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <ConsultorOptions />
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ── Main Tabs ── */}
-      <div className="flex items-center border-b border-border/60 mb-0 overflow-x-auto">
-        {TABS.map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          const badge = tabBadge(tab.id);
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-[1px]",
-                isActive
-                  ? "border-primary text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
-              )}
-            >
-              <Icon className="h-4 w-4" />
-              {tab.label}
-              {badge && <span className="text-xs text-muted-foreground ml-0.5">{badge}</span>}
-            </button>
-          );
-        })}
-      </div>
+          {/* Row 2: Tabs */}
+          <div className="flex items-center border-b border-border/60 -mx-4 sm:-mx-5 px-4 sm:px-5 overflow-x-auto">
+            {TABS.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              const badge = tabBadge(tab.id);
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all border-b-2 -mb-[1px]",
+                    isActive
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  {tab.label}
+                  {badge !== null && (
+                    <span className="ml-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{badge}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Pipeline Stepper ── */}
+      {activeTab === "gerenciamento" && (
+        <Card className="mb-4">
+          <CardContent className="p-4 sm:p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pipeline</span>
+                <Badge variant="outline" className="text-[10px] font-medium">{currentPipeline?.name || "—"}</Badge>
+              </div>
+              <PipelineSwitcher
+                pipelines={pipelines}
+                currentPipelineId={deal.pipeline_id}
+                allStagesMap={allStagesMap}
+                dealId={deal.id}
+                updateDealLocal={updateDealLocal}
+                onDealUpdated={silentRefresh}
+              />
+            </div>
+
+            {/* Stepper with labels */}
+            <div className="relative pt-2">
+              {/* Background track */}
+              <div className="absolute top-[18px] left-0 right-0 h-1 bg-border rounded-full" />
+              {/* Filled track */}
+              <motion.div
+                className="absolute top-[18px] left-0 h-1 bg-success rounded-full"
+                initial={{ width: "0%" }}
+                animate={{ width: stages.length > 1 ? `${(currentStageIndex / (stages.length - 1)) * 100}%` : "0%" }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+              />
+              <div className="relative flex justify-between">
+                {stages.map((stage, i) => {
+                  const isPast = i < currentStageIndex;
+                  const isCurrent = i === currentStageIndex;
+                  const isFuture = i > currentStageIndex;
+                  return (
+                    <Tooltip key={stage.id}>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={async () => {
+                            if (stage.id === deal.stage_id) return;
+                            const prevStageId = deal.stage_id;
+                            updateDealLocal({ stage_id: stage.id });
+                            try {
+                              const { error } = await supabase.from("deals").update({ stage_id: stage.id }).eq("id", deal.id);
+                              if (error) throw error;
+                              toast({ title: `Movido para "${stage.name}"` });
+                              silentRefresh();
+                            } catch (err: any) {
+                              updateDealLocal({ stage_id: prevStageId });
+                              toast({ title: "Erro", description: err.message, variant: "destructive" });
+                            }
+                          }}
+                          className="flex flex-col items-center z-10 group cursor-pointer gap-1.5"
+                        >
+                          <motion.div
+                            className={cn(
+                              "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
+                              isPast && "bg-success border-success",
+                              isCurrent && "bg-secondary border-secondary ring-2 ring-secondary/30 ring-offset-2 ring-offset-card",
+                              isFuture && "bg-card border-border",
+                              !isCurrent && "group-hover:ring-2 group-hover:ring-primary/20 group-hover:ring-offset-1 group-hover:ring-offset-card"
+                            )}
+                            animate={{ scale: isCurrent ? 1.15 : 1 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            {isPast && <Check className="h-3 w-3 text-success-foreground" />}
+                          </motion.div>
+                          <span className={cn(
+                            "text-[10px] font-medium max-w-[80px] text-center leading-tight",
+                            isPast && "text-success",
+                            isCurrent && "text-secondary font-bold",
+                            isFuture && "text-muted-foreground"
+                          )}>
+                            {stage.name}
+                          </span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        {stage.name} • {stage.probability}%
+                        {isCurrent && " (atual)"}
+                      </TooltipContent>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Tab Content ── */}
       <AnimatePresence mode="wait">
         <motion.div
           key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.15 }}
-          className="pt-4"
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.12 }}
         >
           {activeTab === "gerenciamento" && (
             <GerenciamentoTab
               deal={deal} history={history} stages={stages}
-              pipelines={pipelines} allStagesMap={allStagesMap}
               customerName={customerName} customerPhone={customerPhone}
               customerEmail={customerEmail} customerCpfCnpj={customerCpfCnpj}
               customerAddress={customerAddress}
               ownerName={ownerName}
-              currentStage={currentStage} currentStageIndex={currentStageIndex}
-              currentPipeline={currentPipeline}
+              currentStage={currentStage} currentPipeline={currentPipeline}
               formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
-              onDealUpdated={silentRefresh}
-              updateDealLocal={updateDealLocal}
               userNamesMap={userNamesMap}
             />
           )}
@@ -462,7 +628,69 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
 }
 
 // ═══════════════════════════════════════════════════
-// ─── TAB: Gerenciamento ──────────────────────────
+// ─── Consultor Options (lazy loaded) ─────────────
+// ═══════════════════════════════════════════════════
+function ConsultorOptions() {
+  const [consultores, setConsultores] = useState<{ id: string; nome: string }[]>([]);
+  useEffect(() => {
+    supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome")
+      .then(({ data }) => { if (data) setConsultores(data as any[]); });
+  }, []);
+  return <>{consultores.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</>;
+}
+
+// ═══════════════════════════════════════════════════
+// ─── Pipeline Switcher ──────────────────────────
+// ═══════════════════════════════════════════════════
+function PipelineSwitcher({ pipelines, currentPipelineId, allStagesMap, dealId, updateDealLocal, onDealUpdated }: {
+  pipelines: PipelineInfo[];
+  currentPipelineId: string;
+  allStagesMap: Map<string, StageInfo[]>;
+  dealId: string;
+  updateDealLocal: (patch: Partial<DealDetail>) => void;
+  onDealUpdated: () => void;
+}) {
+  const [changing, setChanging] = useState(false);
+  return (
+    <Select
+      value={currentPipelineId}
+      onValueChange={async (pipelineId) => {
+        if (pipelineId === currentPipelineId) return;
+        setChanging(true);
+        try {
+          const targetStages = allStagesMap.get(pipelineId);
+          const firstStage = targetStages?.sort((a, b) => a.position - b.position)[0];
+          if (!firstStage) {
+            toast({ title: "Este funil não tem etapas configuradas", variant: "destructive" });
+            return;
+          }
+          updateDealLocal({ pipeline_id: pipelineId, stage_id: firstStage.id });
+          const { error } = await supabase.from("deals").update({ pipeline_id: pipelineId, stage_id: firstStage.id }).eq("id", dealId);
+          if (error) throw error;
+          toast({ title: "Funil alterado com sucesso" });
+          onDealUpdated();
+        } catch (err: any) {
+          toast({ title: "Erro ao alterar funil", description: err.message, variant: "destructive" });
+        } finally {
+          setChanging(false);
+        }
+      }}
+      disabled={changing}
+    >
+      <SelectTrigger className="h-7 w-auto text-xs gap-1">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        {pipelines.map(p => (
+          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// ─── TAB: Gerenciamento (Dense Dashboard Grid) ──
 // ═══════════════════════════════════════════════════
 
 type TimelineFilter = "todos" | "funil" | "notas" | "documentos";
@@ -485,112 +713,21 @@ interface UnifiedTimelineItem {
 }
 
 function GerenciamentoTab({
-  deal, history, stages, pipelines, allStagesMap,
+  deal, history, stages,
   customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress,
-  ownerName, currentStage, currentStageIndex, currentPipeline,
-  formatDate, formatBRL, getStageNameById, onDealUpdated, updateDealLocal,
-  userNamesMap,
+  ownerName, currentStage, currentPipeline,
+  formatDate, formatBRL, getStageNameById, userNamesMap,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
-  pipelines: PipelineInfo[]; allStagesMap: Map<string, StageInfo[]>;
   customerName: string; customerPhone: string; customerEmail: string;
   customerCpfCnpj: string; customerAddress: string;
-  ownerName: string; currentStage?: StageInfo; currentStageIndex: number;
-  currentPipeline?: PipelineInfo;
+  ownerName: string; currentStage?: StageInfo; currentPipeline?: PipelineInfo;
   formatDate: (d: string) => string; formatBRL: (v: number) => string;
   getStageNameById: (id: string | null) => string;
-  onDealUpdated: () => void;
-  updateDealLocal: (patch: Partial<DealDetail>) => void;
   userNamesMap: Map<string, string>;
 }) {
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
-  const [changingPipeline, setChangingPipeline] = useState(false);
-  const [consultores, setConsultores] = useState<{ id: string; nome: string }[]>([]);
-  const [showFunilPicker, setShowFunilPicker] = useState(false);
-
-  // Load consultores for owner selector
-  useEffect(() => {
-    supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome")
-      .then(({ data }) => { if (data) setConsultores(data as any[]); });
-  }, []);
-
-  const handlePipelineChange = async (pipelineId: string) => {
-    if (pipelineId === deal.pipeline_id) return;
-    setChangingPipeline(true);
-    try {
-      const targetStages = allStagesMap.get(pipelineId);
-      const firstStage = targetStages?.sort((a, b) => a.position - b.position)[0];
-      if (!firstStage) {
-        toast({ title: "Este funil não tem etapas configuradas", variant: "destructive" });
-        return;
-      }
-      // Optimistic
-      updateDealLocal({ pipeline_id: pipelineId, stage_id: firstStage.id });
-      const { error } = await supabase.from("deals")
-        .update({ pipeline_id: pipelineId, stage_id: firstStage.id })
-        .eq("id", deal.id);
-      if (error) throw error;
-      toast({ title: "Funil alterado com sucesso" });
-      onDealUpdated(); // silent background refresh
-    } catch (err: any) {
-      updateDealLocal({ pipeline_id: deal.pipeline_id, stage_id: deal.stage_id }); // rollback
-      toast({ title: "Erro ao alterar funil", description: err.message, variant: "destructive" });
-    } finally {
-      setChangingPipeline(false);
-    }
-  };
-
-  const handleOwnerChange = async (ownerId: string) => {
-    if (ownerId === deal.owner_id) return;
-    const prevOwnerId = deal.owner_id;
-    updateDealLocal({ owner_id: ownerId }); // Optimistic
-    try {
-      const { error } = await supabase.from("deals").update({ owner_id: ownerId }).eq("id", deal.id);
-      if (error) throw error;
-      toast({ title: "Responsável alterado" });
-      onDealUpdated();
-    } catch (err: any) {
-      updateDealLocal({ owner_id: prevOwnerId }); // rollback
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleWinDeal = async () => {
-    const prevStatus = deal.status;
-    const prevStageId = deal.stage_id;
-    const wonStage = stages.find(s => s.is_won);
-    const update: any = { status: "won" };
-    if (wonStage) update.stage_id = wonStage.id;
-    updateDealLocal(update); // Optimistic
-    try {
-      const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
-      if (error) throw error;
-      toast({ title: "🎉 Projeto ganho!" });
-      onDealUpdated();
-    } catch (err: any) {
-      updateDealLocal({ status: prevStatus, stage_id: prevStageId }); // rollback
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
-
-  const handleLoseDeal = async () => {
-    const prevStatus = deal.status;
-    const prevStageId = deal.stage_id;
-    const lostStage = stages.find(s => s.is_closed && !s.is_won);
-    const update: any = { status: "lost" };
-    if (lostStage) update.stage_id = lostStage.id;
-    updateDealLocal(update); // Optimistic
-    try {
-      const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
-      if (error) throw error;
-      toast({ title: "Projeto marcado como perdido" });
-      onDealUpdated();
-    } catch (err: any) {
-      updateDealLocal({ status: prevStatus, stage_id: prevStageId }); // rollback
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
-  };
 
   // Load document activity for timeline
   useEffect(() => {
@@ -666,332 +803,193 @@ function GerenciamentoTab({
     return <CalendarDays className="h-3 w-3" />;
   };
 
+  // Pending documents list
+  const pendingDocs = [
+    { label: "Identidade (RG/CNH)", filled: !!customerCpfCnpj },
+    { label: "Comprovante de endereço", filled: !!customerAddress },
+    { label: "Conta de energia", filled: false },
+    { label: "Procuração (se PJ)", filled: false },
+  ];
+
   return (
-    <div className="space-y-4">
-      {/* ── Pipeline Sub-Tabs + Stepper Area ── */}
-      <div className="space-y-3">
-        {/* Pipeline tabs row */}
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-1 overflow-x-auto">
-            {/* Current pipeline as a card-style tab */}
-            {pipelines.filter(p => p.id === deal.pipeline_id).map(p => (
-              <div
-                key={p.id}
-                className="px-3 py-1.5 text-sm font-medium whitespace-nowrap border-b-2 border-primary text-foreground"
-              >
-                {p.name}
-              </div>
-            ))}
-
-            {/* "+" button to open funnel picker */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setShowFunilPicker(!showFunilPicker)}
-                  className="px-2 py-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs">Trocar funil</TooltipContent>
-            </Tooltip>
-          </div>
-
-          {/* Win / Lose + Owner */}
-          <div className="flex items-center gap-3">
-            <Button
-              size="sm"
-              onClick={handleWinDeal}
-              disabled={deal.status === "won" || deal.status === "lost"}
-              className="bg-success hover:bg-success/90 text-success-foreground font-bold px-5 disabled:opacity-50"
-            >
-              {deal.status === "won" ? <><Check className="h-3.5 w-3.5 mr-1" /> Ganho</> : "Ganhar"}
-            </Button>
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={handleLoseDeal}
-              disabled={deal.status === "won" || deal.status === "lost"}
-              className="font-bold px-5 disabled:opacity-50"
-            >
-              {deal.status === "lost" ? <><XCircle className="h-3.5 w-3.5 mr-1" /> Perdido</> : "Perder"}
-            </Button>
-          </div>
-        </div>
-
-        {/* ── Funnel Picker Panel ── */}
-        <AnimatePresence>
-          {showFunilPicker && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="rounded-xl border border-border/60 bg-card p-4" style={{ boxShadow: "var(--shadow-sm)" }}>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-semibold text-foreground">Trocar Funil do Projeto</h4>
-                  <button onClick={() => setShowFunilPicker(false)} className="text-muted-foreground hover:text-foreground">
-                    <XCircle className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {pipelines.map(p => {
-                    const isCurrentPipeline = p.id === deal.pipeline_id;
-                    const pipelineStages = allStagesMap.get(p.id) || [];
-                    return (
-                      <button
-                        key={p.id}
-                        disabled={changingPipeline || isCurrentPipeline}
-                        onClick={async () => {
-                          await handlePipelineChange(p.id);
-                          setShowFunilPicker(false);
-                        }}
-                        className={cn(
-                          "rounded-lg border p-3 text-left transition-all text-sm",
-                          isCurrentPipeline
-                            ? "border-primary bg-primary/5 cursor-default"
-                            : "border-border/60 hover:border-primary/40 hover:bg-muted/50 cursor-pointer"
-                        )}
-                      >
-                        <div className="font-medium text-foreground flex items-center justify-between">
-                          {p.name}
-                          {isCurrentPipeline && <Check className="h-3.5 w-3.5 text-primary" />}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {pipelineStages.length} etapa{pipelineStages.length !== 1 ? "s" : ""}
-                        </p>
-                        {/* Mini stage dots */}
-                        <div className="flex gap-1 mt-2">
-                          {pipelineStages.sort((a, b) => a.position - b.position).slice(0, 6).map(s => (
-                            <Tooltip key={s.id}>
-                              <TooltipTrigger asChild>
-                                <div
-                                  className={cn(
-                                    "w-2.5 h-2.5 rounded-full",
-                                    s.is_won ? "bg-success" : s.is_closed ? "bg-destructive" : "bg-primary"
-                                  )}
-                                />
-                              </TooltipTrigger>
-                              <TooltipContent side="bottom" className="text-xs">{s.name}</TooltipContent>
-                            </Tooltip>
-                          ))}
-                          {pipelineStages.length > 6 && (
-                            <span className="text-[10px] text-muted-foreground">+{pipelineStages.length - 6}</span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Stage name + Stepper + Responsável */}
-        <div className="flex items-start justify-between gap-6">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-foreground mb-2">{currentStage?.name || "—"}</p>
-            {/* Stepper */}
-            <div className="relative">
-              <div className="absolute top-[9px] left-0 right-0 h-[3px] bg-muted rounded-full" />
-              <motion.div
-                className="absolute top-[9px] left-0 h-[3px] bg-primary rounded-full"
-                initial={{ width: "0%" }}
-                animate={{ width: stages.length > 1 ? `${(currentStageIndex / (stages.length - 1)) * 100}%` : "0%" }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              />
-              <div className="relative flex justify-between">
-                {stages.map((stage, i) => {
-                  const isPast = i <= currentStageIndex;
-                  const isCurrent = i === currentStageIndex;
-                  return (
-                    <Tooltip key={stage.id}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={async () => {
-                            if (stage.id === deal.stage_id) return;
-                            const prevStageId = deal.stage_id;
-                            updateDealLocal({ stage_id: stage.id }); // Optimistic
-                            try {
-                              const { error } = await supabase.from("deals").update({ stage_id: stage.id }).eq("id", deal.id);
-                              if (error) throw error;
-                              toast({ title: `Movido para "${stage.name}"` });
-                              onDealUpdated();
-                            } catch (err: any) {
-                              updateDealLocal({ stage_id: prevStageId }); // rollback
-                              toast({ title: "Erro", description: err.message, variant: "destructive" });
-                            }
-                          }}
-                          className="flex flex-col items-center z-10 group cursor-pointer"
-                        >
-                          <motion.div
-                            className={cn(
-                              "w-5 h-5 rounded-full border-2 transition-all",
-                              isPast ? "bg-primary border-primary" : "bg-muted border-muted-foreground/20",
-                              isCurrent && "ring-2 ring-primary/30 ring-offset-2 ring-offset-background",
-                              !isCurrent && "group-hover:ring-2 group-hover:ring-primary/20 group-hover:ring-offset-1 group-hover:ring-offset-background"
-                            )}
-                            animate={{ scale: isCurrent ? 1.2 : 1 }}
-                            transition={{ duration: 0.3 }}
-                          />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">
-                        {stage.name}
-                        {isCurrent && " (atual)"}
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-              </div>
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      {/* ── LEFT SIDEBAR (30%) ── */}
+      <div className="lg:col-span-4 xl:col-span-3 space-y-4">
+        {/* Card: Dados do Cliente */}
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
+            <CardTitle className="text-sm font-semibold">Dados do Cliente</CardTitle>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7">
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem><Eye className="h-3.5 w-3.5 mr-2" />Ver ficha completa</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-2.5">
+              <ClientRow icon={User} label={customerName || "—"} />
+              {customerCpfCnpj && <ClientRow icon={Hash} label={customerCpfCnpj} muted />}
+              {customerPhone && <ClientRow icon={Phone} label={customerPhone} muted />}
+              {customerEmail && <ClientRow icon={Mail} label={customerEmail} muted isLink />}
+              {customerAddress && <ClientRow icon={MapPin} label={customerAddress} muted />}
             </div>
-          </div>
 
-          {/* Responsável */}
-          <div className="shrink-0 text-right space-y-1">
-            <p className="text-xs text-muted-foreground">Responsável no funil</p>
-            <Select value={deal.owner_id} onValueChange={handleOwnerChange}>
-              <SelectTrigger className="h-8 w-[180px] text-sm">
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
-              <SelectContent>
-                {consultores.map(c => (
-                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+            <Separator className="my-3" />
 
-      <Separator />
-
-      {/* ── Two Column Layout: Client Data + Timeline ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-        {/* Left: Client Data */}
-        <div className="lg:col-span-2 space-y-5">
-          {/* Dados do Cliente */}
-          <div>
-            <h3 className="text-sm font-bold text-foreground mb-3">Dados do cliente</h3>
-            <div className="space-y-3">
-              <div className="flex items-center gap-3">
-                <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
-                <span className="text-sm font-medium">{customerName || "—"}</span>
-              </div>
-              {customerCpfCnpj && (
-                <div className="flex items-center gap-3">
-                  <Hash className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm">{customerCpfCnpj}</span>
-                </div>
-              )}
-              {customerPhone && (
-                <div className="flex items-center gap-3">
-                  <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm">{customerPhone}</span>
-                </div>
-              )}
-              {customerEmail && (
-                <div className="flex items-center gap-3">
-                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <span className="text-sm text-primary">{customerEmail}</span>
-                </div>
-              )}
-              {customerAddress && (
-                <div className="flex items-start gap-3">
-                  <MapPin className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
-                  <span className="text-sm">{customerAddress}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <Separator />
-
-          {/* Project info */}
-          <div>
-            <h3 className="text-sm font-bold text-foreground mb-3">Informações do Projeto</h3>
-            <div className="space-y-2 text-sm">
+            {/* Project quick info */}
+            <div className="space-y-2 text-xs">
               <InfoRow label="Funil" value={currentPipeline?.name || "—"} />
               <InfoRow label="Etapa" value={currentStage?.name || "—"} />
               <InfoRow label="Valor" value={formatBRL(deal.value)} />
-              <InfoRow label="Status" value={deal.status} />
               <InfoRow label="Criado em" value={formatDate(deal.created_at)} />
               {deal.expected_close_date && (
                 <InfoRow label="Previsão" value={new Date(deal.expected_close_date).toLocaleDateString("pt-BR")} />
               )}
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Right: Timeline / Histórico */}
-        <div className="lg:col-span-3">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+        {/* Card: Campos Importantes / Anexos */}
+        <Card>
+          <CardHeader className="pb-2 p-4">
+            <CardTitle className="text-sm font-semibold">Documentos Pendentes</CardTitle>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="space-y-2">
+              {pendingDocs.map((doc, i) => (
+                <div key={i} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {doc.filled ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
+                    ) : (
+                      <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                    )}
+                    <span className={cn("text-xs truncate", doc.filled ? "text-muted-foreground line-through" : "text-foreground")}>
+                      {doc.label}
+                    </span>
+                  </div>
+                  {!doc.filled && (
+                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 gap-1 shrink-0">
+                      <Paperclip className="h-3 w-3" /> Anexar
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ── RIGHT WORK AREA (70%) ── */}
+      <div className="lg:col-span-8 xl:col-span-9 space-y-4">
+        {/* Card: Atividades */}
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
+            <CardTitle className="text-sm font-semibold">Atividades a fazer</CardTitle>
+            <Button size="sm" className="h-7 text-xs gap-1">
+              <Plus className="h-3 w-3" /> Nova atividade
+            </Button>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <div className="h-11 w-11 rounded-xl bg-warning/10 flex items-center justify-center mb-3">
+                <AlertCircle className="h-5 w-5 text-warning" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">Nenhuma atividade encontrada</p>
+              <p className="text-xs text-muted-foreground mt-1">Crie uma atividade para acompanhar este projeto</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Card: Histórico / Timeline */}
+        <Card>
+          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Clock className="h-4 w-4 text-primary" />
               Histórico
-            </h3>
+            </CardTitle>
             <Button variant="ghost" size="sm" className="gap-1 text-xs h-7">
-              <Plus className="h-3 w-3" />Nova nota
+              <Plus className="h-3 w-3" /> Nova nota
             </Button>
-          </div>
-
-          {/* Filter tabs */}
-          <div className="flex items-center gap-1 mb-4 overflow-x-auto">
-            {TIMELINE_FILTERS.map(f => {
-              const Icon = f.icon;
-              const isActive = timelineFilter === f.id;
-              const count = f.id === "todos" ? null :
-                f.id === "funil" ? allEntries.filter(e => e.type === "funil" || e.type === "criacao").length :
-                f.id === "notas" ? allEntries.filter(e => e.type === "nota").length :
-                allEntries.filter(e => e.type === "documento").length;
-              return (
-                <button
-                  key={f.id}
-                  onClick={() => setTimelineFilter(f.id)}
-                  className={cn(
-                    "flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all",
-                    isActive
-                      ? "bg-primary text-primary-foreground shadow-sm"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  {f.label}
-                  {count !== null && count > 0 && (
-                    <span className={cn("text-[10px]", isActive ? "opacity-80" : "")}>({count})</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Timeline */}
-          {filteredEntries.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <p className="text-sm">Nenhuma atividade nesta categoria</p>
+          </CardHeader>
+          <CardContent className="p-4 pt-0">
+            {/* Filter pills */}
+            <div className="flex items-center gap-1 mb-4">
+              {TIMELINE_FILTERS.map(f => {
+                const isActive = timelineFilter === f.id;
+                const count = f.id === "todos" ? null :
+                  f.id === "funil" ? allEntries.filter(e => e.type === "funil" || e.type === "criacao").length :
+                  f.id === "notas" ? allEntries.filter(e => e.type === "nota").length :
+                  allEntries.filter(e => e.type === "documento").length;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setTimelineFilter(f.id)}
+                    className={cn(
+                      "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
+                      isActive
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                  >
+                    {f.label}
+                    {count !== null && count > 0 && (
+                      <span className={cn("text-[10px]", isActive ? "opacity-80" : "")}>{count}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          ) : (
-            <div className="relative">
-              <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border/60 rounded-full" />
-              <div className="space-y-4">
-                {filteredEntries.map(entry => (
-                  <TimelineEntry
-                    key={entry.id}
-                    icon={getEntryIcon(entry)}
-                    title={entry.title}
-                    subtitle={entry.subtitle}
-                    date={entry.date}
-                    isCurrent={entry.isCurrent}
-                    isFirst={entry.isFirst}
-                  />
-                ))}
+
+            {/* Timeline */}
+            {filteredEntries.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <p className="text-sm">Nenhuma atividade nesta categoria</p>
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="relative">
+                <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border rounded-full" />
+                <div className="space-y-3">
+                  {filteredEntries.map(entry => (
+                    <TimelineEntry
+                      key={entry.id}
+                      icon={getEntryIcon(entry)}
+                      title={entry.title}
+                      subtitle={entry.subtitle}
+                      date={entry.date}
+                      isCurrent={entry.isCurrent}
+                      isFirst={entry.isFirst}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// ─── Client Info Row ─────────────────────────────
+// ═══════════════════════════════════════════════════
+function ClientRow({ icon: Icon, label, muted, isLink }: { icon: typeof User; label: string; muted?: boolean; isLink?: boolean }) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+      <span className={cn(
+        "text-sm leading-snug",
+        muted ? "text-muted-foreground" : "font-medium text-foreground",
+        isLink && "text-primary"
+      )}>
+        {label}
+      </span>
     </div>
   );
 }
@@ -1053,7 +1051,7 @@ function PropostasTab({ customerId, dealTitle, navigate }: { customerId: string 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-foreground">Propostas do Cliente</h3>
+        <h3 className="text-sm font-semibold text-foreground">Propostas do Cliente</h3>
         <Button size="sm" onClick={() => navigate("/admin/propostas-nativas/nova")} className="gap-1.5">
           <Plus className="h-3.5 w-3.5" />Nova Proposta
         </Button>
@@ -1162,7 +1160,7 @@ function ChatTab({ customerId, customerPhone }: { customerId: string | null; cus
 
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-bold text-foreground">Conversas WhatsApp</h3>
+      <h3 className="text-sm font-semibold text-foreground">Conversas WhatsApp</h3>
 
       {conversations.length === 0 ? (
         <Card>
@@ -1310,7 +1308,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold text-foreground">Documentos do Projeto</h3>
+        <h3 className="text-sm font-semibold text-foreground">Documentos do Projeto</h3>
         <div>
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
           <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
@@ -1340,10 +1338,10 @@ function DocumentosTab({ dealId }: { dealId: string }) {
                 </p>
               </div>
               <div className="flex items-center gap-1 shrink-0">
-                <Button variant="ghost" size="icon-sm" onClick={() => handleDownload(f.name)}>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(f.name)}>
                   <Download className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon-sm" onClick={() => handleDelete(f.name)} className="text-destructive hover:text-destructive">
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(f.name)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
@@ -1354,6 +1352,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
     </div>
   );
 }
+
 // ═══════════════════════════════════════════════════
 // ─── Shared Components ──────────────────────────
 // ═══════════════════════════════════════════════════
@@ -1366,12 +1365,12 @@ function TimelineEntry({ icon, title, subtitle, date, isCurrent, isFirst }: {
         "relative z-10 flex items-center justify-center w-6 h-6 rounded-full shrink-0 border-2",
         isCurrent ? "bg-primary border-primary text-primary-foreground"
           : isFirst ? "bg-warning border-warning text-warning-foreground"
-          : "bg-background border-border text-muted-foreground"
+          : "bg-card border-border text-muted-foreground"
       )}>
         {icon}
       </div>
       <div className="flex-1 min-w-0 pb-1">
-        <p className={cn("text-sm leading-snug", isCurrent ? "font-bold text-foreground" : "text-foreground/80")}>{title}</p>
+        <p className={cn("text-sm leading-snug", isCurrent ? "font-semibold text-foreground" : "text-foreground/80")}>{title}</p>
         {subtitle && <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>}
         <p className="text-[10px] text-muted-foreground/70 mt-0.5">{date}</p>
       </div>
