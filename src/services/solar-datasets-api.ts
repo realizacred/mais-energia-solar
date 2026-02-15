@@ -49,7 +49,8 @@ function classifyError(error: any): Error {
     msg.includes("relay error") ||
     msg.includes("non-2xx") ||
     msg.includes("boot error") ||
-    msg.includes("failed to find function")
+    msg.includes("failed to find function") ||
+    msg.includes("failed to send a request to the edge function")
   ) {
     return new EdgeFunctionNotDeployedError();
   }
