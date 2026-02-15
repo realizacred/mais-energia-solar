@@ -25,7 +25,7 @@ export function TabFinanceiras({ premises, onChange }: Props) {
               <Input
                 type="number"
                 step="0.01"
-                value={premises.inflacao_energetica}
+                value={premises.inflacao_energetica.toFixed(2)}
                 onChange={(e) => set("inflacao_energetica", Number(e.target.value))}
                 className="pr-10"
               />
@@ -40,7 +40,7 @@ export function TabFinanceiras({ premises, onChange }: Props) {
               <Input
                 type="number"
                 step="0.01"
-                value={premises.vpl_taxa_desconto}
+                value={premises.vpl_taxa_desconto.toFixed(2)}
                 onChange={(e) => set("vpl_taxa_desconto", Number(e.target.value))}
                 className="pr-10"
               />
