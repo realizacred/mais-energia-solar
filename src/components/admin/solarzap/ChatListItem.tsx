@@ -52,13 +52,6 @@ function buildBadges(conv: WaConversation): BadgeItem[] {
   const channel = conv.canal || "whatsapp";
   const cfg = CHANNEL_CFG[channel] || CHANNEL_CFG.whatsapp;
 
-  badges.push({
-    key: "channel",
-    label: cfg.label,
-    icon: cfg.icon,
-    className: cfg.class,
-  });
-
   if (conv.vendedor_nome) {
     badges.push({
       key: "vendor",
@@ -67,6 +60,21 @@ function buildBadges(conv: WaConversation): BadgeItem[] {
       className: "text-muted-foreground border-border bg-muted/30",
     });
   }
+
+  if (conv.instance_name) {
+    badges.push({
+      key: "instance",
+      label: conv.instance_name,
+      className: "text-muted-foreground border-border bg-muted/30",
+    });
+  }
+
+  badges.push({
+    key: "channel",
+    label: cfg.label,
+    icon: cfg.icon,
+    className: cfg.class,
+  });
 
   if (conv.status === "pending" || (conv.status === "open" && !conv.assigned_to)) {
     badges.push({
