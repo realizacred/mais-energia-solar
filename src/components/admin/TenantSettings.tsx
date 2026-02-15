@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   Building2, MapPin, Settings2, Save, Loader2, Shield,
+  Sparkles, MessageCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,12 @@ type TenantConfig = {
   crm?: {
     block_duplicate_clients?: boolean;
     required_fields?: string[];
+  };
+  branding?: {
+    ai_name?: string;
+    ai_emoji?: string;
+    wa_name?: string;
+    wa_emoji?: string;
   };
 };
 
@@ -355,7 +362,140 @@ export function TenantSettings() {
           </div>
         </CardContent>
       </Card>
-      {/* ═══ BLOCO 4: HORÁRIOS DE ATENDIMENTO ═══ */}
+      {/* ═══ BLOCO 4: BRANDING IA & WHATSAPP ═══ */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <CardTitle className="text-base">Identidade da IA & WhatsApp</CardTitle>
+          </div>
+          <CardDescription>
+            Personalize o nome e emoji do assistente de IA e do canal WhatsApp da sua empresa
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                Nome da IA
+              </Label>
+              <Input
+                value={tenant.tenant_config?.branding?.ai_name || ""}
+                onChange={(e) =>
+                  setTenant({
+                    ...tenant,
+                    tenant_config: {
+                      ...tenant.tenant_config,
+                      branding: {
+                        ...tenant.tenant_config?.branding,
+                        ai_name: e.target.value,
+                      },
+                    },
+                  })
+                }
+                placeholder="Ex: Solzinho"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Nome usado nas sugestões, resumos e assinaturas da IA
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Emoji da IA</Label>
+              <Input
+                value={tenant.tenant_config?.branding?.ai_emoji || ""}
+                onChange={(e) =>
+                  setTenant({
+                    ...tenant,
+                    tenant_config: {
+                      ...tenant.tenant_config,
+                      branding: {
+                        ...tenant.tenant_config?.branding,
+                        ai_emoji: e.target.value,
+                      },
+                    },
+                  })
+                }
+                placeholder="Ex: ☀️"
+                maxLength={4}
+                className="w-24"
+              />
+            </div>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <MessageCircle className="h-3.5 w-3.5 text-success" />
+                Nome do WhatsApp
+              </Label>
+              <Input
+                value={tenant.tenant_config?.branding?.wa_name || ""}
+                onChange={(e) =>
+                  setTenant({
+                    ...tenant,
+                    tenant_config: {
+                      ...tenant.tenant_config,
+                      branding: {
+                        ...tenant.tenant_config?.branding,
+                        wa_name: e.target.value,
+                      },
+                    },
+                  })
+                }
+                placeholder="Ex: Mais Zap"
+              />
+              <p className="text-[10px] text-muted-foreground">
+                Nome exibido no módulo de atendimento WhatsApp
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Emoji do WhatsApp</Label>
+              <Input
+                value={tenant.tenant_config?.branding?.wa_emoji || ""}
+                onChange={(e) =>
+                  setTenant({
+                    ...tenant,
+                    tenant_config: {
+                      ...tenant.tenant_config,
+                      branding: {
+                        ...tenant.tenant_config?.branding,
+                        wa_emoji: e.target.value,
+                      },
+                    },
+                  })
+                }
+                placeholder="Ex: 📱"
+                maxLength={4}
+                className="w-24"
+              />
+            </div>
+          </div>
+
+          {/* Preview */}
+          {(tenant.tenant_config?.branding?.ai_name || tenant.tenant_config?.branding?.wa_name) && (
+            <div className="p-3 rounded-lg bg-muted/50 border border-border/60 space-y-1">
+              <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Prévia</p>
+              {tenant.tenant_config?.branding?.ai_name && (
+                <p className="text-sm">
+                  {tenant.tenant_config.branding.ai_emoji || "🤖"}{" "}
+                  <span className="font-medium">{tenant.tenant_config.branding.ai_name}</span>{" "}
+                  <span className="text-muted-foreground">— Assistente de IA</span>
+                </p>
+              )}
+              {tenant.tenant_config?.branding?.wa_name && (
+                <p className="text-sm">
+                  {tenant.tenant_config.branding.wa_emoji || "💬"}{" "}
+                  <span className="font-medium">{tenant.tenant_config.branding.wa_name}</span>{" "}
+                  <span className="text-muted-foreground">— Canal WhatsApp</span>
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ═══ BLOCO 5: HORÁRIOS DE ATENDIMENTO ═══ */}
       <BusinessHoursConfig tenantId={tenant.id} />
 
       {/* ═══ BLOCO 5: FERIADOS ═══ */}
