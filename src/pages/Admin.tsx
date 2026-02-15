@@ -78,6 +78,7 @@ const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
 const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
+const DocumentosPage = lazy(() => import("@/components/admin/documentos/DocumentosPage").then(m => ({ default: m.DocumentosPage })));
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const SolarZapPage = lazy(() => import("@/components/admin/solarzap").then(m => ({ default: m.SolarZapPage })));
@@ -187,6 +188,7 @@ const TAB_TITLES: Record<string, string> = {
   "wa-etiquetas": "Etiquetas WhatsApp",
   // canais-captacao removed — use links-instalacao
   "links-instalacao": "Captação & App",
+  documentos: "Documentos & Assinatura",
   "data-reset": "Manutenção de Dados",
   "integracoes-status": "Painel de Integrações",
   "google-calendar": "Google Calendar",
@@ -391,6 +393,7 @@ export default function Admin() {
                 <Route path="checklists" element={<ChecklistsManager />} />
                 <Route path="avaliacoes" element={<AvaliacoesManager />} />
                 <Route path="servicos" element={<ServicosManager />} />
+                <Route path="documentos" element={<DocumentosPage />} />
                 
                 {/* Operações */}
                 <Route path="instaladores" element={<InstaladorManager />} />
