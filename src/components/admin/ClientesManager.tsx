@@ -269,9 +269,44 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir este cliente?")) return;
+    if (!confirm("Tem certeza que deseja excluir este cliente? Todos os registros vinculados serão desassociados.")) return;
 
     try {
+      // Check for blocking dependencies and provide clear feedback
+      const dependencyChecks = await Promise.all([
+        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("deals").select("id", { count: "exact", head: true }).eq("customer_id", id),
+        supabase.from("comissoes").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("recebimentos").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("checklists_cliente").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("checklists_instalador").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("layouts_solares").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("servicos_agendados").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+      ]);
+
+      const depNames = [
+        "Propostas", "Projetos", "Negócios (Deals)", "Comissões",
+        "Recebimentos", "Checklists do Cliente", "Checklists do Instalador",
+        "Layouts Solares", "Serviços Agendados",
+      ];
+
+      const blocking: string[] = [];
+      dependencyChecks.forEach((res, i) => {
+        if ((res.count ?? 0) > 0) {
+          blocking.push(`${depNames[i]} (${res.count})`);
+        }
+      });
+
+      if (blocking.length > 0) {
+        toast({
+          title: "Não é possível excluir este cliente",
+          description: `Existem registros vinculados que impedem a exclusão: ${blocking.join(", ")}. Remova ou desassocie esses registros primeiro.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error } = await supabase.from("clientes").delete().eq("id", id);
       if (error) throw error;
       toast({ title: "Cliente excluído!" });
