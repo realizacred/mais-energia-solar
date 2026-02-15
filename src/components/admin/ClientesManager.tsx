@@ -286,7 +286,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
       ]);
 
       const depNames = [
-        "Propostas", "Projetos", "Negócios (Deals)", "Comissões",
+        "Propostas", "Projetos", "Negociações em andamento", "Comissões",
         "Recebimentos", "Checklists do Cliente", "Checklists do Instalador",
         "Layouts Solares", "Serviços Agendados",
       ];
