@@ -9669,6 +9669,101 @@ export type Database = {
         }
         Relationships: []
       }
+      solar_import_job_logs: {
+        Row: {
+          created_at: string
+          id: string
+          job_id: string
+          level: string
+          message: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_id: string
+          level?: string
+          message: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_id?: string
+          level?: string
+          message?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_import_job_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "solar_import_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solar_import_job_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      solar_import_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dataset_key: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string | null
+          row_count: number | null
+          started_at: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dataset_key: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          row_count?: number | null
+          started_at?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dataset_key?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          idempotency_key?: string | null
+          row_count?: number | null
+          started_at?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solar_import_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean
