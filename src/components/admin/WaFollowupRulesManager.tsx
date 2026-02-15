@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { WaAutoReplyConfig } from "./WaAutoReplyConfig";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -318,6 +319,8 @@ export function WaFollowupRulesManager() {
 
   return (
     <div className="space-y-5">
+      {/* Auto-Reply Config */}
+      <WaAutoReplyConfig />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">

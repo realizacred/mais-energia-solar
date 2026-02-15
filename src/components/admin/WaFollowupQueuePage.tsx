@@ -5,9 +5,11 @@ import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   Clock, AlertTriangle, CheckCircle2, MessageCircle, Filter,
-  User, Bell, ExternalLink,
+  User, Bell, ExternalLink, ShieldAlert,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { PageHeader, StatCard } from "@/components/ui-kit";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +71,8 @@ const PRIORITY_BADGE = {
 
 // ─── Component ──────────────────────────────────────────────
 export function WaFollowupQueuePage() {
+  const { user } = useAuth();
+  const { isAdmin } = useUserPermissions();
   const [statusFilter, setStatusFilter] = useState("pendente");
   const [vendedorFilter, setVendedorFilter] = useState("all");
   const [selectedItem, setSelectedItem] = useState<FollowupQueueItem | null>(null);
@@ -76,7 +80,7 @@ export function WaFollowupQueuePage() {
 
   // ─── Data Queries ───────────────────────────────────────
   const { data: items = [], isLoading } = useQuery({
-    queryKey: ["wa-followup-queue-page", statusFilter],
+    queryKey: ["wa-followup-queue-page", statusFilter, isAdmin, user?.id],
     queryFn: async () => {
       let query = supabase
         .from("wa_followup_queue")
@@ -90,6 +94,11 @@ export function WaFollowupQueuePage() {
 
       if (statusFilter !== "all") {
         query = query.eq("status", statusFilter);
+      }
+
+      // 🔐 Consultores só veem seus próprios follow-ups
+      if (!isAdmin && user?.id) {
+        query = query.eq("assigned_to", user.id);
       }
 
       const { data, error } = await query;
@@ -182,9 +191,17 @@ export function WaFollowupQueuePage() {
     <div className="space-y-6">
       <PageHeader
         title="Fila de Follow-ups WhatsApp"
-        description="Gerencie e acompanhe todos os follow-ups de conversas WhatsApp"
+        description={isAdmin ? "Gerencie e acompanhe todos os follow-ups de conversas WhatsApp" : "Seus follow-ups de conversas WhatsApp"}
         icon={Bell}
       />
+
+      {/* Visibility badge */}
+      {!isAdmin && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-info/10 border border-info/20">
+          <ShieldAlert className="h-4 w-4 text-info shrink-0" />
+          <p className="text-xs text-info">Exibindo apenas follow-ups atribuídos a você.</p>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -214,20 +231,23 @@ export function WaFollowupQueuePage() {
                 <SelectItem value="falhou">Falhou</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Consultor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos consultores</SelectItem>
-                <SelectItem value="unassigned">Não atribuídos</SelectItem>
-                {vendedores.filter((v) => v.user_id).map((v) => (
-                  <SelectItem key={v.user_id!} value={v.user_id!}>
-                    {v.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {/* Filtro de consultor só para admins */}
+            {isAdmin && (
+              <Select value={vendedorFilter} onValueChange={setVendedorFilter}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue placeholder="Consultor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos consultores</SelectItem>
+                  <SelectItem value="unassigned">Não atribuídos</SelectItem>
+                  {vendedores.filter((v) => v.user_id).map((v) => (
+                    <SelectItem key={v.user_id!} value={v.user_id!}>
+                      {v.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             <Badge variant="outline" className="ml-auto">
               {filteredItems.length} resultado{filteredItems.length !== 1 ? "s" : ""}
             </Badge>

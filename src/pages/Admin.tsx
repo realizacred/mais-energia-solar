@@ -63,6 +63,7 @@ const SlaBreachDashboard = lazy(() => import("@/components/admin/distribution").
 const MotivoPerdaManager = lazy(() => import("@/components/admin/distribution").then(m => ({ default: m.MotivoPerdaManager })));
 const WaFollowupRulesManager = lazy(() => import("@/components/admin/WaFollowupRulesManager").then(m => ({ default: m.WaFollowupRulesManager })));
 const WaFollowupQueuePage = lazy(() => import("@/components/admin/WaFollowupQueuePage").then(m => ({ default: m.WaFollowupQueuePage })));
+const WaAtendimentoMetrics = lazy(() => import("@/components/admin/WaAtendimentoMetrics").then(m => ({ default: m.WaAtendimentoMetrics })));
 const WaInstancesManager = lazy(() => import("@/components/admin/WaInstancesManager").then(m => ({ default: m.WaInstancesManager })));
 const WaTagsManager = lazy(() => import("@/components/admin/inbox/WaTagsManager").then(m => ({ default: m.WaTagsManager })));
 const InstalarApp = lazy(() => import("@/pages/Instalar"));
@@ -172,6 +173,7 @@ const TAB_TITLES: Record<string, string> = {
   "propostas-nativas/variaveis": "Variáveis Customizadas",
   "followup-wa": "Regras de Retorno",
   "followup-queue": "Fila de Retorno",
+  "metricas-atendimento": "Métricas de Atendimento",
   "wa-etiquetas": "Etiquetas WhatsApp",
   "canais-captacao": "Canais de Captação",
   "links-instalacao": "Captação & App",
@@ -364,6 +366,7 @@ export default function Admin() {
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
                 <Route path="followup-queue" element={<WaFollowupQueuePage />} />
+                <Route path="metricas-atendimento" element={<WaAtendimentoMetrics />} />
                 <Route path="wa-etiquetas" element={<WaTagsManager />} />
                 <Route path="validacao" element={<ValidacaoVendasManager />} />
                 <Route path="tarefas" element={<TasksSlaDashboard />} />
