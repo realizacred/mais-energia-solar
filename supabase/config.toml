@@ -160,3 +160,6 @@ verify_jwt = false
 
 [functions.pipeline-automations]
 verify_jwt = false
+
+[functions.irradiance-import]
+verify_jwt = false
