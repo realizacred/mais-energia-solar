@@ -14,6 +14,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
@@ -123,6 +125,55 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const [propostasCount, setPropostasCount] = useState(0);
   const [docsCount, setDocsCount] = useState(0);
   const [userNamesMap, setUserNamesMap] = useState<Map<string, string>>(new Map());
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteBlocking, setDeleteBlocking] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteProject = async () => {
+    if (!deal) return;
+    setDeleting(true);
+    try {
+      // Check dependencies
+      const propRes = deal.customer_id 
+        ? await supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", deal.customer_id)
+        : { count: 0 };
+      const histRes = await supabase.from("deal_stage_history").select("id", { count: "exact", head: true }).eq("deal_id", deal.id);
+      const checkRes = await supabase.from("checklists_instalador").select("id", { count: "exact", head: true }).eq("projeto_id", deal.id);
+
+      const depEntries: [string, number][] = [
+        ["Propostas", propRes.count ?? 0],
+        ["Histórico de etapas", histRes.count ?? 0],
+        ["Checklists de instalação", checkRes.count ?? 0],
+      ];
+      const blocking: string[] = [];
+      depEntries.forEach(([name, count]) => {
+        if (count > 0) blocking.push(`${name} (${count})`);
+      });
+
+      if (blocking.length > 0) {
+        setDeleteBlocking(blocking);
+        setDeleteDialogOpen(true);
+        setDeleting(false);
+        return;
+      }
+
+      // Safe to delete — also clean up kanban projection and history
+      await supabase.from("deal_kanban_projection").delete().eq("deal_id", deal.id);
+      const { error } = await supabase.from("deals").delete().eq("id", deal.id);
+      if (error) throw error;
+
+      toast({ title: "Projeto excluído com sucesso!" });
+      onBack();
+    } catch (err: any) {
+      toast({
+        title: "Erro ao excluir projeto",
+        description: err?.message || "Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   // Load deal data
   useEffect(() => {
@@ -281,9 +332,26 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
           <h1 className="text-xl font-bold text-foreground truncate">
             {customerName || deal.title}
           </h1>
-          <Button variant="ghost" size="icon-sm" className="shrink-0">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon-sm" className="shrink-0">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onClick={() => {
+                  setDeleteBlocking([]);
+                  handleDeleteProject();
+                }}
+                disabled={deleting}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {deleting ? "Excluindo..." : "Excluir Projeto"}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {/* Status badges */}
           {deal.value > 0 && (
             <Badge className="bg-destructive/90 text-destructive-foreground text-xs shrink-0">
@@ -364,6 +432,21 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* ── Delete blocking dialog ── */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Não é possível excluir este projeto</AlertDialogTitle>
+            <AlertDialogDescription>
+              Existem registros vinculados que impedem a exclusão: <strong>{deleteBlocking.join(", ")}</strong>. Remova ou desassocie esses registros primeiro.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Entendi</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
