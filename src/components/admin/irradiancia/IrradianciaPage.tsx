@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/ir
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImportJobTracker } from "./ImportJobTracker";
-import { triggerDatasetImport, EdgeFunctionNotDeployedError, type ImportJob } from "@/services/solar-datasets-api";
+import { triggerDatasetImport, EdgeFunctionNotDeployedError, loadRecentImportJobs, type ImportJob } from "@/services/solar-datasets-api";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-success/10 text-success border-success/30",
@@ -39,10 +39,17 @@ export function IrradianciaPage() {
   const { datasets, versions, loading, reload, getVersionsForDataset, getActiveVersion } = useIrradianceDatasets();
   const [tab, setTab] = useState("datasets");
 
-  // ── Async import jobs ──
+  // ── Async import jobs (persisted in DB, loaded on mount) ──
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
   const [fetchingDs, setFetchingDs] = useState<string | null>(null);
   const [notDeployedError, setNotDeployedError] = useState(false);
+
+  // Load persisted jobs from database on mount
+  useEffect(() => {
+    loadRecentImportJobs(20).then((jobs) => {
+      if (jobs.length > 0) setImportJobs(jobs);
+    });
+  }, []);
 
   // CSV upload state
   const [uploadDs, setUploadDs] = useState("");
@@ -63,7 +70,10 @@ export function IrradianciaPage() {
     setNotDeployedError(false);
     try {
       const job = await triggerDatasetImport(datasetCode);
-      setImportJobs((prev) => [job, ...prev]);
+      setImportJobs((prev) => {
+        const exists = prev.some((j) => j.job_id === job.job_id);
+        return exists ? prev.map((j) => j.job_id === job.job_id ? job : j) : [job, ...prev];
+      });
       toast.success("Importação iniciada", {
         description: `Job ${job.job_id.substring(0, 8)}… criado para ${datasetCode}`,
       });
