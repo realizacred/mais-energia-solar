@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { WaAISidebar } from "./WaAISidebar";
+import { WaNotesPanel } from "./WaNotesPanel";
 import {
   Sparkles,
   StickyNote,
@@ -129,6 +130,7 @@ export function WaChatPanel({
   const [showLeadInfo, setShowLeadInfo] = useState(false);
   const [showCRMSidebar, setShowCRMSidebar] = useState(false);
   const [showAISidebar, setShowAISidebar] = useState(false);
+  const [showNotesPanel, setShowNotesPanel] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ url: string; type: "image" | "video" | "audio" | "document"; caption?: string } | null>(null);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
@@ -427,6 +429,30 @@ export function WaChatPanel({
                 <TooltipContent>Devolver à fila da equipe</TooltipContent>
               </Tooltip>
             )}
+            {/* Notes button */}
+            {(() => {
+              const noteCount = messages.filter(m => m.is_internal_note).length;
+              return (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="icon"
+                      variant={showNotesPanel ? "default" : "ghost"}
+                      className={`h-8 w-8 relative ${showNotesPanel ? "bg-warning/15 text-warning" : ""}`}
+                      onClick={() => setShowNotesPanel(!showNotesPanel)}
+                    >
+                      <StickyNote className="h-4 w-4" />
+                      {noteCount > 0 && (
+                        <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-0.5 flex items-center justify-center rounded-full bg-warning text-warning-foreground text-[9px] font-bold">
+                          {noteCount > 99 ? "99+" : noteCount}
+                        </span>
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Notas Internas ({noteCount})</TooltipContent>
+                </Tooltip>
+              );
+            })()}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -746,6 +772,20 @@ export function WaChatPanel({
           </SheetContent>
         </Sheet>
       )}
+
+      {/* Notes Panel */}
+      <WaNotesPanel
+        open={showNotesPanel}
+        onOpenChange={setShowNotesPanel}
+        messages={messages}
+        conversation={conversation}
+        onScrollToNote={(messageId) => {
+          const idx = visibleMessages.findIndex((m) => m.id === messageId);
+          if (idx >= 0) {
+            virtuosoRef.current?.scrollToIndex({ index: idx, behavior: "smooth", align: "center" });
+          }
+        }}
+      />
     </div>
   );
 }
