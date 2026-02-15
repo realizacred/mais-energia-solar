@@ -112,7 +112,7 @@ function SidebarItemButton({
             <span className="text-[13px] truncate leading-tight">
               {item.title}
             </span>
-            <span className="text-[10px] opacity-55 font-normal truncate leading-tight">
+            <span className="text-[10px] opacity-65 font-normal truncate leading-tight">
               {item.description}
             </span>
           </div>
@@ -281,11 +281,11 @@ function SidebarSectionGroup({
                 return (
                   <React.Fragment key={item.id}>
                     {item.subsectionLabel && !dragId && (
-                      <div className="mx-3 mt-2.5 mb-1 flex items-center gap-2">
-                        <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground/55 select-none">
+                      <div className="mx-3 mt-3 mb-1.5 flex items-center gap-2">
+                        <span className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-foreground/50 select-none">
                           {item.subsectionLabel}
                         </span>
-                        <div className="flex-1 h-px bg-border/30" />
+                        <div className="flex-1 h-px bg-border/50" />
                       </div>
                     )}
                     {item.separator && !item.subsectionLabel && !dragId && (
