@@ -74,13 +74,9 @@ As RPCs que servem essas MVs são `SECURITY DEFINER` mas **NÃO filtram por tena
 
 **⚠️ TODAS são intencionais e documentadas.** Nenhuma expõe dados sensíveis.
 
-## 6. `storage_migration_log` — Tabela Órfã
+## ~~6. `storage_migration_log` — Tabela Órfã~~ ✅ RESOLVIDO (2026-02-15)
 
-- **14 registros**, todos com status `updated`
-- **Sem referência no frontend** (0 imports)
-- **Edge Functions órfãs:** `migrate-storage-paths`, `cleanup-legacy-storage`
-
-**Recomendação:** Deletar tabela, Edge Functions e relatórios de migração.
+Tabela `storage_migration_log` e Edge Functions órfãs (`migrate-storage-paths`, `cleanup-legacy-storage`, `loading-ai-message`) foram **deletadas**. Relatórios de migração removidos da documentação.
 
 ---
 

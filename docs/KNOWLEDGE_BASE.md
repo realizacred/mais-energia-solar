@@ -98,7 +98,7 @@
 
 ### 2.13 IA & Copilot
 - **Objetivo**: Sugestões, resumos, scoring, insights automatizados.
-- **Edge Functions**: `ai-suggest-message`, `ai-conversation-summary`, `ai-followup-planner`, `generate-ai-insights`, `loading-ai-message`, `ai-proposal-explainer`.
+- **Edge Functions**: `ai-suggest-message`, `ai-conversation-summary`, `ai-followup-planner`, `generate-ai-insights`, `ai-proposal-explainer`. (~~`loading-ai-message`~~ deletada em 2026-02-15)
 - **Telas**: `/admin/diretor`, `/admin/ai-config`.
 - **Tabelas-chave**: `ai_insights`, `wa_ai_settings`, `wa_ai_tasks`.
 
@@ -223,7 +223,7 @@
 | 89 | `sla_breaches` | Violações de SLA | NOT NULL | `require_tenant_id()` | 4 |
 | 90 | `sla_rules` | Regras de SLA | NOT NULL | `require_tenant_id()` | 2 |
 | 91-103 | `solar_market_*` (13 tabelas) | Integração SolarMarket | NOT NULL | variado | 1-2 cada |
-| 104 | `storage_migration_log` | Log migração storage | — | — | DESCONHECIDO |
+| ~~104~~ | ~~`storage_migration_log`~~ | ~~Log migração storage~~ | — | — | **DELETADA** (2026-02-15) |
 | 105 | `subscriptions` | Assinaturas de plano | NOT NULL | — | 2 |
 | 106 | `task_events` | Eventos de tarefas | NOT NULL | `require_tenant_id()` | 2 |
 | 107 | `tasks` | Tarefas operacionais | NOT NULL | `require_tenant_id()` | 2 |
@@ -453,7 +453,7 @@
 | 2 | ⚠️ `wa_conversation_preferences` RLS DESCONHECIDO | **ALTO** | Segurança |
 | 3 | ⚠️ `wa_message_hidden` RLS DESCONHECIDO | **ALTO** | Segurança |
 | 4 | ⚠️ `wa_reads` RLS DESCONHECIDO | **ALTO** | Segurança |
-| 5 | ⚠️ `storage_migration_log` RLS DESCONHECIDO | **MÉDIO** | Segurança |
+| ~~5~~ | ~~`storage_migration_log` RLS DESCONHECIDO~~ | — | ✅ **RESOLVIDO** — Tabela deletada (2026-02-15) |
 | 6 | ⚠️ `config_tributaria_estado.tenant_id` NULLABLE — dados globais vs tenant misturados | **MÉDIO** | Source of Truth |
 | 7 | ⚠️ Dois sistemas de automação WA independentes (templates + follow-up) sem deduplicação | **MÉDIO** | Operacional |
 | 8 | ⚠️ `resolve_public_tenant_id()` bloqueia com >1 tenant ativo — não escala | **ALTO** | Escalabilidade |
@@ -479,7 +479,7 @@
 ## 9. Perguntas que Faltam Responder (Priorizadas)
 
 ### P1 — Segurança (Urgente)
-1. Quais são as RLS policies exatas de `wa_conversation_preferences`, `wa_message_hidden`, `wa_reads` e `storage_migration_log`?
+1. Quais são as RLS policies exatas de `wa_conversation_preferences`, `wa_message_hidden` e `wa_reads`? (`storage_migration_log` foi deletada em 2026-02-15)
 2. A tabela `wa_conversation_tags` realmente não tem `tenant_id`? Se sim, qual o plano de migração?
 
 ### P2 — Escalabilidade (Importante)
