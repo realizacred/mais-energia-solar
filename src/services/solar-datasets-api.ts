@@ -109,6 +109,18 @@ export async function getImportJobLogs(jobId: string): Promise<ImportJobLog[]> {
   return (data ?? []) as ImportJobLog[];
 }
 
+/**
+ * Cancel an import job.
+ * Payload: { action: "cancel", job_id }
+ */
+export async function cancelImportJob(jobId: string): Promise<void> {
+  const { error } = await supabase.functions.invoke("solar-dataset-import", {
+    body: { action: "cancel", job_id: jobId },
+  });
+
+  if (error) throw classifyError(error);
+}
+
 // ─── Load persisted jobs from DB ─────────────────────────────
 
 /** Fetches recent import jobs directly from the database (read-only). */

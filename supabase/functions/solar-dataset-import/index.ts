@@ -108,6 +108,46 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ─── CANCEL ───────────────────────────────────────────────
+    if (action === "cancel") {
+      const jobId = body.job_id;
+      if (!jobId) return err("job_id is required");
+
+      const { data: job, error: jobErr } = await adminClient
+        .from("solar_import_jobs")
+        .select("*")
+        .eq("id", jobId)
+        .eq("tenant_id", tenantId)
+        .single();
+
+      if (jobErr || !job) return err("Job not found", 404);
+
+      if (job.status === "success") {
+        return err("Cannot cancel a completed job", 400);
+      }
+
+      // Update job status to failed (cancelled)
+      await adminClient
+        .from("solar_import_jobs")
+        .update({
+          status: "failed",
+          error_message: `Cancelado manualmente por ${user.email ?? user.id}`,
+          finished_at: new Date().toISOString(),
+        })
+        .eq("id", jobId)
+        .eq("tenant_id", tenantId);
+
+      // Log cancellation
+      await adminClient.from("solar_import_job_logs").insert({
+        job_id: jobId,
+        tenant_id: tenantId,
+        level: "warn",
+        message: `Job cancelado manualmente por ${user.email ?? user.id}`,
+      });
+
+      return json({ cancelled: true, job_id: jobId });
+    }
+
     // ─── IMPORT (create job) ─────────────────────────────────
     const datasetKey = body.dataset_key;
     const idempotencyKey = body.idempotency_key;
