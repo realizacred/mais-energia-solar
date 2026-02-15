@@ -1,68 +1,157 @@
-import { useState } from "react";
-import { Settings, MessageCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Settings, MessageCircle, Wifi, WifiOff, Loader2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { SolarZapConversationList, type SolarZapConversation } from "./SolarZapConversationList";
+import { useWaConversations, useWaMessages, useWaReadTracking } from "@/hooks/useWaInbox";
+import { useWaInstances } from "@/hooks/useWaInstances";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { SolarZapConversationList } from "./SolarZapConversationList";
 import { SolarZapChatPanel } from "./SolarZapChatPanel";
 import { SolarZapContextPanel } from "./SolarZapContextPanel";
 import { SolarZapSettings } from "./SolarZapSettings";
-
-// Demo conversations
-const DEMO_CONVERSATIONS: SolarZapConversation[] = [
-  { id: "a1b2", nome: "João Mendes", telefone: "(32) 99844-1234", lastMessage: "Quanto custa um sistema para R$500 de conta?", lastMessageAt: "09:32", unreadCount: 3, channel: "whatsapp", status: "online" },
-  { id: "c3d4", nome: "Maria Clara", telefone: "(21) 98765-4321", lastMessage: "Recebi a proposta, vou analisar.", lastMessageAt: "08:50", unreadCount: 0, channel: "whatsapp", status: "offline" },
-  { id: "e5f6", nome: "Pedro Henrique", telefone: "(11) 97654-3210", lastMessage: "Vocês fazem instalação em SP?", lastMessageAt: "Ontem", unreadCount: 1, channel: "instagram", status: "offline" },
-  { id: "g7h8", nome: "Ana Beatriz", telefone: "(31) 98543-2109", lastMessage: "Enviei as fotos do telhado", lastMessageAt: "Ontem", unreadCount: 0, channel: "whatsapp", status: "online" },
-  { id: "i9j0", nome: "Lucas Ferreira", telefone: "(34) 97432-1098", lastMessage: "Pode me ligar amanhã?", lastMessageAt: "12/02", unreadCount: 2, channel: "whatsapp", status: "offline" },
-  { id: "k1l2", nome: "Carla Dias", telefone: "(35) 96321-0987", lastMessage: "Vou fechar! Quando fazem a instalação?", lastMessageAt: "11/02", unreadCount: 0, channel: "whatsapp", status: "offline" },
-  { id: "m3n4", nome: "Ricardo Santos", telefone: "(32) 95210-9876", lastMessage: "Aceito a proposta do financiamento", lastMessageAt: "10/02", unreadCount: 0, channel: "phone", status: "offline" },
-];
+import type { WaConversation } from "@/hooks/useWaInbox";
 
 export function SolarZapPage() {
   const isMobile = useIsMobile();
-  const [selectedConv, setSelectedConv] = useState<SolarZapConversation | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { instances } = useWaInstances();
+
+  const [selectedConv, setSelectedConv] = useState<WaConversation | null>(null);
   const [showContext, setShowContext] = useState(!isMobile);
   const [activeTab, setActiveTab] = useState("chat");
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("open");
+  const [filterAssigned, setFilterAssigned] = useState("all");
 
-  const handleSelectConversation = (conv: SolarZapConversation) => {
-    setSelectedConv(conv);
-    if (!isMobile) {
-      setShowContext(true);
+  // Real conversations from Supabase + Realtime
+  const {
+    conversations,
+    loading: convsLoading,
+    assignConversation,
+    resolveConversation,
+    reopenConversation,
+    updateConversation,
+  } = useWaConversations({
+    search: search || undefined,
+  });
+
+  // Real messages for selected conversation
+  const {
+    messages,
+    loading: msgsLoading,
+    sendMessage,
+    isSending,
+    initialLoadDone,
+    isLoadingMore,
+    hasOlderMessages,
+    loadOlderMessages,
+  } = useWaMessages(selectedConv?.id);
+
+  const { markAsRead } = useWaReadTracking(selectedConv?.id, user?.id);
+
+  // Mark as read when selecting conversation
+  const handleMarkRead = (conv: WaConversation) => {
+    if (conv.unread_count > 0) {
+      // Get the latest message id if available
+      const latestMsg = messages.length > 0 ? messages[messages.length - 1] : null;
+      if (latestMsg) markAsRead(latestMsg.id);
     }
   };
 
-  const handleBack = () => {
-    setSelectedConv(null);
+  // Filter conversations client-side
+  const filteredConvs = conversations.filter((c) => {
+    if (filterStatus !== "all" && c.status !== filterStatus) return false;
+    if (filterAssigned === "meus" && c.assigned_to !== user?.id) return false;
+    if (filterAssigned === "nao_lidos" && c.unread_count === 0) return false;
+    if (c.is_group) return false;
+    return true;
+  });
+
+  // Keep selectedConv in sync with fresh data
+  useEffect(() => {
+    if (selectedConv) {
+      const fresh = conversations.find((c) => c.id === selectedConv.id);
+      if (fresh) setSelectedConv(fresh);
+    }
+  }, [conversations]);
+
+  // Instance connection status
+  const connectedInstances = instances.filter((i: any) => i.status === "connected" || i.connection_status === "open");
+  const hasConnection = connectedInstances.length > 0;
+
+  const handleSelectConversation = (conv: WaConversation) => {
+    setSelectedConv(conv);
+    if (conv.unread_count > 0) {
+      updateConversation({ id: conv.id, updates: { unread_count: 0 } as any });
+    }
+    if (!isMobile) setShowContext(true);
   };
+
+  const handleSendMessage = async (content: string, isNote?: boolean) => {
+    if (!selectedConv || !content.trim()) return;
+    try {
+      await sendMessage({ content, isInternalNote: isNote });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const handleBack = () => setSelectedConv(null);
+
+  // Connection status badge
+  const ConnectionBadge = () => (
+    <Badge
+      variant="outline"
+      className={`text-[9px] gap-1 ${hasConnection ? "text-success border-success/30" : "text-destructive border-destructive/30"}`}
+    >
+      {hasConnection ? <Wifi className="h-2.5 w-2.5" /> : <WifiOff className="h-2.5 w-2.5" />}
+      {hasConnection ? "Conectado" : "Desconectado"}
+    </Badge>
+  );
 
   // Mobile: show only list or chat
   if (isMobile) {
     return (
       <div className="h-[calc(100vh-120px)] flex flex-col -m-4 md:-m-6">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-          <TabsList className="mx-3 mt-2 h-8 shrink-0">
-            <TabsTrigger value="chat" className="text-xs h-6 px-3 gap-1">
-              <MessageCircle className="h-3 w-3" />
-              Chat
-            </TabsTrigger>
-            <TabsTrigger value="config" className="text-xs h-6 px-3 gap-1">
-              <Settings className="h-3 w-3" />
-              Config
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex items-center justify-between px-3 pt-2">
+            <TabsList className="h-8">
+              <TabsTrigger value="chat" className="text-xs h-6 px-3 gap-1">
+                <MessageCircle className="h-3 w-3" />
+                Chat
+              </TabsTrigger>
+              <TabsTrigger value="config" className="text-xs h-6 px-3 gap-1">
+                <Settings className="h-3 w-3" />
+                Config
+              </TabsTrigger>
+            </TabsList>
+            <ConnectionBadge />
+          </div>
 
           <TabsContent value="chat" className="flex-1 mt-0 overflow-hidden">
             {selectedConv ? (
               <SolarZapChatPanel
                 conversation={selectedConv}
+                messages={messages}
+                loading={msgsLoading}
+                isSending={isSending}
+                onSendMessage={handleSendMessage}
                 onBack={handleBack}
                 showBackButton
               />
             ) : (
               <SolarZapConversationList
-                conversations={DEMO_CONVERSATIONS}
+                conversations={filteredConvs}
                 selectedId={null}
                 onSelect={handleSelectConversation}
+                loading={convsLoading}
+                search={search}
+                onSearchChange={setSearch}
+                filter={filterAssigned}
+                onFilterChange={setFilterAssigned}
               />
             )}
           </TabsContent>
@@ -90,6 +179,7 @@ export function SolarZapPage() {
               Configurações
             </TabsTrigger>
           </TabsList>
+          <ConnectionBadge />
         </div>
 
         <TabsContent value="chat" className="flex-1 mt-0 overflow-hidden">
@@ -97,14 +187,25 @@ export function SolarZapPage() {
             {/* Left: Conversation List */}
             <div className="w-80 shrink-0">
               <SolarZapConversationList
-                conversations={DEMO_CONVERSATIONS}
+                conversations={filteredConvs}
                 selectedId={selectedConv?.id || null}
                 onSelect={handleSelectConversation}
+                loading={convsLoading}
+                search={search}
+                onSearchChange={setSearch}
+                filter={filterAssigned}
+                onFilterChange={setFilterAssigned}
               />
             </div>
 
             {/* Center: Chat */}
-            <SolarZapChatPanel conversation={selectedConv} />
+            <SolarZapChatPanel
+              conversation={selectedConv}
+              messages={messages}
+              loading={msgsLoading}
+              isSending={isSending}
+              onSendMessage={handleSendMessage}
+            />
 
             {/* Right: Context Panel */}
             {showContext && selectedConv && (
