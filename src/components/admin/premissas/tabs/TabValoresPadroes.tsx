@@ -49,6 +49,16 @@ function NumField({ label, suffix, value, step, subtext, tooltip, onChange }: {
   onChange: (v: number) => void;
 }) {
   const isPercent = suffix === "%";
+  const isKwh = suffix === "R$/kWh";
+  const isReais = suffix === "R$";
+
+  const formatValue = () => {
+    if (isPercent) return value.toFixed(2);
+    if (isKwh) return value.toFixed(5);
+    if (isReais) return value.toFixed(2);
+    return value;
+  };
+
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-muted-foreground">
@@ -58,8 +68,8 @@ function NumField({ label, suffix, value, step, subtext, tooltip, onChange }: {
       <div className="relative">
         <Input
           type="number"
-          step={step || "0.01"}
-          value={isPercent ? value.toFixed(2) : value}
+          step={step || (isKwh ? "0.00001" : "0.01")}
+          value={formatValue()}
           onChange={(e) => onChange(Number(e.target.value))}
           className="pr-16"
         />
