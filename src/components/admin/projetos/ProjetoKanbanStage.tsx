@@ -26,10 +26,10 @@ const formatBRLCard = (v: number | null) => {
 };
 
 const ETIQUETA_COLORS: Record<string, string> = {
-  residencial: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  comercial: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  industrial: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  rural: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  residencial: "bg-info/10 text-info dark:bg-info/20",
+  comercial: "bg-warning/10 text-warning dark:bg-warning/20",
+  industrial: "bg-secondary/10 text-secondary dark:bg-secondary/20",
+  rural: "bg-success/10 text-success dark:bg-success/20",
 };
 
 export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto }: Props) {

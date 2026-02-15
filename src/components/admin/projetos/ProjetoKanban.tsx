@@ -19,9 +19,9 @@ const formatBRL = (v: number | null) => {
 };
 
 const CATEGORIA_DOT: Record<string, string> = {
-  aberto: "bg-blue-500",
-  ganho: "bg-emerald-500",
-  perdido: "bg-red-500",
+  aberto: "bg-info",
+  ganho: "bg-success",
+  perdido: "bg-destructive",
   excluido: "bg-muted-foreground",
 };
 

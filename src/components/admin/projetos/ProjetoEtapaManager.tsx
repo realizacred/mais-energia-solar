@@ -27,9 +27,9 @@ import { cn } from "@/lib/utils";
 import type { ProjetoEtapaCategoria } from "@/hooks/useProjetoPipeline";
 
 const CATEGORIAS: { value: ProjetoEtapaCategoria; label: string; dot: string; bg: string }[] = [
-  { value: "aberto", label: "Aberto", dot: "bg-blue-500", bg: "border-blue-500/40 bg-blue-500/5" },
-  { value: "ganho", label: "Ganho", dot: "bg-emerald-500", bg: "border-emerald-500/40 bg-emerald-500/5" },
-  { value: "perdido", label: "Perdido", dot: "bg-red-500", bg: "border-red-500/40 bg-red-500/5" },
+  { value: "aberto", label: "Aberto", dot: "bg-info", bg: "border-info/40 bg-info/5" },
+  { value: "ganho", label: "Ganho", dot: "bg-success", bg: "border-success/40 bg-success/5" },
+  { value: "perdido", label: "Perdido", dot: "bg-destructive", bg: "border-destructive/40 bg-destructive/5" },
   { value: "excluido", label: "Excluído", dot: "bg-muted-foreground", bg: "border-muted-foreground/40 bg-muted/30" },
 ];
 

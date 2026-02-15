@@ -61,11 +61,7 @@
     --brand-blue: 225 78% 30%;
     --brand-blue-light: 225 65% 40%;
 
-    /* --- SolarMarket Identity --- */
-    --teal-solar: 168 82% 32%;
-    --teal-solar-foreground: 0 0% 100%;
-    --amarelo-sol: 36 91% 52%;
-    --amarelo-sol-foreground: 0 0% 10%;
+    /* (SolarMarket tokens removed — use semantic tokens instead) */
 
     /* --- Elevation Surfaces --- */
     --surface-1: 0 0% 100%;
