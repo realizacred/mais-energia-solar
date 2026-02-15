@@ -58,8 +58,8 @@ const WRITING_ASSISTANT_MODELS = [
   // Google Gemini (requer chave google_gemini em Integrações)
   { value: "gemini-2.0-flash-lite", label: "Gemini 2.0 Flash Lite", cost: "💰", desc: "Mais barato, básico", provider: "google_gemini" },
   { value: "gemini-2.0-flash", label: "Gemini 2.0 Flash", cost: "💰💰", desc: "Bom equilíbrio", provider: "google_gemini" },
-  { value: "gemini-2.5-flash-preview-05-20", label: "Gemini 2.5 Flash", cost: "💰💰", desc: "Mais recente (padrão)", provider: "google_gemini" },
-  { value: "gemini-2.5-pro-preview-06-05", label: "Gemini 2.5 Pro", cost: "💰💰💰", desc: "Premium", provider: "google_gemini" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash", cost: "💰💰", desc: "Recomendado (padrão)", provider: "google_gemini" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro", cost: "💰💰💰", desc: "Premium, mais preciso", provider: "google_gemini" },
   // OpenAI (requer chave openai em Integrações)
   { value: "gpt-4o-mini", label: "GPT-4o Mini", cost: "💰", desc: "Rápido, econômico", provider: "openai" },
   { value: "gpt-4o", label: "GPT-4o", cost: "💰💰💰", desc: "Alta qualidade", provider: "openai" },
@@ -388,7 +388,7 @@ export function AiFollowupSettingsPanel() {
           <div className="space-y-2">
             <Label>Modelo do Assistente de Escrita</Label>
             <Select
-              value={settings.templates?.writing_assistant?.model || "gemini-2.5-flash-preview-05-20"}
+              value={settings.templates?.writing_assistant?.model || "gemini-2.5-flash"}
               disabled={settings.templates?.writing_assistant?.enabled === false}
               onValueChange={(v) =>
                 setSettings({

@@ -112,13 +112,17 @@ export function useWritingAssistant() {
 
         if (!response.ok) {
           const errorMsg = data.error || "Erro desconhecido";
+          const errorCode = data.code || "";
 
+          // Use appropriate toast type based on error severity
           if (response.status === 429) {
-            toast.warning(errorMsg);
+            toast.warning(errorMsg, { duration: 5000 });
           } else if (response.status === 402) {
-            toast.error(errorMsg);
+            toast.error(errorMsg, { duration: 8000 });
+          } else if (response.status === 504) {
+            toast.warning(errorMsg, { duration: 5000 });
           } else if (response.status === 502) {
-            toast.info(errorMsg);
+            toast.error(errorMsg, { duration: 6000 });
           } else {
             toast.error(errorMsg);
           }
@@ -126,7 +130,7 @@ export function useWritingAssistant() {
           setState((s) => ({
             ...s,
             isLoading: false,
-            error: errorMsg,
+            error: errorCode || errorMsg,
           }));
           return;
         }

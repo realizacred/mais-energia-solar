@@ -327,31 +327,59 @@ Deno.serve(async (req) => {
       suggestion = await callFn(keyRow.api_key, primaryModel, action, text.trim(), locale);
       logModel = primaryModel;
     } catch (err) {
-      console.error(
-        `[writing-assistant] ${provider} model failed: ${err instanceof Error ? err.message : "unknown"}`
-      );
-
       const errMsg = err instanceof Error ? err.message : "";
-      if (errMsg.includes("AI_HTTP_429")) {
+      console.error(`[writing-assistant] ${provider}/${primaryModel} error: ${errMsg}`);
+
+      // Extract HTTP status from error message pattern "AI_HTTP_XXX"
+      const httpMatch = errMsg.match(/AI_HTTP_(\d{3})/);
+      const aiHttpStatus = httpMatch ? parseInt(httpMatch[1]) : 0;
+
+      if (aiHttpStatus === 429) {
         logStatus = 429;
         return new Response(
-          JSON.stringify({ error: "Limite de requisições da IA excedido. Tente novamente em breve." }),
+          JSON.stringify({ error: `Limite de requisições excedido no provedor ${provider === "openai" ? "OpenAI" : "Gemini"}. Aguarde 1 minuto.`, code: "AI_RATE_LIMIT" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      if (errMsg.includes("AI_HTTP_402") || errMsg.includes("AI_HTTP_403")) {
+      if (aiHttpStatus === 401 || aiHttpStatus === 403) {
         logStatus = 402;
         return new Response(
-          JSON.stringify({ error: "Chave da API inválida ou sem créditos. Verifique em Admin → Integrações." }),
+          JSON.stringify({ error: `Chave da API ${provider === "openai" ? "OpenAI" : "Gemini"} inválida ou expirada. Atualize em Admin → Integrações.`, code: "AI_AUTH_INVALID" }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (aiHttpStatus === 402) {
+        logStatus = 402;
+        return new Response(
+          JSON.stringify({ error: `Sem créditos na conta ${provider === "openai" ? "OpenAI" : "Gemini"}. Verifique o faturamento do provedor.`, code: "AI_NO_CREDITS" }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (aiHttpStatus === 404 || aiHttpStatus === 410) {
+        logStatus = 502;
+        return new Response(
+          JSON.stringify({ error: `Modelo "${primaryModel}" não disponível. Selecione outro em Admin → Configuração de IA.`, code: "AI_MODEL_UNAVAILABLE" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (errMsg.includes("AI_EMPTY_RESPONSE")) {
+        logStatus = 502;
+        return new Response(
+          JSON.stringify({ error: `O modelo ${primaryModel} retornou resposta vazia. Tente novamente.`, code: "AI_EMPTY" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (errMsg.includes("AbortError") || errMsg.includes("abort")) {
+        logStatus = 504;
+        return new Response(
+          JSON.stringify({ error: `O modelo ${primaryModel} demorou demais para responder. Tente um modelo mais rápido.`, code: "AI_TIMEOUT" }),
+          { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
       logStatus = 502;
       return new Response(
-        JSON.stringify({
-          error: "Assistente de escrita temporariamente indisponível. Envie sua mensagem normalmente.",
-        }),
+        JSON.stringify({ error: `Erro no provedor ${provider === "openai" ? "OpenAI" : "Gemini"} (modelo: ${primaryModel}). Tente novamente ou troque o modelo em Admin → Configuração de IA.`, code: "AI_PROVIDER_ERROR" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
