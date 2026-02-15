@@ -6,7 +6,7 @@ import {
   ArrowLeft, Settings, MessageSquare, FileText, FolderOpen,
   Clock, User, ChevronRight, Zap, DollarSign, CalendarDays, Loader2,
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
-  MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check
+  MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
+import { VariableMapperPanel } from "./VariableMapperPanel";
 
 // ─── Types ──────────────────────────────────────────
 interface DealDetail {
@@ -102,6 +103,7 @@ const TABS = [
   { id: "gerenciamento", label: "Gerenciamento", icon: Settings },
   { id: "chat", label: "Chat Whatsapp", icon: MessageSquare },
   { id: "propostas", label: "Propostas", icon: FileText },
+  { id: "vinculo", label: "Vínculo de Contrato", icon: Link2 },
   { id: "documentos", label: "Documentos", icon: FolderOpen },
 ] as const;
 
@@ -426,7 +428,15 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
           {activeTab === "propostas" && (
             <PropostasTab customerId={deal.customer_id} dealTitle={deal.title} navigate={navigate} />
           )}
-          
+          {activeTab === "vinculo" && (
+            <VariableMapperPanel
+              dealId={deal.id}
+              customerId={deal.customer_id}
+              onGenerateContract={() => {
+                toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
+              }}
+            />
+          )}
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} />
           )}
