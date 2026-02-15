@@ -4542,6 +4542,150 @@ export type Database = {
         }
         Relationships: []
       }
+      pipeline_automation_logs: {
+        Row: {
+          acao_executada: string
+          automation_id: string
+          created_at: string
+          deal_id: string
+          detalhes: Json | null
+          erro_mensagem: string | null
+          id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          acao_executada: string
+          automation_id: string
+          created_at?: string
+          deal_id: string
+          detalhes?: Json | null
+          erro_mensagem?: string | null
+          id?: string
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          acao_executada?: string
+          automation_id?: string
+          created_at?: string
+          deal_id?: string
+          detalhes?: Json | null
+          erro_mensagem?: string | null
+          id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_automation_logs_automation_id_fkey"
+            columns: ["automation_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automation_logs_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automation_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_automations: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          destino_stage_id: string | null
+          execucoes_total: number
+          id: string
+          mensagem_notificacao: string | null
+          nome: string
+          notificar_responsavel: boolean
+          pipeline_id: string
+          stage_id: string
+          tempo_horas: number
+          tenant_id: string
+          tipo_acao: string
+          tipo_gatilho: string
+          ultima_execucao: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          destino_stage_id?: string | null
+          execucoes_total?: number
+          id?: string
+          mensagem_notificacao?: string | null
+          nome?: string
+          notificar_responsavel?: boolean
+          pipeline_id: string
+          stage_id: string
+          tempo_horas?: number
+          tenant_id: string
+          tipo_acao?: string
+          tipo_gatilho?: string
+          ultima_execucao?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          destino_stage_id?: string | null
+          execucoes_total?: number
+          id?: string
+          mensagem_notificacao?: string | null
+          nome?: string
+          notificar_responsavel?: boolean
+          pipeline_id?: string
+          stage_id?: string
+          tempo_horas?: number
+          tenant_id?: string
+          tipo_acao?: string
+          tipo_gatilho?: string
+          ultima_execucao?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_automations_destino_stage_id_fkey"
+            columns: ["destino_stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automations_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automations_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_automations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_stages: {
         Row: {
           created_at: string

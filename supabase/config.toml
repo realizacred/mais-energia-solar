@@ -157,3 +157,6 @@ verify_jwt = false
 
 [functions.ai-followup-intelligence]
 verify_jwt = false
+
+[functions.pipeline-automations]
+verify_jwt = false
