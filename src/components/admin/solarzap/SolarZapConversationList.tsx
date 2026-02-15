@@ -1,14 +1,12 @@
-import { MessageCircle, Instagram, Phone, Search } from "lucide-react";
+import { MessageCircle, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { WaConversation } from "@/hooks/useWaInbox";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { ChatListItem } from "./ChatListItem";
 
 interface Props {
   conversations: WaConversation[];
@@ -22,27 +20,6 @@ interface Props {
 }
 
 type FilterType = "all" | "meus" | "nao_lidos";
-
-const CHANNEL_ICON: Record<string, any> = {
-  whatsapp: MessageCircle,
-  instagram: Instagram,
-  phone: Phone,
-};
-
-const CHANNEL_COLOR: Record<string, string> = {
-  whatsapp: "bg-success/10 text-success",
-  instagram: "bg-info/10 text-info",
-  phone: "bg-muted text-muted-foreground",
-};
-
-function formatTime(dateStr: string | null) {
-  if (!dateStr) return "";
-  try {
-    return formatDistanceToNow(new Date(dateStr), { addSuffix: false, locale: ptBR });
-  } catch {
-    return "";
-  }
-}
 
 export function SolarZapConversationList({
   conversations, selectedId, onSelect, loading,
@@ -112,70 +89,15 @@ export function SolarZapConversationList({
             <p className="text-xs text-muted-foreground">Nenhuma conversa encontrada</p>
           </div>
         ) : (
-          <div className="divide-y divide-border/30">
-            {conversations.map((conv) => {
-              const channel = conv.canal || "whatsapp";
-              const ChannelIcon = CHANNEL_ICON[channel] || MessageCircle;
-              const isSelected = selectedId === conv.id;
-              const displayName = conv.cliente_nome || conv.lead_nome || conv.cliente_telefone || "Desconhecido";
-
-              return (
-                <button
-                  key={conv.id}
-                  onClick={() => onSelect(conv)}
-                  className={cn(
-                    "w-full flex items-start gap-2.5 p-3 text-left transition-colors duration-150",
-                    isSelected
-                      ? "bg-primary/5 border-l-2 border-primary"
-                      : "hover:bg-muted/50 border-l-2 border-transparent"
-                  )}
-                >
-                  {/* Avatar */}
-                  <div className="relative shrink-0">
-                    <Avatar className="h-10 w-10">
-                      {conv.profile_picture_url && (
-                        <AvatarImage src={conv.profile_picture_url} alt={displayName} />
-                      )}
-                      <AvatarFallback className="text-xs font-medium bg-muted">
-                        {displayName.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    {conv.status === "open" && conv.assigned_to && (
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-success border-2 border-card" />
-                    )}
-                  </div>
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <span className="text-sm font-medium text-foreground truncate">{displayName}</span>
-                      <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-                        {formatTime(conv.last_message_at)}
-                      </span>
-                    </div>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {conv.last_message_preview || "Sem mensagens"}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <Badge variant="outline" className={cn("h-4 px-1 text-[9px] gap-0.5", CHANNEL_COLOR[channel] || "")}>
-                        <ChannelIcon className="h-2.5 w-2.5" />
-                        {channel === "whatsapp" ? "WA" : channel === "instagram" ? "IG" : "Tel"}
-                      </Badge>
-                      {conv.vendedor_nome && (
-                        <span className="text-[9px] text-muted-foreground truncate max-w-[80px]">
-                          {conv.vendedor_nome}
-                        </span>
-                      )}
-                      {conv.unread_count > 0 && (
-                        <Badge className="h-4 min-w-4 px-1 text-[9px] bg-primary text-primary-foreground ml-auto">
-                          {conv.unread_count}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          <div>
+            {conversations.map((conv) => (
+              <ChatListItem
+                key={conv.id}
+                conversation={conv}
+                isSelected={selectedId === conv.id}
+                onSelect={onSelect}
+              />
+            ))}
           </div>
         )}
       </ScrollArea>
