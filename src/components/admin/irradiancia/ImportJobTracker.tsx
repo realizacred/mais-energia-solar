@@ -18,7 +18,9 @@ import {
   getImportJobStatus,
   getImportJobLogs,
   getBackoffDelay,
+  cancelImportJob,
 } from "@/services/solar-datasets-api";
+import { toast } from "sonner";
 
 // ─── Status config ───────────────────────────────────────────
 
@@ -90,12 +92,26 @@ function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJ
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState("");
+  const [cancelling, setCancelling] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptRef = useRef(0);
 
   const isTerminal = job.status === "success" || job.status === "failed";
   const config = STATUS_CONFIG[job.status] ?? STATUS_CONFIG.queued;
   const Icon = config.icon;
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    try {
+      await cancelImportJob(job.job_id);
+      onJobUpdate({ ...job, status: "failed", error_message: "Cancelado manualmente", finished_at: new Date().toISOString() });
+      toast.success("Job cancelado com sucesso");
+    } catch (e: any) {
+      toast.error("Erro ao cancelar", { description: e.message });
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   // Exponential backoff polling: 3s → 5s → 8s (clamped)
   useEffect(() => {
@@ -209,6 +225,18 @@ function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJ
           )}
           <span title="Início">{formatTimestamp(job.started_at || job.created_at)}</span>
           {job.finished_at && <span title="Fim">→ {formatTimestamp(job.finished_at)}</span>}
+          {!isTerminal && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 px-2 text-[10px] text-destructive hover:text-destructive hover:bg-destructive/10"
+              disabled={cancelling}
+              onClick={handleCancel}
+            >
+              {cancelling ? <Loader2 className="h-3 w-3 animate-spin" /> : <XCircle className="h-3 w-3" />}
+              <span className="ml-1">Cancelar</span>
+            </Button>
+          )}
         </div>
       </div>
 
