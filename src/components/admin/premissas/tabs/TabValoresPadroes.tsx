@@ -14,6 +14,7 @@ function NumField({ label, suffix, value, step, subtext, onChange }: {
   label: string; suffix: string; value: number; step?: string; subtext?: string;
   onChange: (v: number) => void;
 }) {
+  const isPercent = suffix === "%";
   return (
     <div className="space-y-1.5">
       <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
@@ -21,7 +22,7 @@ function NumField({ label, suffix, value, step, subtext, onChange }: {
         <Input
           type="number"
           step={step || "0.01"}
-          value={value}
+          value={isPercent ? value.toFixed(2) : value}
           onChange={(e) => onChange(Number(e.target.value))}
           className="pr-16"
         />
