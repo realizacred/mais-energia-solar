@@ -42,6 +42,9 @@ export function PricingPolicyPage() {
         onCreateVersion={policy.createVersion}
         onPublishVersion={policy.publishVersion}
         onArchiveVersion={policy.archiveVersion}
+        onDeleteVersion={policy.deleteVersion}
+        onDeletePolicy={policy.deletePolicy}
+        onSeedTemplate={policy.seedSolarTemplate}
         loading={policy.loading}
         activeVersionStatus={policy.activeVersionStatus}
       />

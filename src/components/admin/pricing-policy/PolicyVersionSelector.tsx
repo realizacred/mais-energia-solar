@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
-import { Plus, Send, Archive, Loader2, FilePlus2 } from "lucide-react";
+import { Plus, Send, Archive, Loader2, FilePlus2, Trash2, Sparkles } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface Policy {
   id: string;
@@ -42,6 +53,9 @@ interface Props {
   onCreateVersion: () => Promise<void>;
   onPublishVersion: (id: string) => Promise<void>;
   onArchiveVersion: (id: string) => Promise<void>;
+  onDeleteVersion: (id: string) => Promise<void>;
+  onDeletePolicy: (id: string) => Promise<void>;
+  onSeedTemplate: () => Promise<void>;
   loading: boolean;
   activeVersionStatus: "draft" | "active" | "archived" | null;
 }
@@ -63,12 +77,16 @@ export function PolicyVersionSelector({
   onCreateVersion,
   onPublishVersion,
   onArchiveVersion,
+  onDeleteVersion,
+  onDeletePolicy,
+  onSeedTemplate,
   loading,
   activeVersionStatus,
 }: Props) {
   const [newPolicyName, setNewPolicyName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [seeding, setSeeding] = useState(false);
 
   async function handleCreatePolicy() {
     if (!newPolicyName.trim()) return;
@@ -79,7 +97,15 @@ export function PolicyVersionSelector({
     setCreating(false);
   }
 
+  async function handleSeed() {
+    setSeeding(true);
+    await onSeedTemplate();
+    setSeeding(false);
+  }
+
   const selectedVersion = versions.find((v) => v.id === selectedVersionId);
+  const canDeletePolicy = selectedPolicyId && !versions.some((v) => v.status === "active");
+  const canDeleteVersion = selectedVersion?.status === "draft";
 
   return (
     <Card className="border-border/60">
@@ -132,6 +158,30 @@ export function PolicyVersionSelector({
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
+
+              {canDeletePolicy && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" size="icon" className="shrink-0 text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir política?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Todas as versões, componentes e métodos vinculados serão removidos permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => onDeletePolicy(selectedPolicyId!)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
             </div>
           </div>
 
@@ -181,14 +231,38 @@ export function PolicyVersionSelector({
           {selectedVersion && (
             <div className="flex gap-2 pt-1">
               {selectedVersion.status === "draft" && (
-                <Button
-                  size="sm"
-                  className="gap-1.5"
-                  onClick={() => onPublishVersion(selectedVersion.id)}
-                >
-                  <Send className="h-3.5 w-3.5" />
-                  Publicar
-                </Button>
+                <>
+                  <Button
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => onPublishVersion(selectedVersion.id)}
+                  >
+                    <Send className="h-3.5 w-3.5" />
+                    Publicar
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="gap-1.5 text-destructive hover:text-destructive">
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Excluir
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Excluir versão rascunho?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Todos os componentes e configurações desta versão serão removidos.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => onDeleteVersion(selectedVersion.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                          Excluir
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
               )}
               {selectedVersion.status === "active" && (
                 <Button
@@ -218,6 +292,21 @@ export function PolicyVersionSelector({
                 ? "Imutável — em uso por propostas ativas"
                 : "Arquivada — apenas leitura"}
             </span>
+          </div>
+        )}
+
+        {/* Empty state: offer template */}
+        {policies.length === 0 && !loading && (
+          <div className="mt-4 text-center py-6 border border-dashed border-border rounded-lg">
+            <Sparkles className="h-6 w-6 text-primary mx-auto mb-2" />
+            <p className="text-sm font-medium mb-1">Nenhuma política configurada</p>
+            <p className="text-xs text-muted-foreground mb-4">
+              Comece com um template solar pré-configurado com custos típicos do mercado.
+            </p>
+            <Button onClick={handleSeed} disabled={seeding} className="gap-2">
+              {seeding ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              Criar Template Solar Padrão
+            </Button>
           </div>
         )}
       </CardContent>
