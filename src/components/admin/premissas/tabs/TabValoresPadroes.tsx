@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -367,18 +368,12 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
               ))}
             </div>
           </div>
-          <div className="space-y-1.5">
+          <div className="flex items-center justify-between rounded-lg border border-border/50 p-3">
             <Label className="text-xs font-medium text-muted-foreground">Considerar kits que necessitam de transformador</Label>
-            <Select
-              value={premises.considerar_kits_transformador ? "habilitado" : "desabilitado"}
-              onValueChange={(v) => set("considerar_kits_transformador", v === "habilitado")}
-            >
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="habilitado">Habilitado</SelectItem>
-                <SelectItem value="desabilitado">Desabilitado</SelectItem>
-              </SelectContent>
-            </Select>
+            <Switch
+              checked={premises.considerar_kits_transformador}
+              onCheckedChange={(v) => set("considerar_kits_transformador", v)}
+            />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Tipo de Preço</Label>
@@ -409,14 +404,16 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
 
         {/* Fornecedores */}
         <div className="rounded-xl border border-border/50 p-4 space-y-3">
-          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fornecedores</Label>
-          <Select value={premises.fornecedor_filtro} onValueChange={(v) => set("fornecedor_filtro", v)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="qualquer">Qualquer fornecedor</SelectItem>
-              <SelectItem value="escolher">Escolher fornecedores</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fornecedores</Label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{premises.fornecedor_filtro === "qualquer" ? "Qualquer fornecedor" : "Fornecedores específicos"}</span>
+              <Switch
+                checked={premises.fornecedor_filtro === "escolher"}
+                onCheckedChange={(v) => set("fornecedor_filtro", v ? "escolher" : "qualquer")}
+              />
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>
