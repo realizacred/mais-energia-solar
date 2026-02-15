@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import type { WaConversation } from "@/hooks/useWaInbox";
 import { ChatListItem } from "./ChatListItem";
+import { useWaConversationPreferences } from "@/hooks/useWaConversationPreferences";
 
 interface Props {
   conversations: WaConversation[];
@@ -25,6 +26,8 @@ export function SolarZapConversationList({
   conversations, selectedId, onSelect, loading,
   search, onSearchChange, filter, onFilterChange,
 }: Props) {
+  const { isMuted } = useWaConversationPreferences();
+
   const filters: { key: FilterType; label: string }[] = [
     { key: "all", label: "Todos" },
     { key: "meus", label: "Meus" },
@@ -72,13 +75,20 @@ export function SolarZapConversationList({
       {/* Conversation List */}
       <ScrollArea className="flex-1">
         {loading ? (
-          <div className="p-3 space-y-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="flex gap-2.5">
-                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+          <div className="p-3 space-y-1">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-start gap-2.5 px-3 py-2.5">
+                <Skeleton className="h-9 w-9 rounded-full shrink-0" />
                 <div className="flex-1 space-y-1.5">
-                  <Skeleton className="h-3.5 w-3/4" />
+                  <div className="flex justify-between">
+                    <Skeleton className="h-3.5 w-24" />
+                    <Skeleton className="h-3 w-10" />
+                  </div>
                   <Skeleton className="h-3 w-full" />
+                  <div className="flex gap-1">
+                    <Skeleton className="h-[18px] w-16 rounded-full" />
+                    <Skeleton className="h-[18px] w-14 rounded-full" />
+                  </div>
                 </div>
               </div>
             ))}
@@ -89,13 +99,14 @@ export function SolarZapConversationList({
             <p className="text-xs text-muted-foreground">Nenhuma conversa encontrada</p>
           </div>
         ) : (
-          <div>
+          <div role="listbox">
             {conversations.map((conv) => (
               <ChatListItem
                 key={conv.id}
                 conversation={conv}
                 isSelected={selectedId === conv.id}
                 onSelect={onSelect}
+                isMuted={isMuted(conv.id)}
               />
             ))}
           </div>
