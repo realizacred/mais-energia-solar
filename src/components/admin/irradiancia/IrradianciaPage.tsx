@@ -17,7 +17,7 @@ import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/ir
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImportJobTracker } from "./ImportJobTracker";
-import { triggerDatasetImport, type ImportJob } from "@/services/solar-datasets-api";
+import { triggerDatasetImport, EdgeFunctionNotDeployedError, type ImportJob } from "@/services/solar-datasets-api";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-success/10 text-success border-success/30",
@@ -42,6 +42,7 @@ export function IrradianciaPage() {
   // ── Async import jobs ──
   const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
   const [fetchingDs, setFetchingDs] = useState<string | null>(null);
+  const [notDeployedError, setNotDeployedError] = useState(false);
 
   // CSV upload state
   const [uploadDs, setUploadDs] = useState("");
@@ -59,6 +60,7 @@ export function IrradianciaPage() {
   // Trigger async import job via backend
   const handleFetchDataset = async (datasetCode: string) => {
     setFetchingDs(datasetCode);
+    setNotDeployedError(false);
     try {
       const job = await triggerDatasetImport(datasetCode);
       setImportJobs((prev) => [job, ...prev]);
@@ -66,7 +68,11 @@ export function IrradianciaPage() {
         description: `Job ${job.job_id.substring(0, 8)}… criado para ${datasetCode}`,
       });
     } catch (e: any) {
-      toast.error("Erro ao iniciar importação", { description: e.message });
+      if (e instanceof EdgeFunctionNotDeployedError) {
+        setNotDeployedError(true);
+      } else {
+        toast.error("Erro ao iniciar importação", { description: e.message });
+      }
     } finally {
       setFetchingDs(null);
     }
@@ -165,6 +171,36 @@ export function IrradianciaPage() {
 
         {/* ── Datasets Tab ── */}
         <TabsContent value="datasets" className="space-y-4 mt-4">
+          {notDeployedError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-destructive">
+                    Backend import service (solar-dataset-import) não está implantado.
+                  </p>
+                  <p className="text-xs text-destructive/80 mt-1">
+                    A Edge Function <code className="text-[10px] bg-destructive/10 px-1 py-0.5 rounded">solar-dataset-import</code> precisa
+                    ser criada e implantada no Supabase antes de usar a importação via API.
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Verifique em{" "}
+                    <span className="font-mono text-[10px]">supabase/functions/solar-dataset-import/</span>{" "}
+                    ou contate o administrador do sistema.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="text-xs"
+                onClick={() => setNotDeployedError(false)}
+              >
+                Dispensar
+              </Button>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
             Clique em <strong>"Importar da API"</strong> para buscar dados automaticamente da NASA POWER API.
             A atualização automática ocorre a cada 6 meses.
