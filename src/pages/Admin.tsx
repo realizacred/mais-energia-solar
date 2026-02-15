@@ -19,6 +19,7 @@ const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m
 const LeadsPipeline = lazy(() => import("@/components/admin/LeadsPipeline"));
 const FollowUpManager = lazy(() => import("@/components/admin/FollowUpManager"));
 const AnalyticsDashboard = lazy(() => import("@/components/admin/AnalyticsDashboard"));
+const PerformanceDashboard = lazy(() => import("@/components/admin/PerformanceDashboard"));
 const VendedoresManager = lazy(() => import("@/components/admin/VendedoresManager"));
 const CalculadoraConfig = lazy(() => import("@/components/admin/CalculadoraConfig"));
 const FinanciamentoConfig = lazy(() => import("@/components/admin/FinanciamentoConfig"));
@@ -340,6 +341,7 @@ export default function Admin() {
                 
                 {/* Visão Geral */}
                 <Route path="dashboard" element={<AnalyticsDashboard />} />
+                <Route path="performance" element={<PerformanceDashboard />} />
                 <Route path="release" element={<ReleaseChecklist />} />
                 
                 {/* Comercial */}
