@@ -135,22 +135,29 @@ Deno.serve(async (req) => {
       const results = await Promise.allSettled(
         chunk.map(async (pt) => {
           try {
-            const url = `${NASA_POWER_BASE}?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${pt.lon}&latitude=${pt.lat}&format=JSON`;
+            // Fetch GHI + DHI from NASA POWER in a single call
+            const url = `${NASA_POWER_BASE}?parameters=ALLSKY_SFC_SW_DWN,ALLSKY_SFC_SW_DIFF&community=RE&longitude=${pt.lon}&latitude=${pt.lat}&format=JSON`;
             const resp = await fetch(url);
             if (!resp.ok) {
               console.warn(`[IRRADIANCE_FETCH] NASA API error for (${pt.lat},${pt.lon}): ${resp.status}`);
               return null;
             }
             const data = await resp.json();
-            const monthly = data?.properties?.parameter?.ALLSKY_SFC_SW_DWN;
-            if (!monthly) return null;
+            const ghiMonthly = data?.properties?.parameter?.ALLSKY_SFC_SW_DWN;
+            const dhiMonthly = data?.properties?.parameter?.ALLSKY_SFC_SW_DIFF;
+            if (!ghiMonthly) return null;
 
             // NASA POWER returns kWh/m²/day already
             const months: Record<string, number> = {};
+            const dhiMonths: Record<string, number> = {};
             const monthKeys = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
             for (let m = 0; m < 12; m++) {
-              const val = monthly[monthKeys[m]];
-              months[`m${String(m + 1).padStart(2, "0")}`] = typeof val === "number" && val > 0 ? Math.round(val * 10000) / 10000 : 0;
+              const mKey = `m${String(m + 1).padStart(2, "0")}`;
+              const ghiVal = ghiMonthly[monthKeys[m]];
+              months[mKey] = typeof ghiVal === "number" && ghiVal > 0 ? Math.round(ghiVal * 10000) / 10000 : 0;
+              
+              const dhiVal = dhiMonthly?.[monthKeys[m]];
+              dhiMonths[`dhi_${mKey}`] = typeof dhiVal === "number" && dhiVal > 0 ? Math.round(dhiVal * 10000) / 10000 : 0;
             }
 
             return {
@@ -158,6 +165,7 @@ Deno.serve(async (req) => {
               lat: pt.lat,
               lon: pt.lon,
               ...months,
+              ...dhiMonths,
               unit: "kwh_m2_day",
             };
           } catch (e) {
