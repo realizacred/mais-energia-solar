@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, Users, Layers } from "lucide-react";
+import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, Users } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { useDealPipeline } from "@/hooks/useDealPipeline";
@@ -10,16 +10,9 @@ import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanOwner } from "./ProjetoKanbanOwner";
 import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
 import { ProjetoListView } from "./ProjetoListView";
-import { ProjetoEtapaManager } from "./ProjetoEtapaManager";
+import { ProjetoEtapaManagerDialog } from "./ProjetoEtapaManagerDialog";
 import { NovoProjetoModal } from "./NovoProjetoModal";
-import { ProjetoAutomacaoConfig } from "./ProjetoAutomacaoConfig";
 import { ProjetoDetalhe } from "./ProjetoDetalhe";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 
 export function ProjetosManager() {
   const {
@@ -189,52 +182,17 @@ export function ProjetosManager() {
         </div>
 
         {/* ── Etapa Manager Dialog ── */}
-        {editingEtapasFunilId && (() => {
-          const pipeline = pipelines.find(p => p.id === editingEtapasFunilId);
-          const pipelineStages = stages.filter(s => s.pipeline_id === editingEtapasFunilId).sort((a, b) => a.position - b.position);
-          if (!pipeline) return null;
-          return (
-            <Dialog open={true} onOpenChange={(open) => { if (!open) setEditingEtapasFunilId(null); }}>
-              <DialogContent className="sm:max-w-5xl max-h-[90vh] flex flex-col">
-                <DialogHeader className="pb-2 border-b border-border/40">
-                  <DialogTitle className="flex items-center gap-2 text-base">
-                    <Layers className="h-4.5 w-4.5 text-primary" />
-                    Etapas do funil "{pipeline.name}"
-                  </DialogTitle>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Gerencie as etapas do funil. Arraste para reordenar.
-                  </p>
-                </DialogHeader>
-                <div className="flex-1 overflow-y-auto py-4 space-y-6">
-                  <ProjetoEtapaManager
-                    funilId={pipeline.id}
-                    funilNome={pipeline.name}
-                    etapas={pipelineStages.map(s => ({
-                      id: s.id,
-                      funil_id: s.pipeline_id,
-                      nome: s.name,
-                      cor: s.is_won ? "#10B981" : s.is_closed ? "#EF4444" : "#3B82F6",
-                      ordem: s.position,
-                      categoria: (s.is_won ? "ganho" : s.is_closed ? "perdido" : "aberto") as any,
-                      tenant_id: s.tenant_id,
-                    }))}
-                    onCreate={createStage}
-                    onRename={renameStage}
-                    onUpdateCor={() => {}}
-                    onUpdateCategoria={() => {}}
-                    onReorder={reorderStages}
-                    onDelete={deleteStage}
-                  />
-                  <Separator />
-                  <ProjetoAutomacaoConfig
-                    pipelineId={pipeline.id}
-                    stages={pipelineStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
-                  />
-                </div>
-              </DialogContent>
-            </Dialog>
-          );
-        })()}
+        {editingEtapasFunilId && (
+          <ProjetoEtapaManagerDialog
+            pipeline={pipelines.find(p => p.id === editingEtapasFunilId) || null}
+            stages={stages}
+            onClose={() => setEditingEtapasFunilId(null)}
+            onCreateStage={createStage}
+            onRenameStage={renameStage}
+            onReorderStages={reorderStages}
+            onDeleteStage={deleteStage}
+          />
+        )}
 
         {/* ── Summary bar ── */}
         <div className="px-4 pb-3 flex items-center justify-between">
