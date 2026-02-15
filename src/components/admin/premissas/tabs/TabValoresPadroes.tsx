@@ -1,8 +1,12 @@
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { HelpCircle, Zap, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 
 interface Props {
@@ -10,14 +14,47 @@ interface Props {
   onChange: (fn: (prev: TenantPremises) => TenantPremises) => void;
 }
 
-function NumField({ label, suffix, value, step, subtext, onChange }: {
-  label: string; suffix: string; value: number; step?: string; subtext?: string;
+interface Concessionaria {
+  id: string;
+  nome: string;
+  sigla: string | null;
+  estado: string | null;
+  tarifa_energia: number | null;
+  tarifa_fio_b: number | null;
+  aliquota_icms: number | null;
+  custo_disponibilidade_monofasico: number | null;
+  custo_disponibilidade_bifasico: number | null;
+  custo_disponibilidade_trifasico: number | null;
+  possui_isencao_scee: boolean | null;
+  percentual_isencao: number | null;
+}
+
+function FieldTooltip({ text }: { text: string }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-primary cursor-help inline-block ml-1" />
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-[280px] text-xs">
+          <p>{text}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function NumField({ label, suffix, value, step, subtext, tooltip, onChange }: {
+  label: string; suffix: string; value: number; step?: string; subtext?: string; tooltip?: string;
   onChange: (v: number) => void;
 }) {
   const isPercent = suffix === "%";
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
+      <Label className="text-xs font-medium text-muted-foreground">
+        {label}
+        {tooltip && <FieldTooltip text={tooltip} />}
+      </Label>
       <div className="relative">
         <Input
           type="number"
@@ -68,6 +105,9 @@ const TIPO_KIT_OPTIONS = [
 ];
 
 export function TabValoresPadroes({ premises, onChange }: Props) {
+  const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
+  const [loadingConc, setLoadingConc] = useState(true);
+
   const set = (key: keyof TenantPremises, value: any) =>
     onChange((p) => ({ ...p, [key]: value }));
 
@@ -78,13 +118,80 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
     });
   };
 
+  useEffect(() => {
+    supabase
+      .from("concessionarias")
+      .select("id, nome, sigla, estado, tarifa_energia, tarifa_fio_b, aliquota_icms, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, possui_isencao_scee, percentual_isencao")
+      .eq("ativo", true)
+      .order("nome")
+      .then(({ data }) => {
+        if (data) setConcessionarias(data as Concessionaria[]);
+        setLoadingConc(false);
+      });
+  }, []);
+
+  const handleConcessionariaChange = useCallback((concId: string) => {
+    const conc = concessionarias.find((c) => c.id === concId);
+    if (!conc) return;
+
+    onChange((p) => ({
+      ...p,
+      concessionaria_id: concId,
+      tarifa: conc.tarifa_energia ?? p.tarifa,
+      tusd_fio_b_bt: conc.tarifa_fio_b ?? p.tusd_fio_b_bt,
+      imposto_energia: conc.aliquota_icms ?? p.imposto_energia,
+    }));
+  }, [concessionarias, onChange]);
+
+  const isBT = premises.grupo_tarifario === "BT";
+  const isOnGrid = premises.tipo_sistema === "on_grid";
+  const selectedConc = concessionarias.find((c) => c.id === (premises as any).concessionaria_id);
+
   return (
     <Card>
       <CardContent className="pt-6 space-y-6">
+
+        {/* Concessionária Selector */}
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5" />
+            Concessionária Padrão
+            <FieldTooltip text="Selecione a concessionária para preencher automaticamente os campos de tarifa, Fio B e ICMS. Os valores podem ser ajustados manualmente depois." />
+          </Label>
+          <Select
+            value={(premises as any).concessionaria_id || ""}
+            onValueChange={handleConcessionariaChange}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={loadingConc ? "Carregando..." : "Selecione a concessionária"} />
+            </SelectTrigger>
+            <SelectContent>
+              {concessionarias.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome} {c.sigla ? `(${c.sigla})` : ""} — {c.estado || ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedConc && (
+            <div className="flex flex-wrap gap-2 text-[10px]">
+              <Badge variant="outline" className="text-[10px]">Tarifa: R$ {selectedConc.tarifa_energia?.toFixed(3) ?? "—"}/kWh</Badge>
+              <Badge variant="outline" className="text-[10px]">Fio B: R$ {selectedConc.tarifa_fio_b?.toFixed(3) ?? "—"}/kWh</Badge>
+              <Badge variant="outline" className="text-[10px]">ICMS: {selectedConc.aliquota_icms ?? "—"}%</Badge>
+              {selectedConc.possui_isencao_scee && (
+                <Badge variant="secondary" className="text-[10px]">Isenção SCEE: {selectedConc.percentual_isencao}%</Badge>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Linha 1 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Grupo Tarifário</Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              Grupo Tarifário
+              <FieldTooltip text="BT = Baixa Tensão (residencial/comercial pequeno). MT = Média Tensão (industrial/comercial grande). Define quais campos de tarifa são exibidos." />
+            </Label>
             <Select value={premises.grupo_tarifario} onValueChange={(v) => set("grupo_tarifario", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -93,40 +200,63 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <NumField label="Tarifa" suffix="R$/kWh" value={premises.tarifa} step="0.00001" onChange={(v) => set("tarifa", v)} />
-          <NumField label="Tarifa TE - Ponta" suffix="R$/kWh" value={premises.tarifa_te_ponta} step="0.00001" onChange={(v) => set("tarifa_te_ponta", v)} />
+          <NumField label="Tarifa" suffix="R$/kWh" value={premises.tarifa} step="0.00001" tooltip="Tarifa de energia da concessionária (R$/kWh). Auto-preenchido pela concessionária selecionada." onChange={(v) => set("tarifa", v)} />
+          {!isBT && (
+            <NumField label="Tarifa TE - Ponta" suffix="R$/kWh" value={premises.tarifa_te_ponta} step="0.00001" tooltip="Tarifa de Energia no horário de ponta. Aplicável apenas para Média Tensão." onChange={(v) => set("tarifa_te_ponta", v)} />
+          )}
         </div>
 
-        {/* Linha 2 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="Tarifa TUSD - Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_ponta} step="0.00001" onChange={(v) => set("tarifa_tusd_ponta", v)} />
-          <NumField label="Tarifa TE - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_te_fora_ponta} step="0.00001" onChange={(v) => set("tarifa_te_fora_ponta", v)} />
-          <NumField label="Tarifa TUSD - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_fora_ponta} step="0.00001" onChange={(v) => set("tarifa_tusd_fora_ponta", v)} />
-        </div>
+        {/* Campos MT - Ponta/Fora Ponta */}
+        {!isBT && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <NumField label="Tarifa TUSD - Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_ponta} step="0.00001" onChange={(v) => set("tarifa_tusd_ponta", v)} />
+            <NumField label="Tarifa TE - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_te_fora_ponta} step="0.00001" onChange={(v) => set("tarifa_te_fora_ponta", v)} />
+            <NumField label="Tarifa TUSD - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_fora_ponta} step="0.00001" onChange={(v) => set("tarifa_tusd_fora_ponta", v)} />
+          </div>
+        )}
 
         {/* Linha 3 - Fio B GD II */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="TUSD Fio B - Baixa Tensão (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_bt", v)} />
-          <NumField label="TUSD Fio B - Fora Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_fora_ponta} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_fora_ponta", v)} />
-          <NumField label="TUSD Fio B - Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_ponta} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_ponta", v)} />
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">GD II — TUSD Fio B (100%)</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <NumField label="TUSD Fio B - Baixa Tensão" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" tooltip="Componente da tarifa referente ao uso do fio da distribuidora. Auto-preenchido pela concessionária." onChange={(v) => set("tusd_fio_b_bt", v)} />
+            {!isBT && (
+              <>
+                <NumField label="TUSD Fio B - Fora Ponta" suffix="R$/kWh" value={premises.tusd_fio_b_fora_ponta} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_fora_ponta", v)} />
+                <NumField label="TUSD Fio B - Ponta" suffix="R$/kWh" value={premises.tusd_fio_b_ponta} step="0.00001" subtext="100% TUSD Fio B" onChange={(v) => set("tusd_fio_b_ponta", v)} />
+              </>
+            )}
+          </div>
         </div>
 
         {/* Linha 4 - GD III */}
         <div className="space-y-2">
-          <p className="text-[10px] text-muted-foreground">100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D.</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">GD III — Tarifação Compensada</p>
+          <p className="text-[10px] text-muted-foreground">100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D (Lei 14.300).</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <NumField label="Tarifação Energia Compensada - Baixa Tensão (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" onChange={(v) => set("tarifacao_compensada_bt", v)} />
-            <NumField label="Tarifação Energia Compensada - Fora Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
-            <NumField label="Tarifação Energia Compensada - Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" onChange={(v) => set("tarifacao_compensada_ponta", v)} />
+            <NumField label="Tarifação Compensada - Baixa Tensão" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" onChange={(v) => set("tarifacao_compensada_bt", v)} />
+            {!isBT && (
+              <>
+                <NumField label="Tarifação Compensada - Fora Ponta" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
+                <NumField label="Tarifação Compensada - Ponta" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" onChange={(v) => set("tarifacao_compensada_ponta", v)} />
+              </>
+            )}
           </div>
         </div>
 
         {/* Linha 5 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="Preço da Demanda Geração" suffix="R$" value={premises.preco_demanda_geracao} step="0.01" onChange={(v) => set("preco_demanda_geracao", v)} />
-          <NumField label="Preço da Demanda" suffix="R$" value={premises.preco_demanda} step="0.01" onChange={(v) => set("preco_demanda", v)} />
+          {!isBT && (
+            <>
+              <NumField label="Preço da Demanda Geração" suffix="R$" value={premises.preco_demanda_geracao} step="0.01" tooltip="Valor da demanda contratada para geração. Aplicável apenas em Média Tensão." onChange={(v) => set("preco_demanda_geracao", v)} />
+              <NumField label="Preço da Demanda" suffix="R$" value={premises.preco_demanda} step="0.01" tooltip="Valor da demanda contratada. Aplicável apenas em Média Tensão." onChange={(v) => set("preco_demanda", v)} />
+            </>
+          )}
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Fase e Tensão da Rede</Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              Fase e Tensão da Rede
+              <FieldTooltip text="Define a tensão da rede elétrica do local. Afeta o custo de disponibilidade (mono/bi/trifásico)." />
+            </Label>
             <Select value={premises.fase_tensao_rede} onValueChange={(v) => set("fase_tensao_rede", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -140,14 +270,14 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
 
         {/* Linha 6 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="Fator de Simultaneidade" suffix="%" value={premises.fator_simultaneidade} onChange={(v) => set("fator_simultaneidade", v)} />
-          <NumField label="Imposto sobre energia" suffix="%" value={premises.imposto_energia} onChange={(v) => set("imposto_energia", v)} />
-          <NumField label="Outros Encargos (Atual)" suffix="R$" value={premises.outros_encargos_atual} step="0.01" onChange={(v) => set("outros_encargos_atual", v)} />
+          <NumField label="Fator de Simultaneidade" suffix="%" value={premises.fator_simultaneidade} tooltip="Percentual do consumo que é simultâneo à geração solar. Maior fator = mais autoconsumo e maior economia. Típico: 20-40% residencial, 50-80% comercial." onChange={(v) => set("fator_simultaneidade", v)} />
+          <NumField label="Imposto sobre energia" suffix="%" value={premises.imposto_energia} tooltip="Alíquota de ICMS sobre a tarifa de energia. Auto-preenchido pela concessionária selecionada." onChange={(v) => set("imposto_energia", v)} />
+          <NumField label="Outros Encargos (Atual)" suffix="R$" value={premises.outros_encargos_atual} step="0.01" tooltip="Encargos adicionais cobrados atualmente na fatura (bandeira tarifária, CIP, etc.)." onChange={(v) => set("outros_encargos_atual", v)} />
         </div>
 
         {/* Linha 7 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="Outros Encargos (Novo)" suffix="R$" value={premises.outros_encargos_novo} step="0.01" onChange={(v) => set("outros_encargos_novo", v)} />
+          <NumField label="Outros Encargos (Novo)" suffix="R$" value={premises.outros_encargos_novo} step="0.01" tooltip="Encargos estimados na fatura após a instalação do sistema solar." onChange={(v) => set("outros_encargos_novo", v)} />
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Tipo de Telhado</Label>
             <Select value={premises.tipo_telhado_padrao} onValueChange={(v) => set("tipo_telhado_padrao", v)}>
@@ -160,7 +290,10 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-medium text-muted-foreground">Desvio Azimutal dos Módulos</Label>
+            <Label className="text-xs font-medium text-muted-foreground">
+              Desvio Azimutal dos Módulos
+              <FieldTooltip text="Desvio em graus da orientação Norte. 0° = Norte puro (ideal no hemisfério sul). Valores positivos = desvio para leste." />
+            </Label>
             <div className="relative">
               <Input
                 type="number"
@@ -217,9 +350,9 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
 
         {/* Linha 9 - Desempenho */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="Taxa de Desempenho do Sistema (Tradicional)" suffix="%" value={premises.taxa_desempenho_tradicional} onChange={(v) => set("taxa_desempenho_tradicional", v)} />
-          <NumField label="Taxa de Desempenho do Sistema (Microinversor)" suffix="%" value={premises.taxa_desempenho_microinversor} onChange={(v) => set("taxa_desempenho_microinversor", v)} />
-          <NumField label="Taxa de Desempenho do Sistema (Otimizador)" suffix="%" value={premises.taxa_desempenho_otimizador} onChange={(v) => set("taxa_desempenho_otimizador", v)} />
+          <NumField label="Taxa de Desempenho (Tradicional)" suffix="%" value={premises.taxa_desempenho_tradicional} tooltip="Performance Ratio (PR) do sistema com inversor string. Considera perdas por sujeira, sombreamento, fiação, temperatura. Típico: 65-75%." onChange={(v) => set("taxa_desempenho_tradicional", v)} />
+          <NumField label="Taxa de Desempenho (Microinversor)" suffix="%" value={premises.taxa_desempenho_microinversor} tooltip="Performance Ratio para microinversores. Maior por eliminar mismatch entre módulos. Típico: 70-78%." onChange={(v) => set("taxa_desempenho_microinversor", v)} />
+          <NumField label="Taxa de Desempenho (Otimizador)" suffix="%" value={premises.taxa_desempenho_otimizador} tooltip="Performance Ratio para otimizadores DC. Melhora MPPT individual por módulo. Típico: 72-80%." onChange={(v) => set("taxa_desempenho_otimizador", v)} />
         </div>
 
         {/* Linha 10 */}
@@ -264,12 +397,20 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
           </div>
         </div>
 
-        {/* Linha 11 */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="DoD" suffix="%" value={premises.dod} onChange={(v) => set("dod", v)} />
-          <div />
-          <div />
-        </div>
+        {/* DoD - Condicional: só exibe para híbrido/off-grid */}
+        {!isOnGrid && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <NumField
+              label="DoD (Profundidade de Descarga)"
+              suffix="%"
+              value={premises.dod}
+              tooltip="Depth of Discharge — percentual máximo que a bateria pode ser descarregada por ciclo. Valores maiores = mais energia utilizável, mas reduz a vida útil. Recomendado: 80% para lítio, 50% para chumbo-ácido."
+              onChange={(v) => set("dod", v)}
+            />
+            <div />
+            <div />
+          </div>
+        )}
 
         {/* Fornecedores */}
         <div className="rounded-xl border border-border/50 p-4 space-y-3">
