@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User } from "lucide-react";
+import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User, ChevronDown } from "lucide-react";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -66,12 +68,12 @@ const ETIQUETA_LABELS: Record<string, string> = {
 
 const PROPOSTA_STATUS_MAP: Record<string, { label: string; className: string }> = {
   rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
-  gerada: { label: "Gerada", className: "bg-amber-100 text-amber-700" },
-  generated: { label: "Gerada", className: "bg-amber-100 text-amber-700" },
-  enviada: { label: "Enviada", className: "bg-blue-100 text-blue-700" },
-  sent: { label: "Enviada", className: "bg-blue-100 text-blue-700" },
-  aceita: { label: "Aceita", className: "bg-green-100 text-green-700" },
-  accepted: { label: "Aceita", className: "bg-green-100 text-green-700" },
+  gerada: { label: "Gerada", className: "bg-warning/10 text-warning" },
+  generated: { label: "Gerada", className: "bg-warning/10 text-warning" },
+  enviada: { label: "Enviada", className: "bg-info/10 text-info" },
+  sent: { label: "Enviada", className: "bg-info/10 text-info" },
+  aceita: { label: "Aceita", className: "bg-success/10 text-success" },
+  accepted: { label: "Aceita", className: "bg-success/10 text-success" },
   recusada: { label: "Recusada", className: "bg-destructive/10 text-destructive" },
   rejected: { label: "Recusada", className: "bg-destructive/10 text-destructive" },
   expirada: { label: "Expirada", className: "bg-muted text-muted-foreground" },
@@ -167,6 +169,7 @@ function ArrowProgressBar({ stages, dealCounts }: { stages: PipelineStage[]; dea
 }
 
 export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject }: Props) {
+  const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
   const [automations, setAutomations] = useState<AutomationRule[]>([]);
@@ -246,6 +249,103 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
     );
   }
 
+  // ── Mobile Accordion View ──
+  if (isMobile) {
+    return (
+      <>
+        <div className="px-1">
+          <ArrowProgressBar stages={sortedStages} dealCounts={dealCountsByStage} />
+        </div>
+
+        <div className="space-y-2 px-1">
+          {sortedStages.map(stage => {
+            const stageDeals = deals.filter(d => d.stage_id === stage.id);
+            const totalValue = stageDeals.reduce((s, d) => s + (d.deal_value || 0), 0);
+            const totalKwp = stageDeals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
+            const stageAutomations = automationsByStage.get(stage.id) || [];
+            const hasActiveAutomation = stageAutomations.length > 0;
+            const permission = stagePermissions.get(stage.id);
+            const hasRestriction = permission && permission !== "todos";
+
+            return (
+              <Collapsible key={stage.id} defaultOpen={stageDeals.length > 0}>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h3 className="text-sm font-bold text-foreground truncate">{stage.name}</h3>
+                      <Badge variant="outline" className="text-[10px] h-5 font-semibold rounded-lg">
+                        {stageDeals.length}
+                      </Badge>
+                      {hasActiveAutomation && <Zap className="h-3 w-3 text-primary animate-pulse shrink-0" />}
+                      {hasRestriction && <Lock className="h-3 w-3 text-warning shrink-0" />}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <div className="text-right">
+                        <span className="text-[11px] font-mono font-semibold text-foreground">{formatBRL(totalValue)}</span>
+                        {totalKwp > 0 && (
+                          <span className="text-[10px] font-mono text-muted-foreground ml-2">{formatKwp(totalKwp)}</span>
+                        )}
+                      </div>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-180" />
+                    </div>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-2 pt-2 pb-1">
+                    {stageDeals.length === 0 ? (
+                      <p className="text-xs text-muted-foreground/50 italic text-center py-4">Nenhum projeto nesta etapa</p>
+                    ) : (
+                      stageDeals.map(deal => (
+                        <StageDealCard
+                          key={deal.deal_id}
+                          deal={deal}
+                          isDragging={false}
+                          onDragStart={() => {}}
+                          onClick={() => onViewProjeto?.(deal)}
+                          hasAutomation={hasActiveAutomation}
+                        />
+                      ))
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
+                      onClick={() => onNewProject?.()}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" />
+                      Novo projeto
+                    </Button>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
+
+        {/* Automation Config Dialog */}
+        {automationDialogStageId && pipelineId && (
+          <Dialog open={true} onOpenChange={(open) => { if (!open) setAutomationDialogStageId(null); }}>
+            <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
+              <DialogHeader className="pb-2 border-b border-border/40">
+                <DialogTitle className="flex items-center gap-2 text-base">
+                  <Zap className="h-4 w-4 text-primary" />
+                  Automações — {getStageNameById(automationDialogStageId)}
+                </DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 overflow-y-auto py-4">
+                <ProjetoAutomacaoConfig
+                  pipelineId={pipelineId}
+                  stages={sortedStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </>
+    );
+  }
+
+  // ── Desktop Kanban View ──
   return (
     <>
       {/* Arrow Progress Bar */}
