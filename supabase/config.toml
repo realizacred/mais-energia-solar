@@ -163,3 +163,6 @@ verify_jwt = false
 
 [functions.irradiance-import]
 verify_jwt = false
+
+[functions.irradiance-fetch]
+verify_jwt = false
