@@ -548,18 +548,14 @@ export function IrradianciaPage() {
                 const allVersions = getVersionsForDataset(ds.id);
                 const active = getActiveVersion(ds.id);
 
-                // Expected Brazil bounds: lat +6 to -34, lon -74 to -34
-                const BRAZIL_LAT_MIN = -34;
-                const BRAZIL_LAT_MAX = 6;
-                const BRAZIL_LON_MIN = -74;
-                const BRAZIL_LON_MAX = -34;
-
                 return (
                   <div key={ds.id} className="rounded-lg border border-border/50 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         {active ? (
                           <CheckCircle2 className="h-4 w-4 text-success" />
+                        ) : allVersions.some(v => v.status === "processing") ? (
+                          <Loader2 className="h-4 w-4 text-primary animate-spin" />
                         ) : (
                           <AlertTriangle className="h-4 w-4 text-warning" />
                         )}
@@ -570,67 +566,109 @@ export function IrradianciaPage() {
                     </div>
 
                     {allVersions.length === 0 ? (
-                      <div className="flex items-center gap-2 text-xs text-warning">
-                        <AlertTriangle className="h-3.5 w-3.5" />
-                        Nenhuma versão importada — dataset sem dados.
+                      <div className="rounded-md border border-warning/30 bg-warning/5 p-3 space-y-1">
+                        <p className="text-xs font-medium text-warning">Nenhuma versão importada</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          Este dataset ainda não possui dados. Vá para a aba "Datasets & Versões" e clique em "Importar da API" para buscar os dados da NASA POWER API.
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-2">
                         {allVersions.map((v) => {
                           const intg = getIntegrity(v.id);
-                          const checks: { label: string; ok: boolean; detail: string }[] = [];
+                          const isProcessing = v.status === "processing";
+                          const isFailed = v.status === "failed";
+                          const isActive = v.status === "active";
 
-                          // 1. Status check
-                          checks.push({
-                            label: "Status",
-                            ok: v.status === "active",
-                            detail: v.status === "active" ? "Ativo" : v.status === "processing" ? "Em processamento (incompleto)" : v.status,
-                          });
+                          // Build checks with contextual messages
+                          const checks: { label: string; status: "ok" | "warning" | "info" | "error"; detail: string; action?: string }[] = [];
 
-                          // 2. Row count match
-                          if (intg) {
-                            checks.push({
-                              label: "Contagem",
-                              ok: intg.actual_points === v.row_count,
-                              detail: intg.actual_points === v.row_count
-                                ? `${v.row_count.toLocaleString()} pontos ✓`
-                                : `Registrado: ${v.row_count.toLocaleString()}, Real: ${intg.actual_points.toLocaleString()}`,
-                            });
+                          // 1. Status
+                          if (isActive) {
+                            checks.push({ label: "Status", status: "ok", detail: "Ativo — pronto para uso em cálculos" });
+                          } else if (isProcessing) {
+                            checks.push({ label: "Status", status: "info", detail: "Importação em andamento — dados parciais até conclusão", action: "Aguarde a conclusão ou verifique na aba Datasets" });
+                          } else if (isFailed) {
+                            checks.push({ label: "Status", status: "error", detail: "Falhou — esta versão não pode ser usada", action: "Inicie uma nova importação na aba Datasets" });
+                          } else {
+                            checks.push({ label: "Status", status: "warning", detail: `${v.status} — versão não está ativa` });
                           }
 
-                          // 3. Geographic coverage
+                          // 2. Row count
+                          if (intg) {
+                            if (intg.actual_points === v.row_count && v.row_count > 0) {
+                              checks.push({ label: "Pontos", status: "ok", detail: `${v.row_count.toLocaleString("pt-BR")} pontos verificados ✓` });
+                            } else if (isProcessing) {
+                              checks.push({ label: "Pontos", status: "info", detail: `${intg.actual_points.toLocaleString("pt-BR")} pontos importados até agora (importação em andamento)` });
+                            } else if (v.row_count === 0) {
+                              checks.push({ label: "Pontos", status: "error", detail: "Nenhum ponto importado", action: "Recomece a importação" });
+                            } else {
+                              checks.push({ label: "Pontos", status: "warning", detail: `Divergência: registrado ${v.row_count.toLocaleString("pt-BR")}, encontrado ${intg.actual_points.toLocaleString("pt-BR")}`, action: "Pode indicar importação interrompida. Recomece." });
+                            }
+                          }
+
+                          // 3. Geographic coverage (only relevant for completed versions)
                           if (intg && intg.min_lat != null) {
+                            const BRAZIL_LAT_MIN = -34;
+                            const BRAZIL_LAT_MAX = 6;
+                            const BRAZIL_LON_MIN = -74;
+                            const BRAZIL_LON_MAX = -34;
+
                             const latOk = intg.min_lat <= BRAZIL_LAT_MIN + 2 && intg.max_lat! >= BRAZIL_LAT_MAX - 2;
                             const lonOk = intg.min_lon! <= BRAZIL_LON_MIN + 2 && intg.max_lon! >= BRAZIL_LON_MAX + 2;
-                            checks.push({
-                              label: "Cobertura Lat",
-                              ok: latOk,
-                              detail: `${intg.max_lat}° a ${intg.min_lat}° ${latOk ? "✓" : `(esperado: ${BRAZIL_LAT_MAX}° a ${BRAZIL_LAT_MIN}°)`}`,
-                            });
-                            checks.push({
-                              label: "Cobertura Lon",
-                              ok: lonOk,
-                              detail: `${intg.min_lon}° a ${intg.max_lon}° ${lonOk ? "✓" : `(esperado: ${BRAZIL_LON_MIN}° a ${BRAZIL_LON_MAX}°)`}`,
-                            });
+
+                            if (isProcessing) {
+                              checks.push({
+                                label: "Cobertura",
+                                status: "info",
+                                detail: `Parcial: Lat ${intg.max_lat}° a ${intg.min_lat}°, Lon ${intg.min_lon}° a ${intg.max_lon}° (cobertura completa após conclusão)`,
+                              });
+                            } else if (latOk && lonOk) {
+                              checks.push({ label: "Cobertura", status: "ok", detail: `Brasil completo: Lat ${intg.max_lat}° a ${intg.min_lat}°, Lon ${intg.min_lon}° a ${intg.max_lon}° ✓` });
+                            } else {
+                              const missing: string[] = [];
+                              if (!latOk) missing.push(`Latitude incompleta (tem ${intg.max_lat}° a ${intg.min_lat}°, esperado ${BRAZIL_LAT_MAX}° a ${BRAZIL_LAT_MIN}°)`);
+                              if (!lonOk) missing.push(`Longitude incompleta (tem ${intg.min_lon}° a ${intg.max_lon}°, esperado ${BRAZIL_LON_MIN}° a ${BRAZIL_LON_MAX}°)`);
+                              checks.push({
+                                label: "Cobertura",
+                                status: "error",
+                                detail: missing.join(". "),
+                                action: "A importação foi interrompida antes de cobrir todo o Brasil. Recomece a importação.",
+                              });
+                            }
                           }
 
-                          // 4. DHI availability
-                          if (intg) {
+                          // 4. DHI
+                          if (intg && !isProcessing) {
                             checks.push({
                               label: "DHI (Difusa)",
-                              ok: intg.has_dhi,
-                              detail: intg.has_dhi ? "Dados DHI presentes ✓" : "⚠ Sem dados DHI — cálculos POA usarão estimativa",
+                              status: intg.has_dhi ? "ok" : "warning",
+                              detail: intg.has_dhi ? "Disponível — cálculos POA de alta precisão ✓" : "Indisponível — cálculos POA usarão estimativa (precisão reduzida)",
                             });
                           }
 
-                          // 5. SHA integrity
-                          checks.push({
-                            label: "SHA-256",
-                            ok: !!v.checksum_sha256,
-                            detail: v.checksum_sha256 ? `${v.checksum_sha256.substring(0, 16)}…` : "Sem checksum",
-                          });
+                          // 5. SHA integrity (only for completed)
+                          if (!isProcessing) {
+                            checks.push({
+                              label: "Integridade",
+                              status: v.checksum_sha256 ? "ok" : "warning",
+                              detail: v.checksum_sha256 ? `SHA-256: ${v.checksum_sha256.substring(0, 16)}… ✓` : "Sem checksum — versão pode não ter sido finalizada corretamente",
+                            });
+                          }
 
-                          const failCount = checks.filter((c) => !c.ok).length;
+                          const errorCount = checks.filter(c => c.status === "error").length;
+                          const warnCount = checks.filter(c => c.status === "warning").length;
+                          const infoCount = checks.filter(c => c.status === "info").length;
+
+                          const summaryLabel = isProcessing
+                            ? "⏳ Em processamento"
+                            : errorCount > 0
+                            ? `${errorCount} erro${errorCount > 1 ? "s" : ""}`
+                            : warnCount > 0
+                            ? `${warnCount} aviso${warnCount > 1 ? "s" : ""}`
+                            : "✓ Tudo OK";
+
+                          const summaryVariant = isProcessing ? "secondary" : errorCount > 0 ? "destructive" : warnCount > 0 ? "outline" : "secondary";
 
                           return (
                             <div key={v.id} className="rounded-md border border-border/30 p-3 space-y-2">
@@ -638,25 +676,40 @@ export function IrradianciaPage() {
                                 <div className="flex items-center gap-2">
                                   <Badge className={`text-[10px] ${STATUS_COLORS[v.status] || ""}`}>{v.status}</Badge>
                                   <span className="text-xs font-medium">{v.version_tag}</span>
+                                  {v.source_note && (
+                                    <span className="text-[10px] text-muted-foreground">— {v.source_note}</span>
+                                  )}
                                 </div>
-                                <Badge variant={failCount === 0 ? "secondary" : "destructive"} className="text-[10px]">
-                                  {failCount === 0 ? "✓ Tudo OK" : `${failCount} problema${failCount > 1 ? "s" : ""}`}
+                                <Badge variant={summaryVariant as any} className="text-[10px]">
+                                  {summaryLabel}
                                 </Badge>
                               </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
+                              <div className="space-y-1.5">
                                 {checks.map((check) => (
                                   <div key={check.label} className="flex items-start gap-1.5 text-[10px]">
-                                    {check.ok ? (
+                                    {check.status === "ok" ? (
                                       <CheckCircle2 className="h-3 w-3 text-success mt-0.5 shrink-0" />
+                                    ) : check.status === "info" ? (
+                                      <Info className="h-3 w-3 text-primary mt-0.5 shrink-0" />
+                                    ) : check.status === "error" ? (
+                                      <AlertTriangle className="h-3 w-3 text-destructive mt-0.5 shrink-0" />
                                     ) : (
                                       <AlertTriangle className="h-3 w-3 text-warning mt-0.5 shrink-0" />
                                     )}
                                     <div>
                                       <span className="font-medium">{check.label}:</span>{" "}
-                                      <span className={check.ok ? "text-muted-foreground" : "text-warning"}>
+                                      <span className={
+                                        check.status === "ok" ? "text-muted-foreground"
+                                        : check.status === "info" ? "text-primary"
+                                        : check.status === "error" ? "text-destructive"
+                                        : "text-warning"
+                                      }>
                                         {check.detail}
                                       </span>
+                                      {check.action && (
+                                        <p className="text-muted-foreground mt-0.5 italic">→ {check.action}</p>
+                                      )}
                                     </div>
                                   </div>
                                 ))}
