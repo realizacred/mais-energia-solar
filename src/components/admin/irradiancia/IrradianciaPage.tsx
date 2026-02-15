@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Database, Search, CheckCircle2, AlertTriangle,
+  Database, Search, CheckCircle2, AlertTriangle, Info,
   Globe, Hash, Calendar, Loader2, Sun, MapPin, Download, RefreshCw, Upload,
 } from "lucide-react";
 import { useIrradianceDatasets } from "@/hooks/useIrradianceDatasets";
@@ -260,10 +260,19 @@ export function IrradianciaPage() {
             </div>
           )}
 
-          <p className="text-xs text-muted-foreground">
-            Clique em <strong>"Importar da API"</strong> para buscar dados automaticamente da NASA POWER API.
-            A atualização automática ocorre a cada 6 meses.
-          </p>
+          <div className="rounded-lg border border-info/30 bg-info/5 p-3 flex items-start gap-2">
+            <Info className="h-4 w-4 text-info mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="text-xs text-foreground">
+                Clique em <strong>"Importar da API"</strong> para buscar dados automaticamente da NASA POWER API.
+                A atualização automática ocorre a cada 6 meses.
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                🌍 <strong>Dados globais</strong> — Os dados de irradiância são compartilhados entre todas as empresas da plataforma.
+                Apenas administradores podem importar, auditar e corrigir esses dados.
+              </p>
+            </div>
+          </div>
 
           {datasets.map((ds) => {
             const dsVersions = getVersionsForDataset(ds.id);
