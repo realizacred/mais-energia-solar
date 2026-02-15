@@ -82,6 +82,7 @@ const DocumentosPage = lazy(() => import("@/components/admin/documentos/Document
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const PremissasPage = lazy(() => import("@/components/admin/premissas/PremissasPage").then(m => ({ default: m.PremissasPage })));
 const IrradianciaPage = lazy(() => import("@/components/admin/irradiancia/IrradianciaPage"));
+const PricingPolicyPage = lazy(() => import("@/components/admin/pricing-policy/PricingPolicyPage").then(m => ({ default: m.PricingPolicyPage })));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const SolarZapPage = lazy(() => import("@/components/admin/solarzap").then(m => ({ default: m.SolarZapPage })));
 const SolarZapDashboard = lazy(() => import("@/components/admin/solarzap/SolarZapDashboard").then(m => ({ default: m.SolarZapDashboard })));
@@ -201,6 +202,7 @@ const TAB_TITLES: Record<string, string> = {
   "loading-config": "Personalização Visual",
   "tenant-settings": "Dados da Empresa",
   "conf-solar": "Premissas Solar",
+  "pricing-policy": "Política de Precificação",
   menus: "Personalizar Menu",
   solarzap: "SolarZap",
 };
@@ -419,6 +421,7 @@ export default function Admin() {
                 <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="premissas" element={<PremissasPage />} />
                 <Route path="irradiancia" element={<IrradianciaPage />} />
+                <Route path="pricing-policy" element={<PricingPolicyPage />} />
                 <Route path="auditoria/irradiancia" element={<IrradianciaPage />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
