@@ -81,6 +81,7 @@ const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").th
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 const SolarZapPage = lazy(() => import("@/components/admin/solarzap").then(m => ({ default: m.SolarZapPage })));
+const SolarZapDashboard = lazy(() => import("@/components/admin/solarzap/SolarZapDashboard").then(m => ({ default: m.SolarZapDashboard })));
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard").then((m) => ({
     default: m.ProposalWizard,
@@ -368,6 +369,7 @@ export default function Admin() {
                 {/* Atendimento */}
                 <Route path="inbox" element={<WaInbox />} />
                 <Route path="solarzap" element={<SolarZapPage />} />
+                <Route path="solarzap/dashboard" element={<SolarZapDashboard />} />
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
                 <Route path="followup-queue" element={<WaFollowupQueuePage />} />
