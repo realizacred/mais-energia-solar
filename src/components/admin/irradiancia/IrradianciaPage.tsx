@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,8 @@ import { useIrradianceDatasets } from "@/hooks/useIrradianceDatasets";
 import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/irradiance-provider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ImportJobTracker } from "./ImportJobTracker";
+import { triggerDatasetImport, type ImportJob } from "@/services/solar-datasets-api";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-success/10 text-success border-success/30",
@@ -37,9 +39,9 @@ export function IrradianciaPage() {
   const { datasets, versions, loading, reload, getVersionsForDataset, getActiveVersion } = useIrradianceDatasets();
   const [tab, setTab] = useState("datasets");
 
-  // Per-dataset fetch state
+  // ── Async import jobs ──
+  const [importJobs, setImportJobs] = useState<ImportJob[]>([]);
   const [fetchingDs, setFetchingDs] = useState<string | null>(null);
-  const [fetchProgress, setFetchProgress] = useState<string | null>(null);
 
   // CSV upload state
   const [uploadDs, setUploadDs] = useState("");
@@ -54,34 +56,32 @@ export function IrradianciaPage() {
   const [testLoading, setTestLoading] = useState(false);
   const [testError, setTestError] = useState("");
 
+  // Trigger async import job via backend
   const handleFetchDataset = async (datasetCode: string) => {
     setFetchingDs(datasetCode);
-    setFetchProgress("Buscando dados via NASA POWER API... Isso pode levar alguns minutos.");
     try {
-      const versionTag = generateVersionTag();
-      const { data, error } = await supabase.functions.invoke("irradiance-fetch", {
-        body: {
-          dataset_code: datasetCode,
-          version_tag: versionTag,
-          step_deg: 1,
-        },
+      const job = await triggerDatasetImport(datasetCode);
+      setImportJobs((prev) => [job, ...prev]);
+      toast.success("Importação iniciada", {
+        description: `Job ${job.job_id.substring(0, 8)}… criado para ${datasetCode}`,
       });
-
-      if (error) throw error;
-
-      toast.success(
-        `Importação concluída: ${data?.row_count?.toLocaleString() ?? 0} pontos importados` +
-          (data?.errors ? ` (${data.errors} erros)` : "")
-      );
-      setFetchProgress(null);
-      reload();
     } catch (e: any) {
-      toast.error("Erro na importação", { description: e.message });
-      setFetchProgress(null);
+      toast.error("Erro ao iniciar importação", { description: e.message });
     } finally {
       setFetchingDs(null);
     }
   };
+
+  // Update job in list when poll returns new data
+  const handleJobUpdate = useCallback((updatedJob: ImportJob) => {
+    setImportJobs((prev) =>
+      prev.map((j) => (j.job_id === updatedJob.job_id ? updatedJob : j))
+    );
+    // Reload datasets when a job finishes successfully
+    if (updatedJob.status === "success") {
+      reload();
+    }
+  }, [reload]);
 
   const handleTestLookup = async () => {
     setTestLoading(true);
@@ -209,11 +209,11 @@ export function IrradianciaPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {isFetching && fetchProgress && (
+                  {isFetching && (
                     <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        <p className="text-xs text-primary font-medium">{fetchProgress}</p>
+                        <p className="text-xs text-primary font-medium">Iniciando importação via backend…</p>
                       </div>
                       <Progress className="h-1.5" />
                     </div>
@@ -271,6 +271,9 @@ export function IrradianciaPage() {
               </Card>
             );
           })}
+
+          {/* ── Import Jobs ── */}
+          <ImportJobTracker jobs={importJobs} onJobUpdate={handleJobUpdate} />
         </TabsContent>
 
         {/* ── Upload CSV Tab ── */}
