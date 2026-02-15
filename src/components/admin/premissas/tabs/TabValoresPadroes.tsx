@@ -231,14 +231,16 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
 
         {/* Linha 4 - GD III */}
         <div className="space-y-2">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">GD III — Tarifação Compensada</p>
-          <p className="text-[10px] text-muted-foreground">100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D (Lei 14.300).</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            GD III — Tarifação Compensada
+            <FieldTooltip text="Tarifação aplicada à energia compensada conforme Lei 14.300/2022. Composta por: 100% da TUSD Fio B + 40% da TUSD Fio A + TFSEE (Taxa de Fiscalização) + P&D (Pesquisa e Desenvolvimento). Este valor é cobrado sobre cada kWh de energia injetada e compensada na rede." />
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <NumField label="Tarifação Compensada - Baixa Tensão" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" onChange={(v) => set("tarifacao_compensada_bt", v)} />
+            <NumField label="Tarifação Compensada - Baixa Tensão (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_bt", v)} />
             {!isBT && (
               <>
-                <NumField label="Tarifação Compensada - Fora Ponta" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
-                <NumField label="Tarifação Compensada - Ponta" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" onChange={(v) => set("tarifacao_compensada_ponta", v)} />
+                <NumField label="Tarifação Compensada - Fora Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
+                <NumField label="Tarifação Compensada - Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" onChange={(v) => set("tarifacao_compensada_ponta", v)} />
               </>
             )}
           </div>
