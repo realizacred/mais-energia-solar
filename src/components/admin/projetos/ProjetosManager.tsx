@@ -85,7 +85,7 @@ export function ProjetosManager() {
         <PageHeader
           icon={FolderKanban}
           title="Projetos"
-          description="Pipeline de vendas e gestão de projetos"
+          description="Gerencie seus projetos por etapa e responsável"
         />
         <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5 h-9 px-4 text-sm font-medium shadow-sm">
           <Plus className="h-4 w-4" />

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { TrialBanner } from "@/components/plan";
+import { TourProvider, HelpButton } from "@/components/tour";
 
 // Lazy load admin sub-pages for better code splitting
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
@@ -116,74 +117,75 @@ const ProposalDashboardPage = lazy(() =>
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
 const TAB_TITLES: Record<string, string> = {
-  dashboard: "Dashboard Executivo",
+  dashboard: "Painel Geral",
   inteligencia: "Inteligência Comercial",
-  diretor: "Copilot IA",
-  auditoria: "Auditoria & Logs",
-  leads: "Gestão de Leads",
-  pipeline: "Pipeline de Vendas",
+  diretor: "Assistente IA",
+  auditoria: "Registro de Atividades",
+  leads: "Leads",
+  pipeline: "Funil Comercial",
   distribuicao: "Distribuição de Leads",
-  "sla-breaches": "Violações de SLA",
+  "sla-breaches": "Alertas de Prazo",
   "motivos-perda": "Motivos de Perda",
-  inbox: "Central de Atendimento",
+  inbox: "Atendimento",
   "respostas-rapidas": "Respostas Rápidas",
-  followup: "Follow-ups",
-  validacao: "Validação de Vendas",
-  tarefas: "Tarefas & SLA",
-  clientes: "Gestão de Clientes",
+  followup: "Acompanhamentos",
+  validacao: "Aprovação de Vendas",
+  tarefas: "Tarefas & Prazos",
+  clientes: "Clientes",
   checklists: "Documentação",
-  avaliacoes: "Avaliações",
-  instaladores: "Gestão de Instaladores",
-  servicos: "Agenda Técnica",
-  recebimentos: "Controle de Recebimentos",
+  avaliacoes: "Satisfação (NPS)",
+  instaladores: "Equipe Técnica",
+  servicos: "Agenda de Serviços",
+  recebimentos: "Contas a Receber",
   inadimplencia: "Inadimplência",
-  comissoes: "Gestão de Comissões",
-  engenharia: "Engenharia Financeira",
-  financiamento: "Bancos & Financiamento",
-  "site-config": "Site Institucional",
-  brand: "Site Institucional",
+  comissoes: "Comissões",
+  engenharia: "Análise Tributária",
+  financiamento: "Financiamentos",
+  "site-config": "Conteúdo & Visual",
+  brand: "Conteúdo & Visual",
   "site-servicos": "Serviços do Site",
-  obras: "Portfólio de Obras",
-  aprovacao: "Aprovações de Acesso",
-  vendedores: "Gestão de Consultores",
+  obras: "Portfólio",
+  aprovacao: "Solicitações de Acesso",
+  vendedores: "Consultores",
   usuarios: "Usuários & Permissões",
-  gamificacao: "Gamificação",
-  "lead-status": "Status de Leads",
-  equipamentos: "Disjuntores & Transformadores",
+  gamificacao: "Metas & Ranking",
+  "lead-status": "Etapas do Funil",
+  equipamentos: "Disjuntores & Transf.",
   modulos: "Módulos Fotovoltaicos",
   "inversores-cadastro": "Inversores",
   baterias: "Baterias",
   concessionarias: "Concessionárias",
   config: "Calculadora Solar",
   whatsapp: "WhatsApp API",
-  instagram: "Instagram API",
+  instagram: "Instagram",
   webhooks: "Webhooks",
   n8n: "Automações",
   
   "wa-instances": "Instâncias WhatsApp",
-  release: "Release Notes",
+  release: "Checklist de Versão",
   propostas: "Propostas Comerciais",
   projetos: "Projetos",
   "propostas-nativas": "Gerador de Propostas",
   "propostas-nativas/nova": "Nova Proposta",
-  "propostas-nativas/dashboard": "Dashboard de Propostas",
+  "propostas-nativas/dashboard": "Painel de Propostas",
   "propostas-nativas/templates": "Templates de Proposta",
   "propostas-nativas/variaveis": "Variáveis Customizadas",
-  "followup-wa": "Regras de Follow-up",
-  "followup-queue": "Fila de Follow-ups",
+  "followup-wa": "Regras de Retorno",
+  "followup-queue": "Fila de Retorno",
   "wa-etiquetas": "Etiquetas WhatsApp",
   "canais-captacao": "Canais de Captação",
-  "links-instalacao": "Links & Captação",
-  "data-reset": "Limpeza de Dados",
-  "integracoes-status": "Status das Integrações",
+  "links-instalacao": "Captação & App",
+  "data-reset": "Manutenção de Dados",
+  "integracoes-status": "Painel de Integrações",
   "google-calendar": "Google Calendar",
-  "agenda-config": "Agenda & Compromissos",
+  "agenda-config": "Agenda & Calendário",
   "ai-config": "Configuração de IA",
-  changelog: "Atualizações",
+  changelog: "Atualizações do Sistema",
   "notificacoes-config": "Notificações",
-  "loading-config": "Loading & Mensagens",
-  "tenant-settings": "Configurações da Empresa",
-  "conf-solar": "Configurações Solar",
+  "loading-config": "Personalização Visual",
+  "tenant-settings": "Dados da Empresa",
+  "conf-solar": "Premissas Solar",
+  menus: "Personalizar Menu",
 };
 
 /** N8n placeholder component */
@@ -303,12 +305,14 @@ export default function Admin() {
 
   return (
     <SidebarProvider>
+      <TourProvider>
       <div className="min-h-screen flex w-full bg-muted/30">
         <AdminSidebar
           activeTab={activeTab}
           userEmail={user?.email}
           onSignOut={handleSignOut}
           badgeCounts={badgeCounts}
+          data-tour="sidebar"
         />
         
         <SidebarInset className="flex-1 min-w-0">
@@ -321,6 +325,7 @@ export default function Admin() {
               <h1 className="page-header-title">
                 {TAB_TITLES[activeTab] || activeTab}
               </h1>
+              <HelpButton />
             </div>
           </header>
 
@@ -432,6 +437,7 @@ export default function Admin() {
           <Footer />
         </SidebarInset>
       </div>
+      </TourProvider>
     </SidebarProvider>
   );
 }
