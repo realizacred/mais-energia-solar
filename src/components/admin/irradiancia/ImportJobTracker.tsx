@@ -17,6 +17,7 @@ import {
   type ImportJobStatus,
   getImportJobStatus,
   getImportJobLogs,
+  getBackoffDelay,
 } from "@/services/solar-datasets-api";
 
 // ─── Status config ───────────────────────────────────────────
@@ -62,35 +63,48 @@ export function ImportJobTracker({ jobs, onJobUpdate }: ImportJobTrackerProps) {
   );
 }
 
-// ─── Job Row with polling ────────────────────────────────────
+// ─── Job Row with exponential backoff polling ────────────────
 
 function JobRow({ job, onJobUpdate }: { job: ImportJob; onJobUpdate: (j: ImportJob) => void }) {
   const [logs, setLogs] = useState<ImportJobLog[]>([]);
   const [logsOpen, setLogsOpen] = useState(false);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logsError, setLogsError] = useState("");
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attemptRef = useRef(0);
 
   const isTerminal = job.status === "success" || job.status === "failed";
   const config = STATUS_CONFIG[job.status] ?? STATUS_CONFIG.queued;
   const Icon = config.icon;
 
-  // Poll while non-terminal
+  // Exponential backoff polling: 3s → 5s → 8s (clamped)
   useEffect(() => {
-    if (isTerminal) return;
+    if (isTerminal) {
+      attemptRef.current = 0;
+      return;
+    }
 
-    const poll = async () => {
-      try {
-        const updated = await getImportJobStatus(job.job_id);
-        onJobUpdate(updated);
-      } catch {
-        // Silently retry on next interval
-      }
+    const schedulePoll = () => {
+      const delay = getBackoffDelay(attemptRef.current);
+      timerRef.current = setTimeout(async () => {
+        try {
+          const updated = await getImportJobStatus(job.job_id);
+          onJobUpdate(updated);
+          // Reset attempt on success (status call worked)
+          attemptRef.current = Math.min(attemptRef.current + 1, 10);
+        } catch {
+          // Increase backoff on failure
+          attemptRef.current = Math.min(attemptRef.current + 1, 10);
+        }
+        // Schedule next poll if still non-terminal
+        schedulePoll();
+      }, delay);
     };
 
-    pollRef.current = setInterval(poll, 3000);
+    schedulePoll();
+
     return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, [job.job_id, isTerminal, onJobUpdate]);
 
