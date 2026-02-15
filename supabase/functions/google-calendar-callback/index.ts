@@ -129,16 +129,15 @@ Deno.serve(async (req) => {
     // ── HARDENING: Preserve existing refresh_token ──
     let refreshToken = tokenData.refresh_token || "";
 
-    if (!refreshToken) {
-      const { data: existing } = await supabaseAdmin
-        .from("google_calendar_tokens")
-        .select("refresh_token")
-        .eq("user_id", state.userId)
-        .maybeSingle();
+    // Check if user already has a token (for reconnect/switch user scenarios)
+    const { data: existing } = await supabaseAdmin
+      .from("google_calendar_tokens")
+      .select("id, refresh_token, google_email")
+      .eq("user_id", state.userId)
+      .maybeSingle();
 
-      if (existing?.refresh_token) {
-        refreshToken = existing.refresh_token;
-      }
+    if (!refreshToken && existing?.refresh_token) {
+      refreshToken = existing.refresh_token;
     }
 
     if (!refreshToken) {
@@ -152,11 +151,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Upsert tokens
-    const { error: dbError } = await supabaseAdmin
-      .from("google_calendar_tokens")
-      .upsert(
-        {
+    // If existing record, update it; otherwise insert
+    // This handles switching Google accounts properly
+    if (existing?.id) {
+      const { error: updateError } = await supabaseAdmin
+        .from("google_calendar_tokens")
+        .update({
+          access_token: tokenData.access_token,
+          refresh_token: refreshToken,
+          token_expires_at: expiresAt,
+          google_email: googleEmail,
+          calendar_id: "primary",
+          is_active: true,
+        })
+        .eq("id", existing.id);
+
+      if (updateError) {
+        console.error("DB update error:", updateError);
+        return redirectTo(`${appUrl}/admin/google-calendar?error=db_error`);
+      }
+    } else {
+      const { error: insertError } = await supabaseAdmin
+        .from("google_calendar_tokens")
+        .insert({
           user_id: state.userId,
           tenant_id: state.tenantId,
           access_token: tokenData.access_token,
@@ -165,9 +182,13 @@ Deno.serve(async (req) => {
           google_email: googleEmail,
           calendar_id: "primary",
           is_active: true,
-        },
-        { onConflict: "user_id" }
-      );
+        });
+
+      if (insertError) {
+        console.error("DB insert error:", insertError);
+        return redirectTo(`${appUrl}/admin/google-calendar?error=db_error`);
+      }
+    }
 
     if (dbError) {
       console.error("DB upsert error:", dbError);
