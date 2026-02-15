@@ -44,7 +44,7 @@ export function LeadViewDialog({ lead, open, onOpenChange }: LeadViewDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-brand-blue">Detalhes do Lead</DialogTitle>
+          <DialogTitle className="text-foreground">Detalhes do Lead</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">

@@ -113,7 +113,7 @@ export default function CalculadoraConfig() {
       <CardHeader>
         <div className="flex items-center gap-2">
           <Calculator className="w-5 h-5 text-primary" />
-          <CardTitle className="text-brand-blue">Configuração da Calculadora Solar</CardTitle>
+          <CardTitle className="text-foreground">Configuração da Calculadora Solar</CardTitle>
         </div>
         <CardDescription>
           Ajuste os parâmetros utilizados nos cálculos de economia e investimento

@@ -135,7 +135,7 @@ export default function WebhookManager() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Webhook className="w-5 h-5 text-primary" />
-            <CardTitle className="text-brand-blue">Webhooks & Integrações</CardTitle>
+            <CardTitle className="text-foreground">Webhooks & Integrações</CardTitle>
           </div>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>

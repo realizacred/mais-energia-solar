@@ -140,7 +140,7 @@ export function LeadsView() {
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <CardTitle className="text-brand-blue">Orçamentos Cadastrados</CardTitle>
+            <CardTitle className="text-foreground">Orçamentos Cadastrados</CardTitle>
             <OrcamentoSortSelector value={sortOption} onChange={updateSort} />
           </div>
           <LeadFilters

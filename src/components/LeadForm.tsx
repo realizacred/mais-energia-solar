@@ -131,7 +131,7 @@ export default function LeadForm() {
     <Card className="max-w-2xl mx-auto border-0 shadow-2xl">
       <CardHeader className="text-center pb-2">
         <img src={logo} alt="Mais Energia Solar" className="h-16 w-auto mx-auto mb-4" />
-        <CardTitle className="text-2xl md:text-3xl font-bold text-brand-blue">
+        <CardTitle className="text-2xl md:text-3xl font-bold text-secondary">
           Solicite seu Orçamento
         </CardTitle>
         <CardDescription className="text-base">
