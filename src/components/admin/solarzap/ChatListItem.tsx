@@ -169,7 +169,7 @@ export function ChatListItem({
       onClick={() => onSelect(conv)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(conv); } }}
       className={cn(
-        "group relative w-full flex items-start gap-2.5 px-3 py-2.5 text-left cursor-pointer",
+        "group relative w-full flex items-start gap-2.5 px-3 py-2.5 text-left cursor-pointer overflow-hidden",
         "transition-all duration-150 border-b border-border/20",
         // States
         isSelected
@@ -201,7 +201,7 @@ export function ChatListItem({
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1 min-w-0 space-y-0.5">
+      <div className="flex-1 min-w-0 space-y-0.5 overflow-hidden">
         {/* Line 1: Name + Time */}
         <div className="flex items-center justify-between gap-1.5">
           <div className="flex items-center gap-1 min-w-0">
@@ -258,7 +258,7 @@ export function ChatListItem({
 
         {/* Line 3: Badges (max 2 visible + overflow popover) */}
         {allBadges.length > 0 && (
-          <div className="flex items-center gap-1 mt-0.5">
+          <div className="flex items-center gap-1 mt-0.5 overflow-hidden max-w-full">
             {visibleBadges.map((b) => (
               <CompactBadge key={b.key} item={b} />
             ))}
