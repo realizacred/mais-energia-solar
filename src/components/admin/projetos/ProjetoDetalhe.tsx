@@ -122,6 +122,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const [allStagesMap, setAllStagesMap] = useState<Map<string, StageInfo[]>>(new Map());
   const [propostasCount, setPropostasCount] = useState(0);
   const [docsCount, setDocsCount] = useState(0);
+  const [userNamesMap, setUserNamesMap] = useState<Map<string, string>>(new Map());
 
   // Load deal data
   useEffect(() => {
@@ -136,7 +137,21 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
         if (dealRes.error) throw dealRes.error;
         const d = dealRes.data as DealDetail;
         setDeal(d);
-        setHistory((historyRes.data || []) as StageHistory[]);
+        const historyData = (historyRes.data || []) as StageHistory[];
+        setHistory(historyData);
+
+        // Resolve user names for moved_by UUIDs
+        const movedByIds = [...new Set(historyData.map(h => h.moved_by).filter(Boolean))] as string[];
+        if (movedByIds.length > 0) {
+          supabase.from("profiles").select("user_id, nome").in("user_id", movedByIds)
+            .then(({ data: profiles }) => {
+              if (profiles) {
+                const map = new Map<string, string>();
+                (profiles as any[]).forEach(p => map.set(p.user_id, p.nome));
+                setUserNamesMap(map);
+              }
+            });
+        }
 
         const [stagesRes, customerRes, ownerRes, pipelinesRes, allStagesRes] = await Promise.all([
           supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", d.pipeline_id).order("position"),
@@ -334,6 +349,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
               formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
               onDealUpdated={silentRefresh}
               updateDealLocal={updateDealLocal}
+              userNamesMap={userNamesMap}
             />
           )}
           {activeTab === "chat" && (
@@ -380,6 +396,7 @@ function GerenciamentoTab({
   customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress,
   ownerName, currentStage, currentStageIndex, currentPipeline,
   formatDate, formatBRL, getStageNameById, onDealUpdated, updateDealLocal,
+  userNamesMap,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
   pipelines: PipelineInfo[]; allStagesMap: Map<string, StageInfo[]>;
@@ -391,6 +408,7 @@ function GerenciamentoTab({
   getStageNameById: (id: string | null) => string;
   onDealUpdated: () => void;
   updateDealLocal: (patch: Partial<DealDetail>) => void;
+  userNamesMap: Map<string, string>;
 }) {
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
@@ -522,7 +540,7 @@ function GerenciamentoTab({
         title: h.from_stage_id
           ? `Movido de "${getStageNameById(h.from_stage_id)}" para "${getStageNameById(h.to_stage_id)}"`
           : `Incluído na etapa "${getStageNameById(h.to_stage_id)}"`,
-        subtitle: h.moved_by ? `Por: ${h.moved_by}` : undefined,
+        subtitle: h.moved_by ? `Por: ${userNamesMap.get(h.moved_by) || h.moved_by}` : undefined,
         date: formatDate(h.moved_at),
       });
     });
@@ -538,7 +556,7 @@ function GerenciamentoTab({
     entries.push(...docEntries);
     entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", date: formatDate(deal.created_at), isFirst: true });
     return entries;
-  }, [history, currentStage, deal, docEntries, formatDate, getStageNameById]);
+  }, [history, currentStage, deal, docEntries, formatDate, getStageNameById, userNamesMap]);
 
   const filteredEntries = useMemo(() => {
     if (timelineFilter === "todos") return allEntries;
@@ -1243,8 +1261,6 @@ function DocumentosTab({ dealId }: { dealId: string }) {
     </div>
   );
 }
-
-
 // ═══════════════════════════════════════════════════
 // ─── Shared Components ──────────────────────────
 // ═══════════════════════════════════════════════════
