@@ -112,6 +112,7 @@ export function WaChatComposer({
   });
   const isWritingAssistantOn = writingAssistantEnabled !== false;
   const writingAssistant = useWritingAssistant();
+  const [activeWritingAction, setActiveWritingAction] = useState<import("@/hooks/useWritingAssistant").WritingAction | null>(null);
 
   // Apply prefill message once
   useEffect(() => {
@@ -637,9 +638,17 @@ export function WaChatComposer({
           <>
             <div className="w-px h-4 bg-border/50 mx-1" />
             <WritingAssistantButton
-              onAction={(action) => writingAssistant.requestSuggestion(inputValue, action)}
+              onAction={(action) => {
+                setActiveWritingAction(action);
+                writingAssistant.requestSuggestion(inputValue, action);
+              }}
               isLoading={writingAssistant.isLoading}
               disabled={busy}
+              activeAction={activeWritingAction}
+              onDeactivate={() => {
+                setActiveWritingAction(null);
+                writingAssistant.dismiss();
+              }}
             />
           </>
         )}
@@ -707,14 +716,19 @@ export function WaChatComposer({
           model={writingAssistant.model}
           onAccept={(text) => {
             setInputValue(text);
+            setActiveWritingAction(null);
             writingAssistant.dismiss();
           }}
           onEdit={(text) => {
             setInputValue(text);
+            setActiveWritingAction(null);
             writingAssistant.dismiss();
             setTimeout(() => textareaRef.current?.focus(), 100);
           }}
-          onDismiss={writingAssistant.dismiss}
+          onDismiss={() => {
+            setActiveWritingAction(null);
+            writingAssistant.dismiss();
+          }}
         />
       )}
 
