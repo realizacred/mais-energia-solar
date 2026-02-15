@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     // Get all active calendar tokens
     const { data: tokens, error: tokensError } = await supabaseAdmin
       .from("google_calendar_tokens")
-      .select("*")
+      .select("id, user_id, tenant_id, access_token, refresh_token, token_expires_at, calendar_id, sync_token, last_synced_at")
       .eq("is_active", true);
 
     if (tokensError) throw tokensError;
