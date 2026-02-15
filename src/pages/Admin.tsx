@@ -69,7 +69,7 @@ const WaInstancesManager = lazy(() => import("@/components/admin/WaInstancesMana
 const WaTagsManager = lazy(() => import("@/components/admin/inbox/WaTagsManager").then(m => ({ default: m.WaTagsManager })));
 const InstalarApp = lazy(() => import("@/pages/Instalar"));
 const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalacaoPage").then(m => ({ default: m.LinksInstalacaoPage })));
-const CanaisCaptacaoPage = lazy(() => import("@/components/admin/CanaisCaptacaoPage").then(m => ({ default: m.CanaisCaptacaoPage })));
+// CanaisCaptacaoPage removed — consolidated into LinksInstalacaoPage
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
 const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationStatusPage").then(m => ({ default: m.IntegrationStatusPage })));
 const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCalendarConfigPage").then(m => ({ default: m.GoogleCalendarConfigPage })));
@@ -178,7 +178,7 @@ const TAB_TITLES: Record<string, string> = {
   "followup-queue": "Fila de Retorno",
   "metricas-atendimento": "Métricas de Atendimento",
   "wa-etiquetas": "Etiquetas WhatsApp",
-  "canais-captacao": "Canais de Captação",
+  // canais-captacao removed — use links-instalacao
   "links-instalacao": "Captação & App",
   "data-reset": "Manutenção de Dados",
   "integracoes-status": "Painel de Integrações",
@@ -432,7 +432,7 @@ export default function Admin() {
                 <Route path="auditoria" element={<AuditLogsViewer />} />
                 <Route path="data-reset" element={<DataResetManager />} />
                 <Route path="integracoes-status" element={<IntegrationStatusPage />} />
-                <Route path="canais-captacao" element={<CanaisCaptacaoPage />} />
+                <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
                 <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
                 <Route path="changelog" element={<ChangelogViewer />} />
                 <Route path="notificacoes-config" element={<NotificationConfigAdmin />} />

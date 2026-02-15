@@ -55,6 +55,13 @@ Não há overlap real:
 
 **✅ Não é duplicação — são dois sistemas distintos em transição.**
 
+## 6. `links-instalacao` vs `canais-captacao` — **RESOLVIDO ✅**
+
+- `CanaisCaptacaoPage` era um subconjunto de `LinksInstalacaoPage`
+- Ambas geravam links `/v/:slug` e `/w/:slug` a partir de `consultores`
+- **Ação tomada:** `canais-captacao` removido do navRegistry, rota redireciona para `links-instalacao`
+- **Canonical:** `links-instalacao` ("Captação & App")
+
 ---
 
 ## Score
@@ -64,3 +71,4 @@ Não há overlap real:
 | `dominio_customizado` em 2 tabelas | 🔴 P1 | Migrar para single source em `tenants` |
 | `SiteConfigManager.tsx` órfão | 🔴 P2 | Deletar |
 | `sidebarConfig.ts` redundante | 🟡 P2 | Documentar que navRegistry é truth |
+| `canais-captacao` duplicado | ✅ Resolvido | Removido, redireciona para `links-instalacao` |
