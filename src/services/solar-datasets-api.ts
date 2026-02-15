@@ -109,6 +109,33 @@ export async function getImportJobLogs(jobId: string): Promise<ImportJobLog[]> {
   return (data ?? []) as ImportJobLog[];
 }
 
+// ─── Load persisted jobs from DB ─────────────────────────────
+
+/** Fetches recent import jobs directly from the database (read-only). */
+export async function loadRecentImportJobs(limit = 20): Promise<ImportJob[]> {
+  const { data, error } = await supabase
+    .from("solar_import_jobs")
+    .select("id, dataset_key, status, started_at, finished_at, error_message, row_count, created_at")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.warn("Failed to load import jobs:", error.message);
+    return [];
+  }
+
+  return (data ?? []).map((row: any) => ({
+    job_id: row.id,
+    dataset_key: row.dataset_key,
+    status: row.status as ImportJobStatus,
+    started_at: row.started_at,
+    finished_at: row.finished_at,
+    error_message: row.error_message,
+    row_count: row.row_count,
+    created_at: row.created_at,
+  }));
+}
+
 // ─── Polling helpers ─────────────────────────────────────────
 
 const BACKOFF_SCHEDULE_MS = [3000, 5000, 8000] as const;
