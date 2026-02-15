@@ -42,6 +42,7 @@ export interface NavRegistryItem {
 export const NAV_REGISTRY: NavRegistryItem[] = [
   // ── Dashboard ──
   { nav_key: "dashboard", label_default: "Painel Geral", group_default: "Painel", order_default: 0, icon: "BarChart3", description: "Resumo de métricas e indicadores do negócio", keywords: ["resumo", "métricas", "KPI", "overview", "indicadores", "dashboard"], criticality: "business_critical", permission: "all" },
+  { nav_key: "performance", label_default: "Performance", group_default: "Painel", order_default: 1, icon: "TrendingUp", description: "Ranking de consultores, motivos de perda e métricas de funil", keywords: ["performance", "ranking", "conversão", "perda", "vendas", "relatório"], criticality: "normal", permission: "admin_only" },
 
   // ── Comercial ──
   { nav_key: "leads", label_default: "Leads", group_default: "Comercial", order_default: 0, icon: "Users", description: "Cadastro e acompanhamento de oportunidades", keywords: ["contato", "prospect", "captura", "formulário", "lead"], criticality: "business_critical", permission: "all" },
