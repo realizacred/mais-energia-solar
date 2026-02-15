@@ -155,7 +155,8 @@ export function ChatListItem({
 
   // Build badges with overflow
   const allBadges = useMemo(() => buildBadges(conv), [conv]);
-  const MAX_VISIBLE = 2;
+  const MAX_VISIBLE = 4;
+  const BADGES_PER_ROW = 2;
   const visibleBadges = allBadges.slice(0, MAX_VISIBLE);
   const overflowBadges = allBadges.slice(MAX_VISIBLE);
 
@@ -256,36 +257,47 @@ export function ChatListItem({
           )}
         </div>
 
-        {/* Line 3: Badges (max 2 visible + overflow popover) */}
+        {/* Lines 3-4: Badges (2 rows × 2 badges + overflow popover) */}
         {allBadges.length > 0 && (
-          <div className="flex items-center gap-1 mt-0.5 overflow-hidden max-w-full">
-            {visibleBadges.map((b) => (
-              <CompactBadge key={b.key} item={b} />
-            ))}
-            {overflowBadges.length > 0 && (
-              <Popover>
-                <PopoverTrigger asChild>
-                  <button
-                    onClick={(e) => e.stopPropagation()}
-                    className="h-[18px] px-1.5 text-[10px] font-medium rounded-full border border-border bg-muted/50 text-muted-foreground hover:bg-muted transition-colors shrink-0"
-                  >
-                    +{overflowBadges.length}
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent
-                  side="right"
-                  align="start"
-                  className="w-auto max-w-[200px] p-2 space-y-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Mais detalhes</p>
-                  <div className="flex flex-wrap gap-1">
-                    {overflowBadges.map((b) => (
-                      <CompactBadge key={b.key} item={b} />
-                    ))}
-                  </div>
-                </PopoverContent>
-              </Popover>
+          <div className="space-y-0.5 mt-0.5">
+            {/* Row 1 */}
+            <div className="flex items-center gap-1 overflow-hidden max-w-full">
+              {visibleBadges.slice(0, BADGES_PER_ROW).map((b) => (
+                <CompactBadge key={b.key} item={b} />
+              ))}
+            </div>
+            {/* Row 2 (only if needed) */}
+            {visibleBadges.length > BADGES_PER_ROW && (
+              <div className="flex items-center gap-1 overflow-hidden max-w-full">
+                {visibleBadges.slice(BADGES_PER_ROW).map((b) => (
+                  <CompactBadge key={b.key} item={b} />
+                ))}
+                {overflowBadges.length > 0 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <button
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-[18px] px-1.5 text-[10px] font-medium rounded-full border border-border bg-muted/50 text-muted-foreground hover:bg-muted transition-colors shrink-0"
+                      >
+                        +{overflowBadges.length}
+                      </button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      side="right"
+                      align="start"
+                      className="w-auto max-w-[200px] p-2 space-y-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <p className="text-[10px] font-semibold text-muted-foreground mb-1.5">Mais detalhes</p>
+                      <div className="flex flex-wrap gap-1">
+                        {overflowBadges.map((b) => (
+                          <CompactBadge key={b.key} item={b} />
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
             )}
           </div>
         )}
