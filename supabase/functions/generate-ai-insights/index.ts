@@ -34,7 +34,12 @@ async function callAI(
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`OpenAI API error: ${res.status} - ${errText}`);
+    const status = res.status;
+    if (status === 429) throw new Error("AI_RATE_LIMIT: Limite de requisições da OpenAI excedido. Aguarde 1 minuto.");
+    if (status === 401 || status === 403) throw new Error("AI_AUTH_INVALID: Chave da API OpenAI inválida ou expirada. Atualize em Admin → Integrações.");
+    if (status === 402) throw new Error("AI_NO_CREDITS: Sem créditos na conta OpenAI. Verifique o faturamento.");
+    if (status === 404 || status === 410) throw new Error("AI_MODEL_UNAVAILABLE: Modelo de IA não disponível.");
+    throw new Error(`AI_PROVIDER_ERROR: Erro OpenAI (${status}) - ${errText.slice(0, 200)}`);
   }
 
   const data = await res.json();

@@ -136,14 +136,35 @@ Gere a mensagem explicativa para o vendedor enviar.`;
 
     if (!openaiResponse.ok) {
       const errText = await openaiResponse.text();
-      console.error("OpenAI error:", openaiResponse.status, errText);
+      console.error("[ai-proposal-explainer] OpenAI error:", openaiResponse.status, errText);
       if (openaiResponse.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit da OpenAI excedido." }),
+          JSON.stringify({ error: "Limite de requisições da OpenAI excedido. Aguarde 1 minuto.", code: "AI_RATE_LIMIT" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`);
+      if (openaiResponse.status === 401 || openaiResponse.status === 403) {
+        return new Response(
+          JSON.stringify({ error: "Chave da API OpenAI inválida ou expirada. Atualize em Admin → Integrações.", code: "AI_AUTH_INVALID" }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (openaiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "Sem créditos na conta OpenAI. Verifique o faturamento.", code: "AI_NO_CREDITS" }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (openaiResponse.status === 404 || openaiResponse.status === 410) {
+        return new Response(
+          JSON.stringify({ error: "Modelo de IA não disponível. Contate o administrador.", code: "AI_MODEL_UNAVAILABLE" }),
+          { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: `Erro no provedor OpenAI (${openaiResponse.status}). Tente novamente.`, code: "AI_PROVIDER_ERROR" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const aiData = await openaiResponse.json();
