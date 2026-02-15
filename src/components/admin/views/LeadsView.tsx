@@ -12,6 +12,7 @@ import {
 } from "@/components/admin/leads";
 import { ConvertLeadToClientDialog } from "@/components/leads/ConvertLeadToClientDialog";
 import { PendingDocumentationWidget, FollowUpNotifications } from "@/components/admin/widgets";
+import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import { OrcamentoSortSelector } from "@/components/ui/orcamento-sort-selector";
 import { useOrcamentoSort } from "@/hooks/useOrcamentoSort";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -130,9 +131,10 @@ export function LeadsView() {
   return (
     <>
       {/* Notification Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <PendingDocumentationWidget onLeadClick={handleLeadFromWidget} />
         <FollowUpNotifications onLeadClick={handleLeadFromWidget} diasAlerta={3} />
+        <WaAutoMessageToggle />
       </div>
 
       <Card>
