@@ -9949,6 +9949,101 @@ export type Database = {
           },
         ]
       }
+      wa_followup_logs: {
+        Row: {
+          action: string
+          ai_confidence: number | null
+          ai_model: string | null
+          ai_reason: string | null
+          assigned_to: string | null
+          cenario: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          led_to_conversion: boolean | null
+          mensagem_enviada: string | null
+          mensagem_original: string | null
+          metadata: Json | null
+          queue_id: string | null
+          responded_at: string | null
+          response_time_minutes: number | null
+          rule_id: string | null
+          tenant_id: string
+          tentativa: number | null
+        }
+        Insert: {
+          action: string
+          ai_confidence?: number | null
+          ai_model?: string | null
+          ai_reason?: string | null
+          assigned_to?: string | null
+          cenario?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          led_to_conversion?: boolean | null
+          mensagem_enviada?: string | null
+          mensagem_original?: string | null
+          metadata?: Json | null
+          queue_id?: string | null
+          responded_at?: string | null
+          response_time_minutes?: number | null
+          rule_id?: string | null
+          tenant_id: string
+          tentativa?: number | null
+        }
+        Update: {
+          action?: string
+          ai_confidence?: number | null
+          ai_model?: string | null
+          ai_reason?: string | null
+          assigned_to?: string | null
+          cenario?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          led_to_conversion?: boolean | null
+          mensagem_enviada?: string | null
+          mensagem_original?: string | null
+          metadata?: Json | null
+          queue_id?: string | null
+          responded_at?: string | null
+          response_time_minutes?: number | null
+          rule_id?: string | null
+          tenant_id?: string
+          tentativa?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_followup_logs_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_followup_logs_queue_id_fkey"
+            columns: ["queue_id"]
+            isOneToOne: false
+            referencedRelation: "wa_followup_queue"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_followup_logs_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "wa_followup_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_followup_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_followup_queue: {
         Row: {
           assigned_to: string | null
@@ -11231,6 +11326,7 @@ export type Database = {
       cleanup_agenda_sync_logs: { Args: never; Returns: undefined }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_gcal_events: { Args: never; Returns: undefined }
+      cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
       enforce_limit_or_throw: {

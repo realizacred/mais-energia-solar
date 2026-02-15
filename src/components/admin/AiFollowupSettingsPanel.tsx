@@ -23,7 +23,9 @@ import {
   Zap,
   Info,
   Sparkles,
+  Lock,
 } from "lucide-react";
+import { useTenantPlan } from "@/hooks/useTenantPlan";
 
 interface AiSettings {
   id?: string;
@@ -67,6 +69,8 @@ const WRITING_ASSISTANT_MODELS = [
 
 export function AiFollowupSettingsPanel() {
   const { toast } = useToast();
+  const { hasFeature } = useTenantPlan();
+  const hasAiFollowup = hasFeature("ai_followup");
   const [settings, setSettings] = useState<AiSettings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -158,8 +162,22 @@ export function AiFollowupSettingsPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Plan gate banner */}
+      {!hasAiFollowup && (
+        <div className="flex items-center gap-3 p-4 rounded-lg bg-muted/50 border border-border">
+          <Lock className="h-5 w-5 text-muted-foreground shrink-0" />
+          <div>
+            <p className="text-sm font-medium">Funcionalidades de IA bloqueadas</p>
+            <p className="text-xs text-muted-foreground">
+              A configuração de IA para follow-ups está disponível nos planos Pro e Enterprise. 
+              Regras manuais de follow-up continuam funcionando normalmente.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Modo de operação */}
-      <Card>
+      <Card className={!hasAiFollowup ? "opacity-50 pointer-events-none" : ""}>
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-primary" />
@@ -427,7 +445,7 @@ export function AiFollowupSettingsPanel() {
       </Card>
 
       {/* Save */}
-      <Button onClick={handleSave} disabled={saving} className="gap-2">
+      <Button onClick={handleSave} disabled={saving || !hasAiFollowup} className="gap-2">
         {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
         Salvar Configurações de IA
       </Button>

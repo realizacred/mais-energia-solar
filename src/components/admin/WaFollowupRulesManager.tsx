@@ -6,6 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import { Play } from "lucide-react";
+import { useTenantPlan } from "@/hooks/useTenantPlan";
+import { usePlanGuard } from "@/components/plan/PlanGuard";
+import { Lock } from "lucide-react";
 import {
   Bell,
   Plus,
@@ -130,6 +133,9 @@ const DEFAULT_FORM: RuleFormData = {
 export function WaFollowupRulesManager() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { hasFeature } = useTenantPlan();
+  const { guardLimit, LimitDialog } = usePlanGuard();
+  const hasAiFollowup = hasFeature("ai_followup");
   const [editingRule, setEditingRule] = useState<FollowupRule | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<FollowupRule | null>(null);
@@ -586,13 +592,21 @@ export function WaFollowupRulesManager() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border">
+            <div className={`flex items-center justify-between p-3 rounded-lg border ${!hasAiFollowup ? "opacity-60" : ""}`}>
               <div>
-                <Label className="text-sm font-medium">Envio automático</Label>
-                <p className="text-xs text-muted-foreground">Enviar mensagem automaticamente após o prazo</p>
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  Envio automático
+                  {!hasAiFollowup && <Lock className="h-3.5 w-3.5 text-muted-foreground" />}
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  {hasAiFollowup
+                    ? "Enviar mensagem automaticamente após o prazo"
+                    : "Disponível nos planos Pro e Enterprise"}
+                </p>
               </div>
               <Switch
                 checked={formData.envio_automatico}
+                disabled={!hasAiFollowup}
                 onCheckedChange={(v) => setFormData({ ...formData, envio_automatico: v })}
               />
             </div>
@@ -643,6 +657,7 @@ export function WaFollowupRulesManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {LimitDialog}
     </div>
   );
 }
