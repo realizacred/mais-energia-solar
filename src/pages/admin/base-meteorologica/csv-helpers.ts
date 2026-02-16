@@ -41,11 +41,16 @@ export interface CsvValidationResult {
 // ─── Constants ───────────────────────────────────────────
 
 const MONTH_MAP: Record<string, number> = {
+  // Portuguese 3-letter
   jan: 0, fev: 1, mar: 2, abr: 3, mai: 4, jun: 5,
   jul: 6, ago: 7, set: 8, out: 9, nov: 10, dez: 11,
+  // English 3-letter
+  feb: 1, apr: 3, may: 4, aug: 7, sep: 8, oct: 9, dec: 11,
+  // Numeric m01-m12
   m01: 0, m02: 1, m03: 2, m04: 3, m05: 4, m06: 5,
   m07: 6, m08: 7, m09: 8, m10: 9, m11: 10, m12: 11,
-  january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+  // Full English
+  january: 0, february: 1, march: 2, april: 3, june: 5,
   july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
 };
 
