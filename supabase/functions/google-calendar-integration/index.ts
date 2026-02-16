@@ -48,7 +48,7 @@ async function resolveUser(req: Request) {
   const { data: profile } = await adminClient
     .from("profiles")
     .select("tenant_id")
-    .eq("id", userId)
+    .eq("user_id", userId)
     .single();
 
   if (!profile?.tenant_id) throw new Error("No tenant");
