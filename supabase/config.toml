@@ -112,24 +112,9 @@ verify_jwt = false
 [functions.ai-conversation-summary]
 verify_jwt = false
 
-[functions.google-calendar-auth]
+[functions.google-calendar-integration]
 verify_jwt = false
 
-[functions.google-calendar-callback]
-verify_jwt = false
-
-[functions.google-calendar-sync]
-verify_jwt = false
-
-[functions.google-calendar-read]
-verify_jwt = false
-
-[functions.google-calendar-poll]
-verify_jwt = false
-
-
-[functions.retry-failed-calendar-sync]
-verify_jwt = false
 
 [functions.resolve-wa-channel]
 verify_jwt = false
