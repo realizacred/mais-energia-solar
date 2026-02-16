@@ -88,11 +88,12 @@ async function verifyAndParseState(state: string): Promise<Record<string, unknow
 
 // ── AES-256-GCM Encryption ──────────────────────────────────
 
+const ENC_PREFIX = "enc:";
+
 async function getEncryptionKey(): Promise<CryptoKey> {
   if (!MASTER_ENCRYPTION_KEY) {
     throw new Error("MASTER_ENCRYPTION_KEY not configured");
   }
-  // Derive a 256-bit key from the master key using SHA-256
   const keyMaterial = await crypto.subtle.digest(
     "SHA-256",
     new TextEncoder().encode(MASTER_ENCRYPTION_KEY)
@@ -103,10 +104,29 @@ async function getEncryptionKey(): Promise<CryptoKey> {
   ]);
 }
 
-/** Encrypt plaintext → base64(iv:ciphertext:tag) */
+/** Uint8Array → base64 without spread (safe for large payloads) */
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
+/** base64 → Uint8Array */
+function base64ToUint8(b64: string): Uint8Array {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+/** Encrypt plaintext → "enc:" + base64(iv + ciphertext + tag) */
 async function encryptToken(plaintext: string): Promise<string> {
   const key = await getEncryptionKey();
-  const iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV
+  const iv = crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(plaintext);
 
   const ciphertext = await crypto.subtle.encrypt(
@@ -115,18 +135,18 @@ async function encryptToken(plaintext: string): Promise<string> {
     encoded
   );
 
-  // Combine iv + ciphertext (tag is appended by WebCrypto)
   const combined = new Uint8Array(iv.length + ciphertext.byteLength);
   combined.set(iv, 0);
   combined.set(new Uint8Array(ciphertext), iv.length);
 
-  return btoa(String.fromCharCode(...combined));
+  return ENC_PREFIX + uint8ToBase64(combined);
 }
 
-/** Decrypt base64(iv:ciphertext:tag) → plaintext */
+/** Decrypt "enc:"-prefixed base64 → plaintext. Throws on failure. */
 async function decryptToken(encrypted: string): Promise<string> {
+  const b64 = encrypted.startsWith(ENC_PREFIX) ? encrypted.slice(ENC_PREFIX.length) : encrypted;
   const key = await getEncryptionKey();
-  const combined = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
+  const combined = base64ToUint8(b64);
 
   const iv = combined.slice(0, 12);
   const ciphertext = combined.slice(12);
@@ -141,18 +161,41 @@ async function decryptToken(encrypted: string): Promise<string> {
 }
 
 /**
- * Try to decrypt a token. If decryption fails (legacy plaintext token),
- * return the value as-is for backward compatibility during migration.
+ * Smart decrypt with auto-migration:
+ * - "enc:" prefix → mandatory decrypt (throws on failure)
+ * - No prefix → legacy plaintext, return as-is + schedule re-encryption
+ * 
+ * @param migrationCtx if provided, legacy tokens are re-encrypted in-place
  */
-async function safeDecryptToken(value: string | null): Promise<string | null> {
+async function safeDecryptToken(
+  value: string | null,
+  migrationCtx?: { adminClient: ReturnType<typeof createClient>; credId: string; field: "access_token_encrypted" | "refresh_token_encrypted" }
+): Promise<string | null> {
   if (!value) return null;
-  try {
+
+  if (value.startsWith(ENC_PREFIX)) {
+    // Modern encrypted token — decrypt is mandatory
     return await decryptToken(value);
-  } catch {
-    // Legacy plaintext token — return as-is
-    console.warn("[CRYPTO] Failed to decrypt token, assuming legacy plaintext");
-    return value;
   }
+
+  // Legacy plaintext token
+  console.warn("[CRYPTO] Legacy plaintext token detected, returning as-is");
+
+  // Auto-migrate: re-encrypt and persist
+  if (migrationCtx) {
+    try {
+      const encrypted = await encryptToken(value);
+      await migrationCtx.adminClient
+        .from("integration_credentials")
+        .update({ [migrationCtx.field]: encrypted })
+        .eq("id", migrationCtx.credId);
+      console.log("[CRYPTO] Auto-migrated legacy token to AES-GCM");
+    } catch (migErr) {
+      console.error("[CRYPTO] Auto-migration failed (non-fatal)");
+    }
+  }
+
+  return value;
 }
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -814,7 +857,7 @@ async function handleDisconnect(req: Request) {
 
   const { data: cred } = await adminClient
     .from("integration_credentials")
-    .select("access_token_encrypted")
+    .select("id, access_token_encrypted")
     .eq("integration_id", intRow.id)
     .order("created_at", { ascending: false })
     .limit(1)
@@ -925,11 +968,15 @@ async function getValidAccessToken(
   if (!cred) return null;
 
   if (cred.expires_at && new Date(cred.expires_at) > new Date(Date.now() + 60_000)) {
-    const decrypted = await safeDecryptToken(cred.access_token_encrypted);
+    const decrypted = await safeDecryptToken(cred.access_token_encrypted, {
+      adminClient, credId: cred.id, field: "access_token_encrypted",
+    });
     return decrypted;
   }
 
-  const refreshTokenPlain = await safeDecryptToken(cred.refresh_token_encrypted);
+  const refreshTokenPlain = await safeDecryptToken(cred.refresh_token_encrypted, {
+    adminClient, credId: cred.id, field: "refresh_token_encrypted",
+  });
   if (!refreshTokenPlain) return null;
 
   // Get per-tenant OAuth creds for refresh
