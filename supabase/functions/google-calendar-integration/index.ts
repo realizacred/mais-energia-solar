@@ -31,12 +31,13 @@ function getCallbackUrl(): string {
 }
 
 function popupCloseHtml(queryString: string): string {
+  const fallbackUrl = getCallbackUrl() + "?" + queryString;
   return `<!DOCTYPE html><html><head><title>Google Calendar</title></head><body>
 <script>
   if (window.opener) {
     window.close();
   } else {
-    window.location.href = "${getCallbackUrl()}?${queryString}";
+    window.location.href = "${fallbackUrl}";
   }
 </script>
 <p>Conectado! Você pode fechar esta janela.</p>
