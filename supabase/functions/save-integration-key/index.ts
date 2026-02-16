@@ -64,6 +64,24 @@ Deno.serve(async (req) => {
       });
     }
 
+    // ── Google Calendar credential validation (NEVER trust the client) ──
+    if (service_key === "google_calendar_client_id") {
+      if (!api_key.endsWith(".apps.googleusercontent.com") || api_key.includes("@")) {
+        return new Response(
+          JSON.stringify({ code: "CONFIG_INVALID", error: "Client ID inválido. Deve terminar com .apps.googleusercontent.com" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+    if (service_key === "google_calendar_client_secret") {
+      if (api_key.includes("@") || api_key.trim().length < 10) {
+        return new Response(
+          JSON.stringify({ code: "CONFIG_INVALID", error: "Client Secret inválido." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // Validate the key before saving
     let validation = { valid: false, details: "" };
 

@@ -44,11 +44,26 @@ export function GoogleCalendarConfigPage() {
   // Unique React-generated IDs to avoid any autofill pattern matching
   const formId = useId();
 
-  const validateNotEmail = (value: string, field: "id" | "secret") => {
+  const CLIENT_ID_REGEX = /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
+
+  const validateClientId = (value: string): string => {
+    if (!value.trim()) return "";
     if (value.includes("@")) {
-      return field === "id"
-        ? "Erro: Insira o Client ID do projeto, não seu e-mail. O Client ID termina com .apps.googleusercontent.com"
-        : "Erro: Insira o Client Secret do projeto, não seu e-mail.";
+      return "Erro: Insira o Client ID do projeto, não seu e-mail. O Client ID termina com .apps.googleusercontent.com";
+    }
+    if (!CLIENT_ID_REGEX.test(value.trim())) {
+      return "Client ID inválido. O formato correto é: 123456789-xxxxxxxx.apps.googleusercontent.com";
+    }
+    return "";
+  };
+
+  const validateClientSecret = (value: string): string => {
+    if (!value.trim()) return "";
+    if (value.includes("@")) {
+      return "Erro: Insira o Client Secret do projeto, não seu e-mail.";
+    }
+    if (value.trim().length < 10) {
+      return "Client Secret parece muito curto. Verifique o valor copiado do Google Cloud Console.";
     }
     return "";
   };
@@ -271,7 +286,7 @@ export function GoogleCalendarConfigPage() {
                 onChange={(e) => {
                   const val = e.target.value.replace(/\n/g, "");
                   setGcalAppIdentity(val);
-                  setIdentityError(validateNotEmail(val, "id"));
+                  setIdentityError(validateClientId(val));
                 }}
                 className={`flex w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono shadow-xs transition-all duration-200 resize-none overflow-hidden ring-offset-background placeholder:text-muted-foreground/60 hover:border-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 ${identityError ? "border-destructive focus-visible:ring-destructive/40" : "border-input"}`}
                 autoComplete="off"
@@ -304,7 +319,7 @@ export function GoogleCalendarConfigPage() {
                 onChange={(e) => {
                   const val = e.target.value.replace(/\n/g, "");
                   setGcalAppSecurity(val);
-                  setSecurityError(validateNotEmail(val, "secret"));
+                  setSecurityError(validateClientSecret(val));
                 }}
                 className={`flex w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono shadow-xs transition-all duration-200 resize-none overflow-hidden ring-offset-background placeholder:text-muted-foreground/60 hover:border-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 ${securityError ? "border-destructive focus-visible:ring-destructive/40" : "border-input"}`}
                 autoComplete="off"

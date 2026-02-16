@@ -68,8 +68,17 @@ Deno.serve(async (req) => {
       .eq("is_active", true);
 
     const clientId = configs?.find(c => c.service_key === "google_calendar_client_id")?.api_key;
-    if (!clientId) {
-      return new Response(JSON.stringify({ error: "Google Calendar not configured. Ask admin to set up OAuth credentials." }), {
+    const clientSecret = configs?.find(c => c.service_key === "google_calendar_client_secret")?.api_key;
+
+    if (!clientId || !clientSecret) {
+      return new Response(JSON.stringify({ code: "CONFIG_MISSING", error: "Client ID ou Client Secret não configurados. Peça ao admin para configurar as credenciais OAuth." }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (!clientId.endsWith(".apps.googleusercontent.com")) {
+      return new Response(JSON.stringify({ code: "CONFIG_INVALID", error: "Client ID inválido armazenado. Reconfigure as credenciais OAuth." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
