@@ -9,8 +9,6 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const GOOGLE_CLIENT_ID = Deno.env.get("GOOGLE_CLIENT_ID")!;
-const GOOGLE_CLIENT_SECRET = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
 
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
@@ -40,11 +38,10 @@ async function resolveUser(req: Request) {
     global: { headers: { Authorization: authHeader } },
   });
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data: claims, error } = await userClient.auth.getClaims(token);
-  if (error || !claims?.claims) throw new Error("Invalid token");
+  const { data: { user }, error } = await userClient.auth.getUser();
+  if (error || !user) throw new Error("Invalid token");
 
-  const userId = claims.claims.sub as string;
+  const userId = user.id;
 
   // Resolve tenant
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
@@ -57,6 +54,29 @@ async function resolveUser(req: Request) {
   if (!profile?.tenant_id) throw new Error("No tenant");
 
   return { userId, tenantId: profile.tenant_id, adminClient };
+}
+
+/** Get per-tenant OAuth credentials from integrations table */
+async function getTenantOAuthCreds(adminClient: ReturnType<typeof createClient>, tenantId: string) {
+  const { data } = await adminClient
+    .from("integrations")
+    .select("oauth_client_id, oauth_client_secret_encrypted")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google_calendar")
+    .single();
+
+  const clientId = data?.oauth_client_id;
+  const clientSecret = data?.oauth_client_secret_encrypted;
+
+  if (!clientId || !clientSecret) {
+    // Fallback to env vars
+    const envId = Deno.env.get("GOOGLE_CLIENT_ID");
+    const envSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+    if (envId && envSecret) return { clientId: envId, clientSecret: envSecret };
+    return null;
+  }
+
+  return { clientId, clientSecret };
 }
 
 async function auditLog(
@@ -85,12 +105,85 @@ async function auditLog(
   });
 }
 
+// ── SAVE CONFIG: Store OAuth credentials per tenant ─────────
+
+async function handleSaveConfig(req: Request) {
+  const { userId, tenantId, adminClient } = await resolveUser(req);
+  const body = await req.json();
+  const { client_id, client_secret } = body;
+
+  if (!client_id) return json({ error: "client_id obrigatório" }, 400);
+  if (!client_secret) return json({ error: "client_secret obrigatório" }, 400);
+
+  // Ensure integration row exists
+  const { data: existing } = await adminClient
+    .from("integrations")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google_calendar")
+    .single();
+
+  if (!existing) {
+    await adminClient.from("integrations").insert({
+      tenant_id: tenantId,
+      provider: "google_calendar",
+      status: "disconnected",
+      oauth_client_id: client_id,
+      oauth_client_secret_encrypted: client_secret,
+    });
+  } else {
+    await adminClient
+      .from("integrations")
+      .update({
+        oauth_client_id: client_id,
+        oauth_client_secret_encrypted: client_secret,
+      })
+      .eq("id", existing.id);
+  }
+
+  await auditLog(adminClient, {
+    tenantId,
+    integrationId: existing?.id,
+    actorId: userId,
+    action: "config_saved",
+    result: "success",
+    ip: req.headers.get("x-forwarded-for") || "",
+    userAgent: req.headers.get("user-agent") || "",
+    metadata: { client_id_set: true, client_secret_set: true },
+  });
+
+  return json({ success: true });
+}
+
+// ── GET CONFIG: Return only client_id (never secret) ────────
+
+async function handleGetConfig(req: Request) {
+  const { tenantId, adminClient } = await resolveUser(req);
+
+  const { data } = await adminClient
+    .from("integrations")
+    .select("oauth_client_id, oauth_client_secret_encrypted")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google_calendar")
+    .single();
+
+  return json({
+    client_id: data?.oauth_client_id || "",
+    has_secret: !!data?.oauth_client_secret_encrypted,
+  });
+}
+
 // ── CONNECT: Start OAuth flow ───────────────────────────────
 
 async function handleConnect(req: Request) {
   const { userId, tenantId, adminClient } = await resolveUser(req);
   const ip = req.headers.get("x-forwarded-for") || "";
   const ua = req.headers.get("user-agent") || "";
+
+  const creds = await getTenantOAuthCreds(adminClient, tenantId);
+  if (!creds) {
+    return json({ error: "Configure o Client ID e Client Secret antes de conectar." }, 400);
+  }
 
   // Check for existing active integration
   const { data: existing } = await adminClient
@@ -104,13 +197,12 @@ async function handleConnect(req: Request) {
     return json({ error: "Já existe uma integração ativa. Desconecte antes de reconectar." }, 409);
   }
 
-  // Build state token (tenant+user for callback validation)
+  // Build state token
   const state = btoa(JSON.stringify({ tenantId, userId }));
-
   const callbackUrl = `${SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`;
 
   const params = new URLSearchParams({
-    client_id: GOOGLE_CLIENT_ID,
+    client_id: creds.clientId,
     redirect_uri: callbackUrl,
     response_type: "code",
     scope: SCOPES.join(" "),
@@ -178,6 +270,16 @@ async function handleCallback(req: Request) {
     return json({ error: "Invalid state" }, 400);
   }
 
+  // Get per-tenant credentials
+  const creds = await getTenantOAuthCreds(adminClient, tenantId);
+  if (!creds) {
+    const redirectUrl = getCallbackUrl();
+    return new Response(null, {
+      status: 302,
+      headers: { ...corsHeaders, Location: `${redirectUrl}?error=missing_credentials` },
+    });
+  }
+
   const callbackUrl = `${SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`;
 
   // Exchange code for tokens
@@ -186,8 +288,8 @@ async function handleCallback(req: Request) {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
       code,
-      client_id: GOOGLE_CLIENT_ID,
-      client_secret: GOOGLE_CLIENT_SECRET,
+      client_id: creds.clientId,
+      client_secret: creds.clientSecret,
       redirect_uri: callbackUrl,
       grant_type: "authorization_code",
     }),
@@ -258,7 +360,6 @@ async function handleCallback(req: Request) {
     .single();
 
   if (intRow) {
-    // Upsert credentials (delete old, insert new)
     await adminClient
       .from("integration_credentials")
       .delete()
@@ -310,7 +411,6 @@ async function handleTest(req: Request) {
     return json({ error: "Integração não conectada" }, 400);
   }
 
-  // Get access token (refresh if needed)
   const accessToken = await getValidAccessToken(adminClient, intRow.id, tenantId);
   if (!accessToken) {
     await adminClient
@@ -319,20 +419,14 @@ async function handleTest(req: Request) {
       .eq("id", intRow.id);
 
     await auditLog(adminClient, {
-      tenantId,
-      integrationId: intRow.id,
-      actorId: userId,
-      action: "test_fail",
-      result: "fail",
-      ip,
-      userAgent: ua,
+      tenantId, integrationId: intRow.id, actorId: userId,
+      action: "test_fail", result: "fail", ip, userAgent: ua,
       metadata: { reason: "token_expired" },
     });
 
     return json({ success: false, error: "Token expirado. Reconecte a integração." });
   }
 
-  // Call Google Calendar API
   try {
     const calRes = await fetch(
       "https://www.googleapis.com/calendar/v3/users/me/calendarList",
@@ -353,13 +447,8 @@ async function handleTest(req: Request) {
         .eq("id", intRow.id);
 
       await auditLog(adminClient, {
-        tenantId,
-        integrationId: intRow.id,
-        actorId: userId,
-        action: "test_fail",
-        result: "fail",
-        ip,
-        userAgent: ua,
+        tenantId, integrationId: intRow.id, actorId: userId,
+        action: "test_fail", result: "fail", ip, userAgent: ua,
         metadata: { http_status: calRes.status },
       });
 
@@ -385,26 +474,16 @@ async function handleTest(req: Request) {
       .eq("id", intRow.id);
 
     await auditLog(adminClient, {
-      tenantId,
-      integrationId: intRow.id,
-      actorId: userId,
-      action: "test_success",
-      result: "success",
-      ip,
-      userAgent: ua,
+      tenantId, integrationId: intRow.id, actorId: userId,
+      action: "test_success", result: "success", ip, userAgent: ua,
       metadata: { calendars_count: calendars.length },
     });
 
     return json({ success: true, calendars });
   } catch (err: any) {
     await auditLog(adminClient, {
-      tenantId,
-      integrationId: intRow.id,
-      actorId: userId,
-      action: "test_fail",
-      result: "fail",
-      ip,
-      userAgent: ua,
+      tenantId, integrationId: intRow.id, actorId: userId,
+      action: "test_fail", result: "fail", ip, userAgent: ua,
       metadata: { error: err.message },
     });
 
@@ -446,7 +525,6 @@ async function handleDisconnect(req: Request) {
 
   if (!intRow) return json({ error: "Integração não encontrada" }, 404);
 
-  // Try to revoke token at Google
   const { data: cred } = await adminClient
     .from("integration_credentials")
     .select("access_token_encrypted")
@@ -464,13 +542,11 @@ async function handleDisconnect(req: Request) {
     } catch { /* best effort */ }
   }
 
-  // Delete credentials
   await adminClient
     .from("integration_credentials")
     .delete()
     .eq("integration_id", intRow.id);
 
-  // Update integration
   await adminClient
     .from("integrations")
     .update({
@@ -485,13 +561,8 @@ async function handleDisconnect(req: Request) {
     .eq("id", intRow.id);
 
   await auditLog(adminClient, {
-    tenantId,
-    integrationId: intRow.id,
-    actorId: userId,
-    action: "disconnect",
-    result: "success",
-    ip,
-    userAgent: ua,
+    tenantId, integrationId: intRow.id, actorId: userId,
+    action: "disconnect", result: "success", ip, userAgent: ua,
   });
 
   return json({ success: true });
@@ -500,11 +571,11 @@ async function handleDisconnect(req: Request) {
 // ── STATUS ──────────────────────────────────────────────────
 
 async function handleStatus(req: Request) {
-  const { userId, tenantId, adminClient } = await resolveUser(req);
+  const { tenantId, adminClient } = await resolveUser(req);
 
   const { data: intRow } = await adminClient
     .from("integrations")
-    .select("id, status, connected_account_email, default_calendar_id, default_calendar_name, scopes, last_test_at, last_test_status, last_error_code, last_error_message, created_at, updated_at")
+    .select("id, status, connected_account_email, default_calendar_id, default_calendar_name, scopes, last_test_at, last_test_status, last_error_code, last_error_message, oauth_client_id, created_at, updated_at")
     .eq("tenant_id", tenantId)
     .eq("provider", "google_calendar")
     .single();
@@ -519,10 +590,16 @@ async function handleStatus(req: Request) {
       scopes: [],
       last_test_at: null,
       last_test_status: null,
+      has_credentials: false,
     });
   }
 
-  return json(intRow);
+  // Never return the secret, only whether it's configured
+  return json({
+    ...intRow,
+    has_credentials: !!intRow.oauth_client_id,
+    oauth_client_secret_encrypted: undefined, // never leak
+  });
 }
 
 // ── AUDIT LOG LIST ──────────────────────────────────────────
@@ -557,21 +634,23 @@ async function getValidAccessToken(
 
   if (!cred) return null;
 
-  // If token not expired, return it
   if (cred.expires_at && new Date(cred.expires_at) > new Date(Date.now() + 60_000)) {
     return cred.access_token_encrypted;
   }
 
-  // Try refresh
   if (!cred.refresh_token_encrypted) return null;
+
+  // Get per-tenant OAuth creds for refresh
+  const oauthCreds = await getTenantOAuthCreds(adminClient, tenantId);
+  if (!oauthCreds) return null;
 
   try {
     const refreshRes = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: GOOGLE_CLIENT_ID,
-        client_secret: GOOGLE_CLIENT_SECRET,
+        client_id: oauthCreds.clientId,
+        client_secret: oauthCreds.clientSecret,
         refresh_token: cred.refresh_token_encrypted,
         grant_type: "refresh_token",
       }),
@@ -615,7 +694,6 @@ Deno.serve(async (req) => {
   const action = url.searchParams.get("action") || "";
 
   try {
-    // Callback is GET (from Google redirect)
     if (action === "callback" && req.method === "GET") {
       return await handleCallback(req);
     }
@@ -633,6 +711,10 @@ Deno.serve(async (req) => {
         return await handleStatus(req);
       case "audit-log":
         return await handleAuditLog(req);
+      case "save-config":
+        return await handleSaveConfig(req);
+      case "get-config":
+        return await handleGetConfig(req);
       default:
         return json({ error: `Unknown action: ${action}` }, 400);
     }
