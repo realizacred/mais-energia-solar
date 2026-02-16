@@ -223,9 +223,14 @@ export function IrradianciaPage() {
       if (dsVersions && dsVersions.length > 0) {
         const vIds = dsVersions.map((v: any) => v.id);
 
-        // 2. Delete all data points for these versions
+        // 2. Delete all data points for these versions (correct table name)
         for (const vId of vIds) {
-          await (supabase as any).from("irradiance_data").delete().eq("version_id", vId);
+          // Delete all points for this version
+          const { error } = await supabase
+            .from("irradiance_points_monthly")
+            .delete()
+            .eq("version_id", vId);
+          if (error) console.error("Purge points error:", error);
         }
 
         // 3. Delete cache entries for these versions
@@ -233,10 +238,7 @@ export function IrradianciaPage() {
           await supabase.from("irradiance_lookup_cache").delete().eq("version_id", vId);
         }
 
-        // 4. Delete import jobs
-        await (supabase as any).from("solar_import_logs").delete().in("job_id",
-          ((await (supabase as any).from("solar_import_jobs").select("id").eq("dataset_code", datasetCode)).data || []).map((j: any) => j.id)
-        );
+        // 4. Delete import jobs for this dataset
         await (supabase as any).from("solar_import_jobs").delete().eq("dataset_code", datasetCode);
 
         // 5. Delete all versions
