@@ -3056,6 +3056,8 @@ export type Database = {
           last_test_at: string | null
           last_test_status: string | null
           metadata: Json | null
+          oauth_client_id: string | null
+          oauth_client_secret_encrypted: string | null
           provider: Database["public"]["Enums"]["integration_provider"]
           scopes: string[] | null
           status: Database["public"]["Enums"]["integration_status"]
@@ -3073,6 +3075,8 @@ export type Database = {
           last_test_at?: string | null
           last_test_status?: string | null
           metadata?: Json | null
+          oauth_client_id?: string | null
+          oauth_client_secret_encrypted?: string | null
           provider: Database["public"]["Enums"]["integration_provider"]
           scopes?: string[] | null
           status?: Database["public"]["Enums"]["integration_status"]
@@ -3090,6 +3094,8 @@ export type Database = {
           last_test_at?: string | null
           last_test_status?: string | null
           metadata?: Json | null
+          oauth_client_id?: string | null
+          oauth_client_secret_encrypted?: string | null
           provider?: Database["public"]["Enums"]["integration_provider"]
           scopes?: string[] | null
           status?: Database["public"]["Enums"]["integration_status"]

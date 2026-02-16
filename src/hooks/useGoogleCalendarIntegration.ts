@@ -40,6 +40,8 @@ export interface IntegrationStatus {
   last_test_status?: string | null;
   last_error_code?: string | null;
   last_error_message?: string | null;
+  oauth_client_id?: string | null;
+  has_credentials?: boolean;
 }
 
 export interface CalendarItem {
@@ -57,6 +59,11 @@ export interface AuditEvent {
   metadata_json: Record<string, unknown>;
 }
 
+export interface OAuthConfig {
+  client_id: string;
+  has_secret: boolean;
+}
+
 export function useGoogleCalendarIntegration() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -68,6 +75,11 @@ export function useGoogleCalendarIntegration() {
     refetchInterval: 30_000,
   });
 
+  const configQuery = useQuery<OAuthConfig>({
+    queryKey: ["integration", "google_calendar", "config"],
+    queryFn: () => callIntegration("get-config", "POST"),
+  });
+
   const auditQuery = useQuery<{ events: AuditEvent[] }>({
     queryKey: ["integration", "google_calendar", "audit"],
     queryFn: () => callIntegration("audit-log", "POST"),
@@ -76,6 +88,18 @@ export function useGoogleCalendarIntegration() {
   const invalidate = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["integration", "google_calendar"] });
   }, [queryClient]);
+
+  const saveConfigMutation = useMutation({
+    mutationFn: (config: { client_id: string; client_secret: string }) =>
+      callIntegration("save-config", "POST", config),
+    onSuccess: () => {
+      toast({ title: "Credenciais salvas ✅", description: "Client ID e Secret configurados com sucesso" });
+      invalidate();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    },
+  });
 
   const connectMutation = useMutation({
     mutationFn: () => callIntegration("connect"),
@@ -132,8 +156,12 @@ export function useGoogleCalendarIntegration() {
   return {
     status: statusQuery.data,
     isLoading: statusQuery.isLoading,
+    config: configQuery.data,
+    isLoadingConfig: configQuery.isLoading,
     auditEvents: auditQuery.data?.events || [],
     calendars,
+    saveConfig: saveConfigMutation.mutate,
+    isSavingConfig: saveConfigMutation.isPending,
     connect: connectMutation.mutate,
     isConnecting: connectMutation.isPending,
     test: testMutation.mutate,

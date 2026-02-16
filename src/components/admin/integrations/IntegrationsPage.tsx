@@ -1,27 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Calendar, CheckCircle2, XCircle, AlertTriangle, Clock, Plug, Unplug,
-  RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2
+  RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2, Save, KeyRound, Eye, EyeOff
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useGoogleCalendarIntegration, type IntegrationStatus } from "@/hooks/useGoogleCalendarIntegration";
+import { useGoogleCalendarIntegration } from "@/hooks/useGoogleCalendarIntegration";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 // ── Status helpers ──────────────────────────────────────────
@@ -49,6 +44,7 @@ const ACTION_LABELS: Record<string, string> = {
   connect_started: "Conexão iniciada",
   connect_completed: "Conexão concluída",
   callback_received: "Callback recebido",
+  config_saved: "Credenciais salvas",
   test_success: "Teste OK",
   test_fail: "Teste falhou",
   disconnect: "Desconectado",
@@ -62,24 +58,38 @@ const ACTION_LABELS: Record<string, string> = {
 
 export function IntegrationsPage() {
   const {
-    status, isLoading, auditEvents, calendars,
+    status, isLoading, config, isLoadingConfig, auditEvents, calendars,
+    saveConfig, isSavingConfig,
     connect, isConnecting,
     test, isTesting,
     selectCalendar,
     disconnect, isDisconnecting,
-    refetch,
   } = useGoogleCalendarIntegration();
+
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [showSecret, setShowSecret] = useState(false);
+
+  // Populate client_id from config
+  useEffect(() => {
+    if (config?.client_id) {
+      setClientId(config.client_id);
+    }
+  }, [config]);
 
   const isConnected = status?.status === "connected";
   const isError = status?.status === "error" || status?.status === "expired" || status?.status === "revoked";
+  const hasCredentials = config?.has_secret && !!config?.client_id;
+
+  const handleSaveConfig = () => {
+    if (!clientId.trim() || !clientSecret.trim()) return;
+    saveConfig({ client_id: clientId.trim(), client_secret: clientSecret.trim() });
+    setClientSecret("");
+    setShowSecret(false);
+  };
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Integrações</h1>
-        <p className="text-muted-foreground">Gerencie as conexões com serviços externos</p>
-      </div>
-
       {/* ── Google Calendar Card ───────────────────────────── */}
       <Card>
         <CardHeader className="pb-4">
@@ -98,12 +108,73 @@ export function IntegrationsPage() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {isLoading ? (
+          {isLoading || isLoadingConfig ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <>
+              {/* ── OAuth Credentials Config ─────────────── */}
+              <div className="rounded-lg border bg-card p-4 space-y-4">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-muted-foreground" />
+                  Credenciais OAuth (Google Cloud Console)
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Configure o Client ID e Client Secret do seu projeto no Google Cloud Console.
+                  Essas credenciais são armazenadas de forma segura e o Secret nunca é exibido após salvo.
+                </p>
+
+                <div className="grid gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gcal-client-id" className="text-xs">Client ID</Label>
+                    <Input
+                      id="gcal-client-id"
+                      placeholder="123456789.apps.googleusercontent.com"
+                      value={clientId}
+                      onChange={(e) => setClientId(e.target.value)}
+                      autoComplete="off"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="gcal-client-secret" className="text-xs">Client Secret</Label>
+                    <div className="relative">
+                      <Input
+                        id="gcal-client-secret"
+                        type={showSecret ? "text" : "password"}
+                        placeholder={config?.has_secret ? "••••••••••• (já configurado)" : "GOCSPX-..."}
+                        value={clientSecret}
+                        onChange={(e) => setClientSecret(e.target.value)}
+                        autoComplete="off"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                        onClick={() => setShowSecret(!showSecret)}
+                      >
+                        {showSecret ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                      </Button>
+                    </div>
+                    {config?.has_secret && (
+                      <p className="text-[10px] text-muted-foreground">
+                        ✓ Secret já configurado. Preencha novamente apenas para alterar.
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  size="sm"
+                  onClick={handleSaveConfig}
+                  disabled={isSavingConfig || !clientId.trim() || !clientSecret.trim()}
+                >
+                  {isSavingConfig ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar Credenciais
+                </Button>
+              </div>
+
               {/* ── Connection Info ──────────────────────── */}
               {isConnected && (
                 <div className="rounded-lg border bg-card p-4 space-y-3">
@@ -201,7 +272,7 @@ export function IntegrationsPage() {
               {/* ── Actions ────────────────────────────── */}
               <div className="flex flex-wrap gap-2">
                 {!isConnected ? (
-                  <Button onClick={() => connect()} disabled={isConnecting}>
+                  <Button onClick={() => connect()} disabled={isConnecting || !hasCredentials}>
                     {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ExternalLink className="mr-2 h-4 w-4" />}
                     Conectar com Google
                   </Button>
@@ -212,11 +283,7 @@ export function IntegrationsPage() {
                       Testar Conexão
                     </Button>
 
-                    <Button
-                      variant="outline"
-                      onClick={() => connect()}
-                      disabled={isConnecting}
-                    >
+                    <Button variant="outline" onClick={() => connect()} disabled={isConnecting}>
                       {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
                       Reautorizar
                     </Button>
@@ -246,8 +313,14 @@ export function IntegrationsPage() {
                   </>
                 )}
 
+                {!hasCredentials && !isConnected && (
+                  <p className="text-xs text-muted-foreground self-center ml-2">
+                    Configure as credenciais acima antes de conectar
+                  </p>
+                )}
+
                 {isError && (
-                  <Button onClick={() => connect()} disabled={isConnecting}>
+                  <Button onClick={() => connect()} disabled={isConnecting || !hasCredentials}>
                     {isConnecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
                     Reconectar
                   </Button>
