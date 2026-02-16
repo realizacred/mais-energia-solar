@@ -61,12 +61,21 @@ export type Database = {
           created_by: string | null
           description: string | null
           ends_at: string | null
+          external_calendar_id: string | null
+          external_etag: string | null
+          external_event_id: string | null
+          external_provider: string | null
+          external_updated_at: string | null
           id: string
+          idempotency_key: string | null
+          last_synced_at: string | null
           lead_id: string | null
           reminder_minutes: number | null
           reminder_sent: boolean | null
           starts_at: string
           status: Database["public"]["Enums"]["appointment_status"]
+          sync_error: string | null
+          sync_status: string
           tenant_id: string
           title: string
           updated_at: string
@@ -81,12 +90,21 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
+          external_calendar_id?: string | null
+          external_etag?: string | null
+          external_event_id?: string | null
+          external_provider?: string | null
+          external_updated_at?: string | null
           id?: string
+          idempotency_key?: string | null
+          last_synced_at?: string | null
           lead_id?: string | null
           reminder_minutes?: number | null
           reminder_sent?: boolean | null
           starts_at: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          sync_error?: string | null
+          sync_status?: string
           tenant_id?: string
           title: string
           updated_at?: string
@@ -101,12 +119,21 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
+          external_calendar_id?: string | null
+          external_etag?: string | null
+          external_event_id?: string | null
+          external_provider?: string | null
+          external_updated_at?: string | null
           id?: string
+          idempotency_key?: string | null
+          last_synced_at?: string | null
           lead_id?: string | null
           reminder_minutes?: number | null
           reminder_sent?: boolean | null
           starts_at?: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          sync_error?: string | null
+          sync_status?: string
           tenant_id?: string
           title?: string
           updated_at?: string
@@ -473,6 +500,72 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "calculadora_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_sync_queue: {
+        Row: {
+          appointment_id: string
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          max_retries: number
+          next_retry_at: string | null
+          operation: string
+          payload_json: Json | null
+          retry_count: number
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          appointment_id: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_retry_at?: string | null
+          operation: string
+          payload_json?: Json | null
+          retry_count?: number
+          status?: string
+          tenant_id: string
+        }
+        Update: {
+          appointment_id?: string
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          max_retries?: number
+          next_retry_at?: string | null
+          operation?: string
+          payload_json?: Json | null
+          retry_count?: number
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_sync_queue_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_sync_queue_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -13108,6 +13201,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      acquire_conversation_lock: {
+        Args: { _conversation_id: string }
+        Returns: boolean
+      }
       activate_irradiance_version: {
         Args: { _version_id: string }
         Returns: Json
@@ -13165,6 +13262,25 @@ export type Database = {
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
+      create_appointment_idempotent: {
+        Args: {
+          _all_day?: boolean
+          _appointment_type?: Database["public"]["Enums"]["appointment_type"]
+          _assigned_to?: string
+          _cliente_id?: string
+          _conversation_id?: string
+          _created_by?: string
+          _description?: string
+          _ends_at?: string
+          _idempotency_key: string
+          _lead_id?: string
+          _reminder_minutes?: number
+          _starts_at: string
+          _tenant_id: string
+          _title: string
+        }
+        Returns: string
+      }
       create_irradiance_version: {
         Args: { _dataset_code: string; _metadata?: Json; _version_tag: string }
         Returns: string
