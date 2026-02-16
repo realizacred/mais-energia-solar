@@ -221,8 +221,8 @@ export function ProviderCard({ config, datasetId, versions, activeVersion, proce
           </div>
         )}
 
-        {/* ── CSV Import (only for CSV providers) ── */}
-        {config.type === "csv" && isProcessing && (
+        {/* ── CSV Import (always visible for CSV providers) ── */}
+        {config.type === "csv" && (
           <CsvImportPanel processingVersion={processingVersion} onReload={onReload} />
         )}
 
