@@ -8,8 +8,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Calendar, CheckCircle2, XCircle, AlertTriangle, Clock, Plug, Unplug,
-  RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2, Save, KeyRound, Eye, EyeOff
+  RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2, Save, KeyRound, Eye, EyeOff, Copy, Info
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useGoogleCalendarIntegration } from "@/hooks/useGoogleCalendarIntegration";
@@ -119,9 +120,51 @@ export function IntegrationsPage() {
                   <KeyRound className="h-4 w-4 text-muted-foreground" />
                   Credenciais OAuth (Google Cloud Console)
                 </h4>
+
+                {/* Setup Instructions */}
+                <div className="rounded-md border border-primary/20 bg-primary/5 p-3 space-y-2">
+                  <h5 className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                    <Info className="h-3.5 w-3.5" />
+                    Como configurar
+                  </h5>
+                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Acesse o <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Google Cloud Console → Credentials</a></li>
+                    <li>Crie ou edite um <strong>OAuth 2.0 Client ID</strong> (tipo: Web application)</li>
+                    <li>Em <strong>"URIs de redirecionamento autorizados"</strong>, adicione a URL abaixo:</li>
+                  </ol>
+                  <div className="flex items-center gap-2 mt-1">
+                    <code className="flex-1 text-[11px] bg-muted px-2 py-1.5 rounded font-mono break-all select-all">
+                      {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`}
+                    </code>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 w-7 p-0 shrink-0"
+                            onClick={() => {
+                              navigator.clipboard.writeText(
+                                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`
+                              );
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Copiar URL</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside" start={4}>
+                    <li>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> gerados e cole nos campos abaixo</li>
+                    <li>Clique em <strong>Salvar Credenciais</strong> e depois em <strong>Conectar com Google</strong></li>
+                  </ol>
+                </div>
+
                 <p className="text-xs text-muted-foreground">
-                  Configure o Client ID e Client Secret do seu projeto no Google Cloud Console.
-                  Essas credenciais são armazenadas de forma segura e o Secret nunca é exibido após salvo.
+                  As credenciais são armazenadas de forma segura no banco de dados.
                 </p>
 
                 <div className="grid gap-3">
