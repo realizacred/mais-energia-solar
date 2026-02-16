@@ -80,6 +80,7 @@ const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalaca
 // CanaisCaptacaoPage removed — consolidated into LinksInstalacaoPage
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
+const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
@@ -455,6 +456,7 @@ export default function Admin() {
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
                 <Route path="integracoes" element={<IntegrationsPage />} />
+                <Route path="saude-integracoes" element={<IntegrationHealthPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="ai-config" element={<AiConfigPage />} />
                 
