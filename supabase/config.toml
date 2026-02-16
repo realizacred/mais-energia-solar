@@ -169,3 +169,6 @@ verify_jwt = false
 
 [functions.solar-dataset-import]
 verify_jwt = false
+
+[functions.nsrdb-lookup]
+verify_jwt = false
