@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Activity, RefreshCw, Wifi, WifiOff, AlertTriangle, Clock, Zap } from "lucide-react";
+import { Activity, RefreshCw, Wifi, WifiOff, AlertTriangle, Clock, Zap, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -26,6 +27,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
   healthy: { label: "Conectado", variant: "default", icon: Wifi, color: "text-success" },
   degraded: { label: "Degradado", variant: "secondary", icon: AlertTriangle, color: "text-warning" },
   down: { label: "Offline", variant: "destructive", icon: WifiOff, color: "text-destructive" },
+  not_configured: { label: "Não configurado", variant: "outline", icon: Clock, color: "text-muted-foreground" },
   unknown: { label: "Desconhecido", variant: "outline", icon: Clock, color: "text-muted-foreground" },
 };
 
@@ -40,12 +42,24 @@ const INTEGRATION_LABELS: Record<string, string> = {
   pagamentos: "Pagamentos (Asaas)",
 };
 
+const CONFIG_ROUTES: Record<string, string> = {
+  whatsapp: "/admin/wa-instances",
+  openai: "/admin/openai-config",
+  google_gemini: "/admin/gemini-config",
+  google_calendar: "/admin/integracoes",
+  solarmarket: "/admin/solarmarket-config",
+  instagram: "/admin/instagram",
+  webhooks: "/admin/webhooks",
+  pagamentos: "/admin/payment-gateway",
+};
+
 function getStatusConfig(status: string) {
   return STATUS_CONFIG[status] || STATUS_CONFIG.unknown;
 }
 
 export default function IntegrationHealthPage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: healthData = [], isLoading, isFetching } = useQuery({
     queryKey: ["integration-health"],
@@ -78,6 +92,7 @@ export default function IntegrationHealthPage() {
   const healthy = healthData.filter((h) => h.status === "healthy").length;
   const degraded = healthData.filter((h) => h.status === "degraded").length;
   const down = healthData.filter((h) => h.status === "down").length;
+  const notConfigured = healthData.filter((h) => h.status === "not_configured").length;
 
   return (
     <div className="space-y-6">
@@ -99,10 +114,11 @@ export default function IntegrationHealthPage() {
       />
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <SummaryCard label="Conectadas" value={healthy} color="text-success" />
         <SummaryCard label="Degradadas" value={degraded} color="text-warning" />
         <SummaryCard label="Offline" value={down} color="text-destructive" />
+        <SummaryCard label="Não configuradas" value={notConfigured} color="text-muted-foreground" />
       </div>
 
       {/* Integration list */}
@@ -125,7 +141,7 @@ export default function IntegrationHealthPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {healthData.map((item) => (
-            <IntegrationCard key={item.id} item={item} />
+            <IntegrationCard key={item.id} item={item} onConfigure={(route) => navigate(route)} />
           ))}
         </div>
       )}
@@ -144,12 +160,13 @@ function SummaryCard({ label, value, color }: { label: string; value: number; co
   );
 }
 
-function IntegrationCard({ item }: { item: HealthRow }) {
+function IntegrationCard({ item, onConfigure }: { item: HealthRow; onConfigure?: (route: string) => void }) {
   const cfg = getStatusConfig(item.status);
   const StatusIcon = cfg.icon;
   const lastCheck = item.last_check_at
     ? formatDistanceToNow(new Date(item.last_check_at), { addSuffix: true, locale: ptBR })
     : "nunca";
+  const configRoute = CONFIG_ROUTES[item.integration_name];
 
   return (
     <Card className="rounded-xl hover:shadow-md transition-shadow">
@@ -168,24 +185,32 @@ function IntegrationCard({ item }: { item: HealthRow }) {
         </div>
 
         {/* Latency + error */}
-        <div className="mt-3 flex items-center gap-4 text-xs text-muted-foreground">
-          {item.latency_ms != null && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="flex items-center gap-1">
-                  <Zap className="h-3 w-3" /> {item.latency_ms}ms
-                </span>
-              </TooltipTrigger>
-              <TooltipContent>Latência da última verificação</TooltipContent>
-            </Tooltip>
-          )}
-          {item.error_message && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="text-destructive truncate max-w-[200px]">{item.error_message}</span>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs">{item.error_message}</TooltipContent>
-            </Tooltip>
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            {item.latency_ms != null && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center gap-1">
+                    <Zap className="h-3 w-3" /> {item.latency_ms}ms
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Latência da última verificação</TooltipContent>
+              </Tooltip>
+            )}
+            {item.error_message && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-destructive truncate max-w-[200px]">{item.error_message}</span>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">{item.error_message}</TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+          {configRoute && onConfigure && (
+            <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5" onClick={() => onConfigure(configRoute)}>
+              <Settings className="h-3 w-3" />
+              Configurar
+            </Button>
           )}
         </div>
       </CardContent>
