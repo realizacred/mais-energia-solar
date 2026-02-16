@@ -73,7 +73,7 @@ const InstalarApp = lazy(() => import("@/pages/Instalar"));
 const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalacaoPage").then(m => ({ default: m.LinksInstalacaoPage })));
 // CanaisCaptacaoPage removed — consolidated into LinksInstalacaoPage
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
-const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationStatusPage").then(m => ({ default: m.IntegrationStatusPage })));
+// IntegrationStatusPage removed
 // GoogleCalendarConfigPage removed
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
@@ -194,7 +194,7 @@ const TAB_TITLES: Record<string, string> = {
   "links-instalacao": "Captação & App",
   documentos: "Documentos & Assinatura",
   "data-reset": "Manutenção de Dados",
-  "integracoes-status": "Painel de Integrações",
+  
   "payment-gateway": "Pagamentos (Asaas)",
   "ai-config": "Configuração de IA",
   changelog: "Atualizações do Sistema",
@@ -456,7 +456,7 @@ export default function Admin() {
                 <Route path="tenant-settings" element={<TenantSettings />} />
                 <Route path="auditoria" element={<AuditLogsViewer />} />
                 <Route path="data-reset" element={<DataResetManager />} />
-                <Route path="integracoes-status" element={<IntegrationStatusPage />} />
+                
                 <Route path="canais-captacao" element={<Navigate to="/admin/links-instalacao" replace />} />
                 <Route path="links-instalacao" element={<LinksInstalacaoPage isAdminView />} />
                 <Route path="changelog" element={<ChangelogViewer />} />
