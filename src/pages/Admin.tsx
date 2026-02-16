@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Menu, ShieldAlert } from "lucide-react";
+import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
 import { usePendingValidations } from "@/hooks/usePendingValidations";
@@ -343,11 +344,14 @@ export default function Admin() {
               <Menu className="h-5 w-5" />
             </SidebarTrigger>
             <div className="h-5 w-px bg-border/50 hidden sm:block" />
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <h1 className="page-header-title">
-                {TAB_TITLES[activeTab] || activeTab}
-              </h1>
-              <HelpButton />
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <h1 className="page-header-title">
+                  {TAB_TITLES[activeTab] || activeTab}
+                </h1>
+                <HelpButton />
+              </div>
+              <AdminBreadcrumb activeTab={activeTab} />
             </div>
           </header>
 
