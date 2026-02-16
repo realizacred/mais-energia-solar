@@ -287,10 +287,13 @@ Deno.serve(async (req) => {
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const checksum = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
+      // IMPORTANT: Do NOT auto-activate. Leave as "processing" so admin
+      // activates via the canonical RPC `activate_irradiance_version`.
+      // This ensures transactional activation + audit trail.
       await admin
         .from("irradiance_dataset_versions")
         .update({
-          status: totalRowsSoFar > 0 ? "active" : "failed",
+          status: totalRowsSoFar > 0 ? "processing" : "failed",
           row_count: totalRowsSoFar,
           checksum_sha256: checksum,
           metadata: {
@@ -302,20 +305,11 @@ Deno.serve(async (req) => {
             total_points_attempted: totalGridPoints,
             total_errors: (existingMeta.total_errors as number ?? 0) + errors,
             completed_at: new Date().toISOString(),
+            ready_for_activation: true,
           },
           updated_at: new Date().toISOString(),
         })
         .eq("id", versionId);
-
-      // Deprecate old active versions
-      if (totalRowsSoFar > 0) {
-        await admin
-          .from("irradiance_dataset_versions")
-          .update({ status: "deprecated", updated_at: new Date().toISOString() })
-          .eq("dataset_id", dataset.id)
-          .eq("status", "active")
-          .neq("id", versionId);
-      }
 
       console.log(`[IRRADIANCE_FETCH] DONE — ${totalRowsSoFar} total rows`);
     } else {

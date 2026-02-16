@@ -13011,6 +13011,7 @@ export type Database = {
       cleanup_agenda_sync_logs: { Args: never; Returns: undefined }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_gcal_events: { Args: never; Returns: undefined }
+      cleanup_stuck_irradiance_versions: { Args: never; Returns: number }
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
