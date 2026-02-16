@@ -30,6 +30,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ImportJobTracker } from "./ImportJobTracker";
 import { loadRecentImportJobs, type ImportJob } from "@/services/solar-datasets-api";
+import { ResetSolarDataButton } from "./ResetSolarDataButton";
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-success/10 text-success border-success/30",
@@ -625,18 +626,21 @@ export function IrradianciaPage() {
             </div>
           )}
 
-          <div className="rounded-lg border border-info/30 bg-info/5 p-3 flex items-start gap-2">
-            <Info className="h-4 w-4 text-info mt-0.5 shrink-0" />
-            <div className="space-y-1">
-              <p className="text-xs text-foreground">
-                Clique em <strong>"Importar da API"</strong> para buscar dados automaticamente da NASA POWER API.
-                A atualização automática ocorre a cada 6 meses.
-              </p>
-              <p className="text-[10px] text-muted-foreground">
-                🌍 <strong>Dados globais</strong> — Os dados de irradiância são compartilhados entre todas as empresas da plataforma.
-                Apenas administradores podem importar, auditar e corrigir esses dados.
-              </p>
+          <div className="rounded-lg border border-info/30 bg-info/5 p-3 flex items-start justify-between gap-2">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 text-info mt-0.5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-xs text-foreground">
+                  Clique em <strong>"Importar da API"</strong> para buscar dados automaticamente da NASA POWER API.
+                  A atualização automática ocorre a cada 6 meses.
+                </p>
+                <p className="text-[10px] text-muted-foreground">
+                  🌍 <strong>Dados globais</strong> — Os dados de irradiância são compartilhados entre todas as empresas da plataforma.
+                  Apenas administradores podem importar, auditar e corrigir esses dados.
+                </p>
+              </div>
             </div>
+            <ResetSolarDataButton onComplete={reload} />
           </div>
 
           {datasets.map((ds) => {
