@@ -5,13 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Settings, Save, Calculator, Zap, Leaf, DollarSign, Calendar } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Settings, Save, Calculator, Zap, Leaf, DollarSign, Calendar, Info } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 
-interface CalculadoraConfigData {
-  id: string;
-  tarifa_media_kwh: number;
+interface CalcFields {
+  id?: string;
+  tarifa: number;
   custo_por_kwp: number;
   geracao_mensal_por_kwp: number;
   kg_co2_por_kwh: number;
@@ -19,8 +20,17 @@ interface CalculadoraConfigData {
   vida_util_sistema: number;
 }
 
+const DEFAULTS: CalcFields = {
+  tarifa: 0.99,
+  custo_por_kwp: 5500,
+  geracao_mensal_por_kwp: 130,
+  kg_co2_por_kwh: 0.084,
+  percentual_economia: 90,
+  vida_util_sistema: 25,
+};
+
 export default function CalculadoraConfig() {
-  const [config, setConfig] = useState<CalculadoraConfigData | null>(null);
+  const [config, setConfig] = useState<CalcFields | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
@@ -32,12 +42,26 @@ export default function CalculadoraConfig() {
   const fetchConfig = async () => {
     try {
       const { data, error } = await supabase
-        .from("calculadora_config")
-        .select("*")
+        .from("tenant_premises")
+        .select("id, tarifa, custo_por_kwp, geracao_mensal_por_kwp, kg_co2_por_kwh, percentual_economia, vida_util_sistema")
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
-      setConfig(data);
+
+      if (data) {
+        setConfig({
+          id: (data as any).id,
+          tarifa: (data as any).tarifa ?? DEFAULTS.tarifa,
+          custo_por_kwp: (data as any).custo_por_kwp ?? DEFAULTS.custo_por_kwp,
+          geracao_mensal_por_kwp: (data as any).geracao_mensal_por_kwp ?? DEFAULTS.geracao_mensal_por_kwp,
+          kg_co2_por_kwh: (data as any).kg_co2_por_kwh ?? DEFAULTS.kg_co2_por_kwh,
+          percentual_economia: (data as any).percentual_economia ?? DEFAULTS.percentual_economia,
+          vida_util_sistema: (data as any).vida_util_sistema ?? DEFAULTS.vida_util_sistema,
+        });
+      } else {
+        setConfig(DEFAULTS);
+      }
     } catch (error) {
       console.error("Erro ao buscar configuração:", error);
       toast({
@@ -52,32 +76,43 @@ export default function CalculadoraConfig() {
 
   const handleSave = async () => {
     if (!config) return;
-
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("calculadora_config")
-        .update({
-          tarifa_media_kwh: config.tarifa_media_kwh,
-          custo_por_kwp: config.custo_por_kwp,
-          geracao_mensal_por_kwp: config.geracao_mensal_por_kwp,
-          kg_co2_por_kwh: config.kg_co2_por_kwh,
-          percentual_economia: config.percentual_economia,
-          vida_util_sistema: config.vida_util_sistema,
-        })
-        .eq("id", config.id);
+      const payload = {
+        tarifa: config.tarifa,
+        custo_por_kwp: config.custo_por_kwp,
+        geracao_mensal_por_kwp: config.geracao_mensal_por_kwp,
+        kg_co2_por_kwh: config.kg_co2_por_kwh,
+        percentual_economia: config.percentual_economia,
+        vida_util_sistema: config.vida_util_sistema,
+      };
 
-      if (error) throw error;
+      if (config.id) {
+        const { error } = await supabase
+          .from("tenant_premises")
+          .update(payload)
+          .eq("id", config.id);
+        if (error) throw error;
+      } else {
+        // tenant_premises requires tenant_id — resolved by RLS trigger
+        const { data, error } = await supabase
+          .from("tenant_premises")
+          .insert([payload] as any)
+          .select("id")
+          .single();
+        if (error) throw error;
+        setConfig((prev) => prev ? { ...prev, id: (data as any).id } : prev);
+      }
 
       toast({
         title: "Configuração salva!",
         description: "Os parâmetros da calculadora foram atualizados.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao salvar configuração:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível salvar a configuração.",
+        description: error.message || "Não foi possível salvar a configuração.",
         variant: "destructive",
       });
     } finally {
@@ -85,7 +120,7 @@ export default function CalculadoraConfig() {
     }
   };
 
-  const updateField = (field: keyof CalculadoraConfigData, value: number) => {
+  const updateField = (field: keyof CalcFields, value: number) => {
     if (!config) return;
     setConfig({ ...config, [field]: value });
   };
@@ -119,9 +154,17 @@ export default function CalculadoraConfig() {
           Ajuste os parâmetros utilizados nos cálculos de economia e investimento
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
+        <Alert className="border-primary/30 bg-primary/5">
+          <Info className="w-4 h-4 text-primary" />
+          <AlertDescription className="text-sm text-foreground">
+            <strong>Configurações Unificadas com Propostas.</strong>{" "}
+            Estes valores são compartilhados com o módulo de Premissas Técnicas.
+            Alterações aqui serão refletidas nas propostas e simulações.
+          </AlertDescription>
+        </Alert>
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Tarifa */}
           <div className="space-y-2">
             <Label htmlFor="tarifa" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-success" />
@@ -131,13 +174,12 @@ export default function CalculadoraConfig() {
               id="tarifa"
               type="number"
               step="0.01"
-              value={config.tarifa_media_kwh}
-              onChange={(e) => updateField("tarifa_media_kwh", parseFloat(e.target.value) || 0)}
+              value={config.tarifa}
+              onChange={(e) => updateField("tarifa", parseFloat(e.target.value) || 0)}
             />
             <p className="text-xs text-muted-foreground">Valor médio cobrado pelas concessionárias</p>
           </div>
 
-          {/* Custo por kWp */}
           <div className="space-y-2">
             <Label htmlFor="custo" className="flex items-center gap-2">
               <Settings className="w-4 h-4 text-secondary" />
@@ -153,7 +195,6 @@ export default function CalculadoraConfig() {
             <p className="text-xs text-muted-foreground">Custo médio de instalação por kWp</p>
           </div>
 
-          {/* Geração mensal */}
           <div className="space-y-2">
             <Label htmlFor="geracao" className="flex items-center gap-2">
               <Zap className="w-4 h-4 text-primary" />
@@ -168,7 +209,6 @@ export default function CalculadoraConfig() {
             <p className="text-xs text-muted-foreground">kWh gerados por kWp instalado/mês</p>
           </div>
 
-          {/* CO2 */}
           <div className="space-y-2">
             <Label htmlFor="co2" className="flex items-center gap-2">
               <Leaf className="w-4 h-4 text-success" />
@@ -184,7 +224,6 @@ export default function CalculadoraConfig() {
             <p className="text-xs text-muted-foreground">kg de CO₂ por kWh na rede elétrica</p>
           </div>
 
-          {/* Percentual economia */}
           <div className="space-y-2">
             <Label htmlFor="economia" className="flex items-center gap-2">
               <DollarSign className="w-4 h-4 text-success" />
@@ -201,7 +240,6 @@ export default function CalculadoraConfig() {
             <p className="text-xs text-muted-foreground">% de economia na conta de luz</p>
           </div>
 
-          {/* Vida útil */}
           <div className="space-y-2">
             <Label htmlFor="vida" className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-secondary" />
@@ -217,7 +255,7 @@ export default function CalculadoraConfig() {
           </div>
         </div>
 
-        <div className="flex justify-end mt-6">
+        <div className="flex justify-end">
           <Button onClick={handleSave} disabled={saving} className="gap-2">
             {saving ? <Spinner size="sm" /> : <Save className="w-4 h-4" />}
             Salvar Configuração
