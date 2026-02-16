@@ -439,9 +439,10 @@ export default function Admin() {
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="premissas" element={<PremissasPage />} />
-                <Route path="irradiancia" element={<Navigate to="/admin/base-meteorologica" replace />} />
-                <Route path="insumos-irradiacao" element={<Navigate to="/admin/base-meteorologica" replace />} />
-                <Route path="base-meteorologica" element={<BaseMeteorologicaPage />} />
+                <Route path="irradiancia" element={<Navigate to="/admin/meteorologia" replace />} />
+                <Route path="insumos-irradiacao" element={<Navigate to="/admin/meteorologia" replace />} />
+                <Route path="base-meteorologica" element={<Navigate to="/admin/meteorologia" replace />} />
+                <Route path="meteorologia" element={<BaseMeteorologicaPage />} />
                 <Route path="pricing-policy" element={<PricingPolicyPage />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
