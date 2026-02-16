@@ -14,12 +14,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import {
   PieChart,
   Pie,
   Cell,
   ResponsiveContainer,
-  Tooltip as RechartsTooltip,
   BarChart,
   Bar,
   XAxis,
@@ -30,6 +36,7 @@ import {
   BarChart3,
   Users,
   TrendingUp,
+  TrendingDown,
   Clock,
   DollarSign,
   Zap,
@@ -37,11 +44,14 @@ import {
   Target,
   Calendar,
   AlertTriangle,
+  ArrowRight,
+  FileText,
 } from "lucide-react";
-import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, differenceInDays } from "date-fns";
+import { format, subMonths, startOfMonth, endOfMonth, isWithinInterval, differenceInDays, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -95,6 +105,15 @@ const CHART_COLORS = [
   "hsl(var(--destructive))",
   "hsl(var(--info))",
 ];
+
+const barChartConfig: ChartConfig = {
+  leads: { label: "Leads", color: "hsl(var(--secondary))" },
+  vendas: { label: "Vendas", color: "hsl(var(--primary))" },
+};
+
+const pieChartConfig: ChartConfig = {
+  value: { label: "Leads" },
+};
 
 const RANKING_BADGES: Record<number, { label: string; className: string }> = {
   0: { label: "🥇", className: "bg-amber-100 text-amber-800 border-amber-300" },
@@ -164,6 +183,7 @@ export default function PerformanceDashboard() {
   // ── KPI Cards ─────────────────────────────────────────────
 
   const kpis = useMemo(() => {
+    const now = new Date();
     const closedLeads = leads.filter(l => closedStatusIds.includes(l.status_id || ""));
     const totalValue = deals.reduce((s, d) => s + d.deal_value, 0);
     const wonDeals = deals.filter(d => d.deal_status === "ganho" || d.deal_status === "won");
@@ -172,18 +192,37 @@ export default function PerformanceDashboard() {
     // Avg cycle time (days from created to closed)
     const cycleTimes = closedLeads
       .filter(l => l.created_at)
-      .map(l => differenceInDays(new Date(), new Date(l.created_at)))
+      .map(l => differenceInDays(now, new Date(l.created_at)))
       .filter(d => d > 0 && d < 365);
     const avgCycle = cycleTimes.length > 0 ? Math.round(cycleTimes.reduce((s, d) => s + d, 0) / cycleTimes.length) : 0;
 
-    // CPL estimate
-    const thisMonthLeads = leads.filter(l => {
+    // This month vs last month for growth indicators
+    const thisMonthStart = startOfMonth(now);
+    const lastMonthStart = startOfMonth(subMonths(now, 1));
+    const lastMonthEnd = endOfMonth(subMonths(now, 1));
+
+    const thisMonthLeads = leads.filter(l => new Date(l.created_at) >= thisMonthStart).length;
+    const lastMonthLeads = leads.filter(l => {
       const d = new Date(l.created_at);
-      return d >= startOfMonth(new Date());
+      return isWithinInterval(d, { start: lastMonthStart, end: lastMonthEnd });
     }).length;
 
-    const conversionRate = leads.length > 0 ? Math.round((closedLeads.length / leads.length) * 100) : 0;
+    const leadsGrowth = lastMonthLeads > 0
+      ? Math.round(((thisMonthLeads - lastMonthLeads) / lastMonthLeads) * 100)
+      : thisMonthLeads > 0 ? 100 : 0;
 
+    const thisMonthWon = wonDeals.filter(d => new Date(d.created_at) >= thisMonthStart);
+    const lastMonthWon = wonDeals.filter(d => {
+      const dt = new Date(d.created_at);
+      return isWithinInterval(dt, { start: lastMonthStart, end: lastMonthEnd });
+    });
+    const thisMonthWonValue = thisMonthWon.reduce((s, d) => s + d.deal_value, 0);
+    const lastMonthWonValue = lastMonthWon.reduce((s, d) => s + d.deal_value, 0);
+    const revenueGrowth = lastMonthWonValue > 0
+      ? Math.round(((thisMonthWonValue - lastMonthWonValue) / lastMonthWonValue) * 100)
+      : thisMonthWonValue > 0 ? 100 : 0;
+
+    const conversionRate = leads.length > 0 ? Math.round((closedLeads.length / leads.length) * 100) : 0;
     const ticketMedio = wonDeals.length > 0 ? wonValue / wonDeals.length : 0;
 
     return {
@@ -195,6 +234,8 @@ export default function PerformanceDashboard() {
       totalPipeline: totalValue,
       wonValue,
       thisMonthLeads,
+      leadsGrowth,
+      revenueGrowth,
     };
   }, [leads, deals, closedStatusIds]);
 
@@ -306,6 +347,11 @@ export default function PerformanceDashboard() {
     [monthlySales]
   );
 
+  const navigate = useNavigate();
+
+  // Recent leads for activity feed
+  const recentLeads = useMemo(() => leads.slice(0, 8), [leads]);
+
   if (loading) return <LoadingState message="Carregando dashboard de performance..." />;
 
   return (
@@ -344,12 +390,14 @@ export default function PerformanceDashboard() {
             value={formatCompact(kpis.totalPipeline)}
             sub={`${kpis.wonValue > 0 ? formatCompact(kpis.wonValue) + " ganho" : ""}`}
             color="border-l-warning"
+            growth={kpis.revenueGrowth}
           />
           <KpiCard
             icon={<Users className="h-5 w-5 text-secondary" />}
             label="Leads este Mês"
             value={String(kpis.thisMonthLeads)}
             color="border-l-secondary"
+            growth={kpis.leadsGrowth}
           />
         </div>
         <ScrollBar orientation="horizontal" />
@@ -519,10 +567,9 @@ export default function PerformanceDashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
+                <ChartContainer config={barChartConfig} className="h-[300px] w-full">
                     <BarChart data={monthlyChartData}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/40" />
                       <XAxis
                         dataKey="name"
                         fontSize={12}
@@ -537,19 +584,11 @@ export default function PerformanceDashboard() {
                         tick={{ fill: "hsl(var(--muted-foreground))" }}
                         allowDecimals={false}
                       />
-                      <RechartsTooltip
-                        contentStyle={{
-                          borderRadius: "8px",
-                          border: "1px solid hsl(var(--border))",
-                          backgroundColor: "hsl(var(--card))",
-                          color: "hsl(var(--foreground))",
-                        }}
-                      />
-                      <Bar dataKey="leads" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} name="Leads" />
-                      <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Vendas" />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Bar dataKey="leads" fill="var(--color-leads)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="vendas" fill="var(--color-vendas)" radius={[4, 4, 0, 0]} />
                     </BarChart>
-                  </ResponsiveContainer>
-                </div>
+                </ChartContainer>
               </CardContent>
             </Card>
           </div>
@@ -574,8 +613,7 @@ export default function PerformanceDashboard() {
                     <p className="text-sm">Nenhum motivo de perda registrado</p>
                   </div>
                 ) : (
-                  <div className="h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <ChartContainer config={pieChartConfig} className="h-[280px] w-full">
                       <PieChart>
                         <Pie
                           data={lossReasons}
@@ -592,18 +630,11 @@ export default function PerformanceDashboard() {
                             <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                           ))}
                         </Pie>
-                        <RechartsTooltip
-                          contentStyle={{
-                            borderRadius: "8px",
-                            border: "1px solid hsl(var(--border))",
-                            backgroundColor: "hsl(var(--card))",
-                            color: "hsl(var(--foreground))",
-                          }}
-                          formatter={(value) => [value, "Leads"]}
+                        <ChartTooltip
+                          content={<ChartTooltipContent formatter={(value) => `${value} leads`} />}
                         />
                       </PieChart>
-                    </ResponsiveContainer>
-                  </div>
+                  </ChartContainer>
                 )}
               </CardContent>
             </Card>
@@ -727,29 +758,81 @@ export default function PerformanceDashboard() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* ── Recent Activity Feed ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Atividade Recente
+            </CardTitle>
+            <Button variant="ghost" size="sm" className="text-xs gap-1" onClick={() => navigate("/admin/leads")}>
+              Ver Todos <ArrowRight className="h-3 w-3" />
+            </Button>
+          </div>
+          <CardDescription>Últimos leads recebidos</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentLeads.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-6">Nenhum lead recente</p>
+          ) : (
+            <div className="space-y-3">
+              {recentLeads.map(lead => (
+                <div key={lead.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/40 transition-colors">
+                  <Avatar className="h-9 w-9">
+                    <AvatarFallback className="text-xs font-bold bg-primary/10 text-primary">
+                      {lead.nome.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{lead.nome}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {lead.cidade && lead.estado ? `${lead.cidade}/${lead.estado}` : lead.estado || "—"} · {lead.media_consumo} kWh
+                    </p>
+                  </div>
+                  <span className="text-[11px] text-muted-foreground shrink-0">
+                    {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true, locale: ptBR })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
 
 // ── KPI Card Sub-component ────────────────────────────────────
 
-function KpiCard({ icon, label, value, sub, color }: {
+function KpiCard({ icon, label, value, sub, color, growth }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
   color: string;
+  growth?: number;
 }) {
   return (
-    <Card className={cn("min-w-[180px] border-l-4", color)}>
+    <Card className={cn("min-w-[200px] border-l-4", color)}>
       <CardContent className="flex items-center gap-3 pt-5 pb-4 px-4">
         <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div className="min-w-0">
-          <p className="text-xl font-bold font-mono text-foreground leading-tight">{value}</p>
+          <p className="text-3xl font-bold font-mono text-foreground leading-tight">{value}</p>
           <p className="text-[11px] text-muted-foreground truncate">{label}</p>
           {sub && <p className="text-[10px] text-muted-foreground/70 truncate">{sub}</p>}
+          {growth !== undefined && growth !== 0 && (
+            <p className={cn(
+              "text-[10px] font-semibold flex items-center gap-0.5 mt-0.5",
+              growth > 0 ? "text-success" : "text-destructive"
+            )}>
+              {growth > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+              {growth > 0 ? "+" : ""}{growth}% vs mês anterior
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>
