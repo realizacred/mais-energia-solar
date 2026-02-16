@@ -1153,7 +1153,7 @@ export function IrradianciaPage() {
 
                   <div className="rounded-lg border border-border/50 p-3">
                     <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-                      Série Mensal ({testResult.unit})
+                      Série Mensal (kWh/m²/dia)
                     </p>
                     <div className="grid grid-cols-6 md:grid-cols-12 gap-2">
                       {MONTH_LABELS.map((label, i) => {
@@ -1168,7 +1168,7 @@ export function IrradianciaPage() {
                     </div>
                     <Separator className="my-2" />
                     <p className="text-xs text-center">
-                      Média anual: <span className="font-bold">{testResult.annual_average.toFixed(2)}</span> {testResult.unit}
+                      Média anual: <span className="font-bold">{testResult.annual_average.toFixed(2)}</span> kWh/m²/dia
                     </p>
                   </div>
 
