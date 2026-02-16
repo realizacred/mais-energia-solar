@@ -1,21 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { StatusBadge } from "@/components/ui-kit/StatusBadge";
 import { toast } from "@/hooks/use-toast";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -24,7 +17,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, Pencil, Trash2, Loader2, Layers, GripVertical, Lock } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Layers, GripVertical, Lock, Package, Wrench, Truck, Building2, Receipt, ShieldCheck } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CostComponent {
   id: string;
@@ -61,6 +55,30 @@ const CATEGORIES = [
   "Seguros",
   "Outros",
 ];
+
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+  Equipamentos: Package,
+  Serviços: Wrench,
+  Logística: Truck,
+  Administrativo: Building2,
+  Impostos: Receipt,
+  Seguros: ShieldCheck,
+};
+
+function getStrategyStyle(strategy: string) {
+  switch (strategy) {
+    case "cost_per_kwp":
+    case "cost_per_kva":
+    case "cost_per_km":
+      return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+    case "fixed_amount":
+      return "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800";
+    case "percentage_of_cost":
+      return "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800";
+    default:
+      return "bg-muted text-muted-foreground border-border";
+  }
+}
 
 const EMPTY_FORM: Omit<CostComponent, "id"> = {
   category: "Equipamentos",
@@ -205,7 +223,6 @@ export function CostComponentsTab({ versionId, isReadOnly }: Props) {
       );
     }
 
-    // composite / rule_based — JSON editor
     return (
       <div className="space-y-1.5">
         <Label className="text-xs">Parâmetros (JSON)</Label>
@@ -229,106 +246,157 @@ export function CostComponentsTab({ versionId, isReadOnly }: Props) {
     return acc;
   }, {});
 
+  // Maintain category order
+  const orderedCategories = CATEGORIES.filter((cat) => grouped[cat]);
+  // Add any categories not in the predefined list
+  Object.keys(grouped).forEach((cat) => {
+    if (!orderedCategories.includes(cat)) orderedCategories.push(cat);
+  });
+
   if (loading) {
     return <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold">Componentes de Custo</h3>
           <span className="text-xs text-muted-foreground">({components.length})</span>
         </div>
-        {!isReadOnly && (
-          <Button size="sm" className="gap-1.5" onClick={openCreate}>
-            <Plus className="h-3.5 w-3.5" />
-            Adicionar
-          </Button>
-        )}
-        {isReadOnly && (
-          <StatusBadge variant="muted" dot>
-            <Lock className="h-3 w-3" /> Somente leitura
-          </StatusBadge>
-        )}
+        <div className="flex items-center gap-2">
+          {isReadOnly && (
+            <StatusBadge variant="muted" dot>
+              <Lock className="h-3 w-3" /> Somente leitura
+            </StatusBadge>
+          )}
+          {!isReadOnly && (
+            <Button size="sm" className="gap-1.5" onClick={openCreate}>
+              <Plus className="h-3.5 w-3.5" />
+              Adicionar
+            </Button>
+          )}
+        </div>
       </div>
 
-      {Object.keys(grouped).length === 0 ? (
+      {/* Empty state */}
+      {orderedCategories.length === 0 ? (
         <Card className="border-border/60">
           <CardContent className="py-12 text-center text-sm text-muted-foreground">
             Nenhum componente de custo configurado para esta versão.
           </CardContent>
         </Card>
       ) : (
-        Object.entries(grouped).map(([category, items]) => (
-          <Card key={category} className="border-border/60">
-            <CardHeader className="pb-2 pt-4 px-4">
-              <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {category}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-8"></TableHead>
-                    <TableHead>Componente</TableHead>
-                    <TableHead>Estratégia</TableHead>
-                    <TableHead>Parâmetros</TableHead>
-                    <TableHead className="w-20">Status</TableHead>
-                    {!isReadOnly && <TableHead className="w-20"></TableHead>}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {items.map((c) => {
+        /* Dense list inside single card */
+        <Card className="border-border/60 overflow-hidden">
+          <CardContent className="p-0">
+            {/* Column headers */}
+            <div className="grid grid-cols-12 gap-4 items-center px-4 py-2.5 border-b border-border bg-muted/30">
+              <div className="col-span-5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Componente
+              </div>
+              <div className="col-span-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Estratégia
+              </div>
+              <div className="col-span-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Parâmetros
+              </div>
+              <div className="col-span-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                Status
+              </div>
+              <div className="col-span-1" />
+            </div>
+
+            {orderedCategories.map((category) => {
+              const items = grouped[category];
+              const CategoryIcon = CATEGORY_ICONS[category] || Layers;
+
+              return (
+                <div key={category}>
+                  {/* Category header */}
+                  <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/20 border-b border-border/50">
+                    <CategoryIcon className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                      {category}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground/60">({items.length})</span>
+                  </div>
+
+                  {/* Items */}
+                  {items.map((c, idx) => {
                     const strat = STRATEGIES.find((s) => s.value === c.calculation_strategy);
+                    const isLast = idx === items.length - 1;
+
                     return (
-                      <TableRow key={c.id}>
-                        <TableCell className="text-muted-foreground/40">
-                          <GripVertical className="h-3.5 w-3.5" />
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <span className="text-sm font-medium">{c.name}</span>
+                      <div
+                        key={c.id}
+                        className={cn(
+                          "grid grid-cols-12 gap-4 items-center px-4 py-3 transition-colors hover:bg-muted/10",
+                          !isLast && "border-b border-border/30",
+                          !c.is_active && "opacity-50"
+                        )}
+                      >
+                        {/* Component name + description (col-span-5) */}
+                        <div className="col-span-5 flex items-center gap-3 min-w-0">
+                          <GripVertical className="h-3.5 w-3.5 text-muted-foreground/30 shrink-0 cursor-grab" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
                             {c.description && (
-                              <p className="text-xs text-muted-foreground mt-0.5">{c.description}</p>
+                              <p className="text-xs text-muted-foreground truncate mt-0.5">{c.description}</p>
                             )}
                           </div>
-                        </TableCell>
-                        <TableCell>
-                          <StatusBadge variant="info" className="text-[10px]">
+                        </div>
+
+                        {/* Strategy badge (col-span-2) */}
+                        <div className="col-span-2">
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[10px] font-medium px-2 py-0.5 whitespace-nowrap",
+                              getStrategyStyle(c.calculation_strategy)
+                            )}
+                          >
                             {strat?.label || c.calculation_strategy}
-                          </StatusBadge>
-                        </TableCell>
-                        <TableCell className="text-xs font-mono text-muted-foreground max-w-[200px] truncate">
-                          {formatParams(c.calculation_strategy, c.parameters)}
-                        </TableCell>
-                        <TableCell>
+                          </Badge>
+                        </div>
+
+                        {/* Parameters (col-span-2) */}
+                        <div className="col-span-2">
+                          <span className="text-sm font-mono text-foreground">
+                            {formatParams(c.calculation_strategy, c.parameters)}
+                          </span>
+                        </div>
+
+                        {/* Status (col-span-2) */}
+                        <div className="col-span-2">
                           <StatusBadge variant={c.is_active ? "success" : "muted"} dot>
                             {c.is_active ? "Ativo" : "Inativo"}
                           </StatusBadge>
-                        </TableCell>
-                        {!isReadOnly && (
-                          <TableCell>
-                            <div className="flex gap-1">
+                        </div>
+
+                        {/* Actions (col-span-1) */}
+                        <div className="col-span-1 flex justify-end gap-0.5">
+                          {!isReadOnly && (
+                            <>
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(c)}>
                                 <Pencil className="h-3.5 w-3.5" />
                               </Button>
-                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleDelete(c.id)}>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(c.id)}>
                                 <Trash2 className="h-3.5 w-3.5" />
                               </Button>
-                            </div>
-                          </TableCell>
-                        )}
-                      </TableRow>
+                            </>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        ))
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
       )}
 
       {/* Create/Edit Dialog */}
@@ -415,7 +483,7 @@ export function CostComponentsTab({ versionId, isReadOnly }: Props) {
 }
 
 function formatParams(strategy: string, params: Record<string, any>): string {
-  if (strategy === "fixed_amount") return `R$ ${params.amount ?? 0}`;
+  if (strategy === "fixed_amount") return `R$ ${(params.amount ?? 0).toLocaleString("pt-BR")}`;
   if (strategy === "cost_per_kwp") return `${params.unit_cost ?? 0} R$/kWp`;
   if (strategy === "cost_per_kva") return `${params.unit_cost ?? 0} R$/kVA`;
   if (strategy === "cost_per_km") return `${params.unit_cost ?? 0} R$/km`;
