@@ -15,6 +15,20 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: "2.11.0",
+    date: "2026-02-16",
+    title: "Módulo Fiscal, Webhooks Asaas e Correção de Agenda",
+    type: "feature",
+    description: "Central fiscal com emissão de NFS-e vinculada a recebimentos, importação de XMLs de fornecedores, automação de baixa via Webhook Asaas e correção global de CORS no Google Calendar.",
+    details: [
+      "Gestão Fiscal com abas de Emissões (Saída) e XMLs (Entrada)",
+      "Dropzone para importação de XMLs de compra de kits",
+      "Webhook Asaas para baixa automática de parcelas",
+      "Correção de headers CORS em 11 Edge Functions",
+      "Smart Beacon no botão 'Tirar Nota' para onboarding",
+    ],
+  },
+  {
     version: "2.10.2",
     date: "2026-02-12",
     title: "Correção: Banner de Push e Toast de Login",

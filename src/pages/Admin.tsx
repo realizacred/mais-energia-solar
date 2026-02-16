@@ -88,6 +88,7 @@ const IrradianciaPage = lazy(() => import("@/components/admin/irradiancia/Irradi
 const BaseMeteorologicaPage = lazy(() => import("@/pages/admin/BaseMeteorologicaPage").then(m => ({ default: m.BaseMeteorologicaPage })));
 
 const PricingPolicyPage = lazy(() => import("@/components/admin/pricing-policy/PricingPolicyPage").then(m => ({ default: m.PricingPolicyPage })));
+const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 // SolarZap removed — functionality consolidated into WaInbox (Atendimento)
 const ProposalWizardPage = lazy(() =>
@@ -412,6 +413,7 @@ export default function Admin() {
                 <Route path="comissoes" element={<ComissoesManager />} />
                 <Route path="engenharia" element={<EngenhariaFinanceiraConfig />} />
                 <Route path="financiamento" element={<FinanciamentoConfig />} />
+                <Route path="fiscal" element={<FiscalPage />} />
                 
                 {/* Cadastros */}
                 <Route path="vendedores" element={<VendedoresManager />} />
