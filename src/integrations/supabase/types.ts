@@ -13218,7 +13218,10 @@ export type Database = {
           vida_util_sistema: number
         }[]
       }
-      get_calendar_connected_users: { Args: never; Returns: Json }
+      get_calendar_connected_users: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_canonical_irradiance_version: {
         Args: { _dataset_code?: string }
         Returns: {
@@ -13369,7 +13372,10 @@ export type Database = {
           percentual_nao_compensado: number
         }[]
       }
-      get_google_calendar_config_status: { Args: never; Returns: Json }
+      get_google_calendar_config_status: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_integration_key: {
         Args: { _service_key: string; _tenant_id?: string }
         Returns: string

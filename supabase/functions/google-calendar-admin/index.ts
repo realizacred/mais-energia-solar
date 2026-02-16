@@ -8,10 +8,11 @@ const corsHeaders = {
 
 /**
  * Edge Function gateway for admin-only Google Calendar RPCs.
- * 
- * The underlying RPCs (get_google_calendar_config_status, get_calendar_connected_users)
- * are REVOKED from `authenticated` — only `service_role` can execute them.
- * This function validates admin status and proxies via service_role.
+ *
+ * Flow:
+ * 1. Validate user JWT via getUser()
+ * 2. Check admin role via user-context client
+ * 3. Call RPCs via pure service_role client (passing user_id as param)
  *
  * POST body: { action: "config_status" | "connected_users" }
  */
@@ -39,15 +40,15 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await userClient.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await userClient.auth.getUser();
+    if (userError || !user) {
+      console.error("[google-calendar-admin] Auth failed:", userError?.message);
       return json({ error: "Unauthorized" }, 401);
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
 
-    // 2. Admin check (using user-context client which respects RLS on user_roles)
+    // 2. Admin check
     const { data: roleData } = await userClient
       .from("user_roles")
       .select("role")
@@ -57,7 +58,8 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!roleData) {
-      return json({ error: "Admin access required" }, 403);
+      console.warn(`[google-calendar-admin] Non-admin attempt user=${userId}`);
+      return json({ error: "Admin access required", code: "FORBIDDEN_NOT_ADMIN" }, 403);
     }
 
     // 3. Parse action
@@ -65,51 +67,38 @@ Deno.serve(async (req) => {
     const action = body?.action;
 
     if (!action || !["config_status", "connected_users"].includes(action)) {
-      return json({ error: "Invalid action. Use 'config_status' or 'connected_users'" }, 400);
+      return json({ error: "Invalid action" }, 400);
     }
 
-    // 4. Execute via service_role (only role with GRANT on these RPCs)
+    // 4. Execute via PURE service_role client (no JWT override)
+    // RPCs accept p_user_id parameter to derive tenant internally
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // We need to impersonate the user context for the RPC to derive tenant_id
-    // The RPCs use auth.uid() internally, so we call them with the user's JWT
-    // but via a client that has service_role permissions
-    const serviceClientWithUserContext = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      }
-    );
-
     let data: unknown;
-    let error: unknown;
+    let rpcError: unknown;
 
     if (action === "config_status") {
-      const result = await serviceClientWithUserContext.rpc("get_google_calendar_config_status");
+      const result = await adminClient.rpc("get_google_calendar_config_status", { p_user_id: userId });
       data = result.data;
-      error = result.error;
+      rpcError = result.error;
     } else {
-      const result = await serviceClientWithUserContext.rpc("get_calendar_connected_users");
+      const result = await adminClient.rpc("get_calendar_connected_users", { p_user_id: userId });
       data = result.data;
-      error = result.error;
+      rpcError = result.error;
     }
 
-    if (error) {
-      console.error(`[google-calendar-admin] RPC error for action=${action}:`, error);
-      return json({ error: "Internal error" }, 500);
+    if (rpcError) {
+      console.error(`[google-calendar-admin] RPC error action=${action}:`, rpcError);
+      return json({ error: `RPC failed: ${(rpcError as any)?.message || "Unknown"}`, code: "RPC_ERROR" }, 500);
     }
 
+    console.log(`[google-calendar-admin] action=${action} OK user=${userId}`);
     return json({ data });
   } catch (err: unknown) {
-    console.error("[google-calendar-admin] Unexpected error:", err);
+    console.error("[google-calendar-admin] Unexpected:", err);
     return json({ error: "Internal error" }, 500);
   }
 });
