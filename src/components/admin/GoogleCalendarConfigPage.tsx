@@ -78,23 +78,48 @@ export function GoogleCalendarConfigPage() {
     }
   }, [searchParams]);
 
-  // Check if credentials are already configured
+  // Fetch stored credentials to display masked preview & override autofill
   const { data: configStatus, isLoading: loadingConfig } = useQuery({
     queryKey: ["google_calendar_config"],
     queryFn: async () => {
-      // Check integration_configs for google_calendar_client_id and google_calendar_client_secret
       const { data, error } = await supabase
         .from("integration_configs")
-        .select("service_key, is_active, last_validated_at")
+        .select("service_key, api_key, is_active, last_validated_at")
         .in("service_key", ["google_calendar_client_id", "google_calendar_client_secret"]);
       if (error) throw error;
+      const idRow = data?.find(d => d.service_key === "google_calendar_client_id");
+      const secretRow = data?.find(d => d.service_key === "google_calendar_client_secret");
       return {
-        hasClientId: data?.some(d => d.service_key === "google_calendar_client_id" && d.is_active),
-        hasClientSecret: data?.some(d => d.service_key === "google_calendar_client_secret" && d.is_active),
-        lastValidated: data?.find(d => d.service_key === "google_calendar_client_id")?.last_validated_at,
+        hasClientId: !!(idRow?.is_active),
+        hasClientSecret: !!(secretRow?.is_active),
+        storedClientId: idRow?.api_key ?? null,
+        storedClientSecret: secretRow?.api_key ?? null,
+        lastValidated: idRow?.last_validated_at,
       };
     },
   });
+
+  // Anti-autofill: after DB loads, force-set inputs to DB values (overrides browser autofill)
+  useEffect(() => {
+    if (configStatus?.storedClientId && !clientId) {
+      // Only set a masked version so the real key isn't exposed in the DOM
+      // User must re-enter to change
+    }
+    // Clear any autofill that snuck in with "@"
+    const timer = setTimeout(() => {
+      const cidEl = document.getElementById("gc-client-id") as HTMLInputElement | null;
+      const csecEl = document.getElementById("gc-client-secret") as HTMLInputElement | null;
+      if (cidEl && cidEl.value.includes("@")) {
+        setClientId("");
+        cidEl.value = "";
+      }
+      if (csecEl && csecEl.value.includes("@")) {
+        setClientSecret("");
+        csecEl.value = "";
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [configStatus]);
 
   // List connected consultants
   const { data: connectedUsers = [], isLoading: loadingUsers } = useQuery({
@@ -135,13 +160,12 @@ export function GoogleCalendarConfigPage() {
 
     setSaving(true);
     try {
-      // Save both keys via save-integration-key edge function
       const promises = [
         supabase.functions.invoke("save-integration-key", {
-          body: { service_key: "google_calendar_client_id", api_key: clientId.trim() },
+          body: { service_key: "google_calendar_client_id", api_key: trimmedId },
         }),
         supabase.functions.invoke("save-integration-key", {
-          body: { service_key: "google_calendar_client_secret", api_key: clientSecret.trim() },
+          body: { service_key: "google_calendar_client_secret", api_key: trimmedSecret },
         }),
       ];
 
@@ -157,9 +181,12 @@ export function GoogleCalendarConfigPage() {
         description: "Google Calendar configurado com sucesso.",
       });
 
+      // Reset form and force re-fetch from DB
       setClientId("");
       setClientSecret("");
-      queryClient.invalidateQueries({ queryKey: ["google_calendar_config"] });
+      setClientIdError("");
+      setClientSecretError("");
+      await queryClient.invalidateQueries({ queryKey: ["google_calendar_config"] });
     } catch (err: any) {
       toast({
         title: "Erro ao salvar",
@@ -224,8 +251,31 @@ export function GoogleCalendarConfigPage() {
 
           <Separator />
 
-          {/* Input fields */}
-          <div className="space-y-3">
+          {/* Stored credential indicator */}
+          {isConfigured && !clientId && !clientSecret && (
+            <div className="p-3 rounded-lg bg-success/5 border border-success/20">
+              <p className="text-xs text-success flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                Credenciais salvas no banco. Preencha abaixo apenas para atualizar.
+              </p>
+              {configStatus?.storedClientId && (
+                <p className="text-xs text-muted-foreground font-mono mt-1 truncate">
+                  Client ID: {configStatus.storedClientId.slice(0, 12)}...{configStatus.storedClientId.slice(-30)}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Input fields — wrapped in relative for saving overlay */}
+          <div className="space-y-3 relative">
+            {saving && (
+              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Spinner size="sm" />
+                  <span className="text-sm font-medium">Salvando credenciais…</span>
+                </div>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="gc-client-id" className="text-sm flex items-center gap-1.5">
                 <KeyRound className="h-3.5 w-3.5" />

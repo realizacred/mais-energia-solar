@@ -31,6 +31,14 @@ export const FEATURE_HINTS: FeatureHint[] = [
     version: 1,
   },
   {
+    id: "fiscal-xml-upload",
+    selector: "#fiscal-xml-dropzone",
+    title: "Importação de XMLs",
+    description: "Arraste os XMLs de compra dos seus kits solares para manter o controle de entrada fiscal.",
+    routes: ["/admin/fiscal"],
+    version: 1,
+  },
+  {
     id: "gcal-cloud-console",
     selector: "#gc-cloud-console-link",
     title: "Gere suas credenciais aqui",

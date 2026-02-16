@@ -72,6 +72,7 @@ function XmlsEntradaTab() {
       <div className="space-y-4">
         {/* Dropzone */}
         <div
+          id="fiscal-xml-dropzone"
           onDragOver={(e) => {
             e.preventDefault();
             setIsDragging(true);
@@ -119,7 +120,7 @@ export function FiscalPage() {
         icon={ReceiptText}
         title="Gestão Fiscal"
         description="Emissão de notas de serviço e importação de XMLs de fornecedores"
-        helpText="As notas de serviço são vinculadas automaticamente aos recebimentos confirmados via Webhook do Asaas. Os XMLs de entrada servem para controle de compras de kits."
+        helpText="Notas de serviço são integradas ao Asaas e emitidas automaticamente após confirmação de pagamento via Webhook. Notas de produto podem ser gerenciadas via upload de XML."
       />
 
       <Tabs defaultValue="emissoes" className="w-full">
