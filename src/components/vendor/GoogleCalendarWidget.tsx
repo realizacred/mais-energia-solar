@@ -22,17 +22,14 @@ export function GoogleCalendarWidget() {
   const { user } = useAuth();
 
   // Check if user has connected calendar
+  // Secure RPC — no token columns exposed
   const { data: calToken } = useQuery({
     queryKey: ["my_google_calendar", user?.id],
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("google_calendar_tokens")
-        .select("id, google_email, is_active, last_synced_at")
-        .eq("user_id", user!.id)
-        .maybeSingle();
-      return data;
+      const { data } = await supabase.rpc("get_my_calendar_token");
+      return (data as any)?.[0] ?? null;
     },
   });
 

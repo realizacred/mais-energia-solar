@@ -99,31 +99,27 @@ export function AgendaConfigPage() {
     },
   });
 
-  // Check OAuth credentials
+  // Check OAuth credentials via secure RPC
   const { data: oauthStatus } = useQuery({
     queryKey: ["google_calendar_config"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("integration_configs")
-        .select("service_key, is_active")
-        .in("service_key", ["google_calendar_client_id", "google_calendar_client_secret"]);
+      const { data, error } = await supabase.rpc("get_google_calendar_config_status");
       if (error) throw error;
+      const result = data as any;
       return {
-        hasClientId: data?.some(d => d.service_key === "google_calendar_client_id" && d.is_active),
-        hasClientSecret: data?.some(d => d.service_key === "google_calendar_client_secret" && d.is_active),
+        hasClientId: result?.hasClientId ?? false,
+        hasClientSecret: result?.hasClientSecret ?? false,
       };
     },
   });
 
-  // Connected users
+  // Connected users via secure RPC
   const { data: connectedUsers = [] } = useQuery({
     queryKey: ["google_calendar_connected_users"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("google_calendar_tokens")
-        .select("user_id, google_email, is_active, created_at");
+      const { data, error } = await supabase.rpc("get_calendar_connected_users");
       if (error) throw error;
-      return data || [];
+      return (data as any[]) || [];
     },
   });
 
