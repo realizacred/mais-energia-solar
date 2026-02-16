@@ -13186,6 +13186,7 @@ export type Database = {
         Args: { _proposta_id: string }
         Returns: number
       }
+      purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
       release_followup_lock: { Args: never; Returns: undefined }
