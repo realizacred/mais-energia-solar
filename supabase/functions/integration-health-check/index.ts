@@ -149,6 +149,7 @@ Deno.serve(async (req) => {
       results.push(await checkWebhooks(supabaseAdmin, tenantId));
       results.push(await checkPaymentGateway(supabaseAdmin, tenantId));
       results.push(await checkAutomations(supabaseAdmin, tenantId));
+      results.push(await checkEvolutionApi(supabaseAdmin, tenantId));
 
       // Fix #3: Batch upsert (single call per tenant, not per integration)
       const now = new Date().toISOString();
@@ -581,5 +582,61 @@ async function checkAutomations(admin: any, tenantId: string): Promise<CheckResu
     };
   } catch (err: any) {
     return { integration_name: "automacoes", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkEvolutionApi(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const globalUrl = Deno.env.get("EVOLUTION_API_URL") || "";
+    const globalKey = Deno.env.get("EVOLUTION_API_KEY") || "";
+
+    if (!globalUrl && !globalKey) {
+      // Check if tenant has any instance with evolution config
+      const { data: instances } = await admin
+        .from("wa_instances")
+        .select("evolution_api_url, api_key")
+        .eq("tenant_id", tenantId)
+        .not("evolution_api_url", "is", null)
+        .limit(1);
+
+      if (!instances || instances.length === 0) {
+        return { integration_name: "evolution_api", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Nenhuma URL da Evolution API configurada" } };
+      }
+    }
+
+    const apiUrl = (globalUrl || "").replace(/\/$/, "");
+    const apiKey = globalKey;
+
+    if (!apiUrl) {
+      return { integration_name: "evolution_api", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+    }
+
+    const start = Date.now();
+    try {
+      const res = await fetch(`${apiUrl}/instance/fetchInstances`, {
+        method: "GET",
+        headers: { apikey: apiKey, "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(10000),
+      });
+      const latency = Date.now() - start;
+
+      if (res.ok) {
+        await res.text();
+        return { integration_name: "evolution_api", status: "healthy", latency_ms: latency, error_message: null, details: {} };
+      }
+      const errText = await res.text();
+      return {
+        integration_name: "evolution_api",
+        status: res.status === 401 ? "down" : "degraded",
+        latency_ms: latency,
+        error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+        details: {},
+      };
+    } catch (fetchErr: any) {
+      const latency = Date.now() - start;
+      return { integration_name: "evolution_api", status: "degraded", latency_ms: latency, error_message: fetchErr.message, details: {} };
+    }
+  } catch (err: any) {
+    return { integration_name: "evolution_api", status: "down", latency_ms: null, error_message: err.message, details: {} };
   }
 }
