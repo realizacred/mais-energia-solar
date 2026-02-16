@@ -22,13 +22,12 @@ export interface FeatureHint {
 }
 
 export const FEATURE_HINTS: FeatureHint[] = [
-  // Example entries — remove or replace with real features
-  // {
-  //   id: "wa-media-tab",
-  //   selector: "#wa-media-tab",
-  //   title: "Galeria de Mídia",
-  //   description: "Veja todas as fotos e documentos da conversa aqui.",
-  //   routes: ["/admin/inbox"],
-  //   version: 1,
-  // },
+  {
+    id: "fiscal-tirar-nota",
+    selector: "#btn-tirar-nota",
+    title: "Emissão de Notas Fiscais",
+    description: "As notas de serviço são enviadas automaticamente para o Asaas após o pagamento ser confirmado via Webhook.",
+    routes: ["/admin/fiscal"],
+    version: 1,
+  },
 ];
