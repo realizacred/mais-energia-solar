@@ -102,31 +102,32 @@ Deno.serve(async (req) => {
     const latIdx = header.findIndex((h) => h === "lat" || h === "latitude");
     const lonIdx = header.findIndex((h) => h === "lon" || h === "lng" || h === "longitude");
 
-    const monthNames = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    const monthNamesPt = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+    const monthNamesEn = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
 
     // GHI columns (m01-m12 or ghi_m01-ghi_m12 or jan-dez)
     const ghiCols: number[] = [];
     for (let m = 1; m <= 12; m++) {
       const mKey = `m${String(m).padStart(2, "0")}`;
-      const altKeys = [mKey, `ghi_${mKey}`, monthNames[m - 1]];
+      const altKeys = [mKey, `ghi_${mKey}`, monthNamesPt[m - 1], monthNamesEn[m - 1]];
       const idx = header.findIndex((h) => altKeys.includes(h));
       ghiCols.push(idx >= 0 ? idx : -1);
     }
 
-    // DHI columns (dhi_m01-dhi_m12 or dhi_jan-dhi_dez)
+    // DHI columns
     const dhiCols: number[] = [];
     for (let m = 1; m <= 12; m++) {
       const mKey = `dhi_m${String(m).padStart(2, "0")}`;
-      const altKeys = [mKey, `dhi_${monthNames[m - 1]}`];
+      const altKeys = [mKey, `dhi_${monthNamesPt[m - 1]}`, `dhi_${monthNamesEn[m - 1]}`];
       const idx = header.findIndex((h) => altKeys.includes(h));
       dhiCols.push(idx >= 0 ? idx : -1);
     }
 
-    // DNI columns (dni_m01-dni_m12 or dni_jan-dni_dez)
+    // DNI columns
     const dniCols: number[] = [];
     for (let m = 1; m <= 12; m++) {
       const mKey = `dni_m${String(m).padStart(2, "0")}`;
-      const altKeys = [mKey, `dni_${monthNames[m - 1]}`];
+      const altKeys = [mKey, `dni_${monthNamesPt[m - 1]}`, `dni_${monthNamesEn[m - 1]}`];
       const idx = header.findIndex((h) => altKeys.includes(h));
       dniCols.push(idx >= 0 ? idx : -1);
     }
