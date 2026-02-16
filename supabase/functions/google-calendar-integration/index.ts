@@ -10,6 +10,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const OAUTH_STATE_SECRET = Deno.env.get("OAUTH_STATE_SECRET") || "";
+const MASTER_ENCRYPTION_KEY = Deno.env.get("MASTER_ENCRYPTION_KEY") || "";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
@@ -82,6 +83,75 @@ async function verifyAndParseState(state: string): Promise<Record<string, unknow
     return parsed;
   } catch {
     return null;
+  }
+}
+
+// ── AES-256-GCM Encryption ──────────────────────────────────
+
+async function getEncryptionKey(): Promise<CryptoKey> {
+  if (!MASTER_ENCRYPTION_KEY) {
+    throw new Error("MASTER_ENCRYPTION_KEY not configured");
+  }
+  // Derive a 256-bit key from the master key using SHA-256
+  const keyMaterial = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(MASTER_ENCRYPTION_KEY)
+  );
+  return crypto.subtle.importKey("raw", keyMaterial, "AES-GCM", false, [
+    "encrypt",
+    "decrypt",
+  ]);
+}
+
+/** Encrypt plaintext → base64(iv:ciphertext:tag) */
+async function encryptToken(plaintext: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const iv = crypto.getRandomValues(new Uint8Array(12)); // 96-bit IV
+  const encoded = new TextEncoder().encode(plaintext);
+
+  const ciphertext = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv, tagLength: 128 },
+    key,
+    encoded
+  );
+
+  // Combine iv + ciphertext (tag is appended by WebCrypto)
+  const combined = new Uint8Array(iv.length + ciphertext.byteLength);
+  combined.set(iv, 0);
+  combined.set(new Uint8Array(ciphertext), iv.length);
+
+  return btoa(String.fromCharCode(...combined));
+}
+
+/** Decrypt base64(iv:ciphertext:tag) → plaintext */
+async function decryptToken(encrypted: string): Promise<string> {
+  const key = await getEncryptionKey();
+  const combined = Uint8Array.from(atob(encrypted), (c) => c.charCodeAt(0));
+
+  const iv = combined.slice(0, 12);
+  const ciphertext = combined.slice(12);
+
+  const decrypted = await crypto.subtle.decrypt(
+    { name: "AES-GCM", iv, tagLength: 128 },
+    key,
+    ciphertext
+  );
+
+  return new TextDecoder().decode(decrypted);
+}
+
+/**
+ * Try to decrypt a token. If decryption fails (legacy plaintext token),
+ * return the value as-is for backward compatibility during migration.
+ */
+async function safeDecryptToken(value: string | null): Promise<string | null> {
+  if (!value) return null;
+  try {
+    return await decryptToken(value);
+  } catch {
+    // Legacy plaintext token — return as-is
+    console.warn("[CRYPTO] Failed to decrypt token, assuming legacy plaintext");
+    return value;
   }
 }
 
@@ -461,13 +531,16 @@ async function handleCallback(req: Request) {
       .delete()
       .eq("integration_id", intRow.id);
 
+    const encAccessToken = await encryptToken(tokenData.access_token);
+    const encRefreshToken = tokenData.refresh_token ? await encryptToken(tokenData.refresh_token) : null;
+
     await adminClient
       .from("integration_credentials")
       .insert({
         tenant_id: tenantId,
         integration_id: intRow.id,
-        access_token_encrypted: tokenData.access_token,
-        refresh_token_encrypted: tokenData.refresh_token || null,
+        access_token_encrypted: encAccessToken,
+        refresh_token_encrypted: encRefreshToken,
         expires_at: expiresAt,
         token_type: tokenData.token_type || "Bearer",
       });
@@ -580,13 +653,16 @@ async function handleCallbackProxy(req: Request) {
       .delete()
       .eq("integration_id", intRow.id);
 
+    const encAccessToken2 = await encryptToken(tokenData.access_token);
+    const encRefreshToken2 = tokenData.refresh_token ? await encryptToken(tokenData.refresh_token) : null;
+
     await adminClient
       .from("integration_credentials")
       .insert({
         tenant_id: tenantId,
         integration_id: intRow.id,
-        access_token_encrypted: tokenData.access_token,
-        refresh_token_encrypted: tokenData.refresh_token || null,
+        access_token_encrypted: encAccessToken2,
+        refresh_token_encrypted: encRefreshToken2,
         expires_at: expiresAt,
         token_type: tokenData.token_type || "Bearer",
       });
@@ -746,10 +822,13 @@ async function handleDisconnect(req: Request) {
 
   if (cred?.access_token_encrypted) {
     try {
-      await fetch(`https://oauth2.googleapis.com/revoke?token=${cred.access_token_encrypted}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      });
+      const plainToken = await safeDecryptToken(cred.access_token_encrypted);
+      if (plainToken) {
+        await fetch(`https://oauth2.googleapis.com/revoke?token=${plainToken}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        });
+      }
     } catch { /* best effort */ }
   }
 
@@ -846,10 +925,12 @@ async function getValidAccessToken(
   if (!cred) return null;
 
   if (cred.expires_at && new Date(cred.expires_at) > new Date(Date.now() + 60_000)) {
-    return cred.access_token_encrypted;
+    const decrypted = await safeDecryptToken(cred.access_token_encrypted);
+    return decrypted;
   }
 
-  if (!cred.refresh_token_encrypted) return null;
+  const refreshTokenPlain = await safeDecryptToken(cred.refresh_token_encrypted);
+  if (!refreshTokenPlain) return null;
 
   // Get per-tenant OAuth creds for refresh
   const oauthCreds = await getTenantOAuthCreds(adminClient, tenantId);
@@ -862,7 +943,7 @@ async function getValidAccessToken(
       body: new URLSearchParams({
         client_id: oauthCreds.clientId,
         client_secret: oauthCreds.clientSecret,
-        refresh_token: cred.refresh_token_encrypted,
+        refresh_token: refreshTokenPlain,
         grant_type: "refresh_token",
       }),
     });
@@ -871,11 +952,12 @@ async function getValidAccessToken(
     if (!refreshRes.ok || !refreshData.access_token) return null;
 
     const newExpires = new Date(Date.now() + (refreshData.expires_in || 3600) * 1000).toISOString();
+    const encNewAccessToken = await encryptToken(refreshData.access_token);
 
     await adminClient
       .from("integration_credentials")
       .update({
-        access_token_encrypted: refreshData.access_token,
+        access_token_encrypted: encNewAccessToken,
         expires_at: newExpires,
         rotated_at: new Date().toISOString(),
       })
