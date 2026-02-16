@@ -14,7 +14,9 @@ export function AdminBreadcrumb({ activeTab }: AdminBreadcrumbProps) {
     for (const section of sections) {
       const item = section.items.find((i) => i.id === activeTab);
       if (item) {
-        return { section: section.label, item: item.title };
+        // Use the first item of the section as the link target
+        const firstItemId = section.items[0]?.id ?? "dashboard";
+        return { section: section.label, sectionLink: `/admin/${firstItemId}`, item: item.title };
       }
     }
     return null;
@@ -32,7 +34,7 @@ export function AdminBreadcrumb({ activeTab }: AdminBreadcrumbProps) {
         <span className="hidden sm:inline">Início</span>
       </Link>
       <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
-      <span className="text-muted-foreground">{crumbs.section}</span>
+      <Link to={crumbs.sectionLink} className="text-muted-foreground hover:text-foreground transition-colors">{crumbs.section}</Link>
       <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
       <span className="font-semibold text-foreground">{crumbs.item}</span>
     </nav>
