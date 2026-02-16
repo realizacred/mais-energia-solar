@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Plus, Search, ChevronRight, Loader2, Send, Layers, Eye, CalendarDays, Users, X } from "lucide-react";
+import { PageHeader } from "@/components/ui-kit";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -146,18 +147,18 @@ export function ProposalList() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-5">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {totalCount} proposta{totalCount !== 1 ? "s" : ""} encontrada{totalCount !== 1 ? "s" : ""}
-            </p>
-          </div>
-          <Button variant="default" className="gap-2" onClick={() => navigate("/admin/propostas-nativas/nova")}>
-            <Plus className="h-4 w-4" /> Nova Proposta
-          </Button>
-        </div>
+        <PageHeader
+          icon={FileText}
+          title="Propostas"
+          description={`${totalCount} proposta${totalCount !== 1 ? "s" : ""} encontrada${totalCount !== 1 ? "s" : ""}`}
+          actions={
+            <Button className="gap-2" onClick={() => navigate("/admin/propostas-nativas/nova")}>
+              <Plus className="h-4 w-4" /> Nova Proposta
+            </Button>
+          }
+        />
 
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3">

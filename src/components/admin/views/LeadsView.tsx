@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { LoadingState } from "@/components/ui-kit";
+import { PageHeader, LoadingState } from "@/components/ui-kit";
+import { ClipboardList } from "lucide-react";
 import { useOrcamentosAdmin } from "@/hooks/useOrcamentosAdmin";
 import { 
   OrcamentosTable, 
@@ -129,9 +130,15 @@ export function LeadsView() {
   };
 
   return (
-    <>
+    <div className="space-y-6">
+      <PageHeader
+        icon={ClipboardList}
+        title="Leads"
+        description="Gerencie os orçamentos e leads recebidos"
+      />
+
       {/* Notification Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <PendingDocumentationWidget onLeadClick={handleLeadFromWidget} />
         <FollowUpNotifications onLeadClick={handleLeadFromWidget} diasAlerta={3} />
         <WaAutoMessageToggle />
@@ -230,6 +237,6 @@ export function LeadsView() {
         onOpenChange={setIsConvertOpen}
         onSuccess={fetchOrcamentos}
       />
-    </>
+    </div>
   );
 }
