@@ -74,12 +74,12 @@ const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalaca
 // CanaisCaptacaoPage removed — consolidated into LinksInstalacaoPage
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
 const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationStatusPage").then(m => ({ default: m.IntegrationStatusPage })));
-const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCalendarConfigPage").then(m => ({ default: m.GoogleCalendarConfigPage })));
+// GoogleCalendarConfigPage removed
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
-const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
+// AgendaConfigPage removed
 const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
 const DocumentosPage = lazy(() => import("@/components/admin/documentos/DocumentosPage").then(m => ({ default: m.DocumentosPage })));
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
@@ -195,9 +195,7 @@ const TAB_TITLES: Record<string, string> = {
   documentos: "Documentos & Assinatura",
   "data-reset": "Manutenção de Dados",
   "integracoes-status": "Painel de Integrações",
-  "google-calendar": "Google Calendar",
   "payment-gateway": "Pagamentos (Asaas)",
-  "agenda-config": "Agenda & Calendário",
   "ai-config": "Configuração de IA",
   changelog: "Atualizações do Sistema",
   "notificacoes-config": "Notificações",
@@ -432,7 +430,7 @@ export default function Admin() {
                 <Route path="pricing-policy" element={<PricingPolicyPage />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
-                <Route path="agenda-config" element={<AgendaConfigPage />} />
+                {/* agenda-config removed */}
                 
                 {/* IA */}
                 <Route path="diretor" element={<CommercialDirectorDashboard />} />
@@ -444,7 +442,7 @@ export default function Admin() {
                 
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
-                <Route path="google-calendar" element={<AgendaConfigPage />} />
+                {/* google-calendar removed */}
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="ai-config" element={<AiConfigPage />} />
                 

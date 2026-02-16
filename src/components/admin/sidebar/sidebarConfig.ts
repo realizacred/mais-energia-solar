@@ -254,7 +254,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"] },
       { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP", keywords: ["n8n", "automação", "workflow", "MCP"] },
-      // google-calendar unified into agenda-config
+      // google-calendar removed
       { id: "ai-config", title: "Configuração de IA", icon: Brain, description: "Modelo, temperatura e gate de follow-up", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"] },
     ],
   },
@@ -297,7 +297,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "inversores-cadastro", title: "Inversores", icon: Cpu, description: "Inversores solares cadastrados", keywords: ["inversor", "potência", "micro-inversor", "string"] },
       { id: "baterias", title: "Baterias", icon: Battery, description: "Sistemas de armazenamento", keywords: ["bateria", "armazenamento", "lítio", "energia"] },
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas por distribuidora", keywords: ["tarifa", "distribuidora", "concessionária", "ANEEL"] },
-      { id: "agenda-config", title: "Agenda & Compromissos", icon: Calendar, description: "Configurar agenda interna e Google Calendar", keywords: ["agenda", "compromisso", "google", "calendar", "agendamento"], separator: true },
+      // agenda-config removed
       { id: "loading-config", title: "Loading & Mensagens", icon: Sun, description: "Animação e mensagens de carregamento", keywords: ["loading", "carregamento", "mensagem", "animação", "sol", "loader"], separator: true },
     ],
   },
