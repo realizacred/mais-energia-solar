@@ -13,7 +13,7 @@ import {
   Database, Search, CheckCircle2, AlertTriangle, Info,
   Globe, Hash, Calendar, Loader2, Sun, MapPin, Download, RefreshCw, Upload,
 } from "lucide-react";
-import { useIrradianceDatasets } from "@/hooks/useIrradianceDatasets";
+import { useIrradianceDatasets, getExpectedPoints, isVersionStalled } from "@/hooks/useIrradianceDatasets";
 import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/irradiance-provider";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -368,22 +368,61 @@ export function IrradianciaPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  {(isFetching || versions.some(v => v.dataset_id === ds.id && v.status === "processing")) && (
-                    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        <p className="text-xs text-primary font-medium">
-                          {isFetching
-                            ? "⏳ Iniciando importação via NASA POWER API…"
-                            : "Importação em andamento em segundo plano…"}
-                        </p>
+                  {(() => {
+                    const processingVersion = versions.find(v => v.dataset_id === ds.id && v.status === "processing");
+                    const showProgress = isFetching || !!processingVersion;
+                    if (!showProgress) return null;
+
+                    const stalled = processingVersion ? isVersionStalled(processingVersion) : false;
+                    const expected = processingVersion ? getExpectedPoints(processingVersion) : null;
+                    const current = processingVersion?.row_count ?? 0;
+                    const percent = expected && expected > 0 ? Math.min(Math.round((current / expected) * 100), 99) : 0;
+
+                    return (
+                      <div className={`rounded-lg border p-3 space-y-2 ${
+                        stalled
+                          ? "border-warning/30 bg-warning/5"
+                          : "border-primary/30 bg-primary/5"
+                      }`}>
+                        <div className="flex items-center gap-2">
+                          {stalled ? (
+                            <AlertTriangle className="h-4 w-4 text-warning" />
+                          ) : (
+                            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          )}
+                          <p className={`text-xs font-medium ${stalled ? "text-warning" : "text-primary"}`}>
+                            {isFetching && !processingVersion
+                              ? "⏳ Iniciando importação via NASA POWER API…"
+                              : stalled
+                              ? "⚠️ Importação parece travada — sem atualização há mais de 10 minutos"
+                              : "Importação em andamento em segundo plano…"}
+                          </p>
+                        </div>
+
+                        {processingVersion && expected && (
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] text-muted-foreground">
+                              <span>{current.toLocaleString("pt-BR")} / {expected.toLocaleString("pt-BR")} pontos</span>
+                              <span className="font-medium">{percent}%</span>
+                            </div>
+                            <Progress value={percent} className="h-2" />
+                          </div>
+                        )}
+
+                        {stalled ? (
+                          <p className="text-[10px] text-warning flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            O servidor pode ter perdido a conexão. Tente iniciar uma nova importação.
+                          </p>
+                        ) : (
+                          <p className="text-[10px] text-success flex items-center gap-1">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Você pode navegar para outras páginas. Será notificado quando concluir.
+                          </p>
+                        )}
                       </div>
-                      <p className="text-[10px] text-success flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3" />
-                        Você pode navegar para outras páginas. Será notificado quando concluir.
-                      </p>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   <div className="flex flex-wrap gap-3 text-[10px]">
                     <div className="flex items-center gap-1 text-muted-foreground">
