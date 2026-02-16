@@ -39,6 +39,7 @@ export function GoogleCalendarConfigPage() {
   const [identityError, setIdentityError] = useState("");
   const [securityError, setSecurityError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   // Unique React-generated IDs to avoid any autofill pattern matching
   const formId = useId();
@@ -139,10 +140,11 @@ export function GoogleCalendarConfigPage() {
 
       toast({ title: "Credenciais salvas ✅", description: "Google Calendar configurado com sucesso." });
 
-      // Reset form completely
+      // Reset form completely and hide editor
       setGcalAppIdentity("");
       setGcalAppSecurity("");
       setIdentityError("");
+      setEditing(false);
       setSecurityError("");
       await queryClient.invalidateQueries({ queryKey: ["google_calendar_config"] });
     } catch (err: any) {
@@ -212,18 +214,27 @@ export function GoogleCalendarConfigPage() {
 
           <Separator />
 
-          {/* DB status indicator — values displayed as label, never in inputs */}
-          {isConfigured && !gcalAppIdentity && !gcalAppSecurity && (
-            <div className="p-3 rounded-lg bg-success/5 border border-success/20">
-              <p className="text-xs text-success flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                Credenciais salvas no banco. Preencha abaixo apenas para atualizar.
+          {/* When configured and NOT editing: show success state + change button */}
+          {isConfigured && !editing && (
+            <div className="p-4 rounded-lg bg-success/5 border border-success/20 space-y-3">
+              <p className="text-sm text-success flex items-center gap-1.5 font-medium">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
+                Credenciais configuradas com sucesso
               </p>
               {configStatus?.maskedClientId && (
-                <p className="text-xs text-muted-foreground font-mono mt-1 truncate">
+                <p className="text-xs text-muted-foreground font-mono truncate">
                   Client ID: {configStatus.maskedClientId}
                 </p>
               )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setEditing(true)}
+                className="gap-1.5"
+              >
+                <KeyRound className="h-3.5 w-3.5" />
+                Alterar Credenciais
+              </Button>
             </div>
           )}
 
@@ -234,6 +245,8 @@ export function GoogleCalendarConfigPage() {
               - textarea instead of input to bypass password managers
               - Random names/ids via useId()
               ═══════════════════════════════════════════════════ */}
+          {/* Only render the form when NOT configured or when user clicks "Alterar" */}
+          {(!isConfigured || editing) && (
           <form autoComplete="off" onSubmit={(e) => e.preventDefault()} className="space-y-3 relative">
             {/* Hidden decoy inputs — absorb browser autofill */}
             <input type="text" name="fakeusernameremembered" style={{ display: "none" }} value="" readOnly tabIndex={-1} />
@@ -332,6 +345,7 @@ export function GoogleCalendarConfigPage() {
               )}
             </div>
           </form>
+          )}
         </CardContent>
       </Card>
 
