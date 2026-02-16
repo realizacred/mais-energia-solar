@@ -41,6 +41,7 @@ const INTEGRATION_LABELS: Record<string, string> = {
   webhooks: "Webhooks",
   pagamentos: "Pagamentos (Asaas)",
   automacoes: "Automações",
+  evolution_api: "Evolution API",
 };
 
 const CONFIG_ROUTES: Record<string, string> = {
@@ -53,6 +54,7 @@ const CONFIG_ROUTES: Record<string, string> = {
   webhooks: "/admin/webhooks",
   pagamentos: "/admin/payment-gateway",
   automacoes: "/admin/n8n",
+  evolution_api: "/admin/evolution-api",
 };
 
 function getStatusConfig(status: string) {
