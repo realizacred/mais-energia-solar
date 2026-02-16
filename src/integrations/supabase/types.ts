@@ -3452,6 +3452,18 @@ export type Database = {
           dhi_m10: number | null
           dhi_m11: number | null
           dhi_m12: number | null
+          dni_m01: number | null
+          dni_m02: number | null
+          dni_m03: number | null
+          dni_m04: number | null
+          dni_m05: number | null
+          dni_m06: number | null
+          dni_m07: number | null
+          dni_m08: number | null
+          dni_m09: number | null
+          dni_m10: number | null
+          dni_m11: number | null
+          dni_m12: number | null
           id: number
           lat: number
           lon: number
@@ -3483,6 +3495,18 @@ export type Database = {
           dhi_m10?: number | null
           dhi_m11?: number | null
           dhi_m12?: number | null
+          dni_m01?: number | null
+          dni_m02?: number | null
+          dni_m03?: number | null
+          dni_m04?: number | null
+          dni_m05?: number | null
+          dni_m06?: number | null
+          dni_m07?: number | null
+          dni_m08?: number | null
+          dni_m09?: number | null
+          dni_m10?: number | null
+          dni_m11?: number | null
+          dni_m12?: number | null
           id?: number
           lat: number
           lon: number
@@ -3514,6 +3538,18 @@ export type Database = {
           dhi_m10?: number | null
           dhi_m11?: number | null
           dhi_m12?: number | null
+          dni_m01?: number | null
+          dni_m02?: number | null
+          dni_m03?: number | null
+          dni_m04?: number | null
+          dni_m05?: number | null
+          dni_m06?: number | null
+          dni_m07?: number | null
+          dni_m08?: number | null
+          dni_m09?: number | null
+          dni_m10?: number | null
+          dni_m11?: number | null
+          dni_m12?: number | null
           id?: number
           lat?: number
           lon?: number

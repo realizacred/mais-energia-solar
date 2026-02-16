@@ -101,13 +101,39 @@ Deno.serve(async (req) => {
     // Detect column indexes
     const latIdx = header.findIndex((h) => h === "lat" || h === "latitude");
     const lonIdx = header.findIndex((h) => h === "lon" || h === "lng" || h === "longitude");
-    const monthCols: number[] = [];
+
+    const monthNames = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+
+    // GHI columns (m01-m12 or ghi_m01-ghi_m12 or jan-dez)
+    const ghiCols: number[] = [];
     for (let m = 1; m <= 12; m++) {
       const mKey = `m${String(m).padStart(2, "0")}`;
-      const altKeys = [mKey, `jan,fev,mar,abr,mai,jun,jul,ago,set,out,nov,dez`.split(",")[m - 1]];
+      const altKeys = [mKey, `ghi_${mKey}`, monthNames[m - 1]];
       const idx = header.findIndex((h) => altKeys.includes(h));
-      monthCols.push(idx >= 0 ? idx : -1);
+      ghiCols.push(idx >= 0 ? idx : -1);
     }
+
+    // DHI columns (dhi_m01-dhi_m12 or dhi_jan-dhi_dez)
+    const dhiCols: number[] = [];
+    for (let m = 1; m <= 12; m++) {
+      const mKey = `dhi_m${String(m).padStart(2, "0")}`;
+      const altKeys = [mKey, `dhi_${monthNames[m - 1]}`];
+      const idx = header.findIndex((h) => altKeys.includes(h));
+      dhiCols.push(idx >= 0 ? idx : -1);
+    }
+
+    // DNI columns (dni_m01-dni_m12 or dni_jan-dni_dez)
+    const dniCols: number[] = [];
+    for (let m = 1; m <= 12; m++) {
+      const mKey = `dni_m${String(m).padStart(2, "0")}`;
+      const altKeys = [mKey, `dni_${monthNames[m - 1]}`];
+      const idx = header.findIndex((h) => altKeys.includes(h));
+      dniCols.push(idx >= 0 ? idx : -1);
+    }
+
+    const hasDhi = dhiCols.some((c) => c >= 0);
+    const hasDni = dniCols.some((c) => c >= 0);
+    console.log(`[IRRADIANCE_IMPORT] Detected columns — GHI: ${ghiCols.filter(c=>c>=0).length}, DHI: ${dhiCols.filter(c=>c>=0).length}, DNI: ${dniCols.filter(c=>c>=0).length}`);
 
     if (latIdx < 0 || lonIdx < 0) {
       await admin.from("irradiance_dataset_versions")
@@ -130,19 +156,34 @@ Deno.serve(async (req) => {
       const lon = parseFloat(cols[lonIdx].replace(",", "."));
       if (isNaN(lat) || isNaN(lon)) continue;
 
-      const months: Record<string, number> = {};
+      const row: Record<string, any> = { version_id: versionId, lat, lon, unit: "kwh_m2_day" };
+
+      // GHI
       for (let m = 0; m < 12; m++) {
         const mKey = `m${String(m + 1).padStart(2, "0")}`;
-        const val = monthCols[m] >= 0 ? parseFloat(cols[monthCols[m]].replace(",", ".")) : 0;
-        months[mKey] = isNaN(val) ? 0 : val;
+        const val = ghiCols[m] >= 0 ? parseFloat(cols[ghiCols[m]].replace(",", ".")) : 0;
+        row[mKey] = isNaN(val) ? 0 : val;
       }
 
-      batch.push({
-        version_id: versionId,
-        lat, lon,
-        ...months,
-        unit: "kwh_m2_day",
-      });
+      // DHI (optional)
+      if (hasDhi) {
+        for (let m = 0; m < 12; m++) {
+          const mKey = `dhi_m${String(m + 1).padStart(2, "0")}`;
+          const val = dhiCols[m] >= 0 ? parseFloat(cols[dhiCols[m]].replace(",", ".")) : null;
+          row[mKey] = val !== null && !isNaN(val) ? val : null;
+        }
+      }
+
+      // DNI (optional)
+      if (hasDni) {
+        for (let m = 0; m < 12; m++) {
+          const mKey = `dni_m${String(m + 1).padStart(2, "0")}`;
+          const val = dniCols[m] >= 0 ? parseFloat(cols[dniCols[m]].replace(",", ".")) : null;
+          row[mKey] = val !== null && !isNaN(val) ? val : null;
+        }
+      }
+
+      batch.push(row);
 
       hashParts.push(`${lat}:${lon}:${Object.values(months).join(":")}`);
       rowCount++;
@@ -175,7 +216,7 @@ Deno.serve(async (req) => {
         status: "active",
         row_count: rowCount,
         checksum_sha256: checksum,
-        metadata: { imported_by: userId, file_path, header, separator, parsed_rows: lines.length - 1 },
+        metadata: { imported_by: userId, file_path, header, separator, parsed_rows: lines.length - 1, has_dhi: hasDhi, has_dni: hasDni },
         updated_at: new Date().toISOString(),
       })
       .eq("id", versionId);
