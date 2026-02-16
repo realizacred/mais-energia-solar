@@ -1,3 +1,4 @@
+import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -257,10 +258,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const formatDate = (d: string) =>
     new Date(d).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 
-  const formatBRL = (v: number) => {
-    if (!v) return "R$ 0";
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-  };
+  // formatBRL imported from @/lib/formatters at file top
 
   const getStageNameById = (id: string | null) => {
     if (!id) return "—";
@@ -1041,10 +1039,7 @@ function PropostasTab({ customerId, dealTitle, navigate }: { customerId: string 
     load();
   }, [customerId]);
 
-  const formatBRL = (v: number | null) => {
-    if (!v) return "—";
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-  };
+  // formatBRL imported from @/lib/formatters at file top
 
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 

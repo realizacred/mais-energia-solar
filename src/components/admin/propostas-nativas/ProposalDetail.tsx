@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/formatters";
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -38,10 +39,7 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
   expired: { label: "Expirada", variant: "secondary", icon: AlertTriangle },
 };
 
-const formatBRL = (v: number | null) => {
-  if (!v) return "—";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-};
+// formatBRL imported at file top from @/lib/formatters
 
 export function ProposalDetail() {
   const { propostaId, versaoId } = useParams();

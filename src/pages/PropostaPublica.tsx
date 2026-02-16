@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { CheckCircle2, Loader2, AlertTriangle, Pencil, Sun, Zap, TrendingUp, Clock, XCircle, ThumbsDown } from "lucide-react";
@@ -252,10 +253,7 @@ export default function PropostaPublica() {
     }
   };
 
-  const formatBRL = (v: number | null) => {
-    if (!v && v !== 0) return "—";
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
-  };
+  // formatBRL imported from @/lib/formatters at file top
 
   const activeCenario = useMemo(
     () => cenarios.find(c => c.id === selectedCenario) ?? null,

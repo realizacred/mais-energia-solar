@@ -1,3 +1,4 @@
+import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers } from "lucide-react";
@@ -60,10 +61,7 @@ export function ProjetosManager() {
     return deals.reduce((sum, d) => sum + (d.deal_value || 0), 0);
   }, [deals]);
 
-  const formatBRL = (v: number) => {
-    if (!v) return "R$ 0";
-    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-  };
+  // formatBRL imported from @/lib/formatters at file top
 
   // ── Detail View ──
   if (selectedDealId) {

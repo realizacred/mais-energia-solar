@@ -178,5 +178,5 @@ export const ORIENTACAO_OPTIONS = [
   { value: "S", label: "Sul", fator: 0.75, desc: "Regular" },
 ] as const;
 
-export const formatBRL = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+/** @deprecated Use `formatBRL` from `@/lib/formatters` instead. */
+export { formatBRL } from "@/lib/formatters";

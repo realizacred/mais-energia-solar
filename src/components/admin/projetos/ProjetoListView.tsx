@@ -1,3 +1,4 @@
+import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { Badge } from "@/components/ui/badge";
 import { User, Zap, ChevronRight, Phone } from "lucide-react";
 import type { ProjetoItem, ProjetoEtapa } from "@/hooks/useProjetoPipeline";
@@ -9,10 +10,7 @@ interface Props {
   onViewProjeto?: (projeto: ProjetoItem) => void;
 }
 
-const formatBRL = (v: number | null) => {
-  if (!v) return "—";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-};
+// formatBRL imported at file top from @/lib/formatters
 
 const ETIQUETA_COLORS: Record<string, string> = {
   residencial: "bg-info/10 text-info dark:bg-info/20",

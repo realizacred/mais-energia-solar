@@ -1,3 +1,4 @@
+import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -13,10 +14,7 @@ interface Props {
   onViewProjeto?: (projeto: ProjetoItem) => void;
 }
 
-const formatBRL = (v: number | null) => {
-  if (!v) return null;
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-};
+// formatBRL imported at file top from @/lib/formatters
 
 const CATEGORIA_DOT: Record<string, string> = {
   aberto: "bg-info",
