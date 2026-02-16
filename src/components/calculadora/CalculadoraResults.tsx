@@ -11,10 +11,10 @@ import {
   DollarSign,
   Zap,
   Share2,
-  Copy,
   Check,
   TreePine,
   Info,
+  MessageCircle,
 } from "lucide-react";
 import type { PaybackResult } from "@/hooks/usePaybackEngine";
 import { PaybackProfessionalResults } from "@/components/payback/PaybackProfessionalResults";
@@ -133,14 +133,14 @@ export function CalculadoraResults({
           transition={{ duration: 0.4 }}
         >
           <Card className="bg-primary text-primary-foreground overflow-hidden shadow-md">
-            <CardContent className="p-6">
+            <CardContent className="p-5">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-white/80 text-sm font-medium">
+                  <p className="text-primary-foreground/80 text-sm font-medium">
                     Investimento Estimado
                   </p>
-                  <AnimatedCurrency value={investimentoTotal} className="text-3xl sm:text-4xl font-bold mt-1 tracking-tight block" />
-                  <div className="flex items-center gap-3 mt-3 text-white/90 flex-wrap">
+                  <AnimatedCurrency value={investimentoTotal} className="text-3xl font-bold mt-1 tracking-tight block" />
+                  <div className="flex items-center gap-3 mt-2 text-primary-foreground/90 flex-wrap">
                     <span className="flex items-center gap-1 text-sm">
                       <Sun className="w-4 h-4" />
                       <AnimatedNumber value={kWp} suffix=" kWp" />
@@ -151,8 +151,8 @@ export function CalculadoraResults({
                     </span>
                   </div>
                 </div>
-                <div className="w-14 h-14 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                  <TrendingDown className="w-7 h-7" />
+                <div className="w-12 h-12 bg-primary-foreground/15 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <TrendingDown className="w-6 h-6" />
                 </div>
               </div>
             </CardContent>
@@ -161,6 +161,9 @@ export function CalculadoraResults({
 
         {/* Before/After Comparison */}
         <BeforeAfterComparison contaAtual={contaAtual} contaComSolar={contaComSolar} economiaMensal={economiaMensal} />
+
+        {/* Dashboard Stats Grid */}
+        <StatsGrid kWp={kWp} co2Anual={co2Anual} economiaMensal={economiaMensal} economiaAnual={economiaMensal * 12} arvoresEquivalentes={arvoresEquivalentes} />
 
         {/* 25 year savings — COMPOSTA */}
         <Savings25Years economia25Anos={economia25AnosComposta} arvoresEquivalentes={arvoresEquivalentes} />
@@ -180,6 +183,9 @@ export function CalculadoraResults({
           consumoMensal={consumoMensal}
           tarifaKwh={tarifaKwh}
         />
+
+        {/* WhatsApp CTA */}
+        <WhatsAppCTA economiaMensal={economiaMensal} />
 
         {/* Share button */}
         <ShareButton onShare={handleShare} copied={copied} />
@@ -204,18 +210,18 @@ export function CalculadoraResults({
       {/* Hero savings card */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
         <Card className="bg-primary text-primary-foreground overflow-hidden shadow-md">
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-white/80 text-sm font-medium">Sua Economia Mensal Estimada</p>
-                <AnimatedCurrency value={economiaMensal} className="text-3xl sm:text-4xl md:text-5xl font-bold mt-1 tracking-tight block" />
-                <div className="flex items-center gap-2 mt-3 text-white/90">
+                <p className="text-primary-foreground/80 text-sm font-medium">Sua Economia Mensal Estimada</p>
+                <AnimatedCurrency value={economiaMensal} className="text-3xl font-bold mt-1 tracking-tight block" />
+                <div className="flex items-center gap-2 mt-2 text-primary-foreground/90">
                   <DollarSign className="w-4 h-4" />
                   <span className="font-semibold"><AnimatedCurrency value={economiaAnual} /> por ano</span>
                 </div>
               </div>
-              <div className="w-14 h-14 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                <TrendingDown className="w-7 h-7" />
+              <div className="w-12 h-12 bg-primary-foreground/15 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <TrendingDown className="w-6 h-6" />
               </div>
             </div>
           </CardContent>
@@ -246,6 +252,9 @@ export function CalculadoraResults({
 
       {/* 25 year savings */}
       <Savings25Years economia25Anos={economia25AnosComposta} arvoresEquivalentes={arvoresEquivalentes} />
+
+      {/* WhatsApp CTA */}
+      <WhatsAppCTA economiaMensal={economiaMensal} />
 
       {/* Share button */}
       <ShareButton onShare={handleShare} copied={copied} />
@@ -325,6 +334,66 @@ function Savings25Years({ economia25Anos, arvoresEquivalentes }: { economia25Ano
           </div>
         </CardContent>
       </Card>
+    </motion.div>
+  );
+}
+
+function StatsGrid({ kWp, co2Anual, economiaMensal, economiaAnual, arvoresEquivalentes }: {
+  kWp: number; co2Anual: number; economiaMensal: number; economiaAnual: number; arvoresEquivalentes: number;
+}) {
+  const items = [
+    { icon: Sun, label: "Potência", value: kWp.toFixed(1), suffix: "kWp", accent: "text-secondary" },
+    { icon: DollarSign, label: "Economia Mensal", value: null, currency: economiaMensal, accent: "text-success" },
+    { icon: Calendar, label: "Economia Anual", value: null, currency: economiaAnual, accent: "text-primary" },
+    { icon: Leaf, label: "CO₂ Evitado", value: co2Anual.toFixed(1), suffix: "ton/ano", accent: "text-success" },
+    { icon: TreePine, label: "Árvores Equiv.", value: String(arvoresEquivalentes), suffix: "árvores", accent: "text-success" },
+    { icon: Zap, label: "Geração Mensal", value: (kWp * 130).toFixed(0), suffix: "kWh/mês", accent: "text-secondary" },
+  ];
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {items.map((item, i) => (
+          <Card key={item.label} className="h-full">
+            <CardContent className="p-3">
+              <div className={`flex items-center gap-1.5 ${item.accent} mb-1.5`}>
+                <item.icon className="w-3.5 h-3.5" />
+                <span className="text-[11px] font-medium text-muted-foreground">{item.label}</span>
+              </div>
+              {item.currency != null ? (
+                <AnimatedCurrency value={item.currency} className="text-lg font-bold text-foreground" />
+              ) : (
+                <p className="text-lg font-bold text-foreground tracking-tight">
+                  {item.value} <span className="text-xs font-medium text-muted-foreground">{item.suffix}</span>
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+function WhatsAppCTA({ economiaMensal }: { economiaMensal: number }) {
+  const fmt = (v: number) =>
+    new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v);
+
+  const message = encodeURIComponent(
+    `Olá! Fiz uma simulação e minha economia seria de ${fmt(economiaMensal)}/mês. Gostaria de saber mais sobre energia solar.`
+  );
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+      <a href={`https://wa.me/?text=${message}`} target="_blank" rel="noopener noreferrer">
+        <Button
+          size="lg"
+          className="w-full h-14 text-base gap-2.5 bg-success hover:bg-success/90 text-white shadow-lg"
+        >
+          <MessageCircle className="w-5 h-5" />
+          📲 Receber Estudo Detalhado no WhatsApp
+        </Button>
+      </a>
     </motion.div>
   );
 }
