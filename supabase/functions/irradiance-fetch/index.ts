@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
 
   try {
     const { dataset_code, version_tag, source_note, append_to_version, resume_from_lat } = body;
-    const step = body.step_deg ?? 1.0;
+    const step = body.step_deg ?? 0.5;
 
     if (!dataset_code || !version_tag) {
       return err("Missing dataset_code or version_tag");
@@ -352,17 +352,25 @@ Deno.serve(async (req) => {
         _chain_user_id: userId,
       };
 
-      // Fire and forget — don't await
-      fetch(`${supabaseUrl}/functions/v1/irradiance-fetch`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${serviceKey}`,
-        },
-        body: JSON.stringify(nextBody),
-      }).catch((e) => {
+      // MUST await the chain call — fire-and-forget causes the function to
+      // shut down before the HTTP request is sent, breaking the chain.
+      try {
+        const chainResp = await fetch(`${supabaseUrl}/functions/v1/irradiance-fetch`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${serviceKey}`,
+          },
+          body: JSON.stringify(nextBody),
+        });
+        console.log(`[IRRADIANCE_FETCH] Self-chain triggered, status=${chainResp.status}`);
+      } catch (e: any) {
         console.error(`[IRRADIANCE_FETCH] Self-chain failed:`, e.message);
-      });
+        // Mark version as failed so user can retry
+        await admin.from("irradiance_dataset_versions")
+          .update({ status: "failed", metadata: { ...existingMeta, error: `Chain failed: ${e.message}` } })
+          .eq("id", versionId);
+      }
     }
 
     return ok({
