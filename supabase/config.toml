@@ -172,3 +172,6 @@ verify_jwt = false
 
 [functions.nsrdb-lookup]
 verify_jwt = false
+
+[functions.nasa-power-lookup]
+verify_jwt = false
