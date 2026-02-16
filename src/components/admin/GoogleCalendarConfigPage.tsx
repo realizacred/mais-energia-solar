@@ -69,51 +69,29 @@ export function GoogleCalendarConfigPage() {
     }
   }, [searchParams]);
 
-  // Fetch stored credentials — display as labels only, never populate inputs
+  // Fetch config status via secure RPC — no secrets ever reach frontend
   const { data: configStatus, isLoading: loadingConfig } = useQuery({
     queryKey: ["google_calendar_config"],
     queryFn: async () => {
-      // SECURITY: Only fetch metadata, never return raw api_key for secrets
-      const { data, error } = await supabase
-        .from("integration_configs")
-        .select("service_key, is_active, last_validated_at, updated_at")
-        .in("service_key", ["google_calendar_client_id", "google_calendar_client_secret"]);
+      const { data, error } = await supabase.rpc("get_google_calendar_config_status");
       if (error) throw error;
-      const idRow = data?.find(d => d.service_key === "google_calendar_client_id");
-      const secretRow = data?.find(d => d.service_key === "google_calendar_client_secret");
-
-      // Fetch masked client_id separately (only the ID, never the secret)
-      let maskedClientId: string | null = null;
-      if (idRow?.is_active) {
-        const { data: idData } = await supabase
-          .from("integration_configs")
-          .select("api_key")
-          .eq("service_key", "google_calendar_client_id")
-          .maybeSingle();
-        if (idData?.api_key) {
-          maskedClientId = `${idData.api_key.slice(0, 8)}•••${idData.api_key.slice(-20)}`;
-        }
-      }
-
+      const result = data as any;
       return {
-        hasClientId: !!(idRow?.is_active),
-        hasClientSecret: !!(secretRow?.is_active),
-        maskedClientId,
-        lastValidated: idRow?.last_validated_at,
-        lastUpdated: secretRow?.updated_at || idRow?.updated_at,
+        hasClientId: result?.hasClientId ?? false,
+        hasClientSecret: result?.hasClientSecret ?? false,
+        maskedClientId: result?.maskedClientId ?? null,
+        lastUpdated: result?.lastUpdated ?? null,
       };
     },
   });
 
-  // List connected consultants
+  // List connected consultants via secure RPC — no token data exposed
   const { data: connectedUsers = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["google_calendar_connected_users"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("google_calendar_tokens")
-        .select("user_id, google_email, is_active, created_at, updated_at");
+      const { data, error } = await supabase.rpc("get_calendar_connected_users");
       if (error) throw error;
-      return data || [];
+      return (data as any[]) || [];
     },
   });
 

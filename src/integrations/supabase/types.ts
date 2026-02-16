@@ -13218,6 +13218,16 @@ export type Database = {
           vida_util_sistema: number
         }[]
       }
+      get_calendar_connected_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          google_email: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_canonical_irradiance_version: {
         Args: { _dataset_code?: string }
         Returns: {
@@ -13368,6 +13378,7 @@ export type Database = {
           percentual_nao_compensado: number
         }[]
       }
+      get_google_calendar_config_status: { Args: never; Returns: Json }
       get_integration_key: {
         Args: { _service_key: string; _tenant_id?: string }
         Returns: string
@@ -13385,6 +13396,18 @@ export type Database = {
           _version_id: string
         }
         Returns: Json
+      }
+      get_my_calendar_token: {
+        Args: never
+        Returns: {
+          created_at: string
+          google_email: string
+          id: string
+          is_active: boolean
+          last_synced_at: string
+          token_expires_at: string
+          updated_at: string
+        }[]
       }
       get_my_tenant_status: { Args: never; Returns: Json }
       get_payback_config: {

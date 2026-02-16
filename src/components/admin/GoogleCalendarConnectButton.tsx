@@ -27,18 +27,14 @@ export function GoogleCalendarConnectButton() {
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
 
-  // Check if user already has a connected calendar
+  // Check if user already has a connected calendar — via secure RPC (no token columns exposed)
   const { data: calendarToken, isLoading } = useQuery({
     queryKey: ["my_google_calendar", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("google_calendar_tokens")
-        .select("id, google_email, is_active, created_at, token_expires_at")
-        .eq("user_id", user!.id)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("get_my_calendar_token");
       if (error) throw error;
-      return data;
+      return (data as any)?.[0] ?? null;
     },
   });
 
