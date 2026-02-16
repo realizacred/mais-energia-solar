@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Package, Check, LayoutGrid, Search, Plus, Trash2, Edit } from "lucide-react";
+import { Package, Check, LayoutGrid, Search, Plus, Trash2, Edit, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -185,7 +185,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
   if (loadingEquip) {
     return (
       <div className="flex items-center justify-center py-16">
-        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <Loader2 className="h-8 w-8 text-primary animate-spin" />
       </div>
     );
   }

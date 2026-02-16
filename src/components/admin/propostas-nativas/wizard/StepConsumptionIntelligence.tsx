@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
 import { type UCData, MESES, formatBRL } from "./types";
@@ -129,8 +130,8 @@ export function StepConsumptionIntelligence({ ucs, onUcsChange, potenciaKwp, onP
       {pasteMode && (
         <div className="p-3 rounded-md border border-primary/20 bg-primary/5 space-y-2">
           <Label className="text-xs">Cole aqui os 12 valores de consumo (separados por vírgula, tab ou linha)</Label>
-          <textarea
-            className="w-full h-16 text-xs font-mono rounded-md border border-border p-2 bg-background resize-none"
+          <Textarea
+            className="h-16 text-xs font-mono"
             placeholder="350, 380, 420, 410, 390, 370, 360, 380, 400, 430, 450, 370"
             onPaste={(e) => {
               e.preventDefault();
