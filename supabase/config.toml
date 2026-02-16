@@ -175,3 +175,6 @@ verify_jwt = false
 
 [functions.nasa-power-lookup]
 verify_jwt = false
+
+[functions.asaas-test-connection]
+verify_jwt = false

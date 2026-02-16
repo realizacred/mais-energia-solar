@@ -5184,6 +5184,147 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_gateway_charges: {
+        Row: {
+          billing_type: string | null
+          boleto_digitable_line: string | null
+          boleto_pdf_url: string | null
+          created_at: string
+          due_date: string | null
+          fee: number | null
+          gateway_charge_id: string | null
+          gateway_raw_response: Json | null
+          gateway_status: string
+          id: string
+          net_value: number | null
+          paid_at: string | null
+          parcela_id: string
+          pix_payload: string | null
+          pix_qr_code_url: string | null
+          provider: string
+          recebimento_id: string
+          tenant_id: string
+          updated_at: string
+          value: number
+          webhook_last_at: string | null
+          webhook_last_event: string | null
+        }
+        Insert: {
+          billing_type?: string | null
+          boleto_digitable_line?: string | null
+          boleto_pdf_url?: string | null
+          created_at?: string
+          due_date?: string | null
+          fee?: number | null
+          gateway_charge_id?: string | null
+          gateway_raw_response?: Json | null
+          gateway_status?: string
+          id?: string
+          net_value?: number | null
+          paid_at?: string | null
+          parcela_id: string
+          pix_payload?: string | null
+          pix_qr_code_url?: string | null
+          provider?: string
+          recebimento_id: string
+          tenant_id: string
+          updated_at?: string
+          value: number
+          webhook_last_at?: string | null
+          webhook_last_event?: string | null
+        }
+        Update: {
+          billing_type?: string | null
+          boleto_digitable_line?: string | null
+          boleto_pdf_url?: string | null
+          created_at?: string
+          due_date?: string | null
+          fee?: number | null
+          gateway_charge_id?: string | null
+          gateway_raw_response?: Json | null
+          gateway_status?: string
+          id?: string
+          net_value?: number | null
+          paid_at?: string | null
+          parcela_id?: string
+          pix_payload?: string | null
+          pix_qr_code_url?: string | null
+          provider?: string
+          recebimento_id?: string
+          tenant_id?: string
+          updated_at?: string
+          value?: number
+          webhook_last_at?: string | null
+          webhook_last_event?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_gateway_charges_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_gateway_charges_recebimento_id_fkey"
+            columns: ["recebimento_id"]
+            isOneToOne: false
+            referencedRelation: "recebimentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_gateway_charges_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_gateway_config: {
+        Row: {
+          api_key: string
+          created_at: string
+          environment: string
+          id: string
+          is_active: boolean
+          metadata: Json | null
+          provider: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          provider?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          environment?: string
+          id?: string
+          is_active?: boolean
+          metadata?: Json | null
+          provider?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_gateway_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pipeline_automation_logs: {
         Row: {
           acao_executada: string
