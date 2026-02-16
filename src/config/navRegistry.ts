@@ -111,7 +111,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "obras", label_default: "Portfólio de Obras", group_default: "Site", order_default: 2, icon: "Image", description: "Galeria de projetos instalados", keywords: ["obra", "portfólio", "galeria", "projeto", "foto", "instalação"], criticality: "normal", permission: "admin_only" },
 
   // ── Integrações (subgrupo dentro de Configurações) ──
-  { nav_key: "integracoes", label_default: "Integrações", group_default: "Configurações", order_default: 20, icon: "Cable", description: "Google Agenda e serviços externos", keywords: ["integração", "google", "calendar", "agenda", "oauth"], criticality: "normal", permission: "admin_only", subsectionLabel: "Integrações" },
+  { nav_key: "integracoes", label_default: "Google Agenda", group_default: "Configurações", order_default: 20, icon: "Calendar", description: "Configurar, auditar e gerenciar integração com Google Agenda", keywords: ["integração", "google", "calendar", "agenda", "oauth", "auditoria"], criticality: "normal", permission: "admin_only", subsectionLabel: "Integrações" },
 
   { nav_key: "wa-instances", label_default: "Instâncias WhatsApp", group_default: "Configurações", order_default: 21, icon: "Smartphone", description: "Gerenciar números e conexões WhatsApp", keywords: ["instância", "evolution", "API", "número"], criticality: "normal", permission: "admin_only" },
   { nav_key: "whatsapp", label_default: "WhatsApp API", group_default: "Configurações", order_default: 22, icon: "MessageCircle", description: "Automações e configurações de mensagens", keywords: ["API", "automação", "webhook", "bot"], criticality: "normal", permission: "admin_only" },
