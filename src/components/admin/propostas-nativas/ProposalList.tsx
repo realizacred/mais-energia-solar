@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Plus, Search, ChevronRight, Loader2, Send, Layers, Eye } from "lucide-react";
+import { FileText, Plus, Search, ChevronRight, Loader2, Send, Layers, Eye, CalendarDays, Users, X } from "lucide-react";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,11 +10,17 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Tooltip, TooltipContent, TooltipTrigger,
+  Tooltip, TooltipContent, TooltipTrigger, TooltipProvider,
 } from "@/components/ui/tooltip";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import {
+  Popover, PopoverContent, PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
+import { format, startOfMonth, endOfMonth } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; color: string }> = {
   rascunho: { label: "Rascunho", variant: "secondary", color: "border-l-muted-foreground" },
@@ -31,7 +37,13 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   rejected: { label: "Recusada", variant: "destructive", color: "border-l-destructive" },
   expired: { label: "Expirada", variant: "secondary", color: "border-l-muted-foreground" },
 };
+
 const PAGE_SIZE = 25;
+
+interface Consultor {
+  id: string;
+  nome: string;
+}
 
 export function ProposalList() {
   const navigate = useNavigate();
@@ -41,6 +53,19 @@ export function ProposalList() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [consultorFilter, setConsultorFilter] = useState("all");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [consultores, setConsultores] = useState<Consultor[]>([]);
+
+  // Load consultores for filter
+  useEffect(() => {
+    supabase
+      .from("consultores")
+      .select("id, nome")
+      .eq("ativo", true)
+      .order("nome")
+      .then(({ data }) => setConsultores(data || []));
+  }, []);
 
   const loadPropostas = useCallback(async () => {
     setLoading(true);
@@ -50,6 +75,9 @@ export function ProposalList() {
         .from("propostas_nativas")
         .select("id", { count: "exact", head: true });
       if (statusFilter !== "all") countQuery = countQuery.eq("status", statusFilter);
+      if (consultorFilter !== "all") countQuery = countQuery.eq("consultor_id", consultorFilter);
+      if (dateRange?.from) countQuery = countQuery.gte("created_at", dateRange.from.toISOString());
+      if (dateRange?.to) countQuery = countQuery.lte("created_at", endOfMonth(dateRange.to).toISOString());
       const { count } = await countQuery;
       setTotalCount(count || 0);
 
@@ -58,7 +86,7 @@ export function ProposalList() {
       let query = supabase
         .from("propostas_nativas")
         .select(`
-          id, titulo, codigo, versao_atual, status, origem, created_at, enviada_at, aceita_at, lead_id, cliente_id,
+          id, titulo, codigo, versao_atual, status, origem, created_at, enviada_at, aceita_at, lead_id, cliente_id, consultor_id,
           proposta_versoes (
             id, versao_numero, status, valor_total, economia_mensal, payback_meses, potencia_kwp, grupo, engine_version, created_at,
             proposta_cenarios (id, tipo, preco_final, is_default),
@@ -70,6 +98,9 @@ export function ProposalList() {
         .range(from, from + PAGE_SIZE - 1);
 
       if (statusFilter !== "all") query = query.eq("status", statusFilter);
+      if (consultorFilter !== "all") query = query.eq("consultor_id", consultorFilter);
+      if (dateRange?.from) query = query.gte("created_at", dateRange.from.toISOString());
+      if (dateRange?.to) query = query.lte("created_at", endOfMonth(dateRange.to).toISOString());
 
       const { data } = await query;
       setPropostas(data || []);
@@ -78,7 +109,7 @@ export function ProposalList() {
     } finally {
       setLoading(false);
     }
-  }, [page, statusFilter]);
+  }, [page, statusFilter, consultorFilter, dateRange]);
 
   useEffect(() => {
     loadPropostas();
@@ -87,17 +118,25 @@ export function ProposalList() {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, consultorFilter, dateRange]);
 
   const filtered = propostas.filter(p => {
     const matchesSearch = !search || 
       p.titulo?.toLowerCase().includes(search.toLowerCase()) || 
       p.codigo?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
-  if (loading) {
+  const hasActiveFilters = statusFilter !== "all" || consultorFilter !== "all" || !!dateRange;
+
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setConsultorFilter("all");
+    setDateRange(undefined);
+    setSearch("");
+  };
+
+  if (loading && propostas.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -107,13 +146,15 @@ export function ProposalList() {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6">
+      <div className="space-y-5">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold">Propostas Nativas</h2>
-            <p className="text-sm text-muted-foreground">{filtered.length} de {propostas.length} proposta(s)</p>
+            <p className="text-sm text-muted-foreground">
+              {totalCount} proposta{totalCount !== 1 ? "s" : ""} encontrada{totalCount !== 1 ? "s" : ""}
+            </p>
           </div>
-          <Button className="gap-2" onClick={() => navigate("/admin/propostas-nativas/nova")}>
+          <Button variant="default" className="gap-2" onClick={() => navigate("/admin/propostas-nativas/nova")}>
             <Plus className="h-4 w-4" /> Nova Proposta
           </Button>
         </div>
@@ -124,13 +165,13 @@ export function ProposalList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por título ou código..."
-              className="pl-9 h-9"
+              className="pl-9 h-10"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px] h-9">
+            <SelectTrigger className="w-[160px] h-10">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -143,8 +184,60 @@ export function ProposalList() {
               <SelectItem value="expirada">Expirada</SelectItem>
             </SelectContent>
           </Select>
+
+          {/* Consultor filter */}
+          <Select value={consultorFilter} onValueChange={setConsultorFilter}>
+            <SelectTrigger className="w-[180px] h-10">
+              <div className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <SelectValue placeholder="Consultor" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos os consultores</SelectItem>
+              {consultores.map(c => (
+                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Date range filter */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="h-10 gap-1.5 text-sm font-normal">
+                <CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />
+                {dateRange?.from ? (
+                  dateRange.to ? (
+                    <span>{format(dateRange.from, "dd/MM", { locale: ptBR })} – {format(dateRange.to, "dd/MM/yy", { locale: ptBR })}</span>
+                  ) : (
+                    <span>A partir de {format(dateRange.from, "dd/MM/yy", { locale: ptBR })}</span>
+                  )
+                ) : (
+                  <span>Período</span>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                initialFocus
+                mode="range"
+                defaultMonth={dateRange?.from || startOfMonth(new Date())}
+                selected={dateRange}
+                onSelect={setDateRange}
+                numberOfMonths={2}
+                locale={ptBR}
+              />
+            </PopoverContent>
+          </Popover>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-10 gap-1 text-xs text-muted-foreground hover:text-foreground">
+              <X className="h-3 w-3" /> Limpar
+            </Button>
+          )}
         </div>
 
+        {/* List */}
         {filtered.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -152,7 +245,7 @@ export function ProposalList() {
                 <FileText className="h-7 w-7 opacity-30" />
               </div>
               <p className="font-medium">
-                {propostas.length === 0 ? "Nenhuma proposta nativa ainda" : "Nenhuma proposta encontrada"}
+                {propostas.length === 0 ? "Nenhuma proposta ainda" : "Nenhuma proposta encontrada"}
               </p>
               <p className="text-sm mt-1">
                 {propostas.length === 0 
@@ -170,17 +263,14 @@ export function ProposalList() {
               const statusKey = p.status || latestVersion?.status || "rascunho";
               const statusInfo = STATUS_LABELS[statusKey] || STATUS_LABELS.rascunho;
 
-              // Aggregate tracking from latest version
               const cenarios = (latestVersion?.proposta_cenarios || []) as any[];
               const envios = (latestVersion?.proposta_envios || []) as any[];
               const cenariosCount = cenarios.length;
               const enviosCount = envios.length;
               const engineVersion = latestVersion?.engine_version;
 
-              // View tracking from tokens
               const tokensList = (p.proposta_aceite_tokens || []) as any[];
               const totalViewCount = tokensList.reduce((sum: number, t: any) => sum + (t.view_count || 0), 0);
-              const hasDecision = tokensList.some((t: any) => t.decisao);
 
               return (
                 <Card
@@ -206,7 +296,6 @@ export function ProposalList() {
                         {latestVersion?.potencia_kwp ? ` • ${latestVersion.potencia_kwp} kWp` : ""}
                         {latestVersion?.grupo ? ` • Grupo ${latestVersion.grupo}` : ""}
                       </p>
-                      {/* Tracking badges */}
                       <div className="flex items-center gap-2 mt-1.5">
                         {cenariosCount > 0 && (
                           <Tooltip>
@@ -264,7 +353,6 @@ export function ProposalList() {
           </div>
         )}
 
-        {/* Pagination */}
         {totalCount > 0 && (
           <PaginationControls
             page={page}
