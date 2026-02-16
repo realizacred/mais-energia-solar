@@ -117,7 +117,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "instagram", label_default: "Instagram", group_default: "Configurações", order_default: 23, icon: "Instagram", description: "Sincronizar conteúdo do Instagram", keywords: ["instagram", "post", "rede social", "feed"], criticality: "normal", permission: "admin_only" },
   { nav_key: "webhooks", label_default: "Webhooks", group_default: "Configurações", order_default: 25, icon: "Webhook", description: "Conexões com sistemas externos", keywords: ["webhook", "integração", "API", "n8n"], criticality: "normal", permission: "admin_only" },
   { nav_key: "n8n", label_default: "Automações", group_default: "Configurações", order_default: 26, icon: "Workflow", description: "Workflows e processos automatizados", keywords: ["n8n", "automação", "workflow", "MCP"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "google-calendar", label_default: "Google Calendar", group_default: "Configurações", order_default: 27, icon: "CalendarDays", description: "Sincronização com Google Agenda", keywords: ["google", "calendar", "agenda", "sincronizar", "calendário"], criticality: "normal", permission: "admin_only" },
+  
   { nav_key: "payment-gateway", label_default: "Pagamentos (Asaas)", group_default: "Configurações", order_default: 28, icon: "CreditCard", description: "Configurar gateway de pagamento para boletos e Pix", keywords: ["asaas", "boleto", "pix", "pagamento", "gateway", "cobrança"], criticality: "normal", permission: "admin_only" },
 
   // ── IA & Automação (subgrupo dentro de Configurações) ──

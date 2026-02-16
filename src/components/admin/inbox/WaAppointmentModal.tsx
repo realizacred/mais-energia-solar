@@ -46,7 +46,7 @@ export function WaAppointmentModal({
   clienteNome,
   assignedTo,
 }: Props) {
-  const { createAppointment, isCreating, agendaConfig } = useAppointments();
+  const { createAppointment, isCreating } = useAppointments();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -95,7 +95,7 @@ export function WaAppointmentModal({
     setReminderMinutes(15);
   };
 
-  const googleSyncActive = agendaConfig?.google_sync_enabled;
+  
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -230,13 +230,6 @@ export function WaAppointmentModal({
             />
           </div>
 
-          {/* Google sync indicator */}
-          {googleSyncActive && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2 border border-border/50">
-              <Calendar className="h-3.5 w-3.5 text-primary" />
-              <span>Será sincronizado com Google Calendar</span>
-            </div>
-          )}
 
           {/* Actions */}
           <div className="flex justify-end gap-2 pt-1">

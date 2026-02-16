@@ -184,12 +184,6 @@ export function VendorAppointments() {
                             <span className="text-[10px] text-muted-foreground">
                               {TYPE_LABELS[appt.appointment_type]}
                             </span>
-                            {appt.google_sync_status === "synced" && (
-                              <Badge variant="outline" className="text-[10px] gap-0.5">
-                                <Calendar className="h-2.5 w-2.5" />
-                                Google
-                              </Badge>
-                            )}
                           </div>
                           <p className="text-sm font-medium text-foreground">{appt.title}</p>
                           {appt.description && (

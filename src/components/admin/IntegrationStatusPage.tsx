@@ -90,13 +90,6 @@ const INTEGRATIONS: Record<string, IntegrationMeta> = {
     placeholder: "AIzaSy...",
     helpText: "Chave da API Google Gemini (AI Studio).",
   },
-  google_calendar: {
-    icon: Calendar,
-    label: "Google Calendar",
-    description: "Sincronização bidirecional de agenda",
-    color: "text-info",
-    configurable: false,
-  },
 };
 
 const STATUS_CONFIG: Record<HealthStatus, { icon: typeof CheckCircle2; label: string; className: string; dotColor: string }> = {
@@ -429,14 +422,6 @@ function IntegrationHealthCard({
               </div>
             )}
 
-            {/* Google Calendar details */}
-            {name === "google_calendar" && health?.details && (
-              <div className="text-xs text-muted-foreground">
-                {(health.details as any).connected_users != null && (
-                  <span>{(health.details as any).connected_users} usuário(s) conectado(s)</span>
-                )}
-              </div>
-            )}
 
             {/* API Key Config */}
             {meta.configurable && meta.serviceKey && (
@@ -455,7 +440,7 @@ function IntegrationHealthCard({
                 <span className="text-xs text-muted-foreground">
                   {name === "whatsapp" && "Configure instâncias em Admin > WhatsApp"}
                   
-                  {name === "google_calendar" && "Configure credenciais em Admin > Google Calendar"}
+                  
                 </span>
               </div>
             )}

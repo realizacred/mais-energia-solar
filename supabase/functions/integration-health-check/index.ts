@@ -380,46 +380,7 @@ async function checkGemini(admin: any, tenantId: string): Promise<CheckResult> {
 }
 
 
-async function checkGoogleCalendar(admin: any, tenantId: string): Promise<CheckResult> {
-  try {
-    const { data: configs } = await admin
-      .from("integration_configs")
-      .select("service_key")
-      .eq("tenant_id", tenantId)
-      .in("service_key", ["google_calendar_client_id", "google_calendar_client_secret"])
-      .eq("is_active", true);
-
-    const hasClientId = configs?.some((c: any) => c.service_key === "google_calendar_client_id");
-    const hasSecret = configs?.some((c: any) => c.service_key === "google_calendar_client_secret");
-
-    if (!hasClientId || !hasSecret) {
-      return { integration_name: "google_calendar", status: "not_configured", latency_ms: null, error_message: null, details: {} };
-    }
-
-    const { count } = await admin
-      .from("google_calendar_tokens")
-      .select("*", { count: "exact", head: true })
-      .eq("tenant_id", tenantId)
-      .eq("is_active", true);
-
-    if (!count || count === 0) {
-      return {
-        integration_name: "google_calendar",
-        status: "degraded",
-        latency_ms: null,
-        error_message: "Credenciais configuradas mas nenhum usuário conectou",
-        details: { configured: true, connected_users: 0 },
-      };
-    }
-
-    return {
-      integration_name: "google_calendar",
-      status: "healthy",
-      latency_ms: null,
-      error_message: null,
-      details: { configured: true, connected_users: count },
-    };
-  } catch (err: any) {
-    return { integration_name: "google_calendar", status: "down", latency_ms: null, error_message: err.message, details: {} };
-  }
+async function checkGoogleCalendar(_admin: any, _tenantId: string): Promise<CheckResult> {
+  // Google Calendar integration removed
+  return { integration_name: "google_calendar", status: "not_configured", latency_ms: null, error_message: null, details: {} };
 }
