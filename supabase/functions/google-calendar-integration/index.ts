@@ -9,12 +9,81 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const OAUTH_STATE_SECRET = Deno.env.get("OAUTH_STATE_SECRET") || "";
 
 const SCOPES = [
   "https://www.googleapis.com/auth/calendar.readonly",
   "https://www.googleapis.com/auth/calendar.events",
   "https://www.googleapis.com/auth/userinfo.email",
 ];
+
+// ── HMAC State Signing (anti-tamper) ────────────────────────
+
+async function signState(payload: Record<string, unknown>): Promise<string> {
+  const payloadStr = JSON.stringify(payload);
+  const payloadB64 = btoa(payloadStr);
+  
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(OAUTH_STATE_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(payloadB64)
+  );
+  
+  const sigHex = Array.from(new Uint8Array(signature))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+  
+  return `${payloadB64}.${sigHex}`;
+}
+
+async function verifyAndParseState(state: string): Promise<Record<string, unknown> | null> {
+  const dotIndex = state.lastIndexOf(".");
+  if (dotIndex === -1) return null;
+  
+  const payloadB64 = state.substring(0, dotIndex);
+  const sigHex = state.substring(dotIndex + 1);
+  
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(OAUTH_STATE_SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["verify"]
+  );
+  
+  const sigBytes = new Uint8Array(sigHex.match(/.{2}/g)!.map(h => parseInt(h, 16)));
+  
+  const valid = await crypto.subtle.verify(
+    "HMAC",
+    key,
+    sigBytes,
+    new TextEncoder().encode(payloadB64)
+  );
+  
+  if (!valid) return null;
+  
+  try {
+    const parsed = JSON.parse(atob(payloadB64));
+    
+    // Check expiration (15 min max)
+    if (parsed.ts && Date.now() - parsed.ts > 15 * 60 * 1000) {
+      console.warn("[SECURITY] OAuth state expired");
+      return null;
+    }
+    
+    return parsed;
+  } catch {
+    return null;
+  }
+}
 
 // ── Helpers ─────────────────────────────────────────────────
 
@@ -169,7 +238,7 @@ async function handleSaveConfig(req: Request) {
   return json({ success: true });
 }
 
-// ── GET CONFIG: Return client_id and client_secret ──────────
+// ── GET CONFIG: Return client_id ONLY (secret is write-only) ─
 
 async function handleGetConfig(req: Request) {
   const { tenantId, adminClient } = await resolveUser(req);
@@ -183,7 +252,7 @@ async function handleGetConfig(req: Request) {
 
   return json({
     client_id: data?.oauth_client_id || "",
-    client_secret: data?.oauth_client_secret_encrypted || "",
+    client_secret: data?.oauth_client_secret_encrypted ? "••••••••••" : "",
   });
 }
 
@@ -216,8 +285,8 @@ async function handleConnect(req: Request) {
 
   // Allow reauthorization even if connected (user may want to refresh tokens)
 
-  // Build state token - include origin so callback-proxy can use same redirect_uri
-  const state = btoa(JSON.stringify({ tenantId, userId, origin: frontendOrigin }));
+  // Build HMAC-signed state token (anti-tamper)
+  const state = await signState({ tenantId, userId, origin: frontendOrigin, ts: Date.now() });
   
   // Use frontend URL as redirect_uri if origin provided, otherwise fallback to edge function URL
   const callbackUrl = frontendOrigin
@@ -284,14 +353,17 @@ async function handleCallback(req: Request) {
   }
 
   let tenantId: string, userId: string, stateOrigin = "";
-  try {
-    const parsed = JSON.parse(atob(stateParam));
-    tenantId = parsed.tenantId;
-    userId = parsed.userId;
-    stateOrigin = parsed.origin || "";
-  } catch {
-    return json({ error: "Invalid state" }, 400);
+  const parsed = await verifyAndParseState(stateParam);
+  if (!parsed || !parsed.tenantId || !parsed.userId) {
+    console.error("[SECURITY] Invalid or tampered OAuth state in callback");
+    return new Response(popupCloseHtml("error=invalid_state"), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
+    });
   }
+  tenantId = parsed.tenantId as string;
+  userId = parsed.userId as string;
+  stateOrigin = (parsed.origin as string) || "";
 
   // Get per-tenant credentials
   const creds = await getTenantOAuthCreds(adminClient, tenantId);
@@ -429,13 +501,13 @@ async function handleCallbackProxy(req: Request) {
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
   let tenantId: string, userId: string;
-  try {
-    const parsed = JSON.parse(atob(stateParam));
-    tenantId = parsed.tenantId;
-    userId = parsed.userId;
-  } catch {
-    return json({ error: "Invalid state" }, 400);
+  const parsed = await verifyAndParseState(stateParam);
+  if (!parsed || !parsed.tenantId || !parsed.userId) {
+    console.error("[SECURITY] Invalid or tampered OAuth state in callback-proxy");
+    return json({ error: "Invalid or expired state token" }, 403);
   }
+  tenantId = parsed.tenantId as string;
+  userId = parsed.userId as string;
 
   const creds = await getTenantOAuthCreds(adminClient, tenantId);
   if (!creds) {
@@ -856,7 +928,7 @@ async function handleInit(req: Request) {
 
   const configData = {
     client_id: configResult.data?.oauth_client_id || "",
-    client_secret: configResult.data?.oauth_client_secret_encrypted || "",
+    client_secret: configResult.data?.oauth_client_secret_encrypted ? "••••••••••" : "",
   };
 
   return json({
