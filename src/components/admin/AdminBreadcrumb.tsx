@@ -23,18 +23,18 @@ export function AdminBreadcrumb({ activeTab }: AdminBreadcrumbProps) {
   if (!crumbs) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+    <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs">
       <Link
         to="/admin/dashboard"
-        className="flex items-center gap-1 hover:text-foreground transition-colors"
+        className="flex items-center gap-1 text-muted-foreground hover:text-foreground transition-colors"
       >
         <Home className="h-3 w-3" />
         <span className="hidden sm:inline">Início</span>
       </Link>
-      <ChevronRight className="h-3 w-3 opacity-40" />
-      <span className="opacity-70">{crumbs.section}</span>
-      <ChevronRight className="h-3 w-3 opacity-40" />
-      <span className="font-medium text-foreground">{crumbs.item}</span>
+      <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+      <span className="text-muted-foreground">{crumbs.section}</span>
+      <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+      <span className="font-semibold text-foreground">{crumbs.item}</span>
     </nav>
   );
 }
