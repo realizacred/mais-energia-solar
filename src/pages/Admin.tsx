@@ -87,8 +87,7 @@ const BaseMeteorologicaPage = lazy(() => import("@/pages/admin/BaseMeteorologica
 
 const PricingPolicyPage = lazy(() => import("@/components/admin/pricing-policy/PricingPolicyPage").then(m => ({ default: m.PricingPolicyPage })));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
-const SolarZapPage = lazy(() => import("@/components/admin/solarzap").then(m => ({ default: m.SolarZapPage })));
-const SolarZapDashboard = lazy(() => import("@/components/admin/solarzap/SolarZapDashboard").then(m => ({ default: m.SolarZapDashboard })));
+// SolarZap removed — functionality consolidated into WaInbox (Atendimento)
 const ProposalWizardPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalWizard").then((m) => ({
     default: m.ProposalWizard,
@@ -207,7 +206,7 @@ const TAB_TITLES: Record<string, string> = {
   "conf-solar": "Premissas Solar",
   "pricing-policy": "Política de Precificação",
   menus: "Personalizar Menu",
-  solarzap: "SolarZap",
+  
 };
 
 /** N8n placeholder component */
@@ -388,8 +387,7 @@ export default function Admin() {
                 
                 {/* Atendimento */}
                 <Route path="inbox" element={<WaInbox />} />
-                <Route path="solarzap" element={<SolarZapPage />} />
-                <Route path="solarzap/dashboard" element={<SolarZapDashboard />} />
+                {/* SolarZap routes removed — consolidated into inbox */}
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
                 <Route path="followup-queue" element={<WaFollowupQueuePage />} />
