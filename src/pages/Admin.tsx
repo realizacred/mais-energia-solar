@@ -95,11 +95,7 @@ const ProposalWizardPage = lazy(() =>
   }))
 );
 
-const SolarWizardPageLazy = lazy(() =>
-  import("@/components/admin/propostas-nativas/solar-wizard/SolarWizardPage").then((m) => ({
-    default: m.SolarWizardPage,
-  }))
-);
+// SolarWizardPage removed — was a mock prototype, ProposalWizard is the real engine
 
 const ProposalListPage = lazy(() =>
   import("@/components/admin/propostas-nativas/ProposalList").then((m) => ({
@@ -182,8 +178,8 @@ const TAB_TITLES: Record<string, string> = {
   release: "Checklist de Versão",
   propostas: "Propostas Comerciais",
   projetos: "Projetos",
-  "propostas-nativas": "Gerador de Propostas",
-  "propostas/novo": "Nova Proposta Solar",
+  "propostas-nativas": "Propostas",
+  "propostas/novo": "Nova Proposta",
   "propostas-nativas/nova": "Nova Proposta",
   "propostas-nativas/dashboard": "Painel de Propostas",
   "propostas-nativas/templates": "Templates de Proposta",
@@ -375,7 +371,7 @@ export default function Admin() {
                 <Route path="projetos" element={<ProjetosManagerPage />} />
                 <Route path="propostas-nativas" element={<ProposalListPage />} />
                 <Route path="propostas-nativas/nova" element={<ProposalWizardPage />} />
-                <Route path="propostas/novo" element={<SolarWizardPageLazy />} />
+                <Route path="propostas/novo" element={<Navigate to="/admin/propostas-nativas/nova" replace />} />
                 <Route path="propostas-nativas/dashboard" element={<ProposalDashboardPage />} />
                 <Route path="propostas-nativas/templates" element={<TemplatesManagerPage />} />
                 <Route path="propostas-nativas/variaveis" element={<VariaveisCustomPage />} />
