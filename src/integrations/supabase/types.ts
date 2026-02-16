@@ -2791,6 +2791,63 @@ export type Database = {
           },
         ]
       }
+      integration_audit_events: {
+        Row: {
+          action: Database["public"]["Enums"]["integration_audit_action"]
+          actor_id: string | null
+          actor_type: string
+          created_at: string
+          id: string
+          integration_id: string | null
+          ip: string | null
+          metadata_json: Json | null
+          result: string
+          tenant_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["integration_audit_action"]
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          id?: string
+          integration_id?: string | null
+          ip?: string | null
+          metadata_json?: Json | null
+          result?: string
+          tenant_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["integration_audit_action"]
+          actor_id?: string | null
+          actor_type?: string
+          created_at?: string
+          id?: string
+          integration_id?: string | null
+          ip?: string | null
+          metadata_json?: Json | null
+          result?: string
+          tenant_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_audit_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_configs: {
         Row: {
           api_key: string
@@ -2828,6 +2885,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "integration_configs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_credentials: {
+        Row: {
+          access_token_encrypted: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          integration_id: string
+          refresh_token_encrypted: string | null
+          revoked_at: string | null
+          rotated_at: string | null
+          tenant_id: string
+          token_type: string | null
+        }
+        Insert: {
+          access_token_encrypted?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          integration_id: string
+          refresh_token_encrypted?: string | null
+          revoked_at?: string | null
+          rotated_at?: string | null
+          tenant_id: string
+          token_type?: string | null
+        }
+        Update: {
+          access_token_encrypted?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          integration_id?: string
+          refresh_token_encrypted?: string | null
+          revoked_at?: string | null
+          rotated_at?: string | null
+          tenant_id?: string
+          token_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_credentials_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_credentials_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -2875,6 +2986,119 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "integration_health_cache_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_webhook_endpoints: {
+        Row: {
+          created_at: string
+          endpoint_url: string
+          id: string
+          integration_id: string
+          is_active: boolean
+          provider: Database["public"]["Enums"]["integration_provider"]
+          tenant_id: string
+          updated_at: string
+          webhook_secret: string | null
+        }
+        Insert: {
+          created_at?: string
+          endpoint_url: string
+          id?: string
+          integration_id: string
+          is_active?: boolean
+          provider: Database["public"]["Enums"]["integration_provider"]
+          tenant_id: string
+          updated_at?: string
+          webhook_secret?: string | null
+        }
+        Update: {
+          created_at?: string
+          endpoint_url?: string
+          id?: string
+          integration_id?: string
+          is_active?: boolean
+          provider?: Database["public"]["Enums"]["integration_provider"]
+          tenant_id?: string
+          updated_at?: string
+          webhook_secret?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_webhook_endpoints_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_webhook_endpoints_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          connected_account_email: string | null
+          created_at: string
+          default_calendar_id: string | null
+          default_calendar_name: string | null
+          id: string
+          last_error_code: string | null
+          last_error_message: string | null
+          last_test_at: string | null
+          last_test_status: string | null
+          metadata: Json | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          scopes: string[] | null
+          status: Database["public"]["Enums"]["integration_status"]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          connected_account_email?: string | null
+          created_at?: string
+          default_calendar_id?: string | null
+          default_calendar_name?: string | null
+          id?: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          last_test_at?: string | null
+          last_test_status?: string | null
+          metadata?: Json | null
+          provider: Database["public"]["Enums"]["integration_provider"]
+          scopes?: string[] | null
+          status?: Database["public"]["Enums"]["integration_status"]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          connected_account_email?: string | null
+          created_at?: string
+          default_calendar_id?: string | null
+          default_calendar_name?: string | null
+          id?: string
+          last_error_code?: string | null
+          last_error_message?: string | null
+          last_test_at?: string | null
+          last_test_status?: string | null
+          metadata?: Json | null
+          provider?: Database["public"]["Enums"]["integration_provider"]
+          scopes?: string[] | null
+          status?: Database["public"]["Enums"]["integration_status"]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -13463,6 +13687,24 @@ export type Database = {
         | "percentage_of_cost"
         | "composite"
         | "rule_based"
+      integration_audit_action:
+        | "connect_started"
+        | "connect_completed"
+        | "callback_received"
+        | "test_success"
+        | "test_fail"
+        | "disconnect"
+        | "reauthorize"
+        | "token_refreshed"
+        | "token_revoked"
+        | "token_expired"
+      integration_provider: "google_calendar"
+      integration_status:
+        | "disconnected"
+        | "connected"
+        | "error"
+        | "revoked"
+        | "expired"
       pricing_method_type: "margin_on_sale" | "margin_on_cost"
       pricing_policy_status: "draft" | "active" | "archived"
       projeto_etapa_categoria: "aberto" | "ganho" | "perdido" | "excluido"
@@ -13688,6 +13930,26 @@ export const Constants = {
         "percentage_of_cost",
         "composite",
         "rule_based",
+      ],
+      integration_audit_action: [
+        "connect_started",
+        "connect_completed",
+        "callback_received",
+        "test_success",
+        "test_fail",
+        "disconnect",
+        "reauthorize",
+        "token_refreshed",
+        "token_revoked",
+        "token_expired",
+      ],
+      integration_provider: ["google_calendar"],
+      integration_status: [
+        "disconnected",
+        "connected",
+        "error",
+        "revoked",
+        "expired",
       ],
       pricing_method_type: ["margin_on_sale", "margin_on_cost"],
       pricing_policy_status: ["draft", "active", "archived"],

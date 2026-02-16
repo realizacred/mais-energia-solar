@@ -247,7 +247,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-integrations",
     defaultOpen: false,
     items: [
-      
+      { id: "integracoes", title: "Integrações", icon: Cable, description: "Google Agenda e serviços externos", keywords: ["integração", "google", "calendar", "agenda", "oauth"] },
+
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"] },
       { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens", keywords: ["API", "automação", "webhook", "bot"] },
       { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts", keywords: ["instagram", "post", "rede social", "feed"] },

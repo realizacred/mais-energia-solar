@@ -73,8 +73,7 @@ const InstalarApp = lazy(() => import("@/pages/Instalar"));
 const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalacaoPage").then(m => ({ default: m.LinksInstalacaoPage })));
 // CanaisCaptacaoPage removed — consolidated into LinksInstalacaoPage
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
-// IntegrationStatusPage removed
-// GoogleCalendarConfigPage removed
+const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
@@ -194,7 +193,8 @@ const TAB_TITLES: Record<string, string> = {
   "links-instalacao": "Captação & App",
   documentos: "Documentos & Assinatura",
   "data-reset": "Manutenção de Dados",
-  
+  "integracoes": "Integrações",
+
   "payment-gateway": "Pagamentos (Asaas)",
   "ai-config": "Configuração de IA",
   changelog: "Atualizações do Sistema",
@@ -442,7 +442,7 @@ export default function Admin() {
                 
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
-                {/* google-calendar removed */}
+                <Route path="integracoes" element={<IntegrationsPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="ai-config" element={<AiConfigPage />} />
                 

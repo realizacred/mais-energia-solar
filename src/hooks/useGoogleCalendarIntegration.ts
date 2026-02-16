@@ -1,0 +1,146 @@
+import { useState, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+const FUNCTION_NAME = "google-calendar-integration";
+
+async function callIntegration(action: string, method = "POST", body?: unknown) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error("Não autenticado");
+
+  const url = `${(supabase as any).supabaseUrl}/functions/v1/${FUNCTION_NAME}?action=${action}`;
+  const res = await fetch(url, {
+    method,
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      "Content-Type": "application/json",
+      apikey: (supabase as any).supabaseKey,
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Erro desconhecido" }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export interface IntegrationStatus {
+  id?: string;
+  status: string;
+  provider?: string;
+  connected_account_email?: string | null;
+  default_calendar_id?: string | null;
+  default_calendar_name?: string | null;
+  scopes?: string[];
+  last_test_at?: string | null;
+  last_test_status?: string | null;
+  last_error_code?: string | null;
+  last_error_message?: string | null;
+}
+
+export interface CalendarItem {
+  id: string;
+  summary: string;
+  primary: boolean;
+}
+
+export interface AuditEvent {
+  id: string;
+  action: string;
+  result: string;
+  actor_type: string;
+  created_at: string;
+  metadata_json: Record<string, unknown>;
+}
+
+export function useGoogleCalendarIntegration() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [calendars, setCalendars] = useState<CalendarItem[]>([]);
+
+  const statusQuery = useQuery<IntegrationStatus>({
+    queryKey: ["integration", "google_calendar", "status"],
+    queryFn: () => callIntegration("status", "POST"),
+    refetchInterval: 30_000,
+  });
+
+  const auditQuery = useQuery<{ events: AuditEvent[] }>({
+    queryKey: ["integration", "google_calendar", "audit"],
+    queryFn: () => callIntegration("audit-log", "POST"),
+  });
+
+  const invalidate = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["integration", "google_calendar"] });
+  }, [queryClient]);
+
+  const connectMutation = useMutation({
+    mutationFn: () => callIntegration("connect"),
+    onSuccess: (data) => {
+      if (data.auth_url) {
+        window.location.href = data.auth_url;
+      }
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao conectar", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const testMutation = useMutation({
+    mutationFn: () => callIntegration("test"),
+    onSuccess: (data) => {
+      if (data.success) {
+        setCalendars(data.calendars || []);
+        toast({ title: "Conexão OK ✅", description: `${data.calendars?.length || 0} calendário(s) encontrado(s)` });
+      } else {
+        toast({ title: "Teste falhou", description: data.error, variant: "destructive" });
+      }
+      invalidate();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro no teste", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const selectCalendarMutation = useMutation({
+    mutationFn: (cal: { calendar_id: string; calendar_name: string }) =>
+      callIntegration("select-calendar", "POST", cal),
+    onSuccess: () => {
+      toast({ title: "Calendário selecionado ✅" });
+      invalidate();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const disconnectMutation = useMutation({
+    mutationFn: () => callIntegration("disconnect"),
+    onSuccess: () => {
+      setCalendars([]);
+      toast({ title: "Desconectado", description: "Integração removida com sucesso" });
+      invalidate();
+    },
+    onError: (err: Error) => {
+      toast({ title: "Erro ao desconectar", description: err.message, variant: "destructive" });
+    },
+  });
+
+  return {
+    status: statusQuery.data,
+    isLoading: statusQuery.isLoading,
+    auditEvents: auditQuery.data?.events || [],
+    calendars,
+    connect: connectMutation.mutate,
+    isConnecting: connectMutation.isPending,
+    test: testMutation.mutate,
+    isTesting: testMutation.isPending,
+    selectCalendar: selectCalendarMutation.mutate,
+    disconnect: disconnectMutation.mutate,
+    isDisconnecting: disconnectMutation.isPending,
+    refetch: invalidate,
+  };
+}
