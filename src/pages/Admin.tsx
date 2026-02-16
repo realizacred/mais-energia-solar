@@ -14,6 +14,7 @@ import Footer from "@/components/layout/Footer";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { TrialBanner } from "@/components/plan";
 import { TourProvider, HelpButton } from "@/components/tour";
+import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
 
 // Lazy load admin sub-pages for better code splitting
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
@@ -354,6 +355,7 @@ export default function Admin() {
           </header>
 
           <TrialBanner />
+          <FeatureDiscoveryLayer />
           <main className="flex-1 p-4 md:p-6 space-y-5 overflow-x-hidden animate-fade-in">
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
