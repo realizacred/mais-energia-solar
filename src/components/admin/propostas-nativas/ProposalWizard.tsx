@@ -1,3 +1,4 @@
+// @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -11,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateProposal, renderProposal, type GenerateProposalPayload } from "@/services/proposalApi";
 import { cn } from "@/lib/utils";
+import { useSolarPremises } from "@/hooks/useSolarPremises";
 
 // ── Step Components
 import { StepCliente } from "./wizard/StepCliente";
@@ -143,26 +145,19 @@ export function ProposalWizard() {
     });
   }, []);
 
-  // Load premissas from tenant
+  // Load premissas from Solar Brain (tenant_premises — single source of truth)
+  const { data: solarBrain } = useSolarPremises();
+
   useEffect(() => {
-    supabase
-      .from("premissas_tecnicas")
-      .select("reajuste_tarifa_anual_percent, ipca_anual, degradacao_anual_percent, taxa_selic_anual")
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          const d = data as any;
-          setPremissas(prev => ({
-            ...prev,
-            inflacao_energetica: d.reajuste_tarifa_anual_percent ?? prev.inflacao_energetica,
-            inflacao_ipca: d.ipca_anual ?? prev.inflacao_ipca,
-            perda_eficiencia_anual: d.degradacao_anual_percent ?? prev.perda_eficiencia_anual,
-            vpl_taxa_desconto: d.taxa_selic_anual ?? prev.vpl_taxa_desconto,
-          }));
-        }
-      });
-  }, []);
+    if (!solarBrain) return;
+    setPremissas(prev => ({
+      ...prev,
+      imposto: solarBrain.imposto_energia ?? prev.imposto,
+      inflacao_energetica: solarBrain.inflacao_energetica ?? prev.inflacao_energetica,
+      perda_eficiencia_anual: solarBrain.perda_eficiencia ?? prev.perda_eficiencia_anual,
+      sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
+    }));
+  }, [solarBrain]);
 
   // ─── Lead selection handler ──────────────────────────
   const handleSelectLead = (lead: LeadSelection) => {
