@@ -82,6 +82,7 @@ const DocumentosPage = lazy(() => import("@/components/admin/documentos/Document
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const PremissasPage = lazy(() => import("@/components/admin/premissas/PremissasPage").then(m => ({ default: m.PremissasPage })));
 const IrradianciaPage = lazy(() => import("@/components/admin/irradiancia/IrradianciaPage"));
+const IrradiationInputDashboard = lazy(() => import("@/components/admin/irradiancia/IrradiationInputDashboard").then(m => ({ default: m.IrradiationInputDashboard })));
 
 const PricingPolicyPage = lazy(() => import("@/components/admin/pricing-policy/PricingPolicyPage").then(m => ({ default: m.PricingPolicyPage })));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
@@ -422,6 +423,7 @@ export default function Admin() {
                 <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="premissas" element={<PremissasPage />} />
                 <Route path="irradiancia" element={<IrradianciaPage />} />
+                <Route path="insumos-irradiacao" element={<IrradiationInputDashboard />} />
                 <Route path="pricing-policy" element={<PricingPolicyPage />} />
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
