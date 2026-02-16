@@ -70,22 +70,21 @@ export function IntegrationsPage() {
   const [clientSecret, setClientSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
 
-  // Populate client_id from config
+  // Populate fields from saved config
   useEffect(() => {
-    if (config?.client_id) {
-      setClientId(config.client_id);
+    if (config) {
+      if (config.client_id) setClientId(config.client_id);
+      if (config.client_secret) setClientSecret(config.client_secret);
     }
   }, [config]);
 
   const isConnected = status?.status === "connected";
   const isError = status?.status === "error" || status?.status === "expired" || status?.status === "revoked";
-  const hasCredentials = config?.has_secret && !!config?.client_id;
+  const hasCredentials = !!config?.client_id && !!config?.client_secret;
 
   const handleSaveConfig = () => {
     if (!clientId.trim() || !clientSecret.trim()) return;
     saveConfig({ client_id: clientId.trim(), client_secret: clientSecret.trim() });
-    setClientSecret("");
-    setShowSecret(false);
   };
 
   return (
@@ -142,7 +141,7 @@ export function IntegrationsPage() {
                       <Input
                         id="gcal-client-secret"
                         type={showSecret ? "text" : "password"}
-                        placeholder={config?.has_secret ? "••••••••••• (já configurado)" : "GOCSPX-..."}
+                        placeholder="GOCSPX-..."
                         value={clientSecret}
                         onChange={(e) => setClientSecret(e.target.value)}
                         autoComplete="off"
@@ -157,11 +156,6 @@ export function IntegrationsPage() {
                         {showSecret ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                       </Button>
                     </div>
-                    {config?.has_secret && (
-                      <p className="text-[10px] text-muted-foreground">
-                        ✓ Secret já configurado. Preencha novamente apenas para alterar.
-                      </p>
-                    )}
                   </div>
                 </div>
 

@@ -155,7 +155,7 @@ async function handleSaveConfig(req: Request) {
   return json({ success: true });
 }
 
-// ── GET CONFIG: Return only client_id (never secret) ────────
+// ── GET CONFIG: Return client_id and client_secret ──────────
 
 async function handleGetConfig(req: Request) {
   const { tenantId, adminClient } = await resolveUser(req);
@@ -169,7 +169,7 @@ async function handleGetConfig(req: Request) {
 
   return json({
     client_id: data?.oauth_client_id || "",
-    has_secret: !!data?.oauth_client_secret_encrypted,
+    client_secret: data?.oauth_client_secret_encrypted || "",
   });
 }
 
