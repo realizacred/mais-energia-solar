@@ -246,7 +246,7 @@ const DATASET_OPTIONS = [
 
 type ImportState = "idle" | "parsing" | "validated" | "uploading" | "activating" | "done" | "error";
 
-export default function AdminIrradiancePage() {
+export function CsvImportPanel() {
   const { user } = useAuth();
 
   // ── Card 1: Audit ──
@@ -552,18 +552,6 @@ export default function AdminIrradiancePage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Database className="h-5 w-5 text-primary" />
-            Base Meteorológica
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Auditoria, limpeza e importação de dados de irradiância.
-          </p>
-        </div>
-        <ResetSolarDataButton onComplete={runAudit} />
-      </div>
 
       {/* ═══════════ CARD 1: Audit ═══════════ */}
       <Card>
