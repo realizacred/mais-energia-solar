@@ -144,9 +144,11 @@ Deno.serve(async (req) => {
       results.push(await checkOpenAI(supabaseAdmin, tenantId));
       results.push(await checkGemini(supabaseAdmin, tenantId));
       results.push(await checkGoogleCalendar(supabaseAdmin, tenantId));
+      results.push(await checkSolarMarket(supabaseAdmin, tenantId));
       results.push(await checkInstagram(supabaseAdmin, tenantId));
       results.push(await checkWebhooks(supabaseAdmin, tenantId));
       results.push(await checkPaymentGateway(supabaseAdmin, tenantId));
+      results.push(await checkAutomations(supabaseAdmin, tenantId));
 
       // Fix #3: Batch upsert (single call per tenant, not per integration)
       const now = new Date().toISOString();
@@ -504,5 +506,80 @@ async function checkPaymentGateway(admin: any, tenantId: string): Promise<CheckR
     };
   } catch (err: any) {
     return { integration_name: "pagamentos", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkSolarMarket(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: configRow } = await admin
+      .from("integration_configs")
+      .select("api_key")
+      .eq("tenant_id", tenantId)
+      .eq("service_key", "solarmarket")
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!configRow?.api_key) {
+      return { integration_name: "solarmarket", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+    }
+
+    const start = Date.now();
+    try {
+      const res = await fetch("https://api.solarmarket.com.br/v1/products?limit=1", {
+        headers: { Authorization: `Bearer ${configRow.api_key}` },
+        signal: AbortSignal.timeout(10000),
+      });
+      const latency = Date.now() - start;
+
+      if (res.ok) {
+        await res.text();
+        return { integration_name: "solarmarket", status: "healthy", latency_ms: latency, error_message: null, details: {} };
+      }
+      const errText = await res.text();
+      return {
+        integration_name: "solarmarket",
+        status: res.status === 401 ? "down" : "degraded",
+        latency_ms: latency,
+        error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+        details: {},
+      };
+    } catch (fetchErr: any) {
+      const latency = Date.now() - start;
+      // DNS/network errors = degraded (API might be temporarily down)
+      return { integration_name: "solarmarket", status: "degraded", latency_ms: latency, error_message: fetchErr.message, details: {} };
+    }
+  } catch (err: any) {
+    return { integration_name: "solarmarket", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkAutomations(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: automations } = await admin
+      .from("pipeline_automations")
+      .select("id, ativo, ultima_execucao")
+      .eq("tenant_id", tenantId)
+      .limit(50);
+
+    if (!automations || automations.length === 0) {
+      return { integration_name: "automacoes", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Nenhuma automação configurada" } };
+    }
+
+    const active = automations.filter((a: any) => a.ativo);
+    const total = automations.length;
+
+    if (active.length === 0) {
+      return { integration_name: "automacoes", status: "degraded", latency_ms: null, error_message: `${total} automação(ões) configurada(s), nenhuma ativa`, details: { total, active: 0 } };
+    }
+
+    return {
+      integration_name: "automacoes",
+      status: "healthy",
+      latency_ms: null,
+      error_message: null,
+      details: { total, active: active.length },
+    };
+  } catch (err: any) {
+    return { integration_name: "automacoes", status: "down", latency_ms: null, error_message: err.message, details: {} };
   }
 }
