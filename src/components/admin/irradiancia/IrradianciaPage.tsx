@@ -266,9 +266,15 @@ export function IrradianciaPage() {
 
       // 2. Upload to storage (backup)
       const filePath = `uploads/${uploadDs}/${versionTag}_${mergedFile.name}`;
-      await supabase.storage
+      const { error: storageError } = await supabase.storage
         .from("irradiance-source")
         .upload(filePath, mergedFile, { upsert: true });
+      
+      if (storageError) {
+        console.error("[IMPORT] Storage upload failed:", storageError);
+        throw new Error(`Falha no upload do arquivo: ${storageError.message}`);
+      }
+      console.log("[IMPORT] Storage upload OK, calling init...");
 
       // 3. INIT — create version record
       const { data: initData, error: initError } = await supabase.functions.invoke("irradiance-import", {
@@ -281,7 +287,11 @@ export function IrradianciaPage() {
         },
       });
 
-      if (initError) throw initError;
+      if (initError) {
+        console.error("[IMPORT] Init error:", initError);
+        throw initError;
+      }
+      console.log("[IMPORT] Init response:", initData);
       if (initData?.error === "VERSION_EXISTS") {
         toast.info("Versão já existe", { description: initData.message });
         return;
