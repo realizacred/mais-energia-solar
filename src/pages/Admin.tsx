@@ -76,6 +76,7 @@ const DataResetManager = lazy(() => import("@/components/admin/DataResetManager"
 const IntegrationStatusPage = lazy(() => import("@/components/admin/IntegrationStatusPage").then(m => ({ default: m.IntegrationStatusPage })));
 const GoogleCalendarConfigPage = lazy(() => import("@/components/admin/GoogleCalendarConfigPage").then(m => ({ default: m.GoogleCalendarConfigPage })));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
+const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 const AgendaConfigPage = lazy(() => import("@/components/admin/AgendaConfigPage").then(m => ({ default: m.AgendaConfigPage })));
@@ -194,6 +195,7 @@ const TAB_TITLES: Record<string, string> = {
   "data-reset": "Manutenção de Dados",
   "integracoes-status": "Painel de Integrações",
   "google-calendar": "Google Calendar",
+  "payment-gateway": "Pagamentos (Asaas)",
   "agenda-config": "Agenda & Calendário",
   "ai-config": "Configuração de IA",
   changelog: "Atualizações do Sistema",
@@ -441,6 +443,7 @@ export default function Admin() {
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
                 <Route path="google-calendar" element={<AgendaConfigPage />} />
+                <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="ai-config" element={<AiConfigPage />} />
                 
                 {/* Site */}
