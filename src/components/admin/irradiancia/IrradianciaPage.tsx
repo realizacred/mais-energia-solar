@@ -159,6 +159,22 @@ export function IrradianciaPage() {
         throw error;
       }
 
+      // Handle idempotency responses (version already exists)
+      if (data?.error === "VERSION_EXISTS") {
+        toast.info("Versão já existe", {
+          description: data.message,
+          duration: 6000,
+        });
+        return;
+      }
+      if (data?.error === "VERSION_PROCESSING") {
+        toast.info("Importação em andamento", {
+          description: data.message,
+          duration: 6000,
+        });
+        return;
+      }
+
       const versionId = data.version_id;
 
       toast.success("Importação iniciada em segundo plano", {

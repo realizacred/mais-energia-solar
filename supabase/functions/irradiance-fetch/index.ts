@@ -120,6 +120,37 @@ Deno.serve(async (req) => {
       }
       versionId = existingVersion.id;
     } else {
+      // Check if version_tag already exists for this dataset
+      const { data: existing } = await admin
+        .from("irradiance_dataset_versions")
+        .select("id, status, row_count")
+        .eq("dataset_id", dataset.id)
+        .eq("version_tag", version_tag)
+        .maybeSingle();
+
+      if (existing) {
+        if (existing.status === "active") {
+          return ok({
+            success: false,
+            error: "VERSION_EXISTS",
+            message: `Versão '${version_tag}' já existe com ${existing.row_count} pontos (status: active). Use outra version_tag ou delete a existente.`,
+            version_id: existing.id,
+          });
+        }
+        if (existing.status === "processing") {
+          return ok({
+            success: false,
+            error: "VERSION_PROCESSING",
+            message: `Versão '${version_tag}' já está em processamento. Aguarde a conclusão.`,
+            version_id: existing.id,
+          });
+        }
+        // If failed/deprecated, delete old and re-create
+        await admin.from("irradiance_points_monthly").delete().eq("version_id", existing.id);
+        await admin.from("irradiance_dataset_versions").delete().eq("id", existing.id);
+        console.log(`[IRRADIANCE_FETCH] Cleaned old ${existing.status} version ${existing.id}`);
+      }
+
       const { data: version, error: verError } = await admin
         .from("irradiance_dataset_versions")
         .insert({
