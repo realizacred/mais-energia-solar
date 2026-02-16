@@ -13,8 +13,11 @@ export function NotificationsDropdown() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-8 w-8 relative text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" size="icon" className="h-8 w-8 relative text-muted-foreground hover:text-foreground rounded-md">
           <Bell className="h-4 w-4" />
+          {/* Ping indicator */}
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
+          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive animate-ping" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-72">
