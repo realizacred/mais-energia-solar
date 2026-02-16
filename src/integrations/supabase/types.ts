@@ -10319,6 +10319,7 @@ export type Database = {
           considerar_kits_transformador: boolean
           created_at: string
           created_by: string | null
+          custo_por_kwp: number
           custo_troca_inversor_microinversor: number
           custo_troca_inversor_otimizador: number
           custo_troca_inversor_tradicional: number
@@ -10327,14 +10328,17 @@ export type Database = {
           fase_tensao_rede: string
           fator_simultaneidade: number
           fornecedor_filtro: string
+          geracao_mensal_por_kwp: number
           grupo_tarifario: string
           id: string
           imposto_energia: number
           inclinacao_modulos: number
           inflacao_energetica: number
+          kg_co2_por_kwh: number
           margem_potencia_ideal: number
           outros_encargos_atual: number
           outros_encargos_novo: number
+          percentual_economia: number
           perda_eficiencia_microinversor: number
           perda_eficiencia_otimizador: number
           perda_eficiencia_tradicional: number
@@ -10366,6 +10370,7 @@ export type Database = {
           tusd_fio_b_ponta: number
           updated_at: string
           updated_by: string | null
+          vida_util_sistema: number
           vpl_taxa_desconto: number
         }
         Insert: {
@@ -10376,6 +10381,7 @@ export type Database = {
           considerar_kits_transformador?: boolean
           created_at?: string
           created_by?: string | null
+          custo_por_kwp?: number
           custo_troca_inversor_microinversor?: number
           custo_troca_inversor_otimizador?: number
           custo_troca_inversor_tradicional?: number
@@ -10384,14 +10390,17 @@ export type Database = {
           fase_tensao_rede?: string
           fator_simultaneidade?: number
           fornecedor_filtro?: string
+          geracao_mensal_por_kwp?: number
           grupo_tarifario?: string
           id?: string
           imposto_energia?: number
           inclinacao_modulos?: number
           inflacao_energetica?: number
+          kg_co2_por_kwh?: number
           margem_potencia_ideal?: number
           outros_encargos_atual?: number
           outros_encargos_novo?: number
+          percentual_economia?: number
           perda_eficiencia_microinversor?: number
           perda_eficiencia_otimizador?: number
           perda_eficiencia_tradicional?: number
@@ -10423,6 +10432,7 @@ export type Database = {
           tusd_fio_b_ponta?: number
           updated_at?: string
           updated_by?: string | null
+          vida_util_sistema?: number
           vpl_taxa_desconto?: number
         }
         Update: {
@@ -10433,6 +10443,7 @@ export type Database = {
           considerar_kits_transformador?: boolean
           created_at?: string
           created_by?: string | null
+          custo_por_kwp?: number
           custo_troca_inversor_microinversor?: number
           custo_troca_inversor_otimizador?: number
           custo_troca_inversor_tradicional?: number
@@ -10441,14 +10452,17 @@ export type Database = {
           fase_tensao_rede?: string
           fator_simultaneidade?: number
           fornecedor_filtro?: string
+          geracao_mensal_por_kwp?: number
           grupo_tarifario?: string
           id?: string
           imposto_energia?: number
           inclinacao_modulos?: number
           inflacao_energetica?: number
+          kg_co2_por_kwh?: number
           margem_potencia_ideal?: number
           outros_encargos_atual?: number
           outros_encargos_novo?: number
+          percentual_economia?: number
           perda_eficiencia_microinversor?: number
           perda_eficiencia_otimizador?: number
           perda_eficiencia_tradicional?: number
@@ -10480,6 +10494,7 @@ export type Database = {
           tusd_fio_b_ponta?: number
           updated_at?: string
           updated_by?: string | null
+          vida_util_sistema?: number
           vpl_taxa_desconto?: number
         }
         Relationships: [
