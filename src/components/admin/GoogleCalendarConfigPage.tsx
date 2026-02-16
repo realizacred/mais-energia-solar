@@ -69,13 +69,15 @@ export function GoogleCalendarConfigPage() {
     }
   }, [searchParams]);
 
-  // Fetch config status via secure RPC — no secrets ever reach frontend
+  // Fetch config status via Edge Function gateway (admin RPCs are service_role only)
   const { data: configStatus, isLoading: loadingConfig } = useQuery({
     queryKey: ["google_calendar_config"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_google_calendar_config_status");
+      const { data: fnData, error } = await supabase.functions.invoke("google-calendar-admin", {
+        body: { action: "config_status" },
+      });
       if (error) throw error;
-      const result = data as any;
+      const result = fnData?.data as any;
       return {
         hasClientId: result?.hasClientId ?? false,
         hasClientSecret: result?.hasClientSecret ?? false,
@@ -85,13 +87,15 @@ export function GoogleCalendarConfigPage() {
     },
   });
 
-  // List connected consultants via secure RPC — no token data exposed
+  // List connected consultants via Edge Function gateway
   const { data: connectedUsers = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["google_calendar_connected_users"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_calendar_connected_users");
+      const { data: fnData, error } = await supabase.functions.invoke("google-calendar-admin", {
+        body: { action: "connected_users" },
+      });
       if (error) throw error;
-      return (data as any[]) || [];
+      return (fnData?.data as any[]) || [];
     },
   });
 
