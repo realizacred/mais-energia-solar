@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Settings } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
@@ -17,6 +17,8 @@ import { WaInboxStats } from "./WaInboxStats";
 import { WaResolveDialog } from "./WaResolveDialog";
 import { WaSlaAlertBanner } from "./WaSlaAlertBanner";
 import { WaFollowupWidget } from "@/components/admin/widgets/WaFollowupWidget";
+import { WaSettingsDialog } from "./WaSettingsDialog";
+import { Button } from "@/components/ui/button";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
 interface LeadAutoOpenData {
@@ -71,6 +73,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [showTags, setShowTags] = useState(false);
   const [showLinkLead, setShowLinkLead] = useState(false);
   const [showResolve, setShowResolve] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [prefillMessage, setPrefillMessage] = useState<string | null>(null);
   const [preContactData, setPreContactData] = useState<LeadAutoOpenData | null>(null);
   const autoOpenProcessedRef = useRef(false);
@@ -549,6 +552,14 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               </p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => setShowSettings(true)}
+            title="Configurações WhatsApp"
+          >
+            <Settings className="h-4 w-4" />
+          </Button>
         </div>
       )}
 
@@ -801,6 +812,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       <WaTagsDialog open={showTags} onOpenChange={setShowTags} conversation={selectedConv} allTags={tags} onToggleTag={handleToggleTag} onCreateTag={createTag} onDeleteTag={deleteTag} />
       <WaLinkLeadSearch open={showLinkLead} onOpenChange={setShowLinkLead} conversation={selectedConv} onLink={handleLinkLead} />
       <WaResolveDialog open={showResolve} onOpenChange={setShowResolve} onConfirm={handleResolve} clienteName={selectedConv?.cliente_nome || undefined} />
+      <WaSettingsDialog open={showSettings} onOpenChange={setShowSettings} />
     </div>
   );
 }
