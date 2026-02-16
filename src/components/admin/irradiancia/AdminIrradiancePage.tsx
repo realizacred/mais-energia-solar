@@ -11,11 +11,10 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Database, CheckCircle2, AlertTriangle, Loader2,
-  Play, MapPin, Upload, FileText, X, Search, Zap, Shield,
+  CheckCircle2, AlertTriangle, Loader2,
+  Play, Upload, FileText, X, Search, Zap, Shield,
 } from "lucide-react";
 import { toast } from "sonner";
-import { ResetSolarDataButton } from "./ResetSolarDataButton";
 
 // ─── Types ───────────────────────────────────────────────────
 
@@ -23,25 +22,6 @@ interface LogEntry {
   ts: number;
   level: "info" | "warn" | "error" | "success";
   msg: string;
-}
-
-interface AuditResult {
-  points_count: number;
-  cache_count: number;
-  poa_count: number;
-  active_versions: number;
-  datasets: string[];
-}
-
-interface ValidationResult {
-  ghiCount: number;
-  dhiCount: number;
-  dniCount: number;
-  mergedCount: number;
-  unitDetected: string;
-  keysMatch: boolean;
-  keysDiffPct: number;
-  samplePoints: { lat: number; lon: number; jan: number; dec: number }[];
 }
 
 // ─── CSV Helpers ─────────────────────────────────────────────
@@ -71,7 +51,7 @@ function parseNumber(val: string): number {
 interface CsvRow {
   lat: number;
   lon: number;
-  months: number[]; // 12 values
+  months: number[];
 }
 
 function parseCsvContent(content: string, fileName: string): { rows: CsvRow[]; unitDetected: string } {
@@ -107,9 +87,7 @@ function parseCsvContent(content: string, fileName: string): { rows: CsvRow[]; u
       const lon = parseNumber(cols[lonIdx]);
       const months = monthCols.map(mc => parseNumber(cols[mc.idx]));
 
-      // Validate Brazil bounds
       if (lat < -40 || lat > 12 || lon < -80 || lon > -30) continue;
-      // NaN check
       if (months.some(v => isNaN(v))) continue;
 
       allValues.push(...months);
@@ -119,11 +97,9 @@ function parseCsvContent(content: string, fileName: string): { rows: CsvRow[]; u
     }
   }
 
-  // Detect unit
   const avg = allValues.length > 0 ? allValues.reduce((a, b) => a + b, 0) / allValues.length : 0;
   const unitDetected = avg > 50 ? "Wh/m²/dia → kWh" : "kWh/m²/dia";
 
-  // Normalize to kWh if needed
   if (avg > 50) {
     for (const r of rows) {
       r.months = r.months.map(v => v / 1000);
@@ -138,8 +114,7 @@ function makeKey(lat: number, lon: number): string {
 }
 
 interface MergedPoint {
-  lat: number;
-  lon: number;
+  lat: number; lon: number;
   m01: number; m02: number; m03: number; m04: number; m05: number; m06: number;
   m07: number; m08: number; m09: number; m10: number; m11: number; m12: number;
   dhi_m01: number; dhi_m02: number; dhi_m03: number; dhi_m04: number; dhi_m05: number; dhi_m06: number;
@@ -210,27 +185,6 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return chunks;
 }
 
-// ─── JSON Viewer ─────────────────────────────────────────────
-
-function JsonViewer({ data, title }: { data: unknown; title?: string }) {
-  return (
-    <Card>
-      {title && (
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">{title}</CardTitle>
-        </CardHeader>
-      )}
-      <CardContent className={title ? "" : "pt-4"}>
-        <ScrollArea className="h-64">
-          <pre className="text-xs font-mono whitespace-pre-wrap bg-muted/50 p-3 rounded-md text-foreground">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        </ScrollArea>
-      </CardContent>
-    </Card>
-  );
-}
-
 // ─── Constants ───────────────────────────────────────────────
 
 const CHUNK_SIZE = 500;
@@ -244,22 +198,29 @@ const DATASET_OPTIONS = [
 
 // ─── Component ───────────────────────────────────────────────
 
-type ImportState = "idle" | "parsing" | "validated" | "uploading" | "activating" | "done" | "error";
+type ImportState = "idle" | "parsing" | "validated" | "uploading" | "done" | "error";
+
+interface ValidationResult {
+  ghiCount: number;
+  dhiCount: number;
+  dniCount: number;
+  mergedCount: number;
+  unitDetected: string;
+  keysMatch: boolean;
+  keysDiffPct: number;
+  samplePoints: { lat: number; lon: number; jan: number; dec: number }[];
+}
 
 export function CsvImportPanel() {
   const { user } = useAuth();
 
-  // ── Card 1: Audit ──
-  const [audit, setAudit] = useState<AuditResult | null>(null);
-  const [auditLoading, setAuditLoading] = useState(false);
-
-  // ── Card 2: Version ──
+  // ── Version ──
   const [datasetCode, setDatasetCode] = useState("INPE_2017_SUNDATA");
   const [versionTag, setVersionTag] = useState(generateVersionTag);
   const [versionId, setVersionId] = useState<string | null>(null);
   const [creatingVersion, setCreatingVersion] = useState(false);
 
-  // ── Card 3: Import ──
+  // ── Import ──
   const [ghiFile, setGhiFile] = useState<File | null>(null);
   const [dhiFile, setDhiFile] = useState<File | null>(null);
   const [dniFile, setDniFile] = useState<File | null>(null);
@@ -270,47 +231,18 @@ export function CsvImportPanel() {
   const [pointsLoaded, setPointsLoaded] = useState<number | null>(null);
   const abortRef = useRef(false);
 
-  // ── Card 4: Activate ──
+  // ── Activate ──
   const [activateResult, setActivateResult] = useState<{ row_count: number } | null>(null);
   const [activating, setActivating] = useState(false);
-  const [lookupResult, setLookupResult] = useState<unknown>(null);
-  const [lookupLoading, setLookupLoading] = useState(false);
 
   const allFilesSelected = !!ghiFile && !!dhiFile && !!dniFile;
-  const isZerado = audit ? audit.points_count === 0 && audit.cache_count === 0 && audit.poa_count === 0 && audit.active_versions === 0 : false;
-  const canImport = allFilesSelected && versionId && isZerado && validation && state === "validated";
+  const canImport = allFilesSelected && versionId && validation && state === "validated";
 
   const log = useCallback((level: LogEntry["level"], msg: string) => {
     setLogs(prev => [...prev, { ts: Date.now(), level, msg }]);
   }, []);
 
-  // ── Card 1: Run Audit ──
-  const runAudit = async () => {
-    setAuditLoading(true);
-    try {
-      const [pointsRes, cacheRes, poaRes, versionsRes, datasetsRes] = await Promise.all([
-        supabase.from("irradiance_points_monthly").select("id", { count: "exact", head: true }),
-        supabase.from("irradiance_lookup_cache").select("id", { count: "exact", head: true }),
-        supabase.from("irradiance_transposed_monthly").select("id", { count: "exact", head: true }),
-        supabase.from("irradiance_dataset_versions").select("id", { count: "exact", head: true }).eq("status", "active"),
-        supabase.from("irradiance_datasets").select("code"),
-      ]);
-
-      setAudit({
-        points_count: pointsRes.count ?? 0,
-        cache_count: cacheRes.count ?? 0,
-        poa_count: poaRes.count ?? 0,
-        active_versions: versionsRes.count ?? 0,
-        datasets: (datasetsRes.data ?? []).map(d => d.code),
-      });
-    } catch (e: any) {
-      toast.error("Erro na auditoria", { description: e.message });
-    } finally {
-      setAuditLoading(false);
-    }
-  };
-
-  // ── Card 2: Create Version ──
+  // ── Step 1: Create Version ──
   const createVersion = async () => {
     setCreatingVersion(true);
     try {
@@ -338,7 +270,7 @@ export function CsvImportPanel() {
     }
   };
 
-  // ── Card 3: Validate Files ──
+  // ── Step 2: Validate Files ──
   const validateFiles = async () => {
     if (!ghiFile || !dhiFile || !dniFile) return;
     setState("parsing");
@@ -361,7 +293,6 @@ export function CsvImportPanel() {
       log("info", `DHI: ${dhi.rows.length} pontos (${dhi.unitDetected})`);
       log("info", `DNI: ${dni.rows.length} pontos (${dni.unitDetected})`);
 
-      // Check key overlap
       const ghiKeys = new Set(ghi.rows.map(r => makeKey(r.lat, r.lon)));
       const dhiKeys = new Set(dhi.rows.map(r => makeKey(r.lat, r.lon)));
       const dniKeys = new Set(dni.rows.map(r => makeKey(r.lat, r.lon)));
@@ -372,12 +303,11 @@ export function CsvImportPanel() {
       const keysMatch = diffPct <= 0.5;
 
       if (!keysMatch) {
-        log("warn", `⚠️ Divergência de ${diffPct.toFixed(1)}% entre coordenadas! GHI=${ghiKeys.size}, DHI=${dhiKeys.size}, DNI=${dniKeys.size}, Comuns=${intersection.length}`);
+        log("warn", `⚠️ Divergência de ${diffPct.toFixed(1)}% entre coordenadas!`);
       } else {
-        log("success", `✅ Coordenadas compatíveis (${intersection.length} comuns, divergência ${diffPct.toFixed(2)}%)`);
+        log("success", `✅ Coordenadas compatíveis (${intersection.length} comuns)`);
       }
 
-      // Merge for sample
       const merged = mergeFiles(ghi.rows, dhi.rows, dni.rows);
       const samplePoints = merged.slice(0, 3).map(p => ({
         lat: p.lat, lon: p.lon, jan: p.m01, dec: p.m12,
@@ -402,7 +332,7 @@ export function CsvImportPanel() {
     }
   };
 
-  // ── Card 3: Import ──
+  // ── Step 3: Import ──
   const importNow = async () => {
     if (!ghiFile || !dhiFile || !dniFile || !versionId) return;
     abortRef.current = false;
@@ -469,13 +399,11 @@ export function CsvImportPanel() {
           log("info", `Chunk ${i + 1}/${chunks.length} OK (${sent.toLocaleString("pt-BR")} pontos)`);
         }
 
-        // Yield to UI
         await new Promise(r => setTimeout(r, 10));
       }
 
       log("success", `✅ Todos os ${points.length.toLocaleString("pt-BR")} pontos enviados!`);
 
-      // Verify in DB
       log("info", "Verificando contagem no banco...");
       const { count } = await supabase
         .from("irradiance_points_monthly")
@@ -495,7 +423,7 @@ export function CsvImportPanel() {
     }
   };
 
-  // ── Card 4: Activate ──
+  // ── Step 4: Activate ──
   const activateVersion = async () => {
     if (!versionId) return;
 
@@ -523,86 +451,23 @@ export function CsvImportPanel() {
     }
   };
 
-  const testLookup = async () => {
-    if (!versionId) return;
-    setLookupLoading(true);
-    setLookupResult(null);
-
-    try {
-      const { data, error } = await supabase.rpc("get_irradiance_for_simulation", {
-        _version_id: versionId,
-        _lat: -15.7942,
-        _lon: -47.8822,
-        _radius_deg: 0.3,
-      });
-
-      if (error) throw error;
-      setLookupResult(data);
-      log("success", "Teste de lookup Brasília OK!");
-      toast.success("Lookup OK!");
-    } catch (e: any) {
-      toast.error("Lookup falhou", { description: e.message });
-      log("error", `Lookup falhou: ${e.message}`);
-    } finally {
-      setLookupLoading(false);
-    }
-  };
-
   const progressPct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
     <div className="space-y-6 max-w-4xl">
 
-      {/* ═══════════ CARD 1: Audit ═══════════ */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2">
-            <Search className="h-4 w-4 text-primary" />
-            1. Status do Banco (Audit-First)
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Button onClick={runAudit} disabled={auditLoading} size="sm" variant="outline" className="gap-1.5">
-            {auditLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
-            Rodar Auditoria
-          </Button>
-
-          {audit && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <AuditMetric label="Points" value={audit.points_count} ok={audit.points_count === 0} />
-                <AuditMetric label="Cache" value={audit.cache_count} ok={audit.cache_count === 0} />
-                <AuditMetric label="POA" value={audit.poa_count} ok={audit.poa_count === 0} />
-                <AuditMetric label="Active Versions" value={audit.active_versions} ok={audit.active_versions === 0} />
-              </div>
-
-              {isZerado ? (
-                <Badge className="bg-success/10 text-success border-success/30 gap-1">
-                  <CheckCircle2 className="h-3 w-3" /> Tudo zerado — pronto para importar
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-warning border-warning/30 gap-1">
-                  <AlertTriangle className="h-3 w-3" /> Banco não está zerado. Limpe antes de importar.
-                </Badge>
-              )}
-
-              <div className="text-xs text-muted-foreground">
-                Datasets: {audit.datasets.join(", ") || "nenhum"}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* ═══════════ CARD 2: Create Version ═══════════ */}
+      {/* ═══════════ STEP 1: Create Version ═══════════ */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <Shield className="h-4 w-4 text-primary" />
-            2. Criar Nova Versão (processing)
+            1. Criar Nova Versão
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Selecione o dataset e crie uma versão antes de importar os arquivos CSV.
+          </p>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 max-w-[200px]">
               <Label className="text-xs">Dataset</Label>
@@ -637,7 +502,7 @@ export function CsvImportPanel() {
           ) : (
             <Button
               onClick={createVersion}
-              disabled={creatingVersion || !isZerado}
+              disabled={creatingVersion}
               size="sm"
               className="gap-1.5"
             >
@@ -645,22 +510,23 @@ export function CsvImportPanel() {
               Criar Versão
             </Button>
           )}
-
-          {!isZerado && !versionId && (
-            <p className="text-xs text-destructive">Execute a auditoria e limpe o banco antes de criar uma versão.</p>
-          )}
         </CardContent>
       </Card>
 
-      {/* ═══════════ CARD 3: Import 3 CSV ═══════════ */}
+      {/* ═══════════ STEP 2: Import 3 CSV ═══════════ */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <Upload className="h-4 w-4 text-primary" />
-            3. Importar 3 CSV (GHI / DHI / DNI)
+            2. Importar 3 CSV (GHI / DHI / DNI)
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Envie os 3 arquivos separados do Atlas Brasileiro (global_horizontal, diffuse, direct_normal).
+            Formato: colunas <code className="text-[10px] bg-muted px-1 py-0.5 rounded">LAT;LON;JAN;FEB;…;DEC</code>.
+          </p>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <FileInput label="GHI (Global Horizontal)" file={ghiFile} onSelect={setGhiFile} disabled={state === "uploading"} />
             <FileInput label="DHI (Diffuse Horizontal)" file={dhiFile} onSelect={setDhiFile} disabled={state === "uploading"} />
@@ -669,7 +535,6 @@ export function CsvImportPanel() {
 
           <Separator />
 
-          {/* Validation */}
           <div className="flex items-center gap-3 flex-wrap">
             <Button
               onClick={validateFiles}
@@ -696,7 +561,6 @@ export function CsvImportPanel() {
             )}
           </div>
 
-          {/* Validation Result */}
           {validation && (
             <div className="rounded-md border border-border p-3 space-y-2 text-xs">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -730,19 +594,12 @@ export function CsvImportPanel() {
             </div>
           )}
 
-          {/* Guardrails */}
-          {!isZerado && allFilesSelected && (
-            <p className="text-xs text-destructive flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" /> Banco não está zerado. Limpe antes de importar.
-            </p>
-          )}
           {!versionId && allFilesSelected && validation && (
             <p className="text-xs text-destructive flex items-center gap-1">
-              <AlertTriangle className="h-3 w-3" /> Crie uma versão (Card 2) antes de importar.
+              <AlertTriangle className="h-3 w-3" /> Crie uma versão (Passo 1) antes de importar.
             </p>
           )}
 
-          {/* Progress */}
           {state === "uploading" && (
             <div className="space-y-2">
               <div className="flex justify-between text-xs text-muted-foreground">
@@ -753,7 +610,6 @@ export function CsvImportPanel() {
             </div>
           )}
 
-          {/* Points loaded confirmation */}
           {pointsLoaded !== null && (
             <Badge className="bg-success/10 text-success border-success/30 gap-1">
               <CheckCircle2 className="h-3 w-3" />
@@ -763,37 +619,27 @@ export function CsvImportPanel() {
         </CardContent>
       </Card>
 
-      {/* ═══════════ CARD 4: Activate + Test ═══════════ */}
+      {/* ═══════════ STEP 3: Activate ═══════════ */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2">
             <Zap className="h-4 w-4 text-primary" />
-            4. Ativar Versão + Teste
+            3. Ativar Versão
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <Button
-              onClick={activateVersion}
-              disabled={!versionId || activating || pointsLoaded === 0 || pointsLoaded === null}
-              size="sm"
-              className="gap-1.5"
-            >
-              {activating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
-              Ativar Versão
-            </Button>
-
-            <Button
-              onClick={testLookup}
-              disabled={!versionId || lookupLoading || !activateResult}
-              size="sm"
-              variant="outline"
-              className="gap-1.5"
-            >
-              {lookupLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MapPin className="h-3.5 w-3.5" />}
-              Testar Brasília (-15.79, -47.88)
-            </Button>
-          </div>
+          <p className="text-xs text-muted-foreground">
+            Após o upload, ative a versão para que os dados fiquem disponíveis para simulações.
+          </p>
+          <Button
+            onClick={activateVersion}
+            disabled={!versionId || activating || pointsLoaded === 0 || pointsLoaded === null}
+            size="sm"
+            className="gap-1.5"
+          >
+            {activating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+            Ativar Versão
+          </Button>
 
           {activateResult && (
             <div className="text-sm space-y-1">
@@ -810,20 +656,17 @@ export function CsvImportPanel() {
 
           {(!versionId || pointsLoaded === null) && (
             <p className="text-xs text-muted-foreground">
-              Complete os passos 2 e 3 antes de ativar.
+              Complete os passos 1 e 2 antes de ativar.
             </p>
           )}
         </CardContent>
       </Card>
 
-      {/* Lookup Result */}
-      {lookupResult && <JsonViewer data={lookupResult} title="Resultado do Lookup (Brasília)" />}
-
       {/* ═══════════ Log ═══════════ */}
       {logs.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Log</CardTitle>
+            <CardTitle className="text-sm">Log de Importação</CardTitle>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-48">
@@ -851,20 +694,6 @@ export function CsvImportPanel() {
 }
 
 // ─── Sub-components ──────────────────────────────────────────
-
-function AuditMetric({ label, value, ok }: { label: string; value: number; ok: boolean }) {
-  return (
-    <div className="rounded-md border border-border p-2.5 text-center">
-      <p className="text-lg font-bold text-foreground">{value.toLocaleString("pt-BR")}</p>
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      {ok ? (
-        <CheckCircle2 className="h-3 w-3 text-success mx-auto mt-1" />
-      ) : (
-        <AlertTriangle className="h-3 w-3 text-warning mx-auto mt-1" />
-      )}
-    </div>
-  );
-}
 
 function FileInput({ label, file, onSelect, disabled }: {
   label: string;
@@ -903,7 +732,7 @@ function FileInput({ label, file, onSelect, disabled }: {
         ) : (
           <>
             <Upload className="h-3.5 w-3.5" />
-            Selecionar CSV
+            Selecionar arquivo
           </>
         )}
       </Button>
