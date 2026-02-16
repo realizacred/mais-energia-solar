@@ -385,8 +385,57 @@ async function checkGemini(admin: any, tenantId: string): Promise<CheckResult> {
 }
 
 
-async function checkGoogleCalendar(_admin: any, _tenantId: string): Promise<CheckResult> {
-  return { integration_name: "google_calendar", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+async function checkGoogleCalendar(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: integration } = await admin
+      .from("integrations")
+      .select("id, status, connected_account_email")
+      .eq("tenant_id", tenantId)
+      .eq("provider", "google_calendar")
+      .maybeSingle();
+
+    if (!integration) {
+      return { integration_name: "google_calendar", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Nenhuma integração Google Agenda configurada" } };
+    }
+
+    const statusMap: Record<string, string> = {
+      connected: "healthy",
+      error: "down",
+      revoked: "down",
+      expired: "degraded",
+      disconnected: "not_configured",
+    };
+
+    const healthStatus = statusMap[integration.status] || "degraded";
+
+    // If connected, verify credentials exist
+    if (integration.status === "connected") {
+      const { data: creds } = await admin
+        .from("integration_credentials")
+        .select("id, expires_at")
+        .eq("integration_id", integration.id)
+        .maybeSingle();
+
+      if (!creds) {
+        return { integration_name: "google_calendar", status: "degraded", latency_ms: null, error_message: "Credenciais não encontradas", details: { account: integration.connected_account_email } };
+      }
+
+      // Check if token is expired
+      if (creds.expires_at && new Date(creds.expires_at) < new Date()) {
+        return { integration_name: "google_calendar", status: "degraded", latency_ms: null, error_message: "Token expirado", details: { account: integration.connected_account_email } };
+      }
+    }
+
+    return {
+      integration_name: "google_calendar",
+      status: healthStatus,
+      latency_ms: null,
+      error_message: integration.status !== "connected" ? `Status: ${integration.status}` : null,
+      details: { account: integration.connected_account_email, db_status: integration.status },
+    };
+  } catch (err: any) {
+    return { integration_name: "google_calendar", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
 }
 
 async function checkInstagram(admin: any, tenantId: string): Promise<CheckResult> {
