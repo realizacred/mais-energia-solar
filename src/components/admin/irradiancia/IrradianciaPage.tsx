@@ -509,8 +509,54 @@ export function IrradianciaPage() {
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground">
                 Faça upload de um arquivo CSV com colunas <code className="text-[10px] bg-muted px-1 py-0.5 rounded">lat</code>, <code className="text-[10px] bg-muted px-1 py-0.5 rounded">lon</code>, <code className="text-[10px] bg-muted px-1 py-0.5 rounded">m01</code>…<code className="text-[10px] bg-muted px-1 py-0.5 rounded">m12</code> (valores em kWh/m²/dia).
-                Separadores aceitos: vírgula ou ponto-e-vírgula.
+                Separadores aceitos: vírgula ou ponto-e-vírgula. Colunas opcionais: <code className="text-[10px] bg-muted px-1 py-0.5 rounded">dhi_m01…dhi_m12</code> e <code className="text-[10px] bg-muted px-1 py-0.5 rounded">dni_m01…dni_m12</code>.
               </p>
+
+              {/* Atlas guide */}
+              <div className="rounded-lg border border-info/30 bg-info/5 p-4 space-y-3">
+                <div className="flex items-start gap-2">
+                  <Sun className="h-4 w-4 text-info mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">Guia: Dados do Atlas Brasileiro de Energia Solar</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Ao baixar dados do Atlas (INPE/LABREN), selecione apenas os componentes relevantes para sistemas fotovoltaicos:
+                    </p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-6">
+                  <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/5 p-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-medium text-foreground">Irradiação Horizontal Global (GHI)</p>
+                      <p className="text-[10px] text-muted-foreground">Base principal de cálculo — <strong>obrigatório</strong></p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/5 p-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-medium text-foreground">Irradiação Difusa (DHI)</p>
+                      <p className="text-[10px] text-muted-foreground">Necessário para transposição Liu-Jordan</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-md border border-success/30 bg-success/5 p-2">
+                    <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-medium text-foreground">Irradiação Direta Normal (DNI)</p>
+                      <p className="text-[10px] text-muted-foreground">Melhora precisão em trackers solares</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 rounded-md border border-border/50 bg-muted/30 p-2 opacity-60">
+                    <AlertTriangle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-medium text-muted-foreground">Inclinada / PAR</p>
+                      <p className="text-[10px] text-muted-foreground">Não necessários — o sistema calcula a transposição</p>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground ml-6">
+                  💡 Envie os 3 tipos (GHI + DHI + DNI) em um <strong>único CSV</strong> com as colunas: <code className="bg-muted px-1 py-0.5 rounded text-[10px]">lat, lon, m01…m12, dhi_m01…dhi_m12, dni_m01…dni_m12</code>
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
