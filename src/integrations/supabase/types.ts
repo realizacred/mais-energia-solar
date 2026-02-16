@@ -13416,6 +13416,7 @@ export type Database = {
         Returns: undefined
       }
       require_tenant_id: { Args: { _user_id?: string }; Returns: string }
+      reset_solar_data_layer: { Args: { _confirm: string }; Returns: Json }
       resolve_consultor_public: {
         Args: { _codigo: string }
         Returns: {
