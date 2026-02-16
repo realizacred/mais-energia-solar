@@ -44,15 +44,22 @@ export function GoogleCalendarConnectButton() {
       const { data, error } = await supabase.functions.invoke("google-calendar-auth");
 
       if (error) throw error;
+      
+      // Handle structured backend errors
+      if (data?.code === "CONFIG_MISSING" || data?.code === "CONFIG_INVALID") {
+        throw new Error(data.error || "Credenciais OAuth inválidas ou ausentes.");
+      }
       if (data?.error) throw new Error(data.error);
       if (!data?.url) throw new Error("URL de autenticação não recebida");
 
       // Redirect to Google consent screen
       window.location.href = data.url;
     } catch (err: any) {
+      const msg = err.message || "Não foi possível iniciar a conexão com o Google.";
+      const isConfigError = msg.includes("CONFIG_") || msg.includes("Client ID") || msg.includes("Client Secret") || msg.includes("credenciais");
       toast({
-        title: "Erro ao conectar",
-        description: err.message || "Não foi possível iniciar a conexão com o Google.",
+        title: isConfigError ? "Erro de configuração" : "Erro ao conectar",
+        description: msg,
         variant: "destructive",
       });
       setConnecting(false);
