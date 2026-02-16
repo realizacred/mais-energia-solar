@@ -1,1 +1,0 @@
-export { SolarZapPage } from "./SolarZapPage";

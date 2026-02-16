@@ -1,10 +1,11 @@
+import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   User, Phone, MapPin, Zap, ExternalLink,
   DollarSign, Target, Calendar, Clock, 
   FileText, TrendingUp, X, Mail, CreditCard,
-  Home, Sun, Building2, Ruler,
+  Home, Sun, Building2, Ruler, Image,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
@@ -130,75 +133,92 @@ export function WaCRMSidebar({ conversation, onClose }: WaCRMSidebarProps) {
     <div className="w-80 border-l border-border/40 bg-card/50 flex flex-col">
       <SidebarHeader onClose={onClose} />
 
-      <ScrollArea className="flex-1">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <Spinner size="sm" />
-          </div>
-        ) : !hasData ? (
-          <div className="p-4 text-center text-xs text-muted-foreground">Dados não encontrados</div>
-        ) : (
-          <div className="p-3 space-y-3">
-            {/* Contact header */}
-            <ContactHeader lead={lead} cliente={cliente} conversation={conversation} />
+      <Tabs defaultValue="dados" className="flex-1 flex flex-col min-h-0">
+        <TabsList className="mx-3 mt-2 h-8 grid grid-cols-2">
+          <TabsTrigger value="dados" className="text-xs h-6 px-2.5">Dados</TabsTrigger>
+          <TabsTrigger value="midia" className="text-xs h-6 px-2.5">Mídia</TabsTrigger>
+        </TabsList>
 
-            {/* Score & Value */}
-            <ScoreValueCards leadScore={leadScore} estimatedValue={estimatedValue} />
+        <TabsContent value="dados" className="flex-1 mt-0 min-h-0">
+          <ScrollArea className="h-full">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16">
+                <Spinner size="sm" />
+              </div>
+            ) : !hasData ? (
+              <div className="p-4 text-center text-xs text-muted-foreground">Dados não encontrados</div>
+            ) : (
+              <div className="p-3 space-y-3">
+                {/* Contact header */}
+                <ContactHeader lead={lead} cliente={cliente} conversation={conversation} />
 
-            {/* Pipeline status */}
-            {lead && (lead as any).lead_statuses && (
-              <PipelineSection lead={lead} pipelineStages={pipelineStages} />
-            )}
+                {/* Score & Value */}
+                <ScoreValueCards leadScore={leadScore} estimatedValue={estimatedValue} />
 
-            <Separator className="bg-border/30" />
+                {/* Pipeline status */}
+                {lead && (lead as any).lead_statuses && (
+                  <PipelineSection lead={lead} pipelineStages={pipelineStages} />
+                )}
 
-            {/* Cliente registration data */}
-            {cliente && <ClienteDataSection cliente={cliente} />}
-
-            {/* Energy data from lead */}
-            {lead && <EnergyDataSection lead={lead} />}
-
-            <Separator className="bg-border/30" />
-
-            {/* System data from cliente */}
-            {cliente && (cliente.potencia_kwp || cliente.numero_placas || cliente.modelo_inversor) && (
-              <SystemDataSection cliente={cliente} />
-            )}
-
-            {/* Timestamps */}
-            <TimestampsSection lead={lead} cliente={cliente} />
-
-            <Separator className="bg-border/30" />
-
-            {/* Orcamentos */}
-            <OrcamentosSection orcamentos={orcamentos} />
-
-            {/* Observations */}
-            {(lead?.observacoes || cliente?.observacoes) && (
-              <>
                 <Separator className="bg-border/30" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground font-medium mb-1 uppercase tracking-wider">Notas</p>
-                  <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">
-                    {cliente?.observacoes || lead?.observacoes}
-                  </p>
-                </div>
-              </>
-            )}
 
-            {/* Open in admin */}
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full h-7 text-xs gap-1.5 mt-2"
-              onClick={() => window.open(`/admin?tab=leads`, "_blank")}
-            >
-              <ExternalLink className="h-3 w-3" />
-              Abrir no Admin
-            </Button>
-          </div>
-        )}
-      </ScrollArea>
+                {/* Cliente registration data */}
+                {cliente && <ClienteDataSection cliente={cliente} />}
+
+                {/* Energy data from lead */}
+                {lead && <EnergyDataSection lead={lead} />}
+
+                <Separator className="bg-border/30" />
+
+                {/* System data from cliente */}
+                {cliente && (cliente.potencia_kwp || cliente.numero_placas || cliente.modelo_inversor) && (
+                  <SystemDataSection cliente={cliente} />
+                )}
+
+                {/* Timestamps */}
+                <TimestampsSection lead={lead} cliente={cliente} />
+
+                <Separator className="bg-border/30" />
+
+                {/* Orcamentos */}
+                <OrcamentosSection orcamentos={orcamentos} />
+
+                {/* Observations */}
+                {(lead?.observacoes || cliente?.observacoes) && (
+                  <>
+                    <Separator className="bg-border/30" />
+                    <div>
+                      <p className="text-[10px] text-muted-foreground font-medium mb-1 uppercase tracking-wider">Notas</p>
+                      <p className="text-[11px] text-muted-foreground whitespace-pre-wrap">
+                        {cliente?.observacoes || lead?.observacoes}
+                      </p>
+                    </div>
+                  </>
+                )}
+
+                {/* Open in admin */}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 text-xs gap-1.5 mt-2"
+                  onClick={() => window.open(`/admin?tab=leads`, "_blank")}
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Abrir no Admin
+                </Button>
+              </div>
+            )}
+          </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="midia" className="flex-1 mt-0 min-h-0">
+          <ScrollArea className="h-full">
+            <div className="p-3">
+              <MediaSection conversationId={conversation.id} />
+            </div>
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -497,4 +517,84 @@ function calculateLeadScore(lead: any): number {
   if (lead.observacoes) score += 5;
   if (lead.status_id) score += 5;
   return Math.min(score, 100);
+}
+
+// ── MediaSection (migrated from SolarZap) ──
+
+function MediaSection({ conversationId }: { conversationId: string }) {
+  const { data: mediaMessages, isLoading } = useQuery({
+    queryKey: ["wa-crm-media", conversationId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("wa_messages")
+        .select("id, media_url, media_mime_type, message_type, content, created_at")
+        .eq("conversation_id", conversationId)
+        .in("message_type", ["image", "document", "video"])
+        .order("created_at", { ascending: false })
+        .limit(20);
+      return data || [];
+    },
+    staleTime: 30 * 1000,
+  });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-3 gap-1.5">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="aspect-square rounded-lg" />
+        ))}
+      </div>
+    );
+  }
+
+  const images = mediaMessages?.filter((m) => m.message_type === "image") || [];
+  const documents = mediaMessages?.filter((m) => m.message_type === "document") || [];
+
+  return (
+    <>
+      {images.length > 0 ? (
+        <div className="grid grid-cols-3 gap-1.5">
+          {images.map((m) => (
+            <div key={m.id} className="aspect-square rounded-lg overflow-hidden border border-border/30">
+              {m.media_url ? (
+                <img src={m.media_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-muted/40 flex items-center justify-center">
+                  <Image className="h-5 w-5 text-muted-foreground/30" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-8 text-center">
+          <Image className="h-6 w-6 text-muted-foreground/30 mb-2" />
+          <p className="text-xs text-muted-foreground">Nenhuma mídia compartilhada</p>
+        </div>
+      )}
+
+      {documents.length > 0 && (
+        <div className="mt-3 space-y-1.5">
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Documentos</p>
+          {documents.map((m) => (
+            <a
+              key={m.id}
+              href={m.media_url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 p-2 rounded-md bg-muted/30 border border-border/20 hover:bg-muted/50 transition-colors"
+            >
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate">{m.content || "Documento"}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  {format(new Date(m.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                </p>
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
+    </>
+  );
 }
