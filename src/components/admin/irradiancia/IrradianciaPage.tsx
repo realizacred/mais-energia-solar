@@ -11,8 +11,19 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Database, Search, CheckCircle2, AlertTriangle, Info,
-  Globe, Hash, Calendar, Loader2, Sun, MapPin, Download, RefreshCw, Upload,
+  Globe, Hash, Calendar, Loader2, Sun, MapPin, Download, RefreshCw, Upload, Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useIrradianceDatasets, getExpectedPoints, isVersionStalled } from "@/hooks/useIrradianceDatasets";
 import { getMonthlyIrradiance, type IrradianceLookupResult } from "@/services/irradiance-provider";
 import { supabase } from "@/integrations/supabase/client";
@@ -195,7 +206,55 @@ export function IrradianciaPage() {
     }
   };
 
-  // CSV upload state
+  // Purge all versions and data for a dataset
+  const [purgingDs, setPurgingDs] = useState<string | null>(null);
+
+  const handlePurgeDataset = async (datasetId: string, datasetCode: string) => {
+    setPurgingDs(datasetId);
+    try {
+      // 1. Get all version IDs for this dataset
+      const { data: dsVersions, error: vErr } = await supabase
+        .from("irradiance_dataset_versions")
+        .select("id")
+        .eq("dataset_id", datasetId);
+
+      if (vErr) throw vErr;
+
+      if (dsVersions && dsVersions.length > 0) {
+        const vIds = dsVersions.map((v: any) => v.id);
+
+        // 2. Delete all data points for these versions
+        for (const vId of vIds) {
+          await (supabase as any).from("irradiance_data").delete().eq("version_id", vId);
+        }
+
+        // 3. Delete cache entries for these versions
+        for (const vId of vIds) {
+          await supabase.from("irradiance_lookup_cache").delete().eq("version_id", vId);
+        }
+
+        // 4. Delete import jobs
+        await (supabase as any).from("solar_import_logs").delete().in("job_id",
+          ((await (supabase as any).from("solar_import_jobs").select("id").eq("dataset_code", datasetCode)).data || []).map((j: any) => j.id)
+        );
+        await (supabase as any).from("solar_import_jobs").delete().eq("dataset_code", datasetCode);
+
+        // 5. Delete all versions
+        await supabase.from("irradiance_dataset_versions").delete().eq("dataset_id", datasetId);
+      }
+
+      toast.success("🗑️ Dados limpos com sucesso", {
+        description: `${datasetCode}: todas as versões e pontos foram removidos. Pronto para nova importação.`,
+        duration: 6000,
+      });
+      reload();
+    } catch (e: any) {
+      toast.error("Erro ao limpar dados", { description: e.message, duration: 8000 });
+    } finally {
+      setPurgingDs(null);
+    }
+  };
+
   const [uploadDs, setUploadDs] = useState("");
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -638,6 +697,43 @@ export function IrradianciaPage() {
                           ? "Atualizar"
                           : "Importar da API"}
                       </Button>
+                      {dsVersions.length > 0 && (
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="gap-1.5 text-xs h-8 text-destructive hover:text-destructive"
+                              disabled={purgingDs === ds.id}
+                            >
+                              {purgingDs === ds.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                              Limpar
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Limpar todos os dados de "{ds.code}"?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação removerá <strong>todas as versões, pontos de dados e cache</strong> deste dataset.
+                                Os dados poderão ser reimportados após a limpeza. Esta operação é irreversível.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handlePurgeDataset(ds.id, ds.code)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Limpar Tudo
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      )}
                     </div>
                   </div>
                 </CardHeader>
