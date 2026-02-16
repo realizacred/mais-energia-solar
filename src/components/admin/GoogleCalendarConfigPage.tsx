@@ -73,20 +73,34 @@ export function GoogleCalendarConfigPage() {
   const { data: configStatus, isLoading: loadingConfig } = useQuery({
     queryKey: ["google_calendar_config"],
     queryFn: async () => {
+      // SECURITY: Only fetch metadata, never return raw api_key for secrets
       const { data, error } = await supabase
         .from("integration_configs")
-        .select("service_key, api_key, is_active, last_validated_at")
+        .select("service_key, is_active, last_validated_at, updated_at")
         .in("service_key", ["google_calendar_client_id", "google_calendar_client_secret"]);
       if (error) throw error;
       const idRow = data?.find(d => d.service_key === "google_calendar_client_id");
       const secretRow = data?.find(d => d.service_key === "google_calendar_client_secret");
+
+      // Fetch masked client_id separately (only the ID, never the secret)
+      let maskedClientId: string | null = null;
+      if (idRow?.is_active) {
+        const { data: idData } = await supabase
+          .from("integration_configs")
+          .select("api_key")
+          .eq("service_key", "google_calendar_client_id")
+          .maybeSingle();
+        if (idData?.api_key) {
+          maskedClientId = `${idData.api_key.slice(0, 8)}•••${idData.api_key.slice(-20)}`;
+        }
+      }
+
       return {
         hasClientId: !!(idRow?.is_active),
         hasClientSecret: !!(secretRow?.is_active),
-        maskedClientId: idRow?.api_key
-          ? `${idRow.api_key.slice(0, 8)}•••${idRow.api_key.slice(-20)}`
-          : null,
+        maskedClientId,
         lastValidated: idRow?.last_validated_at,
+        lastUpdated: secretRow?.updated_at || idRow?.updated_at,
       };
     },
   });
