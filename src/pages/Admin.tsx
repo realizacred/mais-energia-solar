@@ -335,19 +335,19 @@ export default function Admin() {
         />
         
         <SidebarInset className="flex-1 min-w-0">
-          <header className="page-header">
-            <SidebarTrigger className="-ml-1 sm:-ml-2 h-9 w-9 sm:h-10 sm:w-10">
-              <Menu className="h-5 w-5" />
+          <header className="sticky top-0 z-30 flex items-center gap-2 px-4 py-2 bg-card/95 backdrop-blur-md border-b border-border/40">
+            <SidebarTrigger className="-ml-1 h-8 w-8">
+              <Menu className="h-4 w-4" />
             </SidebarTrigger>
-            <div className="h-5 w-px bg-border/50 hidden sm:block" />
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+            <div className="h-4 w-px bg-border/40 hidden sm:block" />
+            <div className="flex flex-col gap-0 min-w-0 flex-1">
+              <AdminBreadcrumb activeTab={activeTab} />
               <div className="flex items-center gap-2">
-                <h1 className="page-header-title">
+                <h1 className="text-lg font-display font-bold tracking-tight leading-tight">
                   {TAB_TITLES[activeTab] || activeTab}
                 </h1>
                 <HelpButton />
               </div>
-              <AdminBreadcrumb activeTab={activeTab} />
             </div>
           </header>
 
