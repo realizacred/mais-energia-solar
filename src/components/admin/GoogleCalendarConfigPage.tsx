@@ -12,8 +12,6 @@ import {
   Calendar,
   KeyRound,
   Save,
-  Eye,
-  EyeOff,
   CheckCircle2,
   AlertTriangle,
   ExternalLink,
@@ -21,6 +19,7 @@ import {
   Settings,
   Info,
   Unplug,
+  Eraser,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui-kit/Spinner";
@@ -37,7 +36,7 @@ export function GoogleCalendarConfigPage() {
   const [clientSecret, setClientSecret] = useState("");
   const [clientIdError, setClientIdError] = useState("");
   const [clientSecretError, setClientSecretError] = useState("");
-  const [showSecret, setShowSecret] = useState(false);
+  
   const [saving, setSaving] = useState(false);
 
   const validateNotEmail = (value: string, field: "id" | "secret") => {
@@ -277,20 +276,27 @@ export function GoogleCalendarConfigPage() {
               </div>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="gc-client-id" className="text-sm flex items-center gap-1.5">
+              <Label className="text-sm flex items-center gap-1.5">
                 <KeyRound className="h-3.5 w-3.5" />
                 Client ID
               </Label>
-              <Input
-                id="gc-client-id"
-                name="gc_cid_99"
+              <textarea
+                rows={1}
                 placeholder="123456789.apps.googleusercontent.com"
                 value={clientId}
-                onChange={handleClientIdChange}
-                className={`font-mono text-sm ${clientIdError ? "border-destructive focus-visible:ring-destructive/40" : ""}`}
-                autoComplete="new-password"
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\n/g, "");
+                  setClientId(val);
+                  setClientIdError(validateNotEmail(val, "id"));
+                }}
+                className={`flex w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono shadow-xs transition-all duration-200 resize-none overflow-hidden ring-offset-background placeholder:text-muted-foreground/60 hover:border-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 ${clientIdError ? "border-destructive focus-visible:ring-destructive/40" : "border-input"}`}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
                 data-form-type="other"
                 data-lpignore="true"
+                data-1p-ignore="true"
               />
               {clientIdError && (
                 <p className="text-xs text-destructive flex items-center gap-1 mt-1">
@@ -301,48 +307,62 @@ export function GoogleCalendarConfigPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="gc-client-secret" className="text-sm flex items-center gap-1.5">
+              <Label className="text-sm flex items-center gap-1.5">
                 <KeyRound className="h-3.5 w-3.5" />
                 Client Secret
               </Label>
-              <div className="relative">
-                <Input
-                  id="gc-client-secret"
-                  name="gc_csec_99"
-                  type={showSecret ? "text" : "password"}
-                  placeholder="GOCSPX-..."
-                  value={clientSecret}
-                  onChange={handleClientSecretChange}
-                  className={`font-mono text-sm pr-10 ${clientSecretError ? "border-destructive focus-visible:ring-destructive/40" : ""}`}
-                  autoComplete="new-password"
-                  data-form-type="other"
-                  data-lpignore="true"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSecret(!showSecret)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
-              </div>
+              <textarea
+                rows={1}
+                placeholder="GOCSPX-..."
+                value={clientSecret}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\n/g, "");
+                  setClientSecret(val);
+                  setClientSecretError(validateNotEmail(val, "secret"));
+                }}
+                className={`flex w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono shadow-xs transition-all duration-200 resize-none overflow-hidden ring-offset-background placeholder:text-muted-foreground/60 hover:border-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 ${clientSecretError ? "border-destructive focus-visible:ring-destructive/40" : "border-input"}`}
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+              />
+              {clientSecretError && (
+                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  {clientSecretError}
+                </p>
+              )}
             </div>
 
-            {clientSecretError && (
-              <p className="text-xs text-destructive flex items-center gap-1 mt-1">
-                <AlertTriangle className="h-3 w-3 shrink-0" />
-                {clientSecretError}
-              </p>
-            )}
-
-            <Button
-              onClick={handleSave}
-              disabled={saving || !clientId.trim() || !clientSecret.trim() || !!clientIdError || !!clientSecretError}
-              className="gap-2"
-            >
-              {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
-              {saving ? "Salvando..." : isConfigured ? "Atualizar Credenciais" : "Salvar Credenciais"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                onClick={handleSave}
+                disabled={saving || !clientId.trim() || !clientSecret.trim() || !!clientIdError || !!clientSecretError}
+                className="gap-2"
+              >
+                {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+                {saving ? "Salvando..." : isConfigured ? "Atualizar Credenciais" : "Salvar Credenciais"}
+              </Button>
+              {(clientId || clientSecret) && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setClientId("");
+                    setClientSecret("");
+                    setClientIdError("");
+                    setClientSecretError("");
+                  }}
+                  className="gap-1.5 text-muted-foreground"
+                >
+                  <Eraser className="h-3.5 w-3.5" />
+                  Limpar Campos
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
