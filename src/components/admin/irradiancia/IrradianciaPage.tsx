@@ -212,45 +212,20 @@ export function IrradianciaPage() {
   const handlePurgeDataset = async (datasetId: string, datasetCode: string) => {
     setPurgingDs(datasetId);
     try {
-      // 1. Get all version IDs for this dataset
-      const { data: dsVersions, error: vErr } = await supabase
-        .from("irradiance_dataset_versions")
-        .select("id")
-        .eq("dataset_id", datasetId);
+      const { data, error } = await supabase.rpc("purge_irradiance_dataset", {
+        _dataset_id: datasetId,
+      });
 
-      if (vErr) throw vErr;
+      if (error) throw error;
 
-      if (dsVersions && dsVersions.length > 0) {
-        const vIds = dsVersions.map((v: any) => v.id);
-
-        // 2. Delete all data points for these versions (correct table name)
-        for (const vId of vIds) {
-          // Delete all points for this version
-          const { error } = await supabase
-            .from("irradiance_points_monthly")
-            .delete()
-            .eq("version_id", vId);
-          if (error) console.error("Purge points error:", error);
-        }
-
-        // 3. Delete cache entries for these versions
-        for (const vId of vIds) {
-          await supabase.from("irradiance_lookup_cache").delete().eq("version_id", vId);
-        }
-
-        // 4. Delete import jobs for this dataset (column is dataset_key, not dataset_code)
-        await (supabase as any).from("solar_import_jobs").delete().eq("dataset_key", datasetCode);
-
-        // 5. Delete all versions
-        await supabase.from("irradiance_dataset_versions").delete().eq("dataset_id", datasetId);
-      }
-
+      const result = data as any;
       toast.success("🗑️ Dados limpos com sucesso", {
-        description: `${datasetCode}: todas as versões e pontos foram removidos. Pronto para nova importação.`,
+        description: `${datasetCode}: ${result?.points_deleted ?? 0} pontos, ${result?.versions_deleted ?? 0} versões removidos. Pronto para nova importação.`,
         duration: 6000,
       });
       reload();
     } catch (e: any) {
+      console.error("Purge failed:", e);
       toast.error("Erro ao limpar dados", { description: e.message, duration: 8000 });
     } finally {
       setPurgingDs(null);
