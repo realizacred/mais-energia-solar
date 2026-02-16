@@ -237,6 +237,9 @@ export function IrradianciaPage() {
     }
   };
 
+  // Upload progress state
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0, percent: 0 });
+
   const handleCsvUpload = async () => {
     if (uploadFiles.length === 0 || !uploadDs) {
       toast.error("Selecione um dataset e pelo menos um arquivo CSV.");
@@ -244,40 +247,184 @@ export function IrradianciaPage() {
     }
     setUploading(true);
     setUploadError("");
+    setUploadProgress({ current: 0, total: 0, percent: 0 });
+
+    let versionId = "";
+    let datasetId = "";
+
     try {
       const versionTag = generateVersionTag();
 
-      // Detect if multiple Atlas files need merging
-      let fileToUpload: File;
+      // 1. Merge files if needed
+      let mergedFile: File;
       if (uploadFiles.length > 1) {
         toast.info("Mesclando arquivos do Atlas…", { duration: 3000 });
-        fileToUpload = await mergeAtlasFiles(uploadFiles);
+        mergedFile = await mergeAtlasFiles(uploadFiles);
       } else {
-        fileToUpload = uploadFiles[0];
+        mergedFile = uploadFiles[0];
       }
 
-      const filePath = `uploads/${uploadDs}/${versionTag}_${fileToUpload.name}`;
-
-      const { error: storageError } = await supabase.storage
+      // 2. Upload to storage (backup)
+      const filePath = `uploads/${uploadDs}/${versionTag}_${mergedFile.name}`;
+      await supabase.storage
         .from("irradiance-source")
-        .upload(filePath, fileToUpload, { upsert: true });
+        .upload(filePath, mergedFile, { upsert: true });
 
-      if (storageError) throw storageError;
-
-      const { data, error } = await supabase.functions.invoke("irradiance-import", {
+      // 3. INIT — create version record
+      const { data: initData, error: initError } = await supabase.functions.invoke("irradiance-import", {
         body: {
+          action: "init",
           dataset_code: uploadDs,
           version_tag: versionTag,
           source_note: `Upload manual: ${uploadFiles.map(f => f.name).join(", ")}`,
-          file_path: filePath,
+          file_names: uploadFiles.map(f => f.name),
         },
       });
 
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (initError) throw initError;
+      if (initData?.error === "VERSION_EXISTS") {
+        toast.info("Versão já existe", { description: initData.message });
+        return;
+      }
+      if (initData?.error === "VERSION_PROCESSING") {
+        toast.info("Importação em andamento", { description: initData.message });
+        return;
+      }
+      if (initData?.error) throw new Error(initData.error);
+
+      versionId = initData.version_id;
+      datasetId = initData.dataset_id;
+
+      // 4. Parse CSV client-side
+      toast.info("Processando CSV…", { duration: 2000 });
+      const csvText = await mergedFile.text();
+      const lines = csvText.split("\n").filter((l) => l.trim());
+
+      const separator = lines[0].includes(";") ? ";" : ",";
+      const header = lines[0].split(separator).map((h) => h.trim().toLowerCase());
+
+      const latIdx = header.findIndex((h) => h === "lat" || h === "latitude");
+      const lonIdx = header.findIndex((h) => h === "lon" || h === "lng" || h === "longitude");
+
+      if (latIdx < 0 || lonIdx < 0) {
+        throw new Error("CSV deve ter colunas lat e lon");
+      }
+
+      const monthNamesPt = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+      const monthNamesEn = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+
+      // Detect GHI/DHI/DNI columns
+      const findMonthCols = (prefixes: string[]) => {
+        const cols: number[] = [];
+        for (let m = 1; m <= 12; m++) {
+          const mKey = `m${String(m).padStart(2, "0")}`;
+          const altKeys = prefixes.flatMap(p => [
+            `${p}${mKey}`, `${p}${monthNamesPt[m - 1]}`, `${p}${monthNamesEn[m - 1]}`
+          ]);
+          if (prefixes.includes("")) altKeys.push(mKey, monthNamesPt[m - 1], monthNamesEn[m - 1]);
+          const idx = header.findIndex((h) => altKeys.includes(h));
+          cols.push(idx >= 0 ? idx : -1);
+        }
+        return cols;
+      };
+
+      const ghiCols = findMonthCols([""]);
+      const dhiCols = findMonthCols(["dhi_"]);
+      const dniCols = findMonthCols(["dni_"]);
+      const hasDhi = dhiCols.some((c) => c >= 0);
+      const hasDni = dniCols.some((c) => c >= 0);
+
+      // 5. Parse all rows
+      const allRows: Record<string, unknown>[] = [];
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(separator).map((c) => c.trim());
+        if (cols.length < 2) continue;
+
+        const lat = parseFloat(cols[latIdx].replace(",", "."));
+        const lon = parseFloat(cols[lonIdx].replace(",", "."));
+        if (isNaN(lat) || isNaN(lon)) continue;
+
+        const row: Record<string, unknown> = { version_id: versionId, lat, lon, unit: "kwh_m2_day" };
+
+        for (let m = 0; m < 12; m++) {
+          const mKey = `m${String(m + 1).padStart(2, "0")}`;
+          const val = ghiCols[m] >= 0 ? parseFloat(cols[ghiCols[m]].replace(",", ".")) : 0;
+          row[mKey] = isNaN(val) ? 0 : val;
+        }
+        if (hasDhi) {
+          for (let m = 0; m < 12; m++) {
+            const mKey = `dhi_m${String(m + 1).padStart(2, "0")}`;
+            const val = dhiCols[m] >= 0 ? parseFloat(cols[dhiCols[m]].replace(",", ".")) : null;
+            row[mKey] = val !== null && !isNaN(val) ? val : null;
+          }
+        }
+        if (hasDni) {
+          for (let m = 0; m < 12; m++) {
+            const mKey = `dni_m${String(m + 1).padStart(2, "0")}`;
+            const val = dniCols[m] >= 0 ? parseFloat(cols[dniCols[m]].replace(",", ".")) : null;
+            row[mKey] = val !== null && !isNaN(val) ? val : null;
+          }
+        }
+
+        allRows.push(row);
+      }
+
+      if (allRows.length === 0) {
+        throw new Error("Nenhuma linha válida encontrada no CSV");
+      }
+
+      // 6. Send batches
+      const BATCH_SIZE = 500;
+      const totalBatches = Math.ceil(allRows.length / BATCH_SIZE);
+      setUploadProgress({ current: 0, total: allRows.length, percent: 0 });
+
+      for (let i = 0; i < totalBatches; i++) {
+        const batch = allRows.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE);
+
+        const { data: batchData, error: batchError } = await supabase.functions.invoke("irradiance-import", {
+          body: { action: "batch", version_id: versionId, rows: batch },
+        });
+
+        if (batchError) throw batchError;
+        if (batchData?.error) throw new Error(batchData.error);
+
+        const imported = Math.min((i + 1) * BATCH_SIZE, allRows.length);
+        setUploadProgress({
+          current: imported,
+          total: allRows.length,
+          percent: Math.round((imported / allRows.length) * 100),
+        });
+
+        // Yield to UI
+        await new Promise((r) => setTimeout(r, 30));
+      }
+
+      // 7. Compute checksum
+      const hashParts = allRows.map((r) => {
+        const ghiVals = Array.from({ length: 12 }, (_, m) => r[`m${String(m + 1).padStart(2, "0")}`] ?? 0);
+        return `${r.lat}:${r.lon}:${ghiVals.join(":")}`;
+      });
+      const encoder = new TextEncoder();
+      const hashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(hashParts.join("|")));
+      const checksum = Array.from(new Uint8Array(hashBuffer)).map((b) => b.toString(16).padStart(2, "0")).join("");
+
+      // 8. FINALIZE
+      const { error: finalizeError } = await supabase.functions.invoke("irradiance-import", {
+        body: {
+          action: "finalize",
+          version_id: versionId,
+          dataset_id: datasetId,
+          row_count: allRows.length,
+          checksum,
+          has_dhi: hasDhi,
+          has_dni: hasDni,
+        },
+      });
+
+      if (finalizeError) throw finalizeError;
 
       toast.success(
-        `Importação concluída: ${(data?.row_count ?? 0).toLocaleString()} pontos importados`
+        `✅ Importação concluída: ${allRows.length.toLocaleString("pt-BR")} pontos importados`
       );
       setUploadFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -286,8 +433,16 @@ export function IrradianciaPage() {
       const msg = e.message || "Erro desconhecido";
       setUploadError(msg);
       toast.error("Erro na importação CSV", { description: msg });
+
+      // Abort version if it was created
+      if (versionId) {
+        await supabase.functions.invoke("irradiance-import", {
+          body: { action: "abort", version_id: versionId, error: msg },
+        }).catch(() => {});
+      }
     } finally {
       setUploading(false);
+      setUploadProgress({ current: 0, total: 0, percent: 0 });
     }
   };
 
@@ -687,6 +842,16 @@ export function IrradianciaPage() {
                   </Button>
                 </div>
               </div>
+
+              {uploading && uploadProgress.total > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Enviando lotes…</span>
+                    <span>{uploadProgress.current.toLocaleString("pt-BR")} / {uploadProgress.total.toLocaleString("pt-BR")} ({uploadProgress.percent}%)</span>
+                  </div>
+                  <Progress value={uploadProgress.percent} className="h-2" />
+                </div>
+              )}
 
               {uploadError && (
                 <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
