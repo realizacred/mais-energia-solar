@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect, useId, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -18,55 +18,149 @@ import {
   Settings,
   Info,
   Eraser,
+  XCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui-kit/Spinner";
 
-/**
- * Admin page: configure Google Calendar OAuth credentials (Client ID + Secret)
- * and view which consultants have connected their calendars.
- *
- * REBUILT from scratch to eliminate browser autofill interference.
- */
+// ── Validation ──────────────────────────────────────────────
+const CLIENT_ID_REGEX = /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
+
+function validateClientId(value: string): string {
+  if (!value.trim()) return "";
+  if (value.includes("@"))
+    return "Erro: Insira o Client ID do projeto, não seu e-mail. O Client ID termina com .apps.googleusercontent.com";
+  if (!CLIENT_ID_REGEX.test(value.trim()))
+    return "Client ID inválido. O formato correto é: 123456789-xxxxxxxx.apps.googleusercontent.com";
+  return "";
+}
+
+function validateClientSecret(value: string): string {
+  if (!value.trim()) return "";
+  if (value.includes("@"))
+    return "Erro: Insira o Client Secret do projeto, não seu e-mail.";
+  if (value.includes(" "))
+    return "Client Secret não pode conter espaços.";
+  if (value.trim().length < 10)
+    return "Client Secret parece muito curto. Verifique o valor copiado do Google Cloud Console.";
+  return "";
+}
+
+/** Detects if a value looks like browser autofill injected an email or password */
+function looksLikeAutofill(value: string): boolean {
+  if (!value) return false;
+  if (value.includes("@")) return true;
+  // Common autofill password patterns (dots, all lowercase short strings)
+  if (/^[•·*]{4,}$/.test(value)) return true;
+  return false;
+}
+
+// ── Anti-autofill Input ─────────────────────────────────────
+interface SecureInputProps {
+  fieldId: string;
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  error: string;
+  label: string;
+  onAutofillDetected?: () => void;
+}
+
+function SecureTextarea({
+  fieldId,
+  value,
+  onChange,
+  placeholder,
+  error,
+  label,
+  onAutofillDetected,
+}: SecureInputProps) {
+  const [readOnly, setReadOnly] = useState(true);
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  // Autofill detection: when value changes externally (e.g. browser autofill on mount)
+  useEffect(() => {
+    if (readOnly && ref.current) {
+      const domVal = ref.current.value;
+      if (domVal && looksLikeAutofill(domVal)) {
+        // Browser injected something — clear it
+        ref.current.value = "";
+        onChange("");
+        onAutofillDetected?.();
+      }
+    }
+  }, [readOnly]);
+
+  // Also detect via onChange (Chrome fires change events for autofill)
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const raw = e.target.value.replace(/\n/g, "");
+      if (looksLikeAutofill(raw)) {
+        onChange("");
+        if (ref.current) ref.current.value = "";
+        onAutofillDetected?.();
+        return;
+      }
+      onChange(raw);
+    },
+    [onChange, onAutofillDetected]
+  );
+
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-sm flex items-center gap-1.5" htmlFor={fieldId}>
+        <KeyRound className="h-3.5 w-3.5" />
+        {label}
+      </Label>
+      <textarea
+        ref={ref}
+        id={fieldId}
+        name={fieldId}
+        aria-label={`Configuração do projeto ${label}`}
+        rows={1}
+        placeholder={placeholder}
+        value={value}
+        readOnly={readOnly}
+        onFocus={() => setReadOnly(false)}
+        onChange={handleChange}
+        className={`flex w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono shadow-xs transition-all duration-200 resize-none overflow-hidden ring-offset-background placeholder:text-muted-foreground/60 hover:border-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 ${error ? "border-destructive focus-visible:ring-destructive/40" : "border-input"}`}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+        data-form-type="other"
+        data-lpignore="true"
+        data-1p-ignore="true"
+        data-bwignore="true"
+      />
+      {error && (
+        <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+          <AlertTriangle className="h-3 w-3 shrink-0" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Main Page ───────────────────────────────────────────────
 export function GoogleCalendarConfigPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // State is ALWAYS initialized empty — DB values shown only as labels
-  const [gcalAppIdentity, setGcalAppIdentity] = useState("");
-  const [gcalAppSecurity, setGcalAppSecurity] = useState("");
+  // State is ALWAYS initialized empty — DB values shown only as status labels
+  const [gcalClientId, setGcalClientId] = useState("");
+  const [gcalClientSecret, setGcalClientSecret] = useState("");
   const [identityError, setIdentityError] = useState("");
   const [securityError, setSecurityError] = useState("");
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [autofillWarning, setAutofillWarning] = useState(false);
 
-  // Unique React-generated IDs to avoid any autofill pattern matching
+  // Unique React-generated IDs — randomized per render to defeat autofill heuristics
   const formId = useId();
-
-  const CLIENT_ID_REGEX = /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
-
-  const validateClientId = (value: string): string => {
-    if (!value.trim()) return "";
-    if (value.includes("@")) {
-      return "Erro: Insira o Client ID do projeto, não seu e-mail. O Client ID termina com .apps.googleusercontent.com";
-    }
-    if (!CLIENT_ID_REGEX.test(value.trim())) {
-      return "Client ID inválido. O formato correto é: 123456789-xxxxxxxx.apps.googleusercontent.com";
-    }
-    return "";
-  };
-
-  const validateClientSecret = (value: string): string => {
-    if (!value.trim()) return "";
-    if (value.includes("@")) {
-      return "Erro: Insira o Client Secret do projeto, não seu e-mail.";
-    }
-    if (value.trim().length < 10) {
-      return "Client Secret parece muito curto. Verifique o valor copiado do Google Cloud Console.";
-    }
-    return "";
-  };
 
   // Handle OAuth callback result
   useEffect(() => {
@@ -117,21 +211,15 @@ export function GoogleCalendarConfigPage() {
   const isConfigured = configStatus?.hasClientId && configStatus?.hasClientSecret;
 
   const handleSave = async () => {
-    const trimmedId = gcalAppIdentity.trim();
-    const trimmedSecret = gcalAppSecurity.trim();
+    const trimmedId = gcalClientId.trim();
+    const trimmedSecret = gcalClientSecret.trim();
 
-    if (!trimmedId || !trimmedSecret) {
-      toast({ title: "Campos obrigatórios", description: "Preencha Client ID e Client Secret.", variant: "destructive" });
-      return;
-    }
-
-    // Hard block: prevent saving emails as credentials
-    if (trimmedId.includes("@") || trimmedSecret.includes("@")) {
-      toast({
-        title: "Erro: Credencial inválida",
-        description: "Você está tentando salvar um e-mail. O Client ID é um código que termina em .apps.googleusercontent.com",
-        variant: "destructive",
-      });
+    // Frontend validation (defense layer 1 — backend also validates)
+    const idErr = validateClientId(trimmedId);
+    const secretErr = validateClientSecret(trimmedSecret);
+    if (idErr || secretErr) {
+      setIdentityError(idErr);
+      setSecurityError(secretErr);
       return;
     }
 
@@ -146,17 +234,25 @@ export function GoogleCalendarConfigPage() {
         }),
       ]);
 
-      const errors = results.filter(r => r.error || r.data?.error);
-      if (errors.length > 0) throw new Error("Erro ao salvar credenciais.");
+      // Check for structured backend errors
+      for (const r of results) {
+        if (r.error) throw new Error(r.error.message || "Erro ao salvar credenciais.");
+        if (r.data?.error) {
+          const code = r.data?.code || r.data?.error?.code;
+          const msg = r.data?.error?.message || r.data?.error || r.data?.details || "Credencial inválida.";
+          throw new Error(code === "CONFIG_INVALID" ? msg : `Erro: ${msg}`);
+        }
+      }
 
       toast({ title: "Credenciais salvas ✅", description: "Google Calendar configurado com sucesso." });
 
-      // Reset form completely and hide editor
-      setGcalAppIdentity("");
-      setGcalAppSecurity("");
+      // WRITE-ONLY: clear fields immediately, never show saved values
+      setGcalClientId("");
+      setGcalClientSecret("");
       setIdentityError("");
-      setEditing(false);
       setSecurityError("");
+      setEditing(false);
+      setAutofillWarning(false);
       await queryClient.invalidateQueries({ queryKey: ["google_calendar_config"] });
     } catch (err: any) {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
@@ -166,11 +262,16 @@ export function GoogleCalendarConfigPage() {
   };
 
   const clearFields = () => {
-    setGcalAppIdentity("");
-    setGcalAppSecurity("");
+    setGcalClientId("");
+    setGcalClientSecret("");
     setIdentityError("");
     setSecurityError("");
+    setAutofillWarning(false);
   };
+
+  const handleAutofillDetected = useCallback(() => {
+    setAutofillWarning(true);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -225,7 +326,7 @@ export function GoogleCalendarConfigPage() {
 
           <Separator />
 
-          {/* When configured and NOT editing: show success state + change button */}
+          {/* ── Configured state: show status (WRITE-ONLY — never show secret) ── */}
           {isConfigured && !editing && (
             <div className="p-4 rounded-lg bg-success/5 border border-success/20 space-y-3">
               <p className="text-sm text-success flex items-center gap-1.5 font-medium">
@@ -237,10 +338,17 @@ export function GoogleCalendarConfigPage() {
                   Client ID: {configStatus.maskedClientId}
                 </p>
               )}
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3 text-success" />
+                Client Secret configurado
+              </p>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setEditing(true)}
+                onClick={() => {
+                  clearFields();
+                  setEditing(true);
+                }}
                 className="gap-1.5"
               >
                 <KeyRound className="h-3.5 w-3.5" />
@@ -249,113 +357,97 @@ export function GoogleCalendarConfigPage() {
             </div>
           )}
 
-          {/* ═══════════════════════════════════════════════════
-              FORM with full autofill blocking:
-              - autocomplete="off" on form
-              - Hidden decoy inputs to absorb autofill
-              - textarea instead of input to bypass password managers
-              - Random names/ids via useId()
-              ═══════════════════════════════════════════════════ */}
-          {/* Only render the form when NOT configured or when user clicks "Alterar" */}
+          {/* ── Form: only rendered when editing (never pre-filled with DB values) ── */}
           {(!isConfigured || editing) && (
-          <form autoComplete="off" onSubmit={(e) => e.preventDefault()} className="space-y-3 relative">
-            {/* Hidden decoy inputs — absorb browser autofill */}
-            <input type="text" name="fakeusernameremembered" style={{ display: "none" }} value="" readOnly tabIndex={-1} />
-            <input type="password" name="fakepasswordremembered" style={{ display: "none" }} value="" readOnly tabIndex={-1} />
-
-            {saving && (
-              <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Spinner size="sm" />
-                  <span className="text-sm font-medium">Salvando credenciais…</span>
-                </div>
+            <form
+              autoComplete="off"
+              data-form-type="other"
+              aria-label="Configuração de projeto OAuth"
+              onSubmit={(e) => e.preventDefault()}
+              className="space-y-3 relative"
+            >
+              {/* Hidden decoy inputs — absorb browser autofill attempts */}
+              <div aria-hidden="true" className="absolute w-0 h-0 overflow-hidden">
+                <input type="text" name="fakeusernameremembered" tabIndex={-1} readOnly value="" />
+                <input type="password" name="fakepasswordremembered" tabIndex={-1} readOnly value="" />
               </div>
-            )}
 
-            <div className="space-y-1.5">
-              <Label className="text-sm flex items-center gap-1.5">
-                <KeyRound className="h-3.5 w-3.5" />
-                Client ID
-              </Label>
-              <textarea
-                id={`${formId}-gcal-app-identity`}
-                name={`${formId}-gcal-app-identity`}
-                rows={1}
-                placeholder="123456789.apps.googleusercontent.com"
-                value={gcalAppIdentity}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\n/g, "");
-                  setGcalAppIdentity(val);
+              {/* Autofill warning banner */}
+              {autofillWarning && (
+                <div className="p-3 rounded-lg bg-warning/10 border border-warning/30 flex items-start gap-2">
+                  <ShieldAlert className="h-4 w-4 text-warning shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-warning">Autofill detectado e bloqueado</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      O navegador tentou preencher com e-mail/senha. Os campos foram limpos.
+                      Cole manualmente o Client ID e Client Secret do Google Cloud Console.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAutofillWarning(false)}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <XCircle className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+
+              {saving && (
+                <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Spinner size="sm" />
+                    <span className="text-sm font-medium">Salvando credenciais…</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Client ID — anti-autofill textarea with readonly-until-focus */}
+              <SecureTextarea
+                fieldId={`${formId}-gc-proj-${Math.random().toString(36).slice(2, 6)}-a`}
+                value={gcalClientId}
+                onChange={(val) => {
+                  setGcalClientId(val);
                   setIdentityError(validateClientId(val));
                 }}
-                className={`flex w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono shadow-xs transition-all duration-200 resize-none overflow-hidden ring-offset-background placeholder:text-muted-foreground/60 hover:border-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 ${identityError ? "border-destructive focus-visible:ring-destructive/40" : "border-input"}`}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                data-form-type="other"
-                data-lpignore="true"
-                data-1p-ignore="true"
+                placeholder="123456789-xxxxxxxx.apps.googleusercontent.com"
+                error={identityError}
+                label="Client ID"
+                onAutofillDetected={handleAutofillDetected}
               />
-              {identityError && (
-                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
-                  <AlertTriangle className="h-3 w-3 shrink-0" />
-                  {identityError}
-                </p>
-              )}
-            </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-sm flex items-center gap-1.5">
-                <KeyRound className="h-3.5 w-3.5" />
-                Client Secret
-              </Label>
-              <textarea
-                id={`${formId}-gcal-app-security`}
-                name={`${formId}-gcal-app-security`}
-                rows={1}
-                placeholder="GOCSPX-..."
-                value={gcalAppSecurity}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\n/g, "");
-                  setGcalAppSecurity(val);
+              {/* Client Secret — WRITE-ONLY: always starts empty, never shows saved value */}
+              <SecureTextarea
+                fieldId={`${formId}-gc-proj-${Math.random().toString(36).slice(2, 6)}-b`}
+                value={gcalClientSecret}
+                onChange={(val) => {
+                  setGcalClientSecret(val);
                   setSecurityError(validateClientSecret(val));
                 }}
-                className={`flex w-full rounded-lg border bg-background px-3 py-2 text-sm font-mono shadow-xs transition-all duration-200 resize-none overflow-hidden ring-offset-background placeholder:text-muted-foreground/60 hover:border-muted-foreground/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1 focus-visible:border-ring disabled:cursor-not-allowed disabled:opacity-50 ${securityError ? "border-destructive focus-visible:ring-destructive/40" : "border-input"}`}
-                autoComplete="off"
-                autoCorrect="off"
-                autoCapitalize="off"
-                spellCheck={false}
-                data-form-type="other"
-                data-lpignore="true"
-                data-1p-ignore="true"
+                placeholder="GOCSPX-..."
+                error={securityError}
+                label="Client Secret"
+                onAutofillDetected={handleAutofillDetected}
               />
-              {securityError && (
-                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
-                  <AlertTriangle className="h-3 w-3 shrink-0" />
-                  {securityError}
-                </p>
-              )}
-            </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                type="button"
-                onClick={handleSave}
-                disabled={saving || !gcalAppIdentity.trim() || !gcalAppSecurity.trim() || !!identityError || !!securityError}
-                className="gap-2"
-              >
-                {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
-                {saving ? "Salvando..." : isConfigured ? "Atualizar Credenciais" : "Salvar Credenciais"}
-              </Button>
-              {(gcalAppIdentity || gcalAppSecurity) && (
-                <Button type="button" variant="ghost" size="sm" onClick={clearFields} className="gap-1.5 text-muted-foreground">
-                  <Eraser className="h-3.5 w-3.5" />
-                  Limpar Campos
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  onClick={handleSave}
+                  disabled={saving || !gcalClientId.trim() || !gcalClientSecret.trim() || !!identityError || !!securityError}
+                  className="gap-2"
+                >
+                  {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}
+                  {saving ? "Salvando..." : isConfigured ? "Atualizar Credenciais" : "Salvar Credenciais"}
                 </Button>
-              )}
-            </div>
-          </form>
+                {(gcalClientId || gcalClientSecret) && (
+                  <Button type="button" variant="ghost" size="sm" onClick={clearFields} className="gap-1.5 text-muted-foreground">
+                    <Eraser className="h-3.5 w-3.5" />
+                    Limpar Campos
+                  </Button>
+                )}
+              </div>
+            </form>
           )}
         </CardContent>
       </Card>

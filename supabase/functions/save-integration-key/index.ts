@@ -66,18 +66,19 @@ Deno.serve(async (req) => {
 
     // ── Google Calendar credential validation (NEVER trust the client) ──
     if (service_key === "google_calendar_client_id") {
-      if (!api_key.endsWith(".apps.googleusercontent.com") || api_key.includes("@")) {
+      const clientIdRegex = /^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$/i;
+      if (!clientIdRegex.test(api_key) || api_key.includes("@")) {
         return new Response(
-          JSON.stringify({ code: "CONFIG_INVALID", error: "Client ID inválido. Deve terminar com .apps.googleusercontent.com" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ code: "CONFIG_INVALID", error: "Client ID inválido. Deve estar no formato 123456789-xxx.apps.googleusercontent.com" }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
     if (service_key === "google_calendar_client_secret") {
-      if (api_key.includes("@") || api_key.trim().length < 10) {
+      if (api_key.includes("@") || api_key.includes(" ") || api_key.trim().length < 10) {
         return new Response(
-          JSON.stringify({ code: "CONFIG_INVALID", error: "Client Secret inválido." }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          JSON.stringify({ code: "CONFIG_INVALID", error: "Client Secret inválido. Não pode conter espaços ou parecer e-mail." }),
+          { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
     }
