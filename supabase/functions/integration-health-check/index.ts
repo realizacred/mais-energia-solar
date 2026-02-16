@@ -143,8 +143,10 @@ Deno.serve(async (req) => {
       results.push(await checkWhatsApp(supabaseAdmin, tenantId));
       results.push(await checkOpenAI(supabaseAdmin, tenantId));
       results.push(await checkGemini(supabaseAdmin, tenantId));
-      
       results.push(await checkGoogleCalendar(supabaseAdmin, tenantId));
+      results.push(await checkInstagram(supabaseAdmin, tenantId));
+      results.push(await checkWebhooks(supabaseAdmin, tenantId));
+      results.push(await checkPaymentGateway(supabaseAdmin, tenantId));
 
       // Fix #3: Batch upsert (single call per tenant, not per integration)
       const now = new Date().toISOString();
@@ -381,6 +383,126 @@ async function checkGemini(admin: any, tenantId: string): Promise<CheckResult> {
 
 
 async function checkGoogleCalendar(_admin: any, _tenantId: string): Promise<CheckResult> {
-  // Google Calendar integration removed
   return { integration_name: "google_calendar", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+}
+
+async function checkInstagram(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: configs } = await admin
+      .from("instagram_config")
+      .select("id, username, access_token, ativo, ultima_sincronizacao")
+      .eq("tenant_id", tenantId)
+      .eq("ativo", true)
+      .limit(10);
+
+    if (!configs || configs.length === 0) {
+      return { integration_name: "instagram", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Nenhuma conta configurada" } };
+    }
+
+    // Check if token works by calling Graph API
+    const cfg = configs[0];
+    if (!cfg.access_token) {
+      return { integration_name: "instagram", status: "down", latency_ms: null, error_message: "Token de acesso não configurado", details: { username: cfg.username } };
+    }
+
+    const start = Date.now();
+    const res = await fetch(`https://graph.instagram.com/me?fields=id,username&access_token=${cfg.access_token}`, {
+      signal: AbortSignal.timeout(10000),
+    });
+    const latency = Date.now() - start;
+
+    if (res.ok) {
+      await res.text();
+      return { integration_name: "instagram", status: "healthy", latency_ms: latency, error_message: null, details: { username: cfg.username, accounts: configs.length } };
+    }
+
+    const errText = await res.text();
+    return {
+      integration_name: "instagram",
+      status: res.status === 190 || res.status === 401 ? "down" : "degraded",
+      latency_ms: latency,
+      error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+      details: { username: cfg.username },
+    };
+  } catch (err: any) {
+    return { integration_name: "instagram", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkWebhooks(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: webhooks } = await admin
+      .from("webhook_config")
+      .select("id, nome, url, ativo")
+      .eq("tenant_id", tenantId)
+      .limit(50);
+
+    if (!webhooks || webhooks.length === 0) {
+      return { integration_name: "webhooks", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Nenhum webhook configurado" } };
+    }
+
+    const active = webhooks.filter((w: any) => w.ativo);
+    const total = webhooks.length;
+
+    if (active.length === 0) {
+      return { integration_name: "webhooks", status: "degraded", latency_ms: null, error_message: `${total} webhook(s) configurado(s), nenhum ativo`, details: { total, active: 0 } };
+    }
+
+    return {
+      integration_name: "webhooks",
+      status: "healthy",
+      latency_ms: null,
+      error_message: null,
+      details: { total, active: active.length },
+    };
+  } catch (err: any) {
+    return { integration_name: "webhooks", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkPaymentGateway(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: config } = await admin
+      .from("payment_gateway_config")
+      .select("id, provider, environment, api_key, is_active")
+      .eq("tenant_id", tenantId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!config) {
+      return { integration_name: "pagamentos", status: "not_configured", latency_ms: null, error_message: null, details: { reason: "Gateway de pagamento não configurado" } };
+    }
+
+    if (!config.api_key) {
+      return { integration_name: "pagamentos", status: "down", latency_ms: null, error_message: "API key não configurada", details: { provider: config.provider, environment: config.environment } };
+    }
+
+    // Test Asaas API connectivity
+    const baseUrl = config.environment === "production"
+      ? "https://api.asaas.com/v3"
+      : "https://sandbox.asaas.com/api/v3";
+
+    const start = Date.now();
+    const res = await fetch(`${baseUrl}/finance/balance`, {
+      headers: { access_token: config.api_key },
+      signal: AbortSignal.timeout(10000),
+    });
+    const latency = Date.now() - start;
+
+    if (res.ok) {
+      await res.text();
+      return { integration_name: "pagamentos", status: "healthy", latency_ms: latency, error_message: null, details: { provider: config.provider, environment: config.environment } };
+    }
+
+    const errText = await res.text();
+    return {
+      integration_name: "pagamentos",
+      status: res.status === 401 ? "down" : "degraded",
+      latency_ms: latency,
+      error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+      details: { provider: config.provider, environment: config.environment },
+    };
+  } catch (err: any) {
+    return { integration_name: "pagamentos", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
 }

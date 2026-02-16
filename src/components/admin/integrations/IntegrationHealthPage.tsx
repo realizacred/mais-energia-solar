@@ -29,6 +29,17 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
   unknown: { label: "Desconhecido", variant: "outline", icon: Clock, color: "text-muted-foreground" },
 };
 
+const INTEGRATION_LABELS: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  openai: "OpenAI",
+  google_gemini: "Google Gemini",
+  google_calendar: "Google Agenda",
+  solarmarket: "SolarMarket",
+  instagram: "Instagram",
+  webhooks: "Webhooks",
+  pagamentos: "Pagamentos (Asaas)",
+};
+
 function getStatusConfig(status: string) {
   return STATUS_CONFIG[status] || STATUS_CONFIG.unknown;
 }
@@ -149,7 +160,7 @@ function IntegrationCard({ item }: { item: HealthRow }) {
               <StatusIcon className="h-5 w-5" />
             </div>
             <div className="min-w-0">
-              <p className="font-medium text-sm truncate">{item.integration_name}</p>
+              <p className="font-medium text-sm truncate">{INTEGRATION_LABELS[item.integration_name] || item.integration_name}</p>
               <p className="text-xs text-muted-foreground">Último check: {lastCheck}</p>
             </div>
           </div>
