@@ -9847,6 +9847,54 @@ export type Database = {
         }
         Relationships: []
       }
+      smtp_settings: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          from_email: string
+          from_name: string
+          host: string
+          id: string
+          password_encrypted: string
+          port: number
+          reply_to: string | null
+          secure: boolean
+          tenant_id: string
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          from_email: string
+          from_name: string
+          host: string
+          id?: string
+          password_encrypted: string
+          port?: number
+          reply_to?: string | null
+          secure?: boolean
+          tenant_id: string
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          from_email?: string
+          from_name?: string
+          host?: string
+          id?: string
+          password_encrypted?: string
+          port?: number
+          reply_to?: string | null
+          secure?: boolean
+          tenant_id?: string
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       solar_import_job_logs: {
         Row: {
           created_at: string
@@ -12962,6 +13010,11 @@ export type Database = {
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
+      decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
+      encrypt_secret: {
+        Args: { plain: string; secret: string }
+        Returns: string
+      }
       enforce_limit_or_throw: {
         Args: { _delta?: number; _metric_key: string }
         Returns: undefined
@@ -13196,6 +13249,7 @@ export type Database = {
           title: string
         }[]
       }
+      get_smtp_password: { Args: { secret: string }; Returns: string }
       get_super_admin_metrics: {
         Args: {
           _limit?: number
