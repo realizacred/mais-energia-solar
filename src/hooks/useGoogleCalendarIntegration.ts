@@ -96,7 +96,24 @@ export function useGoogleCalendarIntegration() {
     mutationFn: () => callIntegration("connect"),
     onSuccess: (data) => {
       if (data.auth_url) {
-        window.location.href = data.auth_url;
+        const width = 600;
+        const height = 700;
+        const left = window.screenX + (window.outerWidth - width) / 2;
+        const top = window.screenY + (window.outerHeight - height) / 2;
+        const popup = window.open(
+          data.auth_url,
+          "google-oauth",
+          `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=yes,status=no`
+        );
+        // Poll for popup close to refresh status
+        if (popup) {
+          const timer = setInterval(() => {
+            if (popup.closed) {
+              clearInterval(timer);
+              invalidate();
+            }
+          }, 1000);
+        }
       }
     },
     onError: (err: Error) => {

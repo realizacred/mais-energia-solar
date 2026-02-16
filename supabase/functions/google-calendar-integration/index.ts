@@ -30,6 +30,19 @@ function getCallbackUrl(): string {
   return `${appUrl}/admin/integracoes`;
 }
 
+function popupCloseHtml(queryString: string): string {
+  return `<!DOCTYPE html><html><head><title>Google Calendar</title></head><body>
+<script>
+  if (window.opener) {
+    window.close();
+  } else {
+    window.location.href = "${getCallbackUrl()}?${queryString}";
+  }
+</script>
+<p>Conectado! Você pode fechar esta janela.</p>
+</body></html>`;
+}
+
 async function resolveUser(req: Request) {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) throw new Error("Unauthorized");
@@ -205,7 +218,7 @@ async function handleConnect(req: Request) {
     response_type: "code",
     scope: SCOPES.join(" "),
     access_type: "offline",
-    prompt: "consent",
+    prompt: "consent select_account",
     state,
   });
 
@@ -252,10 +265,9 @@ async function handleCallback(req: Request) {
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
   if (errorParam || !code || !stateParam) {
-    const redirectUrl = getCallbackUrl();
-    return new Response(null, {
-      status: 302,
-      headers: { ...corsHeaders, Location: `${redirectUrl}?error=${errorParam || "missing_code"}` },
+    return new Response(popupCloseHtml(`error=${errorParam || "missing_code"}`), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
     });
   }
 
@@ -271,10 +283,9 @@ async function handleCallback(req: Request) {
   // Get per-tenant credentials
   const creds = await getTenantOAuthCreds(adminClient, tenantId);
   if (!creds) {
-    const redirectUrl = getCallbackUrl();
-    return new Response(null, {
-      status: 302,
-      headers: { ...corsHeaders, Location: `${redirectUrl}?error=missing_credentials` },
+    return new Response(popupCloseHtml("error=missing_credentials"), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
     });
   }
 
@@ -318,10 +329,9 @@ async function handleCallback(req: Request) {
       metadata: { error: tokenData.error_description || "token_exchange_failed" },
     });
 
-    const redirectUrl = getCallbackUrl();
-    return new Response(null, {
-      status: 302,
-      headers: { ...corsHeaders, Location: `${redirectUrl}?error=token_exchange_failed` },
+    return new Response(popupCloseHtml("error=token_exchange_failed"), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
     });
   }
 
@@ -384,10 +394,9 @@ async function handleCallback(req: Request) {
     });
   }
 
-  const redirectUrl = getCallbackUrl();
-  return new Response(null, {
-    status: 302,
-    headers: { ...corsHeaders, Location: `${redirectUrl}?connected=true` },
+  return new Response(popupCloseHtml("connected=true"), {
+    status: 200,
+    headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
   });
 }
 
