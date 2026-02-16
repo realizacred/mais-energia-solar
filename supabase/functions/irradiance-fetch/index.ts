@@ -13,9 +13,9 @@ const NASA_POWER_BASE = "https://power.larc.nasa.gov/api/temporal/climatology/po
 const BRAZIL_BBOX = { latMin: -33.5, latMax: 5.5, lonMin: -74.0, lonMax: -35.0 };
 
 // Max points per invocation to stay within edge function timeout (~150s)
-const MAX_POINTS_PER_CHUNK = 400;
-const CONCURRENT = 10;
-const DELAY_MS = 400; // NASA rate limit ~30 req/s
+const MAX_POINTS_PER_CHUNK = 500;
+const CONCURRENT = 15;
+const DELAY_MS = 350; // NASA rate limit ~30 req/s — safe margin
 
 interface FetchParams {
   dataset_code: string;
@@ -85,7 +85,7 @@ Deno.serve(async (req) => {
 
   try {
     const { dataset_code, version_tag, source_note, append_to_version, resume_from_lat } = body;
-    const step = body.step_deg ?? 0.5;
+    const step = body.step_deg ?? 0.125;
 
     if (!dataset_code || !version_tag) {
       return err("Missing dataset_code or version_tag");
