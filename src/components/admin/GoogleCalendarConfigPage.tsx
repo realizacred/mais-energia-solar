@@ -233,7 +233,7 @@ export function GoogleCalendarConfigPage() {
               </Label>
               <Input
                 id="gc-client-id"
-                name={`gc_cid_${Date.now()}`}
+                name="gc_cid_99"
                 placeholder="123456789.apps.googleusercontent.com"
                 value={clientId}
                 onChange={handleClientIdChange}
@@ -258,7 +258,7 @@ export function GoogleCalendarConfigPage() {
               <div className="relative">
                 <Input
                   id="gc-client-secret"
-                  name={`gc_csec_${Date.now()}`}
+                  name="gc_csec_99"
                   type={showSecret ? "text" : "password"}
                   placeholder="GOCSPX-..."
                   value={clientSecret}
