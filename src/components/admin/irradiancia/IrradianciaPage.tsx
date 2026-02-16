@@ -197,8 +197,9 @@ export function IrradianciaPage() {
 
   // CSV upload state
   const [uploadDs, setUploadDs] = useState("");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Lookup test state
@@ -237,40 +238,49 @@ export function IrradianciaPage() {
   };
 
   const handleCsvUpload = async () => {
-    if (!uploadFile || !uploadDs) {
-      toast.error("Selecione um dataset e um arquivo CSV.");
+    if (uploadFiles.length === 0 || !uploadDs) {
+      toast.error("Selecione um dataset e pelo menos um arquivo CSV.");
       return;
     }
     setUploading(true);
+    setUploadError("");
     try {
       const versionTag = generateVersionTag();
-      const filePath = `uploads/${uploadDs}/${versionTag}_${uploadFile.name}`;
+      let totalRows = 0;
 
-      const { error: storageError } = await supabase.storage
-        .from("irradiance-source")
-        .upload(filePath, uploadFile, { upsert: true });
+      for (const file of uploadFiles) {
+        const filePath = `uploads/${uploadDs}/${versionTag}_${file.name}`;
 
-      if (storageError) throw storageError;
+        const { error: storageError } = await supabase.storage
+          .from("irradiance-source")
+          .upload(filePath, file, { upsert: true });
 
-      const { data, error } = await supabase.functions.invoke("irradiance-import", {
-        body: {
-          dataset_code: uploadDs,
-          version_tag: versionTag,
-          source_note: `Upload manual: ${uploadFile.name}`,
-          file_path: filePath,
-        },
-      });
+        if (storageError) throw storageError;
 
-      if (error) throw error;
+        const { data, error } = await supabase.functions.invoke("irradiance-import", {
+          body: {
+            dataset_code: uploadDs,
+            version_tag: versionTag,
+            source_note: `Upload manual: ${file.name}`,
+            file_path: filePath,
+          },
+        });
+
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        totalRows += data?.row_count ?? 0;
+      }
 
       toast.success(
-        `Importação concluída: ${data?.row_count?.toLocaleString() ?? 0} pontos importados`
+        `Importação concluída: ${totalRows.toLocaleString()} pontos importados (${uploadFiles.length} arquivo(s))`
       );
-      setUploadFile(null);
+      setUploadFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
       reload();
     } catch (e: any) {
-      toast.error("Erro na importação CSV", { description: e.message });
+      const msg = e.message || "Erro desconhecido";
+      setUploadError(msg);
+      toast.error("Erro na importação CSV", { description: msg });
     } finally {
       setUploading(false);
     }
@@ -573,31 +583,43 @@ export function IrradianciaPage() {
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Arquivo CSV</Label>
+                  <Label className="text-xs">Arquivos CSV</Label>
                   <Input
                     ref={fileInputRef}
                     type="file"
                     accept=".csv,.txt"
-                    onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                    multiple
+                    onChange={(e) => setUploadFiles(Array.from(e.target.files ?? []))}
                     className="text-xs"
                   />
                 </div>
                 <div className="flex items-end">
                   <Button
                     onClick={handleCsvUpload}
-                    disabled={uploading || !uploadFile || !uploadDs}
+                    disabled={uploading || uploadFiles.length === 0 || !uploadDs}
                     className="gap-1.5 w-full"
                   >
                     {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                    {uploading ? "Importando..." : "Enviar e Importar"}
+                    {uploading ? "Importando..." : `Enviar e Importar${uploadFiles.length > 1 ? ` (${uploadFiles.length})` : ""}`}
                   </Button>
                 </div>
               </div>
 
-              {uploadFile && (
-                <div className="text-[10px] text-muted-foreground">
-                  Arquivo: <span className="font-medium">{uploadFile.name}</span> ({(uploadFile.size / 1024).toFixed(1)} KB)
-                  • Versão será gerada automaticamente: <Badge variant="outline" className="text-[10px]">{generateVersionTag()}</Badge>
+              {uploadError && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+                  <p className="text-xs text-destructive">{uploadError}</p>
+                </div>
+              )}
+
+              {uploadFiles.length > 0 && (
+                <div className="text-[10px] text-muted-foreground space-y-1">
+                  {uploadFiles.map((f, i) => (
+                    <div key={i}>
+                      📄 <span className="font-medium">{f.name}</span> ({(f.size / 1024).toFixed(1)} KB)
+                    </div>
+                  ))}
+                  <div>Versão: <Badge variant="outline" className="text-[10px]">{generateVersionTag()}</Badge></div>
                 </div>
               )}
             </CardContent>

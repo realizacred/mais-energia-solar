@@ -185,7 +185,9 @@ Deno.serve(async (req) => {
 
       batch.push(row);
 
-      hashParts.push(`${lat}:${lon}:${Object.values(months).join(":")}`);
+      // Build hash from GHI values (m01-m12)
+      const ghiVals = Array.from({ length: 12 }, (_, m) => row[`m${String(m + 1).padStart(2, "0")}`] ?? 0);
+      hashParts.push(`${lat}:${lon}:${ghiVals.join(":")}`);
       rowCount++;
 
       if (batch.length >= BATCH_SIZE) {
