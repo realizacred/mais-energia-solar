@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -27,22 +26,18 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const userId = claimsData.claims.sub;
-
-    // Resolve tenant
     const { data: profile } = await supabase
       .from("profiles")
       .select("tenant_id")
-      .eq("user_id", userId)
+      .eq("user_id", user.id)
       .single();
 
     if (!profile?.tenant_id) {
@@ -52,9 +47,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    const tenantId = profile.tenant_id;
-
-    // Get request body
     const { api_key, environment } = await req.json();
 
     if (!api_key || !environment) {
@@ -64,13 +56,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Determine Asaas base URL
     const baseUrl =
       environment === "production"
         ? "https://api.asaas.com/v3"
         : "https://sandbox.asaas.com/api/v3";
 
-    // Test connection by fetching account info
     const asaasResponse = await fetch(`${baseUrl}/finance/getCurrentBalance`, {
       method: "GET",
       headers: {
@@ -99,7 +89,7 @@ Deno.serve(async (req) => {
         success: true,
         environment,
         balance: balanceData.balance ?? null,
-        tenant_id: tenantId,
+        tenant_id: profile.tenant_id,
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
