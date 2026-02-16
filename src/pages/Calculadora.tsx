@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { usePaybackEngine, type PaybackResult } from "@/hooks/usePaybackEngine";
+import { useSolarPremises, SOLAR_DEFAULTS } from "@/hooks/useSolarPremises";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
@@ -76,7 +77,7 @@ const step2Schema = z.object({
 type Step1Data = z.infer<typeof step1Schema>;
 type Step2Data = z.infer<typeof step2Schema>;
 
-// ─── Config ─────────────────────────────────────────────────────
+// ─── Config (derived from Solar Brain) ──────────────────────────
 interface CalcConfig {
   tarifa_media_kwh: number;
   custo_por_kwp: number;
@@ -87,12 +88,12 @@ interface CalcConfig {
 }
 
 const DEFAULT_CONFIG: CalcConfig = {
-  tarifa_media_kwh: 0.85,
-  custo_por_kwp: 4500,
-  geracao_mensal_por_kwp: 120,
-  kg_co2_por_kwh: 0.084,
-  percentual_economia: 95,
-  fator_perdas_percentual: 15,
+  tarifa_media_kwh: SOLAR_DEFAULTS.tarifa,
+  custo_por_kwp: SOLAR_DEFAULTS.custo_por_kwp,
+  geracao_mensal_por_kwp: SOLAR_DEFAULTS.geracao_mensal_por_kwp,
+  kg_co2_por_kwh: SOLAR_DEFAULTS.kg_co2_por_kwh,
+  percentual_economia: SOLAR_DEFAULTS.percentual_economia,
+  fator_perdas_percentual: SOLAR_DEFAULTS.perda_eficiencia,
 };
 
 interface ConcessionariaOption {
@@ -119,7 +120,21 @@ const slideVariants = {
 
 // ─── Page Component ─────────────────────────────────────────────
 export default function Calculadora() {
-  const [config, setConfig] = useState<CalcConfig>(DEFAULT_CONFIG);
+  // Solar Brain — single source of truth
+  const { data: solarPremises, isLoading: solarLoading } = useSolarPremises();
+
+  const config = useMemo<CalcConfig>(() => {
+    if (!solarPremises) return DEFAULT_CONFIG;
+    return {
+      tarifa_media_kwh: solarPremises.tarifa,
+      custo_por_kwp: solarPremises.custo_por_kwp,
+      geracao_mensal_por_kwp: solarPremises.geracao_mensal_por_kwp,
+      kg_co2_por_kwh: solarPremises.kg_co2_por_kwh,
+      percentual_economia: solarPremises.percentual_economia,
+      fator_perdas_percentual: solarPremises.perda_eficiencia,
+    };
+  }, [solarPremises]);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState(0);
   const [tarifaKwh, setTarifaKwh] = useState(DEFAULT_CONFIG.tarifa_media_kwh);
@@ -246,25 +261,12 @@ export default function Calculadora() {
   const s2 = step2Form.watch();
   const s2Errors = step2Form.formState.errors;
 
-  // ─── Fetch config ─────────────────────────────────────────
+  // ─── Sync tarifa from Solar Brain ─────────────────────────
   useEffect(() => {
-    (async () => {
-      try {
-        const { data, error } = await supabase.rpc("get_calculator_config");
-        if (error) throw error;
-        if (data?.[0]) {
-          const cfg = data[0] as any;
-          setConfig({
-            ...cfg,
-            fator_perdas_percentual: cfg.fator_perdas_percentual ?? 15,
-          });
-          setTarifaKwh(Number(cfg.tarifa_media_kwh));
-        }
-      } catch (e) {
-        console.error("Erro ao buscar configuração:", e);
-      }
-    })();
-  }, []);
+    if (solarPremises) {
+      setTarifaKwh(solarPremises.tarifa);
+    }
+  }, [solarPremises]);
 
   // ─── CEP auto-fill ────────────────────────────────────────
   const handleCEPBlur = async (cep: string) => {
