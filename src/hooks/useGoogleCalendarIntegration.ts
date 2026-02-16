@@ -69,20 +69,11 @@ export function useGoogleCalendarIntegration() {
   const queryClient = useQueryClient();
   const [calendars, setCalendars] = useState<CalendarItem[]>([]);
 
-  const statusQuery = useQuery<IntegrationStatus>({
-    queryKey: ["integration", "google_calendar", "status"],
-    queryFn: () => callIntegration("status", "POST"),
+  // Single init query replaces 3 separate calls
+  const initQuery = useQuery<{ status: IntegrationStatus; config: OAuthConfig; events: AuditEvent[] }>({
+    queryKey: ["integration", "google_calendar", "init"],
+    queryFn: () => callIntegration("init", "POST"),
     refetchInterval: 30_000,
-  });
-
-  const configQuery = useQuery<OAuthConfig>({
-    queryKey: ["integration", "google_calendar", "config"],
-    queryFn: () => callIntegration("get-config", "POST"),
-  });
-
-  const auditQuery = useQuery<{ events: AuditEvent[] }>({
-    queryKey: ["integration", "google_calendar", "audit"],
-    queryFn: () => callIntegration("audit-log", "POST"),
   });
 
   const invalidate = useCallback(() => {
@@ -154,11 +145,11 @@ export function useGoogleCalendarIntegration() {
   });
 
   return {
-    status: statusQuery.data,
-    isLoading: statusQuery.isLoading,
-    config: configQuery.data,
-    isLoadingConfig: configQuery.isLoading,
-    auditEvents: auditQuery.data?.events || [],
+    status: initQuery.data?.status,
+    isLoading: initQuery.isLoading,
+    config: initQuery.data?.config,
+    isLoadingConfig: initQuery.isLoading,
+    auditEvents: initQuery.data?.events || [],
     calendars,
     saveConfig: saveConfigMutation.mutate,
     isSavingConfig: saveConfigMutation.isPending,

@@ -193,9 +193,7 @@ async function handleConnect(req: Request) {
     .eq("provider", "google_calendar")
     .single();
 
-  if (existing && existing.status === "connected") {
-    return json({ error: "Já existe uma integração ativa. Desconecte antes de reconectar." }, 409);
-  }
+  // Allow reauthorization even if connected (user may want to refresh tokens)
 
   // Build state token
   const state = btoa(JSON.stringify({ tenantId, userId }));
@@ -683,6 +681,50 @@ async function getValidAccessToken(
   }
 }
 
+// ── INIT: Combined status + config + audit in one call ──────
+
+async function handleInit(req: Request) {
+  const { tenantId, adminClient } = await resolveUser(req);
+
+  // Run all 3 queries in parallel
+  const [statusResult, configResult, auditResult] = await Promise.all([
+    adminClient
+      .from("integrations")
+      .select("id, status, connected_account_email, default_calendar_id, default_calendar_name, scopes, last_test_at, last_test_status, last_error_code, last_error_message, oauth_client_id, created_at, updated_at")
+      .eq("tenant_id", tenantId)
+      .eq("provider", "google_calendar")
+      .single(),
+    adminClient
+      .from("integrations")
+      .select("oauth_client_id, oauth_client_secret_encrypted")
+      .eq("tenant_id", tenantId)
+      .eq("provider", "google_calendar")
+      .single(),
+    adminClient
+      .from("integration_audit_events")
+      .select("id, action, result, actor_type, created_at, metadata_json")
+      .eq("tenant_id", tenantId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+  ]);
+
+  const intRow = statusResult.data;
+  const statusData = intRow
+    ? { ...intRow, has_credentials: !!intRow.oauth_client_id, oauth_client_secret_encrypted: undefined }
+    : { status: "disconnected", provider: "google_calendar", connected_account_email: null, default_calendar_id: null, default_calendar_name: null, scopes: [], last_test_at: null, last_test_status: null, has_credentials: false };
+
+  const configData = {
+    client_id: configResult.data?.oauth_client_id || "",
+    client_secret: configResult.data?.oauth_client_secret_encrypted || "",
+  };
+
+  return json({
+    status: statusData,
+    config: configData,
+    events: auditResult.data || [],
+  });
+}
+
 // ── ROUTER ──────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
@@ -715,6 +757,8 @@ Deno.serve(async (req) => {
         return await handleSaveConfig(req);
       case "get-config":
         return await handleGetConfig(req);
+      case "init":
+        return await handleInit(req);
       default:
         return json({ error: `Unknown action: ${action}` }, 400);
     }
