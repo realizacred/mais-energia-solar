@@ -3479,6 +3479,7 @@ export type Database = {
           m10: number
           m11: number
           m12: number
+          plane: string
           unit: string
           version_id: string
         }
@@ -3522,6 +3523,7 @@ export type Database = {
           m10?: number
           m11?: number
           m12?: number
+          plane?: string
           unit?: string
           version_id: string
         }
@@ -3565,12 +3567,105 @@ export type Database = {
           m10?: number
           m11?: number
           m12?: number
+          plane?: string
           unit?: string
           version_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "irradiance_points_monthly_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "irradiance_dataset_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      irradiance_transposed_monthly: {
+        Row: {
+          azimuth_deg: number
+          computed_at: string
+          computed_by: string | null
+          dhi_source: string
+          id: number
+          lat: number
+          lon: number
+          losses_assumptions: Json | null
+          poa_m01: number
+          poa_m02: number
+          poa_m03: number
+          poa_m04: number
+          poa_m05: number
+          poa_m06: number
+          poa_m07: number
+          poa_m08: number
+          poa_m09: number
+          poa_m10: number
+          poa_m11: number
+          poa_m12: number
+          source_point_id: number
+          tilt_deg: number
+          transposition_model: string
+          unit: string
+          version_id: string
+        }
+        Insert: {
+          azimuth_deg: number
+          computed_at?: string
+          computed_by?: string | null
+          dhi_source?: string
+          id?: never
+          lat: number
+          lon: number
+          losses_assumptions?: Json | null
+          poa_m01?: number
+          poa_m02?: number
+          poa_m03?: number
+          poa_m04?: number
+          poa_m05?: number
+          poa_m06?: number
+          poa_m07?: number
+          poa_m08?: number
+          poa_m09?: number
+          poa_m10?: number
+          poa_m11?: number
+          poa_m12?: number
+          source_point_id: number
+          tilt_deg: number
+          transposition_model?: string
+          unit?: string
+          version_id: string
+        }
+        Update: {
+          azimuth_deg?: number
+          computed_at?: string
+          computed_by?: string | null
+          dhi_source?: string
+          id?: never
+          lat?: number
+          lon?: number
+          losses_assumptions?: Json | null
+          poa_m01?: number
+          poa_m02?: number
+          poa_m03?: number
+          poa_m04?: number
+          poa_m05?: number
+          poa_m06?: number
+          poa_m07?: number
+          poa_m08?: number
+          poa_m09?: number
+          poa_m10?: number
+          poa_m11?: number
+          poa_m12?: number
+          source_point_id?: number
+          tilt_deg?: number
+          transposition_model?: string
+          unit?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "irradiance_transposed_monthly_version_id_fkey"
             columns: ["version_id"]
             isOneToOne: false
             referencedRelation: "irradiance_dataset_versions"
@@ -8008,6 +8103,9 @@ export type Database = {
           grupo: string | null
           id: string
           idempotency_key: string | null
+          irradiance_dataset_code: string | null
+          irradiance_source_point: Json | null
+          irradiance_version_id: string | null
           motivo_rejeicao: string | null
           observacoes: string | null
           payback_meses: number | null
@@ -8035,6 +8133,9 @@ export type Database = {
           grupo?: string | null
           id?: string
           idempotency_key?: string | null
+          irradiance_dataset_code?: string | null
+          irradiance_source_point?: Json | null
+          irradiance_version_id?: string | null
           motivo_rejeicao?: string | null
           observacoes?: string | null
           payback_meses?: number | null
@@ -8062,6 +8163,9 @@ export type Database = {
           grupo?: string | null
           id?: string
           idempotency_key?: string | null
+          irradiance_dataset_code?: string | null
+          irradiance_source_point?: Json | null
+          irradiance_version_id?: string | null
           motivo_rejeicao?: string | null
           observacoes?: string | null
           payback_meses?: number | null
@@ -8079,6 +8183,13 @@ export type Database = {
           versao_numero?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "proposta_versoes_irradiance_version_id_fkey"
+            columns: ["irradiance_version_id"]
+            isOneToOne: false
+            referencedRelation: "irradiance_dataset_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "proposta_versoes_proposta_id_fkey"
             columns: ["proposta_id"]
@@ -9276,6 +9387,14 @@ export type Database = {
           id: string
           investimento_estimado: number | null
           irradiacao_usada: number | null
+          irradiance_dataset_code: string | null
+          irradiance_distance_km: number | null
+          irradiance_method: string | null
+          irradiance_point_id: number | null
+          irradiance_source_lat: number | null
+          irradiance_source_lon: number | null
+          irradiance_units: string | null
+          irradiance_version_id: string | null
           lead_id: string | null
           payback_meses: number | null
           potencia_recomendada_kwp: number | null
@@ -9298,6 +9417,14 @@ export type Database = {
           id?: string
           investimento_estimado?: number | null
           irradiacao_usada?: number | null
+          irradiance_dataset_code?: string | null
+          irradiance_distance_km?: number | null
+          irradiance_method?: string | null
+          irradiance_point_id?: number | null
+          irradiance_source_lat?: number | null
+          irradiance_source_lon?: number | null
+          irradiance_units?: string | null
+          irradiance_version_id?: string | null
           lead_id?: string | null
           payback_meses?: number | null
           potencia_recomendada_kwp?: number | null
@@ -9320,6 +9447,14 @@ export type Database = {
           id?: string
           investimento_estimado?: number | null
           irradiacao_usada?: number | null
+          irradiance_dataset_code?: string | null
+          irradiance_distance_km?: number | null
+          irradiance_method?: string | null
+          irradiance_point_id?: number | null
+          irradiance_source_lat?: number | null
+          irradiance_source_lon?: number | null
+          irradiance_units?: string | null
+          irradiance_version_id?: string | null
           lead_id?: string | null
           payback_meses?: number | null
           potencia_recomendada_kwp?: number | null
@@ -9330,6 +9465,13 @@ export type Database = {
           valor_conta?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "simulacoes_irradiance_version_id_fkey"
+            columns: ["irradiance_version_id"]
+            isOneToOne: false
+            referencedRelation: "irradiance_dataset_versions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "simulacoes_lead_id_fkey"
             columns: ["lead_id"]
@@ -12858,6 +13000,20 @@ export type Database = {
           vida_util_sistema: number
         }[]
       }
+      get_canonical_irradiance_version: {
+        Args: { _dataset_code?: string }
+        Returns: {
+          checksum: string
+          dataset_code: string
+          dataset_id: string
+          dataset_name: string
+          has_dhi: boolean
+          has_dni: boolean
+          row_count: number
+          version_id: string
+          version_tag: string
+        }[]
+      }
       get_concessionarias_por_estado: {
         Args: { _estado: string }
         Returns: {
@@ -13001,6 +13157,16 @@ export type Database = {
       get_irradiacao_estado: {
         Args: { _estado: string; _tenant_id?: string }
         Returns: number
+      }
+      get_irradiance_for_simulation: {
+        Args: {
+          _lat: number
+          _lon: number
+          _method?: string
+          _radius_deg?: number
+          _version_id: string
+        }
+        Returns: Json
       }
       get_my_tenant_status: { Args: never; Returns: Json }
       get_payback_config: {
