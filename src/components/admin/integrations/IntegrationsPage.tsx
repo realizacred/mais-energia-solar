@@ -127,9 +127,12 @@ export function IntegrationsPage() {
                     <Info className="h-3.5 w-3.5" />
                     Como configurar
                   </h5>
-                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                    <li>Acesse o <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Google Cloud Console → Credentials</a></li>
-                    <li>Crie ou edite um <strong>OAuth 2.0 Client ID</strong> (tipo: Web application)</li>
+                  <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal list-inside">
+                    <li>Acesse o <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Google Cloud Console</a> e crie ou selecione um projeto</li>
+                    <li>Ative a <a href="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Google Calendar API</a> no seu projeto</li>
+                    <li>Configure a <a href="https://console.cloud.google.com/apis/credentials/consent" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Tela de consentimento OAuth</a> (tipo: Externo)</li>
+                    <li>Vá em <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">Credenciais</a> → <strong>"Criar credenciais"</strong> → <strong>"ID do cliente OAuth"</strong></li>
+                    <li>Tipo de aplicativo: <strong>Aplicativo da Web</strong></li>
                     <li>Em <strong>"URIs de redirecionamento autorizados"</strong>, adicione a URL abaixo:</li>
                   </ol>
                   <div className="flex items-center gap-2 mt-1">
@@ -157,8 +160,9 @@ export function IntegrationsPage() {
                       </Tooltip>
                     </TooltipProvider>
                   </div>
-                  <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside" start={4}>
-                    <li>Copie o <strong>Client ID</strong> e <strong>Client Secret</strong> gerados e cole nos campos abaixo</li>
+                  <ol className="text-xs text-muted-foreground space-y-1.5 list-decimal list-inside" start={7}>
+                    <li>Clique em <strong>"Criar"</strong> — o Google exibirá o <strong>ID do cliente</strong> e a <strong>Chave secreta do cliente</strong></li>
+                    <li>Copie ambos e cole nos campos abaixo</li>
                     <li>Clique em <strong>Salvar Credenciais</strong> e depois em <strong>Conectar com Google</strong></li>
                   </ol>
                 </div>
