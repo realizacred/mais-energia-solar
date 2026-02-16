@@ -30,4 +30,12 @@ export const FEATURE_HINTS: FeatureHint[] = [
     routes: ["/admin/fiscal"],
     version: 1,
   },
+  {
+    id: "gcal-cloud-console",
+    selector: "#gc-cloud-console-link",
+    title: "Gere suas credenciais aqui",
+    description: "Clique para abrir o Google Cloud Console e criar o Client ID e Client Secret do tipo 'Web Application'.",
+    routes: ["/admin/settings"],
+    version: 1,
+  },
 ];

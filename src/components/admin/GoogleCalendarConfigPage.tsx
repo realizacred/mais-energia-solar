@@ -35,8 +35,32 @@ export function GoogleCalendarConfigPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  const [clientIdError, setClientIdError] = useState("");
+  const [clientSecretError, setClientSecretError] = useState("");
   const [showSecret, setShowSecret] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  const validateNotEmail = (value: string, field: "id" | "secret") => {
+    if (value.includes("@")) {
+      const msg = field === "id"
+        ? "Erro: Insira o Client ID do projeto, não seu e-mail. O Client ID termina com .apps.googleusercontent.com"
+        : "Erro: Insira o Client Secret do projeto, não seu e-mail.";
+      return msg;
+    }
+    return "";
+  };
+
+  const handleClientIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setClientId(val);
+    setClientIdError(validateNotEmail(val, "id"));
+  };
+
+  const handleClientSecretChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setClientSecret(val);
+    setClientSecretError(validateNotEmail(val, "secret"));
+  };
 
   // Handle OAuth callback result
   useEffect(() => {
@@ -172,7 +196,7 @@ export function GoogleCalendarConfigPage() {
               Como configurar
             </p>
             <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-              <li>Acesse o <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80 inline-flex items-center gap-1">Google Cloud Console <ExternalLink className="h-3 w-3" /></a></li>
+              <li>Acesse o <a id="gc-cloud-console-link" href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline text-primary hover:text-primary/80 inline-flex items-center gap-1">Google Cloud Console <ExternalLink className="h-3 w-3" /></a></li>
               <li>Crie ou selecione um projeto</li>
               <li>Ative a <strong>Google Calendar API</strong></li>
               <li>Em <strong>Credenciais</strong>, crie um <strong>OAuth 2.0 Client ID</strong> (tipo: Web Application)</li>
@@ -198,10 +222,16 @@ export function GoogleCalendarConfigPage() {
                 id="gc-client-id"
                 placeholder="123456789.apps.googleusercontent.com"
                 value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                className="font-mono text-sm"
+                onChange={handleClientIdChange}
+                className={`font-mono text-sm ${clientIdError ? "border-destructive focus-visible:ring-destructive/40" : ""}`}
                 autoComplete="off"
               />
+              {clientIdError && (
+                <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                  <AlertTriangle className="h-3 w-3 shrink-0" />
+                  {clientIdError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -215,8 +245,8 @@ export function GoogleCalendarConfigPage() {
                   type={showSecret ? "text" : "password"}
                   placeholder="GOCSPX-..."
                   value={clientSecret}
-                  onChange={(e) => setClientSecret(e.target.value)}
-                  className="font-mono text-sm pr-10"
+                  onChange={handleClientSecretChange}
+                  className={`font-mono text-sm pr-10 ${clientSecretError ? "border-destructive focus-visible:ring-destructive/40" : ""}`}
                   autoComplete="off"
                 />
                 <button
@@ -229,9 +259,16 @@ export function GoogleCalendarConfigPage() {
               </div>
             </div>
 
+            {clientSecretError && (
+              <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                <AlertTriangle className="h-3 w-3 shrink-0" />
+                {clientSecretError}
+              </p>
+            )}
+
             <Button
               onClick={handleSave}
-              disabled={saving || !clientId.trim() || !clientSecret.trim()}
+              disabled={saving || !clientId.trim() || !clientSecret.trim() || !!clientIdError || !!clientSecretError}
               className="gap-2"
             >
               {saving ? <Spinner size="sm" /> : <Save className="h-4 w-4" />}

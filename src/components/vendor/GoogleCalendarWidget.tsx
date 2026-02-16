@@ -64,9 +64,19 @@ export function GoogleCalendarWidget() {
     try {
       const { data, error } = await supabase.functions.invoke("google-calendar-auth");
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       if (data?.url) window.location.href = data.url;
-    } catch {
-      // Silent fail
+    } catch (err: any) {
+      const msg = err?.message || "";
+      const isCredentialError = msg.includes("client_id") || msg.includes("credentials") || msg.includes("401") || msg.includes("invalid");
+      console.error("[GoogleCalendar] Connect error:", msg);
+      // Use sonner toast for inline feedback
+      const { toast } = await import("sonner");
+      toast.error(
+        isCredentialError
+          ? "Erro de Credenciais: O Client ID ou Secret são inválidos. Verifique os dados no Google Cloud Console."
+          : `Falha ao conectar Google Calendar. ${msg || "Tente novamente ou verifique as credenciais OAuth."}`
+      );
     }
   };
 
