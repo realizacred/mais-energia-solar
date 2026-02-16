@@ -93,7 +93,6 @@ const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").th
 const DocumentosPage = lazy(() => import("@/components/admin/documentos/DocumentosPage").then(m => ({ default: m.DocumentosPage })));
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const PremissasPage = lazy(() => import("@/components/admin/premissas/PremissasPage").then(m => ({ default: m.PremissasPage })));
-const IrradianciaPage = lazy(() => import("@/components/admin/irradiancia/IrradianciaPage"));
 const BaseMeteorologicaPage = lazy(() => import("@/pages/admin/BaseMeteorologicaPage").then(m => ({ default: m.BaseMeteorologicaPage })));
 
 const PricingPolicyPage = lazy(() => import("@/components/admin/pricing-policy/PricingPolicyPage").then(m => ({ default: m.PricingPolicyPage })));
@@ -440,7 +439,7 @@ export default function Admin() {
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="premissas" element={<PremissasPage />} />
-                <Route path="irradiancia" element={<IrradianciaPage />} />
+                <Route path="irradiancia" element={<Navigate to="/admin/base-meteorologica" replace />} />
                 <Route path="insumos-irradiacao" element={<Navigate to="/admin/base-meteorologica" replace />} />
                 <Route path="base-meteorologica" element={<BaseMeteorologicaPage />} />
                 <Route path="pricing-policy" element={<PricingPolicyPage />} />
