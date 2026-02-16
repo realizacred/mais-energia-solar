@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { Menu, ShieldAlert } from "lucide-react";
+import { Menu } from "lucide-react";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +15,11 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { TrialBanner } from "@/components/plan";
 import { TourProvider, HelpButton } from "@/components/tour";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
+import { HeaderSearch } from "@/components/admin/HeaderSearch";
+import { NotificationsDropdown } from "@/components/admin/NotificationsDropdown";
+import { AgendaSheet } from "@/components/admin/AgendaSheet";
+import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
+import { ShieldAlert } from "lucide-react";
 
 // Lazy load admin sub-pages for better code splitting
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
@@ -131,79 +136,78 @@ const ProposalDashboardPage = lazy(() =>
 const ALLOWED_ADMIN_ROLES = ["admin", "gerente", "financeiro"];
 
 const TAB_TITLES: Record<string, string> = {
-  dashboard: "Painel Geral",
-  inteligencia: "Inteligência Comercial",
+  dashboard: "Painel geral",
+  inteligencia: "Inteligência comercial",
   diretor: "Assistente IA",
-  auditoria: "Registro de Atividades",
+  auditoria: "Registro de atividades",
   leads: "Leads",
-  pipeline: "Funil Comercial",
-  distribuicao: "Distribuição de Leads",
-  "sla-breaches": "Alertas de Prazo",
-  "motivos-perda": "Motivos de Perda",
+  pipeline: "Funil comercial",
+  distribuicao: "Distribuição de leads",
+  "sla-breaches": "Alertas de prazo",
+  "motivos-perda": "Motivos de perda",
   inbox: "Atendimento",
-  "respostas-rapidas": "Respostas Rápidas",
+  "respostas-rapidas": "Respostas rápidas",
   followup: "Acompanhamentos",
-  validacao: "Aprovação de Vendas",
-  tarefas: "Tarefas & Prazos",
+  validacao: "Aprovação de vendas",
+  tarefas: "Tarefas & prazos",
   clientes: "Clientes",
   checklists: "Documentação",
   avaliacoes: "Satisfação (NPS)",
-  instaladores: "Equipe Técnica",
-  servicos: "Agenda de Serviços",
-  recebimentos: "Contas a Receber",
+  instaladores: "Equipe técnica",
+  servicos: "Agenda de serviços",
+  recebimentos: "Contas a receber",
   inadimplencia: "Inadimplência",
   comissoes: "Comissões",
-  engenharia: "Análise Tributária",
+  engenharia: "Análise tributária",
   financiamento: "Financiamentos",
-  "site-config": "Conteúdo & Visual",
-  brand: "Conteúdo & Visual",
-  "site-servicos": "Serviços do Site",
+  "site-config": "Conteúdo & visual",
+  brand: "Conteúdo & visual",
+  "site-servicos": "Serviços do site",
   obras: "Portfólio",
-  aprovacao: "Solicitações de Acesso",
+  aprovacao: "Solicitações de acesso",
   vendedores: "Consultores",
-  usuarios: "Usuários & Permissões",
-  gamificacao: "Metas & Ranking",
-  "lead-status": "Etapas do Funil",
-  equipamentos: "Disjuntores & Transf.",
-  modulos: "Módulos Fotovoltaicos",
+  usuarios: "Usuários & permissões",
+  gamificacao: "Metas & ranking",
+  "lead-status": "Etapas do funil",
+  equipamentos: "Disjuntores & transf.",
+  modulos: "Módulos fotovoltaicos",
   "inversores-cadastro": "Inversores",
   baterias: "Baterias",
   concessionarias: "Concessionárias",
-  config: "Calculadora Solar",
+  config: "Calculadora solar",
   whatsapp: "WhatsApp API",
   instagram: "Instagram",
   webhooks: "Webhooks",
   n8n: "Automações",
   
   "wa-instances": "Instâncias WhatsApp",
-  release: "Checklist de Versão",
-  propostas: "Propostas Comerciais",
+  release: "Checklist de versão",
+  propostas: "Propostas comerciais",
   projetos: "Projetos",
   "propostas-nativas": "Propostas",
-  "propostas/novo": "Nova Proposta",
-  "propostas-nativas/nova": "Nova Proposta",
-  "propostas-nativas/dashboard": "Painel de Propostas",
-  "propostas-nativas/templates": "Templates de Proposta",
-  "propostas-nativas/variaveis": "Variáveis Customizadas",
-  "followup-wa": "Regras de Retorno",
-  "followup-queue": "Fila de Retorno",
-  "metricas-atendimento": "Métricas de Atendimento",
+  "propostas/novo": "Nova proposta",
+  "propostas-nativas/nova": "Nova proposta",
+  "propostas-nativas/dashboard": "Painel de propostas",
+  "propostas-nativas/templates": "Templates de proposta",
+  "propostas-nativas/variaveis": "Variáveis customizadas",
+  "followup-wa": "Regras de retorno",
+  "followup-queue": "Fila de retorno",
+  "metricas-atendimento": "Métricas de atendimento",
   "wa-etiquetas": "Etiquetas WhatsApp",
-  // canais-captacao removed — use links-instalacao
-  "links-instalacao": "Captação & App",
-  documentos: "Documentos & Assinatura",
-  "data-reset": "Manutenção de Dados",
+  "links-instalacao": "Captação & app",
+  documentos: "Documentos & assinatura",
+  "data-reset": "Manutenção de dados",
   "integracoes": "Integrações",
 
   "payment-gateway": "Pagamentos (Asaas)",
   "ai-config": "Configuração de IA",
-  changelog: "Atualizações do Sistema",
+  changelog: "Atualizações do sistema",
   "notificacoes-config": "Notificações",
-  "loading-config": "Personalização Visual",
-  "tenant-settings": "Dados da Empresa",
-  "conf-solar": "Premissas Solar",
-  "pricing-policy": "Política de Precificação",
-  menus: "Personalizar Menu",
+  "loading-config": "Personalização visual",
+  "tenant-settings": "Dados da empresa",
+  "conf-solar": "Premissas solar",
+  "pricing-policy": "Política de precificação",
+  menus: "Personalizar menu",
   
 };
 
@@ -335,19 +339,26 @@ export default function Admin() {
         />
         
         <SidebarInset className="flex-1 min-w-0">
-          <header className="sticky top-0 z-30 flex items-center gap-2 px-4 py-2 bg-card/95 backdrop-blur-md border-b border-border/40">
+          <header className="sticky top-0 z-30 flex items-center gap-3 px-4 py-2 bg-card/95 backdrop-blur-md border-b border-border/40">
             <SidebarTrigger className="-ml-1 h-8 w-8">
               <Menu className="h-4 w-4" />
             </SidebarTrigger>
             <div className="h-4 w-px bg-border/40 hidden sm:block" />
             <div className="flex flex-col gap-0 min-w-0 flex-1">
               <AdminBreadcrumb activeTab={activeTab} />
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-display font-bold tracking-tight leading-tight">
-                  {TAB_TITLES[activeTab] || activeTab}
-                </h1>
-                <HelpButton />
-              </div>
+              <h1 className="text-lg font-display font-bold tracking-tight leading-tight">
+                {TAB_TITLES[activeTab] || activeTab}
+              </h1>
+            </div>
+
+            {/* Right-aligned actions */}
+            <div className="flex items-center gap-1 shrink-0">
+              <HeaderSearch />
+              <HelpButton />
+              <NotificationsDropdown />
+              <AgendaSheet />
+              <div className="h-4 w-px bg-border/40 mx-1 hidden sm:block" />
+              <ProfileDropdown userEmail={user?.email} onSignOut={handleSignOut} />
             </div>
           </header>
 
