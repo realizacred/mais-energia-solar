@@ -165,10 +165,13 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
   const progressPct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
   return (
-    <div className="border border-border/60 rounded-lg p-3 space-y-2 bg-muted/20">
+    <div className="border border-primary/20 rounded-lg p-4 space-y-3 bg-primary/5">
       <p className="text-xs font-medium flex items-center gap-1.5">
-        <Upload className="h-3.5 w-3.5" />
-        Importar via CSV (GHI obrigatório / DHI / DNI opcionais)
+        <Upload className="h-3.5 w-3.5 text-primary" />
+        Importar Dados via CSV
+      </p>
+      <p className="text-[10px] text-muted-foreground -mt-1">
+        Selecione o arquivo GHI (obrigatório). DHI e DNI são opcionais para maior precisão.
       </p>
 
       <div className="grid grid-cols-3 gap-2">
