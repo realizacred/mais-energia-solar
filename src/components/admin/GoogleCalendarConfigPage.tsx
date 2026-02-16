@@ -111,10 +111,23 @@ export function GoogleCalendarConfigPage() {
   const isConfigured = configStatus?.hasClientId && configStatus?.hasClientSecret;
 
   const handleSave = async () => {
-    if (!clientId.trim() || !clientSecret.trim()) {
+    const trimmedId = clientId.trim();
+    const trimmedSecret = clientSecret.trim();
+
+    if (!trimmedId || !trimmedSecret) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha Client ID e Client Secret.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Hard block: prevent saving emails as credentials
+    if (trimmedId.includes("@") || trimmedSecret.includes("@")) {
+      toast({
+        title: "Erro: Credencial inválida",
+        description: "Você está tentando salvar um e-mail no lugar do Client ID técnico. O Client ID é um código numérico que termina em .apps.googleusercontent.com",
         variant: "destructive",
       });
       return;
@@ -220,11 +233,14 @@ export function GoogleCalendarConfigPage() {
               </Label>
               <Input
                 id="gc-client-id"
+                name={`gc_cid_${Date.now()}`}
                 placeholder="123456789.apps.googleusercontent.com"
                 value={clientId}
                 onChange={handleClientIdChange}
                 className={`font-mono text-sm ${clientIdError ? "border-destructive focus-visible:ring-destructive/40" : ""}`}
-                autoComplete="off"
+                autoComplete="new-password"
+                data-form-type="other"
+                data-lpignore="true"
               />
               {clientIdError && (
                 <p className="text-xs text-destructive flex items-center gap-1 mt-1">
@@ -242,12 +258,15 @@ export function GoogleCalendarConfigPage() {
               <div className="relative">
                 <Input
                   id="gc-client-secret"
+                  name={`gc_csec_${Date.now()}`}
                   type={showSecret ? "text" : "password"}
                   placeholder="GOCSPX-..."
                   value={clientSecret}
                   onChange={handleClientSecretChange}
                   className={`font-mono text-sm pr-10 ${clientSecretError ? "border-destructive focus-visible:ring-destructive/40" : ""}`}
-                  autoComplete="off"
+                  autoComplete="new-password"
+                  data-form-type="other"
+                  data-lpignore="true"
                 />
                 <button
                   type="button"
