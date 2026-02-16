@@ -12956,6 +12956,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      activate_irradiance_version: {
+        Args: { _version_id: string }
+        Returns: Json
+      }
       assign_wa_conversation_by_phone: {
         Args: { _phone_digits: string }
         Returns: string
@@ -13010,6 +13014,10 @@ export type Database = {
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
       cleanup_wa_webhook_events: { Args: never; Returns: undefined }
+      create_irradiance_version: {
+        Args: { _dataset_code: string; _metadata?: Json; _version_tag: string }
+        Returns: string
+      }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
       encrypt_secret: {
         Args: { plain: string; secret: string }
@@ -13339,6 +13347,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      import_irradiance_points_chunk: {
+        Args: { _rows: Json; _version_id: string }
+        Returns: Json
       }
       increment_usage: {
         Args: { _delta?: number; _metric_key: string; _source?: string }
