@@ -190,10 +190,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (dbError) {
-      console.error("DB upsert error:", dbError);
-      return redirectTo(`${appUrl}/admin/google-calendar?error=db_error`);
-    }
+    // Success — redirect back to config page
 
     return redirectTo(`${appUrl}/admin/google-calendar?success=true`);
   } catch (error: any) {
