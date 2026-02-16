@@ -13218,16 +13218,7 @@ export type Database = {
           vida_util_sistema: number
         }[]
       }
-      get_calendar_connected_users: {
-        Args: never
-        Returns: {
-          created_at: string
-          google_email: string
-          is_active: boolean
-          updated_at: string
-          user_id: string
-        }[]
-      }
+      get_calendar_connected_users: { Args: never; Returns: Json }
       get_canonical_irradiance_version: {
         Args: { _dataset_code?: string }
         Returns: {
