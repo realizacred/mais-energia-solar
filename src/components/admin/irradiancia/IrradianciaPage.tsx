@@ -643,6 +643,7 @@ export function IrradianciaPage() {
             const dsVersions = getVersionsForDataset(ds.id);
             const activeVersion = getActiveVersion(ds.id);
             const isFetching = fetchingDs === ds.code;
+            const supportsApiImport = ds.code === "NASA_POWER_GLOBAL";
 
             return (
               <Card key={ds.id}>
@@ -654,26 +655,28 @@ export function IrradianciaPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="font-mono text-[10px]">{ds.code}</Badge>
-                      <Button
-                        size="sm"
-                        variant={activeVersion ? "outline" : "default"}
-                        className="gap-1.5 text-xs h-8"
-                        disabled={!!fetchingDs}
-                        onClick={() => handleFetchDataset(ds.code)}
-                      >
-                        {isFetching ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        ) : activeVersion ? (
-                          <RefreshCw className="h-3.5 w-3.5" />
-                        ) : (
-                          <Download className="h-3.5 w-3.5" />
-                        )}
-                        {isFetching
-                          ? "Importando..."
-                          : activeVersion
-                          ? "Atualizar"
-                          : "Importar da API"}
-                      </Button>
+                      {supportsApiImport && (
+                        <Button
+                          size="sm"
+                          variant={activeVersion ? "outline" : "default"}
+                          className="gap-1.5 text-xs h-8"
+                          disabled={!!fetchingDs}
+                          onClick={() => handleFetchDataset(ds.code)}
+                        >
+                          {isFetching ? (
+                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          ) : activeVersion ? (
+                            <RefreshCw className="h-3.5 w-3.5" />
+                          ) : (
+                            <Download className="h-3.5 w-3.5" />
+                          )}
+                          {isFetching
+                            ? "Importando..."
+                            : activeVersion
+                            ? "Atualizar"
+                            : "Importar da API"}
+                        </Button>
+                      )}
                       {dsVersions.length > 0 && (
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
