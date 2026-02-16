@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   CreditCard, Eye, EyeOff, CheckCircle2, XCircle,
-  Loader2, Shield, Zap, AlertTriangle,
+  Loader2, Shield, Zap, AlertTriangle, Copy, Link2, Webhook,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -355,6 +355,63 @@ export function PaymentGatewayConfig() {
           </div>
         </div>
       </SectionCard>
+
+      {/* Webhook Configuration Section */}
+      {config.id && config.is_active && (
+        <SectionCard
+          icon={Webhook}
+          title="Webhook de Retorno"
+          description="Configure no painel do Asaas para receber notificações de pagamento"
+        >
+          <div className="space-y-4">
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-info/10 border border-info/20">
+              <Link2 className="h-4 w-4 text-info mt-0.5 shrink-0" />
+              <p className="text-xs text-info">
+                Configure o Webhook no painel do Asaas com a URL abaixo e ative os eventos:
+                <strong> Pagamento Recebido</strong>, <strong>Pagamento Vencido</strong> e <strong>Pagamento Excluído</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">URL do Webhook</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  readOnly
+                  value={`https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/asaas-webhook`}
+                  className="font-mono text-xs bg-muted/50"
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(
+                      `https://bguhckqkpnziykpbwbeu.supabase.co/functions/v1/asaas-webhook`
+                    );
+                    toast({ title: "URL copiada! 📋" });
+                  }}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Acesse: Asaas → Minha Conta → Integrações → Webhooks → Criar novo
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">
+                Token de Autenticação <Badge variant="outline" className="text-[10px] ml-1">Opcional</Badge>
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                Para segurança adicional, configure o campo <code className="bg-muted px-1 rounded text-[10px]">Access Token</code> no
+                painel do Asaas e adicione-o como secret <code className="bg-muted px-1 rounded text-[10px]">ASAAS_WEBHOOK_TOKEN</code> no
+                Supabase Edge Functions.
+              </p>
+            </div>
+          </div>
+        </SectionCard>
+      )}
     </div>
   );
 }
