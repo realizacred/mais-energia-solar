@@ -111,7 +111,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "obras", label_default: "Portfólio de Obras", group_default: "Site", order_default: 2, icon: "Image", description: "Galeria de projetos instalados", keywords: ["obra", "portfólio", "galeria", "projeto", "foto", "instalação"], criticality: "normal", permission: "admin_only" },
 
   // ── Integrações (subgrupo dentro de Configurações) ──
-  { nav_key: "integracoes-status", label_default: "Painel de Integrações", group_default: "Configurações", order_default: 20, icon: "Activity", description: "Status e saúde das conexões ativas", keywords: ["status", "health", "integração", "API", "monitoramento"], criticality: "normal", permission: "admin_only", subsectionLabel: "Integrações" },
+  
   { nav_key: "wa-instances", label_default: "Instâncias WhatsApp", group_default: "Configurações", order_default: 21, icon: "Smartphone", description: "Gerenciar números e conexões WhatsApp", keywords: ["instância", "evolution", "API", "número"], criticality: "normal", permission: "admin_only" },
   { nav_key: "whatsapp", label_default: "WhatsApp API", group_default: "Configurações", order_default: 22, icon: "MessageCircle", description: "Automações e configurações de mensagens", keywords: ["API", "automação", "webhook", "bot"], criticality: "normal", permission: "admin_only" },
   { nav_key: "instagram", label_default: "Instagram", group_default: "Configurações", order_default: 23, icon: "Instagram", description: "Sincronizar conteúdo do Instagram", keywords: ["instagram", "post", "rede social", "feed"], criticality: "normal", permission: "admin_only" },
