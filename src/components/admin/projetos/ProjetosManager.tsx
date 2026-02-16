@@ -74,18 +74,18 @@ export function ProjetosManager() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <PageHeader
-          icon={FolderKanban}
-          title="Projetos"
-          description="Gerencie seus projetos por etapa e responsável"
-        />
-        <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5 h-9 px-4 text-sm font-medium shadow-sm">
-          <Plus className="h-4 w-4" />
-          Novo Projeto
-        </Button>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        icon={FolderKanban}
+        title="Projetos"
+        description="Gerencie seus projetos por etapa e responsável"
+        actions={
+          <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5">
+            <Plus className="h-4 w-4" />
+            Novo Projeto
+          </Button>
+        }
+      />
 
       {/* ── Novo Projeto Modal ── */}
       <NovoProjetoModal
