@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
 import { useLocation } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,8 @@ import { toast } from "sonner";
 import { ImportJobTracker } from "./ImportJobTracker";
 import { loadRecentImportJobs, type ImportJob } from "@/services/solar-datasets-api";
 import { ResetSolarDataButton } from "./ResetSolarDataButton";
+
+const CsvImportPanel = lazy(() => import("./AdminIrradiancePage").then(m => ({ default: m.CsvImportPanel })));
 
 const STATUS_COLORS: Record<string, string> = {
   active: "bg-success/10 text-success border-success/30",
@@ -592,7 +594,17 @@ export function IrradianciaPage() {
           <TabsTrigger value="audit" className="gap-1.5">
             <Search className="h-3.5 w-3.5" /> Auditoria & Teste
           </TabsTrigger>
+          <TabsTrigger value="csv-import" className="gap-1.5">
+            <Upload className="h-3.5 w-3.5" /> Importar CSV (3 arquivos)
+          </TabsTrigger>
         </TabsList>
+
+        {/* ── CSV Import Tab (consolidated from AdminIrradiancePage) ── */}
+        <TabsContent value="csv-import" className="mt-4">
+          <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>}>
+            <CsvImportPanel />
+          </Suspense>
+        </TabsContent>
 
         {/* ── Datasets Tab ── */}
         <TabsContent value="datasets" className="space-y-4 mt-4">
