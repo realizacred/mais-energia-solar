@@ -194,6 +194,13 @@ async function handleConnect(req: Request) {
   const ip = req.headers.get("x-forwarded-for") || "";
   const ua = req.headers.get("user-agent") || "";
 
+  // Accept origin from frontend to build redirect_uri using the app domain
+  let frontendOrigin = "";
+  try {
+    const body = await req.json();
+    frontendOrigin = body.origin || "";
+  } catch { /* no body */ }
+
   const creds = await getTenantOAuthCreds(adminClient, tenantId);
   if (!creds) {
     return json({ error: "Configure o Client ID e Client Secret antes de conectar." }, 400);
@@ -209,9 +216,13 @@ async function handleConnect(req: Request) {
 
   // Allow reauthorization even if connected (user may want to refresh tokens)
 
-  // Build state token
-  const state = btoa(JSON.stringify({ tenantId, userId }));
-  const callbackUrl = `${SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`;
+  // Build state token - include origin so callback-proxy can use same redirect_uri
+  const state = btoa(JSON.stringify({ tenantId, userId, origin: frontendOrigin }));
+  
+  // Use frontend URL as redirect_uri if origin provided, otherwise fallback to edge function URL
+  const callbackUrl = frontendOrigin
+    ? `${frontendOrigin}/oauth/google/callback`
+    : `${SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`;
 
   const params = new URLSearchParams({
     client_id: creds.clientId,
@@ -272,11 +283,12 @@ async function handleCallback(req: Request) {
     });
   }
 
-  let tenantId: string, userId: string;
+  let tenantId: string, userId: string, stateOrigin = "";
   try {
     const parsed = JSON.parse(atob(stateParam));
     tenantId = parsed.tenantId;
     userId = parsed.userId;
+    stateOrigin = parsed.origin || "";
   } catch {
     return json({ error: "Invalid state" }, 400);
   }
@@ -290,7 +302,10 @@ async function handleCallback(req: Request) {
     });
   }
 
-  const callbackUrl = `${SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`;
+  // Must match the redirect_uri used in the connect step
+  const callbackUrl = stateOrigin
+    ? `${stateOrigin}/oauth/google/callback`
+    : `${SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`;
 
   // Exchange code for tokens
   const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
@@ -399,6 +414,122 @@ async function handleCallback(req: Request) {
     status: 200,
     headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
   });
+}
+
+// ── CALLBACK-PROXY: Receive code from frontend proxy ────────
+
+async function handleCallbackProxy(req: Request) {
+  const body = await req.json();
+  const { code, state: stateParam, redirect_uri: frontendRedirectUri } = body;
+
+  if (!code || !stateParam) {
+    return json({ error: "missing code or state" }, 400);
+  }
+
+  const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
+
+  let tenantId: string, userId: string;
+  try {
+    const parsed = JSON.parse(atob(stateParam));
+    tenantId = parsed.tenantId;
+    userId = parsed.userId;
+  } catch {
+    return json({ error: "Invalid state" }, 400);
+  }
+
+  const creds = await getTenantOAuthCreds(adminClient, tenantId);
+  if (!creds) {
+    return json({ error: "missing_credentials" }, 400);
+  }
+
+  // Use the redirect_uri from frontend (must match what was used in the auth URL)
+  const callbackUrl = frontendRedirectUri || `${SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`;
+
+  // Exchange code for tokens
+  const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      code,
+      client_id: creds.clientId,
+      client_secret: creds.clientSecret,
+      redirect_uri: callbackUrl,
+      grant_type: "authorization_code",
+    }),
+  });
+
+  const tokenData = await tokenRes.json();
+
+  if (!tokenRes.ok || !tokenData.access_token) {
+    await adminClient
+      .from("integrations")
+      .update({ status: "error", last_error_code: "token_exchange_failed", last_error_message: tokenData.error_description || "Token exchange failed" })
+      .eq("tenant_id", tenantId)
+      .eq("provider", "google_calendar");
+
+    return json({ success: false, error: tokenData.error_description || "token_exchange_failed" }, 400);
+  }
+
+  // Get user email from Google
+  let email = "";
+  try {
+    const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    });
+    const userInfo = await userInfoRes.json();
+    email = userInfo.email || "";
+  } catch { /* non-critical */ }
+
+  // Update integration
+  const expiresAt = new Date(Date.now() + (tokenData.expires_in || 3600) * 1000).toISOString();
+
+  await adminClient
+    .from("integrations")
+    .update({
+      status: "connected",
+      connected_account_email: email,
+      scopes: SCOPES,
+      last_error_code: null,
+      last_error_message: null,
+    })
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google_calendar");
+
+  const { data: intRow } = await adminClient
+    .from("integrations")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("provider", "google_calendar")
+    .single();
+
+  if (intRow) {
+    await adminClient
+      .from("integration_credentials")
+      .delete()
+      .eq("integration_id", intRow.id);
+
+    await adminClient
+      .from("integration_credentials")
+      .insert({
+        tenant_id: tenantId,
+        integration_id: intRow.id,
+        access_token_encrypted: tokenData.access_token,
+        refresh_token_encrypted: tokenData.refresh_token || null,
+        expires_at: expiresAt,
+        token_type: tokenData.token_type || "Bearer",
+      });
+
+    await auditLog(adminClient, {
+      tenantId,
+      integrationId: intRow.id,
+      actorId: userId,
+      action: "connect_completed",
+      result: "success",
+      metadata: { email, scopes: SCOPES, via: "frontend_proxy" },
+    });
+  }
+
+  return json({ success: true, email });
 }
 
 // ── TEST: Test connection by listing calendars ──────────────
@@ -753,6 +884,8 @@ Deno.serve(async (req) => {
     switch (action) {
       case "connect":
         return await handleConnect(req);
+      case "callback-proxy":
+        return await handleCallbackProxy(req);
       case "test":
         return await handleTest(req);
       case "select-calendar":

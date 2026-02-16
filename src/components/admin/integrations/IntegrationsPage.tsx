@@ -137,7 +137,7 @@ export function IntegrationsPage() {
                   </ol>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="flex-1 text-[11px] bg-muted px-2 py-1.5 rounded font-mono break-all select-all">
-                      {`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`}
+                      {`${window.location.origin}/oauth/google/callback`}
                     </code>
                     <TooltipProvider>
                       <Tooltip>
@@ -149,7 +149,7 @@ export function IntegrationsPage() {
                             className="h-7 w-7 p-0 shrink-0"
                             onClick={() => {
                               navigator.clipboard.writeText(
-                                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/google-calendar-integration?action=callback`
+                                `${window.location.origin}/oauth/google/callback`
                               );
                             }}
                           >
