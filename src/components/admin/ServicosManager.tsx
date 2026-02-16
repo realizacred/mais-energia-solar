@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { handleSupabaseError } from "@/lib/errorHandler";
-import { useGoogleCalendarSync } from "@/hooks/useGoogleCalendarSync";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,7 @@ export function ServicosManager() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [instaladores, setInstaladores] = useState<Instalador[]>([]);
   const [loading, setLoading] = useState(true);
-  const { syncServico } = useGoogleCalendarSync();
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedServicoId, setSelectedServicoId] = useState<string | null>(null);
@@ -193,19 +193,6 @@ export function ServicosManager() {
 
       if (error) throw error;
 
-      // Sync to Google Calendar (non-blocking)
-      if (inserted?.id) {
-        const clienteNome = clientes.find(c => c.id === formData.cliente_id)?.nome;
-        syncServico("create", inserted.id, {
-          tipo: formData.tipo,
-          data_agendada: formData.data_agendada,
-          hora_inicio: formData.hora_inicio,
-          endereco: formData.endereco,
-          bairro: formData.bairro,
-          cidade: formData.cidade,
-          cliente_nome: clienteNome,
-        });
-      }
 
       toast({ title: "Serviço agendado com sucesso!" });
       setDialogOpen(false);

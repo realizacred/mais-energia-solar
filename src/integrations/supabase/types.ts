@@ -14,104 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      agenda_config: {
-        Row: {
-          agenda_enabled: boolean
-          created_at: string
-          google_default_calendar_id: string | null
-          google_sync_enabled: boolean
-          google_sync_mode: Database["public"]["Enums"]["gcal_sync_mode"]
-          google_sync_types:
-            | Database["public"]["Enums"]["appointment_type"][]
-            | null
-          id: string
-          tenant_id: string
-          updated_at: string
-        }
-        Insert: {
-          agenda_enabled?: boolean
-          created_at?: string
-          google_default_calendar_id?: string | null
-          google_sync_enabled?: boolean
-          google_sync_mode?: Database["public"]["Enums"]["gcal_sync_mode"]
-          google_sync_types?:
-            | Database["public"]["Enums"]["appointment_type"][]
-            | null
-          id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Update: {
-          agenda_enabled?: boolean
-          created_at?: string
-          google_default_calendar_id?: string | null
-          google_sync_enabled?: boolean
-          google_sync_mode?: Database["public"]["Enums"]["gcal_sync_mode"]
-          google_sync_types?:
-            | Database["public"]["Enums"]["appointment_type"][]
-            | null
-          id?: string
-          tenant_id?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agenda_config_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: true
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      agenda_sync_logs: {
-        Row: {
-          action: string
-          appointment_id: string | null
-          created_at: string
-          error_message: string | null
-          google_event_id: string | null
-          id: string
-          status: string
-          tenant_id: string
-        }
-        Insert: {
-          action: string
-          appointment_id?: string | null
-          created_at?: string
-          error_message?: string | null
-          google_event_id?: string | null
-          id?: string
-          status: string
-          tenant_id?: string
-        }
-        Update: {
-          action?: string
-          appointment_id?: string | null
-          created_at?: string
-          error_message?: string | null
-          google_event_id?: string | null
-          id?: string
-          status?: string
-          tenant_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "agenda_sync_logs_appointment_id_fkey"
-            columns: ["appointment_id"]
-            isOneToOne: false
-            referencedRelation: "appointments"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "agenda_sync_logs_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       ai_insights: {
         Row: {
           created_at: string
@@ -159,10 +61,6 @@ export type Database = {
           created_by: string | null
           description: string | null
           ends_at: string | null
-          google_event_id: string | null
-          google_sync_error: string | null
-          google_sync_status: string | null
-          google_synced_at: string | null
           id: string
           lead_id: string | null
           reminder_minutes: number | null
@@ -183,10 +81,6 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
-          google_event_id?: string | null
-          google_sync_error?: string | null
-          google_sync_status?: string | null
-          google_synced_at?: string | null
           id?: string
           lead_id?: string | null
           reminder_minutes?: number | null
@@ -207,10 +101,6 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
-          google_event_id?: string | null
-          google_sync_error?: string | null
-          google_sync_status?: string | null
-          google_synced_at?: string | null
           id?: string
           lead_id?: string | null
           reminder_minutes?: number | null
@@ -2656,130 +2546,6 @@ export type Database = {
           },
           {
             foreignKeyName: "generated_documents_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      google_calendar_events: {
-        Row: {
-          created_at: string
-          description: string | null
-          end_at: string | null
-          google_event_id: string
-          google_updated_at: string | null
-          html_link: string | null
-          id: string
-          is_all_day: boolean
-          location: string | null
-          source: string
-          start_at: string
-          status: string | null
-          summary: string
-          synced_at: string
-          tenant_id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          description?: string | null
-          end_at?: string | null
-          google_event_id: string
-          google_updated_at?: string | null
-          html_link?: string | null
-          id?: string
-          is_all_day?: boolean
-          location?: string | null
-          source?: string
-          start_at: string
-          status?: string | null
-          summary?: string
-          synced_at?: string
-          tenant_id: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          description?: string | null
-          end_at?: string | null
-          google_event_id?: string
-          google_updated_at?: string | null
-          html_link?: string | null
-          id?: string
-          is_all_day?: boolean
-          location?: string | null
-          source?: string
-          start_at?: string
-          status?: string | null
-          summary?: string
-          synced_at?: string
-          tenant_id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "google_calendar_events_tenant_id_fkey"
-            columns: ["tenant_id"]
-            isOneToOne: false
-            referencedRelation: "tenants"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      google_calendar_tokens: {
-        Row: {
-          access_token: string
-          calendar_id: string | null
-          created_at: string
-          google_email: string | null
-          id: string
-          is_active: boolean
-          last_synced_at: string | null
-          refresh_token: string
-          sync_token: string | null
-          tenant_id: string
-          token_expires_at: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          calendar_id?: string | null
-          created_at?: string
-          google_email?: string | null
-          id?: string
-          is_active?: boolean
-          last_synced_at?: string | null
-          refresh_token: string
-          sync_token?: string | null
-          tenant_id: string
-          token_expires_at: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          calendar_id?: string | null
-          created_at?: string
-          google_email?: string | null
-          id?: string
-          is_active?: boolean
-          last_synced_at?: string | null
-          refresh_token?: string
-          sync_token?: string | null
-          tenant_id?: string
-          token_expires_at?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "google_calendar_tokens_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -13164,9 +12930,7 @@ export type Database = {
           tenant_id: string
         }[]
       }
-      cleanup_agenda_sync_logs: { Args: never; Returns: undefined }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
-      cleanup_old_gcal_events: { Args: never; Returns: undefined }
       cleanup_stuck_irradiance_versions: { Args: never; Returns: number }
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
@@ -13217,10 +12981,6 @@ export type Database = {
           tarifa_media_kwh: number
           vida_util_sistema: number
         }[]
-      }
-      get_calendar_connected_users: {
-        Args: { p_user_id: string }
-        Returns: Json
       }
       get_canonical_irradiance_version: {
         Args: { _dataset_code?: string }
@@ -13371,10 +13131,6 @@ export type Database = {
           ano: number
           percentual_nao_compensado: number
         }[]
-      }
-      get_google_calendar_config_status: {
-        Args: { p_user_id: string }
-        Returns: Json
       }
       get_integration_key: {
         Args: { _service_key: string; _tenant_id?: string }
@@ -13707,7 +13463,6 @@ export type Database = {
         | "percentage_of_cost"
         | "composite"
         | "rule_based"
-      gcal_sync_mode: "create_only" | "bidirectional"
       pricing_method_type: "margin_on_sale" | "margin_on_cost"
       pricing_policy_status: "draft" | "active" | "archived"
       projeto_etapa_categoria: "aberto" | "ganho" | "perdido" | "excluido"
@@ -13934,7 +13689,6 @@ export const Constants = {
         "composite",
         "rule_based",
       ],
-      gcal_sync_mode: ["create_only", "bidirectional"],
       pricing_method_type: ["margin_on_sale", "margin_on_cost"],
       pricing_policy_status: ["draft", "active", "archived"],
       projeto_etapa_categoria: ["aberto", "ganho", "perdido", "excluido"],

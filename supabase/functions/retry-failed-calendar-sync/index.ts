@@ -83,41 +83,8 @@ Deno.serve(async (req) => {
       results.reminders = { total: 0 };
     }
 
-    // ── 3) Retry failed sync (existing logic) ──
-    const { data: failedSyncs } = await supabaseAdmin
-      .from("appointments")
-      .select("id, title, starts_at, ends_at, description, assigned_to, appointment_type, google_sync_status")
-      .eq("status", "scheduled")
-      .eq("google_sync_status", "failed")
-      .limit(10);
-
-    if (failedSyncs && failedSyncs.length > 0) {
-      let retried = 0;
-      for (const appt of failedSyncs) {
-        try {
-          const { error } = await supabaseAdmin.functions.invoke("google-calendar-sync", {
-            body: {
-              action: "create",
-              event_type: "appointment",
-              record_id: appt.id,
-              user_id: appt.assigned_to,
-              event_data: {
-                summary: appt.title,
-                description: appt.description || "",
-                start: appt.starts_at,
-                end: appt.ends_at,
-              },
-            },
-          });
-          if (!error) retried++;
-        } catch (e) {
-          console.error(`Retry sync error for ${appt.id}:`, e);
-        }
-      }
-      results.retry_sync = { total: failedSyncs.length, retried };
-    } else {
-      results.retry_sync = { total: 0 };
-    }
+    // Google Calendar sync removed — no retry needed
+    results.retry_sync = { skipped: true };
 
     return new Response(JSON.stringify({ success: true, ...results }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

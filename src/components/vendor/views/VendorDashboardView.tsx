@@ -7,7 +7,7 @@ import { WhatsAppTemplates, FollowUpCalendar, SmartReminders } from "@/component
 import { LeadScoring } from "@/components/vendor/leads";
 import { WaAutoMessageToggle } from "@/components/vendor/WaAutoMessageToggle";
 import SyncStatusWidget from "@/components/vendor/SyncStatusWidget";
-import { GoogleCalendarWidget } from "@/components/vendor/GoogleCalendarWidget";
+
 
 interface Props {
   portal: ReturnType<typeof import("@/hooks/useVendedorPortal").useVendedorPortal>;
@@ -94,7 +94,6 @@ export default function VendorDashboardView({ portal }: Props) {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <GoogleCalendarWidget />
         <SyncStatusWidget />
       </div>
     </div>
