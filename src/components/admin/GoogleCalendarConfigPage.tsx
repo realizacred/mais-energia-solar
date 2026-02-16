@@ -25,14 +25,14 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Spinner } from "@/components/ui-kit/Spinner";
 
 // ── Validation ──────────────────────────────────────────────
-const CLIENT_ID_REGEX = /^[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com$/;
+const CLIENT_ID_REGEX = /^[0-9]+-[a-z0-9-]+\.apps\.googleusercontent\.com$/i;
 
 function validateClientId(value: string): string {
   if (!value.trim()) return "";
   if (value.includes("@"))
     return "Erro: Insira o Client ID do projeto, não seu e-mail. O Client ID termina com .apps.googleusercontent.com";
   if (!CLIENT_ID_REGEX.test(value.trim()))
-    return "Client ID inválido. O formato correto é: 123456789-xxxxxxxx.apps.googleusercontent.com";
+    return "Client ID inválido. Exemplo: 1234567890-abcxyz.apps.googleusercontent.com";
   return "";
 }
 
