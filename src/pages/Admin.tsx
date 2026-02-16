@@ -13,12 +13,13 @@ import { Button } from "@/components/ui/button";
 import Footer from "@/components/layout/Footer";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { TrialBanner } from "@/components/plan";
-import { TourProvider, HelpButton } from "@/components/tour";
+import { TourProvider } from "@/components/tour";
 import { FeatureDiscoveryLayer } from "@/components/FeatureDiscoveryLayer";
 import { HeaderSearch } from "@/components/admin/HeaderSearch";
 import { NotificationsDropdown } from "@/components/admin/NotificationsDropdown";
 import { AgendaSheet } from "@/components/admin/AgendaSheet";
 import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
+import { HelpDropdown } from "@/components/admin/HelpDropdown";
 import { ShieldAlert } from "lucide-react";
 
 // Lazy load admin sub-pages for better code splitting
@@ -339,7 +340,7 @@ export default function Admin() {
         />
         
         <SidebarInset className="flex-1 min-w-0">
-          <header className="sticky top-0 z-30 flex items-center gap-3 px-4 py-2 bg-card/95 backdrop-blur-md border-b border-border/40">
+          <header className="sticky top-0 z-50 flex items-center gap-3 px-4 py-2 bg-background/80 backdrop-blur-md border-b border-border/40">
             <SidebarTrigger className="-ml-1 h-8 w-8">
               <Menu className="h-4 w-4" />
             </SidebarTrigger>
@@ -354,7 +355,7 @@ export default function Admin() {
             {/* Right-aligned actions */}
             <div className="flex items-center gap-1 shrink-0">
               <HeaderSearch />
-              <HelpButton />
+              <HelpDropdown />
               <NotificationsDropdown />
               <AgendaSheet />
               <div className="h-4 w-px bg-border/40 mx-1 hidden sm:block" />
