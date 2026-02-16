@@ -61,7 +61,7 @@ export interface AuditEvent {
 
 export interface OAuthConfig {
   client_id: string;
-  client_secret: string;
+  client_secret: string; // masked from backend ("••••••••••" when set)
 }
 
 export function useGoogleCalendarIntegration() {
