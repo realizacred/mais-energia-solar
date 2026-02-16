@@ -238,8 +238,8 @@ export function IrradianciaPage() {
           await supabase.from("irradiance_lookup_cache").delete().eq("version_id", vId);
         }
 
-        // 4. Delete import jobs for this dataset
-        await (supabase as any).from("solar_import_jobs").delete().eq("dataset_code", datasetCode);
+        // 4. Delete import jobs for this dataset (column is dataset_key, not dataset_code)
+        await (supabase as any).from("solar_import_jobs").delete().eq("dataset_key", datasetCode);
 
         // 5. Delete all versions
         await supabase.from("irradiance_dataset_versions").delete().eq("dataset_id", datasetId);
