@@ -142,12 +142,6 @@ export function valorPorExtenso(valor: number): string {
 }
 
 /**
- * Formata valor numérico como moeda brasileira.
- * @example formatCurrency(15809.89) // "R$ 15.809,89"
+ * @deprecated Use `formatBRL` from `@/lib/formatters` instead.
  */
-export function formatCurrency(valor: number): string {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(valor);
-}
+export { formatBRL as formatCurrency } from "@/lib/formatters";

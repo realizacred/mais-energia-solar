@@ -1,3 +1,4 @@
+import { formatBRLCompact as formatBRL, formatBRLCompact as formatBRLCard } from "@/lib/formatters";
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Zap, Plus, LayoutGrid, Phone } from "lucide-react";
@@ -12,24 +13,12 @@ interface Props {
   onCreateProjeto?: (ownerId: string) => void;
 }
 
-const formatBRL = (v: number) => {
-  if (!v) return "R$ 0";
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace(".", ",")}M`;
-  if (v >= 1_000) return `R$ ${Math.round(v / 1_000)}K`;
-  return `R$ ${v}`;
-};
+// formatBRL & formatBRLCard imported at file top from @/lib/formatters
 
 const formatKwp = (v: number) => {
   if (!v) return "0";
   if (v >= 1_000) return `${(v / 1_000).toFixed(1).replace(".", ",")}`;
   return v.toFixed(2).replace(".", ",");
-};
-
-const formatBRLCard = (v: number | null) => {
-  if (!v) return null;
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace(".", ",")}M`;
-  if (v >= 1_000) return `R$ ${Math.round(v / 1_000)}K`;
-  return `R$ ${v}`;
 };
 
 const ETIQUETA_COLORS: Record<string, string> = {

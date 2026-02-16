@@ -290,5 +290,5 @@ export const GRUPO_OPTIONS = [
 export const SUBGRUPO_BT = ["B1", "B2", "B3"];
 export const SUBGRUPO_MT = ["A1", "A2", "A3", "A3a", "A4", "AS"];
 
-export const formatBRL = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+/** @deprecated Use `formatBRL` from `@/lib/formatters` instead. */
+export { formatBRL } from "@/lib/formatters";

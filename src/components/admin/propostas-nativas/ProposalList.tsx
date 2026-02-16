@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/tooltip";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
+import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 
 const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline"; color: string }> = {
   rascunho: { label: "Rascunho", variant: "secondary", color: "border-l-muted-foreground" },
@@ -30,12 +31,6 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   rejected: { label: "Recusada", variant: "destructive", color: "border-l-destructive" },
   expired: { label: "Expirada", variant: "secondary", color: "border-l-muted-foreground" },
 };
-
-const formatBRL = (v: number | null) => {
-  if (!v) return "—";
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-};
-
 const PAGE_SIZE = 25;
 
 export function ProposalList() {

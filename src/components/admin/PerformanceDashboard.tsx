@@ -1,3 +1,4 @@
+import { formatBRLInteger as formatBRL, formatBRLCompact as formatCompact } from "@/lib/formatters";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -105,14 +106,7 @@ const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set"
 
 // ── Helpers ───────────────────────────────────────────────────
 
-const formatBRL = (v: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(v);
-
-const formatCompact = (v: number) => {
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace(".", ",")}M`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toFixed(0)}K`;
-  return formatBRL(v);
-};
+// formatBRL & formatCompact imported at file top from @/lib/formatters
 
 // ── Component ─────────────────────────────────────────────────
 

@@ -1,3 +1,4 @@
+import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Trophy, TrendingUp, Target, DollarSign, Zap, Calendar } from "lucide-react";
@@ -23,12 +24,7 @@ interface MonthSale {
   value: number;
 }
 
-const formatBRL = (v: number) => {
-  if (!v) return "R$ 0";
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace(".", ",")}M`;
-  if (v >= 1_000) return `R$ ${Math.round(v / 1_000)}K`;
-  return `R$ ${v}`;
-};
+// formatBRL imported at file top from @/lib/formatters
 
 const RANK_BADGES = ["🥇", "🥈", "🥉"];
 

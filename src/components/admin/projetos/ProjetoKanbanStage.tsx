@@ -1,3 +1,4 @@
+import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -47,12 +48,7 @@ interface Props {
   onNewProject?: () => void;
 }
 
-const formatBRL = (v: number) => {
-  if (!v) return "R$ -";
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toFixed(1).replace(".", ",")}M`;
-  if (v >= 1_000) return `R$ ${Math.round(v / 1_000)}K`;
-  return `R$ ${v}`;
-};
+// formatBRL imported at file top from @/lib/formatters
 
 const formatKwp = (v: number) => {
   if (!v) return "- kWp";
