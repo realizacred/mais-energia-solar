@@ -246,33 +246,38 @@ export function IrradianciaPage() {
     setUploadError("");
     try {
       const versionTag = generateVersionTag();
-      let totalRows = 0;
 
-      for (const file of uploadFiles) {
-        const filePath = `uploads/${uploadDs}/${versionTag}_${file.name}`;
-
-        const { error: storageError } = await supabase.storage
-          .from("irradiance-source")
-          .upload(filePath, file, { upsert: true });
-
-        if (storageError) throw storageError;
-
-        const { data, error } = await supabase.functions.invoke("irradiance-import", {
-          body: {
-            dataset_code: uploadDs,
-            version_tag: versionTag,
-            source_note: `Upload manual: ${file.name}`,
-            file_path: filePath,
-          },
-        });
-
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-        totalRows += data?.row_count ?? 0;
+      // Detect if multiple Atlas files need merging
+      let fileToUpload: File;
+      if (uploadFiles.length > 1) {
+        toast.info("Mesclando arquivos do Atlas…", { duration: 3000 });
+        fileToUpload = await mergeAtlasFiles(uploadFiles);
+      } else {
+        fileToUpload = uploadFiles[0];
       }
 
+      const filePath = `uploads/${uploadDs}/${versionTag}_${fileToUpload.name}`;
+
+      const { error: storageError } = await supabase.storage
+        .from("irradiance-source")
+        .upload(filePath, fileToUpload, { upsert: true });
+
+      if (storageError) throw storageError;
+
+      const { data, error } = await supabase.functions.invoke("irradiance-import", {
+        body: {
+          dataset_code: uploadDs,
+          version_tag: versionTag,
+          source_note: `Upload manual: ${uploadFiles.map(f => f.name).join(", ")}`,
+          file_path: filePath,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
       toast.success(
-        `Importação concluída: ${totalRows.toLocaleString()} pontos importados (${uploadFiles.length} arquivo(s))`
+        `Importação concluída: ${(data?.row_count ?? 0).toLocaleString()} pontos importados`
       );
       setUploadFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -284,6 +289,84 @@ export function IrradianciaPage() {
     } finally {
       setUploading(false);
     }
+  };
+
+  /**
+   * Merge multiple Atlas CSV files (GHI, DHI, DNI) into a single CSV.
+   * Detects data type from filename patterns and prefixes columns accordingly.
+   */
+  const mergeAtlasFiles = async (files: File[]): Promise<File> => {
+    type PointData = Record<string, string>;
+    const pointsMap = new Map<string, PointData>();
+
+    const MONTH_COLS_EN = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+
+    for (const file of files) {
+      const name = file.name.toLowerCase();
+      let prefix = ""; // GHI = no prefix (base columns)
+      if (name.includes("diffuse") || name.includes("dhi") || name.includes("difusa")) {
+        prefix = "dhi_";
+      } else if (name.includes("direct_normal") || name.includes("dni") || name.includes("direta")) {
+        prefix = "dni_";
+      }
+
+      const text = await file.text();
+      const lines = text.split("\n").filter(l => l.trim());
+      if (lines.length < 2) continue;
+
+      const sep = lines[0].includes(";") ? ";" : ",";
+      const header = lines[0].split(sep).map(h => h.trim().toLowerCase());
+
+      const latIdx = header.findIndex(h => h === "lat" || h === "latitude");
+      const lonIdx = header.findIndex(h => h === "lon" || h === "lng" || h === "longitude");
+      if (latIdx < 0 || lonIdx < 0) continue;
+
+      // Find month column indices
+      const monthIdxs: number[] = [];
+      for (const mName of MONTH_COLS_EN) {
+        const idx = header.findIndex(h => h === mName);
+        monthIdxs.push(idx);
+      }
+
+      for (let i = 1; i < lines.length; i++) {
+        const cols = lines[i].split(sep).map(c => c.trim());
+        if (cols.length < 2) continue;
+        const lat = cols[latIdx];
+        const lon = cols[lonIdx];
+        const key = `${lat}|${lon}`;
+
+        if (!pointsMap.has(key)) {
+          pointsMap.set(key, { lat, lon });
+        }
+        const point = pointsMap.get(key)!;
+
+        for (let m = 0; m < 12; m++) {
+          const mKey = `m${String(m + 1).padStart(2, "0")}`;
+          const colName = prefix ? `${prefix}${mKey}` : mKey;
+          if (monthIdxs[m] >= 0 && cols[monthIdxs[m]]) {
+            point[colName] = cols[monthIdxs[m]];
+          }
+        }
+      }
+    }
+
+    // Build merged CSV
+    const hasGhi = [...pointsMap.values()].some(p => p["m01"]);
+    const hasDhi = [...pointsMap.values()].some(p => p["dhi_m01"]);
+    const hasDni = [...pointsMap.values()].some(p => p["dni_m01"]);
+
+    const cols = ["lat", "lon"];
+    for (let m = 1; m <= 12; m++) cols.push(`m${String(m).padStart(2, "0")}`);
+    if (hasDhi) for (let m = 1; m <= 12; m++) cols.push(`dhi_m${String(m).padStart(2, "0")}`);
+    if (hasDni) for (let m = 1; m <= 12; m++) cols.push(`dni_m${String(m).padStart(2, "0")}`);
+
+    const csvLines = [cols.join(";")];
+    for (const point of pointsMap.values()) {
+      csvLines.push(cols.map(c => point[c] ?? "").join(";"));
+    }
+
+    const blob = new Blob([csvLines.join("\n")], { type: "text/csv" });
+    return new File([blob], "atlas_merged.csv", { type: "text/csv" });
   };
 
   if (loading) {
@@ -518,8 +601,8 @@ export function IrradianciaPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-xs text-muted-foreground">
-                Faça upload de um arquivo CSV com colunas <code className="text-[10px] bg-muted px-1 py-0.5 rounded">lat</code>, <code className="text-[10px] bg-muted px-1 py-0.5 rounded">lon</code>, <code className="text-[10px] bg-muted px-1 py-0.5 rounded">m01</code>…<code className="text-[10px] bg-muted px-1 py-0.5 rounded">m12</code> (valores em kWh/m²/dia).
-                Separadores aceitos: vírgula ou ponto-e-vírgula. Colunas opcionais: <code className="text-[10px] bg-muted px-1 py-0.5 rounded">dhi_m01…dhi_m12</code> e <code className="text-[10px] bg-muted px-1 py-0.5 rounded">dni_m01…dni_m12</code>.
+                Faça upload de arquivos CSV do Atlas Brasileiro ou similares. Formato aceito: colunas <code className="text-[10px] bg-muted px-1 py-0.5 rounded">LAT</code>, <code className="text-[10px] bg-muted px-1 py-0.5 rounded">LON</code> e meses (<code className="text-[10px] bg-muted px-1 py-0.5 rounded">JAN…DEC</code> ou <code className="text-[10px] bg-muted px-1 py-0.5 rounded">m01…m12</code>).
+                Separadores aceitos: vírgula ou ponto-e-vírgula. Colunas extras como <code className="text-[10px] bg-muted px-1 py-0.5 rounded">ID</code>, <code className="text-[10px] bg-muted px-1 py-0.5 rounded">COUNTRY</code> e <code className="text-[10px] bg-muted px-1 py-0.5 rounded">ANNUAL</code> são ignoradas automaticamente.
               </p>
 
               {/* Atlas guide */}
@@ -564,7 +647,7 @@ export function IrradianciaPage() {
                   </div>
                 </div>
                 <p className="text-[10px] text-muted-foreground ml-6">
-                  💡 Envie os 3 tipos (GHI + DHI + DNI) em um <strong>único CSV</strong> com as colunas: <code className="bg-muted px-1 py-0.5 rounded text-[10px]">lat, lon, m01…m12, dhi_m01…dhi_m12, dni_m01…dni_m12</code>
+                  💡 Envie os <strong>3 arquivos separados</strong> (global_horizontal, diffuse, direct_normal) — cada um com colunas <code className="bg-muted px-1 py-0.5 rounded text-[10px]">LAT;LON;JAN;FEB;…;DEC</code>. O sistema detecta automaticamente o tipo pelo nome do arquivo.
                 </p>
               </div>
 
