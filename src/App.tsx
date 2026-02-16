@@ -35,6 +35,7 @@ const WaChannelPage = lazy(() => import("./pages/WaChannelPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
 const MessagingApp = lazy(() => import("./pages/MessagingApp"));
 const AppDebug = lazy(() => import("./pages/AppDebug"));
+const OAuthGoogleCallback = lazy(() => import("./pages/OAuthGoogleCallback"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,7 @@ const App = () => (
               <Route path="/ativar-conta" element={<AtivarConta />} />
               <Route path="/aguardando-aprovacao" element={<PendingApproval />} />
               <Route path="/proposta/:token" element={<PropostaPublica />} />
+              <Route path="/oauth/google/callback" element={<OAuthGoogleCallback />} />
 
               {/* Protected routes — tenant guard active */}
               <Route path="/portal" element={<TenantGuardGate><PortalSelector /></TenantGuardGate>} />

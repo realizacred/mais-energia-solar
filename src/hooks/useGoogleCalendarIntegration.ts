@@ -93,7 +93,7 @@ export function useGoogleCalendarIntegration() {
   });
 
   const connectMutation = useMutation({
-    mutationFn: () => callIntegration("connect"),
+    mutationFn: () => callIntegration("connect", "POST", { origin: window.location.origin }),
     onSuccess: (data) => {
       if (data.auth_url) {
         const width = 600;
