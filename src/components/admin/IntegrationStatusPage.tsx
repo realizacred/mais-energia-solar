@@ -29,7 +29,11 @@ import {
   Shield,
   ArrowRight,
   PenTool,
+  Satellite,
+  Download,
+  Loader2,
 } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SignatureTab } from "@/components/admin/documentos/SignatureTab";
@@ -528,6 +532,164 @@ function GlobalStatusBanner({ records }: { records: HealthRecord[] }) {
   );
 }
 
+// ── NASA POWER Integration Card ──
+
+function NasaPowerCard() {
+  const { toast } = useToast();
+  const [syncing, setSyncing] = useState(false);
+  const [progress, setProgress] = useState<{ current: number; total: number; percent: number } | null>(null);
+
+  const { data: nasaVersion, refetch: refetchNasa } = useQuery({
+    queryKey: ["nasa-power-version"],
+    staleTime: 15_000,
+    refetchInterval: syncing ? 5_000 : 60_000,
+    queryFn: async () => {
+      const { data: ds } = await supabase
+        .from("irradiance_datasets")
+        .select("id")
+        .eq("code", "NASA_POWER_GLOBAL")
+        .single();
+      if (!ds) return null;
+
+      const { data: versions } = await supabase
+        .from("irradiance_dataset_versions")
+        .select("id, version_tag, status, row_count, metadata, created_at, updated_at")
+        .eq("dataset_id", ds.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+
+      const version = versions?.[0] ?? null;
+
+      if (version?.status === "processing") {
+        const meta = version.metadata as Record<string, any> | null;
+        const step = meta?.step_deg ?? 0.125;
+        const bbox = { latMin: -33.5, latMax: 5.5, lonMin: -74.0, lonMax: -35.0 };
+        const totalExpected = (Math.floor((bbox.latMax - bbox.latMin) / step) + 1) * (Math.floor((bbox.lonMax - bbox.lonMin) / step) + 1);
+        const current = version.row_count ?? 0;
+        setProgress({ current, total: totalExpected, percent: totalExpected > 0 ? Math.round((current / totalExpected) * 100) : 0 });
+      } else {
+        if (syncing && version?.status === "active") {
+          setSyncing(false);
+          toast({ title: "NASA POWER sincronizado!", description: `${version.row_count?.toLocaleString()} pontos importados.` });
+        }
+        setProgress(null);
+      }
+      return version;
+    },
+  });
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("irradiance-fetch", {
+        body: {
+          dataset_code: "NASA_POWER_GLOBAL",
+          version_tag: `v${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, "0")}`,
+          step_deg: 0.125,
+        },
+      });
+      if (error) throw error;
+
+      if (data?.error === "VERSION_EXISTS") {
+        toast({ title: "Versão já existe", description: data.message });
+        setSyncing(false);
+        return;
+      }
+      if (data?.error === "VERSION_PROCESSING") {
+        toast({ title: "Importação em andamento", description: data.message });
+        return;
+      }
+      toast({ title: "Sincronização iniciada!", description: "Dados sendo buscados da NASA POWER API em segundo plano." });
+      refetchNasa();
+    } catch (err: any) {
+      toast({ title: "Erro na sincronização", description: err.message, variant: "destructive" });
+      setSyncing(false);
+    }
+  };
+
+  const isProcessing = nasaVersion?.status === "processing";
+  const isActive = nasaVersion?.status === "active";
+  const isFailed = nasaVersion?.status === "failed";
+
+  useEffect(() => {
+    if (isProcessing && !syncing) setSyncing(true);
+  }, [isProcessing, syncing]);
+
+  const statusLabel = isActive ? "Operacional" : isProcessing ? "Sincronizando..." : isFailed ? "Falhou" : "Não configurado";
+  const statusClass = isActive
+    ? "bg-success/10 text-success border-success/20"
+    : isProcessing ? "bg-info/10 text-info border-info/20"
+    : isFailed ? "bg-destructive/10 text-destructive border-destructive/20"
+    : "bg-muted text-muted-foreground border-border";
+  const SIcon = isActive ? CheckCircle2 : isProcessing ? Loader2 : isFailed ? XCircle : CircleDashed;
+
+  return (
+    <Card className="border-border/60 transition-all hover:shadow-sm">
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
+          <div className="p-2.5 rounded-xl bg-muted/50 shrink-0 text-primary">
+            <Satellite className="h-5 w-5" />
+          </div>
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h3 className="font-semibold text-sm">NASA POWER API</h3>
+              <Badge variant="outline" className={`gap-1 text-xs ${statusClass}`}>
+                <SIcon className={`h-3 w-3 ${isProcessing ? "animate-spin" : ""}`} />
+                {statusLabel}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Dados globais de irradiância solar (GHI, DHI). Resolução 0.125° (~14km). API pública — sem chave necessária.
+            </p>
+
+            {isActive && nasaVersion && (
+              <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3 text-success" />
+                  {nasaVersion.row_count?.toLocaleString()} pontos
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> {nasaVersion.version_tag}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" /> {timeAgo(nasaVersion.updated_at ?? nasaVersion.created_at)}
+                </span>
+              </div>
+            )}
+
+            {isProcessing && progress && (
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{progress.current.toLocaleString()} / {progress.total.toLocaleString()} pontos</span>
+                  <span>{progress.percent}%</span>
+                </div>
+                <Progress value={progress.percent} className="h-2" />
+                <p className="text-[10px] text-muted-foreground">
+                  ⏳ Importação em segundo plano (~5-8h). Pode navegar normalmente.
+                </p>
+              </div>
+            )}
+
+            {isFailed && (
+              <div className="flex items-start gap-2 p-2.5 rounded-lg bg-destructive/5 border border-destructive/15">
+                <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0 mt-0.5" />
+                <p className="text-xs text-destructive">Última sincronização falhou. Clique para tentar novamente.</p>
+              </div>
+            )}
+
+            <div className="pt-1">
+              <Button size="sm" variant={isActive ? "outline" : "default"} onClick={handleSync} disabled={isProcessing} className="gap-2">
+                {isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                {isProcessing ? "Sincronizando..." : isActive ? "Atualizar Dados" : "Sincronizar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main Page ──
 
 export function IntegrationStatusPage() {
@@ -658,7 +820,15 @@ export function IntegrationStatusPage() {
             ))}
           </div>
 
-          {/* E-Signature Configuration */}
+          {/* Dados Solares */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
+              <Sun className="h-4 w-4" />
+              Dados Solares
+            </h3>
+            <NasaPowerCard />
+          </div>
+
           <div className="space-y-2">
             <h3 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
               <PenTool className="h-4 w-4" />
