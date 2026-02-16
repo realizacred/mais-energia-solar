@@ -40,6 +40,7 @@ const INTEGRATION_LABELS: Record<string, string> = {
   instagram: "Instagram",
   webhooks: "Webhooks",
   pagamentos: "Pagamentos (Asaas)",
+  automacoes: "Automações",
 };
 
 const CONFIG_ROUTES: Record<string, string> = {
@@ -51,6 +52,7 @@ const CONFIG_ROUTES: Record<string, string> = {
   instagram: "/admin/instagram",
   webhooks: "/admin/webhooks",
   pagamentos: "/admin/payment-gateway",
+  automacoes: "/admin/n8n",
 };
 
 function getStatusConfig(status: string) {
