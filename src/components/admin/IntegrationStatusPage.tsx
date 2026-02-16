@@ -532,8 +532,75 @@ function GlobalStatusBanner({ records }: { records: HealthRecord[] }) {
   );
 }
 
-// ── NASA POWER Integration Card ──
+// ── NASA API Key Field (optional, for future use) ──
 
+function NasaApiKeyField() {
+  const { toast } = useToast();
+  const [apiKey, setApiKey] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("integration_configs")
+      .select("api_key")
+      .eq("service_key", "nasa_power_api_key")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.api_key) {
+          setApiKey(data.api_key);
+          setSaved(true);
+        }
+        setLoading(false);
+      });
+  }, []);
+
+  const handleSave = async () => {
+    // Check if row exists
+    const { data: existing } = await supabase
+      .from("integration_configs")
+      .select("id")
+      .eq("service_key", "nasa_power_api_key")
+      .maybeSingle();
+
+    let error;
+    if (existing) {
+      ({ error } = await supabase
+        .from("integration_configs")
+        .update({ api_key: apiKey, is_active: true })
+        .eq("service_key", "nasa_power_api_key"));
+    } else {
+      ({ error } = await supabase
+        .from("integration_configs")
+        .insert({ service_key: "nasa_power_api_key", api_key: apiKey, is_active: true } as any));
+    }
+    if (error) {
+      toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
+    } else {
+      setSaved(true);
+      toast({ title: "API Key salva" });
+    }
+  };
+
+  if (loading) return null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <Input
+        type="password"
+        placeholder="Opcional — deixe vazio se não necessária"
+        value={apiKey}
+        onChange={(e) => { setApiKey(e.target.value); setSaved(false); }}
+        className="h-7 text-xs font-mono"
+      />
+      <Button size="sm" variant="outline" className="h-7 text-xs shrink-0" onClick={handleSave} disabled={saved}>
+        {saved ? "Salvo" : "Salvar"}
+      </Button>
+    </div>
+  );
+}
+
+// ── NASA POWER Integration Card ──
 function NasaPowerCard() {
   const { toast } = useToast();
   const [syncing, setSyncing] = useState(false);
@@ -639,8 +706,20 @@ function NasaPowerCard() {
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
-              Dados globais de irradiância solar (GHI, DHI). Resolução 0.125° (~14km). API pública — sem chave necessária.
+              Dados globais de irradiância solar (GHI, DHI). Resolução 0.125° (~14km). API pública — chave opcional.
             </p>
+
+            <details className="text-xs">
+              <summary className="cursor-pointer text-muted-foreground hover:text-foreground transition-colors">
+                ⚙️ Configuração avançada (API Key)
+              </summary>
+              <div className="mt-2 space-y-1.5">
+                <p className="text-[11px] text-muted-foreground">
+                  A NASA POWER API é pública e não exige chave. Caso futuramente seja necessária, insira aqui.
+                </p>
+                <NasaApiKeyField />
+              </div>
+            </details>
 
             {isActive && nasaVersion && (
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
