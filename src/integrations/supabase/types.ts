@@ -2077,27 +2077,33 @@ export type Database = {
       deal_activity_types: {
         Row: {
           created_at: string
+          icon: string | null
           id: string
           is_active: boolean | null
           ordem: number | null
+          pipeline_ids: string[] | null
           tenant_id: string
           title: string
           visible_on_funnel: boolean | null
         }
         Insert: {
           created_at?: string
+          icon?: string | null
           id?: string
           is_active?: boolean | null
           ordem?: number | null
+          pipeline_ids?: string[] | null
           tenant_id: string
           title: string
           visible_on_funnel?: boolean | null
         }
         Update: {
           created_at?: string
+          icon?: string | null
           id?: string
           is_active?: boolean | null
           ordem?: number | null
+          pipeline_ids?: string[] | null
           tenant_id?: string
           title?: string
           visible_on_funnel?: boolean | null
