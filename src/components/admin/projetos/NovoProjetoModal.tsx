@@ -56,6 +56,7 @@ interface Props {
   pipelines?: PipelineOption[];
   stages?: StageOption[];
   defaultPipelineId?: string;
+  defaultStageId?: string;
 }
 
 export interface NovoProjetoData {
@@ -90,14 +91,14 @@ const emptyCliente = {
   cep: "", estado: "", cidade: "", endereco: "", numero: "", bairro: "", complemento: "",
 };
 
-export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, defaultConsultorId, dynamicEtiquetas = [], pipelines = [], stages = [], defaultPipelineId }: Props) {
+export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, defaultConsultorId, dynamicEtiquetas = [], pipelines = [], stages = [], defaultPipelineId, defaultStageId }: Props) {
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [consultorId, setConsultorId] = useState(defaultConsultorId || "");
   const [etiqueta, setEtiqueta] = useState("");
   const [notas, setNotas] = useState("");
   const [selectedPipelineId, setSelectedPipelineId] = useState(defaultPipelineId || "");
-  const [selectedStageId, setSelectedStageId] = useState("");
+  const [selectedStageId, setSelectedStageId] = useState(defaultStageId || "");
   const [cliente, setCliente] = useState(emptyCliente);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [similares, setSimilares] = useState<{ id: string; nome: string; telefone: string; email: string | null }[]>([]);
@@ -110,9 +111,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
     if (open) {
       setConsultorId(defaultConsultorId || "");
       setSelectedPipelineId(defaultPipelineId || pipelines[0]?.id || "");
-      setSelectedStageId("");
+      setSelectedStageId(defaultStageId || "");
     }
-  }, [open, defaultConsultorId, defaultPipelineId, pipelines]);
+  }, [open, defaultConsultorId, defaultPipelineId, defaultStageId, pipelines]);
 
   const filteredStages = useMemo(() => {
     if (!selectedPipelineId) return [];

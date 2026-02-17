@@ -49,13 +49,21 @@ interface DynamicEtiqueta {
   icon: string | null;
 }
 
+interface NewProjectContext {
+  pipelineId?: string;
+  stageId?: string;
+  stageName?: string;
+  consultorId?: string;
+}
+
 interface Props {
   stages: PipelineStage[];
   deals: DealKanbanCard[];
   onMoveToStage: (dealId: string, stageId: string) => void;
   onViewProjeto?: (deal: DealKanbanCard) => void;
-  onNewProject?: (consultorId?: string) => void;
+  onNewProject?: (ctx?: NewProjectContext) => void;
   dynamicEtiquetas?: DynamicEtiqueta[];
+  pipelineName?: string;
 }
 
 const formatKwp = (v: number) => {
@@ -103,7 +111,7 @@ function getInitials(name: string) {
     .join("");
 }
 
-export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject, dynamicEtiquetas = [] }: Props) {
+export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject, dynamicEtiquetas = [], pipelineName }: Props) {
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -251,7 +259,11 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       variant="outline"
                       size="sm"
                       className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
-                      onClick={() => onNewProject?.()}
+                      onClick={() => onNewProject?.({
+                        pipelineId: stage.pipeline_id,
+                        stageId: stage.id,
+                        stageName: stage.name,
+                      })}
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       Novo projeto
@@ -403,7 +415,11 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                 {/* ── New Project Button ── */}
                 <div className="px-2.5 py-1.5">
                   <button
-                    onClick={() => onNewProject?.()}
+                    onClick={() => onNewProject?.({
+                      pipelineId: stage.pipeline_id,
+                      stageId: stage.id,
+                      stageName: stage.name,
+                    })}
                     className={cn(
                       "w-full h-7 rounded-lg border border-primary/40",
                       "flex items-center justify-center gap-1.5",
