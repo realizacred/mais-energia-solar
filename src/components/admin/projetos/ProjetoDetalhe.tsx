@@ -256,6 +256,21 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
     load();
   }, [dealId]);
 
+  // ─── Realtime subscription for auto-refresh ────
+  useEffect(() => {
+    const channel = supabase
+      .channel(`deal-${dealId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "deals", filter: `id=eq.${dealId}` }, () => {
+        silentRefresh();
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "deal_stage_history", filter: `deal_id=eq.${dealId}` }, () => {
+        silentRefresh();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [dealId]);
+
   const currentStage = useMemo(() => stages.find(s => s.id === deal?.stage_id), [stages, deal]);
   const currentStageIndex = useMemo(() => stages.findIndex(s => s.id === deal?.stage_id), [stages, deal]);
   const currentPipeline = useMemo(() => pipelines.find(p => p.id === deal?.pipeline_id), [pipelines, deal]);
@@ -493,14 +508,26 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pipeline</span>
                 <Badge variant="outline" className="text-[10px] font-medium">{currentPipeline?.name || "—"}</Badge>
               </div>
-              <PipelineSwitcher
-                pipelines={pipelines}
-                currentPipelineId={deal.pipeline_id}
-                allStagesMap={allStagesMap}
-                dealId={deal.id}
-                updateDealLocal={updateDealLocal}
-                onDealUpdated={silentRefresh}
-              />
+              <div className="flex items-center gap-2">
+                <PipelineSwitcher
+                  pipelines={pipelines}
+                  currentPipelineId={deal.pipeline_id}
+                  allStagesMap={allStagesMap}
+                  dealId={deal.id}
+                  updateDealLocal={updateDealLocal}
+                  onDealUpdated={silentRefresh}
+                />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => {
+                      toast({ title: "Em breve", description: "A funcionalidade de adicionar projeto a múltiplos funis será implementada." });
+                    }}>
+                      <Plus className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Adicionar a outro funil</TooltipContent>
+                </Tooltip>
+              </div>
             </div>
 
             {/* Stepper with labels */}
