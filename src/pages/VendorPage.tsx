@@ -37,11 +37,12 @@ export default function VendorPage() {
           return;
         }
 
-        // RPC returns array, get first result
-        const vendedor = data && Array.isArray(data) ? data[0] : data;
+        // RPC returns array of {valid, nome} — uniform for anti-enumeration
+        const results = Array.isArray(data) ? data : data ? [data] : [];
+        const vendedor = results[0];
 
-        if (vendedor && typeof vendedor === 'object' && 'nome' in vendedor) {
-          setVendedorNome((vendedor as { nome: string }).nome);
+        if (vendedor && vendedor.valid && vendedor.nome) {
+          setVendedorNome(vendedor.nome);
           setValidationState("valid");
         } else {
           setValidationState("invalid");

@@ -9359,6 +9359,53 @@ export type Database = {
           },
         ]
       }
+      security_events: {
+        Row: {
+          consultor_code_hash: string | null
+          created_at: string
+          details: Json | null
+          event_type: string
+          id: string
+          ip_hash: string | null
+          path: string | null
+          success: boolean
+          tenant_id: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          consultor_code_hash?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          path?: string | null
+          success?: boolean
+          tenant_id?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          consultor_code_hash?: string | null
+          created_at?: string
+          details?: Json | null
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          path?: string | null
+          success?: boolean
+          tenant_id?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       servicos_agendados: {
         Row: {
           audio_url: string | null
@@ -13258,6 +13305,7 @@ export type Database = {
         }[]
       }
       cleanup_edge_rate_limits: { Args: never; Returns: undefined }
+      cleanup_security_events: { Args: never; Returns: undefined }
       cleanup_stuck_irradiance_versions: { Args: never; Returns: number }
       cleanup_wa_followup_logs: { Args: never; Returns: undefined }
       cleanup_wa_health_checks: { Args: never; Returns: undefined }
@@ -13723,9 +13771,10 @@ export type Database = {
         Returns: string
       }
       resolve_phone_to_email: { Args: { _phone: string }; Returns: string }
-      resolve_public_tenant_id:
-        | { Args: never; Returns: string }
-        | { Args: { _consultor_code?: string }; Returns: string }
+      resolve_public_tenant_id: {
+        Args: { _consultor_code: string }
+        Returns: string
+      }
       resolve_tenant_public: {
         Args: { _id?: string; _slug?: string }
         Returns: {
@@ -13745,8 +13794,8 @@ export type Database = {
       validate_consultor_code: {
         Args: { _codigo: string }
         Returns: {
-          codigo: string
           nome: string
+          valid: boolean
         }[]
       }
     }
