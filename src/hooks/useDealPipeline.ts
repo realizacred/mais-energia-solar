@@ -463,7 +463,7 @@ export function useDealPipeline() {
   // ─── Create Deal ──────────────────────────────────────
   const createDeal = useCallback(async (params: {
     title: string;
-    ownerId: string;
+    ownerId?: string;
     pipelineId?: string;
     stageId?: string;
     customerId?: string;
@@ -471,30 +471,29 @@ export function useDealPipeline() {
     etiqueta?: string;
     notas?: string;
   }) => {
-    const pipeId = params.pipelineId || selectedPipelineId || pipelines[0]?.id;
-    if (!pipeId) {
-      toast({ title: "Erro", description: "Nenhum funil disponível", variant: "destructive" });
-      return null;
-    }
-
-    // Check pipeline kind to determine stage requirement
-    const pipeline = pipelines.find(p => p.id === pipeId);
-    const isOwnerBoard = pipeline?.kind === "owner_board";
+    const pipeId = params.pipelineId || selectedPipelineId || pipelines[0]?.id || null;
 
     let targetStageId: string | null = params.stageId || null;
-    if (!isOwnerBoard && !targetStageId) {
-      const pipeStages = stages
-        .filter(s => s.pipeline_id === pipeId && !s.is_closed)
-        .sort((a, b) => a.position - b.position);
-      const firstStage = pipeStages[0];
-      if (!firstStage) {
-        toast({ title: "Erro", description: "Funil sem etapas abertas", variant: "destructive" });
-        return null;
+
+    if (pipeId) {
+      // Check pipeline kind to determine stage requirement
+      const pipeline = pipelines.find(p => p.id === pipeId);
+      const isOwnerBoard = pipeline?.kind === "owner_board";
+
+      if (!isOwnerBoard && !targetStageId) {
+        const pipeStages = stages
+          .filter(s => s.pipeline_id === pipeId && !s.is_closed)
+          .sort((a, b) => a.position - b.position);
+        const firstStage = pipeStages[0];
+        if (!firstStage) {
+          toast({ title: "Erro", description: "Funil sem etapas abertas", variant: "destructive" });
+          return null;
+        }
+        targetStageId = firstStage.id;
       }
-      targetStageId = firstStage.id;
+      // For owner_board, stage_id must be null
+      if (isOwnerBoard) targetStageId = null;
     }
-    // For owner_board, stage_id must be null
-    if (isOwnerBoard) targetStageId = null;
 
     const { data, error } = await supabase
       .from("deals")
@@ -502,7 +501,7 @@ export function useDealPipeline() {
         title: params.title,
         pipeline_id: pipeId,
         stage_id: targetStageId,
-        owner_id: params.ownerId,
+        owner_id: params.ownerId || null,
         customer_id: params.customerId || null,
         value: params.value || 0,
         status: "open",
