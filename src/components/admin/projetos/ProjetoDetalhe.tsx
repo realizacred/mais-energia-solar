@@ -27,6 +27,7 @@ import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { VariableMapperPanel } from "./VariableMapperPanel";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
+import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 
 // ─── Types ──────────────────────────────────────────
 interface DealDetail {
@@ -499,105 +500,16 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
         </CardContent>
       </Card>
 
-      {/* ── Pipeline Stepper ── */}
+      {/* ── Multi-Pipeline Manager ── */}
       {activeTab === "gerenciamento" && (
         <Card className="mb-4">
           <CardContent className="p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Pipeline</span>
-                <Badge variant="outline" className="text-[10px] font-medium">{currentPipeline?.name || "—"}</Badge>
-              </div>
-              <div className="flex items-center gap-2">
-                <PipelineSwitcher
-                  pipelines={pipelines}
-                  currentPipelineId={deal.pipeline_id}
-                  allStagesMap={allStagesMap}
-                  dealId={deal.id}
-                  updateDealLocal={updateDealLocal}
-                  onDealUpdated={silentRefresh}
-                />
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => {
-                      toast({ title: "Em breve", description: "A funcionalidade de adicionar projeto a múltiplos funis será implementada." });
-                    }}>
-                      <Plus className="h-3.5 w-3.5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Adicionar a outro funil</TooltipContent>
-                </Tooltip>
-              </div>
-            </div>
-
-            {/* Stepper with labels */}
-            <div className="relative pt-2">
-              {/* Background track */}
-              <div className="absolute top-[18px] left-0 right-0 h-1 bg-border rounded-full" />
-              {/* Filled track */}
-              <motion.div
-                className="absolute top-[18px] left-0 h-1 bg-success rounded-full"
-                initial={{ width: "0%" }}
-                animate={{ width: stages.length > 1 ? `${(currentStageIndex / (stages.length - 1)) * 100}%` : "0%" }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-              />
-              <div className="relative flex justify-between">
-                {stages.map((stage, i) => {
-                  const isPast = i < currentStageIndex;
-                  const isCurrent = i === currentStageIndex;
-                  const isFuture = i > currentStageIndex;
-                  return (
-                    <Tooltip key={stage.id}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={async () => {
-                            if (stage.id === deal.stage_id) return;
-                            const prevStageId = deal.stage_id;
-                            updateDealLocal({ stage_id: stage.id });
-                            try {
-                              const { error } = await supabase.from("deals").update({ stage_id: stage.id }).eq("id", deal.id);
-                              if (error) throw error;
-                              toast({ title: `Movido para "${stage.name}"` });
-                              silentRefresh();
-                            } catch (err: any) {
-                              updateDealLocal({ stage_id: prevStageId });
-                              toast({ title: "Erro", description: err.message, variant: "destructive" });
-                            }
-                          }}
-                          className="flex flex-col items-center z-10 group cursor-pointer gap-1.5"
-                        >
-                          <motion.div
-                            className={cn(
-                              "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                              isPast && "bg-success border-success",
-                              isCurrent && "bg-secondary border-secondary ring-2 ring-secondary/30 ring-offset-2 ring-offset-card",
-                              isFuture && "bg-card border-border",
-                              !isCurrent && "group-hover:ring-2 group-hover:ring-primary/20 group-hover:ring-offset-1 group-hover:ring-offset-card"
-                            )}
-                            animate={{ scale: isCurrent ? 1.15 : 1 }}
-                            transition={{ duration: 0.3 }}
-                          >
-                            {isPast && <Check className="h-3 w-3 text-success-foreground" />}
-                          </motion.div>
-                          <span className={cn(
-                            "text-[10px] font-medium max-w-[80px] text-center leading-tight",
-                            isPast && "text-success",
-                            isCurrent && "text-secondary font-bold",
-                            isFuture && "text-muted-foreground"
-                          )}>
-                            {stage.name}
-                          </span>
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">
-                        {stage.name} • {stage.probability}%
-                        {isCurrent && " (atual)"}
-                      </TooltipContent>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-            </div>
+            <ProjetoMultiPipelineManager
+              dealId={deal.id}
+              pipelines={pipelines}
+              allStagesMap={allStagesMap}
+              onMembershipChange={silentRefresh}
+            />
           </CardContent>
         </Card>
       )}
@@ -674,55 +586,7 @@ function ConsultorOptions() {
   return <>{consultores.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</>;
 }
 
-// ═══════════════════════════════════════════════════
-// ─── Pipeline Switcher ──────────────────────────
-// ═══════════════════════════════════════════════════
-function PipelineSwitcher({ pipelines, currentPipelineId, allStagesMap, dealId, updateDealLocal, onDealUpdated }: {
-  pipelines: PipelineInfo[];
-  currentPipelineId: string;
-  allStagesMap: Map<string, StageInfo[]>;
-  dealId: string;
-  updateDealLocal: (patch: Partial<DealDetail>) => void;
-  onDealUpdated: () => void;
-}) {
-  const [changing, setChanging] = useState(false);
-  return (
-    <Select
-      value={currentPipelineId}
-      onValueChange={async (pipelineId) => {
-        if (pipelineId === currentPipelineId) return;
-        setChanging(true);
-        try {
-          const targetStages = allStagesMap.get(pipelineId);
-          const firstStage = targetStages?.sort((a, b) => a.position - b.position)[0];
-          if (!firstStage) {
-            toast({ title: "Este funil não tem etapas configuradas", variant: "destructive" });
-            return;
-          }
-          updateDealLocal({ pipeline_id: pipelineId, stage_id: firstStage.id });
-          const { error } = await supabase.from("deals").update({ pipeline_id: pipelineId, stage_id: firstStage.id }).eq("id", dealId);
-          if (error) throw error;
-          toast({ title: "Funil alterado com sucesso" });
-          onDealUpdated();
-        } catch (err: any) {
-          toast({ title: "Erro ao alterar funil", description: err.message, variant: "destructive" });
-        } finally {
-          setChanging(false);
-        }
-      }}
-      disabled={changing}
-    >
-      <SelectTrigger className="h-7 w-auto text-xs gap-1">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {pipelines.map(p => (
-          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
+// PipelineSwitcher removed — replaced by ProjetoMultiPipelineManager
 
 // ═══════════════════════════════════════════════════
 // ─── TAB: Gerenciamento (Dense Dashboard Grid) ──
