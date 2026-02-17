@@ -40,6 +40,9 @@ export interface Lead {
   cliente_id_vinculado?: string | null;
   /** @deprecated Use consultor_id + consultor_nome instead */
   _consultor_text_fallback?: string;
+  /** WhatsApp welcome message delivery status */
+  wa_welcome_status?: string;
+  wa_welcome_error?: string | null;
 }
 
 export interface LeadStatus {

@@ -113,6 +113,10 @@ Deno.serve(async (req) => {
     const settings = (vendedor.settings as Record<string, unknown>) || {};
     if (settings.wa_auto_message_enabled === false) {
       console.log(`[send-wa-welcome] Auto-message disabled for consultor=${vendedor.id}`);
+      await supabaseAdmin
+        .from("leads")
+        .update({ wa_welcome_status: "skipped" } as any)
+        .eq("id", lead_id);
       return new Response(
         JSON.stringify({ success: true, skipped: true, reason: "auto_message_disabled" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -206,13 +210,15 @@ Já estamos analisando e em breve enviaremos sua proposta atualizada. Qualquer d
     console.log(`[send-wa-welcome] send-whatsapp-message response:`, JSON.stringify(sendResult));
 
     if (sendResult?.success) {
-      // Mark as sent (only for first welcome)
+      // Mark as sent
+      const updateData: Record<string, unknown> = { wa_welcome_status: "sent" };
       if (!isNewOrcamento) {
-        await supabaseAdmin
-          .from("leads")
-          .update({ wa_welcome_sent: true } as any)
-          .eq("id", lead_id);
+        updateData.wa_welcome_sent = true;
       }
+      await supabaseAdmin
+        .from("leads")
+        .update(updateData as any)
+        .eq("id", lead_id);
 
       const msgType = isNewOrcamento ? "new_orcamento" : "welcome";
       console.log(`[send-wa-welcome] ✅ ${msgType} sent for lead=${lead_id}`);
@@ -227,13 +233,34 @@ Já estamos analisando e em breve enviaremos sua proposta atualizada. Qualquer d
       );
     }
 
+    // ── FAILED: record the error ──
+    const errorMsg = sendResult?.error || "Falha no envio";
     console.warn(`[send-wa-welcome] Send failed for lead=${lead_id}:`, sendResult);
+    await supabaseAdmin
+      .from("leads")
+      .update({ wa_welcome_status: "failed", wa_welcome_error: errorMsg } as any)
+      .eq("id", lead_id);
+
     return new Response(
-      JSON.stringify({ success: false, error: sendResult?.error || "Falha no envio" }),
+      JSON.stringify({ success: false, error: errorMsg }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("[send-wa-welcome] Unhandled error:", error);
+    // Try to record failure on the lead
+    try {
+      const supabaseAdmin = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const body2 = await req.clone().json().catch(() => null);
+      if (body2?.lead_id) {
+        await supabaseAdmin
+          .from("leads")
+          .update({ wa_welcome_status: "failed", wa_welcome_error: error?.message || "Erro interno" } as any)
+          .eq("id", body2.lead_id);
+      }
+    } catch { /* ignore */ }
     return new Response(
       JSON.stringify({ success: false, error: error?.message || String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
