@@ -585,7 +585,7 @@ export function BaseMeteorologicaPage() {
 
                               if (intg.min_lat != null && !isProcessing) {
                                 const latOk = intg.min_lat <= -32 && intg.max_lat! >= 4;
-                                const lonOk = intg.min_lon! <= -72 && intg.max_lon! >= -32;
+                                const lonOk = intg.min_lon! <= -72 && intg.max_lon! >= -35;
                                 if (latOk && lonOk) {
                                   checks.push({ label: "Cobertura", status: "ok", detail: `Brasil completo: Lat ${intg.max_lat}° a ${intg.min_lat}°, Lon ${intg.min_lon}° a ${intg.max_lon}° ✓` });
                                 } else {
