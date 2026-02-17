@@ -254,7 +254,7 @@ export function ProjetoAutomacaoConfig({ pipelineId, stages }: Props) {
                 )}
 
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">Notificar responsável</Label>
+                  <Label className="text-xs text-muted-foreground">Notificar consultor</Label>
                   <div className="flex items-center gap-2 pt-1">
                     <Switch
                       checked={auto.notificar_responsavel}
@@ -277,7 +277,7 @@ export function ProjetoAutomacaoConfig({ pipelineId, stages }: Props) {
                   {auto.tipo_acao === "mover_etapa" && auto.destino_stage_id
                     ? `Mover para "${getStageNameById(auto.destino_stage_id)}"`
                     : auto.tipo_acao === "notificar"
-                    ? "Notificar responsável"
+                    ? "Notificar consultor"
                     : "Alterar status"
                   }
                 </AlertDescription>

@@ -187,7 +187,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
                 />
               </Field>
 
-              <Field label="Responsável">
+              <Field label="Consultor">
                 <Select value={consultorId} onValueChange={setConsultorId}>
                   <SelectTrigger className="h-10 text-sm">
                     <SelectValue placeholder="Selecione" />

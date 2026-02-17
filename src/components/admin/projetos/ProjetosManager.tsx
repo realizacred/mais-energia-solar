@@ -195,7 +195,7 @@ export function ProjetosManager() {
                     </div>
                   )}
                   <span className="text-xs text-muted-foreground">
-                    {ownerColumns.length} responsáveis
+                    {ownerColumns.length} consultores
                   </span>
                 </div>
               </div>

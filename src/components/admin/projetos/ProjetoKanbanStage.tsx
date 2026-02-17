@@ -328,7 +328,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                             <Lock className="h-3 w-3 text-warning shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent className="text-xs">
-                            {permission === "apenas_responsavel" ? "Apenas o responsável pode mover" : "Restrito por papel"}
+                            {permission === "apenas_responsavel" ? "Apenas o consultor pode mover" : "Restrito por papel"}
                           </TooltipContent>
                         </Tooltip>
                       )}

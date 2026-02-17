@@ -113,11 +113,11 @@ export function ProjetoFilters({
             </Select>
           </div>
 
-          {/* Responsável */}
+          {/* Consultor */}
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               <Users className="h-3 w-3" />
-              Responsável
+              Consultor
             </label>
             <Select value={filterConsultor} onValueChange={onFilterConsultorChange}>
               <SelectTrigger className="w-[150px] h-9 text-xs border-border/60 bg-card">
