@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { BRAZIL_STATES, CITIES_BY_STATE } from "@/data/brazil-states-cities";
 import {
   Dialog,
   DialogContent,
@@ -396,7 +397,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   <MapPin className="h-3 w-3 text-primary/60" /> Endereço
                 </h4>
 
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-[1fr_1fr] gap-2.5">
                   <Field label="CEP">
                     <div className="relative">
                       <Input
@@ -410,26 +411,6 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                       )}
                     </div>
                   </Field>
-                  <Field label="Estado">
-                    <Input
-                      placeholder="UF"
-                      maxLength={2}
-                      value={cliente.estado}
-                      onChange={e => updateCliente("estado", e.target.value.toUpperCase())}
-                      className="h-8 text-xs bg-card border-border/50"
-                    />
-                  </Field>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2.5">
-                  <Field label="Cidade">
-                    <Input
-                      placeholder="Cidade"
-                      value={cliente.cidade}
-                      onChange={e => updateCliente("cidade", autoCapitalize(e.target.value))}
-                      className="h-8 text-xs bg-card border-border/50"
-                    />
-                  </Field>
                   <Field label="Bairro">
                     <Input
                       placeholder="Bairro"
@@ -437,6 +418,53 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                       onChange={e => updateCliente("bairro", autoCapitalize(e.target.value))}
                       className="h-8 text-xs bg-card border-border/50"
                     />
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Field label="Estado *">
+                    <Select
+                      value={cliente.estado}
+                      onValueChange={(v) => {
+                        updateCliente("estado", v);
+                        updateCliente("cidade", "");
+                      }}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-card border-border/50">
+                        <SelectValue placeholder="Selecione o estado" />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 bg-popover border border-border shadow-lg max-h-[280px]">
+                        {BRAZIL_STATES.map(s => (
+                          <SelectItem key={s.value} value={s.value} className="text-xs">
+                            {s.value} — {s.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Cidade *">
+                    <Select
+                      value={cliente.cidade}
+                      onValueChange={(v) => updateCliente("cidade", v)}
+                      disabled={!cliente.estado}
+                    >
+                      <SelectTrigger className="h-8 text-xs bg-card border-border/50">
+                        <SelectValue placeholder={cliente.estado ? "Selecione a cidade" : "Selecione o estado"} />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 bg-popover border border-border shadow-lg max-h-[280px]">
+                        {(() => {
+                          const cities = CITIES_BY_STATE[cliente.estado] || [];
+                          const allCities = cliente.cidade && !cities.includes(cliente.cidade)
+                            ? [cliente.cidade, ...cities]
+                            : cities;
+                          return allCities.map(city => (
+                            <SelectItem key={city} value={city} className="text-xs">
+                              {city}
+                            </SelectItem>
+                          ));
+                        })()}
+                      </SelectContent>
+                    </Select>
                   </Field>
                 </div>
 
