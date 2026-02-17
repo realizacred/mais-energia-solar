@@ -60,8 +60,8 @@ export function ProjetosManager() {
 
   const handleFilterChange = (key: string, value: any) => {
     if (key === "pipelineId") {
-      setSelectedPipelineId(value === "todos" ? null : value);
-      applyFilters({ pipelineId: value === "todos" ? null : value });
+      setSelectedPipelineId(value);
+      applyFilters({ pipelineId: value });
     } else if (key === "ownerId") {
       applyFilters({ ownerId: value });
     } else if (key === "status") {
@@ -71,9 +71,22 @@ export function ProjetosManager() {
     }
   };
 
+  // Auto-select first active pipeline if none selected
+  useEffect(() => {
+    if (!selectedPipelineId && pipelines.length > 0) {
+      const firstActive = pipelines.find(p => p.is_active);
+      if (firstActive) {
+        setSelectedPipelineId(firstActive.id);
+        applyFilters({ pipelineId: firstActive.id });
+      }
+    }
+  }, [pipelines, selectedPipelineId]);
+
   const clearFilters = () => {
-    applyFilters({ pipelineId: null, ownerId: "todos", status: "todos", search: "" });
-    setSelectedPipelineId(null);
+    const firstActive = pipelines.find(p => p.is_active);
+    const pid = firstActive?.id || null;
+    applyFilters({ pipelineId: pid, ownerId: "todos", status: "todos", search: "" });
+    setSelectedPipelineId(pid);
   };
 
   const totalValue = useMemo(() => {
@@ -109,6 +122,7 @@ export function ProjetosManager() {
         open={novoProjetoOpen}
         onOpenChange={setNovoProjetoOpen}
         consultores={consultoresFilter}
+        dynamicEtiquetas={dynamicEtiquetas}
         onSubmit={async (data) => {
           let customerId: string | undefined;
           if (data.cliente.nome.trim()) {
@@ -175,7 +189,7 @@ export function ProjetosManager() {
                     ativo: p.is_active,
                     tenant_id: p.tenant_id,
                   }))}
-                  filterFunil={filters.pipelineId || "todos"}
+                  filterFunil={filters.pipelineId || selectedPipelineId || ""}
                   onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
                   filterConsultor={filters.ownerId}
                   onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}

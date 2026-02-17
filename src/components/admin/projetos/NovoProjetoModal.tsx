@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
@@ -21,15 +21,25 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Phone, Loader2, Users, MapPin, Search } from "lucide-react";
+import { Phone, Loader2, Users, MapPin, Search, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ETIQUETAS, ETIQUETA_GRUPOS, getEtiquetaConfig } from "@/lib/etiquetas";
+
+interface DynamicEtiqueta {
+  id: string;
+  nome: string;
+  cor: string;
+  grupo: string;
+  short: string | null;
+  icon: string | null;
+}
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   consultores: { id: string; nome: string }[];
   onSubmit?: (data: NovoProjetoData) => void | Promise<void>;
+  defaultConsultorId?: string;
+  dynamicEtiquetas?: DynamicEtiqueta[];
 }
 
 export interface NovoProjetoData {
@@ -63,10 +73,10 @@ const emptyCliente = {
   cep: "", estado: "", cidade: "", endereco: "", numero: "", bairro: "", complemento: "",
 };
 
-export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: Props) {
+export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, defaultConsultorId, dynamicEtiquetas = [] }: Props) {
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [consultorId, setConsultorId] = useState("");
+  const [consultorId, setConsultorId] = useState(defaultConsultorId || "");
   const [etiqueta, setEtiqueta] = useState("");
   const [notas, setNotas] = useState("");
   const [cliente, setCliente] = useState(emptyCliente);
@@ -76,6 +86,24 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
   const [submitting, setSubmitting] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync defaultConsultorId when modal opens
+  useEffect(() => {
+    if (open && defaultConsultorId) {
+      setConsultorId(defaultConsultorId);
+    }
+  }, [open, defaultConsultorId]);
+
+  // Group dynamic etiquetas by grupo
+  const etiquetaGroups = useMemo(() => {
+    const groups = new Map<string, DynamicEtiqueta[]>();
+    dynamicEtiquetas.forEach(e => {
+      const arr = groups.get(e.grupo) || [];
+      arr.push(e);
+      groups.set(e.grupo, arr);
+    });
+    return groups;
+  }, [dynamicEtiquetas]);
 
   const updateCliente = useCallback((field: string, value: string) => {
     setCliente(prev => ({ ...prev, [field]: value }));
@@ -205,27 +233,33 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
                   <SelectTrigger className="h-10 text-sm">
                     <SelectValue placeholder="Selecione">
                       {etiqueta && (() => {
-                        const cfg = getEtiquetaConfig(etiqueta);
-                        return cfg ? (
-                          <span className={cn("text-xs font-bold rounded-md px-1.5 py-0.5 border", cfg.className)}>
-                            {cfg.label}
+                        const found = dynamicEtiquetas.find(e => e.id === etiqueta || e.nome === etiqueta);
+                        return found ? (
+                          <span
+                            className="text-xs font-bold rounded-full px-2 py-0.5 text-white"
+                            style={{ backgroundColor: found.cor }}
+                          >
+                            {found.icon ? `${found.icon} ` : ""}{found.short || found.nome}
                           </span>
                         ) : null;
                       })()}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {ETIQUETA_GRUPOS.map(grupo => (
-                      <SelectGroup key={grupo.value}>
+                    {Array.from(etiquetaGroups.entries()).map(([grupo, items]) => (
+                      <SelectGroup key={grupo}>
                         <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
-                          {grupo.label}
+                          {grupo}
                         </SelectLabel>
-                        {ETIQUETAS.filter(e => e.grupo === grupo.value).map(et => (
-                          <SelectItem key={et.value} value={et.value}>
-                            <span className={cn("text-xs font-semibold rounded-md px-1.5 py-0.5 border mr-2", et.className)}>
-                              {et.short}
+                        {items.map(et => (
+                          <SelectItem key={et.id} value={et.id}>
+                            <span
+                              className="text-[10px] font-bold rounded-full px-2 py-0.5 text-white mr-2"
+                              style={{ backgroundColor: et.cor }}
+                            >
+                              {et.icon ? `${et.icon} ` : ""}{et.short || et.nome.substring(0, 3).toUpperCase()}
                             </span>
-                            {et.label}
+                            {et.nome}
                           </SelectItem>
                         ))}
                       </SelectGroup>

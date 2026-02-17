@@ -50,7 +50,7 @@ export function ProjetoFilters({
   viewMode, onViewModeChange,
   onClearFilters,
 }: Props) {
-  const hasActive = filterFunil !== "todos" || filterConsultor !== "todos" || filterStatus !== "todos" || filterEtiquetas.length > 0 || searchTerm.length > 0;
+  const hasActive = filterConsultor !== "todos" || filterStatus !== "todos" || filterEtiquetas.length > 0 || searchTerm.length > 0;
 
   const toggleEtiqueta = (id: string) => {
     if (filterEtiquetas.includes(id)) {
@@ -101,10 +101,9 @@ export function ProjetoFilters({
             </label>
             <Select value={filterFunil} onValueChange={onFilterFunilChange}>
               <SelectTrigger className="w-[150px] h-9 text-xs border-border/60 bg-card">
-                <SelectValue placeholder="Todos" />
+                <SelectValue placeholder="Selecione" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
                 {funis.filter(f => f.ativo).map(f => (
                   <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>
                 ))}
