@@ -1,6 +1,6 @@
 /**
- * CsvImportPanel — Handles CSV file selection, validation, and chunked upload
- * via the canonical RPC `import_irradiance_points_chunk`.
+ * CsvImportPanel — Self-contained CSV import: select files → validate → create version → upload.
+ * No separate "create version" step needed.
  */
 
 import { useState, useRef, useCallback } from "react";
@@ -9,10 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Upload, CheckCircle2, Info } from "lucide-react";
+import { Loader2, Upload, CheckCircle2, Info, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import type { VersionRow } from "./types";
 import {
   parseCsvContent,
   mergeGhiDhiDni,
@@ -20,14 +19,17 @@ import {
   chunkArray,
   readFileAsText,
   FILE_HINTS,
+  type MergedPoint,
+  type CsvValidationResult,
 } from "./csv-helpers";
 
 const CHUNK_SIZE = 500;
 const MAX_RETRIES = 3;
-const YIELD_MS = 10; // yield to UI thread between chunks
+const YIELD_MS = 10;
 
 interface CsvImportPanelProps {
-  processingVersion: VersionRow | undefined;
+  datasetCode: string;
+  datasetLabel: string;
   onReload: () => void;
 }
 
@@ -37,23 +39,28 @@ interface LogEntry {
   msg: string;
 }
 
-export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelProps) {
+export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImportPanelProps) {
   const [ghiFile, setGhiFile] = useState<File | null>(null);
   const [dhiFile, setDhiFile] = useState<File | null>(null);
   const [dniFile, setDniFile] = useState<File | null>(null);
   const [state, setState] = useState<"idle" | "validating" | "validated" | "uploading" | "done" | "error">("idle");
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [validation, setValidation] = useState<CsvValidationResult | null>(null);
+  const [mergedPoints, setMergedPoints] = useState<MergedPoint[]>([]);
   const abortRef = useRef(false);
 
   const log = useCallback((level: LogEntry["level"], msg: string) => {
     setLogs(prev => [...prev, { ts: Date.now(), level, msg }]);
   }, []);
 
+  // ── STEP 1: Validate files locally (no server call) ──
   const handleValidate = async () => {
     if (!ghiFile) return;
     setState("validating");
     setLogs([]);
+    setValidation(null);
+    setMergedPoints([]);
     try {
       log("info", "Lendo arquivos CSV...");
       const ghiText = await readFileAsText(ghiFile);
@@ -79,23 +86,31 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
       }
 
       const merged = mergeGhiDhiDni(ghi.rows, dhi?.rows ?? null, dni?.rows ?? null);
-      const validation = validateCsvFiles(
+      const result = validateCsvFiles(
         ghi.rows, dhi?.rows ?? null, dni?.rows ?? null, merged,
         totalSkipped, ghi.skippedReasons
       );
 
-      if (!validation.keysMatch) {
-        log("warn", `⚠️ Divergência de ${validation.keysDiffPct.toFixed(1)}% entre coordenadas dos arquivos`);
+      if (merged.length === 0) {
+        log("error", "Nenhum ponto válido encontrado nos arquivos.");
+        setState("error");
+        return;
+      }
+
+      if (!result.keysMatch) {
+        log("warn", `⚠️ Divergência de ${result.keysDiffPct.toFixed(1)}% entre coordenadas dos arquivos`);
       } else {
         log("success", `✅ Coordenadas compatíveis entre todos os arquivos`);
       }
 
-      if (validation.samplePoints.length > 0) {
-        const sample = validation.samplePoints[0];
+      if (result.samplePoints.length > 0) {
+        const sample = result.samplePoints[0];
         log("info", `Amostra: lat=${sample.lat}, lon=${sample.lon}, jan=${sample.jan.toFixed(2)}, dez=${sample.dec.toFixed(2)}`);
       }
 
-      log("success", `${merged.length.toLocaleString("pt-BR")} pontos prontos para importar.`);
+      log("success", `✅ ${merged.length.toLocaleString("pt-BR")} pontos prontos para importar.`);
+      setValidation(result);
+      setMergedPoints(merged);
       setState("validated");
     } catch (e: any) {
       log("error", `Erro: ${e.message}`);
@@ -103,49 +118,65 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
     }
   };
 
+  // ── STEP 2: Create version + upload all data ──
   const handleImport = async () => {
-    if (!ghiFile || !processingVersion) return;
+    if (mergedPoints.length === 0) return;
     abortRef.current = false;
     setState("uploading");
 
     try {
-      log("info", "Lendo arquivos CSV...");
-      const ghiText = await readFileAsText(ghiFile);
-      const dhiText = dhiFile ? await readFileAsText(dhiFile) : null;
-      const dniText = dniFile ? await readFileAsText(dniFile) : null;
+      // 2a. Create version via edge function
+      log("info", "Criando versão no servidor...");
+      const tag = `${datasetCode.toLowerCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
+      const fileNames = [ghiFile?.name, dhiFile?.name, dniFile?.name].filter(Boolean);
 
-      const ghi = parseCsvContent(ghiText, "GHI");
-      const dhi = dhiText ? parseCsvContent(dhiText, "DHI") : null;
-      const dni = dniText ? parseCsvContent(dniText, "DNI") : null;
-      const points = mergeGhiDhiDni(ghi.rows, dhi?.rows ?? null, dni?.rows ?? null);
+      const { data: initData, error: initError } = await supabase.functions.invoke("irradiance-import", {
+        body: {
+          action: "init",
+          dataset_code: datasetCode,
+          version_tag: tag,
+          source_note: datasetLabel,
+          file_names: fileNames,
+        },
+      });
 
-      if (points.length === 0) {
-        log("error", "Nenhum ponto válido após mesclagem.");
-        setState("error");
-        return;
+      if (initError) throw initError;
+      if (initData?.error) {
+        if (initData.error === "VERSION_EXISTS") {
+          log("warn", initData.message || `Versão ${tag} já existe.`);
+          setState("error");
+          return;
+        }
+        if (initData.error === "VERSION_PROCESSING") {
+          log("warn", initData.message || `Versão ${tag} já está em processamento.`);
+          setState("error");
+          return;
+        }
+        throw new Error(initData.message || initData.error);
       }
 
-      const chunks = chunkArray(points, CHUNK_SIZE);
-      setProgress({ current: 0, total: points.length });
-      log("info", `Enviando ${points.length.toLocaleString("pt-BR")} pontos em ${chunks.length} chunks...`);
+      const versionId = initData.version_id;
+      const datasetId = initData.dataset_id;
+      log("success", `Versão ${tag} criada. Enviando ${mergedPoints.length.toLocaleString("pt-BR")} pontos...`);
 
+      // 2b. Upload in chunks
+      const chunks = chunkArray(mergedPoints, CHUNK_SIZE);
+      setProgress({ current: 0, total: mergedPoints.length });
       const startTime = Date.now();
 
       for (let i = 0; i < chunks.length; i++) {
         if (abortRef.current) {
           log("warn", "Importação cancelada pelo usuário.");
-          // Abort on server
           await supabase.functions.invoke("irradiance-import", {
-            body: { action: "abort", version_id: processingVersion.id, error: "Cancelado pelo usuário" },
+            body: { action: "abort", version_id: versionId, error: "Cancelado pelo usuário" },
           });
           setState("error");
           return;
         }
 
         const chunkRows = chunks[i].map(p => ({
-          version_id: processingVersion.id,
-          lat: p.lat,
-          lon: p.lon,
+          version_id: versionId,
+          lat: p.lat, lon: p.lon,
           m01: p.m01, m02: p.m02, m03: p.m03, m04: p.m04,
           m05: p.m05, m06: p.m06, m07: p.m07, m08: p.m08,
           m09: p.m09, m10: p.m10, m11: p.m11, m12: p.m12,
@@ -155,14 +186,13 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
           dni_m01: p.dni_m01 ?? null, dni_m02: p.dni_m02 ?? null, dni_m03: p.dni_m03 ?? null, dni_m04: p.dni_m04 ?? null,
           dni_m05: p.dni_m05 ?? null, dni_m06: p.dni_m06 ?? null, dni_m07: p.dni_m07 ?? null, dni_m08: p.dni_m08 ?? null,
           dni_m09: p.dni_m09 ?? null, dni_m10: p.dni_m10 ?? null, dni_m11: p.dni_m11 ?? null, dni_m12: p.dni_m12 ?? null,
-          unit: p.unit,
-          plane: p.plane,
+          unit: p.unit, plane: p.plane,
         }));
 
         let success = false;
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
           const { data, error } = await supabase.functions.invoke("irradiance-import", {
-            body: { action: "batch", version_id: processingVersion.id, rows: chunkRows },
+            body: { action: "batch", version_id: versionId, rows: chunkRows },
           });
           if (!error && data?.success) { success = true; break; }
           const errMsg = error?.message || data?.error || "Erro desconhecido";
@@ -171,47 +201,57 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
             await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
           } else {
             log("error", `Chunk ${i + 1} falhou após ${MAX_RETRIES} tentativas: ${errMsg}`);
+            // Abort version
+            await supabase.functions.invoke("irradiance-import", {
+              body: { action: "abort", version_id: versionId, error: `Chunk ${i + 1} failed: ${errMsg}` },
+            });
             setState("error");
             return;
           }
         }
 
-        const sent = Math.min((i + 1) * CHUNK_SIZE, points.length);
-        setProgress({ current: sent, total: points.length });
+        const sent = Math.min((i + 1) * CHUNK_SIZE, mergedPoints.length);
+        setProgress({ current: sent, total: mergedPoints.length });
 
-        // Log every 5 chunks or first/last
         if (i % 5 === 0 || i === chunks.length - 1) {
           const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-          const pct = Math.round((sent / points.length) * 100);
-          log("info", `${pct}% — ${sent.toLocaleString("pt-BR")}/${points.length.toLocaleString("pt-BR")} pontos (${elapsed}s)`);
+          const pct = Math.round((sent / mergedPoints.length) * 100);
+          log("info", `${pct}% — ${sent.toLocaleString("pt-BR")}/${mergedPoints.length.toLocaleString("pt-BR")} pontos (${elapsed}s)`);
         }
 
-        // Yield to UI thread
         await new Promise(r => setTimeout(r, YIELD_MS));
       }
 
-      // Finalize version
+      // 2c. Finalize version
       log("info", "Finalizando versão...");
       await supabase.functions.invoke("irradiance-import", {
         body: {
           action: "finalize",
-          version_id: processingVersion.id,
-          dataset_id: processingVersion.dataset_id,
-          row_count: points.length,
+          version_id: versionId,
+          dataset_id: datasetId,
+          row_count: mergedPoints.length,
           has_dhi: !!dhiFile,
           has_dni: !!dniFile,
         },
       });
 
       const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
-      log("success", `✅ ${points.length.toLocaleString("pt-BR")} pontos importados em ${totalTime}s!`);
+      log("success", `✅ ${mergedPoints.length.toLocaleString("pt-BR")} pontos importados em ${totalTime}s!`);
       setState("done");
-      toast.success("Importação concluída!", { description: `${points.length.toLocaleString("pt-BR")} pontos em ${totalTime}s.` });
+      toast.success("Importação concluída!", { description: `${mergedPoints.length.toLocaleString("pt-BR")} pontos em ${totalTime}s.` });
       onReload();
     } catch (e: any) {
       log("error", `Erro: ${e.message}`);
       setState("error");
     }
+  };
+
+  const handleReset = () => {
+    setState("idle");
+    setLogs([]);
+    setValidation(null);
+    setMergedPoints([]);
+    setProgress({ current: 0, total: 0 });
   };
 
   const progressPct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
@@ -229,9 +269,10 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
         Importar dados via CSV
       </p>
       <p className="text-[10px] text-muted-foreground -mt-1">
-        Selecione o arquivo GHI (obrigatório). DHI e DNI são opcionais para maior precisão.
+        Selecione o arquivo GHI (obrigatório). DHI e DNI são opcionais. O sistema valida os dados antes de enviar.
       </p>
 
+      {/* File inputs */}
       <div className="grid grid-cols-3 gap-3">
         {fileConfigs.map(({ key, setter }) => {
           const hint = FILE_HINTS[key];
@@ -252,7 +293,7 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
                 onChange={e => {
                   const file = e.target.files?.[0] || null;
                   setter(file);
-                  setState("idle");
+                  if (state !== "uploading") setState("idle");
                 }}
                 className="h-7 text-[10px] file:text-[10px]"
                 disabled={state === "uploading"}
@@ -262,6 +303,53 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
         })}
       </div>
 
+      {/* Validation summary card */}
+      {validation && state === "validated" && (
+        <div className="rounded-lg border border-success/30 bg-success/5 p-3 space-y-2">
+          <div className="flex items-center gap-2 text-xs font-medium text-success">
+            <CheckCircle2 className="h-4 w-4" />
+            Dados validados — prontos para importar
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-[10px]">
+            <div>
+              <span className="text-muted-foreground">GHI:</span>{" "}
+              <span className="font-semibold">{validation.ghiCount.toLocaleString("pt-BR")} pts</span>
+            </div>
+            {validation.dhiCount > 0 && (
+              <div>
+                <span className="text-muted-foreground">DHI:</span>{" "}
+                <span className="font-semibold">{validation.dhiCount.toLocaleString("pt-BR")} pts</span>
+              </div>
+            )}
+            {validation.dniCount > 0 && (
+              <div>
+                <span className="text-muted-foreground">DNI:</span>{" "}
+                <span className="font-semibold">{validation.dniCount.toLocaleString("pt-BR")} pts</span>
+              </div>
+            )}
+            <div>
+              <span className="text-muted-foreground">Total mesclado:</span>{" "}
+              <span className="font-semibold text-primary">{validation.mergedCount.toLocaleString("pt-BR")} pts</span>
+            </div>
+          </div>
+          {validation.skippedRows > 0 && (
+            <p className="text-[10px] text-warning">
+              ⚠️ {validation.skippedRows} linhas ignoradas
+            </p>
+          )}
+          {validation.samplePoints.length > 0 && (
+            <div className="text-[10px] text-muted-foreground font-mono">
+              Amostra: {validation.samplePoints.slice(0, 2).map((p, i) => (
+                <span key={i}>
+                  ({p.lat.toFixed(2)}, {p.lon.toFixed(2)}) jan={p.jan.toFixed(2)}{i < 1 ? " | " : ""}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Action buttons */}
       <div className="flex items-center gap-2">
         {state === "idle" && ghiFile && (
           <Button size="sm" variant="outline" onClick={handleValidate} className="gap-1.5 text-xs">
@@ -275,31 +363,29 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
             Validando...
           </Button>
         )}
-        {state === "validated" && processingVersion && (
+        {state === "validated" && (
           <Button size="sm" onClick={handleImport} className="gap-1.5 text-xs">
             <Upload className="h-3.5 w-3.5" />
-            Importar pontos
+            Importar {mergedPoints.length.toLocaleString("pt-BR")} pontos
           </Button>
-        )}
-        {state === "validated" && !processingVersion && (
-          <span className="text-[10px] text-warning">⚠️ Crie uma versão primeiro para poder importar</span>
         )}
         {state === "uploading" && (
           <Button size="sm" variant="destructive" onClick={() => { abortRef.current = true; }} className="gap-1.5 text-xs">
-            Cancelar
+            <X className="h-3.5 w-3.5" /> Cancelar
           </Button>
         )}
-        {state === "error" && ghiFile && (
-          <Button size="sm" variant="outline" onClick={() => { setState("idle"); setLogs([]); }} className="gap-1.5 text-xs">
-            Tentar novamente
+        {(state === "error" || state === "done") && (
+          <Button size="sm" variant="outline" onClick={handleReset} className="gap-1.5 text-xs">
+            {state === "done" ? "Nova importação" : "Tentar novamente"}
           </Button>
         )}
-        {!processingVersion && !ghiFile && state === "idle" && (
-          <span className="text-[10px] text-muted-foreground">Crie uma versão primeiro</span>
+        {!ghiFile && state === "idle" && (
+          <span className="text-[10px] text-muted-foreground">Selecione o arquivo GHI para começar</span>
         )}
       </div>
 
-      {(state === "uploading" || state === "done") && (
+      {/* Progress bar */}
+      {(state === "uploading" || state === "done") && progress.total > 0 && (
         <div className="space-y-1.5">
           <div className="flex items-center justify-between text-xs font-medium">
             <span className="text-muted-foreground">
@@ -316,6 +402,7 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
         </div>
       )}
 
+      {/* Log area */}
       {logs.length > 0 && (
         <ScrollArea className="max-h-48 border border-border/40 rounded p-2 bg-card">
           <div className="space-y-0.5 text-[10px] font-mono">

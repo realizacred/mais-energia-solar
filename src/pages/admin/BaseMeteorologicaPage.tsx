@@ -765,26 +765,13 @@ export function BaseMeteorologicaPage() {
             return (
               <Card key={ds.code} className="rounded-xl">
                 <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Icon className="h-4 w-4 text-primary" />
-                      <CardTitle className="text-sm">{ds.label}</CardTitle>
-                      {active && (
-                        <Badge className="bg-success/10 text-success border-success/30 text-[10px]">
-                          Ativo — {(active.row_count ?? 0).toLocaleString("pt-BR")} pts
-                        </Badge>
-                      )}
-                    </div>
-                    {!processing && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="gap-1.5 text-xs"
-                        onClick={() => handleCreateVersion(ds.code, ds.label)}
-                      >
-                        <Play className="h-3.5 w-3.5" />
-                        {active ? "Nova versão" : "Iniciar importação"}
-                      </Button>
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-sm">{ds.label}</CardTitle>
+                    {active && (
+                      <Badge className="bg-success/10 text-success border-success/30 text-[10px]">
+                        Ativo — {(active.row_count ?? 0).toLocaleString("pt-BR")} pts
+                      </Badge>
                     )}
                   </div>
                   <CardDescription className="text-xs">
@@ -792,30 +779,10 @@ export function BaseMeteorologicaPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {/* Processing indicator */}
-                  {processing && (
-                    <div className="flex items-center gap-2 text-xs p-2.5 rounded-lg bg-warning/5 border border-warning/20">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-warning" />
-                      <span className="text-warning font-medium">
-                        Versão em processamento — {processing.version_tag}
-                        {processing.row_count > 0 && ` (${processing.row_count.toLocaleString("pt-BR")} pontos)`}
-                      </span>
-                      {(processing.row_count ?? 0) > 0 && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="ml-auto gap-1 text-xs h-7"
-                          onClick={() => handleActivateVersion(processing.id)}
-                        >
-                          <CheckCircle2 className="h-3 w-3" /> Ativar
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* CSV Import Panel — always visible */}
+                  {/* CSV Import Panel — self-contained (creates version + uploads) */}
                   <CsvImportPanel
-                    processingVersion={processing}
+                    datasetCode={ds.code}
+                    datasetLabel={ds.label}
                     onReload={() => { loadData(); auditReload(); }}
                   />
 
