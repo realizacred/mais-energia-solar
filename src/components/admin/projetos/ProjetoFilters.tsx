@@ -10,7 +10,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ProjetoFunil, ProjetoEtiqueta } from "@/hooks/useProjetoPipeline";
-import { ETIQUETAS, ETIQUETA_GRUPOS, getEtiquetaConfig } from "@/lib/etiquetas";
 import { cn } from "@/lib/utils";
 
 interface ConsultorOption { id: string; nome: string; }
@@ -163,12 +162,15 @@ export function ProjetoFilters({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todas">Todas</SelectItem>
-                {ETIQUETAS.map(et => (
-                  <SelectItem key={et.value} value={et.value}>
-                    <span className={cn("text-[10px] font-bold rounded px-1 py-0.5 border mr-1.5", et.className)}>
-                      {et.short}
+                {etiquetas.map(et => (
+                  <SelectItem key={et.id} value={et.id}>
+                    <span
+                      className="text-[10px] font-bold rounded px-1 py-0.5 border mr-1.5"
+                      style={{ backgroundColor: `${et.cor}20`, color: et.cor, borderColor: `${et.cor}40` }}
+                    >
+                      {et.nome.substring(0, 3).toUpperCase()}
                     </span>
-                    {et.label}
+                    {et.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -205,14 +207,15 @@ export function ProjetoFilters({
       {filterEtiquetas.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {filterEtiquetas.map(etId => {
-            const cfg = getEtiquetaConfig(etId);
-            return cfg ? (
+            const et = etiquetas.find(e => e.id === etId);
+            return et ? (
               <Badge
                 key={etId}
-                className={cn("text-[10px] h-5 px-2 cursor-pointer border", cfg.className)}
+                className="text-[10px] h-5 px-2 cursor-pointer border"
+                style={{ backgroundColor: `${et.cor}20`, color: et.cor, borderColor: `${et.cor}40` }}
                 onClick={() => toggleEtiqueta(etId)}
               >
-                {cfg.label} ×
+                {et.nome} ×
               </Badge>
             ) : null;
           })}

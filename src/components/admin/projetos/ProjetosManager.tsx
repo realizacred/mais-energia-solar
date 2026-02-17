@@ -1,7 +1,7 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers } from "lucide-react";
+import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -15,7 +15,17 @@ import { NovoProjetoModal } from "./NovoProjetoModal";
 import { ProjetoDetalhe } from "./ProjetoDetalhe";
 import { ProjetoKanbanSkeleton } from "./ProjetoKanbanSkeleton";
 import { ProjetoPerformanceDashboard } from "./ProjetoPerformanceDashboard";
+import { EtiquetasManager } from "./EtiquetasManager";
 import { cn } from "@/lib/utils";
+
+interface DynamicEtiqueta {
+  id: string;
+  nome: string;
+  cor: string;
+  grupo: string;
+  short: string | null;
+  icon: string | null;
+}
 
 export function ProjetosManager() {
   const {
@@ -35,6 +45,18 @@ export function ProjetosManager() {
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("kanban");
+  const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
+
+  // Fetch dynamic etiquetas from DB
+  useEffect(() => {
+    supabase
+      .from("projeto_etiquetas")
+      .select("id, nome, cor, grupo, short, icon")
+      .eq("ativo", true)
+      .order("grupo")
+      .order("ordem")
+      .then(({ data }) => { if (data) setDynamicEtiquetas(data as DynamicEtiqueta[]); });
+  }, [activeTab]); // refetch when switching back from etiquetas tab
 
   const handleFilterChange = (key: string, value: any) => {
     if (key === "pipelineId") {
@@ -132,6 +154,10 @@ export function ProjetosManager() {
             <BarChart3 className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Performance</span>
           </TabsTrigger>
+          <TabsTrigger value="etiquetas" className="gap-1.5 text-xs">
+            <Tag className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Etiquetas</span>
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-4 mt-0">
@@ -156,7 +182,7 @@ export function ProjetosManager() {
                   consultores={consultoresFilter}
                   filterStatus={filters.status}
                   onFilterStatusChange={(v) => handleFilterChange("status", v)}
-                  etiquetas={[]}
+                  etiquetas={dynamicEtiquetas.map(e => ({ id: e.id, nome: e.nome, cor: e.cor, tenant_id: "" }))}
                   filterEtiquetas={[]}
                   onFilterEtiquetasChange={() => {}}
                   viewMode={viewMode}
@@ -248,6 +274,10 @@ export function ProjetosManager() {
 
         <TabsContent value="performance" className="mt-0">
           <ProjetoPerformanceDashboard />
+        </TabsContent>
+
+        <TabsContent value="etiquetas" className="mt-0">
+          <EtiquetasManager />
         </TabsContent>
       </Tabs>
     </div>
