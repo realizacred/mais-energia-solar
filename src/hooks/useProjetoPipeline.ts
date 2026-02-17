@@ -272,6 +272,12 @@ export function useProjetoPipeline() {
   }, [toast]);
 
   const toggleFunilAtivo = useCallback(async (id: string, ativo: boolean) => {
+    // Protect the "Comercial" funnel from deactivation
+    const funil = funis.find(f => f.id === id);
+    if (!ativo && funil?.nome?.toLowerCase() === "comercial") {
+      toast({ title: "Funil protegido", description: "O funil 'Comercial' não pode ser desativado.", variant: "destructive" });
+      return;
+    }
     const { error } = await supabase.from("projeto_funis").update({ ativo }).eq("id", id);
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return; }
     setFunis(prev => prev.map(f => f.id === id ? { ...f, ativo } : f));

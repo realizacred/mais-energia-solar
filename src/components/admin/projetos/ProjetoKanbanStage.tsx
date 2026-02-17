@@ -563,8 +563,9 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
         isDragging && "opacity-30 scale-95",
         stagnation === "critical" && "border-l-4 border-l-destructive",
         stagnation === "warning" && "border-l-4 border-l-warning",
-        etiquetaCfg && !stagnation && "border-l-4",
-        !etiquetaCfg && !stagnation && "border-l-4 border-l-primary/40"
+        !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400/70",
+        etiquetaCfg && !stagnation && deal.proposta_id && "border-l-4",
+        !etiquetaCfg && !stagnation && deal.proposta_id && "border-l-4 border-l-primary/40"
       )}
       style={{
         ...(etiquetaCfg && !stagnation ? { borderLeftColor: etiquetaCfg.cor } : {}),
