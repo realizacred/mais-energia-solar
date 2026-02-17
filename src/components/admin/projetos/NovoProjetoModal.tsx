@@ -110,10 +110,21 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
   useEffect(() => {
     if (open) {
       setConsultorId(defaultConsultorId || "");
-      setSelectedPipelineId(defaultPipelineId || pipelines[0]?.id || "");
-      setSelectedStageId(defaultStageId || "");
+      const pid = defaultPipelineId || pipelines[0]?.id || "";
+      setSelectedPipelineId(pid);
+      // Auto-select first stage (e.g. "Prospecção") when no explicit default
+      if (defaultStageId) {
+        setSelectedStageId(defaultStageId);
+      } else if (pid) {
+        const firstStage = stages
+          .filter(s => s.pipeline_id === pid)
+          .sort((a, b) => a.position - b.position)[0];
+        setSelectedStageId(firstStage?.id || "");
+      } else {
+        setSelectedStageId("");
+      }
     }
-  }, [open, defaultConsultorId, defaultPipelineId, defaultStageId, pipelines]);
+  }, [open, defaultConsultorId, defaultPipelineId, defaultStageId, pipelines, stages]);
 
   const filteredStages = useMemo(() => {
     if (!selectedPipelineId) return [];
@@ -259,7 +270,13 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                     label="Funil"
                     icon={<Layers className="h-4 w-4" />}
                     value={selectedPipelineId}
-                    onValueChange={(v) => { setSelectedPipelineId(v); setSelectedStageId(""); }}
+                    onValueChange={(v) => {
+                      setSelectedPipelineId(v);
+                      const firstStage = stages
+                        .filter(s => s.pipeline_id === v)
+                        .sort((a, b) => a.position - b.position)[0];
+                      setSelectedStageId(firstStage?.id || "");
+                    }}
                     options={pipelines.map(p => ({ value: p.id, label: p.name }))}
                     placeholder="Selecione o funil"
                   />
