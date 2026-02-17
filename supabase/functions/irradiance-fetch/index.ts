@@ -116,7 +116,8 @@ Deno.serve(async (req) => {
         .single();
 
       if (!existingVersion || existingVersion.status !== "processing") {
-        return err(`Version ${append_to_version} not found or not in processing state`);
+        console.log(`[IRRADIANCE_FETCH] Version ${append_to_version} is ${existingVersion?.status ?? 'missing'} — stopping chain.`);
+        return ok({ success: false, error: "ABORTED", message: "Versão não está mais em processamento (cancelada ou falhou)." });
       }
       versionId = existingVersion.id;
     } else {
