@@ -10,10 +10,14 @@ import { Plus, Trash2, Save, Loader2, Variable, Copy } from "lucide-react";
 
 interface VarRow {
   id: string;
-  chave: string;
+  nome: string;
   label: string;
-  valor_padrao: string;
+  expressao: string;
+  tipo_resultado: string;
   categoria: string;
+  ordem: number;
+  ativo: boolean;
+  descricao: string | null;
   isNew?: boolean;
 }
 
@@ -28,8 +32,8 @@ export function VariaveisTab() {
     setLoading(true);
     const { data, error } = await supabase
       .from("proposta_variaveis_custom")
-      .select("id, chave, label, valor_padrao, categoria")
-      .order("categoria", { ascending: true });
+      .select("id, nome, label, expressao, tipo_resultado, categoria, ordem, ativo, descricao")
+      .order("ordem", { ascending: true });
     if (error) toast({ title: "Erro", description: error.message, variant: "destructive" });
     setVars((data as unknown as VarRow[]) || []);
     setLoading(false);
@@ -37,22 +41,32 @@ export function VariaveisTab() {
 
   function addVar() {
     setVars([...vars, {
-      id: crypto.randomUUID(), chave: "", label: "", valor_padrao: "", categoria: "geral", isNew: true,
+      id: crypto.randomUUID(),
+      nome: "vc_",
+      label: "",
+      expressao: "",
+      tipo_resultado: "number",
+      categoria: "geral",
+      ordem: vars.length,
+      ativo: true,
+      descricao: null,
+      isNew: true,
     }]);
   }
 
   function removeVar(idx: number) { setVars(vars.filter((_, i) => i !== idx)); }
 
-  function updateVar(idx: number, key: keyof VarRow, value: string) {
+  function updateVar(idx: number, key: keyof VarRow, value: string | boolean | number) {
     const updated = [...vars];
     updated[idx] = { ...updated[idx], [key]: value };
-    // Auto-generate chave from label
-    if (key === "label" && (updated[idx].isNew || !updated[idx].chave)) {
-      updated[idx].chave = value
+    // Auto-generate nome from label for new vars
+    if (key === "label" && updated[idx].isNew && typeof value === "string") {
+      const generated = "vc_" + value
         .toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]+/g, "_")
         .replace(/^_|_$/g, "");
+      updated[idx].nome = generated;
     }
     setVars(updated);
   }
@@ -61,8 +75,18 @@ export function VariaveisTab() {
     setSaving(true);
     try {
       for (const v of vars) {
-        if (!v.chave || !v.label) continue;
-        const { isNew, id, ...payload } = v;
+        if (!v.nome || !v.label) continue;
+        const { isNew, id, ...rest } = v;
+        const payload = {
+          nome: rest.nome,
+          label: rest.label,
+          expressao: rest.expressao,
+          tipo_resultado: rest.tipo_resultado,
+          categoria: rest.categoria,
+          ordem: rest.ordem,
+          ativo: rest.ativo,
+          descricao: rest.descricao,
+        };
         if (isNew) {
           const { error } = await supabase.from("proposta_variaveis_custom").insert(payload as any);
           if (error) throw error;
@@ -79,9 +103,9 @@ export function VariaveisTab() {
     setSaving(false);
   }
 
-  function copyKey(chave: string) {
-    navigator.clipboard.writeText(`[${chave}]`);
-    toast({ title: `[${chave}] copiado!` });
+  function copyKey(nome: string) {
+    navigator.clipboard.writeText(`{{customizada.${nome}}}`);
+    toast({ title: `{{customizada.${nome}}} copiado!` });
   }
 
   if (loading) {
@@ -101,7 +125,7 @@ export function VariaveisTab() {
       </CardHeader>
       <CardContent>
         <p className="text-xs text-muted-foreground mb-4">
-          Defina variáveis personalizadas para usar nos templates de proposta. Use <code className="text-primary">[chave]</code> no template.
+          Defina variáveis personalizadas para usar nos templates de proposta. Use <code className="text-primary">{"{{customizada.nome}}"}</code> no template.
         </p>
         {vars.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-8">
@@ -110,25 +134,28 @@ export function VariaveisTab() {
         ) : (
           <div className="space-y-2">
             {vars.map((v, i) => (
-              <div key={v.id} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto_auto] gap-2 items-end p-3 rounded-lg border border-border/40 bg-card">
+              <div key={v.id} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto_auto_auto] gap-2 items-end p-3 rounded-lg border border-border/40 bg-card">
                 <div className="space-y-1">
                   <Label className="text-[10px] text-muted-foreground">Label</Label>
                   <Input value={v.label} onChange={(e) => updateVar(i, "label", e.target.value)} placeholder="Nome exibido" className="text-sm h-8" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Chave</Label>
+                  <Label className="text-[10px] text-muted-foreground">Nome (vc_*)</Label>
                   <div className="flex items-center gap-1">
-                    <Input value={v.chave} onChange={(e) => updateVar(i, "chave", e.target.value)} placeholder="chave_template" className="text-sm h-8 font-mono text-xs" />
-                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => copyKey(v.chave)}>
+                    <Input value={v.nome} onChange={(e) => updateVar(i, "nome", e.target.value)} placeholder="vc_minha_var" className="text-sm h-8 font-mono text-xs" />
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => copyKey(v.nome)}>
                       <Copy className="h-3 w-3" />
                     </Button>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[10px] text-muted-foreground">Valor padrão</Label>
-                  <Input value={v.valor_padrao} onChange={(e) => updateVar(i, "valor_padrao", e.target.value)} placeholder="Opcional" className="text-sm h-8" />
+                  <Label className="text-[10px] text-muted-foreground">Expressão</Label>
+                  <Input value={v.expressao} onChange={(e) => updateVar(i, "expressao", e.target.value)} placeholder="[economia_anual] / [valor_total] * 100" className="text-sm h-8 font-mono text-xs" />
                 </div>
-                <Badge variant="outline" className="h-8 text-[10px] shrink-0">{v.categoria}</Badge>
+                <Badge variant={v.ativo ? "outline" : "destructive"} className="h-8 text-[10px] shrink-0">
+                  {v.ativo ? v.categoria : "Inativo"}
+                </Badge>
+                <Badge variant="outline" className="h-8 text-[10px] shrink-0">{v.tipo_resultado}</Badge>
                 <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 shrink-0" onClick={() => removeVar(i)}>
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
