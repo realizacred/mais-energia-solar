@@ -1,4 +1,4 @@
-import { Search, X, Filter, LayoutGrid, Columns3, Users, Layers } from "lucide-react";
+import { Search, X, LayoutGrid, Users, Layers, Tag } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "open", label: "Aberto" },
   { value: "won", label: "Ganho" },
   { value: "lost", label: "Perdido" },
-  { value: "archived", label: "Arquivado" },
+  { value: "archived", label: "Excluído" },
 ];
 
 export function ProjetoFilters({
@@ -108,7 +108,7 @@ export function ProjetoFilters({
           {/* Funil */}
           <Select value={filterFunil} onValueChange={onFilterFunilChange}>
             <SelectTrigger className="w-[140px] h-8 text-xs border-border/60 bg-card">
-              <Filter className="h-3 w-3 mr-1 text-muted-foreground" />
+              <Layers className="h-3 w-3 mr-1 text-muted-foreground" />
               <SelectValue placeholder="Funil" />
             </SelectTrigger>
             <SelectContent>
@@ -119,13 +119,14 @@ export function ProjetoFilters({
             </SelectContent>
           </Select>
 
-          {/* Responsável */}
+          {/* Consultor */}
           <Select value={filterConsultor} onValueChange={onFilterConsultorChange}>
             <SelectTrigger className="w-[140px] h-8 text-xs border-border/60 bg-card">
-              <SelectValue placeholder="Responsável" />
+              <Users className="h-3 w-3 mr-1 text-muted-foreground" />
+              <SelectValue placeholder="Consultor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
+              <SelectItem value="todos">Todos os consultores</SelectItem>
               {consultores.map(c => (
                 <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
               ))}
@@ -147,7 +148,8 @@ export function ProjetoFilters({
           {/* Etiquetas */}
           {etiquetas.length > 0 && (
             <Select value="todas" onValueChange={() => {}}>
-              <SelectTrigger className="w-[120px] h-8 text-xs border-border/60 bg-card">
+              <SelectTrigger className="w-[130px] h-8 text-xs border-border/60 bg-card">
+                <Tag className="h-3 w-3 mr-1 text-muted-foreground" />
                 <SelectValue placeholder="Etiquetas" />
               </SelectTrigger>
               <SelectContent>

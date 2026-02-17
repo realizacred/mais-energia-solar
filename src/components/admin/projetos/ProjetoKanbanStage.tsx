@@ -2,7 +2,7 @@ import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User, ChevronDown } from "lucide-react";
+import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User, ChevronDown, DollarSign } from "lucide-react";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -48,10 +48,8 @@ interface Props {
   onNewProject?: () => void;
 }
 
-// formatBRL imported at file top from @/lib/formatters
-
 const formatKwp = (v: number) => {
-  if (!v) return "- kWp";
+  if (!v) return "0 kWp";
   return `${v.toFixed(1).replace(".", ",")} kWp`;
 };
 
@@ -84,12 +82,6 @@ function getTimeInStage(lastChange: string) {
   return `${days}d`;
 }
 
-function getDelayDays(lastChange: string): number | null {
-  const days = differenceInDays(new Date(), new Date(lastChange));
-  // Consider > 7 days as "delayed"
-  return days > 7 ? days : null;
-}
-
 function getStagnationLevel(lastChange: string) {
   const hours = differenceInHours(new Date(), new Date(lastChange));
   if (hours >= 168) return "critical"; // 7d
@@ -104,76 +96,6 @@ function getInitials(name: string) {
     .slice(0, 2)
     .map(w => w[0]?.toUpperCase())
     .join("");
-}
-
-// ── Arrow Progress Bar ─────────────────────────────────
-function ArrowProgressBar({ stages, dealCounts, dealKwpByStage }: { stages: PipelineStage[]; dealCounts: Map<string, number>; dealKwpByStage: Map<string, number> }) {
-  const sorted = [...stages].sort((a, b) => a.position - b.position);
-  return (
-    <div className="flex items-stretch w-full mb-3 overflow-x-auto">
-      {sorted.map((stage, i) => {
-        const count = dealCounts.get(stage.id) || 0;
-        const kwp = dealKwpByStage.get(stage.id) || 0;
-        const isFirst = i === 0;
-        const isLast = i === sorted.length - 1;
-        const isWon = stage.is_won;
-        const isClosed = stage.is_closed && !stage.is_won;
-
-        return (
-          <div
-            key={stage.id}
-            className={cn(
-              "relative flex flex-col items-center justify-center px-4 py-1.5 text-[10px] font-semibold min-w-0 flex-1",
-              isFirst && "rounded-l-md",
-              isLast && "rounded-r-md",
-              isWon
-                ? "bg-success/15 text-success"
-                : isClosed
-                  ? "bg-destructive/10 text-destructive"
-                  : count > 0
-                    ? "bg-primary/10 text-primary"
-                    : "bg-muted/60 text-muted-foreground"
-            )}
-          >
-            {/* Arrow separator */}
-            {!isFirst && (
-              <div
-                className="absolute left-0 top-0 bottom-0 w-0 h-0"
-                style={{
-                  borderTop: "18px solid transparent",
-                  borderBottom: "18px solid transparent",
-                  borderLeft: "8px solid hsl(var(--background))",
-                  marginLeft: "-1px",
-                }}
-              />
-            )}
-            <span className="truncate leading-tight">{stage.name}</span>
-            <div className="flex items-center gap-1.5">
-              {count > 0 && (
-                <span className="text-[9px] font-mono opacity-80">({count})</span>
-              )}
-              {kwp > 0 && (
-                <span className="text-[8px] font-mono opacity-60">{kwp.toFixed(1).replace(".", ",")} kWp</span>
-              )}
-            </div>
-            {/* Arrow tip */}
-            {!isLast && (
-              <div
-                className="absolute right-0 top-0 bottom-0 w-0 h-0 z-10"
-                style={{
-                  borderTop: "18px solid transparent",
-                  borderBottom: "18px solid transparent",
-                  borderLeft: `8px solid currentColor`,
-                  opacity: 0.15,
-                  marginRight: "-8px",
-                }}
-              />
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject }: Props) {
@@ -235,6 +157,12 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
     return map;
   }, [deals]);
 
+  const dealValueByStage = useMemo(() => {
+    const map = new Map<string, number>();
+    deals.forEach(d => map.set(d.stage_id, (map.get(d.stage_id) || 0) + (d.deal_value || 0)));
+    return map;
+  }, [deals]);
+
   const getStageNameById = (id: string | null) => stages.find(s => s.id === id)?.name || "—";
 
   const handleDragStart = (e: React.DragEvent, dealId: string) => {
@@ -267,10 +195,6 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
   if (isMobile) {
     return (
       <>
-        <div className="px-1">
-          <ArrowProgressBar stages={sortedStages} dealCounts={dealCountsByStage} dealKwpByStage={dealKwpByStage} />
-        </div>
-
         <div className="space-y-2 px-1">
           {sortedStages.map(stage => {
             const stageDeals = deals.filter(d => d.stage_id === stage.id);
@@ -278,20 +202,17 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
             const totalKwp = stageDeals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
             const stageAutomations = automationsByStage.get(stage.id) || [];
             const hasActiveAutomation = stageAutomations.length > 0;
-            const permission = stagePermissions.get(stage.id);
-            const hasRestriction = permission && permission !== "todos";
 
             return (
               <Collapsible key={stage.id} defaultOpen={stageDeals.length > 0}>
                 <CollapsibleTrigger asChild>
-                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border/60 bg-card hover:bg-muted/30 transition-colors">
                     <div className="flex items-center gap-2 min-w-0">
                       <h3 className="text-sm font-bold text-foreground truncate">{stage.name}</h3>
                       <Badge variant="outline" className="text-[10px] h-5 font-semibold rounded-lg">
                         {stageDeals.length}
                       </Badge>
                       {hasActiveAutomation && <Zap className="h-3 w-3 text-primary animate-pulse shrink-0" />}
-                      {hasRestriction && <Lock className="h-3 w-3 text-warning shrink-0" />}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <div className="text-right">
@@ -362,17 +283,13 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
   // ── Desktop Kanban View ──
   return (
     <>
-      {/* Arrow Progress Bar */}
-      <div className="px-1">
-        <ArrowProgressBar stages={sortedStages} dealCounts={dealCountsByStage} dealKwpByStage={dealKwpByStage} />
-      </div>
-
       <ScrollArea className="w-full">
         <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
           {sortedStages.map(stage => {
             const stageDeals = deals.filter(d => d.stage_id === stage.id);
-            const totalValue = stageDeals.reduce((s, d) => s + (d.deal_value || 0), 0);
-            const totalKwp = stageDeals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
+            const totalValue = dealValueByStage.get(stage.id) || 0;
+            const totalKwp = dealKwpByStage.get(stage.id) || 0;
+            const count = dealCountsByStage.get(stage.id) || 0;
             const isOver = dragOverCol === stage.id;
             const stageAutomations = automationsByStage.get(stage.id) || [];
             const hasActiveAutomation = stageAutomations.length > 0;
@@ -383,25 +300,26 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               <div
                 key={stage.id}
                 className={cn(
-                  "w-[290px] flex-shrink-0 rounded-xl border border-border/60 transition-all flex flex-col",
-                  "bg-muted/30",
+                  "w-[280px] flex-shrink-0 rounded-xl border border-border/60 transition-all flex flex-col",
+                  "bg-card",
                   isOver && "ring-2 ring-primary/30 bg-primary/5"
                 )}
+                style={{ boxShadow: "var(--shadow-sm)" }}
                 onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(stage.id); }}
                 onDragLeave={() => setDragOverCol(null)}
                 onDrop={e => handleDrop(e, stage.id)}
               >
-                {/* Column Header */}
-                <div className="px-4 pt-3.5 pb-2.5">
-                  <div className="flex items-center justify-between mb-1.5">
+                {/* ── Column Header ── */}
+                <div className="px-3.5 pt-3 pb-2.5 border-b border-border/40">
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2 min-w-0">
-                      <h3 className="text-sm font-bold text-foreground leading-tight truncate">
+                      <h3 className="text-xs font-bold text-foreground leading-tight truncate uppercase tracking-wide">
                         {stage.name}
                       </h3>
                       {hasActiveAutomation && (
                         <Tooltip>
                           <TooltipTrigger>
-                            <Zap className="h-3.5 w-3.5 text-primary animate-pulse shrink-0" />
+                            <Zap className="h-3 w-3 text-primary animate-pulse shrink-0" />
                           </TooltipTrigger>
                           <TooltipContent className="text-xs">
                             {stageAutomations.length} automação(ões) ativa(s)
@@ -423,8 +341,8 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                     {/* Gear DropdownMenu */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0">
-                          <Settings2 className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0">
+                          <Settings2 className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-52 bg-popover">
@@ -459,30 +377,42 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                     </DropdownMenu>
                   </div>
 
-                  <div className="flex items-center gap-2 text-[11px] text-muted-foreground flex-wrap">
-                    <span className="font-semibold font-mono text-foreground">{formatBRL(totalValue)}</span>
-                    <span className="flex items-center gap-0.5 font-mono">
-                      <Zap className="h-3 w-3 text-warning" />
-                      {formatKwp(totalKwp)}
+                  {/* ── Metrics row: Value + kWp + Count ── */}
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-0.5 font-bold text-foreground text-[11px] font-mono">
+                      <DollarSign className="h-3 w-3 text-success" />
+                      {formatBRL(totalValue)}
                     </span>
-                    <span>{stageDeals.length} projeto{stageDeals.length !== 1 ? "s" : ""}</span>
+                    {totalKwp > 0 && (
+                      <span className="flex items-center gap-0.5 font-mono font-medium">
+                        <Zap className="h-3 w-3 text-warning" />
+                        {formatKwp(totalKwp)}
+                      </span>
+                    )}
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-semibold ml-auto rounded-md">
+                      {count}
+                    </Badge>
                   </div>
                 </div>
 
-                {/* New Project Button */}
-                <div className="px-3 pb-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
+                {/* ── New Project Button ── */}
+                <div className="px-3 py-2">
+                  <button
                     onClick={() => onNewProject?.()}
+                    className={cn(
+                      "w-full h-8 rounded-lg border-2 border-dashed border-primary/30",
+                      "flex items-center justify-center gap-1.5",
+                      "text-[11px] font-medium text-primary/70",
+                      "hover:border-primary/50 hover:text-primary hover:bg-primary/5",
+                      "transition-all duration-200"
+                    )}
                   >
-                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    <Plus className="h-3.5 w-3.5" />
                     Novo projeto
-                  </Button>
+                  </button>
                 </div>
 
-                {/* Cards */}
+                {/* ── Cards ── */}
                 <div className="px-3 pb-2 min-h-[80px] space-y-2 flex-1">
                   {stageDeals.length === 0 && (
                     <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
@@ -563,7 +493,6 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
   const propostaInfo = deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
   const timeInStage = getTimeInStage(deal.last_stage_change);
   const stagnation = getStagnationLevel(deal.last_stage_change);
-  const delayDays = getDelayDays(deal.last_stage_change);
 
   const handleSendWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -586,28 +515,25 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "bg-card rounded-lg border-l-[3px] border border-border/40 p-2.5 cursor-grab active:cursor-grabbing",
-        "hover:shadow-md transition-all duration-150 relative group",
-        "border-l-primary",
+        "bg-card rounded-xl border border-border/50 p-3 cursor-grab active:cursor-grabbing",
+        "hover:shadow-md hover:border-primary/30 transition-all duration-150 relative group",
         isInactive && "opacity-50",
         isDragging && "opacity-30 scale-95",
-        stagnation === "critical" && "ring-1 ring-destructive/30",
-        stagnation === "warning" && "ring-1 ring-warning/30"
+        stagnation === "critical" && "border-l-[3px] border-l-destructive",
+        stagnation === "warning" && "border-l-[3px] border-l-warning",
+        !stagnation && "border-l-[3px] border-l-primary/40"
       )}
       style={{ boxShadow: "0 1px 3px hsl(var(--foreground) / 0.04)" }}
     >
-      {/* Row 1: Name + Owner Avatar */}
+      {/* Row 1: Client name (prominent) */}
       <div className="flex items-start justify-between gap-1.5 mb-1.5">
         <p className={cn(
-          "text-[12px] font-semibold leading-snug line-clamp-1 flex-1",
+          "text-[13px] font-bold leading-snug line-clamp-1 flex-1",
           isInactive ? "text-muted-foreground" : "text-foreground"
         )}>
           {deal.customer_name || deal.deal_title || "Sem nome"}
         </p>
         <div className="flex items-center gap-1 shrink-0">
-          {hasAutomation && stagnation && (
-            <Zap className="h-3 w-3 text-primary animate-pulse" />
-          )}
           {propostaInfo && (
             <Badge className={cn("text-[8px] h-4 px-1 font-semibold", propostaInfo.className)}>
               {propostaInfo.label}
@@ -621,29 +547,23 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
         </div>
       </div>
 
-      {/* Row 2: Technical badges */}
-      <div className="flex items-center gap-1 flex-wrap mb-1.5">
-        {deal.deal_kwp > 0 && (
-          <span className="inline-flex items-center gap-0.5 text-[9px] font-mono bg-secondary/10 text-secondary-foreground rounded px-1 py-0.5">
-            <Zap className="h-2.5 w-2.5 text-warning" />
-            {deal.deal_kwp.toFixed(2).replace(".", ",")} kWp
-          </span>
-        )}
-        {deal.proposta_economia_mensal && deal.proposta_economia_mensal > 0 && (
-          <span className="inline-flex items-center gap-0.5 text-[9px] font-mono bg-success/10 text-success rounded px-1 py-0.5">
-            <TrendingDown className="h-2.5 w-2.5" />
-            R$ {deal.proposta_economia_mensal.toFixed(0)}/mês
-          </span>
-        )}
+      {/* Row 2: Value (green) + kWp */}
+      <div className="flex items-center gap-2 mb-1.5">
         {deal.deal_value > 0 && (
-          <span className="text-[10px] font-bold font-mono text-primary">
+          <span className="text-[12px] font-bold font-mono text-success">
             {formatBRL(deal.deal_value)}
+          </span>
+        )}
+        {deal.deal_kwp > 0 && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-mono text-muted-foreground">
+            <Zap className="h-2.5 w-2.5 text-warning" />
+            {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
           </span>
         )}
       </div>
 
-      {/* Row 3: Owner avatar + time in stage */}
-      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
+      {/* Row 3: Consultor + Time in stage */}
+      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -658,27 +578,20 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
               {deal.owner_name}
             </TooltipContent>
           </Tooltip>
-          <span className="truncate max-w-[100px]">{deal.owner_name}</span>
+          <span className="truncate max-w-[80px]">{deal.owner_name}</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className={cn(
-            "flex items-center gap-0.5",
-            stagnation === "critical" && "text-destructive font-semibold",
-            stagnation === "warning" && "text-warning font-semibold"
-          )}>
-            <Clock className="h-2.5 w-2.5" />
-            {timeInStage} na etapa
-          </span>
-          {delayDays && (
-            <Badge variant="outline" className="text-[8px] h-4 px-1 font-mono font-bold bg-destructive/10 text-destructive border-destructive/20">
-              -{delayDays}d
-            </Badge>
-          )}
-        </div>
+        <span className={cn(
+          "flex items-center gap-0.5 font-medium",
+          stagnation === "critical" && "text-destructive font-bold",
+          stagnation === "warning" && "text-warning font-bold"
+        )}>
+          <Clock className="h-2.5 w-2.5" />
+          {timeInStage} na etapa
+        </span>
       </div>
 
       {/* Row 4: Quick actions (hover) */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 mt-1.5 pt-1.5 border-t border-border/30">
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
