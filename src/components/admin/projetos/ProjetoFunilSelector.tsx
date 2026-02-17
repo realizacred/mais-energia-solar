@@ -155,14 +155,18 @@ export function ProjetoFunilSelector({
                         Mover para direita
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onToggleAtivo(funil.id, false)}
-                      className="text-destructive focus:text-destructive"
-                    >
-                      <EyeOff className="h-3.5 w-3.5 mr-2" />
-                      Desativar
-                    </DropdownMenuItem>
+                    {funil.nome.toLowerCase() !== "comercial" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => onToggleAtivo(funil.id, false)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <EyeOff className="h-3.5 w-3.5 mr-2" />
+                          Desativar
+                        </DropdownMenuItem>
+                      </>
+                    )}
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}

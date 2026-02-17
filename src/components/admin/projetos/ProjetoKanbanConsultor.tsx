@@ -253,7 +253,8 @@ function OwnerDealCard({
         "hover:shadow-md hover:-translate-y-[1px] transition-all duration-150",
         isDragging && "opacity-40 scale-95",
         stagnation === "critical" && "border-l-4 border-l-destructive",
-        stagnation === "warning" && "border-l-4 border-l-warning"
+        stagnation === "warning" && "border-l-4 border-l-warning",
+        !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400/70"
       )}
     >
       {/* Etiqueta + Stage */}
