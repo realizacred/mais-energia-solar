@@ -252,7 +252,7 @@ export function ProjetosManager() {
                 deals={deals}
                 onMoveToStage={moveDealToStage}
                 onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
-                onNewProject={(consultorId?: string) => { setDefaultConsultorId(consultorId); setNovoProjetoOpen(true); }}
+                onNewProject={(consultorId?: string) => { setDefaultConsultorId(consultorId || (filters.ownerId !== "todos" ? filters.ownerId : undefined)); setNovoProjetoOpen(true); }}
                 dynamicEtiquetas={dynamicEtiquetas}
               />
             ) : (
