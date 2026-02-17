@@ -294,47 +294,42 @@ Deno.serve(async (req) => {
       );
     }
 
-    // ── AUDIT: successful lead creation ──
-    await logSecurityEvent("LEAD_CREATED_PUBLIC", true, vendedor_codigo, tenantId, {
+    // ── AUDIT: successful lead creation (non-blocking) ──
+    logSecurityEvent("LEAD_CREATED_PUBLIC", true, vendedor_codigo, tenantId, {
       lead_id: leadId!,
       is_new: isNewLead,
-    });
+    }).catch((e) => console.warn("[audit] non-critical:", e));
 
     console.log(`[public-create-lead] ✅ lead=${leadId} orcamento=${orcamentoId} isNew=${isNewLead}`);
 
-    // ── FIRE-AND-FORGET: send-wa-welcome ──
-    let waResult: { success?: boolean; conversation_id?: string; skipped?: boolean } | null = null;
-
+    // ── FIRE-AND-FORGET: send-wa-welcome (truly non-blocking) ──
     if (!skip_wa) {
-      try {
-        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-        const waRes = await fetch(`${supabaseUrl}/functions/v1/send-wa-welcome`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${serviceRoleKey}`,
-          },
-          body: JSON.stringify({ lead_id: leadId! }),
-        });
-
-        waResult = await waRes.json().catch(() => null);
-        console.log(`[public-create-lead] WA welcome result:`, JSON.stringify(waResult));
-      } catch (waErr) {
-        console.warn("[public-create-lead] WA welcome error (non-blocking):", waErr);
-      }
+      fetch(`${supabaseUrl}/functions/v1/send-wa-welcome`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${serviceRoleKey}`,
+        },
+        body: JSON.stringify({ lead_id: leadId! }),
+      })
+        .then((r) => r.json().catch(() => null))
+        .then((result) => console.log(`[public-create-lead] WA welcome result:`, JSON.stringify(result)))
+        .catch((waErr) => console.warn("[public-create-lead] WA welcome error (non-blocking):", waErr));
     }
 
+    // ── RETURN IMMEDIATELY — no waiting for WA ──
     return new Response(
       JSON.stringify({
         success: true,
         lead_id: leadId!,
         orcamento_id: orcamentoId,
         is_new_lead: isNewLead,
-        wa_sent: waResult?.success || false,
-        wa_conversation_id: waResult?.conversation_id || null,
-        wa_skipped: waResult?.skipped || skip_wa || false,
+        wa_sent: !skip_wa, // optimistic — WA is being sent in background
+        wa_conversation_id: null,
+        wa_skipped: skip_wa || false,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
