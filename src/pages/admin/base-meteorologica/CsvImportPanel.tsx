@@ -273,19 +273,19 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
           <Info className="h-3.5 w-3.5 shrink-0" />
           Quais arquivos preciso?
         </p>
-        <ul className="text-[10px] text-muted-foreground space-y-0.5 ml-5 list-disc">
+        <ul className="text-[10px] text-muted-foreground space-y-1 ml-5 list-disc">
           <li>
-            <strong className="text-foreground">GHI</strong> (Irradiância Global Horizontal) — <strong className="text-primary">obrigatório</strong>. É o dado principal usado para calcular a geração de energia em painéis fixos. Representa a radiação total que chega ao plano horizontal.
+            <strong className="text-foreground">GHI</strong> (Irradiância Global Horizontal) — <strong className="text-primary">obrigatório</strong>. Radiação total que chega a uma superfície plana. É o dado principal para calcular a geração em painéis instalados em telhados (que não se movem). Funciona bem para inclinações típicas de 10° a 25°.
           </li>
           <li>
-            <strong className="text-foreground">DHI</strong> (Irradiância Difusa Horizontal) — <em>opcional</em>. Componente da radiação espalhada pela atmosfera. Útil para cálculos em superfícies inclinadas e dias nublados.
+            <strong className="text-foreground">DHI</strong> (Irradiância Difusa Horizontal) — <em>opcional</em>. Radiação espalhada pela atmosfera (luz indireta, céu nublado). Com DHI + DNI, o sistema pode calcular com mais precisão a geração em telhados com inclinações atípicas ou orientações desfavoráveis.
           </li>
           <li>
-            <strong className="text-foreground">DNI</strong> (Irradiância Normal Direta) — <em>opcional</em>. Radiação direta do sol. Essencial para rastreadores solares e concentradores (CSP).
+            <strong className="text-foreground">DNI</strong> (Irradiância Normal Direta) — <em>opcional</em>. Raio direto do sol. Usado junto com DHI para decompor a radiação em superfícies inclinadas. Também essencial para rastreadores solares (estruturas motorizadas que giram seguindo o sol).
           </li>
         </ul>
         <p className="text-[9px] text-muted-foreground/70 ml-5">
-          💡 Para sistemas fotovoltaicos fixos, <strong>apenas o GHI é suficiente</strong>. DHI e DNI melhoram a precisão em projetos avançados.
+          💡 <strong>Resumo:</strong> Para 90% dos projetos residenciais/comerciais (painéis fixos no telhado), <strong>apenas o GHI é suficiente</strong>. DHI e DNI aumentam a precisão para inclinações fora do comum ou projetos com rastreadores.
         </p>
       </div>
 
