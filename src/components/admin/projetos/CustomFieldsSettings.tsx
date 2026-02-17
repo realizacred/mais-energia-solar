@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useMotivosPerda } from "@/hooks/useDistribution";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,6 @@ export function CustomFieldsSettings() {
   const [activeTab, setActiveTab] = useState("campos");
   const [fields, setFields] = useState<CustomField[]>([]);
   const [activityTypes, setActivityTypes] = useState<ActivityType[]>([]);
-  const [motivos, setMotivos] = useState<MotivoPerda[]>([]);
   const [loading, setLoading] = useState(true);
   const [fieldDialogOpen, setFieldDialogOpen] = useState(false);
   const [editingField, setEditingField] = useState<CustomField | null>(null);
@@ -82,17 +82,18 @@ export function CustomFieldsSettings() {
   const [saving, setSaving] = useState(false);
   const [contextFilter, setContextFilter] = useState("projeto");
 
+  // ─── Use canonical hook for motivos_perda (SSOT) ───
+  const { motivos, loading: motivosLoading, upsert: upsertMotivo, remove: removeMotivo } = useMotivosPerda();
+
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [fieldsRes, actTypesRes, motivosRes] = await Promise.all([
+      const [fieldsRes, actTypesRes] = await Promise.all([
         supabase.from("deal_custom_fields").select("*").order("ordem"),
         supabase.from("deal_activity_types").select("*").order("ordem"),
-        supabase.from("motivos_perda").select("*").order("ordem"),
       ]);
       if (fieldsRes.data) setFields(fieldsRes.data as any);
       if (actTypesRes.data) setActivityTypes(actTypesRes.data as any);
-      if (motivosRes.data) setMotivos(motivosRes.data as any);
     } catch (err: any) {
       toast({ title: "Erro ao carregar", description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
@@ -207,7 +208,7 @@ export function CustomFieldsSettings() {
     }
   };
 
-  // ─── Motivos Perda CRUD ───
+  // ─── Motivos Perda — delegates to useMotivosPerda hook (SSOT) ───
   const [motivoForm, setMotivoForm] = useState({ nome: "" });
 
   const openMotivoDialog = (m?: MotivoPerda) => {
@@ -225,34 +226,19 @@ export function CustomFieldsSettings() {
     if (!motivoForm.nome.trim()) return;
     setSaving(true);
     try {
-      const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
-      if (editingMotivo) {
-        await supabase.from("motivos_perda").update({ nome: motivoForm.nome }).eq("id", editingMotivo.id);
-        toast({ title: "Motivo atualizado" });
-      } else {
-        await supabase.from("motivos_perda").insert({ nome: motivoForm.nome, tenant_id: (profile as any)?.tenant_id } as any);
-        toast({ title: "Motivo criado" });
-      }
+      await upsertMotivo(editingMotivo ? { id: editingMotivo.id, nome: motivoForm.nome } : { nome: motivoForm.nome });
       setMotivoDialogOpen(false);
-      loadAll();
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    } finally { setSaving(false); }
+    } catch { /* hook already toasts */ }
+    finally { setSaving(false); }
   };
 
   const handleDeleteMotivo = async (id: string) => {
-    try {
-      await supabase.from("motivos_perda").delete().eq("id", id);
-      setMotivos(prev => prev.filter(m => m.id !== id));
-      toast({ title: "Motivo removido" });
-    } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    }
+    removeMotivo(id);
   };
 
   const filteredFields = fields.filter(f => f.field_context === contextFilter);
 
-  if (loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  if (loading || motivosLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
   return (
     <div className="space-y-6">

@@ -6784,6 +6784,8 @@ export type Database = {
           lead_id: string | null
           modelo_inversor: string | null
           modelo_modulos: string | null
+          motivo_perda_id: string | null
+          motivo_perda_obs: string | null
           numero_inversores: number | null
           numero_modulos: number | null
           numero_parcelas: number | null
@@ -6823,6 +6825,8 @@ export type Database = {
           lead_id?: string | null
           modelo_inversor?: string | null
           modelo_modulos?: string | null
+          motivo_perda_id?: string | null
+          motivo_perda_obs?: string | null
           numero_inversores?: number | null
           numero_modulos?: number | null
           numero_parcelas?: number | null
@@ -6862,6 +6866,8 @@ export type Database = {
           lead_id?: string | null
           modelo_inversor?: string | null
           modelo_modulos?: string | null
+          motivo_perda_id?: string | null
+          motivo_perda_obs?: string | null
           numero_inversores?: number | null
           numero_modulos?: number | null
           numero_parcelas?: number | null
@@ -6908,6 +6914,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_motivo_perda_id_fkey"
+            columns: ["motivo_perda_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_perda"
             referencedColumns: ["id"]
           },
           {
