@@ -1,36 +1,28 @@
 /**
  * BaseMeteorologicaPage — Unified admin page for solar irradiance data management.
  * 
- * 4 Tabs:
+ * 3 Tabs:
  * - Visão geral: Dashboard summary cards + provider status
- * - Importação automática (NASA): NASA POWER API sync with event log
  * - Importação manual (Atlas CSV): Triple CSV upload with validation
  * - Auditoria: Integrity checks + lookup tester + purge
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
-import {
-  Database, Globe, Loader2, Sun, Trash2, Zap, ShieldAlert,
+  Database, Globe, Loader2, Sun, Trash2, ShieldAlert,
   CheckCircle2, AlertTriangle, MapPin, BarChart3, Clock, Layers,
-  Search, Info, RefreshCw, Upload, Play, Satellite, FileSpreadsheet,
-  ShieldCheck, Activity,
+  Search, Info, FileSpreadsheet, ShieldCheck,
 } from "lucide-react";
 import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,17 +51,9 @@ const DATASETS: DatasetConfig[] = [
     icon: Globe,
     description: "Grade com resolução de 10km sobre o território brasileiro.",
   },
-  {
-    code: "NASA_POWER_GLOBAL",
-    label: "NASA POWER — Dados Globais",
-    type: "api",
-    icon: Zap,
-    description: "Dados globais de irradiância via API da NASA (cobertura mundial).",
-  },
 ];
 
-const CSV_DATASETS = DATASETS.filter(d => d.type === "csv");
-const API_DATASETS = DATASETS.filter(d => d.type === "api");
+const CSV_DATASETS = DATASETS;
 
 const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -127,12 +111,6 @@ export function BaseMeteorologicaPage() {
   const [purgeConfirm, setPurgeConfirm] = useState("");
   const [purging, setPurging] = useState(false);
 
-  // NASA sync state
-  const [nasaSyncing, setNasaSyncing] = useState(false);
-  const [nasaCancelling, setNasaCancelling] = useState(false);
-  const [nasaLogs, setNasaLogs] = useState<{ ts: number; level: "info" | "warn" | "error" | "success"; msg: string }[]>([]);
-  const [nasaProgress, setNasaProgress] = useState<{ current: number; total: number } | null>(null);
-  const nasaPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadData = useCallback(async () => {
     setLoading(true);
     const [dsRes, verRes] = await Promise.all([
@@ -171,166 +149,7 @@ export function BaseMeteorologicaPage() {
   const getActiveVersion = (code: string) => getVersionsFor(code).find(v => v.status === "active");
   const getProcessingVersion = (code: string) => getVersionsFor(code).find(v => v.status === "processing");
 
-  // Stop polling on unmount
-  useEffect(() => {
-    return () => {
-      if (nasaPollRef.current) clearInterval(nasaPollRef.current);
-    };
-  }, []);
 
-  // Poll NASA progress from version row_count
-  const startNasaPolling = useCallback((versionId: string, addLog: (level: "info" | "warn" | "error" | "success", msg: string) => void) => {
-    if (nasaPollRef.current) clearInterval(nasaPollRef.current);
-    let lastLoggedCount = 0;
-
-    nasaPollRef.current = setInterval(async () => {
-      const { data: ver } = await supabase
-        .from("irradiance_dataset_versions")
-        .select("status, row_count, metadata")
-        .eq("id", versionId)
-        .single();
-
-      if (!ver) return;
-
-      const meta = (ver.metadata ?? {}) as Record<string, any>;
-      const total = meta.total_points_attempted || meta.grid_total_points || 0;
-      const current = ver.row_count ?? 0;
-
-      setNasaProgress({ current, total: total || current });
-
-      if (ver.status === "active" || (ver.status === "processing" && meta.ready_for_activation)) {
-        clearInterval(nasaPollRef.current!);
-        nasaPollRef.current = null;
-        addLog("success", `✅ Concluído! ${current.toLocaleString("pt-BR")} pontos prontos para ativação.`);
-        setNasaSyncing(false);
-        loadData();
-        auditReload();
-      } else if (ver.status === "failed") {
-        clearInterval(nasaPollRef.current!);
-        nasaPollRef.current = null;
-        addLog("error", `❌ Falhou: ${meta.error || "Erro desconhecido"}`);
-        setNasaSyncing(false);
-        setNasaProgress(null);
-        loadData();
-        auditReload();
-      } else if (current > lastLoggedCount) {
-        lastLoggedCount = current;
-        if (total > 0) {
-          const pct = Math.round((current / total) * 100);
-          addLog("info", `${pct}% — ${current.toLocaleString("pt-BR")}/${total.toLocaleString("pt-BR")} pontos`);
-        } else {
-          addLog("info", `${current.toLocaleString("pt-BR")} pontos importados...`);
-        }
-      }
-    }, 5000);
-  }, [loadData, auditReload]);
-
-  // Cancel NASA sync
-  const handleNasaCancel = async () => {
-    setNasaCancelling(true);
-    const addLog = (level: "info" | "warn" | "error" | "success", msg: string) => {
-      setNasaLogs(prev => [...prev, { ts: Date.now(), level, msg }]);
-    };
-
-    try {
-      const nasaDs = API_DATASETS[0];
-      if (!nasaDs) return;
-
-      const processingVer = getProcessingVersion(nasaDs.code);
-      if (!processingVer) {
-        addLog("warn", "Nenhuma importação em andamento para cancelar.");
-        return;
-      }
-
-      addLog("info", "Cancelando importação...");
-
-      const { error } = await supabase.functions.invoke("irradiance-import", {
-        body: { action: "abort", version_id: processingVer.id, error: "Cancelado pelo usuário" },
-      });
-
-      if (error) throw error;
-
-      if (nasaPollRef.current) {
-        clearInterval(nasaPollRef.current);
-        nasaPollRef.current = null;
-      }
-
-      addLog("success", "✅ Importação cancelada. Dados parciais foram removidos.");
-      setNasaSyncing(false);
-      setNasaProgress(null);
-      loadData();
-      auditReload();
-    } catch (e: any) {
-      addLog("error", `Erro ao cancelar: ${e.message}`);
-    } finally {
-      setNasaCancelling(false);
-    }
-  };
-
-  // ── NASA Sync ──
-  const handleNasaSync = async () => {
-    setNasaSyncing(true);
-    setNasaLogs([]);
-    setNasaProgress(null);
-    const addLog = (level: "info" | "warn" | "error" | "success", msg: string) => {
-      setNasaLogs(prev => [...prev, { ts: Date.now(), level, msg }]);
-    };
-
-    addLog("info", "Conectando ao servidor NASA POWER...");
-    
-    try {
-      const nasaDs = API_DATASETS[0];
-      if (!nasaDs) throw new Error("Dataset NASA não configurado");
-
-      addLog("info", "Autenticação verificada ✓");
-
-      const versionTag = `v${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, "0")}`;
-      addLog("info", `Iniciando versão ${versionTag}...`);
-
-      const { data, error } = await supabase.functions.invoke("irradiance-fetch", {
-        body: { dataset_code: nasaDs.code, version_tag: versionTag, step_deg: 1 },
-      });
-
-      if (error) {
-        const msg = String(error?.message ?? "").toLowerCase();
-        if (msg.includes("function not found") || msg.includes("404") || msg.includes("boot error")) {
-          addLog("warn", "Função de sincronização não está disponível no momento.");
-          setNasaSyncing(false);
-          return;
-        }
-        throw error;
-      }
-
-      if (data?.error === "VERSION_EXISTS") {
-        addLog("warn", `${data.message}`);
-        setNasaSyncing(false);
-        return;
-      }
-      if (data?.error === "VERSION_PROCESSING") {
-        addLog("warn", `${data.message}`);
-        if (data?.version_id) {
-          addLog("info", "Monitorando progresso da importação existente...");
-          startNasaPolling(data.version_id, addLog);
-        } else {
-          setNasaSyncing(false);
-        }
-        return;
-      }
-
-      addLog("success", "Sincronização iniciada! Monitorando progresso...");
-
-      if (data?.version_id) {
-        setNasaProgress({ current: data.chunk_rows ?? 0, total: data.grid_total_points ?? 0 });
-        startNasaPolling(data.version_id, addLog);
-      }
-
-      loadData();
-      auditReload();
-    } catch (e: any) {
-      addLog("error", `❌ Erro: ${e.message}`);
-      setNasaSyncing(false);
-    }
-  };
 
   // Purge via canonical RPC
   const handlePurge = async () => {
@@ -461,9 +280,6 @@ export function BaseMeteorologicaPage() {
     .reduce((sum, v) => sum + (v.row_count ?? 0), 0);
   const lastUpdated = versions.find(v => v.status === "active")?.created_at;
   const hasProcessing = DATASETS.some(ds => getProcessingVersion(ds.code));
-  const nasaDs = API_DATASETS[0];
-  const nasaActive = nasaDs ? getActiveVersion(nasaDs.code) : undefined;
-  const nasaStatus = nasaActive ? "Conectado" : nasaDs && getProcessingVersion(nasaDs.code) ? "Sincronizando" : "Desconectado";
 
   return (
     <div className="space-y-6">
@@ -493,11 +309,11 @@ export function BaseMeteorologicaPage() {
           color={lastUpdated ? "text-foreground" : "text-muted-foreground"}
         />
         <StatusCard
-          icon={<Satellite className="h-4 w-4" />}
-          label="Status da API NASA"
-          value={nasaStatus}
-          detail={nasaActive ? `${(nasaActive.row_count ?? 0).toLocaleString("pt-BR")} pontos` : "Sem dados importados"}
-          color={nasaActive ? "text-success" : "text-muted-foreground"}
+          icon={<Layers className="h-4 w-4" />}
+          label="Fontes ativas"
+          value={`${activeProviders} de ${DATASETS.length}`}
+          detail={activeProviders > 0 ? "Atlas INPE disponível" : "Nenhuma fonte configurada"}
+          color={activeProviders > 0 ? "text-success" : "text-muted-foreground"}
         />
         <StatusCard
           icon={<Layers className="h-4 w-4" />}
@@ -518,20 +334,16 @@ export function BaseMeteorologicaPage() {
           <AlertTriangle className="h-4 w-4 text-warning" />
           <AlertTitle className="text-sm">Nenhum dado de irradiância carregado</AlertTitle>
           <AlertDescription className="text-xs text-muted-foreground">
-            O sistema precisa de dados meteorológicos para calcular a geração prevista.
-            Use as abas abaixo para importar via CSV (Atlas Brasileiro) ou API (NASA POWER).
+            Use as abas abaixo para importar via CSV (Atlas Brasileiro).
           </AlertDescription>
         </Alert>
       )}
 
       {/* ── 4 Tabs ── */}
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview" className="gap-1.5 text-xs">
             <BarChart3 className="h-3.5 w-3.5" /> Visão geral
-          </TabsTrigger>
-          <TabsTrigger value="nasa" className="gap-1.5 text-xs">
-            <Satellite className="h-3.5 w-3.5" /> NASA API
           </TabsTrigger>
           <TabsTrigger value="csv" className="gap-1.5 text-xs">
             <FileSpreadsheet className="h-3.5 w-3.5" /> Atlas CSV
@@ -622,126 +434,6 @@ export function BaseMeteorologicaPage() {
           </div>
         </TabsContent>
 
-        {/* ═══════════════════════════════════════════════════════
-            TAB 2: IMPORTAÇÃO AUTOMÁTICA (NASA POWER)
-        ═══════════════════════════════════════════════════════ */}
-        <TabsContent value="nasa" className="space-y-5 mt-4">
-          <Card className="rounded-xl">
-            <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2">
-                <Satellite className="h-4 w-4 text-primary" />
-                Importação automática — NASA POWER
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Sincronize dados de irradiância global diretamente da API da NASA. O processamento ocorre em segundo plano.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {/* NASA status */}
-              <div className={`flex items-center gap-4 p-3 rounded-lg border-2 ${
-                nasaActive ? "border-success/40 bg-success/5" : "border-border bg-muted/30"
-              }`}>
-                <div className={`h-3 w-3 rounded-full ${nasaActive ? "bg-success" : "bg-muted-foreground"}`} />
-                <div className="text-xs">
-                  <span className="font-medium">Status: </span>
-                  <span className={nasaActive ? "text-success" : "text-muted-foreground"}>{nasaStatus}</span>
-                  {nasaActive && (
-                    <span className="text-muted-foreground ml-2">
-                      • {(nasaActive.row_count ?? 0).toLocaleString("pt-BR")} pontos • versão {nasaActive.version_tag}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={handleNasaSync}
-                  disabled={nasaSyncing}
-                  className="gap-1.5"
-                  size="sm"
-                >
-                  {nasaSyncing ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-3.5 w-3.5" />
-                  )}
-                  Sincronizar via API
-                </Button>
-                {nasaSyncing && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={handleNasaCancel}
-                    disabled={nasaCancelling}
-                    className="gap-1.5"
-                  >
-                    {nasaCancelling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                    Cancelar
-                  </Button>
-                )}
-              </div>
-
-              {/* Progress indicator during sync */}
-              {(nasaSyncing || nasaProgress) && nasaProgress && (
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs font-medium">
-                    <span className="text-muted-foreground">
-                      {nasaSyncing ? "Importando via NASA POWER..." : "Concluído"}
-                    </span>
-                    <span className={nasaSyncing ? "text-primary" : "text-success"}>
-                      {nasaProgress.total > 0 ? `${Math.round((nasaProgress.current / nasaProgress.total) * 100)}%` : `${nasaProgress.current.toLocaleString("pt-BR")} pts`}
-                    </span>
-                  </div>
-                  <Progress
-                    value={nasaProgress.total > 0 ? Math.round((nasaProgress.current / nasaProgress.total) * 100) : undefined}
-                    className="h-3"
-                  />
-                  <p className="text-[10px] text-muted-foreground text-right">
-                    {nasaProgress.current.toLocaleString("pt-BR")} / {nasaProgress.total > 0 ? nasaProgress.total.toLocaleString("pt-BR") : "?"} pontos
-                  </p>
-                </div>
-              )}
-              {nasaSyncing && !nasaProgress && (
-                <div className="space-y-1">
-                  <Progress value={undefined} className="h-1.5" />
-                  <p className="text-[10px] text-muted-foreground">Iniciando sincronização...</p>
-                </div>
-              )}
-
-              {/* Event Log */}
-              {nasaLogs.length > 0 && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Log de eventos</Label>
-                  <ScrollArea className="max-h-40 border border-border/40 rounded-lg p-3 bg-card">
-                    <div className="space-y-1 text-xs font-mono">
-                      {nasaLogs.map((l, i) => (
-                        <div key={i} className={
-                          l.level === "error" ? "text-destructive" :
-                          l.level === "success" ? "text-success" :
-                          l.level === "warn" ? "text-warning" :
-                          "text-muted-foreground"
-                        }>
-                          <span className="text-[10px] text-muted-foreground/50 mr-2">
-                            {new Date(l.ts).toLocaleTimeString("pt-BR")}
-                          </span>
-                          {l.msg}
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </div>
-              )}
-
-              {/* NASA version history */}
-              {nasaDs && getVersionsFor(nasaDs.code).length > 0 && (
-                <div className="space-y-1.5">
-                  <Label className="text-xs font-medium text-muted-foreground">Histórico de versões</Label>
-                  <VersionHistory versions={getVersionsFor(nasaDs.code)} />
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* ═══════════════════════════════════════════════════════
             TAB 3: IMPORTAÇÃO MANUAL (ATLAS CSV)
@@ -862,7 +554,7 @@ export function BaseMeteorologicaPage() {
                         <div className="rounded-md border border-warning/30 bg-warning/5 p-3 space-y-1">
                           <p className="text-xs font-medium text-warning">Nenhuma versão importada</p>
                           <p className="text-[10px] text-muted-foreground">
-                            Vá para a aba "Atlas CSV" ou "NASA API" para importar.
+                            Vá para a aba "Atlas CSV" para importar.
                           </p>
                         </div>
                       ) : (

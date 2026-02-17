@@ -70,7 +70,6 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
               <SelectContent>
                 <SelectItem value="inpe_2017">Atlas Brasileiro 2ª Edição (INPE 2017 - SUNDATA)</SelectItem>
                 <SelectItem value="inpe_2009">Brazil Solar Global 10KM (INPE 2009)</SelectItem>
-                <SelectItem value="nasa_power">NASA POWER — Dados Globais</SelectItem>
               </SelectContent>
             </Select>
           </div>

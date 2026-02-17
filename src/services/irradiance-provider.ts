@@ -1,10 +1,9 @@
 /**
  * IrradianceProvider — Canonical irradiance lookup service.
  *
- * TRIPLE-SOURCE STRATEGY:
- *   TIER 1 (PRIMARY):   NSRDB/NREL API (2km resolution, ±3-5% error)
- *   TIER 2 (SECONDARY): NASA POWER API direct (exact coordinate interpolation, ±4-6%)
- *   TIER 3 (FALLBACK):  NASA POWER stored grid (nearest-point lookup, ±6-8%)
+ * DUAL-SOURCE STRATEGY:
+ *   TIER 1 (PRIMARY):   Local stored grid (Atlas INPE — nearest-point lookup)
+ *   TIER 2 (SECONDARY): NSRDB/NREL API (2km resolution, ±3-5% error)
  *
  * Each result includes "source attribution" (data pedigree) for audit trail.
  */
@@ -38,10 +37,10 @@ export interface IrradianceLookupResult {
   resolved_at: string;
   /** Whether DHI data was available from the dataset */
   has_dhi: boolean;
-  /** Data source: 'nsrdb' | 'nasa_power_api' | 'nasa_power_grid' | 'cache' */
+  /** Data source: 'nsrdb' | 'local_grid' | 'cache' */
   source: string;
-  /** Source tier for audit: 1=NSRDB, 2=NASA API, 3=Local Grid */
-  source_tier: 1 | 2 | 3;
+  /** Source tier for audit: 1=Local Grid, 2=NSRDB */
+  source_tier: 1 | 2;
 }
 
 export interface IrradianceLookupInput {
@@ -50,8 +49,8 @@ export interface IrradianceLookupInput {
   tenant_id?: string;
   dataset_code_override?: string;
   version_id_override?: string;
-  /** Force specific source: 'nsrdb' | 'nasa_api' | 'nasa_grid' | 'auto' (default: auto) */
-  source_preference?: "nsrdb" | "nasa_api" | "nasa_grid" | "auto";
+  /** Force specific source: 'nsrdb' | 'local_grid' | 'auto' (default: auto) */
+  source_preference?: "nsrdb" | "local_grid" | "auto";
 }
 
 interface TenantIrradianceConfig {
@@ -104,7 +103,7 @@ function buildSeriesFromData(data: any): IrradianceSeries {
   };
 }
 
-// ─── TIER 1: NSRDB Lookup (Primary — 2km) ──────────────────────
+// ─── TIER 2: NSRDB Lookup (Secondary — 2km) ────────────────────
 
 async function tryNsrdbLookup(
   lat: number, lon: number, versionId?: string
@@ -115,7 +114,7 @@ async function tryNsrdbLookup(
     });
 
     if (error || !data?.success) {
-      console.warn("[IrradianceProvider] TIER 1 NSRDB failed:", error?.message || data?.error);
+      console.warn("[IrradianceProvider] TIER 2 NSRDB failed:", error?.message || data?.error);
       return null;
     }
 
@@ -138,57 +137,15 @@ async function tryNsrdbLookup(
       resolved_at: new Date().toISOString(),
       has_dhi: dhiSeries !== null,
       source: "nsrdb",
-      source_tier: 1,
-    };
-  } catch (e: any) {
-    console.warn("[IrradianceProvider] TIER 1 NSRDB exception:", e.message);
-    return null;
-  }
-}
-
-// ─── TIER 2: NASA POWER API Direct (Secondary — exact coord) ───
-
-async function tryNasaPowerApi(
-  lat: number, lon: number, versionId?: string
-): Promise<IrradianceLookupResult | null> {
-  try {
-    const { data, error } = await supabase.functions.invoke("nasa-power-lookup", {
-      body: { lat, lon, version_id: versionId },
-    });
-
-    if (error || !data?.success) {
-      console.warn("[IrradianceProvider] TIER 2 NASA API failed:", error?.message || data?.error);
-      return null;
-    }
-
-    const series = buildSeriesFromData(data.series);
-    const dhiSeries = data.dhi_series ? buildDhiFromRecord(data.dhi_series) : null;
-
-    return {
-      series,
-      dhi_series: dhiSeries,
-      annual_average: data.annual_average ?? seriesAverage(series),
-      dataset_code: "NASA_POWER_CLIMATOLOGY",
-      version_tag: "nasa-power-30yr",
-      version_id: versionId || "nasa-power-api",
-      method: "nasa_power_api",
-      unit: "kwh_m2_day",
-      point_lat: data.point_lat,
-      point_lon: data.point_lon,
-      distance_km: data.distance_km ?? 0,
-      cache_hit: data.cache_hit ?? false,
-      resolved_at: new Date().toISOString(),
-      has_dhi: dhiSeries !== null,
-      source: "nasa_power_api",
       source_tier: 2,
     };
   } catch (e: any) {
-    console.warn("[IrradianceProvider] TIER 2 NASA API exception:", e.message);
+    console.warn("[IrradianceProvider] TIER 2 NSRDB exception:", e.message);
     return null;
   }
 }
 
-// ─── TIER 3: Local Grid Fallback (Last Resort — nearest point) ─
+// ─── TIER 1: Local Grid (Primary — nearest stored point) ───────
 
 const DEFAULT_DATASET_CODE = "INPE_2017_SUNDATA";
 
@@ -226,8 +183,8 @@ async function tryLocalGrid(
       cache_hit: true,
       resolved_at: new Date().toISOString(),
       has_dhi: false,
-      source: "nasa_power_grid",
-      source_tier: 3,
+      source: "local_grid",
+      source_tier: 1,
     };
   }
 
@@ -283,12 +240,12 @@ async function tryLocalGrid(
     cache_hit: false,
     resolved_at: new Date().toISOString(),
     has_dhi: dhiSeries !== null,
-    source: "nasa_power_grid",
-    source_tier: 3,
+    source: "local_grid",
+    source_tier: 1,
   };
 }
 
-// ─── Main Provider (Triple-Source Strategy) ─────────────────────
+// ─── Main Provider (Dual-Source Strategy) ───────────────────────
 
 export async function getMonthlyIrradiance(
   input: IrradianceLookupInput
@@ -296,7 +253,7 @@ export async function getMonthlyIrradiance(
   const { lat, lon } = input;
   const preference = input.source_preference || "auto";
 
-  // 1. Resolve tenant config (for grid fallback)
+  // 1. Resolve tenant config
   let config: TenantIrradianceConfig = {
     dataset_code: input.dataset_code_override || DEFAULT_DATASET_CODE,
     version_id: input.version_id_override || null,
@@ -315,7 +272,7 @@ export async function getMonthlyIrradiance(
     }
   }
 
-  // 2. Resolve active version (for grid fallback)
+  // 2. Resolve active version
   let versionId = config.version_id || "";
   let versionTag = "";
 
@@ -350,42 +307,41 @@ export async function getMonthlyIrradiance(
     versionTag = ver?.version_tag || "unknown";
   }
 
-  // ─── TRIPLE-SOURCE WATERFALL ───────────────────────────────────
+  // ─── DUAL-SOURCE WATERFALL ─────────────────────────────────────
 
-  // TIER 1: NSRDB (2km precision)
+  // TIER 1: Local Grid (Atlas INPE — primary)
+  if (versionId && (preference === "auto" || preference === "local_grid")) {
+    try {
+      const gridResult = await tryLocalGrid(lat, lon, config, versionId, versionTag);
+      console.log(`[IrradianceProvider] ✅ TIER 1 Local Grid: ${gridResult.annual_average.toFixed(2)} kWh/m²/day`);
+      return gridResult;
+    } catch (e: any) {
+      console.warn(`[IrradianceProvider] ⚠️ TIER 1 Local Grid failed: ${e.message}, trying TIER 2…`);
+    }
+  }
+
+  // TIER 2: NSRDB (2km precision — fallback)
   if (preference === "auto" || preference === "nsrdb") {
     const nsrdbResult = await tryNsrdbLookup(lat, lon, versionId || undefined);
     if (nsrdbResult) {
-      console.log(`[IrradianceProvider] ✅ TIER 1 NSRDB: ${nsrdbResult.annual_average.toFixed(2)} kWh/m²/day`);
+      console.log(`[IrradianceProvider] ✅ TIER 2 NSRDB: ${nsrdbResult.annual_average.toFixed(2)} kWh/m²/day`);
       return nsrdbResult;
     }
-    console.warn(`[IrradianceProvider] ⚠️ TIER 1 NSRDB failed, trying TIER 2…`);
+    console.warn(`[IrradianceProvider] ⚠️ TIER 2 NSRDB also failed`);
   }
 
-  // TIER 2: NASA POWER API (exact coordinate interpolation)
-  if (preference === "auto" || preference === "nasa_api") {
-    const nasaApiResult = await tryNasaPowerApi(lat, lon, versionId || undefined);
-    if (nasaApiResult) {
-      console.log(`[IrradianceProvider] ✅ TIER 2 NASA API: ${nasaApiResult.annual_average.toFixed(2)} kWh/m²/day`);
-      return nasaApiResult;
-    }
-    console.warn(`[IrradianceProvider] ⚠️ TIER 2 NASA API failed, trying TIER 3…`);
-  }
-
-  // TIER 3: Local grid (nearest stored point)
   if (!versionId) {
     throw new Error(
-      `No active irradiance version for dataset '${config.dataset_code}' and both NSRDB and NASA API are unavailable`
+      `No active irradiance version for dataset '${config.dataset_code}'. Import data via the meteorology admin page.`
     );
   }
 
-  console.log(`[IrradianceProvider] 🔶 TIER 3 Local Grid fallback…`);
+  // Final attempt with local grid (will throw descriptive error if no data)
   return tryLocalGrid(lat, lon, config, versionId, versionTag);
 }
 
 /**
  * Build an irradiance audit snapshot for embedding in proposals.
- * Ensures reproducibility and compliance.
  */
 export function buildIrradianceAuditPayload(result: IrradianceLookupResult) {
   return {
