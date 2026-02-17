@@ -17,6 +17,7 @@ import { ProjetoDetalhe } from "./ProjetoDetalhe";
 import { ProjetoKanbanSkeleton } from "./ProjetoKanbanSkeleton";
 import { ProjetoPerformanceDashboard } from "./ProjetoPerformanceDashboard";
 import { EtiquetasManager } from "./EtiquetasManager";
+import { ProjetoPipelineTemplates } from "./ProjetoPipelineTemplates";
 import { cn } from "@/lib/utils";
 
 interface DynamicEtiqueta {
@@ -44,6 +45,7 @@ export function ProjetosManager() {
   const [viewMode, setViewMode] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-etapa");
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
   const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
   const [defaultModalPipelineId, setDefaultModalPipelineId] = useState<string | undefined>();
@@ -213,8 +215,18 @@ export function ProjetosManager() {
                   viewMode={viewMode}
                   onViewModeChange={setViewMode}
                   onClearFilters={clearFilters}
+                  onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
+                  onCreateFunil={() => setTemplateDialogOpen(true)}
                 />
               </div>
+
+              {/* Template dialog for creating new pipelines */}
+              <ProjetoPipelineTemplates
+                open={templateDialogOpen}
+                onOpenChange={setTemplateDialogOpen}
+                onCreateFromTemplate={(name, stgs) => createPipeline(name, stgs)}
+                onCreateBlank={(name) => createPipeline(name)}
+              />
 
               <Separator className="opacity-60" />
 
