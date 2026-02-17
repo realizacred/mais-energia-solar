@@ -43,6 +43,7 @@ export function ProjetosManager() {
   const [viewMode, setViewMode] = useState<"kanban-etapa" | "lista">("kanban-etapa");
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
+  const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("kanban");
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
@@ -110,7 +111,7 @@ export function ProjetosManager() {
         title="Projetos"
         description="Gestão operacional de engenharia — acompanhe cada projeto da documentação à vistoria"
         actions={
-          <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5 border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-none font-semibold">
+          <Button onClick={() => { setDefaultConsultorId(undefined); setNovoProjetoOpen(true); }} className="gap-1.5 border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-none font-semibold">
             <Plus className="h-4 w-4" />
             Novo Projeto
           </Button>
@@ -123,6 +124,7 @@ export function ProjetosManager() {
         onOpenChange={setNovoProjetoOpen}
         consultores={consultoresFilter}
         dynamicEtiquetas={dynamicEtiquetas}
+        defaultConsultorId={defaultConsultorId}
         onSubmit={async (data) => {
           let customerId: string | undefined;
           if (data.cliente.nome.trim()) {
@@ -250,7 +252,7 @@ export function ProjetosManager() {
                 deals={deals}
                 onMoveToStage={moveDealToStage}
                 onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
-                onNewProject={() => setNovoProjetoOpen(true)}
+                onNewProject={(consultorId?: string) => { setDefaultConsultorId(consultorId); setNovoProjetoOpen(true); }}
                 dynamicEtiquetas={dynamicEtiquetas}
               />
             ) : (
