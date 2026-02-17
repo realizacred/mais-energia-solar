@@ -374,7 +374,7 @@ export function BaseMeteorologicaPage() {
 
               return (
                 <Card key={ds.code} className={`rounded-xl border-2 ${
-                  hasData ? "border-success/40 bg-success/5" :
+                  hasData ? "border-border bg-card" :
                   processing ? "border-warning/40 bg-warning/5" :
                   "border-border"
                 }`}>
@@ -530,7 +530,7 @@ export function BaseMeteorologicaPage() {
 
                   return (
                     <div key={ds.id} className={`rounded-lg border-2 p-4 space-y-3 ${
-                      active ? "border-success/40 bg-success/5" :
+                      active ? "border-border bg-card" :
                       allVersions.some(v => v.status === "failed") ? "border-destructive/30 bg-destructive/5" :
                       allVersions.some(v => v.status === "processing") ? "border-primary/30 bg-primary/5" :
                       "border-warning/30 bg-warning/5"
@@ -805,7 +805,7 @@ function StatusCard({
   icon: React.ReactNode; label: string; value: string; detail: string; color: string;
 }) {
   // Derive border color from text color
-  const borderClass = color.includes("success") ? "border-success/40 bg-success/5"
+  const borderClass = color.includes("success") ? "border-border bg-card"
     : color.includes("warning") ? "border-warning/40 bg-warning/5"
     : color.includes("primary") ? "border-primary/30 bg-primary/5"
     : "border-border bg-card";

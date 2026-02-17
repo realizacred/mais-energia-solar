@@ -193,7 +193,7 @@ export function WaAtendimentoMetrics() {
             </div>
           </CardContent>
         </Card>
-        <Card className="rounded-xl border-2 border-success/40 bg-success/5">
+        <Card className="rounded-xl border border-border bg-card">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-success/10">
               <CheckCircle2 className="h-5 w-5 text-success" />

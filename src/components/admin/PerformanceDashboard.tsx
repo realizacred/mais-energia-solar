@@ -376,8 +376,8 @@ export default function PerformanceDashboard() {
             icon={<DollarSign className="h-5 w-5 text-success" />}
             label="Ticket médio"
             value={formatCompact(kpis.ticketMedio)}
-            colorBorder="border-success/40"
-            colorBg="bg-success/5"
+            colorBorder="border-border"
+            colorBg="bg-card"
           />
           <KpiCard
             icon={<Target className="h-5 w-5 text-primary" />}
@@ -821,7 +821,7 @@ function KpiCard({ icon, label, value, sub, colorBorder, colorBg, growth }: {
   growth?: number;
 }) {
   return (
-    <Card className={cn("min-w-[200px] rounded-xl border-2", colorBorder, colorBg)}>
+    <Card className={cn("min-w-[200px] rounded-xl border", colorBorder, colorBg)}>
       <CardContent className="flex items-center gap-3 p-4">
         <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
           {icon}
