@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   Plus, Pencil, Check, X, Trash2, GripVertical,
   ArrowRight, Target, Trophy, XCircle, Layers,
@@ -24,7 +24,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+
 import {
   Tooltip,
   TooltipContent,
@@ -113,6 +113,49 @@ export function ProjetoEtapaManager({
   const [showCreate, setShowCreate] = useState(false);
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const autoScrollRef = useRef<number | null>(null);
+
+  // Auto-scroll when dragging near edges of the scroll container
+  const handleContainerDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const container = scrollRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    const edgeZone = 80; // px from edge to trigger scroll
+    const scrollSpeed = 12;
+    const mouseX = e.clientX;
+
+    if (autoScrollRef.current) {
+      cancelAnimationFrame(autoScrollRef.current);
+      autoScrollRef.current = null;
+    }
+
+    const doScroll = () => {
+      if (!scrollRef.current) return;
+      if (mouseX < rect.left + edgeZone) {
+        // Scroll left
+        scrollRef.current.scrollLeft -= scrollSpeed;
+        autoScrollRef.current = requestAnimationFrame(doScroll);
+      } else if (mouseX > rect.right - edgeZone) {
+        // Scroll right
+        scrollRef.current.scrollLeft += scrollSpeed;
+        autoScrollRef.current = requestAnimationFrame(doScroll);
+      }
+    };
+
+    if (mouseX < rect.left + edgeZone || mouseX > rect.right - edgeZone) {
+      doScroll();
+    }
+  }, []);
+
+  // Cleanup auto-scroll on drag end
+  useEffect(() => {
+    return () => {
+      if (autoScrollRef.current) cancelAnimationFrame(autoScrollRef.current);
+    };
+  }, []);
 
   const sorted = [...etapas].sort((a, b) => a.ordem - b.ordem);
 
@@ -209,7 +252,17 @@ export function ProjetoEtapaManager({
       </div>
 
       {/* Stage cards */}
-      <ScrollArea className="w-full">
+      <div
+        ref={scrollRef}
+        className="w-full overflow-x-auto"
+        onDragOver={handleContainerDragOver}
+        onDragLeave={() => {
+          if (autoScrollRef.current) {
+            cancelAnimationFrame(autoScrollRef.current);
+            autoScrollRef.current = null;
+          }
+        }}
+      >
         <div className="flex gap-4 pb-4 px-1" style={{ minWidth: "max-content" }}>
           {sorted.map((etapa, i) => {
             const cat = catInfo(etapa.categoria);
@@ -225,7 +278,7 @@ export function ProjetoEtapaManager({
                 onDragOver={e => handleDragOver(e, etapa.id)}
                 onDragLeave={() => setDragOverId(null)}
                 onDrop={e => handleDrop(e, etapa.id)}
-                onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+                onDragEnd={() => { setDraggedId(null); setDragOverId(null); if (autoScrollRef.current) { cancelAnimationFrame(autoScrollRef.current); autoScrollRef.current = null; } }}
                 className={cn(
                   "w-[240px] flex-shrink-0 rounded-xl border-2 transition-all duration-200",
                   "cursor-grab active:cursor-grabbing",
@@ -402,8 +455,7 @@ export function ProjetoEtapaManager({
             </button>
           )}
         </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
+      </div>
     </div>
   );
 }
