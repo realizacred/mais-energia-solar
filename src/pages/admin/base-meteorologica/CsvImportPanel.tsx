@@ -24,6 +24,7 @@ import {
 
 const CHUNK_SIZE = 500;
 const MAX_RETRIES = 3;
+const YIELD_MS = 10; // yield to UI thread between chunks
 
 interface CsvImportPanelProps {
   processingVersion: VersionRow | undefined;
@@ -108,6 +109,7 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
     setState("uploading");
 
     try {
+      log("info", "Lendo arquivos CSV...");
       const ghiText = await readFileAsText(ghiFile);
       const dhiText = dhiFile ? await readFileAsText(dhiFile) : null;
       const dniText = dniFile ? await readFileAsText(dniFile) : null;
@@ -127,25 +129,48 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
       setProgress({ current: 0, total: points.length });
       log("info", `Enviando ${points.length.toLocaleString("pt-BR")} pontos em ${chunks.length} chunks...`);
 
+      const startTime = Date.now();
+
       for (let i = 0; i < chunks.length; i++) {
         if (abortRef.current) {
-          log("warn", "Importação cancelada.");
+          log("warn", "Importação cancelada pelo usuário.");
+          // Abort on server
+          await supabase.functions.invoke("irradiance-import", {
+            body: { action: "abort", version_id: processingVersion.id, error: "Cancelado pelo usuário" },
+          });
           setState("error");
           return;
         }
 
+        const chunkRows = chunks[i].map(p => ({
+          version_id: processingVersion.id,
+          lat: p.lat,
+          lon: p.lon,
+          m01: p.m01, m02: p.m02, m03: p.m03, m04: p.m04,
+          m05: p.m05, m06: p.m06, m07: p.m07, m08: p.m08,
+          m09: p.m09, m10: p.m10, m11: p.m11, m12: p.m12,
+          dhi_m01: p.dhi_m01 ?? null, dhi_m02: p.dhi_m02 ?? null, dhi_m03: p.dhi_m03 ?? null, dhi_m04: p.dhi_m04 ?? null,
+          dhi_m05: p.dhi_m05 ?? null, dhi_m06: p.dhi_m06 ?? null, dhi_m07: p.dhi_m07 ?? null, dhi_m08: p.dhi_m08 ?? null,
+          dhi_m09: p.dhi_m09 ?? null, dhi_m10: p.dhi_m10 ?? null, dhi_m11: p.dhi_m11 ?? null, dhi_m12: p.dhi_m12 ?? null,
+          dni_m01: p.dni_m01 ?? null, dni_m02: p.dni_m02 ?? null, dni_m03: p.dni_m03 ?? null, dni_m04: p.dni_m04 ?? null,
+          dni_m05: p.dni_m05 ?? null, dni_m06: p.dni_m06 ?? null, dni_m07: p.dni_m07 ?? null, dni_m08: p.dni_m08 ?? null,
+          dni_m09: p.dni_m09 ?? null, dni_m10: p.dni_m10 ?? null, dni_m11: p.dni_m11 ?? null, dni_m12: p.dni_m12 ?? null,
+          unit: p.unit,
+          plane: p.plane,
+        }));
+
         let success = false;
         for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-          const { error } = await supabase.rpc("import_irradiance_points_chunk" as any, {
-            _version_id: processingVersion.id,
-            _rows: chunks[i] as any,
+          const { data, error } = await supabase.functions.invoke("irradiance-import", {
+            body: { action: "batch", version_id: processingVersion.id, rows: chunkRows },
           });
-          if (!error) { success = true; break; }
+          if (!error && data?.success) { success = true; break; }
+          const errMsg = error?.message || data?.error || "Erro desconhecido";
           if (attempt < MAX_RETRIES - 1) {
-            log("warn", `Chunk ${i + 1} falhou (tentativa ${attempt + 1}/${MAX_RETRIES}). Retentando...`);
+            log("warn", `Chunk ${i + 1} falhou (tentativa ${attempt + 1}/${MAX_RETRIES}): ${errMsg}. Retentando...`);
             await new Promise(r => setTimeout(r, (attempt + 1) * 1000));
           } else {
-            log("error", `Chunk ${i + 1} falhou: ${error.message}`);
+            log("error", `Chunk ${i + 1} falhou após ${MAX_RETRIES} tentativas: ${errMsg}`);
             setState("error");
             return;
           }
@@ -153,12 +178,20 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
 
         const sent = Math.min((i + 1) * CHUNK_SIZE, points.length);
         setProgress({ current: sent, total: points.length });
-        if (i % 10 === 0 || i === chunks.length - 1) {
-          log("info", `Chunk ${i + 1}/${chunks.length} OK (${sent.toLocaleString("pt-BR")} pontos)`);
+
+        // Log every 5 chunks or first/last
+        if (i % 5 === 0 || i === chunks.length - 1) {
+          const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
+          const pct = Math.round((sent / points.length) * 100);
+          log("info", `${pct}% — ${sent.toLocaleString("pt-BR")}/${points.length.toLocaleString("pt-BR")} pontos (${elapsed}s)`);
         }
+
+        // Yield to UI thread
+        await new Promise(r => setTimeout(r, YIELD_MS));
       }
 
-      // Update version row_count via finalize
+      // Finalize version
+      log("info", "Finalizando versão...");
       await supabase.functions.invoke("irradiance-import", {
         body: {
           action: "finalize",
@@ -170,9 +203,10 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
         },
       });
 
-      log("success", `✅ ${points.length.toLocaleString("pt-BR")} pontos importados!`);
+      const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+      log("success", `✅ ${points.length.toLocaleString("pt-BR")} pontos importados em ${totalTime}s!`);
       setState("done");
-      toast.success("Importação concluída!", { description: `${points.length.toLocaleString("pt-BR")} pontos.` });
+      toast.success("Importação concluída!", { description: `${points.length.toLocaleString("pt-BR")} pontos em ${totalTime}s.` });
       onReload();
     } catch (e: any) {
       log("error", `Erro: ${e.message}`);
@@ -265,17 +299,25 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
         )}
       </div>
 
-      {state === "uploading" && (
-        <div className="space-y-1">
-          <Progress value={progressPct} className="h-2" />
-          <p className="text-[10px] text-muted-foreground">
-            {progressPct}% — {progress.current.toLocaleString("pt-BR")} / {progress.total.toLocaleString("pt-BR")} pontos
+      {(state === "uploading" || state === "done") && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs font-medium">
+            <span className="text-muted-foreground">
+              {state === "done" ? "Concluído" : "Importando..."}
+            </span>
+            <span className={state === "done" ? "text-success" : "text-primary"}>
+              {progressPct}%
+            </span>
+          </div>
+          <Progress value={progressPct} className="h-3" />
+          <p className="text-[10px] text-muted-foreground text-right">
+            {progress.current.toLocaleString("pt-BR")} / {progress.total.toLocaleString("pt-BR")} pontos
           </p>
         </div>
       )}
 
       {logs.length > 0 && (
-        <ScrollArea className="max-h-32 border border-border/40 rounded p-2 bg-card">
+        <ScrollArea className="max-h-48 border border-border/40 rounded p-2 bg-card">
           <div className="space-y-0.5 text-[10px] font-mono">
             {logs.map((l, i) => (
               <div key={i} className={
