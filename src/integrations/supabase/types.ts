@@ -2360,6 +2360,65 @@ export type Database = {
           },
         ]
       }
+      deal_pipeline_stages: {
+        Row: {
+          added_at: string
+          deal_id: string
+          id: string
+          pipeline_id: string
+          stage_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          added_at?: string
+          deal_id: string
+          id?: string
+          pipeline_id: string
+          stage_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          added_at?: string
+          deal_id?: string
+          id?: string
+          pipeline_id?: string
+          stage_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_pipeline_stages_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_pipeline_stages_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_pipeline_stages_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_pipeline_stages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_stage_history: {
         Row: {
           deal_id: string
