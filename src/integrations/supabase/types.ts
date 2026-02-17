@@ -2148,6 +2148,7 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string | null
+          doc_checklist: Json | null
           etiqueta: string | null
           expected_close_date: string | null
           id: string
@@ -2165,6 +2166,7 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id?: string | null
+          doc_checklist?: Json | null
           etiqueta?: string | null
           expected_close_date?: string | null
           id?: string
@@ -2182,6 +2184,7 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string | null
+          doc_checklist?: Json | null
           etiqueta?: string | null
           expected_close_date?: string | null
           id?: string

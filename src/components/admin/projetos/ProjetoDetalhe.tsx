@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { VariableMapperPanel } from "./VariableMapperPanel";
+import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 
 // ─── Types ──────────────────────────────────────────
 interface DealDetail {
@@ -1301,9 +1302,14 @@ function DocumentosTab({ dealId }: { dealId: string }) {
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Document Checklist */}
+      <ProjetoDocChecklist dealId={dealId} />
+
+      {/* File uploads */}
+      <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">Documentos do Projeto</h3>
+        <h3 className="text-sm font-semibold text-foreground">Arquivos do Projeto</h3>
         <div>
           <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
           <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
@@ -1344,6 +1350,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
