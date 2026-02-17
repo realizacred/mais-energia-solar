@@ -381,18 +381,34 @@ export function BaseMeteorologicaPage() {
     if (!dsId) return;
     try {
       const tag = `${dsCode.toLowerCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
-      const { error } = await supabase.rpc("create_irradiance_version" as any, {
-        _dataset_code: dsCode,
-        _version_tag: tag,
-        _metadata: {
-          source: dsLabel,
-          variables: ["GHI", "DHI", "DNI"],
-          plane: "horizontal",
-          unit: "kWh/m²/day",
+
+      // Try edge function first (more reliable), fallback to RPC
+      const { data, error } = await supabase.functions.invoke("irradiance-import", {
+        body: {
+          action: "init",
+          dataset_code: dsCode,
+          version_tag: tag,
+          source_note: dsLabel,
+          file_names: [],
         },
       });
+
       if (error) throw error;
-      toast.success("Nova versão criada", { description: `Tag: ${tag}. Agora importe os dados.` });
+      if (data?.error) {
+        if (data.error === "VERSION_EXISTS") {
+          toast.warning(data.message || `Versão ${tag} já existe.`);
+          loadData();
+          return;
+        }
+        if (data.error === "VERSION_PROCESSING") {
+          toast.info(data.message || `Versão ${tag} já está em processamento.`);
+          loadData();
+          return;
+        }
+        throw new Error(data.message || data.error);
+      }
+
+      toast.success("Nova versão criada", { description: `Tag: ${tag}. Agora importe os dados CSV.` });
       loadData();
       auditReload();
     } catch (e: any) {
