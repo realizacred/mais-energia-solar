@@ -1,9 +1,12 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HelpCircle, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { HelpCircle, Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 
 interface Props {
@@ -55,6 +58,42 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
   const set = (key: keyof TenantPremises, value: any) =>
     onChange((p) => ({ ...p, [key]: value }));
 
+  // Fetch irradiance base status
+  const [baseStatus, setBaseStatus] = useState<Record<string, { active: boolean; points: number; tag: string }>>({});
+  useEffect(() => {
+    (async () => {
+      const { data: datasets } = await supabase
+        .from("irradiance_datasets")
+        .select("id, code");
+      if (!datasets) return;
+      const { data: versions } = await supabase
+        .from("irradiance_dataset_versions")
+        .select("dataset_id, status, row_count, version_tag")
+        .eq("status", "active");
+      const status: typeof baseStatus = {};
+      const codeMap: Record<string, string> = {
+        INPE_2017_SUNDATA: "inpe_2017",
+        INPE_2009_10KM: "inpe_2009",
+      };
+      for (const ds of datasets) {
+        const key = codeMap[ds.code];
+        if (!key) continue;
+        const ver = versions?.find(v => v.dataset_id === ds.id);
+        status[key] = {
+          active: !!ver && (ver.row_count ?? 0) > 0,
+          points: ver?.row_count ?? 0,
+          tag: ver?.version_tag ?? "",
+        };
+      }
+      setBaseStatus(status);
+    })();
+  }, []);
+
+  const BASES = [
+    { value: "inpe_2017", label: "Atlas Brasileiro 2ª Edição (INPE 2017 - SUNDATA)" },
+    { value: "inpe_2009", label: "Brazil Solar Global 10KM (INPE 2009)" },
+  ];
+
   return (
     <Card>
       <CardContent className="pt-6 space-y-6">
@@ -62,18 +101,55 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
-              Base de Irradiância
+              Base de irradiância
               <FieldTooltip text="Fonte dos dados de irradiação solar. INPE 2017 é mais recente e recomendado. INPE 2009 pode ser usado para comparação histórica." />
             </Label>
             <Select value={premises.base_irradiancia} onValueChange={(v) => set("base_irradiancia", v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="inpe_2017">Atlas Brasileiro 2ª Edição (INPE 2017 - SUNDATA)</SelectItem>
-                <SelectItem value="inpe_2009">Brazil Solar Global 10KM (INPE 2009)</SelectItem>
+                {BASES.map(base => {
+                  const st = baseStatus[base.value];
+                  return (
+                    <SelectItem key={base.value} value={base.value}>
+                      <div className="flex items-center gap-2">
+                        <span>{base.label}</span>
+                        {st?.active ? (
+                          <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/30 px-1.5 py-0">
+                            {st.points.toLocaleString("pt-BR")} pts
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="text-[9px] bg-warning/10 text-warning border-warning/30 px-1.5 py-0">
+                            Sem dados
+                          </Badge>
+                        )}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
+            {/* Status indicator below the select */}
+            {baseStatus[premises.base_irradiancia] !== undefined && (
+              <div className="flex items-center gap-1.5 mt-1">
+                {baseStatus[premises.base_irradiancia]?.active ? (
+                  <>
+                    <CheckCircle2 className="h-3 w-3 text-success" />
+                    <span className="text-[11px] text-success">
+                      Base ativa — {baseStatus[premises.base_irradiancia].points.toLocaleString("pt-BR")} pontos carregados
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-3 w-3 text-warning" />
+                    <span className="text-[11px] text-warning">
+                      Sem dados importados — importe via Meteorologia
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
           </div>
-          <NumField label="Sobredimensionamento Padrão" suffix="%" value={premises.sobredimensionamento_padrao} tooltip="Margem extra sobre a potência calculada para compensar perdas reais e garantir a geração esperada. Típico: 10-30%." onChange={(v) => set("sobredimensionamento_padrao", v)} />
+          <NumField label="Sobredimensionamento padrão" suffix="%" value={premises.sobredimensionamento_padrao} tooltip="Margem extra sobre a potência calculada para compensar perdas reais e garantir a geração esperada. Típico: 10-30%." onChange={(v) => set("sobredimensionamento_padrao", v)} />
           <div />
         </div>
 
