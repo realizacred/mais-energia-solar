@@ -196,39 +196,148 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("sistema_solar", "sistema_solar.layout_orientacao", "layout_orientacao", "Orientação", "Orientação do arranjo (N, NE, NO...)", "", "Norte"),
 
   // ──────────────────────────────────────────────────────────────
-  // FINANCEIRO
+  // FINANCEIRO — Equipamentos (Custo = interno / Preço = venda)
   // ──────────────────────────────────────────────────────────────
-  v("financeiro", "financeiro.preco_total", "preco_total", "Preço total", "Valor total do projeto/proposta", "R$", "45000.00"),
+  // Módulos
+  v("financeiro", "financeiro.modulo_custo_un", "modulo_custo_un", "Módulo Custo Unitário", "Custo unitário do módulo", "R$", "496,42"),
+  v("financeiro", "financeiro.modulo_preco_un", "modulo_preco_un", "Módulo Preço Unitário", "Preço de venda unitário do módulo", "R$", "520,30"),
+  v("financeiro", "financeiro.modulo_custo_total", "modulo_custo_total", "Módulo Custo Total", "Custo total dos módulos", "R$", "64534,60"),
+  v("financeiro", "financeiro.modulo_preco_total", "modulo_preco_total", "Módulo Preço Total", "Preço de venda total dos módulos", "R$", "133196,80"),
+  // Inversores
+  v("financeiro", "financeiro.inversor_custo_un_1", "inversor_custo_un_1", "Inversor Custo Unitário 1", "Custo unitário do inversor 1 (O número é incremental)", "R$", "15000,00"),
+  v("financeiro", "financeiro.inversor_preco_un_1", "inversor_preco_un_1", "Inversor Preço Unitário 1", "Preço de venda unitário do inversor 1 (O número é incremental)", "R$", "27700,79"),
+  v("financeiro", "financeiro.inversor_preco_total_1", "inversor_preco_total_1", "Inversor Preço Total 1", "Preço de venda total do inversor 1 (O número é incremental)", "R$", "27700,79"),
+  v("financeiro", "financeiro.inversor_custo_un", "inversor_custo_un", "Inversor(s) Custo(s) Unitário(s)", "Custos unitários concatenados de todos os inversores", "R$", "10.000 / 25.000"),
+  v("financeiro", "financeiro.inversor_preco_un", "inversor_preco_un", "Inversor(s) Preço(s) Unitário(s)", "Preços unitários concatenados de todos os inversores", "R$", "15.000 / 30.000"),
+  v("financeiro", "financeiro.inversor_custo_total", "inversor_custo_total", "Inversor(s) Custo(s) Total", "Custos totais concatenados de todos os inversores", "R$", "15.000 / 15.000"),
+  v("financeiro", "financeiro.inversor_preco_total", "inversor_preco_total", "Inversor(s) Preço(s) Total", "Preços totais concatenados de todos os inversores", "R$", "30.000 / 30.000"),
+  v("financeiro", "financeiro.inversores_custo_total", "inversores_custo_total", "Inversores Custo Total", "Custo total somado de todos os inversores", "R$", "18905,79"),
+  v("financeiro", "financeiro.inversores_preco_total", "inversores_preco_total", "Inversores Preço Total", "Preço de venda total somado de todos os inversores", "R$", "60000,00"),
+  // Otimizadores
+  v("financeiro", "financeiro.otimizador_custo_un", "otimizador_custo_un", "Otimizador Custo Unitário", "Custo unitário do otimizador", "R$", "500,00"),
+  v("financeiro", "financeiro.otimizador_preco_un", "otimizador_preco_un", "Otimizador Preço Unitário", "Preço de venda unitário do otimizador", "R$", "600,00"),
+  v("financeiro", "financeiro.otimizador_custo_total", "otimizador_custo_total", "Otimizador Custo Total", "Custo total dos otimizadores", "R$", "15000,00"),
+  v("financeiro", "financeiro.otimizador_preco_total", "otimizador_preco_total", "Otimizador Preço Total", "Preço de venda total dos otimizadores", "R$", "18000,00"),
+  // Kit Fechado
+  v("financeiro", "financeiro.kit_fechado_custo_total", "kit_fechado_custo_total", "Kit Fechado Custo Total", "Custo total do kit fechado", "R$", "15000,00"),
+  v("financeiro", "financeiro.kit_fechado_preco_total", "kit_fechado_preco_total", "Kit Fechado Preço Total", "Preço de venda total do kit fechado", "R$", "18000,00"),
+  // Instalação
+  v("financeiro", "financeiro.instalacao_custo_total", "instalacao_custo_total", "Instalação Custo Total", "Custo total de instalação", "R$", "5000"),
+  v("financeiro", "financeiro.instalacao_preco_total", "instalacao_preco_total", "Instalação Preço Total", "Preço de venda total de instalação", "R$", "8000"),
+  // Estrutura
+  v("financeiro", "financeiro.estrutura_custo_total", "estrutura_custo_total", "Estrutura Custo Total", "Custo total da estrutura", "R$", "5000"),
+  v("financeiro", "financeiro.estrutura_preco_total", "estrutura_preco_total", "Estrutura Preço Total", "Preço de venda total da estrutura", "R$", "8000"),
+  // Transformadores
+  v("financeiro", "financeiro.transformador_custo_un_1", "transformador_custo_un_1", "Transformador Custo Unitário 1", "Custo unitário do transformador 1 (O número é incremental)", "R$", "144555,84"),
+  v("financeiro", "financeiro.transformador_preco_un_1", "transformador_preco_un_1", "Transformador Preço Unitário 1", "Preço de venda unitário do transformador 1 (O número é incremental)", "R$", "144555,84"),
+  v("financeiro", "financeiro.transformadores_custo_total", "transformadores_custo_total", "Transformadores Custo Total", "Custo total de todos os transformadores", "R$", "144555,84"),
+  v("financeiro", "financeiro.transformadores_preco_total", "transformadores_preco_total", "Transformadores Preço Total", "Preço de venda total de todos os transformadores", "R$", "144555,84"),
+  // Totais agregados
+  v("financeiro", "financeiro.equipamentos_custo_total", "equipamentos_custo_total", "Equipamentos Custo Total", "Custo total de todos os equipamentos", "R$", "15000,00"),
+  v("financeiro", "financeiro.kits_custo_total", "kits_custo_total", "Kits Custo Total", "Custo total dos kits (Kit Fechado ou Módulo+Inversor)", "R$", "15000,00"),
+  v("financeiro", "financeiro.componentes_custo_total", "componentes_custo_total", "Componentes Custo Total", "Custo total dos componentes avulsos", "R$", "15000,00"),
+  // Itens avulsos
+  v("financeiro", "financeiro.item_a_nome_1", "item_a_nome_1", "Item Avulso Nome 1", "Nome do item avulso 1 (O número é incremental)", "-", "Adequação do padrão"),
+  v("financeiro", "financeiro.item_a_custo_1", "item_a_custo_1", "Item Avulso Custo 1", "Custo do item avulso 1 (O número é incremental)", "R$", "3000,00"),
+  v("financeiro", "financeiro.item_a_preco_1", "item_a_preco_1", "Item Avulso Preço 1", "Preço de venda do item avulso 1 (O número é incremental)", "R$", "5000,00"),
+
+  // ── Financiamento (indexado — O número é incremental) ──
+  v("financeiro", "financeiro.f_nome_1", "f_nome_1", "Financiamento Nome 1", "Nome do financiamento 1 (O número é incremental)", "-", "Santander"),
+  v("financeiro", "financeiro.f_entrada_1", "f_entrada_1", "Financiamento Entrada R$ 1", "Valor de entrada do financiamento 1 (O número é incremental)", "R$", "5.000"),
+  v("financeiro", "financeiro.f_entrada_p_1", "f_entrada_p_1", "Financiamento Entrada % 1", "Percentual de entrada do financiamento 1 (O número é incremental)", "%", "10"),
+  v("financeiro", "financeiro.f_valor_1", "f_valor_1", "Financiamento Valor R$ 1", "Valor financiado do financiamento 1 (O número é incremental)", "R$", "45.000"),
+  v("financeiro", "financeiro.f_valor_p_1", "f_valor_p_1", "Financiamento Valor % 1", "Percentual financiado do financiamento 1 (O número é incremental)", "%", "90"),
+  v("financeiro", "financeiro.f_prazo_1", "f_prazo_1", "Financiamento Prazo 1", "Prazo em meses do financiamento 1 (O número é incremental)", "Meses", "12"),
+  v("financeiro", "financeiro.f_carencia_1", "f_carencia_1", "Financiamento Carência 1", "Carência em meses do financiamento 1 (O número é incremental)", "Meses", "0"),
+  v("financeiro", "financeiro.f_taxa_1", "f_taxa_1", "Financiamento Taxa 1", "Taxa de juros mensal do financiamento 1 (O número é incremental)", "a.m.", "1"),
+  v("financeiro", "financeiro.f_parcela_1", "f_parcela_1", "Financiamento Parcela 1", "Valor da parcela do financiamento 1 (O número é incremental)", "R$", "3988,20"),
+
+  // ── Financiamento Ativo (selecionado pelo consultor) ──
+  v("financeiro", "financeiro.f_ativo_nome", "f_ativo_nome", "Financiamento Ativo Nome", "Nome do financiamento ativo/selecionado", "-", "Santander"),
+  v("financeiro", "financeiro.f_ativo_entrada", "f_ativo_entrada", "Financiamento Ativo Entrada R$", "Entrada em R$ do financiamento ativo", "R$", "5.000"),
+  v("financeiro", "financeiro.f_ativo_entrada_p", "f_ativo_entrada_p", "Financiamento Ativo Entrada %", "Entrada em % do financiamento ativo", "%", "10"),
+  v("financeiro", "financeiro.f_ativo_valor", "f_ativo_valor", "Financiamento Ativo Valor R$", "Valor financiado do financiamento ativo", "R$", "45.000"),
+  v("financeiro", "financeiro.f_ativo_valor_p", "f_ativo_valor_p", "Financiamento Ativo Valor %", "Percentual financiado do financiamento ativo", "%", "90"),
+  v("financeiro", "financeiro.f_ativo_prazo", "f_ativo_prazo", "Financiamento Ativo Prazo", "Prazo em meses do financiamento ativo", "Meses", "12"),
+  v("financeiro", "financeiro.f_ativo_carencia", "f_ativo_carencia", "Financiamento Ativo Carência", "Carência em meses do financiamento ativo", "Meses", "0"),
+  v("financeiro", "financeiro.f_ativo_taxa", "f_ativo_taxa", "Financiamento Ativo Taxa", "Taxa de juros mensal do financiamento ativo", "a.m.", "1"),
+  v("financeiro", "financeiro.f_ativo_parcela", "f_ativo_parcela", "Financiamento Ativo Parcela", "Valor da parcela do financiamento ativo", "R$", "3988,20"),
+
+  // ── Margens, Preço e Payback ──
+  v("financeiro", "financeiro.margem_lucro", "margem_lucro", "Margem de Lucro", "Margem percentual de lucro", "%", "25"),
+  v("financeiro", "financeiro.preco", "preco", "Preço Total Venda", "Preço total de venda do projeto", "R$", "200000,00"),
+  v("financeiro", "financeiro.preco_por_extenso", "preco_por_extenso", "Preço Total Venda por Extenso", "Valor por extenso do preço total", "R$", "duzentos mil reais e vinte e cinco centavos"),
   v("financeiro", "financeiro.preco_kwp", "preco_kwp", "Preço por kWp", "Valor por kWp instalado", "R$/kWp", "5113.64"),
   v("financeiro", "financeiro.preco_watt", "preco_watt", "Preço por Watt", "Valor por Watt instalado", "R$/W", "5.11"),
-  v("financeiro", "financeiro.custo_modulos", "custo_modulos", "Custo módulos", "Custo total dos módulos", "R$", "12000.00"),
-  v("financeiro", "financeiro.custo_inversores", "custo_inversores", "Custo inversores", "Custo total dos inversores", "R$", "6000.00"),
-  v("financeiro", "financeiro.custo_estrutura", "custo_estrutura", "Custo estrutura", "Custo da estrutura de fixação", "R$", "3000.00"),
-  v("financeiro", "financeiro.custo_instalacao", "custo_instalacao", "Custo instalação", "Custo de mão de obra de instalação", "R$", "5000.00"),
-  v("financeiro", "financeiro.custo_kit", "custo_kit", "Custo do kit", "Custo total do kit de equipamentos", "R$", "21000.00"),
-  v("financeiro", "financeiro.margem_percentual", "margem_percentual", "Margem (%)", "Margem percentual sobre o custo", "%", "35"),
-  v("financeiro", "financeiro.desconto_percentual", "desconto_percentual", "Desconto (%)", "Desconto aplicado", "%", "5"),
-  v("financeiro", "financeiro.desconto_valor", "desconto_valor", "Desconto (R$)", "Valor do desconto em reais", "R$", "2250.00"),
-  v("financeiro", "financeiro.economia_mensal", "economia_mensal", "Economia mensal", "Economia mensal estimada na conta de luz", "R$", "850.00"),
-  v("financeiro", "financeiro.economia_anual", "economia_anual", "Economia anual", "Economia anual estimada", "R$", "10200.00"),
-  v("financeiro", "financeiro.payback_meses", "payback_meses", "Payback (meses)", "Tempo de retorno do investimento em meses", "meses", "52"),
-  v("financeiro", "financeiro.payback_anos", "payback_anos", "Payback (anos)", "Tempo de retorno do investimento em anos", "anos", "4.3"),
-  v("financeiro", "financeiro.vpl", "vpl", "VPL", "Valor presente líquido do investimento", "R$", "120000.00"),
-  v("financeiro", "financeiro.tir", "tir", "TIR", "Taxa interna de retorno", "%", "25"),
-  v("financeiro", "financeiro.roi_25_anos", "roi_25_anos", "ROI 25 anos", "Retorno total em 25 anos", "R$", "210000.00"),
-  v("financeiro", "financeiro.solar_25_anos", "solar_25_anos", "Saldo solar 25 anos", "Saldo acumulado com energia solar em 25 anos", "R$", "255000.00"),
-  v("financeiro", "financeiro.renda_fixa_25_anos", "renda_fixa_25_anos", "Renda fixa 25 anos", "Se investisse o mesmo valor em renda fixa", "R$", "85000.00"),
-  v("financeiro", "financeiro.poupanca_25_anos", "poupanca_25_anos", "Poupança 25 anos", "Se investisse o mesmo valor na poupança", "R$", "72000.00"),
-  v("financeiro", "financeiro.comissao_percentual", "comissao_percentual", "Comissão (%)", "Percentual de comissão do consultor", "%", "5"),
-  v("financeiro", "financeiro.comissao_valor", "comissao_valor", "Comissão (R$)", "Valor da comissão do consultor", "R$", "2250.00"),
-  // Financiamento
-  v("financeiro", "financeiro.f_banco", "f_banco", "Banco financiamento", "Banco/instituição financeira", "", "BV Financeira"),
-  v("financeiro", "financeiro.f_taxa_juros", "f_taxa_juros", "Taxa de juros", "Taxa de juros mensal do financiamento", "% a.m.", "1.29"),
-  v("financeiro", "financeiro.f_parcelas", "f_parcelas", "Nº parcelas", "Quantidade de parcelas do financiamento", "un", "60"),
-  v("financeiro", "financeiro.f_valor_parcela", "f_valor_parcela", "Valor parcela", "Valor mensal da parcela", "R$", "980.00"),
-  v("financeiro", "financeiro.f_entrada", "f_entrada", "Entrada", "Valor de entrada do financiamento", "R$", "5000.00"),
-  v("financeiro", "financeiro.f_valor_financiado", "f_valor_financiado", "Valor financiado", "Valor total financiado", "R$", "40000.00"),
-  v("financeiro", "financeiro.f_cet", "f_cet", "CET", "Custo efetivo total anual", "% a.a.", "18.5"),
+  v("financeiro", "financeiro.payback", "payback", "Payback", "Tempo de retorno do investimento formatado", "-", "3 anos e 2 meses"),
+  v("financeiro", "financeiro.payback_uc1", "payback_uc1", "Payback UC #", "Payback por UC específica", "-", "3 anos e 2 meses"),
+
+  // ── Indicadores financeiros ──
+  v("financeiro", "financeiro.vpl", "vpl", "Valor Presente Líquido", "VPL do investimento", "R$", "50.000"),
+  v("financeiro", "financeiro.vpl_uc1", "vpl_uc1", "VPL UC #", "VPL por UC específica", "R$", "50.000"),
+  v("financeiro", "financeiro.tir", "tir", "Taxa Interna de Retorno", "TIR do investimento", "%", "13,44"),
+  v("financeiro", "financeiro.tir_uc1", "tir_uc1", "TIR UC #", "TIR por UC específica", "%", "13,44"),
+
+  // ── Séries anuais (Disponível para os 25 anos: _0 a _25) ──
+  v("financeiro", "financeiro.investimento_anual_0", "investimento_anual_0", "Investimento Anual", "Investimento anual (Disponível para os 25 anos: _0 a _25)", "R$", "100.000"),
+  v("financeiro", "financeiro.investimento_anual_0_uc1", "investimento_anual_0_uc1", "Investimento Anual UC #", "Investimento anual por UC (Disponível para os 25 anos)", "R$", "100.000"),
+  v("financeiro", "financeiro.economia_anual_valor_0", "economia_anual_valor_0", "Economia Anual", "Economia anual (Disponível para os 25 anos: _0 a _25)", "R$", "58800,00"),
+  v("financeiro", "financeiro.economia_anual_valor_0_uc1", "economia_anual_valor_0_uc1", "Economia Anual UC #", "Economia anual por UC (Disponível para os 25 anos)", "R$", "58800,00"),
+  v("financeiro", "financeiro.fluxo_caixa_acumulado_anual_0", "fluxo_caixa_acumulado_anual_0", "Fluxo de Caixa Acumulado Anual", "Fluxo de caixa acumulado anual (Disponível para os 25 anos: _0 a _25)", "R$", "100.000"),
+  v("financeiro", "financeiro.fluxo_caixa_acumulado_anual_0_uc1", "fluxo_caixa_acumulado_anual_0_uc1", "Fluxo de Caixa Acumulado Anual UC #", "Fluxo de caixa acumulado anual por UC (Disponível para os 25 anos)", "R$", "100.000"),
+
+  // ── Distribuidor ──
+  v("financeiro", "financeiro.distribuidor_categoria", "distribuidor_categoria", "Distribuidor Categoria", "Categoria do distribuidor (Premium, Gold, etc.)", "-", "Premium"),
+
+  // ── Comissões ──
+  v("financeiro", "financeiro.comissao_res", "comissao_res", "Comissão Responsável R$", "Valor da comissão do responsável", "R$", "R$ 5.000,23"),
+  v("financeiro", "financeiro.comissao_rep", "comissao_rep", "Comissão Representante R$", "Valor da comissão do representante", "R$", "R$ 5.000,23"),
+  v("financeiro", "financeiro.comissao_res_p", "comissao_res_p", "Comissão Responsável %", "Percentual de comissão do responsável", "%", "1,25"),
+  v("financeiro", "financeiro.comissao_rep_p", "comissao_rep_p", "Comissão Representante %", "Percentual de comissão do representante", "%", "1,25"),
+
+  // ── Comparativos 25 anos ──
+  v("financeiro", "financeiro.solar_25", "solar_25", "Solar 25 anos", "Saldo acumulado com solar em 25 anos", "R$", "R$ 180.111,05"),
+  v("financeiro", "financeiro.renda_25", "renda_25", "Renda Fixa 25 anos", "Se investisse o mesmo valor em renda fixa", "R$", "R$ 120.200,00"),
+  v("financeiro", "financeiro.poupanca_25", "poupanca_25", "Poupança 25 anos", "Se investisse o mesmo valor na poupança", "R$", "R$ 98.000,00"),
+
+  // ── Baterias ──
+  v("financeiro", "financeiro.bateria_custo_un_1", "bateria_custo_un_1", "Bateria Custo Unitário 1", "Custo unitário da bateria 1 (O número é incremental)", "R$", "1000,00"),
+  v("financeiro", "financeiro.bateria_preco_un_1", "bateria_preco_un_1", "Bateria Preço Unitário 1", "Preço de venda unitário da bateria 1 (O número é incremental)", "R$", "1000,00"),
+  v("financeiro", "financeiro.bateria_preco_total_1", "bateria_preco_total_1", "Bateria Preço Total 1", "Preço de venda total da bateria 1 (O número é incremental)", "R$", "1000,00"),
+  v("financeiro", "financeiro.bateria_custo_un", "bateria_custo_un", "Bateria(s) Custo(s) Unitário(s)", "Custos unitários concatenados de todas as baterias", "R$", "1000,00 / 1500,00"),
+  v("financeiro", "financeiro.bateria_preco_un", "bateria_preco_un", "Bateria(s) Preço(s) Unitário(s)", "Preços unitários concatenados de todas as baterias", "R$", "1000,00 / 1500,00"),
+  v("financeiro", "financeiro.bateria_custo_total", "bateria_custo_total", "Bateria(s) Custo(s) Total", "Custos totais concatenados de todas as baterias", "R$", "1000,00 / 1500,00"),
+  v("financeiro", "financeiro.bateria_preco_total", "bateria_preco_total", "Bateria(s) Preço(s) Total", "Preços totais concatenados de todas as baterias", "R$", "1000,00 / 1500,00"),
+  v("financeiro", "financeiro.baterias_custo_total", "baterias_custo_total", "Baterias Custo Total", "Custo total somado de todas as baterias", "R$", "1000,00"),
+  v("financeiro", "financeiro.baterias_preco_total", "baterias_preco_total", "Baterias Preço Total", "Preço de venda total somado de todas as baterias", "R$", "1000,00"),
+
+  // ── Legado (mantido por compatibilidade) ──
+  v("financeiro", "financeiro.preco_total", "preco_total", "Preço total (legado)", "Valor total do projeto/proposta (legado)", "R$", "45000.00"),
+  v("financeiro", "financeiro.custo_modulos", "custo_modulos", "Custo módulos (legado)", "Custo total dos módulos (legado)", "R$", "12000.00"),
+  v("financeiro", "financeiro.custo_inversores", "custo_inversores", "Custo inversores (legado)", "Custo total dos inversores (legado)", "R$", "6000.00"),
+  v("financeiro", "financeiro.custo_estrutura", "custo_estrutura", "Custo estrutura (legado)", "Custo da estrutura (legado)", "R$", "3000.00"),
+  v("financeiro", "financeiro.custo_instalacao", "custo_instalacao", "Custo instalação (legado)", "Custo de mão de obra (legado)", "R$", "5000.00"),
+  v("financeiro", "financeiro.custo_kit", "custo_kit", "Custo do kit (legado)", "Custo total do kit (legado)", "R$", "21000.00"),
+  v("financeiro", "financeiro.margem_percentual", "margem_percentual", "Margem % (legado)", "Margem percentual sobre o custo (legado)", "%", "35"),
+  v("financeiro", "financeiro.desconto_percentual", "desconto_percentual", "Desconto % (legado)", "Desconto aplicado (legado)", "%", "5"),
+  v("financeiro", "financeiro.desconto_valor", "desconto_valor", "Desconto R$ (legado)", "Valor do desconto em reais (legado)", "R$", "2250.00"),
+  v("financeiro", "financeiro.economia_mensal", "economia_mensal", "Economia mensal (legado)", "Economia mensal estimada (legado)", "R$", "850.00"),
+  v("financeiro", "financeiro.economia_anual", "economia_anual", "Economia anual (legado)", "Economia anual estimada (legado)", "R$", "10200.00"),
+  v("financeiro", "financeiro.payback_meses", "payback_meses", "Payback meses (legado)", "Payback em meses (legado)", "meses", "52"),
+  v("financeiro", "financeiro.payback_anos", "payback_anos", "Payback anos (legado)", "Payback em anos (legado)", "anos", "4.3"),
+  v("financeiro", "financeiro.roi_25_anos", "roi_25_anos", "ROI 25 anos (legado)", "Retorno total em 25 anos (legado)", "R$", "210000.00"),
+  v("financeiro", "financeiro.solar_25_anos", "solar_25_anos", "Saldo solar 25 anos (legado)", "Saldo acumulado solar 25 anos (legado)", "R$", "255000.00"),
+  v("financeiro", "financeiro.renda_fixa_25_anos", "renda_fixa_25_anos", "Renda fixa 25 anos (legado)", "Renda fixa 25 anos (legado)", "R$", "85000.00"),
+  v("financeiro", "financeiro.poupanca_25_anos", "poupanca_25_anos", "Poupança 25 anos (legado)", "Poupança 25 anos (legado)", "R$", "72000.00"),
+  v("financeiro", "financeiro.comissao_percentual", "comissao_percentual", "Comissão % (legado)", "Comissão percentual (legado)", "%", "5"),
+  v("financeiro", "financeiro.comissao_valor", "comissao_valor", "Comissão R$ (legado)", "Valor comissão (legado)", "R$", "2250.00"),
+  v("financeiro", "financeiro.f_banco", "f_banco", "Banco financiamento (legado)", "Banco/instituição financeira (legado)", "", "BV Financeira"),
+  v("financeiro", "financeiro.f_taxa_juros", "f_taxa_juros", "Taxa de juros (legado)", "Taxa de juros mensal (legado)", "% a.m.", "1.29"),
+  v("financeiro", "financeiro.f_parcelas", "f_parcelas", "Nº parcelas (legado)", "Quantidade de parcelas (legado)", "un", "60"),
+  v("financeiro", "financeiro.f_valor_parcela", "f_valor_parcela", "Valor parcela (legado)", "Valor mensal da parcela (legado)", "R$", "980.00"),
+  v("financeiro", "financeiro.f_entrada", "f_entrada", "Entrada (legado)", "Valor de entrada (legado)", "R$", "5000.00"),
+  v("financeiro", "financeiro.f_valor_financiado", "f_valor_financiado", "Valor financiado (legado)", "Valor total financiado (legado)", "R$", "40000.00"),
+  v("financeiro", "financeiro.f_cet", "f_cet", "CET (legado)", "Custo efetivo total anual (legado)", "% a.a.", "18.5"),
 
   // ──────────────────────────────────────────────────────────────
   // CONTA DE ENERGIA
