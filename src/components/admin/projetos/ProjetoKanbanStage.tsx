@@ -1,5 +1,4 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
-import { getEtiquetaConfig } from "@/lib/etiquetas";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -41,12 +40,22 @@ interface AutomationRule {
   destino_stage_id: string | null;
 }
 
+interface DynamicEtiqueta {
+  id: string;
+  nome: string;
+  cor: string;
+  grupo: string;
+  short: string | null;
+  icon: string | null;
+}
+
 interface Props {
   stages: PipelineStage[];
   deals: DealKanbanCard[];
   onMoveToStage: (dealId: string, stageId: string) => void;
   onViewProjeto?: (deal: DealKanbanCard) => void;
   onNewProject?: () => void;
+  dynamicEtiquetas?: DynamicEtiqueta[];
 }
 
 const formatKwp = (v: number) => {
@@ -54,7 +63,7 @@ const formatKwp = (v: number) => {
   return `${v.toFixed(1).replace(".", ",")} kWp`;
 };
 
-// Etiqueta config now from @/lib/etiquetas
+// Etiqueta config resolved from dynamic DB etiquetas
 
 const PROPOSTA_STATUS_MAP: Record<string, { label: string; className: string }> = {
   rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
@@ -94,7 +103,7 @@ function getInitials(name: string) {
     .join("");
 }
 
-export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject }: Props) {
+export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject, dynamicEtiquetas = [] }: Props) {
   const isMobile = useIsMobile();
   const [draggedId, setDraggedId] = useState<string | null>(null);
   const [dragOverCol, setDragOverCol] = useState<string | null>(null);
@@ -234,6 +243,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                           onDragStart={() => {}}
                           onClick={() => onViewProjeto?.(deal)}
                           hasAutomation={hasActiveAutomation}
+                          dynamicEtiquetas={dynamicEtiquetas}
                         />
                       ))
                     )}
@@ -423,6 +433,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       onDragStart={handleDragStart}
                       onClick={() => onViewProjeto?.(deal)}
                       hasAutomation={hasActiveAutomation}
+                      dynamicEtiquetas={dynamicEtiquetas}
                     />
                   ))}
                 </div>
@@ -481,10 +492,28 @@ interface StageDealCardProps {
   onDragStart: (e: React.DragEvent, id: string) => void;
   onClick: () => void;
   hasAutomation?: boolean;
+  dynamicEtiquetas?: DynamicEtiqueta[];
 }
 
-function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }: StageDealCardProps) {
-  const etiquetaCfg = getEtiquetaConfig(deal.etiqueta);
+function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, dynamicEtiquetas = [] }: StageDealCardProps) {
+  // Resolve etiqueta from dynamic DB list
+  const etiquetaCfg = useMemo(() => {
+    if (!deal.etiqueta) return null;
+    const found = dynamicEtiquetas.find(e =>
+      e.nome.toLowerCase() === deal.etiqueta?.toLowerCase() ||
+      e.id === deal.etiqueta
+    );
+    if (found) {
+      return {
+        label: found.nome,
+        short: found.short || found.nome.substring(0, 3).toUpperCase(),
+        cor: found.cor,
+        icon: found.icon,
+      };
+    }
+    return null;
+  }, [deal.etiqueta, dynamicEtiquetas]);
+
   const isInactive = deal.deal_status === "perdido" || deal.deal_status === "cancelado";
   const propostaInfo = deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
   const timeInStage = getTimeInStage(deal.last_stage_change);
@@ -536,11 +565,15 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
             </Badge>
           )}
           {etiquetaCfg && (
-            <span className={cn(
-              "text-[9px] font-bold rounded-md px-1.5 py-0.5 border",
-              etiquetaCfg.className
-            )}>
-              {etiquetaCfg.short || etiquetaCfg.label}
+            <span
+              className="text-[9px] font-bold rounded-md px-1.5 py-0.5 border"
+              style={{
+                backgroundColor: `${etiquetaCfg.cor}20`,
+                color: etiquetaCfg.cor,
+                borderColor: `${etiquetaCfg.cor}40`,
+              }}
+            >
+              {etiquetaCfg.icon ? `${etiquetaCfg.icon} ` : ""}{etiquetaCfg.short || etiquetaCfg.label}
             </span>
           )}
         </div>
