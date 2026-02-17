@@ -148,7 +148,7 @@ export function ProposalGenerator({ lead, orcamento, vendedorNome }: ProposalGen
         investimentoEstimado: calculations.investimento,
         paybackAnos: calculations.paybackAnos,
         financiamento: includeFinancing ? financingCalc : undefined,
-        vendedorNome,
+        consultorNome: vendedorNome,
         empresaNome: "MAIS ENERGIA SOLAR",
         empresaTelefone: "(00) 00000-0000",
         logoUrl,

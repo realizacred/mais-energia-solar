@@ -84,7 +84,7 @@ export function ProjetosManager() {
     }
   };
 
-  // Active pipelines only (inactive ones like old "Vendedor" are already filtered by the hook)
+  // Active pipelines only (inactive ones are filtered by the hook)
   const activePipelines = useMemo(
     () => pipelines.filter(p => p.is_active),
     [pipelines]

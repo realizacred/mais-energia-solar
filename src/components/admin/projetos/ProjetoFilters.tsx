@@ -87,6 +87,18 @@ export function ProjetoFilters({
         {/* Left: Funil | Lista toggle */}
         <div className="flex items-center gap-4 shrink-0">
           <button
+            onClick={() => onViewModeChange("kanban-consultor")}
+            className={cn(
+              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors",
+              viewMode === "kanban-consultor"
+                ? "border-foreground text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Users className="h-4 w-4" />
+            Consultores
+          </button>
+          <button
             onClick={() => onViewModeChange("kanban-etapa")}
             className={cn(
               "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors",
@@ -97,18 +109,6 @@ export function ProjetoFilters({
           >
             <Filter className="h-4 w-4" />
             Funil
-          </button>
-          <button
-            onClick={() => onViewModeChange("kanban-consultor")}
-            className={cn(
-              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors",
-              viewMode === "kanban-consultor"
-                ? "border-foreground text-foreground"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Users className="h-4 w-4" />
-            Por consultor
           </button>
           <button
             onClick={() => onViewModeChange("lista")}
