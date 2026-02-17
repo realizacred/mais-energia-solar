@@ -7400,6 +7400,44 @@ export type Database = {
           },
         ]
       }
+      proposta_config: {
+        Row: {
+          created_at: string
+          id: string
+          proposta_exibir_expirada: boolean
+          proposta_tem_validade: boolean
+          proposta_validade_dias: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          proposta_exibir_expirada?: boolean
+          proposta_tem_validade?: boolean
+          proposta_validade_dias?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          proposta_exibir_expirada?: boolean
+          proposta_tem_validade?: boolean
+          proposta_validade_dias?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_config_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_email_templates: {
         Row: {
           assunto: string
