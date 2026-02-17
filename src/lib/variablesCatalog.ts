@@ -121,44 +121,123 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   // ENTRADA DE DADOS
   // ──────────────────────────────────────────────────────────────
-  v("entrada", "entrada.tipo", "tipo", "Tipo de projeto", "Tipo: residencial, comercial, rural, industrial", "", "residencial"),
-  v("entrada", "entrada.tipo_uc1", "tipo_uc1", "Tipo UC principal", "Tipo da unidade consumidora principal", "", "monofásico"),
-  v("entrada", "entrada.consumo_mensal", "consumo_mensal", "Consumo mensal total", "Soma do consumo mensal de todas as UCs", "kWh", "450"),
-  v("entrada", "entrada.consumo_mensal_uc1", "consumo_mensal_uc1", "Consumo UC1", "Consumo mensal da UC principal", "kWh", "350"),
-  v("entrada", "entrada.consumo_mensal_p", "consumo_mensal_p", "Consumo ponta", "Consumo mensal na ponta (Grupo A)", "kWh", "100"),
-  v("entrada", "entrada.consumo_mensal_fp", "consumo_mensal_fp", "Consumo fora-ponta", "Consumo mensal fora da ponta (Grupo A)", "kWh", "350"),
-  v("entrada", "entrada.distribuidora", "distribuidora", "Distribuidora", "Nome da concessionária/distribuidora", "", "CEMIG"),
-  v("entrada", "entrada.subgrupo", "subgrupo", "Subgrupo tarifário", "B1, B2, B3, A4, etc.", "", "B1"),
-  v("entrada", "entrada.consumo_jan", "consumo_jan", "Consumo janeiro", "Consumo em janeiro", "kWh", "500"),
-  v("entrada", "entrada.consumo_fev", "consumo_fev", "Consumo fevereiro", "Consumo em fevereiro", "kWh", "480"),
-  v("entrada", "entrada.consumo_mar", "consumo_mar", "Consumo março", "Consumo em março", "kWh", "460"),
-  v("entrada", "entrada.consumo_abr", "consumo_abr", "Consumo abril", "Consumo em abril", "kWh", "400"),
-  v("entrada", "entrada.consumo_mai", "consumo_mai", "Consumo maio", "Consumo em maio", "kWh", "380"),
-  v("entrada", "entrada.consumo_jun", "consumo_jun", "Consumo junho", "Consumo em junho", "kWh", "350"),
-  v("entrada", "entrada.consumo_jul", "consumo_jul", "Consumo julho", "Consumo em julho", "kWh", "340"),
-  v("entrada", "entrada.consumo_ago", "consumo_ago", "Consumo agosto", "Consumo em agosto", "kWh", "360"),
-  v("entrada", "entrada.consumo_set", "consumo_set", "Consumo setembro", "Consumo em setembro", "kWh", "380"),
-  v("entrada", "entrada.consumo_out", "consumo_out", "Consumo outubro", "Consumo em outubro", "kWh", "420"),
-  v("entrada", "entrada.consumo_nov", "consumo_nov", "Consumo novembro", "Consumo em novembro", "kWh", "450"),
-  v("entrada", "entrada.consumo_dez", "consumo_dez", "Consumo dezembro", "Consumo em dezembro", "kWh", "490"),
-  v("entrada", "entrada.tarifa_energia", "tarifa_energia", "Tarifa de energia", "Tarifa TE da distribuidora", "R$/kWh", "0.85"),
-  v("entrada", "entrada.tarifa_fio_b", "tarifa_fio_b", "Tarifa Fio B", "Tarifa TUSD Fio B", "R$/kWh", "0.25"),
-  v("entrada", "entrada.demanda_contratada", "demanda_contratada", "Demanda contratada", "Demanda contratada (Grupo A)", "kW", "50"),
-  v("entrada", "entrada.estado", "estado", "Estado", "UF do cliente", "", "MG"),
-  v("entrada", "entrada.cidade", "cidade", "Cidade", "Cidade do cliente", "", "Belo Horizonte"),
-  v("entrada", "entrada.distancia_km", "distancia_km", "Distância", "Distância para instalação", "km", "25"),
-  v("entrada", "entrada.taxa_desempenho", "taxa_desempenho", "Taxa de desempenho", "Performance ratio do sistema", "%", "80"),
-  v("entrada", "entrada.desvio_azimutal", "desvio_azimutal", "Desvio azimutal", "Desvio em relação ao norte", "°", "15"),
+  // ── Tipo e Consumo ──
+  v("entrada", "entrada.tipo", "tipo", "Tipo de Dimensionamento", "BT ou MT", "-", "BT|MT"),
+  v("entrada", "entrada.tipo_uc1", "tipo_uc1", "Tipo de Dimensionamento UC #", "Tipo de dimensionamento por UC", "-", "BT"),
+  v("entrada", "entrada.consumo_mensal", "consumo_mensal", "Consumo Mensal", "Consumo mensal total (BT)", "kWh", "1.000"),
+  v("entrada", "entrada.consumo_mensal_uc1", "consumo_mensal_uc1", "Consumo Mensal UC #", "Consumo mensal por UC (BT)", "kWh", "1.000"),
+  v("entrada", "entrada.consumo_mensal_p", "consumo_mensal_p", "Consumo Mensal Ponta", "Consumo mensal na ponta (MT)", "kWh", "12.000"),
+  v("entrada", "entrada.consumo_mensal_p_uc1", "consumo_mensal_p_uc1", "Consumo Mensal Ponta UC #", "Consumo mensal ponta por UC (MT)", "kWh", "12.000"),
+  v("entrada", "entrada.consumo_mensal_fp", "consumo_mensal_fp", "Consumo Mensal Fora Ponta", "Consumo mensal fora da ponta (MT)", "kWh", "11.000"),
+  v("entrada", "entrada.consumo_mensal_fp_uc1", "consumo_mensal_fp_uc1", "Consumo Mensal Fora Ponta UC #", "Consumo mensal fora ponta por UC (MT)", "kWh", "11.000"),
+
+  // ── Distribuidora e Subgrupo ──
+  v("entrada", "entrada.dis_energia", "dis_energia", "Distribuidora de Energia", "Nome da concessionária/distribuidora", "-", "Copel-DIS"),
+  v("entrada", "entrada.subgrupo_uc1", "subgrupo_uc1", "Subgrupo UC#", "Subgrupo tarifário por UC", "-", "A4 - Verde"),
+
+  // ── Consumo mensal por mês (BT — Disponível para os 12 meses) ──
+  v("entrada", "entrada.consumo_jan", "consumo_jan", "Consumo Janeiro", "Consumo em janeiro (Disponível para os 12 meses)", "kWh", "1.236"),
+  v("entrada", "entrada.consumo_jan_uc1", "consumo_jan_uc1", "Consumo Janeiro UC #", "Consumo em janeiro por UC (Disponível para os 12 meses)", "kWh", "1.236"),
+  v("entrada", "entrada.consumo_fev", "consumo_fev", "Consumo Fevereiro", "Consumo em fevereiro", "kWh", "480"),
+  v("entrada", "entrada.consumo_mar", "consumo_mar", "Consumo Março", "Consumo em março", "kWh", "460"),
+  v("entrada", "entrada.consumo_abr", "consumo_abr", "Consumo Abril", "Consumo em abril", "kWh", "400"),
+  v("entrada", "entrada.consumo_mai", "consumo_mai", "Consumo Maio", "Consumo em maio", "kWh", "380"),
+  v("entrada", "entrada.consumo_jun", "consumo_jun", "Consumo Junho", "Consumo em junho", "kWh", "350"),
+  v("entrada", "entrada.consumo_jul", "consumo_jul", "Consumo Julho", "Consumo em julho", "kWh", "340"),
+  v("entrada", "entrada.consumo_ago", "consumo_ago", "Consumo Agosto", "Consumo em agosto", "kWh", "360"),
+  v("entrada", "entrada.consumo_set", "consumo_set", "Consumo Setembro", "Consumo em setembro", "kWh", "380"),
+  v("entrada", "entrada.consumo_out", "consumo_out", "Consumo Outubro", "Consumo em outubro", "kWh", "420"),
+  v("entrada", "entrada.consumo_nov", "consumo_nov", "Consumo Novembro", "Consumo em novembro", "kWh", "450"),
+  v("entrada", "entrada.consumo_dez", "consumo_dez", "Consumo Dezembro", "Consumo em dezembro", "kWh", "490"),
+
+  // ── Consumo mensal Ponta por mês (MT — Disponível para os 12 meses) ──
+  v("entrada", "entrada.consumo_mensal_p_jan", "consumo_mensal_p_jan", "Consumo Mensal Ponta Janeiro", "Consumo ponta em janeiro (Disponível para os 12 meses)", "kWh", "12.000"),
+  v("entrada", "entrada.consumo_mensal_p_jan_uc1", "consumo_mensal_p_jan_uc1", "Consumo Mensal Ponta Janeiro UC #", "Consumo ponta em janeiro por UC", "kWh", "12.000"),
+
+  // ── Consumo mensal Fora Ponta por mês (MT — Disponível para os 12 meses) ──
+  v("entrada", "entrada.consumo_mensal_fp_jan", "consumo_mensal_fp_jan", "Consumo Mensal Fora Ponta Janeiro", "Consumo fora ponta em janeiro (Disponível para os 12 meses)", "kWh", "11.000"),
+  v("entrada", "entrada.consumo_mensal_fp_jan_uc1", "consumo_mensal_fp_jan_uc1", "Consumo Mensal Fora Ponta Janeiro UC #", "Consumo fora ponta em janeiro por UC", "kWh", "11.000"),
+
+  // ── Tarifas (BT) ──
+  v("entrada", "entrada.tarifa_distribuidora", "tarifa_distribuidora", "Tarifa Distribuidora", "Tarifa da distribuidora (BT)", "R$", "0,97"),
+  v("entrada", "entrada.tarifa_distribuidora_uc1", "tarifa_distribuidora_uc1", "Tarifa Distribuidora UC #", "Tarifa da distribuidora por UC (BT)", "R$", "0,97"),
+
+  // ── Tarifas (MT) ──
+  v("entrada", "entrada.tarifa_te_p", "tarifa_te_p", "Tarifa TE Ponta", "Tarifa TE na ponta (MT)", "R$", "0,98"),
+  v("entrada", "entrada.tarifa_te_p_uc1", "tarifa_te_p_uc1", "Tarifa TE Ponta UC #", "Tarifa TE ponta por UC (MT)", "R$", "0,98"),
+  v("entrada", "entrada.tarifa_tusd_p", "tarifa_tusd_p", "Tarifa TUSD Ponta", "Tarifa TUSD na ponta (MT)", "R$", "0,89"),
+  v("entrada", "entrada.tarifa_tusd_p_uc1", "tarifa_tusd_p_uc1", "Tarifa TUSD Ponta UC #", "Tarifa TUSD ponta por UC (MT)", "R$", "0,89"),
+  v("entrada", "entrada.tarifa_te_fp", "tarifa_te_fp", "Tarifa TE Fora Ponta", "Tarifa TE fora ponta (MT)", "R$", "0,87"),
+  v("entrada", "entrada.tarifa_te_fp_uc1", "tarifa_te_fp_uc1", "Tarifa TE Fora Ponta UC #", "Tarifa TE fora ponta por UC (MT)", "R$", "0,87"),
+  v("entrada", "entrada.tarifa_tusd_fp", "tarifa_tusd_fp", "Tarifa TUSD Fora Ponta", "Tarifa TUSD fora ponta (MT)", "R$", "0,86"),
+  v("entrada", "entrada.tarifa_tusd_fp_uc1", "tarifa_tusd_fp_uc1", "Tarifa TUSD Fora Ponta UC #", "Tarifa TUSD fora ponta por UC (MT)", "R$", "0,86"),
+
+  // ── Demanda (MT) ──
+  v("entrada", "entrada.demanda_preco", "demanda_preco", "Demanda Preço", "Preço da demanda (MT)", "R$", "12,56"),
+  v("entrada", "entrada.demanda_preco_uc1", "demanda_preco_uc1", "Demanda Preço UC #", "Preço da demanda por UC (MT)", "R$", "12,56"),
+  v("entrada", "entrada.demanda_contratada", "demanda_contratada", "Demanda Contratada", "Demanda contratada (MT)", "KW", "123"),
+  v("entrada", "entrada.demanda_contratada_uc1", "demanda_contratada_uc1", "Demanda Contratada UC #", "Demanda contratada por UC (MT)", "KW", "123"),
+  v("entrada", "entrada.demanda_adicional", "demanda_adicional", "Demanda Adicional", "Demanda adicional (MT)", "KW", "50"),
+
+  // ── Outros Encargos ──
+  v("entrada", "entrada.outros_encargos_atual", "outros_encargos_atual", "Outros Encargos Atual", "Outros encargos atuais", "R$", "123"),
+  v("entrada", "entrada.outros_encargos_atual_uc1", "outros_encargos_atual_uc1", "Outros Encargos Atual UC #", "Outros encargos atuais por UC", "R$", "123"),
+  v("entrada", "entrada.outros_encargos_novo", "outros_encargos_novo", "Outros Encargos Novo", "Outros encargos novos (com solar)", "R$", "123"),
+  v("entrada", "entrada.outros_encargos_novo_uc1", "outros_encargos_novo_uc1", "Outros Encargos Novo UC #", "Outros encargos novos por UC", "R$", "123"),
+
+  // ── Localização e Parâmetros ──
+  v("entrada", "entrada.estado", "estado", "Estado", "UF do cliente", "-", "RJ"),
+  v("entrada", "entrada.cidade", "cidade", "Cidade", "Cidade do cliente", "-", "Rio de Janeiro"),
+  v("entrada", "entrada.distancia", "distancia", "Distância", "Distância para instalação", "KM", "50"),
+  v("entrada", "entrada.taxa_desempenho", "taxa_desempenho", "Taxa de Desempenho", "Performance ratio do sistema", "%", "80"),
+  v("entrada", "entrada.desvio_azimutal", "desvio_azimutal", "Desvio Azimutal", "Desvio em relação ao norte", "°", "90"),
   v("entrada", "entrada.inclinacao", "inclinacao", "Inclinação", "Ângulo de inclinação dos módulos", "°", "20"),
-  v("entrada", "entrada.fator_geracao", "fator_geracao", "Fator de geração", "Fator de geração local (kWh/kWp/mês)", "kWh/kWp", "130"),
-  v("entrada", "entrada.telhado", "telhado", "Tipo de telhado", "Cerâmico, metálico, fibrocimento, laje, solo", "", "cerâmico"),
-  v("entrada", "entrada.fase", "fase", "Fase", "Monofásico, bifásico, trifásico", "", "trifásico"),
-  v("entrada", "entrada.tensao", "tensao", "Tensão", "Tensão de atendimento", "V", "220"),
-  v("entrada", "entrada.custo_disponibilidade", "custo_disponibilidade", "Custo disponibilidade", "Custo mínimo da concessionária", "R$", "50.00"),
-  v("entrada", "entrada.topologia", "topologia", "Topologia", "On-grid, off-grid, híbrido", "", "on-grid"),
-  v("entrada", "entrada.simultaneidade", "simultaneidade", "Simultaneidade", "Fator de simultaneidade para autoconsumo", "%", "30"),
-  v("entrada", "entrada.rateio_percentual", "rateio_percentual", "Rateio percentual", "Percentual de rateio entre UCs", "%", "100"),
-  v("entrada", "entrada.nome_uc1", "nome_uc1", "Nome UC1", "Nome/apelido da UC principal", "", "Casa principal"),
+  v("entrada", "entrada.fator_geracao", "fator_geracao", "Fator de Geração", "Fator de geração local", "kWh/kWp", "120"),
+  v("entrada", "entrada.fator_geracao_jan", "fator_geracao_jan", "Fator de Geração Janeiro", "Fator de geração em janeiro (Disponível para os 12 meses)", "kWh/kWp", "120"),
+
+  // ── Instalação ──
+  v("entrada", "entrada.tipo_telhado", "tipo_telhado", "Tipo de Telhado", "Tipo de telhado/cobertura", "-", "Shingle"),
+  v("entrada", "entrada.fase", "fase", "Fase", "Fase elétrica", "-", "Trifásico"),
+  v("entrada", "entrada.fase_uc1", "fase_uc1", "Fase UC #", "Fase elétrica por UC", "-", "Trifásico"),
+  v("entrada", "entrada.tensao_rede", "tensao_rede", "Tensão da Rede", "Tensão da rede elétrica", "V", "127/220V"),
+
+  // ── Custo de Disponibilidade ──
+  v("entrada", "entrada.custo_disponibilidade_kwh", "custo_disponibilidade_kwh", "Custo de Disponibilidade", "Custo de disponibilidade em kWh (BT)", "kWh", "100"),
+  v("entrada", "entrada.custo_disponibilidade_kwh_uc1", "custo_disponibilidade_kwh_uc1", "Custo de Disponibilidade UC #", "Custo de disponibilidade por UC (BT)", "kWh", "100"),
+  v("entrada", "entrada.topologia", "topologia", "Topologia", "Microinversor, String, etc.", "-", "Microinversor"),
+  v("entrada", "entrada.fator_simultaneidade", "fator_simultaneidade", "Fator de Simultaneidade", "Fator de simultaneidade para autoconsumo", "%", "10"),
+
+  // ── Rateio de Créditos ──
+  v("entrada", "entrada.rateio_sugerido_creditos", "rateio_sugerido_creditos", "Rateio Sugerido dos Créditos Gerados UCs", "Rateio sugerido de créditos de todas as UCs", "%", "100"),
+  v("entrada", "entrada.rateio_sugerido_creditos_uc1", "rateio_sugerido_creditos_uc1", "Rateio Sugerido dos Créditos Gerados UC #", "Rateio sugerido por UC", "%", "10"),
+  v("entrada", "entrada.rateio_creditos", "rateio_creditos", "Rateio dos Créditos Gerados UCs", "Rateio real de créditos de todas as UCs", "%", "100"),
+  v("entrada", "entrada.rateio_creditos_uc1", "rateio_creditos_uc1", "Rateio dos Créditos Gerados UC #", "Rateio real por UC", "%", "10"),
+
+  // ── Impostos ──
+  v("entrada", "entrada.imposto_energia", "imposto_energia", "Imposto Sobre Energia UCs", "Imposto sobre energia de todas as UCs", "%", "10"),
+  v("entrada", "entrada.imposto_energia_uc1", "imposto_energia_uc1", "Imposto Sobre Energia UC #", "Imposto sobre energia por UC", "%", "10"),
+
+  // ── UC ──
+  v("entrada", "entrada.nome_uc1", "nome_uc1", "Nome da Unidade Consumidora", "Nome/apelido da UC", "-", "Usina 1"),
+
+  // ── Demanda Geração (MT) ──
+  v("entrada", "entrada.demanda_g_uc1", "demanda_g_uc1", "Demanda Geração UC 1", "Demanda de geração por UC (MT)", "kW", "30,00"),
+  v("entrada", "entrada.demanda_g_preco_uc1", "demanda_g_preco_uc1", "Demanda Geração Preço UC 1", "Preço da demanda de geração por UC (MT)", "R$", "10,00"),
+
+  // ── Tarifa Fio B / Energia Compensada ──
+  v("entrada", "entrada.t_e_comp_fp_1_uc1", "t_e_comp_fp_1_uc1", "Tarifa Fio B/Energia Compensada Fora Ponta 1 UC #", "Tarifa Fio B energia compensada fora ponta período 1 por UC (MT)", "R$", "0,12345"),
+  v("entrada", "entrada.t_e_comp_fp_2_uc1", "t_e_comp_fp_2_uc1", "Tarifa Fio B/Energia Compensada Fora Ponta 2 UC #", "Tarifa Fio B energia compensada fora ponta período 2 por UC (MT)", "R$", "0,12345"),
+  v("entrada", "entrada.t_e_comp_p_1_uc1", "t_e_comp_p_1_uc1", "Tarifa Fio B/Energia Compensada Ponta 1 UC #", "Tarifa Fio B energia compensada ponta período 1 por UC (MT)", "R$", "0,12345"),
+  v("entrada", "entrada.t_e_comp_p_2_uc1", "t_e_comp_p_2_uc1", "Tarifa Fio B/Energia Compensada Ponta 2 UC #", "Tarifa Fio B energia compensada ponta período 2 por UC (MT)", "R$", "0,12345"),
+  v("entrada", "entrada.t_e_comp_bt_1_uc1", "t_e_comp_bt_1_uc1", "Tarifa Fio B/Energia Compensada BT 1 UC #", "Tarifa Fio B energia compensada BT período 1 por UC", "R$", "0,12345"),
+  v("entrada", "entrada.t_e_comp_bt_2_uc1", "t_e_comp_bt_2_uc1", "Tarifa Fio B/Energia Compensada BT 2 UC #", "Tarifa Fio B energia compensada BT período 2 por UC", "R$", "0,12345"),
+
+  // ── Regra de Compensação ──
+  v("entrada", "entrada.regra_comp_uc1", "regra_comp_uc1", "Regra de Compensação", "0 (GD I) ou 1 (GD II) por UC", "-", "1"),
+
+  // ── Sistema ──
+  v("entrada", "entrada.tipo_sistema", "tipo_sistema", "Tipo de Sistema", "On Grid / Híbrido / Off Grid", "-", "On Grid / Híbrido / Off Grid"),
+  v("entrada", "entrada.dod", "dod", "DoD", "Depth of Discharge (profundidade de descarga)", "%", "80,00"),
 
   // ──────────────────────────────────────────────────────────────
   // SISTEMA SOLAR
