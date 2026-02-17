@@ -217,32 +217,33 @@ export function OrcamentoHistoryDialog({
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex flex-col gap-2">
                             {onViewOrcamento && (
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                className="h-8"
+                                variant="outline"
                                 onClick={() => onViewOrcamento(orcamento)}
                               >
-                                <Eye className="h-4 w-4" />
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver
                               </Button>
                             )}
                             {onConvertOrcamento && !isConverted && (
                               <Button
                                 size="sm"
-                                variant="ghost"
-                                className="h-8 text-primary hover:text-primary hover:bg-primary/10"
+                                variant="default"
+                                className="bg-primary hover:bg-primary/90"
                                 onClick={() => {
                                   onConvertOrcamento(orcamento);
                                   onOpenChange(false);
                                 }}
                               >
-                                <ShoppingCart className="h-4 w-4" />
+                                <ShoppingCart className="h-4 w-4 mr-1" />
+                                Converter
                               </Button>
                             )}
                             {isConverted && (
-                              <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                              <Badge variant="outline" className="text-primary border-primary/30">
                                 Convertido
                               </Badge>
                             )}
