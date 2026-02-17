@@ -138,6 +138,10 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteBlocking, setDeleteBlocking] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
+  const [confirmConsultorId, setConfirmConsultorId] = useState<string | null>(null);
+  const [confirmConsultorName, setConfirmConsultorName] = useState("");
+
+  const isClosed = deal?.status === "won" || deal?.status === "lost";
 
   // ─── Delete logic (unchanged) ──────────────────
   const handleDeleteProject = async () => {
@@ -295,12 +299,14 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
       const { data: d } = await supabase.from("deals").select("id, title, value, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date").eq("id", dealId).single();
       if (d) {
         setDeal(d as DealDetail);
-        const [stagesRes, historyRes] = await Promise.all([
+        const [stagesRes, historyRes, ownerRes] = await Promise.all([
           supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", (d as any).pipeline_id).order("position"),
           supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
+          supabase.from("consultores").select("nome").eq("id", (d as any).owner_id).single(),
         ]);
         setStages((stagesRes.data || []) as StageInfo[]);
         setHistory((historyRes.data || []) as StageHistory[]);
+        if (ownerRes.data) setOwnerName((ownerRes.data as any).nome);
       }
     } catch { /* silent */ }
   };
@@ -390,81 +396,106 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <Button
-                size="sm"
-                onClick={async () => {
-                  if (deal.status === "won" || deal.status === "lost") return;
-                  const prevStatus = deal.status;
-                  const prevStageId = deal.stage_id;
-                  const wonStage = stages.find(s => s.is_won);
-                  const update: any = { status: "won" };
-                  if (wonStage) update.stage_id = wonStage.id;
-                  updateDealLocal(update);
-                  try {
-                    const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
-                    if (error) throw error;
-                    toast({ title: "🎉 Projeto ganho!" });
-                    silentRefresh();
-                  } catch (err: any) {
-                    updateDealLocal({ status: prevStatus, stage_id: prevStageId });
-                    toast({ title: "Erro", description: err.message, variant: "destructive" });
-                  }
-                }}
-                disabled={deal.status === "won" || deal.status === "lost"}
-                className="bg-success hover:bg-success/90 text-success-foreground font-semibold gap-1.5 disabled:opacity-50"
-              >
-                {deal.status === "won" ? <><Check className="h-3.5 w-3.5" /> Ganho</> : <><Trophy className="h-3.5 w-3.5" /> Ganhar</>}
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={async () => {
-                  if (deal.status === "won" || deal.status === "lost") return;
-                  const prevStatus = deal.status;
-                  const prevStageId = deal.stage_id;
-                  const lostStage = stages.find(s => s.is_closed && !s.is_won);
-                  const update: any = { status: "lost" };
-                  if (lostStage) update.stage_id = lostStage.id;
-                  updateDealLocal(update);
-                  try {
-                    const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
-                    if (error) throw error;
-                    toast({ title: "Projeto marcado como perdido" });
-                    silentRefresh();
-                  } catch (err: any) {
-                    updateDealLocal({ status: prevStatus, stage_id: prevStageId });
-                    toast({ title: "Erro", description: err.message, variant: "destructive" });
-                  }
-                }}
-                disabled={deal.status === "won" || deal.status === "lost"}
-                className="font-semibold gap-1.5 disabled:opacity-50"
-              >
-                {deal.status === "lost" ? <><XCircle className="h-3.5 w-3.5" /> Perdido</> : <><XCircle className="h-3.5 w-3.5" /> Perder</>}
-              </Button>
+              {isClosed ? (
+                /* ── Reabrir projeto fechado ── */
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!window.confirm("Tem certeza que deseja reabrir este projeto?")) return;
+                    const prevStatus = deal.status;
+                    const firstOpenStage = stages.find(s => !s.is_closed);
+                    const update: any = { status: "open" };
+                    if (firstOpenStage) update.stage_id = firstOpenStage.id;
+                    updateDealLocal(update);
+                    try {
+                      const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
+                      if (error) throw error;
+                      toast({ title: "Projeto reaberto!" });
+                      silentRefresh();
+                    } catch (err: any) {
+                      updateDealLocal({ status: prevStatus });
+                      toast({ title: "Erro", description: err.message, variant: "destructive" });
+                    }
+                  }}
+                  className="font-semibold gap-1.5"
+                >
+                  <Activity className="h-3.5 w-3.5" /> Reabrir Projeto
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    size="sm"
+                    onClick={async () => {
+                      const prevStatus = deal.status;
+                      const prevStageId = deal.stage_id;
+                      const wonStage = stages.find(s => s.is_won);
+                      const update: any = { status: "won" };
+                      if (wonStage) update.stage_id = wonStage.id;
+                      updateDealLocal(update);
+                      try {
+                        const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
+                        if (error) throw error;
+                        toast({ title: "🎉 Projeto ganho!" });
+                        silentRefresh();
+                      } catch (err: any) {
+                        updateDealLocal({ status: prevStatus, stage_id: prevStageId });
+                        toast({ title: "Erro", description: err.message, variant: "destructive" });
+                      }
+                    }}
+                    className="bg-success hover:bg-success/90 text-success-foreground font-semibold gap-1.5"
+                  >
+                    <Trophy className="h-3.5 w-3.5" /> Ganhar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={async () => {
+                      const prevStatus = deal.status;
+                      const prevStageId = deal.stage_id;
+                      const lostStage = stages.find(s => s.is_closed && !s.is_won);
+                      const update: any = { status: "lost" };
+                      if (lostStage) update.stage_id = lostStage.id;
+                      updateDealLocal(update);
+                      try {
+                        const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
+                        if (error) throw error;
+                        toast({ title: "Projeto marcado como perdido" });
+                        silentRefresh();
+                      } catch (err: any) {
+                        updateDealLocal({ status: prevStatus, stage_id: prevStageId });
+                        toast({ title: "Erro", description: err.message, variant: "destructive" });
+                      }
+                    }}
+                    className="font-semibold gap-1.5"
+                  >
+                    <XCircle className="h-3.5 w-3.5" /> Perder
+                  </Button>
+                </>
+              )}
 
               <Separator orientation="vertical" className="h-7 mx-1" />
 
               <div className="flex flex-col items-end gap-0.5">
-                <span className="text-[10px] text-muted-foreground font-medium">Consultor</span>
-                <Select value={deal.owner_id} onValueChange={async (ownerId) => {
-                  if (ownerId === deal.owner_id) return;
-                  const prev = deal.owner_id;
-                  updateDealLocal({ owner_id: ownerId });
-                  try {
-                    const { error } = await supabase.from("deals").update({ owner_id: ownerId }).eq("id", deal.id);
-                    if (error) throw error;
-                    toast({ title: "Consultor alterado" });
-                    silentRefresh();
-                  } catch (err: any) {
-                    updateDealLocal({ owner_id: prev });
-                    toast({ title: "Erro", description: err.message, variant: "destructive" });
-                  }
-                }}>
-                  <SelectTrigger className="h-8 w-[180px] text-sm">
+                <span className="text-[10px] text-muted-foreground font-medium">Trocar Consultor</span>
+                <Select
+                  value={deal.owner_id}
+                  disabled={isClosed}
+                  onValueChange={(ownerId) => {
+                    if (ownerId === deal.owner_id || isClosed) return;
+                    // Store selected id and resolve name for confirmation
+                    setConfirmConsultorId(ownerId);
+                    // Name will be looked up from the SelectItem label
+                    setConfirmConsultorName(ownerId);
+                  }}
+                >
+                  <SelectTrigger className={cn("h-8 w-[180px] text-sm", isClosed && "opacity-60 cursor-not-allowed")}>
                     <SelectValue placeholder="Selecionar" />
                   </SelectTrigger>
                   <SelectContent>
-                    <ConsultorOptions />
+                    <ConsultorOptions onResolveName={(id, name) => {
+                      if (id === confirmConsultorId) setConfirmConsultorName(name);
+                    }} />
                   </SelectContent>
                 </Select>
               </div>
@@ -556,6 +587,39 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
         </motion.div>
       </AnimatePresence>
 
+      {/* ── Confirm consultor change dialog ── */}
+      <AlertDialog open={!!confirmConsultorId} onOpenChange={(open) => { if (!open) setConfirmConsultorId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Trocar consultor?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Deseja realmente trocar o consultor responsável por este projeto?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setConfirmConsultorId(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => {
+              if (!confirmConsultorId || !deal) return;
+              const prev = deal.owner_id;
+              const newId = confirmConsultorId;
+              setConfirmConsultorId(null);
+              updateDealLocal({ owner_id: newId });
+              try {
+                const { error } = await supabase.from("deals").update({ owner_id: newId }).eq("id", deal.id);
+                if (error) throw error;
+                toast({ title: "Consultor alterado" });
+                silentRefresh();
+              } catch (err: any) {
+                updateDealLocal({ owner_id: prev });
+                toast({ title: "Erro", description: err.message, variant: "destructive" });
+              }
+            }}>
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* ── Delete blocking dialog ── */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
@@ -577,11 +641,16 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
 // ═══════════════════════════════════════════════════
 // ─── Consultor Options (lazy loaded) ─────────────
 // ═══════════════════════════════════════════════════
-function ConsultorOptions() {
+function ConsultorOptions({ onResolveName }: { onResolveName?: (id: string, name: string) => void }) {
   const [consultores, setConsultores] = useState<{ id: string; nome: string }[]>([]);
   useEffect(() => {
     supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome")
-      .then(({ data }) => { if (data) setConsultores(data as any[]); });
+      .then(({ data }) => {
+        if (data) {
+          setConsultores(data as any[]);
+          if (onResolveName) (data as any[]).forEach(c => onResolveName(c.id, c.nome));
+        }
+      });
   }, []);
   return <>{consultores.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</>;
 }
