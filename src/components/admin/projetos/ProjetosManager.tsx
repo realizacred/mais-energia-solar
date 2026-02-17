@@ -44,6 +44,8 @@ export function ProjetosManager() {
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
+  const [defaultStageId, setDefaultStageId] = useState<string | undefined>();
+  const [defaultModalPipelineId, setDefaultModalPipelineId] = useState<string | undefined>();
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("kanban");
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
@@ -111,7 +113,7 @@ export function ProjetosManager() {
         title="Projetos"
         description="Gestão operacional de engenharia — acompanhe cada projeto da documentação à vistoria"
         actions={
-          <Button onClick={() => { setDefaultConsultorId(undefined); setNovoProjetoOpen(true); }} className="gap-1.5 border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-none font-semibold">
+          <Button onClick={() => { setDefaultConsultorId(undefined); setDefaultStageId(undefined); setDefaultModalPipelineId(undefined); setNovoProjetoOpen(true); }} className="gap-1.5 border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-none font-semibold">
             <Plus className="h-4 w-4" />
             Novo Projeto
           </Button>
@@ -125,9 +127,10 @@ export function ProjetosManager() {
         consultores={consultoresFilter}
         dynamicEtiquetas={dynamicEtiquetas}
         defaultConsultorId={defaultConsultorId}
+        defaultPipelineId={defaultModalPipelineId || selectedPipelineId || pipelines[0]?.id}
+        defaultStageId={defaultStageId}
         pipelines={pipelines.filter(p => p.is_active && p.name.toLowerCase() !== "vendedor").map(p => ({ id: p.id, name: p.name }))}
         stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position }))}
-        defaultPipelineId={selectedPipelineId || pipelines[0]?.id}
         onSubmit={async (data) => {
           let customerId: string | undefined;
           if (data.cliente.nome.trim()) {
@@ -257,7 +260,29 @@ export function ProjetosManager() {
                 deals={deals}
                 onMoveToStage={moveDealToStage}
                 onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
-                onNewProject={(consultorId?: string) => { setDefaultConsultorId(consultorId || (filters.ownerId !== "todos" ? filters.ownerId : undefined)); setNovoProjetoOpen(true); }}
+                pipelineName={pipelines.find(p => p.id === selectedPipelineId)?.name}
+                onNewProject={(ctx) => {
+                  // Determine consultor: from context, from filter, or undefined
+                  let inferredConsultor = ctx?.consultorId || (filters.ownerId !== "todos" ? filters.ownerId : undefined);
+
+                  // If pipeline is "Vendedor", stage name = consultant name → match by name
+                  const currentPipeline = pipelines.find(p => p.id === (ctx?.pipelineId || selectedPipelineId));
+                  if (currentPipeline?.name?.toLowerCase() === "vendedor" && ctx?.stageName) {
+                    const matched = consultoresFilter.find(c => c.nome.toLowerCase() === ctx.stageName!.toLowerCase());
+                    if (matched) inferredConsultor = matched.id;
+                  }
+
+                  setDefaultConsultorId(inferredConsultor);
+                  // For "Vendedor" pipeline, don't set pipeline/stage in modal (it's not a process funnel)
+                  if (currentPipeline?.name?.toLowerCase() === "vendedor") {
+                    setDefaultModalPipelineId(undefined);
+                    setDefaultStageId(undefined);
+                  } else {
+                    setDefaultModalPipelineId(ctx?.pipelineId);
+                    setDefaultStageId(ctx?.stageId);
+                  }
+                  setNovoProjetoOpen(true);
+                }}
                 dynamicEtiquetas={dynamicEtiquetas}
               />
             ) : (
