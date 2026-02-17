@@ -35,6 +35,8 @@ export interface CsvValidationResult {
   unitDetected: string;
   keysMatch: boolean;
   keysDiffPct: number;
+  skippedRows: number;
+  skippedReasons: Record<string, number>;
   samplePoints: { lat: number; lon: number; jan: number; dec: number }[];
 }
 
@@ -54,54 +56,154 @@ const MONTH_MAP: Record<string, number> = {
   july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
 };
 
+/** File name hints for users */
+export const FILE_HINTS: Record<string, { fileName: string; description: string }> = {
+  ghi: { fileName: "global_horizontal_means", description: "Irradiância global horizontal" },
+  dhi: { fileName: "diffuse_means", description: "Irradiância difusa horizontal" },
+  dni: { fileName: "direct_normal_means", description: "Irradiância normal direta" },
+};
+
 // ─── Parsing ─────────────────────────────────────────────
 
 function detectDelimiter(firstLine: string): string {
-  return (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ";" : ",";
+  const semicolons = (firstLine.match(/;/g) || []).length;
+  const commas = (firstLine.match(/,/g) || []).length;
+  const tabs = (firstLine.match(/\t/g) || []).length;
+  if (tabs > semicolons && tabs > commas) return "\t";
+  return semicolons > commas ? ";" : ",";
 }
 
-function parseNumber(val: string): number {
-  const n = parseFloat(val.trim().replace(",", "."));
-  if (isNaN(n)) throw new Error(`Valor não numérico: "${val}"`);
-  return n;
+function parseNumber(val: string): number | null {
+  if (!val || val.trim() === "" || val.trim() === "-") return null;
+  // Handle both comma and dot as decimal separator
+  const cleaned = val.trim().replace(",", ".");
+  const n = parseFloat(cleaned);
+  return isNaN(n) ? null : n;
 }
 
-export function parseCsvContent(content: string, label: string): { rows: ParsedCsvRow[]; unitDetected: string } {
+function normalizeHeader(h: string): string {
+  return h
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove accents
+    .replace(/['"]/g, "")
+    .replace(/[_\s]+/g, " ")
+    .trim();
+}
+
+function findColumnIndex(headers: string[], possibleNames: string[]): number {
+  const normalized = headers.map(normalizeHeader);
+  const targets = possibleNames.map(normalizeHeader);
+
+  // Priority 1: Exact match
+  for (const name of targets) {
+    const idx = normalized.indexOf(name);
+    if (idx !== -1) return idx;
+  }
+  // Priority 2: Starts with
+  for (const name of targets) {
+    const idx = normalized.findIndex(h => h.startsWith(name));
+    if (idx !== -1) return idx;
+  }
+  // Priority 3: Contains
+  for (const name of targets) {
+    const idx = normalized.findIndex(h => h.includes(name));
+    if (idx !== -1) return idx;
+  }
+  return -1;
+}
+
+// Brazil bounding box (generous)
+const BRAZIL_BOUNDS = {
+  latMin: -35, latMax: 6,
+  lonMin: -75, lonMax: -28,
+};
+
+export function parseCsvContent(
+  content: string,
+  label: string
+): { rows: ParsedCsvRow[]; unitDetected: string; skippedRows: number; skippedReasons: Record<string, number> } {
   const lines = content.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) throw new Error(`${label}: arquivo vazio ou apenas cabeçalho`);
 
   const delimiter = detectDelimiter(lines[0]);
-  const headers = lines[0].split(delimiter).map(h => h.trim().toLowerCase().replace(/['"]/g, ""));
+  const rawHeaders = lines[0].split(delimiter).map(h => h.trim());
 
-  const latIdx = headers.findIndex(h => h === "lat" || h === "latitude");
-  const lonIdx = headers.findIndex(h => h === "lon" || h === "lng" || h === "longitude");
-  if (latIdx < 0 || lonIdx < 0) throw new Error(`${label}: colunas LAT/LON não encontradas. Headers: ${headers.join(", ")}`);
+  // Flexible column detection
+  const latIdx = findColumnIndex(rawHeaders, ["lat", "latitude"]);
+  const lonIdx = findColumnIndex(rawHeaders, ["lon", "lng", "longitude"]);
+  if (latIdx < 0 || lonIdx < 0) {
+    throw new Error(`${label}: colunas LAT/LON não encontradas. Headers: ${rawHeaders.join(", ")}`);
+  }
 
+  // Detect month columns
   const monthCols: { idx: number; month: number }[] = [];
-  for (let i = 0; i < headers.length; i++) {
-    const m = MONTH_MAP[headers[i]];
+  for (let i = 0; i < rawHeaders.length; i++) {
+    const key = normalizeHeader(rawHeaders[i]);
+    const m = MONTH_MAP[key];
     if (m !== undefined) monthCols.push({ idx: i, month: m });
   }
   if (monthCols.length !== 12) {
-    throw new Error(`${label}: esperado 12 colunas de meses, encontrado ${monthCols.length}. Headers: ${headers.join(", ")}`);
+    throw new Error(
+      `${label}: esperado 12 colunas de meses, encontrado ${monthCols.length}. ` +
+      `Headers detectados: [${rawHeaders.join(", ")}]. ` +
+      `Colunas de mês encontradas: [${monthCols.map(mc => rawHeaders[mc.idx]).join(", ")}]`
+    );
   }
   monthCols.sort((a, b) => a.month - b.month);
 
   const rows: ParsedCsvRow[] = [];
   const allValues: number[] = [];
+  let skippedRows = 0;
+  const skippedReasons: Record<string, number> = {};
+
+  const addSkip = (reason: string) => {
+    skippedRows++;
+    skippedReasons[reason] = (skippedReasons[reason] || 0) + 1;
+  };
+
+  const maxColIdx = Math.max(latIdx, lonIdx, ...monthCols.map(m => m.idx));
 
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].split(delimiter);
-    if (cols.length < Math.max(latIdx, lonIdx, ...monthCols.map(m => m.idx)) + 1) continue;
-    try {
-      const lat = parseNumber(cols[latIdx]);
-      const lon = parseNumber(cols[lonIdx]);
-      const months = monthCols.map(mc => parseNumber(cols[mc.idx]));
-      if (lat < -40 || lat > 12 || lon < -80 || lon > -30) continue;
-      if (months.some(v => isNaN(v))) continue;
-      allValues.push(...months);
-      rows.push({ lat, lon, months });
-    } catch { /* skip invalid */ }
+    if (cols.length <= maxColIdx) {
+      addSkip("colunas insuficientes");
+      continue;
+    }
+
+    const lat = parseNumber(cols[latIdx]);
+    const lon = parseNumber(cols[lonIdx]);
+
+    if (lat === null || lon === null) {
+      addSkip("lat/lon inválido");
+      continue;
+    }
+
+    // Generous bounds check — wider than Brazil to allow edge points
+    if (lat < BRAZIL_BOUNDS.latMin || lat > BRAZIL_BOUNDS.latMax ||
+        lon < BRAZIL_BOUNDS.lonMin || lon > BRAZIL_BOUNDS.lonMax) {
+      addSkip("fora do Brasil");
+      continue;
+    }
+
+    const months: number[] = [];
+    let hasInvalid = false;
+    for (const mc of monthCols) {
+      const val = parseNumber(cols[mc.idx]);
+      if (val === null) {
+        hasInvalid = true;
+        break;
+      }
+      months.push(val);
+    }
+
+    if (hasInvalid) {
+      addSkip("valor mensal inválido");
+      continue;
+    }
+
+    allValues.push(...months);
+    rows.push({ lat, lon, months });
   }
 
   const avg = allValues.length > 0 ? allValues.reduce((a, b) => a + b, 0) / allValues.length : 0;
@@ -114,7 +216,7 @@ export function parseCsvContent(content: string, label: string): { rows: ParsedC
     }
   }
 
-  return { rows, unitDetected };
+  return { rows, unitDetected, skippedRows, skippedReasons };
 }
 
 // ─── Merging ─────────────────────────────────────────────
@@ -167,7 +269,9 @@ export function validateCsvFiles(
   ghiRows: ParsedCsvRow[],
   dhiRows: ParsedCsvRow[] | null,
   dniRows: ParsedCsvRow[] | null,
-  merged: MergedPoint[]
+  merged: MergedPoint[],
+  skippedRows = 0,
+  skippedReasons: Record<string, number> = {}
 ): CsvValidationResult {
   const ghiKeys = new Set(ghiRows.map(r => coordKey(r.lat, r.lon)));
   const dhiKeys = dhiRows ? new Set(dhiRows.map(r => coordKey(r.lat, r.lon))) : new Set<string>();
@@ -187,6 +291,8 @@ export function validateCsvFiles(
     unitDetected: "kWh/m²/dia",
     keysMatch: diffPct <= 0.5,
     keysDiffPct: diffPct,
+    skippedRows,
+    skippedReasons,
     samplePoints: merged.slice(0, 3).map(p => ({
       lat: p.lat, lon: p.lon, jan: p.m01, dec: p.m12,
     })),
