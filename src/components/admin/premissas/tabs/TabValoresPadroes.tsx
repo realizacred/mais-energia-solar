@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -171,11 +170,9 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
   }, [selectedConc, premises.tarifa, premises.tusd_fio_b_bt, premises.imposto_energia]);
 
   return (
-    <Card>
-      <CardContent className="pt-6 space-y-6">
-
+    <div className="space-y-6">
         {/* Concessionária Selector */}
-        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+        <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-3">
           <Label className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
             <Zap className="h-3.5 w-3.5" />
             Concessionária Padrão
@@ -232,7 +229,12 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
           )}
         </div>
 
-        {/* Linha 1 */}
+      {/* Tarifas */}
+      <div className="rounded-xl border-2 border-warning/30 bg-warning/5 p-5 space-y-6">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-warning" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-warning">Tarifas e encargos</p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
@@ -380,15 +382,27 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
             </Select>
           </div>
         </div>
+      </div>
 
-        {/* Linha 9 - Desempenho */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="Taxa de Desempenho (Tradicional)" suffix="%" value={premises.taxa_desempenho_tradicional} tooltip="Performance Ratio (PR) do sistema com inversor string. Considera perdas por sujeira, sombreamento, fiação, temperatura. Típico: 65-75%." onChange={(v) => set("taxa_desempenho_tradicional", v)} />
-          <NumField label="Taxa de Desempenho (Microinversor)" suffix="%" value={premises.taxa_desempenho_microinversor} tooltip="Performance Ratio para microinversores. Maior por eliminar mismatch entre módulos. Típico: 70-78%." onChange={(v) => set("taxa_desempenho_microinversor", v)} />
-          <NumField label="Taxa de Desempenho (Otimizador)" suffix="%" value={premises.taxa_desempenho_otimizador} tooltip="Performance Ratio para otimizadores DC. Melhora MPPT individual por módulo. Típico: 72-80%." onChange={(v) => set("taxa_desempenho_otimizador", v)} />
+      {/* Desempenho */}
+      <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-success" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-success">Taxa de desempenho (PR)</p>
         </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <NumField label="Tradicional (String)" suffix="%" value={premises.taxa_desempenho_tradicional} tooltip="Performance Ratio (PR) do sistema com inversor string. Típico: 65-75%." onChange={(v) => set("taxa_desempenho_tradicional", v)} />
+          <NumField label="Microinversor" suffix="%" value={premises.taxa_desempenho_microinversor} tooltip="Performance Ratio para microinversores. Típico: 70-78%." onChange={(v) => set("taxa_desempenho_microinversor", v)} />
+          <NumField label="Otimizador" suffix="%" value={premises.taxa_desempenho_otimizador} tooltip="Performance Ratio para otimizadores DC. Típico: 72-80%." onChange={(v) => set("taxa_desempenho_otimizador", v)} />
+        </div>
+      </div>
 
-        {/* Linha 10 */}
+      {/* Configuração de kits */}
+      <div className="rounded-xl border-2 border-info/30 bg-info/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Zap className="h-4 w-4 text-info" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-info">Configuração de kits e sistema</p>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">Tipo de Kits</Label>
@@ -405,7 +419,7 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
               ))}
             </div>
           </div>
-          <div className="flex items-center justify-between rounded-lg border border-border/50 p-3">
+          <div className="flex items-center justify-between rounded-lg border border-border/50 bg-background p-3">
             <Label className="text-xs font-medium text-muted-foreground">Considerar kits que necessitam de transformador</Label>
             <Switch
               checked={premises.considerar_kits_transformador}
@@ -423,32 +437,30 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
             </Select>
           </div>
         </div>
-
-        {/* DoD */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NumField
             label="DoD (Profundidade de Descarga)"
             suffix="%"
             value={premises.dod}
-            tooltip="Depth of Discharge — percentual máximo que a bateria pode ser descarregada por ciclo. Valores maiores = mais energia utilizável, mas reduz a vida útil. Recomendado: 80% para lítio, 50% para chumbo-ácido. Aplicável para sistemas híbridos e off-grid."
+            tooltip="Depth of Discharge — percentual máximo da bateria por ciclo. Recomendado: 80% lítio, 50% chumbo-ácido."
             onChange={(v) => set("dod", v)}
           />
         </div>
+      </div>
 
-        {/* Fornecedores */}
-        <div className="rounded-xl border border-border/50 p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fornecedores</Label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{premises.fornecedor_filtro === "qualquer" ? "Qualquer fornecedor" : "Fornecedores específicos"}</span>
-              <Switch
-                checked={premises.fornecedor_filtro === "escolher"}
-                onCheckedChange={(v) => set("fornecedor_filtro", v ? "escolher" : "qualquer")}
-              />
-            </div>
+      {/* Fornecedores */}
+      <div className="rounded-xl border-2 border-border/50 bg-muted/30 p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Fornecedores</Label>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">{premises.fornecedor_filtro === "qualquer" ? "Qualquer fornecedor" : "Fornecedores específicos"}</span>
+            <Switch
+              checked={premises.fornecedor_filtro === "escolher"}
+              onCheckedChange={(v) => set("fornecedor_filtro", v ? "escolher" : "qualquer")}
+            />
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
