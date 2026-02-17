@@ -18,8 +18,10 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
@@ -734,6 +736,123 @@ function GerenciamentoTab({
 }) {
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
+  const [noteDialogOpen, setNoteDialogOpen] = useState(false);
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false);
+  const [noteText, setNoteText] = useState("");
+  const [activityTitle, setActivityTitle] = useState("");
+  const [activityDescription, setActivityDescription] = useState("");
+  const [activityDueDate, setActivityDueDate] = useState("");
+  const [activityType, setActivityType] = useState<string>("task");
+  const [savingNote, setSavingNote] = useState(false);
+  const [savingActivity, setSavingActivity] = useState(false);
+  const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
+  const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string }>>([]);
+
+  // Load notes
+  useEffect(() => {
+    async function loadNotes() {
+      try {
+        const { data } = await supabase
+          .from("deal_notes")
+          .select("id, content, created_at, created_by")
+          .eq("deal_id", deal.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (data) {
+          setNotes(data.map((n: any) => ({
+            ...n,
+            created_by_name: n.created_by ? (userNamesMap.get(n.created_by) || "Usuário") : "Sistema",
+          })));
+        }
+      } catch { /* ignore */ }
+    }
+    loadNotes();
+  }, [deal.id, userNamesMap]);
+
+  // Load activities
+  useEffect(() => {
+    async function loadActivities() {
+      try {
+        const { data } = await supabase
+          .from("deal_activities")
+          .select("id, title, description, activity_type, due_date, status, created_at")
+          .eq("deal_id", deal.id)
+          .order("due_date", { ascending: true, nullsFirst: false })
+          .limit(50);
+        if (data) setActivities(data as any);
+      } catch { /* ignore */ }
+    }
+    loadActivities();
+  }, [deal.id]);
+
+  // Save note
+  const handleSaveNote = async () => {
+    if (!noteText.trim()) return;
+    setSavingNote(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error("Usuário não autenticado");
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).single();
+      const { data, error } = await supabase.from("deal_notes").insert({
+        deal_id: deal.id,
+        content: noteText.trim(),
+        tenant_id: (profile as any)?.tenant_id,
+        created_by: userId,
+      } as any).select("id, content, created_at, created_by").single();
+      if (error) throw error;
+      if (data) {
+        setNotes(prev => [{ ...(data as any), created_by_name: "Você" }, ...prev]);
+        setNoteText("");
+        setNoteDialogOpen(false);
+        toast({ title: "Nota adicionada", description: "A nota foi salva com sucesso." });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar nota", description: err.message, variant: "destructive" });
+    } finally { setSavingNote(false); }
+  };
+
+  // Save activity
+  const handleSaveActivity = async () => {
+    if (!activityTitle.trim()) return;
+    setSavingActivity(true);
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error("Usuário não autenticado");
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).single();
+      const { data, error } = await supabase.from("deal_activities").insert({
+        deal_id: deal.id,
+        title: activityTitle.trim(),
+        description: activityDescription.trim() || null,
+        activity_type: activityType as any,
+        due_date: activityDueDate || null,
+        tenant_id: (profile as any)?.tenant_id,
+        created_by: userId,
+      } as any).select("id, title, description, activity_type, due_date, status, created_at").single();
+      if (error) throw error;
+      if (data) {
+        setActivities(prev => [data as any, ...prev]);
+        setActivityTitle("");
+        setActivityDescription("");
+        setActivityDueDate("");
+        setActivityType("tarefa");
+        setActivityDialogOpen(false);
+        toast({ title: "Atividade criada", description: "A atividade foi salva com sucesso." });
+      }
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar atividade", description: err.message, variant: "destructive" });
+    } finally { setSavingActivity(false); }
+  };
+
+  // Toggle activity status
+  const handleToggleActivity = async (activityId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "done" ? "pending" : "done";
+    try {
+      await supabase.from("deal_activities").update({ status: newStatus }).eq("id", activityId);
+      setActivities(prev => prev.map(a => a.id === activityId ? { ...a, status: newStatus } : a));
+    } catch { /* ignore */ }
+  };
 
   // Load document activity for timeline
   useEffect(() => {
@@ -780,19 +899,19 @@ function GerenciamentoTab({
         date: formatDate(h.moved_at),
       });
     });
-    if ((deal as any).notas) {
-      const notasText = String((deal as any).notas);
+    // Notes from DB
+    notes.forEach(n => {
       entries.push({
-        id: "nota-principal", type: "nota",
+        id: `note-${n.id}`, type: "nota",
         title: "Nota adicionada",
-        subtitle: notasText.length > 80 ? notasText.substring(0, 80) + "..." : notasText,
-        date: formatDate(deal.updated_at),
+        subtitle: n.content.length > 100 ? n.content.substring(0, 100) + "..." : n.content,
+        date: formatDate(n.created_at),
       });
-    }
+    });
     entries.push(...docEntries);
     entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", date: formatDate(deal.created_at), isFirst: true });
     return entries;
-  }, [history, currentStage, deal, docEntries, formatDate, getStageNameById, userNamesMap]);
+  }, [history, currentStage, deal, docEntries, notes, formatDate, getStageNameById, userNamesMap]);
 
   const filteredEntries = useMemo(() => {
     if (timelineFilter === "todos") return allEntries;
@@ -817,168 +936,345 @@ function GerenciamentoTab({
     { label: "Procuração (se PJ)", filled: false },
   ];
 
+  const activityTypeLabels: Record<string, string> = {
+    task: "Tarefa",
+    call: "Ligação",
+    meeting: "Reunião",
+    email: "E-mail",
+    visit: "Visita",
+    follow_up: "Follow-up",
+    other: "Outro",
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-      {/* ── LEFT SIDEBAR (30%) ── */}
-      <div className="lg:col-span-4 xl:col-span-3 space-y-4">
-        {/* Card: Dados do Cliente */}
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-sm font-semibold">Dados do Cliente</CardTitle>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7">
-                  <MoreVertical className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem><Eye className="h-3.5 w-3.5 mr-2" />Ver ficha completa</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-2.5">
-              <ClientRow icon={User} label={customerName || "—"} />
-              {customerCpfCnpj && <ClientRow icon={Hash} label={customerCpfCnpj} muted />}
-              {customerPhone && <ClientRow icon={Phone} label={customerPhone} muted />}
-              {customerEmail && <ClientRow icon={Mail} label={customerEmail} muted isLink />}
-              {customerAddress && <ClientRow icon={MapPin} label={customerAddress} muted />}
-            </div>
-
-            <Separator className="my-3" />
-
-            {/* Project quick info */}
-            <div className="space-y-2 text-xs">
-              <InfoRow label="Funil" value={currentPipeline?.name || "—"} />
-              <InfoRow label="Etapa" value={currentStage?.name || "—"} />
-              <InfoRow label="Valor" value={formatBRL(deal.value)} />
-              <InfoRow label="Criado em" value={formatDate(deal.created_at)} />
-              {deal.expected_close_date && (
-                <InfoRow label="Previsão" value={new Date(deal.expected_close_date).toLocaleDateString("pt-BR")} />
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card: Campos Importantes / Anexos */}
-        <Card>
-          <CardHeader className="pb-2 p-4">
-            <CardTitle className="text-sm font-semibold">Documentos Pendentes</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="space-y-2">
-              {pendingDocs.map((doc, i) => (
-                <div key={i} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {doc.filled ? (
-                      <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
-                    ) : (
-                      <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
-                    )}
-                    <span className={cn("text-xs truncate", doc.filled ? "text-muted-foreground line-through" : "text-foreground")}>
-                      {doc.label}
-                    </span>
-                  </div>
-                  {!doc.filled && (
-                    <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 gap-1 shrink-0">
-                      <Paperclip className="h-3 w-3" /> Anexar
-                    </Button>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        {/* ── LEFT SIDEBAR (30%) ── */}
+        <div className="lg:col-span-4 xl:col-span-3 space-y-4">
+          {/* Card: Dados do Cliente */}
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
+              <CardTitle className="text-sm font-semibold">Dados do Cliente</CardTitle>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7">
+                    <MoreVertical className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem><Eye className="h-3.5 w-3.5 mr-2" />Ver ficha completa</DropdownMenuItem>
+                  <DropdownMenuItem><Pencil className="h-3.5 w-3.5 mr-2" />Editar cliente</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => customerPhone && navigator.clipboard.writeText(customerPhone)}>
+                    <Copy className="h-3.5 w-3.5 mr-2" />Copiar telefone
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => customerEmail && navigator.clipboard.writeText(customerEmail)}>
+                    <Copy className="h-3.5 w-3.5 mr-2" />Copiar e-mail
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {customerPhone && (
+                    <DropdownMenuItem onClick={() => window.open(`https://wa.me/55${customerPhone.replace(/\D/g, "")}`, "_blank")}>
+                      <Send className="h-3.5 w-3.5 mr-2" />Enviar WhatsApp
+                    </DropdownMenuItem>
                   )}
+                  {customerEmail && (
+                    <DropdownMenuItem onClick={() => window.open(`mailto:${customerEmail}`, "_blank")}>
+                      <Mail className="h-3.5 w-3.5 mr-2" />Enviar e-mail
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="space-y-2.5">
+                <ClientRow icon={User} label={customerName || "—"} />
+                {customerCpfCnpj && <ClientRow icon={Hash} label={customerCpfCnpj} muted />}
+                {customerPhone && <ClientRow icon={Phone} label={customerPhone} muted />}
+                {customerEmail && <ClientRow icon={Mail} label={customerEmail} muted isLink />}
+                {customerAddress && <ClientRow icon={MapPin} label={customerAddress} muted />}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card: Campos Importantes */}
+          <Card>
+            <CardHeader className="pb-2 p-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <AlertCircle className="h-3.5 w-3.5 text-primary" />
+                Campos Importantes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="space-y-2 text-xs">
+                <InfoRow label="Funil" value={currentPipeline?.name || "—"} />
+                <InfoRow label="Etapa" value={currentStage?.name || "—"} />
+                <InfoRow label="Valor" value={formatBRL(deal.value)} />
+                <InfoRow label="Responsável" value={ownerName || "—"} />
+                <InfoRow label="Criado em" value={formatDate(deal.created_at)} />
+                {deal.expected_close_date && (
+                  <InfoRow label="Previsão" value={new Date(deal.expected_close_date).toLocaleDateString("pt-BR")} />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card: Documentos Pendentes */}
+          <Card>
+            <CardHeader className="pb-2 p-4">
+              <CardTitle className="text-sm font-semibold">Documentos Pendentes</CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              <div className="space-y-2">
+                {pendingDocs.map((doc, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      {doc.filled ? (
+                        <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
+                      ) : (
+                        <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
+                      )}
+                      <span className={cn("text-xs truncate", doc.filled ? "text-muted-foreground line-through" : "text-foreground")}>
+                        {doc.label}
+                      </span>
+                    </div>
+                    {!doc.filled && (
+                      <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 gap-1 shrink-0">
+                        <Paperclip className="h-3 w-3" /> Anexar
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ── RIGHT WORK AREA (70%) ── */}
+        <div className="lg:col-span-8 xl:col-span-9 space-y-4">
+          {/* Card: Atividades */}
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
+              <CardTitle className="text-sm font-semibold">Atividades a fazer</CardTitle>
+              <Button size="sm" className="h-7 text-xs gap-1" onClick={() => setActivityDialogOpen(true)}>
+                <Plus className="h-3 w-3" /> Nova atividade
+              </Button>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              {activities.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <div className="h-11 w-11 rounded-xl bg-warning/10 flex items-center justify-center mb-3">
+                    <AlertCircle className="h-5 w-5 text-warning" />
+                  </div>
+                  <p className="text-sm font-semibold text-foreground">Nenhuma atividade encontrada</p>
+                  <p className="text-xs text-muted-foreground mt-1">Crie uma atividade para acompanhar este projeto</p>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── RIGHT WORK AREA (70%) ── */}
-      <div className="lg:col-span-8 xl:col-span-9 space-y-4">
-        {/* Card: Atividades */}
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-sm font-semibold">Atividades a fazer</CardTitle>
-            <Button size="sm" className="h-7 text-xs gap-1">
-              <Plus className="h-3 w-3" /> Nova atividade
-            </Button>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            <div className="flex flex-col items-center justify-center py-10 text-center">
-              <div className="h-11 w-11 rounded-xl bg-warning/10 flex items-center justify-center mb-3">
-                <AlertCircle className="h-5 w-5 text-warning" />
-              </div>
-              <p className="text-sm font-semibold text-foreground">Nenhuma atividade encontrada</p>
-              <p className="text-xs text-muted-foreground mt-1">Crie uma atividade para acompanhar este projeto</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Card: Histórico / Timeline */}
-        <Card>
-          <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary" />
-              Histórico
-            </CardTitle>
-            <Button variant="ghost" size="sm" className="gap-1 text-xs h-7">
-              <Plus className="h-3 w-3" /> Nova nota
-            </Button>
-          </CardHeader>
-          <CardContent className="p-4 pt-0">
-            {/* Filter pills */}
-            <div className="flex items-center gap-1 mb-4">
-              {TIMELINE_FILTERS.map(f => {
-                const isActive = timelineFilter === f.id;
-                const count = f.id === "todos" ? null :
-                  f.id === "funil" ? allEntries.filter(e => e.type === "funil" || e.type === "criacao").length :
-                  f.id === "notas" ? allEntries.filter(e => e.type === "nota").length :
-                  allEntries.filter(e => e.type === "documento").length;
-                return (
-                  <button
-                    key={f.id}
-                    onClick={() => setTimelineFilter(f.id)}
-                    className={cn(
-                      "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
-                    )}
-                  >
-                    {f.label}
-                    {count !== null && count > 0 && (
-                      <span className={cn("text-[10px]", isActive ? "opacity-80" : "")}>{count}</span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Timeline */}
-            {filteredEntries.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <p className="text-sm">Nenhuma atividade nesta categoria</p>
-              </div>
-            ) : (
-              <div className="relative">
-                <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border rounded-full" />
-                <div className="space-y-3">
-                  {filteredEntries.map(entry => (
-                    <TimelineEntry
-                      key={entry.id}
-                      icon={getEntryIcon(entry)}
-                      title={entry.title}
-                      subtitle={entry.subtitle}
-                      date={entry.date}
-                      isCurrent={entry.isCurrent}
-                      isFirst={entry.isFirst}
-                    />
+              ) : (
+                <div className="space-y-2">
+                  {activities.map(a => (
+                    <div
+                      key={a.id}
+                      className={cn(
+                        "flex items-start gap-3 p-3 rounded-lg border transition-colors",
+                        a.status === "done" ? "bg-muted/30 border-border/40" : "bg-card border-border hover:bg-muted/20"
+                      )}
+                    >
+                      <button
+                        onClick={() => handleToggleActivity(a.id, a.status)}
+                        className={cn(
+                          "mt-0.5 h-4 w-4 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors",
+                          a.status === "done"
+                            ? "bg-primary border-primary"
+                            : "border-muted-foreground/40 hover:border-primary"
+                        )}
+                      >
+                        {a.status === "done" && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <p className={cn("text-sm font-medium", a.status === "done" && "line-through text-muted-foreground")}>
+                          {a.title}
+                        </p>
+                        {a.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{a.description}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <Badge variant="outline" className="text-[10px] h-5">
+                            {activityTypeLabels[a.activity_type] || a.activity_type}
+                          </Badge>
+                          {a.due_date && (
+                            <span className={cn(
+                              "text-[10px]",
+                              new Date(a.due_date) < new Date() && a.status !== "done"
+                                ? "text-destructive font-medium"
+                                : "text-muted-foreground"
+                            )}>
+                              {new Date(a.due_date).toLocaleDateString("pt-BR")}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   ))}
                 </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card: Histórico / Timeline */}
+          <Card>
+            <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Clock className="h-4 w-4 text-primary" />
+                Histórico
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="gap-1 text-xs h-7" onClick={() => setNoteDialogOpen(true)}>
+                <Plus className="h-3 w-3" /> Nova nota
+              </Button>
+            </CardHeader>
+            <CardContent className="p-4 pt-0">
+              {/* Filter pills */}
+              <div className="flex items-center gap-1 mb-4">
+                {TIMELINE_FILTERS.map(f => {
+                  const isActive = timelineFilter === f.id;
+                  const count = f.id === "todos" ? null :
+                    f.id === "funil" ? allEntries.filter(e => e.type === "funil" || e.type === "criacao").length :
+                    f.id === "notas" ? allEntries.filter(e => e.type === "nota").length :
+                    allEntries.filter(e => e.type === "documento").length;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setTimelineFilter(f.id)}
+                      className={cn(
+                        "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all",
+                        isActive
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
+                      )}
+                    >
+                      {f.label}
+                      {count !== null && count > 0 && (
+                        <span className={cn("text-[10px]", isActive ? "opacity-80" : "")}>{count}</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-            )}
-          </CardContent>
-        </Card>
+
+              {/* Timeline */}
+              {filteredEntries.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                  <p className="text-sm">Nenhuma atividade nesta categoria</p>
+                </div>
+              ) : (
+                <div className="relative">
+                  <div className="absolute left-[11px] top-2 bottom-2 w-[2px] bg-border rounded-full" />
+                  <div className="space-y-3">
+                    {filteredEntries.map(entry => (
+                      <TimelineEntry
+                        key={entry.id}
+                        icon={getEntryIcon(entry)}
+                        title={entry.title}
+                        subtitle={entry.subtitle}
+                        date={entry.date}
+                        isCurrent={entry.isCurrent}
+                        isFirst={entry.isFirst}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
+
+      {/* Dialog: Nova Nota */}
+      <Dialog open={noteDialogOpen} onOpenChange={setNoteDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Nota</DialogTitle>
+            <DialogDescription>Adicione uma observação ou anotação a este projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Textarea
+              placeholder="Escreva sua nota aqui..."
+              value={noteText}
+              onChange={e => setNoteText(e.target.value)}
+              rows={4}
+              className="resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNoteDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveNote} disabled={!noteText.trim() || savingNote}>
+              {savingNote ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Salvar nota
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Nova Atividade */}
+      <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Nova Atividade</DialogTitle>
+            <DialogDescription>Crie uma tarefa ou atividade para este projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Título *</Label>
+              <Input
+                placeholder="Ex: Ligar para o cliente"
+                value={activityTitle}
+                onChange={e => setActivityTitle(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Tipo</Label>
+              <Select value={activityType} onValueChange={setActivityType}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="task">Tarefa</SelectItem>
+                  <SelectItem value="call">Ligação</SelectItem>
+                  <SelectItem value="meeting">Reunião</SelectItem>
+                  <SelectItem value="email">E-mail</SelectItem>
+                  <SelectItem value="visit">Visita</SelectItem>
+                  <SelectItem value="follow_up">Follow-up</SelectItem>
+                  <SelectItem value="other">Outro</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Data de vencimento</Label>
+              <Input
+                type="date"
+                value={activityDueDate}
+                onChange={e => setActivityDueDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Descrição</Label>
+              <Textarea
+                placeholder="Detalhes adicionais..."
+                value={activityDescription}
+                onChange={e => setActivityDescription(e.target.value)}
+                rows={3}
+                className="resize-none"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={handleSaveActivity} disabled={!activityTitle.trim() || savingActivity}>
+              {savingActivity ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Criar atividade
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
