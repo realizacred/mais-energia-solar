@@ -18,8 +18,9 @@ import {
   Plus, Trash2, GripVertical, Pencil, Settings2, Layers, Zap, AlertTriangle,
   Save, Loader2, LayoutGrid, ListOrdered, Type, Hash, DollarSign, Calendar,
   CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, HelpCircle,
-  Sliders
+  Sliders, Copy
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 // ─── Types ───
@@ -406,7 +407,19 @@ export function CustomFieldsSettings() {
                             </div>
                           </td>
                           <td className="px-4 py-2.5 font-medium">{f.title}</td>
-                          <td className="px-4 py-2.5"><code className="text-xs bg-muted px-1.5 py-0.5 rounded">{f.field_key}</code></td>
+                          <td className="px-4 py-2.5">
+                            <button
+                              type="button"
+                              className="group inline-flex items-center gap-1"
+                              onClick={() => {
+                                navigator.clipboard.writeText(`[${f.field_key}]`);
+                                toast({ title: `[${f.field_key}] copiado!` });
+                              }}
+                            >
+                              <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">[{f.field_key}]</code>
+                              <Copy className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </button>
+                          </td>
                           <td className="px-4 py-2.5">
                             <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[f.field_type] || f.field_type}</Badge>
                           </td>
@@ -656,27 +669,46 @@ export function CustomFieldsSettings() {
                       value={fieldForm.title}
                       onChange={e => {
                         const title = e.target.value;
+                        const CONTEXT_PREFIX: Record<string, string> = { projeto: "cap", premissa: "pre", cliente: "cli" };
+                        const prefix = CONTEXT_PREFIX[fieldForm.field_context] || "cap";
+                        const slug = title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
                         setFieldForm(p => ({
                           ...p,
                           title,
-                          // Auto-generate key from title if not editing
-                          ...(!editingField ? { field_key: title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") } : {}),
+                          ...(!editingField && slug ? { field_key: `${prefix}_${slug}` } : {}),
                         }));
                       }}
-                      placeholder="Exemplo"
+                      placeholder="Exemplo: Wifi"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-1">
-                      <Label className="text-xs">Chave</Label>
-                      <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                    <div className="flex items-center gap-1.5">
+                      <Label className="text-xs">Variável</Label>
+                      <Tooltip>
+                        <TooltipTrigger asChild><HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
+                        <TooltipContent className="text-xs max-w-[220px]">
+                          Identificador único usado como variável em templates e consultas. Gerado automaticamente a partir do título.
+                        </TooltipContent>
+                      </Tooltip>
                     </div>
-                    <Input
-                      value={fieldForm.field_key}
-                      onChange={e => setFieldForm(p => ({ ...p, field_key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }))}
-                      placeholder="exemplo"
-                      className="text-muted-foreground"
-                    />
+                    <div className="flex items-center gap-1">
+                      <code className="flex-1 text-xs font-mono bg-muted/50 border rounded px-2 py-1.5 text-foreground select-all truncate">
+                        [{fieldForm.field_key || "..."}]
+                      </code>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0"
+                        disabled={!fieldForm.field_key}
+                        onClick={() => {
+                          navigator.clipboard.writeText(`[${fieldForm.field_key}]`);
+                          toast({ title: `[${fieldForm.field_key}] copiado!` });
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
 
