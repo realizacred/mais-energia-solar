@@ -86,8 +86,8 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (open && defaultConsultorId) {
-      setConsultorId(defaultConsultorId);
+    if (open) {
+      setConsultorId(defaultConsultorId || "");
     }
   }, [open, defaultConsultorId]);
 
