@@ -95,7 +95,7 @@ const DocumentosPage = lazy(() => import("@/components/admin/documentos/Document
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const PremissasPage = lazy(() => import("@/components/admin/premissas/PremissasPage").then(m => ({ default: m.PremissasPage })));
 const BaseMeteorologicaPage = lazy(() => import("@/pages/admin/BaseMeteorologicaPage").then(m => ({ default: m.BaseMeteorologicaPage })));
-
+const PropostaComercialPage = lazy(() => import("@/components/admin/proposta-comercial").then(m => ({ default: m.PropostaComercialPage })));
 const PricingPolicyPage = lazy(() => import("@/components/admin/pricing-policy/PricingPolicyPage").then(m => ({ default: m.PricingPolicyPage })));
 const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
@@ -206,6 +206,7 @@ const TAB_TITLES: Record<string, string> = {
 
   "payment-gateway": "Pagamentos (Asaas)",
   "ai-config": "Configuração de IA",
+  "proposta-comercial": "Proposta Comercial",
   changelog: "Atualizações do sistema",
   "notificacoes-config": "Notificações",
   "loading-config": "Personalização visual",
@@ -449,6 +450,9 @@ export default function Admin() {
                 <Route path="gamificacao" element={<GamificacaoConfig />} />
                 <Route path="loading-config" element={<LoadingConfigAdmin />} />
                 {/* agenda-config removed */}
+                
+                {/* Projetos & Propostas */}
+                <Route path="proposta-comercial" element={<PropostaComercialPage />} />
                 
                 {/* IA */}
                 <Route path="diretor" element={<CommercialDirectorDashboard />} />
