@@ -19,7 +19,6 @@ import {
   SelectGroup,
   SelectLabel,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Phone, Loader2, Users, MapPin, Search, FolderKanban } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -64,7 +63,6 @@ export interface NovoProjetoData {
   };
 }
 
-// Auto-capitalize: first letter of each word uppercase
 const autoCapitalize = (value: string) =>
   value.replace(/\b\w/g, (char) => char.toUpperCase());
 
@@ -87,14 +85,12 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
   const [buscandoCep, setBuscandoCep] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Sync defaultConsultorId when modal opens
   useEffect(() => {
     if (open && defaultConsultorId) {
       setConsultorId(defaultConsultorId);
     }
   }, [open, defaultConsultorId]);
 
-  // Group dynamic etiquetas by grupo
   const etiquetaGroups = useMemo(() => {
     const groups = new Map<string, DynamicEtiqueta[]>();
     dynamicEtiquetas.forEach(e => {
@@ -110,7 +106,6 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }));
   }, [errors]);
 
-  // Debounced search for similar clients
   useEffect(() => {
     const term = cliente.nome.trim();
     if (term.length < 2) { setSimilares([]); return; }
@@ -132,7 +127,6 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [cliente.nome]);
 
-  // ViaCEP auto-fill
   const buscarCep = useCallback(async (cepRaw: string) => {
     const digits = cepRaw.replace(/\D/g, "");
     if (digits.length !== 8) return;
@@ -178,32 +172,32 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] lg:max-w-[1000px] max-h-[90vh] overflow-hidden p-0 gap-0 rounded-2xl flex flex-col">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] lg:max-w-[1060px] max-h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl flex flex-col border-2 border-border/60 shadow-2xl bg-card">
         {/* Header */}
-        <DialogHeader className="px-6 pt-5 pb-4 border-b border-border/40 shrink-0">
-          <DialogTitle className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2">
-            Novo Projeto
+        <DialogHeader className="px-6 pt-5 pb-4 border-b-2 border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 shrink-0">
+          <DialogTitle className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2.5">
+            <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10">
+              <FolderKanban className="h-4.5 w-4.5 text-primary" />
+            </div>
+            Novo projeto
           </DialogTitle>
         </DialogHeader>
 
-        {/* Body - scrollable */}
+        {/* Body */}
         <ScrollArea className="flex-1 overflow-auto">
-          <div className="p-6 space-y-6 lg:space-y-0 lg:grid lg:grid-cols-[1fr_1fr_220px] lg:gap-6">
+          <div className="p-5 lg:p-6 space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[1fr_1fr_220px] lg:gap-0">
 
             {/* ── Coluna 1: Projeto ── */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                Projeto
-              </h3>
+            <div className="space-y-3.5 lg:pr-5">
+              <SectionHeader icon={<Users className="h-3.5 w-3.5" />} label="Projeto" color="primary" />
 
-              <Field label="Nome do Projeto">
-                 <Input
-                   placeholder="Nome do projeto"
-                   value={nome}
-                   onChange={e => setNome(autoCapitalize(e.target.value))}
-                   className="h-10 text-sm"
-                 />
+              <Field label="Nome do projeto">
+                <Input
+                  placeholder="Nome do projeto"
+                  value={nome}
+                  onChange={e => setNome(autoCapitalize(e.target.value))}
+                  className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
+                />
               </Field>
 
               <Field label="Descrição">
@@ -211,13 +205,13 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   placeholder="Escreva aqui..."
                   value={descricao}
                   onChange={e => setDescricao(e.target.value)}
-                  className="text-sm min-h-[68px] resize-y"
+                  className="text-sm min-h-[64px] resize-y bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
                 />
               </Field>
 
               <Field label="Consultor">
                 <Select value={consultorId} onValueChange={setConsultorId}>
-                  <SelectTrigger className="h-10 text-sm">
+                  <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -230,13 +224,13 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
 
               <Field label="Etiqueta">
                 <Select value={etiqueta} onValueChange={setEtiqueta}>
-                  <SelectTrigger className="h-10 text-sm">
+                  <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
                     <SelectValue placeholder="Selecione">
                       {etiqueta && (() => {
                         const found = dynamicEtiquetas.find(e => e.id === etiqueta || e.nome === etiqueta);
                         return found ? (
                           <span
-                            className="text-xs font-bold rounded-full px-2 py-0.5 text-white"
+                            className="text-[10px] font-bold rounded-full px-2 py-0.5 text-white"
                             style={{ backgroundColor: found.cor }}
                           >
                             {found.icon ? `${found.icon} ` : ""}{found.short || found.nome}
@@ -273,27 +267,27 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   placeholder="Notas do projeto..."
                   value={notas}
                   onChange={e => setNotas(e.target.value)}
-                  className="text-sm min-h-[60px] resize-none"
+                  className="text-sm min-h-[56px] resize-none bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
                 />
               </Field>
             </div>
 
-            {/* Divider mobile */}
-            <Separator className="lg:hidden" />
-
             {/* ── Coluna 2: Cliente ── */}
-            <div className="space-y-4 lg:border-l lg:border-r lg:border-border/40 lg:px-6">
-              <h3 className="text-sm font-bold text-foreground uppercase tracking-wider">Cliente</h3>
+            <div className="space-y-3.5 lg:border-l-2 lg:border-r-2 lg:border-border/40 lg:px-5">
+              <SectionHeader icon={<Phone className="h-3.5 w-3.5" />} label="Cliente" color="secondary" />
 
-              <Field label="Nome do Cliente *" error={errors["cliente.nome"]}>
+              <Field label="Nome do cliente *" error={errors["cliente.nome"]}>
                 <Input
                   placeholder="Digite o nome do cliente"
-                   value={cliente.nome}
-                   onChange={e => updateCliente("nome", autoCapitalize(e.target.value))}
-                   className={cn("h-10 text-sm", errors["cliente.nome"] && "border-destructive ring-1 ring-destructive/30")}
+                  value={cliente.nome}
+                  onChange={e => updateCliente("nome", autoCapitalize(e.target.value))}
+                  className={cn(
+                    "h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors",
+                    errors["cliente.nome"] && "border-destructive ring-1 ring-destructive/30 bg-destructive/5"
+                  )}
                 />
                 {errors["cliente.nome"] && (
-                  <p className="text-xs text-destructive mt-0.5">Nome é obrigatório</p>
+                  <p className="text-[11px] text-destructive mt-0.5 font-medium">Nome é obrigatório</p>
                 )}
               </Field>
 
@@ -303,27 +297,28 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   placeholder="email@exemplo.com"
                   value={cliente.email}
                   onChange={e => updateCliente("email", e.target.value)}
-                  className="h-10 text-sm"
+                  className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
                 />
               </Field>
 
-              <Field label="Empresa">
-                <Input
-                   placeholder="Nome da empresa"
-                   value={cliente.empresa}
-                   onChange={e => updateCliente("empresa", autoCapitalize(e.target.value))}
-                  className="h-10 text-sm"
-                />
-              </Field>
-
-              <Field label="CPF/CNPJ">
-                <Input
-                  placeholder="000.000.000-00"
-                  value={cliente.cpfCnpj}
-                  onChange={e => updateCliente("cpfCnpj", e.target.value)}
-                  className="h-10 text-sm"
-                />
-              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Empresa">
+                  <Input
+                    placeholder="Nome da empresa"
+                    value={cliente.empresa}
+                    onChange={e => updateCliente("empresa", autoCapitalize(e.target.value))}
+                    className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
+                  />
+                </Field>
+                <Field label="CPF/CNPJ">
+                  <Input
+                    placeholder="000.000.000-00"
+                    value={cliente.cpfCnpj}
+                    onChange={e => updateCliente("cpfCnpj", e.target.value)}
+                    className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
+                  />
+                </Field>
+              </div>
 
               <Field label="Telefone *" error={errors["cliente.telefone"]}>
                 <Input
@@ -335,108 +330,106 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                     else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
                     updateCliente("telefone", v);
                   }}
-                  className={cn("h-10 text-sm", errors["cliente.telefone"] && "border-destructive ring-1 ring-destructive/30")}
+                  className={cn(
+                    "h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors",
+                    errors["cliente.telefone"] && "border-destructive ring-1 ring-destructive/30 bg-destructive/5"
+                  )}
                 />
                 {errors["cliente.telefone"] && (
-                  <p className="text-xs text-destructive mt-0.5">Telefone é obrigatório</p>
+                  <p className="text-[11px] text-destructive mt-0.5 font-medium">Telefone é obrigatório</p>
                 )}
               </Field>
 
-              <Separator className="opacity-40" />
-              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5" /> Endereço
-              </h4>
+              {/* Endereço sub-section */}
+              <div className="rounded-xl border border-border/50 bg-muted/20 p-3.5 space-y-3 mt-1">
+                <h4 className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                  <MapPin className="h-3 w-3 text-primary/60" /> Endereço
+                </h4>
 
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="CEP">
-                  <div className="relative">
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Field label="CEP">
+                    <div className="relative">
+                      <Input
+                        placeholder="00000-000"
+                        value={cliente.cep}
+                        onChange={e => handleCepChange(e.target.value)}
+                        className="h-8 text-xs pr-7 bg-card border-border/50"
+                      />
+                      {buscandoCep && (
+                        <Loader2 className="absolute right-2 top-1.5 h-3.5 w-3.5 animate-spin text-primary/50" />
+                      )}
+                    </div>
+                  </Field>
+                  <Field label="Estado">
                     <Input
-                      placeholder="00000-000"
-                      value={cliente.cep}
-                      onChange={e => handleCepChange(e.target.value)}
-                      className="h-9 text-sm pr-8"
-                    />
-                    {buscandoCep && (
-                      <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />
-                    )}
-                  </div>
-                </Field>
-                <Field label="Estado">
-                  <Input
-                    placeholder="UF"
-                    maxLength={2}
-                    value={cliente.estado}
-                    onChange={e => updateCliente("estado", e.target.value.toUpperCase())}
-                    className="h-9 text-sm"
-                  />
-                </Field>
-              </div>
-
-              <Field label="Cidade">
-                <Input
-                   placeholder="Cidade"
-                   value={cliente.cidade}
-                   onChange={e => updateCliente("cidade", autoCapitalize(e.target.value))}
-                  className="h-9 text-sm"
-                />
-              </Field>
-
-              <Field label="Bairro">
-                <Input
-                   placeholder="Bairro"
-                   value={cliente.bairro}
-                   onChange={e => updateCliente("bairro", autoCapitalize(e.target.value))}
-                  className="h-9 text-sm"
-                />
-              </Field>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div className="col-span-2">
-                  <Field label="Endereço">
-                    <Input
-                       placeholder="Rua, Avenida..."
-                       value={cliente.endereco}
-                       onChange={e => updateCliente("endereco", autoCapitalize(e.target.value))}
-                      className="h-9 text-sm"
+                      placeholder="UF"
+                      maxLength={2}
+                      value={cliente.estado}
+                      onChange={e => updateCliente("estado", e.target.value.toUpperCase())}
+                      className="h-8 text-xs bg-card border-border/50"
                     />
                   </Field>
                 </div>
-                <Field label="Nº">
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <Field label="Cidade">
+                    <Input
+                      placeholder="Cidade"
+                      value={cliente.cidade}
+                      onChange={e => updateCliente("cidade", autoCapitalize(e.target.value))}
+                      className="h-8 text-xs bg-card border-border/50"
+                    />
+                  </Field>
+                  <Field label="Bairro">
+                    <Input
+                      placeholder="Bairro"
+                      value={cliente.bairro}
+                      onChange={e => updateCliente("bairro", autoCapitalize(e.target.value))}
+                      className="h-8 text-xs bg-card border-border/50"
+                    />
+                  </Field>
+                </div>
+
+                <div className="grid grid-cols-[1fr_64px] gap-2.5">
+                  <Field label="Endereço">
+                    <Input
+                      placeholder="Rua, Avenida..."
+                      value={cliente.endereco}
+                      onChange={e => updateCliente("endereco", autoCapitalize(e.target.value))}
+                      className="h-8 text-xs bg-card border-border/50"
+                    />
+                  </Field>
+                  <Field label="Nº">
+                    <Input
+                      placeholder="Nº"
+                      value={cliente.numero}
+                      onChange={e => updateCliente("numero", e.target.value)}
+                      className="h-8 text-xs bg-card border-border/50"
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Complemento">
                   <Input
-                    placeholder="Nº"
-                    value={cliente.numero}
-                    onChange={e => updateCliente("numero", e.target.value)}
-                    className="h-9 text-sm"
+                    placeholder="Apto, Bloco..."
+                    value={cliente.complemento}
+                    onChange={e => updateCliente("complemento", autoCapitalize(e.target.value))}
+                    className="h-8 text-xs bg-card border-border/50"
                   />
                 </Field>
               </div>
-
-              <Field label="Complemento">
-                <Input
-                   placeholder="Apto, Bloco..."
-                   value={cliente.complemento}
-                   onChange={e => updateCliente("complemento", autoCapitalize(e.target.value))}
-                  className="h-9 text-sm"
-                />
-              </Field>
             </div>
 
-            {/* Divider mobile */}
-            <Separator className="lg:hidden" />
-
             {/* ── Coluna 3: Similares ── */}
-            <div className="space-y-3">
-              <h3 className="text-sm font-bold text-primary uppercase tracking-wider flex items-center gap-1.5">
-                <Search className="h-3.5 w-3.5" />
-                Clientes similares
-              </h3>
+            <div className="space-y-3 lg:pl-5">
+              <SectionHeader icon={<Search className="h-3.5 w-3.5" />} label="Clientes similares" color="warning" />
 
               {buscando ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <div className="flex items-center justify-center py-10">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary/40" />
                 </div>
               ) : similares.length > 0 ? (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {similares.map(c => (
                     <button
                       key={c.id}
@@ -449,9 +442,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                           email: c.email || prev.email,
                         }));
                       }}
-                      className="w-full text-left rounded-xl border border-border/50 p-2.5 hover:border-primary/40 hover:bg-primary/5 transition-all space-y-0.5"
+                      className="w-full text-left rounded-lg border border-border/50 bg-muted/30 p-2.5 hover:border-primary/40 hover:bg-primary/5 transition-all space-y-0.5 group"
                     >
-                      <p className="text-xs font-semibold text-foreground truncate">{c.nome}</p>
+                      <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">{c.nome}</p>
                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                         {c.telefone && (
                           <span className="flex items-center gap-0.5">
@@ -464,30 +457,35 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground py-4">
-                  {cliente.nome.trim().length >= 2
-                    ? "Nenhum cliente similar encontrado"
-                    : "Digite o nome do cliente para buscar"}
-                </p>
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <div className="h-10 w-10 rounded-full bg-muted/60 flex items-center justify-center mb-2">
+                    <Search className="h-4 w-4 text-muted-foreground/50" />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {cliente.nome.trim().length >= 2
+                      ? "Nenhum cliente similar encontrado"
+                      : "Digite o nome do cliente para buscar"}
+                  </p>
+                </div>
               )}
             </div>
           </div>
         </ScrollArea>
 
-        {/* Footer - always visible */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-border/40 bg-muted/30 shrink-0">
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 px-6 py-3.5 border-t-2 border-border/40 bg-muted/20 shrink-0">
           <Button
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={submitting}
-            className="text-sm h-10 px-6"
+            className="text-sm h-9 px-5"
           >
             Fechar
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={submitting}
-            className="text-sm px-8 h-10 rounded-xl"
+            className="text-sm px-7 h-9 rounded-xl shadow-sm"
           >
             {submitting && <Loader2 className="h-4 w-4 animate-spin mr-1.5" />}
             {submitting ? "Cadastrando..." : "Cadastrar"}
@@ -498,10 +496,30 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
   );
 }
 
+/* ── Sub-components ── */
+
+function SectionHeader({ icon, label, color }: { icon: React.ReactNode; label: string; color: "primary" | "secondary" | "warning" }) {
+  const colorMap = {
+    primary: "text-primary bg-primary/10 border-primary/20",
+    secondary: "text-secondary bg-secondary/10 border-secondary/20",
+    warning: "text-warning bg-warning/10 border-warning/20",
+  };
+  return (
+    <div className="flex items-center gap-2 pb-1">
+      <div className={cn("flex items-center justify-center h-6 w-6 rounded-md border", colorMap[color])}>
+        {icon}
+      </div>
+      <h3 className={cn("text-xs font-bold uppercase tracking-wider", `text-${color}`)}>
+        {label}
+      </h3>
+    </div>
+  );
+}
+
 function Field({ label, error, children }: { label: string; error?: boolean; children: React.ReactNode }) {
   return (
-    <div className="space-y-1.5">
-      <Label className={cn("text-xs font-semibold", error ? "text-destructive" : "text-foreground")}>
+    <div className="space-y-1">
+      <Label className={cn("text-[11px] font-semibold tracking-wide", error ? "text-destructive" : "text-muted-foreground")}>
         {label}
       </Label>
       {children}
