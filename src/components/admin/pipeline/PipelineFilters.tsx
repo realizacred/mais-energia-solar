@@ -92,11 +92,11 @@ export function PipelineFilters({
       {/* Filter Options */}
       {showFilters && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 p-4 bg-muted/50 rounded-md border animate-in slide-in-from-top-2 duration-200">
-          {/* Vendedor responsável */}
+          {/* Consultor */}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
               <User className="h-3 w-3" />
-              Vendedor responsável
+              Consultor
             </label>
             <Select value={selectedVendedor} onValueChange={onVendedorChange}>
               <SelectTrigger className="h-10">

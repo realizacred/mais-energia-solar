@@ -419,7 +419,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
               <Separator orientation="vertical" className="h-7 mx-1" />
 
               <div className="flex flex-col items-end gap-0.5">
-                <span className="text-[10px] text-muted-foreground font-medium">Responsável</span>
+                <span className="text-[10px] text-muted-foreground font-medium">Consultor</span>
                 <Select value={deal.owner_id} onValueChange={async (ownerId) => {
                   if (ownerId === deal.owner_id) return;
                   const prev = deal.owner_id;
@@ -427,7 +427,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                   try {
                     const { error } = await supabase.from("deals").update({ owner_id: ownerId }).eq("id", deal.id);
                     if (error) throw error;
-                    toast({ title: "Responsável alterado" });
+                    toast({ title: "Consultor alterado" });
                     silentRefresh();
                   } catch (err: any) {
                     updateDealLocal({ owner_id: prev });

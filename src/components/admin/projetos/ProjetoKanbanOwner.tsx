@@ -53,7 +53,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
   if (columns.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-        <p className="font-medium">Nenhum responsável com projetos</p>
+        <p className="font-medium">Nenhum consultor com projetos</p>
         <p className="text-sm mt-1">Crie um projeto para começar.</p>
       </div>
     );
