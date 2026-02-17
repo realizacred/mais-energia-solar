@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMotivosPerda } from "@/hooks/useDistribution";
 import { toast } from "@/hooks/use-toast";
@@ -15,7 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from "@/components/ui/textarea";
 import {
   Plus, Trash2, GripVertical, Pencil, Settings2, Layers, Zap, AlertTriangle,
-  Save, Loader2, LayoutGrid, ListOrdered
+  Save, Loader2, LayoutGrid, ListOrdered, Type, Hash, DollarSign, Calendar,
+  CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, HelpCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -56,13 +57,32 @@ interface MotivoPerda {
 
 const FIELD_TYPE_LABELS: Record<string, string> = {
   text: "Texto",
-  number: "Número",
+  textarea: "Texto Maior",
+  number: "Numérico",
+  currency: "Monetário",
+  multi_select: "Opções Múltiplas",
+  select: "Opção Única",
   date: "Data",
-  select: "Seleção",
+  datetime: "Data e Hora",
+  file: "Arquivo",
   boolean: "Sim/Não",
-  currency: "Moeda",
-  textarea: "Texto longo",
 };
+
+const FIELD_TYPE_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  text: Type,
+  textarea: Type,
+  number: Hash,
+  currency: DollarSign,
+  multi_select: ListChecks,
+  select: CheckSquare,
+  date: Calendar,
+  datetime: CalendarClock,
+  file: FileText,
+  boolean: CheckSquare,
+};
+
+// Types that show "Valores possíveis" textarea
+const OPTION_TYPES = ["select", "multi_select"];
 
 const CONTEXT_LABELS: Record<string, string> = {
   projeto: "Projetos",
@@ -110,6 +130,8 @@ export function CustomFieldsSettings() {
     visible_on_funnel: false, important_on_funnel: false,
     required_on_funnel: false, required_on_proposal: false,
   });
+  const [fieldWizardStep, setFieldWizardStep] = useState<"type" | "config">("type");
+  const [optionsText, setOptionsText] = useState("");
 
   const openFieldDialog = (field?: CustomField) => {
     if (field) {
@@ -121,6 +143,14 @@ export function CustomFieldsSettings() {
         visible_on_funnel: field.visible_on_funnel, important_on_funnel: field.important_on_funnel,
         required_on_funnel: field.required_on_funnel, required_on_proposal: field.required_on_proposal,
       });
+      // Parse existing options for select types
+      const opts = field.options;
+      if (opts && Array.isArray(opts)) {
+        setOptionsText(opts.join("\n"));
+      } else {
+        setOptionsText("");
+      }
+      setFieldWizardStep("config"); // Go straight to config when editing
     } else {
       setEditingField(null);
       setFieldForm({
@@ -129,6 +159,8 @@ export function CustomFieldsSettings() {
         visible_on_funnel: false, important_on_funnel: false,
         required_on_funnel: false, required_on_proposal: false,
       });
+      setOptionsText("");
+      setFieldWizardStep("type"); // Start with type grid for new fields
     }
     setFieldDialogOpen(true);
   };
@@ -138,7 +170,10 @@ export function CustomFieldsSettings() {
     setSaving(true);
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
-      const payload = { ...fieldForm, tenant_id: (profile as any)?.tenant_id };
+      const options = OPTION_TYPES.includes(fieldForm.field_type)
+        ? optionsText.split("\n").map(s => s.trim()).filter(Boolean)
+        : null;
+      const payload = { ...fieldForm, options, tenant_id: (profile as any)?.tenant_id };
 
       if (editingField) {
         const { error } = await supabase.from("deal_custom_fields").update(payload).eq("id", editingField.id);
@@ -519,74 +554,223 @@ export function CustomFieldsSettings() {
         </TabsContent>
       </Tabs>
 
-      {/* ═══ Dialog: Campo Customizado ═══ */}
-      <Dialog open={fieldDialogOpen} onOpenChange={setFieldDialogOpen}>
+      {/* ═══ Dialog: Campo Customizado (Wizard) ═══ */}
+      <Dialog open={fieldDialogOpen} onOpenChange={(open) => { setFieldDialogOpen(open); if (!open) setFieldWizardStep("type"); }}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingField ? "Editar Campo" : "Novo Campo Customizado"}</DialogTitle>
-            <DialogDescription>Configure as propriedades do campo</DialogDescription>
+            <DialogTitle>
+              {editingField
+                ? "Editar Campo"
+                : `Novo Campo Customizado (${CONTEXT_LABELS[fieldForm.field_context]})`}
+            </DialogTitle>
+            <DialogDescription>
+              {fieldWizardStep === "type"
+                ? "Selecione o tipo de campo que deseja criar"
+                : "Configure as propriedades do campo"}
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Título *</Label>
-                <Input value={fieldForm.title} onChange={e => setFieldForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Potência desejada" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Chave (identificador) *</Label>
-                <Input value={fieldForm.field_key} onChange={e => setFieldForm(p => ({ ...p, field_key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }))} placeholder="Ex: potencia_desejada" />
-              </div>
+
+          {/* ── Step 1: Type Grid ── */}
+          {fieldWizardStep === "type" && (
+            <div className="grid grid-cols-3 gap-3 py-2">
+              {Object.entries(FIELD_TYPE_LABELS).map(([key, label]) => {
+                const Icon = FIELD_TYPE_ICONS[key] || Type;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setFieldForm(p => ({ ...p, field_type: key }));
+                      setFieldWizardStep("config");
+                    }}
+                    className={cn(
+                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                      "hover:border-primary/60 hover:bg-primary/5 cursor-pointer",
+                      "border-border bg-card text-foreground"
+                    )}
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
+                      <Icon className="h-5 w-5 text-foreground" />
+                    </div>
+                    <span className="text-xs font-medium text-center leading-tight">{label}</span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo</Label>
-                <Select value={fieldForm.field_type} onValueChange={v => setFieldForm(p => ({ ...p, field_type: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(FIELD_TYPE_LABELS).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          )}
+
+          {/* ── Step 2: Config Form ── */}
+          {fieldWizardStep === "config" && (
+            <>
+              {/* Back + Selected Type Indicator */}
+              {!editingField && (
+                <button
+                  type="button"
+                  onClick={() => setFieldWizardStep("type")}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors -mt-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Voltar
+                </button>
+              )}
+
+              {/* Selected type card */}
+              <div className="flex justify-center mb-2">
+                {(() => {
+                  const Icon = FIELD_TYPE_ICONS[fieldForm.field_type] || Type;
+                  return (
+                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border-2 border-primary/40 bg-primary/5">
+                      <Icon className="h-6 w-6 text-primary" />
+                      <span className="text-xs font-semibold text-primary">{FIELD_TYPE_LABELS[fieldForm.field_type]}</span>
+                    </div>
+                  );
+                })()}
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Contexto</Label>
-                <Select value={fieldForm.field_context} onValueChange={v => setFieldForm(p => ({ ...p, field_context: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(CONTEXT_LABELS).map(([k, v]) => (
-                      <SelectItem key={k} value={k}>{v}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {fieldForm.field_context === "projeto" && (
-              <>
-                <Separator />
-                <div className="grid grid-cols-2 gap-3">
-                  <SwitchRow label="Mostrar em novo projeto" checked={fieldForm.show_on_create} onChange={v => setFieldForm(p => ({ ...p, show_on_create: v }))} />
-                  <SwitchRow label="Obrigatório ao criar" checked={fieldForm.required_on_create} onChange={v => setFieldForm(p => ({ ...p, required_on_create: v }))} />
-                  <SwitchRow label="Visível nos funis" checked={fieldForm.visible_on_funnel} onChange={v => setFieldForm(p => ({ ...p, visible_on_funnel: v }))} />
-                  <SwitchRow label="Importante no funil" checked={fieldForm.important_on_funnel} onChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v }))} />
-                  <SwitchRow label="Obrigatório no funil" checked={fieldForm.required_on_funnel} onChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v }))} />
+
+              <div className="space-y-4">
+                <h4 className="text-sm font-semibold text-foreground">Dados do Campo</h4>
+
+                {/* Title + Key */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Título do Campo</Label>
+                    <Input
+                      value={fieldForm.title}
+                      onChange={e => {
+                        const title = e.target.value;
+                        setFieldForm(p => ({
+                          ...p,
+                          title,
+                          // Auto-generate key from title if not editing
+                          ...(!editingField ? { field_key: title.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "") } : {}),
+                        }));
+                      }}
+                      placeholder="Exemplo"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-1">
+                      <Label className="text-xs">Chave</Label>
+                      <HelpCircle className="h-3 w-3 text-muted-foreground" />
+                    </div>
+                    <Input
+                      value={fieldForm.field_key}
+                      onChange={e => setFieldForm(p => ({ ...p, field_key: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "_") }))}
+                      placeholder="exemplo"
+                      className="text-muted-foreground"
+                    />
+                  </div>
                 </div>
-              </>
-            )}
-            {(fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento") && (
-              <>
-                <Separator />
-                <SwitchRow label="Obrigatório na proposta" checked={fieldForm.required_on_proposal} onChange={v => setFieldForm(p => ({ ...p, required_on_proposal: v }))} />
-              </>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setFieldDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSaveField} disabled={!fieldForm.title.trim() || !fieldForm.field_key.trim() || saving}>
-              {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              {editingField ? "Salvar" : "Criar"}
-            </Button>
-          </DialogFooter>
+
+                {/* Type (readonly) */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Tipo</Label>
+                  <Input value={FIELD_TYPE_LABELS[fieldForm.field_type]} readOnly className="bg-muted/30" />
+                </div>
+
+                {/* Show on create */}
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-primary font-medium">Mostrar campo em novo projeto?</Label>
+                  <Select
+                    value={fieldForm.show_on_create ? "sim" : "nao"}
+                    onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
+                  >
+                    <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="nao">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Options for select/multi_select */}
+                {OPTION_TYPES.includes(fieldForm.field_type) && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">Valores possíveis</Label>
+                    <Textarea
+                      value={optionsText}
+                      onChange={e => setOptionsText(e.target.value)}
+                      placeholder={"Opção 1\nOpção 2\nOpção 3"}
+                      rows={4}
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Insira um por linha, por exemplo:<br />
+                      <span className="text-foreground/70">Opção 1<br />Opção 2<br />Opção 3</span>
+                    </p>
+                  </div>
+                )}
+
+                {/* Visibility */}
+                <div className="space-y-2">
+                  <Label className="text-xs text-primary font-medium">Visibilidade em funis?</Label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                      <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
+                        onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: true }))}
+                        className="accent-primary" />
+                      Todos
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                      <input type="radio" name="fieldVis" checked={!fieldForm.visible_on_funnel}
+                        onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: false }))}
+                        className="accent-primary" />
+                      Nenhum
+                    </label>
+                  </div>
+                </div>
+
+                {/* Important + Required in funnel */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-primary font-medium">Campo importante em etapa do funil:</Label>
+                    <Select
+                      value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
+                      onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
+                        <SelectItem value="sim">Sim</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-primary font-medium">Campo obrigatório em etapa do funil:</Label>
+                    <Select
+                      value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
+                      onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
+                    >
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
+                        <SelectItem value="sim">Sim</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Pre/Pos dimensionamento extras */}
+                {(fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento") && (
+                  <SwitchRow label="Obrigatório na proposta" checked={fieldForm.required_on_proposal} onChange={v => setFieldForm(p => ({ ...p, required_on_proposal: v }))} />
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
+                <Button onClick={handleSaveField} disabled={!fieldForm.title.trim() || !fieldForm.field_key.trim() || saving}>
+                  {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+                  {editingField ? "Salvar" : "Cadastrar"}
+                </Button>
+              </DialogFooter>
+            </>
+          )}
+
+          {/* Footer for step 1 */}
+          {fieldWizardStep === "type" && (
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
+            </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 
