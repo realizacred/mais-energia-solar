@@ -159,7 +159,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
     }
   };
 
-  const isConsultant = localRoles.includes("vendedor") || localRoles.includes("instalador");
+  const isConsultant = localRoles.includes("consultor") || localRoles.includes("vendedor") || localRoles.includes("instalador");
 
   const availableRoles = Object.keys(ROLE_LABELS).filter(r => !localRoles.includes(r));
   const isSelf = currentUserId === user.user_id;

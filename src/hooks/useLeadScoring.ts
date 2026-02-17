@@ -142,11 +142,11 @@ function calcularScore(lead: Lead, config: ScoringConfig, statusNome?: string): 
     scoreLocalizacao = 40;
   }
 
-  // 6) TEMPO DE RESPOSTA (0-100) - quanto mais rápido o vendedor respondeu
+  // 6) TEMPO DE RESPOSTA (0-100) - quanto mais rápido o consultor respondeu
   let scoreTempoResposta = 50;
   if (lead.visto && diasCriacao <= 1) {
     scoreTempoResposta = 100;
-    fatores.push("Resposta rápida do vendedor");
+    fatores.push("Resposta rápida do consultor");
   } else if (!lead.visto && diasCriacao > 2) {
     scoreTempoResposta = 10;
     fatores.push("⚠ Ainda não visualizado");

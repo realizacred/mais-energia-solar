@@ -37,9 +37,9 @@ interface ProposalData {
     taxaMensal: number;
   };
   
-  // Vendedor
-  vendedorNome?: string;
-  vendedorCodigo?: string;
+  // Consultor
+  consultorNome?: string;
+  consultorCodigo?: string;
   
   // Empresa
   empresaNome?: string;
@@ -327,9 +327,9 @@ export async function generateProposalPdf(data: ProposalData): Promise<Blob> {
   const validadeText = "Proposta válida por 15 dias. Valores sujeitos a alteração sem aviso prévio.";
   doc.text(validadeText, pageWidth / 2, footerY, { align: "center" });
 
-  if (data.vendedorNome) {
+  if (data.consultorNome) {
     doc.setFontSize(8);
-    doc.text(`Consultor: ${data.vendedorNome}`, pageWidth / 2, footerY + 6, { align: "center" });
+    doc.text(`Consultor: ${data.consultorNome}`, pageWidth / 2, footerY + 6, { align: "center" });
   }
 
   // Return as blob

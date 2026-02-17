@@ -59,7 +59,7 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
           .eq("lead_id", leadId)
           .order("distribuido_em", { ascending: true });
 
-        // 3) Get audit log entries for vendedor_id changes
+        // 3) Get audit log entries for consultor_id changes
         const { data: auditLogs } = await supabase
           .from("audit_logs")
           .select("acao, dados_anteriores, dados_novos, created_at")
@@ -71,36 +71,36 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
 
         if (cancelled) return;
 
-        // Collect all vendedor_ids to resolve names in one query
-        const vendedorIds = new Set<string>();
-        if (lead?.consultor_id) vendedorIds.add(lead.consultor_id);
+        // Collect all consultor_ids to resolve names in one query
+        const consultorIds = new Set<string>();
+        if (lead?.consultor_id) consultorIds.add(lead.consultor_id);
 
         distLogs?.forEach(d => {
-          if (d.consultor_id) vendedorIds.add(d.consultor_id);
-          if (d.consultor_anterior_id) vendedorIds.add(d.consultor_anterior_id);
+          if (d.consultor_id) consultorIds.add(d.consultor_id);
+          if (d.consultor_anterior_id) consultorIds.add(d.consultor_anterior_id);
         });
 
-        // Extract vendedor_id from audit logs
-        const auditEntries: { vendedor_id: string | null; vendedor_anterior_id: string | null; data: string; tipo: "criacao" | "reatribuicao" }[] = [];
+        // Extract consultor_id from audit logs
+        const auditEntries: { consultor_id_new: string | null; consultor_id_old: string | null; data: string; tipo: "criacao" | "reatribuicao" }[] = [];
         
         auditLogs?.forEach(log => {
           const novos = log.dados_novos as Record<string, any> | null;
           const anteriores = log.dados_anteriores as Record<string, any> | null;
 
           if (log.acao === "INSERT" && novos?.consultor_id) {
-            vendedorIds.add(novos.consultor_id);
+            consultorIds.add(novos.consultor_id);
             auditEntries.push({
-              vendedor_id: novos.consultor_id,
-              vendedor_anterior_id: null,
+              consultor_id_new: novos.consultor_id,
+              consultor_id_old: null,
               data: log.created_at,
               tipo: "criacao",
             });
           } else if (log.acao === "UPDATE" && novos?.consultor_id && anteriores?.consultor_id && novos.consultor_id !== anteriores.consultor_id) {
-            vendedorIds.add(novos.consultor_id);
-            vendedorIds.add(anteriores.consultor_id);
+            consultorIds.add(novos.consultor_id);
+            consultorIds.add(anteriores.consultor_id);
             auditEntries.push({
-              vendedor_id: novos.consultor_id,
-              vendedor_anterior_id: anteriores.consultor_id,
+              consultor_id_new: novos.consultor_id,
+              consultor_id_old: anteriores.consultor_id,
               data: log.created_at,
               tipo: "reatribuicao",
             });
@@ -108,14 +108,14 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
         });
 
         // Resolve names
-        const vendedorIdsArr = Array.from(vendedorIds).filter(Boolean);
+        const consultorIdsArr = Array.from(consultorIds).filter(Boolean);
         let nameMap: Record<string, string> = {};
-        if (vendedorIdsArr.length > 0) {
-          const { data: vendedores } = await (supabase as any)
+        if (consultorIdsArr.length > 0) {
+          const { data: consultores } = await (supabase as any)
             .from("consultores")
             .select("id, nome")
-            .in("id", vendedorIdsArr);
-          vendedores?.forEach((v: any) => { nameMap[v.id] = v.nome; });
+            .in("id", consultorIdsArr);
+          consultores?.forEach((v: any) => { nameMap[v.id] = v.nome; });
         }
 
         if (cancelled) return;
@@ -127,10 +127,10 @@ export function useLeadOwnership(leadId: string | null): LeadOwnershipData {
         auditEntries.forEach(ae => {
           historico.push({
             tipo: ae.tipo,
-            consultor_id: ae.vendedor_id,
-            consultor_anterior_id: ae.vendedor_anterior_id,
-            consultor_nome: ae.vendedor_id ? nameMap[ae.vendedor_id] || null : null,
-            consultor_anterior_nome: ae.vendedor_anterior_id ? nameMap[ae.vendedor_anterior_id] || null : null,
+            consultor_id: ae.consultor_id_new,
+            consultor_anterior_id: ae.consultor_id_old,
+            consultor_nome: ae.consultor_id_new ? nameMap[ae.consultor_id_new] || null : null,
+            consultor_anterior_nome: ae.consultor_id_old ? nameMap[ae.consultor_id_old] || null : null,
             data: ae.data,
             motivo: ae.tipo === "criacao" ? "Cadastro inicial" : "Reatribuição (admin)",
           });

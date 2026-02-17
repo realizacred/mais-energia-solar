@@ -84,7 +84,7 @@ interface WaChatPanelProps {
   isAccepting?: boolean;
   isReleasing?: boolean;
   currentUserId?: string;
-  vendedores: { id: string; nome: string; user_id: string | null }[];
+  vendedores: { id: string; nome: string; user_id: string | null }[]; // TODO: rename to consultores
   lastReadMessageId?: string | null;
   onMarkAsRead?: (messageId: string) => void;
   isMuted?: boolean;
@@ -287,7 +287,7 @@ export function WaChatPanel({
     );
   }
 
-  const assignedVendedor = vendedores.find((v) => v.user_id === conversation.assigned_to);
+  const assignedConsultor = vendedores.find((v) => v.user_id === conversation.assigned_to);
 
   const renderMessage = (idx: number) => {
     const msg = visibleMessages[idx];
@@ -358,10 +358,10 @@ export function WaChatPanel({
                     {conversation.instance_name}
                   </Badge>
                 )}
-                {assignedVendedor ? (
+                {assignedConsultor ? (
                   <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 bg-accent/30 border-accent/20 text-accent-foreground/80 shrink-0">
                     <User className="h-2.5 w-2.5" />
-                    {assignedVendedor.nome}
+                    {assignedConsultor.nome}
                   </Badge>
                 ) : (
                   <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 border-border/50 text-muted-foreground shrink-0">

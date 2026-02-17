@@ -65,20 +65,20 @@ export async function buildStoragePath(...segments: string[]): Promise<string> {
 
 /**
  * Resolve tenant_id for anonymous uploads (public forms).
- * Resolves tenant_id from vendedor code. NO FALLBACK — code is required.
+ * Resolves tenant_id from consultor code. NO FALLBACK — code is required.
  */
-export async function resolvePublicTenantId(vendedorCode?: string | null): Promise<string | null> {
-  if (!vendedorCode) {
-    console.warn("[resolvePublicTenantId] No vendedor code provided. Cannot resolve tenant.");
+export async function resolvePublicTenantId(consultorCode?: string | null): Promise<string | null> {
+  if (!consultorCode) {
+    console.warn("[resolvePublicTenantId] No consultor code provided. Cannot resolve tenant.");
     return null;
   }
 
   // Resolve via secure RPC
-  const { data: vendedor } = await supabase
-    .rpc("resolve_consultor_public", { _codigo: vendedorCode })
+  const { data: consultor } = await supabase
+    .rpc("resolve_consultor_public", { _codigo: consultorCode })
     .maybeSingle();
   
-  if ((vendedor as any)?.tenant_id) return (vendedor as any).tenant_id;
+  if ((consultor as any)?.tenant_id) return (consultor as any).tenant_id;
 
   return null;
 }

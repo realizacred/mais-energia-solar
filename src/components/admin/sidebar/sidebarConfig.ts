@@ -196,7 +196,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "recebimentos", title: "Recebimentos", icon: DollarSign, description: "Controle de pagamentos", keywords: ["pagamento", "parcela", "receber", "financeiro"] },
       { id: "inadimplencia", title: "Inadimplência", icon: AlertTriangle, description: "Parcelas atrasadas", keywords: ["atraso", "devedor", "cobrança", "inadimplente"] },
-      { id: "comissoes", title: "Comissões", icon: Wallet, description: "Comissões dos consultores", keywords: ["comissão", "vendedor", "bonificação", "percentual"] },
+      { id: "comissoes", title: "Comissões", icon: Wallet, description: "Comissões dos consultores", keywords: ["comissão", "consultor", "bonificação", "percentual"] },
       { id: "engenharia", title: "Engenharia Financeira", icon: Calculator, description: "ICMS, fio B, payback", keywords: ["ICMS", "fio B", "payback", "retorno", "tributo"], separator: true },
       { id: "financiamento", title: "Bancos", icon: Building2, description: "Taxas e financiamentos", keywords: ["banco", "taxa", "parcela", "crédito", "financiar"] },
     ],
@@ -213,7 +213,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelClass: "text-sidebar-cadastros",
     defaultOpen: false,
     items: [
-      { id: "vendedores", title: "Consultores", icon: Users, description: "Cadastro de consultores", keywords: ["consultor", "vendedor", "equipe", "cadastro"] },
+      { id: "vendedores", title: "Consultores", icon: Users, description: "Cadastro de consultores", keywords: ["consultor", "consultora", "consultores", "equipe", "cadastro"] },
       
       { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso", keywords: ["aprovação", "solicitação", "pendente"] },
       { id: "gamificacao", title: "Gamificação", icon: Trophy, description: "Metas e ranking da equipe", keywords: ["meta", "ranking", "conquista", "pontuação", "competição"] },

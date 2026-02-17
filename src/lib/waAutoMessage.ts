@@ -88,23 +88,26 @@ Aqui é {consultor} da *Mais Energia Solar*. Recebemos sua solicitação de orç
 
 Em breve enviaremos sua proposta com os melhores equipamentos e condições de pagamento. Qualquer dúvida, estou à disposição! ☀️`;
 
-// ─── Settings from vendedores.settings (jsonb) ─────────────────────
+// ─── Settings from consultores.settings (jsonb) ─────────────────────
 
-interface VendedorWaSettings {
+interface ConsultorWaSettings {
   wa_auto_message_enabled?: boolean;
   wa_auto_message_template?: string;
 }
 
+// Backward-compat aliases
+export type VendedorWaSettings = ConsultorWaSettings;
+
 /**
- * Get WA auto-message settings from vendedores.settings jsonb.
+ * Get WA auto-message settings from consultores.settings jsonb.
  * Falls back to defaults if not set.
  */
-export async function getVendedorWaSettings(vendedorId: string): Promise<VendedorWaSettings> {
+export async function getConsultorWaSettings(consultorId: string): Promise<ConsultorWaSettings> {
   try {
     const { data, error } = await (supabase as any)
       .from("consultores")
       .select("settings")
-      .eq("id", vendedorId)
+      .eq("id", consultorId)
       .maybeSingle();
 
     if (error || !data?.settings) {
@@ -121,19 +124,22 @@ export async function getVendedorWaSettings(vendedorId: string): Promise<Vendedo
   }
 }
 
+// Backward-compat alias
+export const getVendedorWaSettings = getConsultorWaSettings;
+
 /**
- * Save WA auto-message settings to vendedores.settings jsonb.
+ * Save WA auto-message settings to consultores.settings jsonb.
  * Merges with existing settings (does not overwrite other keys).
  */
-export async function saveVendedorWaSettings(
-  vendedorId: string,
-  updates: Partial<VendedorWaSettings>
+export async function saveConsultorWaSettings(
+  consultorId: string,
+  updates: Partial<ConsultorWaSettings>
 ): Promise<boolean> {
   try {
     const { data: current } = await (supabase as any)
       .from("consultores")
       .select("settings")
-      .eq("id", vendedorId)
+      .eq("id", consultorId)
       .maybeSingle();
 
     const currentSettings = (current?.settings as Record<string, unknown>) || {};
@@ -142,13 +148,16 @@ export async function saveVendedorWaSettings(
     const { error } = await (supabase as any)
       .from("consultores")
       .update({ settings: merged } as any)
-      .eq("id", vendedorId);
+      .eq("id", consultorId);
 
     return !error;
   } catch {
     return false;
   }
 }
+
+// Backward-compat alias
+export const saveVendedorWaSettings = saveConsultorWaSettings;
 
 // ─── Legacy localStorage helpers (kept for migration/fallback) ─────
 
