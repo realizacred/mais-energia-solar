@@ -1,8 +1,6 @@
 /**
  * CsvImportPanel — Handles CSV file selection, validation, and chunked upload
  * via the canonical RPC `import_irradiance_points_chunk`.
- * 
- * No critical logic here — just orchestration. All validation/insert happens server-side.
  */
 
 import { useState, useRef, useCallback } from "react";
@@ -11,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Upload, CheckCircle2 } from "lucide-react";
+import { Loader2, Upload, CheckCircle2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { VersionRow } from "./types";
@@ -21,6 +19,7 @@ import {
   validateCsvFiles,
   chunkArray,
   readFileAsText,
+  FILE_HINTS,
 } from "./csv-helpers";
 
 const CHUNK_SIZE = 500;
@@ -64,19 +63,38 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
       const dhi = dhiText ? parseCsvContent(dhiText, "DHI") : null;
       const dni = dniText ? parseCsvContent(dniText, "DNI") : null;
 
-      log("info", `GHI: ${ghi.rows.length} pontos (${ghi.unitDetected})`);
-      if (dhi) log("info", `DHI: ${dhi.rows.length} pontos (${dhi.unitDetected})`);
-      if (dni) log("info", `DNI: ${dni.rows.length} pontos (${dni.unitDetected})`);
+      log("info", `GHI: ${ghi.rows.length.toLocaleString("pt-BR")} pontos (${ghi.unitDetected})`);
+      if (dhi) log("info", `DHI: ${dhi.rows.length.toLocaleString("pt-BR")} pontos (${dhi.unitDetected})`);
+      if (dni) log("info", `DNI: ${dni.rows.length.toLocaleString("pt-BR")} pontos (${dni.unitDetected})`);
+
+      // Report skipped rows
+      const totalSkipped = ghi.skippedRows + (dhi?.skippedRows ?? 0) + (dni?.skippedRows ?? 0);
+      if (totalSkipped > 0) {
+        const allReasons = { ...ghi.skippedReasons };
+        if (dhi) Object.entries(dhi.skippedReasons).forEach(([k, v]) => allReasons[k] = (allReasons[k] || 0) + v);
+        if (dni) Object.entries(dni.skippedReasons).forEach(([k, v]) => allReasons[k] = (allReasons[k] || 0) + v);
+        const reasonStr = Object.entries(allReasons).map(([k, v]) => `${k}: ${v}`).join(", ");
+        log("warn", `⚠️ ${totalSkipped} linhas ignoradas (${reasonStr})`);
+      }
 
       const merged = mergeGhiDhiDni(ghi.rows, dhi?.rows ?? null, dni?.rows ?? null);
-      const validation = validateCsvFiles(ghi.rows, dhi?.rows ?? null, dni?.rows ?? null, merged);
+      const validation = validateCsvFiles(
+        ghi.rows, dhi?.rows ?? null, dni?.rows ?? null, merged,
+        totalSkipped, ghi.skippedReasons
+      );
 
       if (!validation.keysMatch) {
-        log("warn", `⚠️ Divergência de ${validation.keysDiffPct.toFixed(1)}% entre coordenadas!`);
+        log("warn", `⚠️ Divergência de ${validation.keysDiffPct.toFixed(1)}% entre coordenadas dos arquivos`);
       } else {
-        log("success", `✅ Coordenadas compatíveis`);
+        log("success", `✅ Coordenadas compatíveis entre todos os arquivos`);
       }
-      log("success", `${merged.length} pontos prontos para importar.`);
+
+      if (validation.samplePoints.length > 0) {
+        const sample = validation.samplePoints[0];
+        log("info", `Amostra: lat=${sample.lat}, lon=${sample.lon}, jan=${sample.jan.toFixed(2)}, dez=${sample.dec.toFixed(2)}`);
+      }
+
+      log("success", `${merged.length.toLocaleString("pt-BR")} pontos prontos para importar.`);
       setState("validated");
     } catch (e: any) {
       log("error", `Erro: ${e.message}`);
@@ -164,58 +182,85 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
 
   const progressPct = progress.total > 0 ? Math.round((progress.current / progress.total) * 100) : 0;
 
+  const fileConfigs = [
+    { key: "ghi" as const, file: ghiFile, setter: setGhiFile, required: true },
+    { key: "dhi" as const, file: dhiFile, setter: setDhiFile, required: false },
+    { key: "dni" as const, file: dniFile, setter: setDniFile, required: false },
+  ];
+
   return (
     <div className="border border-primary/20 rounded-lg p-4 space-y-3 bg-primary/5">
       <p className="text-xs font-medium flex items-center gap-1.5">
         <Upload className="h-3.5 w-3.5 text-primary" />
-        Importar Dados via CSV
+        Importar dados via CSV
       </p>
       <p className="text-[10px] text-muted-foreground -mt-1">
         Selecione o arquivo GHI (obrigatório). DHI e DNI são opcionais para maior precisão.
       </p>
 
-      <div className="grid grid-cols-3 gap-2">
-        {(["ghi", "dhi", "dni"] as const).map(key => (
-          <div key={key} className="space-y-1">
-            <Label className="text-[10px] uppercase font-semibold text-muted-foreground">
-              {key.toUpperCase()} {key === "ghi" ? "*" : "(opcional)"}
-            </Label>
-            <Input
-              type="file"
-              accept=".csv,.txt"
-              onChange={e => {
-                const file = e.target.files?.[0] || null;
-                if (key === "ghi") setGhiFile(file);
-                else if (key === "dhi") setDhiFile(file);
-                else setDniFile(file);
-                setState("idle");
-              }}
-              className="h-7 text-[10px] file:text-[10px]"
-              disabled={state === "uploading"}
-            />
-          </div>
-        ))}
+      <div className="grid grid-cols-3 gap-3">
+        {fileConfigs.map(({ key, setter }) => {
+          const hint = FILE_HINTS[key];
+          return (
+            <div key={key} className="space-y-1.5">
+              <Label className="text-[10px] uppercase font-semibold text-muted-foreground">
+                {key.toUpperCase()} {key === "ghi" ? "*" : "(opcional)"}
+              </Label>
+              <div className="flex items-center gap-1 text-[9px] text-muted-foreground/70">
+                <Info className="h-3 w-3 shrink-0" />
+                <span className="font-mono truncate" title={hint.description}>
+                  {hint.fileName}
+                </span>
+              </div>
+              <Input
+                type="file"
+                accept=".csv,.txt"
+                onChange={e => {
+                  const file = e.target.files?.[0] || null;
+                  setter(file);
+                  setState("idle");
+                }}
+                className="h-7 text-[10px] file:text-[10px]"
+                disabled={state === "uploading"}
+              />
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex items-center gap-2">
         {state === "idle" && ghiFile && (
           <Button size="sm" variant="outline" onClick={handleValidate} className="gap-1.5 text-xs">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            Validar Arquivos
+            Validar arquivos
+          </Button>
+        )}
+        {state === "validating" && (
+          <Button size="sm" variant="outline" disabled className="gap-1.5 text-xs">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Validando...
           </Button>
         )}
         {state === "validated" && processingVersion && (
           <Button size="sm" onClick={handleImport} className="gap-1.5 text-xs">
             <Upload className="h-3.5 w-3.5" />
-            Importar Pontos
+            Importar pontos
           </Button>
+        )}
+        {state === "validated" && !processingVersion && (
+          <span className="text-[10px] text-warning">⚠️ Crie uma versão primeiro para poder importar</span>
         )}
         {state === "uploading" && (
           <Button size="sm" variant="destructive" onClick={() => { abortRef.current = true; }} className="gap-1.5 text-xs">
             Cancelar
           </Button>
         )}
-        {!processingVersion && ghiFile && (
+        {state === "error" && ghiFile && (
+          <Button size="sm" variant="outline" onClick={() => { setState("idle"); setLogs([]); }} className="gap-1.5 text-xs">
+            Tentar novamente
+          </Button>
+        )}
+        {!processingVersion && !ghiFile && state === "idle" && (
           <span className="text-[10px] text-muted-foreground">Crie uma versão primeiro</span>
         )}
       </div>
@@ -223,15 +268,22 @@ export function CsvImportPanel({ processingVersion, onReload }: CsvImportPanelPr
       {state === "uploading" && (
         <div className="space-y-1">
           <Progress value={progressPct} className="h-2" />
-          <p className="text-[10px] text-muted-foreground">{progressPct}% — {progress.current.toLocaleString("pt-BR")} / {progress.total.toLocaleString("pt-BR")} pontos</p>
+          <p className="text-[10px] text-muted-foreground">
+            {progressPct}% — {progress.current.toLocaleString("pt-BR")} / {progress.total.toLocaleString("pt-BR")} pontos
+          </p>
         </div>
       )}
 
       {logs.length > 0 && (
-        <ScrollArea className="max-h-24 border border-border/40 rounded p-2 bg-card">
+        <ScrollArea className="max-h-32 border border-border/40 rounded p-2 bg-card">
           <div className="space-y-0.5 text-[10px] font-mono">
             {logs.map((l, i) => (
-              <div key={i} className={l.level === "error" ? "text-destructive" : l.level === "success" ? "text-success" : l.level === "warn" ? "text-warning" : "text-muted-foreground"}>
+              <div key={i} className={
+                l.level === "error" ? "text-destructive" :
+                l.level === "success" ? "text-success" :
+                l.level === "warn" ? "text-warning" :
+                "text-muted-foreground"
+              }>
                 {l.msg}
               </div>
             ))}
