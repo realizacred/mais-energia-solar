@@ -125,7 +125,7 @@ export function ProjetosManager() {
         consultores={consultoresFilter}
         dynamicEtiquetas={dynamicEtiquetas}
         defaultConsultorId={defaultConsultorId}
-        pipelines={pipelines.filter(p => p.is_active).map(p => ({ id: p.id, name: p.name }))}
+        pipelines={pipelines.filter(p => p.is_active && p.name.toLowerCase() !== "vendedor").map(p => ({ id: p.id, name: p.name }))}
         stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position }))}
         defaultPipelineId={selectedPipelineId || pipelines[0]?.id}
         onSubmit={async (data) => {

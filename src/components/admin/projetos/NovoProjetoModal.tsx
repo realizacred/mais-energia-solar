@@ -20,7 +20,8 @@ import {
   SelectLabel,
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Phone, Loader2, Users, MapPin, Search, FolderKanban } from "lucide-react";
+import { Phone, Loader2, Users, MapPin, Search, FolderKanban, Layers, GitBranch } from "lucide-react";
+import { FloatingSelect } from "@/components/ui/floating-select";
 import { cn } from "@/lib/utils";
 
 interface DynamicEtiqueta {
@@ -252,30 +253,22 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
 
               {pipelines.length > 0 && (
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Funil">
-                    <Select value={selectedPipelineId} onValueChange={(v) => { setSelectedPipelineId(v); setSelectedStageId(""); }}>
-                      <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
-                        <SelectValue placeholder="Selecione o funil" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {pipelines.map(p => (
-                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                  <Field label="Etapa">
-                    <Select value={selectedStageId} onValueChange={setSelectedStageId} disabled={!selectedPipelineId}>
-                      <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
-                        <SelectValue placeholder={selectedPipelineId ? "Selecione a etapa" : "Selecione o funil primeiro"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {filteredStages.map(s => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </Field>
+                  <FloatingSelect
+                    label="Funil"
+                    icon={<Layers className="h-4 w-4" />}
+                    value={selectedPipelineId}
+                    onValueChange={(v) => { setSelectedPipelineId(v); setSelectedStageId(""); }}
+                    options={pipelines.map(p => ({ value: p.id, label: p.name }))}
+                    placeholder="Selecione o funil"
+                  />
+                  <FloatingSelect
+                    label="Etapa"
+                    icon={<GitBranch className="h-4 w-4" />}
+                    value={selectedStageId}
+                    onValueChange={setSelectedStageId}
+                    options={filteredStages.map(s => ({ value: s.id, label: s.name }))}
+                    placeholder={selectedPipelineId ? "Selecione a etapa" : "Selecione o funil primeiro"}
+                  />
                 </div>
               )}
 
