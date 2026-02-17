@@ -8,7 +8,7 @@
  * - Auditoria: Integrity checks + lookup tester + purge
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -129,8 +129,10 @@ export function BaseMeteorologicaPage() {
 
   // NASA sync state
   const [nasaSyncing, setNasaSyncing] = useState(false);
+  const [nasaCancelling, setNasaCancelling] = useState(false);
   const [nasaLogs, setNasaLogs] = useState<{ ts: number; level: "info" | "warn" | "error" | "success"; msg: string }[]>([]);
-
+  const [nasaProgress, setNasaProgress] = useState<{ current: number; total: number } | null>(null);
+  const nasaPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadData = useCallback(async () => {
     setLoading(true);
     const [dsRes, verRes] = await Promise.all([
@@ -169,10 +171,107 @@ export function BaseMeteorologicaPage() {
   const getActiveVersion = (code: string) => getVersionsFor(code).find(v => v.status === "active");
   const getProcessingVersion = (code: string) => getVersionsFor(code).find(v => v.status === "processing");
 
+  // Stop polling on unmount
+  useEffect(() => {
+    return () => {
+      if (nasaPollRef.current) clearInterval(nasaPollRef.current);
+    };
+  }, []);
+
+  // Poll NASA progress from version row_count
+  const startNasaPolling = useCallback((versionId: string, addLog: (level: "info" | "warn" | "error" | "success", msg: string) => void) => {
+    if (nasaPollRef.current) clearInterval(nasaPollRef.current);
+    let lastLoggedCount = 0;
+
+    nasaPollRef.current = setInterval(async () => {
+      const { data: ver } = await supabase
+        .from("irradiance_dataset_versions")
+        .select("status, row_count, metadata")
+        .eq("id", versionId)
+        .single();
+
+      if (!ver) return;
+
+      const meta = (ver.metadata ?? {}) as Record<string, any>;
+      const total = meta.total_points_attempted || meta.grid_total_points || 0;
+      const current = ver.row_count ?? 0;
+
+      setNasaProgress({ current, total: total || current });
+
+      if (ver.status === "active" || (ver.status === "processing" && meta.ready_for_activation)) {
+        clearInterval(nasaPollRef.current!);
+        nasaPollRef.current = null;
+        addLog("success", `✅ Concluído! ${current.toLocaleString("pt-BR")} pontos prontos para ativação.`);
+        setNasaSyncing(false);
+        loadData();
+        auditReload();
+      } else if (ver.status === "failed") {
+        clearInterval(nasaPollRef.current!);
+        nasaPollRef.current = null;
+        addLog("error", `❌ Falhou: ${meta.error || "Erro desconhecido"}`);
+        setNasaSyncing(false);
+        setNasaProgress(null);
+        loadData();
+        auditReload();
+      } else if (current > lastLoggedCount) {
+        lastLoggedCount = current;
+        if (total > 0) {
+          const pct = Math.round((current / total) * 100);
+          addLog("info", `${pct}% — ${current.toLocaleString("pt-BR")}/${total.toLocaleString("pt-BR")} pontos`);
+        } else {
+          addLog("info", `${current.toLocaleString("pt-BR")} pontos importados...`);
+        }
+      }
+    }, 5000);
+  }, [loadData, auditReload]);
+
+  // Cancel NASA sync
+  const handleNasaCancel = async () => {
+    setNasaCancelling(true);
+    const addLog = (level: "info" | "warn" | "error" | "success", msg: string) => {
+      setNasaLogs(prev => [...prev, { ts: Date.now(), level, msg }]);
+    };
+
+    try {
+      const nasaDs = API_DATASETS[0];
+      if (!nasaDs) return;
+
+      const processingVer = getProcessingVersion(nasaDs.code);
+      if (!processingVer) {
+        addLog("warn", "Nenhuma importação em andamento para cancelar.");
+        return;
+      }
+
+      addLog("info", "Cancelando importação...");
+
+      const { error } = await supabase.functions.invoke("irradiance-import", {
+        body: { action: "abort", version_id: processingVer.id, error: "Cancelado pelo usuário" },
+      });
+
+      if (error) throw error;
+
+      if (nasaPollRef.current) {
+        clearInterval(nasaPollRef.current);
+        nasaPollRef.current = null;
+      }
+
+      addLog("success", "✅ Importação cancelada. Dados parciais foram removidos.");
+      setNasaSyncing(false);
+      setNasaProgress(null);
+      loadData();
+      auditReload();
+    } catch (e: any) {
+      addLog("error", `Erro ao cancelar: ${e.message}`);
+    } finally {
+      setNasaCancelling(false);
+    }
+  };
+
   // ── NASA Sync ──
   const handleNasaSync = async () => {
     setNasaSyncing(true);
     setNasaLogs([]);
+    setNasaProgress(null);
     const addLog = (level: "info" | "warn" | "error" | "success", msg: string) => {
       setNasaLogs(prev => [...prev, { ts: Date.now(), level, msg }]);
     };
@@ -180,14 +279,10 @@ export function BaseMeteorologicaPage() {
     addLog("info", "Conectando ao servidor NASA POWER...");
     
     try {
-      await new Promise(r => setTimeout(r, 800));
-      addLog("info", "Autenticação verificada ✓");
-      
       const nasaDs = API_DATASETS[0];
       if (!nasaDs) throw new Error("Dataset NASA não configurado");
 
-      addLog("info", "Buscando coordenadas da malha brasileira...");
-      await new Promise(r => setTimeout(r, 500));
+      addLog("info", "Autenticação verificada ✓");
 
       const versionTag = `v${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, "0")}`;
       addLog("info", `Iniciando versão ${versionTag}...`);
@@ -200,6 +295,7 @@ export function BaseMeteorologicaPage() {
         const msg = String(error?.message ?? "").toLowerCase();
         if (msg.includes("function not found") || msg.includes("404") || msg.includes("boot error")) {
           addLog("warn", "Função de sincronização não está disponível no momento.");
+          setNasaSyncing(false);
           return;
         }
         throw error;
@@ -207,21 +303,31 @@ export function BaseMeteorologicaPage() {
 
       if (data?.error === "VERSION_EXISTS") {
         addLog("warn", `${data.message}`);
+        setNasaSyncing(false);
         return;
       }
       if (data?.error === "VERSION_PROCESSING") {
         addLog("warn", `${data.message}`);
+        if (data?.version_id) {
+          addLog("info", "Monitorando progresso da importação existente...");
+          startNasaPolling(data.version_id, addLog);
+        } else {
+          setNasaSyncing(false);
+        }
         return;
       }
 
-      addLog("info", "Processando dados GHI/DHI/DNI...");
-      await new Promise(r => setTimeout(r, 300));
-      addLog("success", "✅ Sincronização iniciada com sucesso! Processamento ocorre em segundo plano.");
+      addLog("success", "Sincronização iniciada! Monitorando progresso...");
+
+      if (data?.version_id) {
+        setNasaProgress({ current: data.chunk_rows ?? 0, total: data.grid_total_points ?? 0 });
+        startNasaPolling(data.version_id, addLog);
+      }
+
       loadData();
       auditReload();
     } catch (e: any) {
       addLog("error", `❌ Erro: ${e.message}`);
-    } finally {
       setNasaSyncing(false);
     }
   };
@@ -546,15 +652,43 @@ export function BaseMeteorologicaPage() {
                   Sincronizar via API
                 </Button>
                 {nasaSyncing && (
-                  <span className="text-xs text-muted-foreground animate-pulse">Sincronizando...</span>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleNasaCancel}
+                    disabled={nasaCancelling}
+                    className="gap-1.5"
+                  >
+                    {nasaCancelling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                    Cancelar
+                  </Button>
                 )}
               </div>
 
               {/* Progress indicator during sync */}
-              {nasaSyncing && (
+              {(nasaSyncing || nasaProgress) && nasaProgress && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">
+                      {nasaSyncing ? "Importando via NASA POWER..." : "Concluído"}
+                    </span>
+                    <span className={nasaSyncing ? "text-primary" : "text-success"}>
+                      {nasaProgress.total > 0 ? `${Math.round((nasaProgress.current / nasaProgress.total) * 100)}%` : `${nasaProgress.current.toLocaleString("pt-BR")} pts`}
+                    </span>
+                  </div>
+                  <Progress
+                    value={nasaProgress.total > 0 ? Math.round((nasaProgress.current / nasaProgress.total) * 100) : undefined}
+                    className="h-3"
+                  />
+                  <p className="text-[10px] text-muted-foreground text-right">
+                    {nasaProgress.current.toLocaleString("pt-BR")} / {nasaProgress.total > 0 ? nasaProgress.total.toLocaleString("pt-BR") : "?"} pontos
+                  </p>
+                </div>
+              )}
+              {nasaSyncing && !nasaProgress && (
                 <div className="space-y-1">
                   <Progress value={undefined} className="h-1.5" />
-                  <p className="text-[10px] text-muted-foreground">Processamento em andamento no servidor...</p>
+                  <p className="text-[10px] text-muted-foreground">Iniciando sincronização...</p>
                 </div>
               )}
 
