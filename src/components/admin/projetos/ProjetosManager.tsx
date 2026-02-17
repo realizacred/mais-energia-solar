@@ -78,9 +78,9 @@ export function ProjetosManager() {
       <PageHeader
         icon={FolderKanban}
         title="Projetos"
-        description="Gerencie seus projetos por etapa e responsável"
+        description="Gestão operacional de engenharia — acompanhe cada projeto da documentação à vistoria"
         actions={
-          <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5">
+          <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5 bg-primary hover:bg-primary/90">
             <Plus className="h-4 w-4" />
             Novo Projeto
           </Button>
@@ -131,7 +131,7 @@ export function ProjetosManager() {
         <TabsList className="bg-muted/50 border border-border/40">
           <TabsTrigger value="kanban" className="gap-1.5 text-xs">
             <Layers className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Pipeline</span>
+            <span className="hidden sm:inline">Funil</span>
           </TabsTrigger>
           <TabsTrigger value="performance" className="gap-1.5 text-xs">
             <BarChart3 className="h-3.5 w-3.5" />
