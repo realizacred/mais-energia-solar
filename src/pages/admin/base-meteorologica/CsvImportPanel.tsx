@@ -268,9 +268,26 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
         <Upload className="h-3.5 w-3.5 text-primary" />
         Importar dados via CSV
       </p>
-      <p className="text-[10px] text-muted-foreground -mt-1">
-        Selecione o arquivo GHI (obrigatório). DHI e DNI são opcionais. O sistema valida os dados antes de enviar.
-      </p>
+      <div className="rounded-md border border-info/30 bg-info/5 p-2.5 space-y-1.5 -mt-0.5">
+        <p className="text-[11px] font-medium text-info flex items-center gap-1.5">
+          <Info className="h-3.5 w-3.5 shrink-0" />
+          Quais arquivos preciso?
+        </p>
+        <ul className="text-[10px] text-muted-foreground space-y-0.5 ml-5 list-disc">
+          <li>
+            <strong className="text-foreground">GHI</strong> (Irradiância Global Horizontal) — <strong className="text-primary">obrigatório</strong>. É o dado principal usado para calcular a geração de energia em painéis fixos. Representa a radiação total que chega ao plano horizontal.
+          </li>
+          <li>
+            <strong className="text-foreground">DHI</strong> (Irradiância Difusa Horizontal) — <em>opcional</em>. Componente da radiação espalhada pela atmosfera. Útil para cálculos em superfícies inclinadas e dias nublados.
+          </li>
+          <li>
+            <strong className="text-foreground">DNI</strong> (Irradiância Normal Direta) — <em>opcional</em>. Radiação direta do sol. Essencial para rastreadores solares e concentradores (CSP).
+          </li>
+        </ul>
+        <p className="text-[9px] text-muted-foreground/70 ml-5">
+          💡 Para sistemas fotovoltaicos fixos, <strong>apenas o GHI é suficiente</strong>. DHI e DNI melhoram a precisão em projetos avançados.
+        </p>
+      </div>
 
       {/* File inputs */}
       <div className="grid grid-cols-3 gap-3">
