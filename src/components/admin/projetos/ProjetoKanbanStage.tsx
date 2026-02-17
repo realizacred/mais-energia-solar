@@ -251,10 +251,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       variant="outline"
                       size="sm"
                       className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
-                      onClick={() => {
-                        const ownerId = stageDeals[0]?.owner_id;
-                        onNewProject?.(ownerId);
-                      }}
+                      onClick={() => onNewProject?.()}
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       Novo projeto
@@ -406,10 +403,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                 {/* ── New Project Button ── */}
                 <div className="px-2.5 py-1.5">
                   <button
-                    onClick={() => {
-                      const ownerId = stageDeals[0]?.owner_id;
-                      onNewProject?.(ownerId);
-                    }}
+                    onClick={() => onNewProject?.()}
                     className={cn(
                       "w-full h-7 rounded-lg border border-primary/40",
                       "flex items-center justify-center gap-1.5",
