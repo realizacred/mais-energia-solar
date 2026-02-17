@@ -7400,6 +7400,50 @@ export type Database = {
           },
         ]
       }
+      proposta_email_templates: {
+        Row: {
+          assunto: string
+          ativo: boolean
+          corpo_html: string
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          assunto: string
+          ativo?: boolean
+          corpo_html?: string
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          assunto?: string
+          ativo?: boolean
+          corpo_html?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposta_email_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       proposta_envios: {
         Row: {
           canal: string
