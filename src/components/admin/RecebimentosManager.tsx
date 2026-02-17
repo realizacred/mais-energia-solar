@@ -482,7 +482,7 @@ export function RecebimentosManager() {
           description={clientes.length === 0 ? "Cadastre um cliente primeiro" : undefined}
         />
       ) : (
-        <Card>
+        <Card className="rounded-xl border-2 border-border/60">
           <Table>
             <TableHeader>
               <TableRow>

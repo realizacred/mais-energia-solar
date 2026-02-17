@@ -112,33 +112,33 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-primary">
+        <Card className="rounded-xl border-2 border-primary/40 bg-primary/5">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Users className="w-5 h-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{leads.length}</p>
-              <p className="text-xs text-muted-foreground">Total de Leads</p>
+              <p className="text-xs text-muted-foreground">Total de leads</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-success">
+        <Card className="rounded-xl border-2 border-success/40 bg-success/5">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
               <Zap className="w-5 h-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{totalKwh.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">kWh Total</p>
+              <p className="text-xs text-muted-foreground">kWh total</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-secondary">
+        <Card className="rounded-xl border-2 border-secondary/40 bg-secondary/5">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
               <MapPin className="w-5 h-5 text-secondary" />
             </div>
             <div>
@@ -148,9 +148,9 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-warning">
+        <Card className="rounded-xl border-2 border-warning/40 bg-warning/5">
           <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
               <TrendingUp className="w-5 h-5 text-warning" />
             </div>
             <div>
@@ -166,11 +166,11 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
       {/* Charts Row */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Leads by Month */}
-        <Card>
+        <Card className="rounded-xl border-2 border-border/60">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <Calendar className="w-4 h-4 text-primary" />
-              Leads por Mês
+              Leads por mês
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -208,11 +208,11 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
         </Card>
 
         {/* Leads by State */}
-        <Card>
+        <Card className="rounded-xl border-2 border-border/60">
           <CardHeader>
             <CardTitle className="text-base flex items-center gap-2">
               <MapPin className="w-4 h-4 text-secondary" />
-              Leads por Estado
+              Leads por estado
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -241,11 +241,11 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
       </div>
 
       {/* Consumption Distribution */}
-      <Card>
+      <Card className="rounded-xl border-2 border-border/60">
         <CardHeader>
           <CardTitle className="text-base flex items-center gap-2">
             <Zap className="w-4 h-4 text-primary" />
-            Distribuição de Consumo
+            Distribuição de consumo
             <span className="text-sm font-normal text-muted-foreground ml-2">
               (Média: {avgConsumption} kWh)
             </span>

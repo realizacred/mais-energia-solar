@@ -550,7 +550,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
   return (
     <>
-      <Card>
+      <Card className="rounded-xl border-2 border-border/60">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2 text-foreground">

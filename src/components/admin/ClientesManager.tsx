@@ -436,11 +436,11 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               </div>
 
               {/* Dados Pessoais */}
-              <Card>
+              <Card className="rounded-xl border-2 border-primary/30 bg-primary/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Dados Pessoais
+                    <Users className="h-4 w-4 text-primary" />
+                    Dados pessoais
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -492,9 +492,9 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               </Card>
 
               {/* Endereço */}
-              <Card>
+              <Card className="rounded-xl border-2 border-secondary/30 bg-secondary/5">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm">Endereço</CardTitle>
+                  <CardTitle className="text-sm flex items-center gap-2 text-secondary">Endereço</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -560,11 +560,11 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               </Card>
 
               {/* Dados do Projeto */}
-              <Card>
+              <Card className="rounded-xl border-2 border-warning/30 bg-warning/5">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Sun className="h-4 w-4" />
-                    Dados do Projeto Solar
+                    <Sun className="h-4 w-4 text-warning" />
+                    Dados do projeto solar
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -630,10 +630,10 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
 
               {/* Documentos (somente no modo edição) */}
               {editingCliente && (
-                <Card>
+                <Card className="rounded-xl border-2 border-info/30 bg-info/5">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <FileText className="h-4 w-4" />
+                      <FileText className="h-4 w-4 text-info" />
                       Documentos
                     </CardTitle>
                   </CardHeader>
@@ -674,7 +674,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
           action={{ label: "Novo Cliente", onClick: () => setDialogOpen(true), icon: Plus }}
         />
       ) : (
-        <Card>
+        <Card className="rounded-xl border-2 border-border/60">
           <Table>
             <TableHeader>
               <TableRow>

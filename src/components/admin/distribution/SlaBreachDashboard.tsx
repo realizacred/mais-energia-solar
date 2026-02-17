@@ -65,23 +65,23 @@ export function SlaBreachDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className={breaches.length > 0 ? "border-destructive/30" : ""}>
+        <Card className={`rounded-xl border-2 ${breaches.length > 0 ? "border-destructive/40 bg-destructive/5" : "border-border/60"}`}>
           <CardContent className="p-4 text-center">
             <p className={`text-2xl font-bold ${breaches.length > 0 ? "text-destructive" : "text-foreground"}`}>
               {breaches.length}
             </p>
-            <p className="text-xs text-muted-foreground">Total Ativas</p>
+            <p className="text-xs text-muted-foreground">Total ativas</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-xl border-2 border-warning/40 bg-warning/5">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-warning">
               {breaches.filter((b) => b.tipo === "primeiro_contato").length}
             </p>
-            <p className="text-xs text-muted-foreground">Primeiro Contato</p>
+            <p className="text-xs text-muted-foreground">Primeiro contato</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-xl border-2 border-info/40 bg-info/5">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-info">
               {breaches.filter((b) => b.tipo === "followup").length}
@@ -89,7 +89,7 @@ export function SlaBreachDashboard() {
             <p className="text-xs text-muted-foreground">Follow-up</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-xl border-2 border-border/60">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold text-foreground">
               {breaches.filter((b) => b.escalado).length}

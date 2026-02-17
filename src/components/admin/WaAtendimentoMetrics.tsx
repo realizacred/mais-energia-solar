@@ -182,36 +182,36 @@ export function WaAtendimentoMetrics() {
 
       {/* Follow-up Performance */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="rounded-xl border-2 border-warning/40 bg-warning/5">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-warning/10">
               <Clock className="h-5 w-5 text-warning" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{globalStats?.pendentes || 0}</p>
-              <p className="text-xs text-muted-foreground">Follow-ups Pendentes</p>
+              <p className="text-xs text-muted-foreground">Follow-ups pendentes</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-xl border-2 border-success/40 bg-success/5">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-success/10">
               <CheckCircle2 className="h-5 w-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{globalStats?.respondidos || 0}</p>
-              <p className="text-xs text-muted-foreground">Follow-ups Respondidos</p>
+              <p className="text-xs text-muted-foreground">Follow-ups respondidos</p>
             </div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="rounded-xl border-2 border-destructive/40 bg-destructive/5">
           <CardContent className="p-4 flex items-center gap-3">
             <div className="p-2 rounded-lg bg-destructive/10">
               <AlertTriangle className="h-5 w-5 text-destructive" />
             </div>
             <div>
               <p className="text-2xl font-bold text-foreground">{globalStats?.escalated || 0}</p>
-              <p className="text-xs text-muted-foreground">SLA Escalados</p>
+              <p className="text-xs text-muted-foreground">SLA escalados</p>
             </div>
           </CardContent>
         </Card>

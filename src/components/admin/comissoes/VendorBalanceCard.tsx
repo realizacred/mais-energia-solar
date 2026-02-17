@@ -32,7 +32,7 @@ export function VendorBalanceCard({ balances }: VendorBalanceCardProps) {
   if (balances.length === 0) return null;
 
   return (
-    <Card>
+    <Card className="rounded-xl border-2 border-border/60">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Wallet className="h-4 w-4" />

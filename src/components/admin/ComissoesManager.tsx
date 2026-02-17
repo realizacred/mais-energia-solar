@@ -557,7 +557,7 @@ export function ComissoesManager() {
         </div>
 
         <TabsContent value="lista" className="mt-0">
-          <Card>
+          <Card className="rounded-xl border-2 border-border/60">
             <CardHeader className="pb-4">
               <CardTitle>Comissões</CardTitle>
             </CardHeader>
