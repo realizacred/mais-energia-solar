@@ -4,10 +4,13 @@ import { useToast } from "@/hooks/use-toast";
 
 // ─── Types ───────────────────────────────────────────────────
 
+export type PipelineKind = "process" | "owner_board";
+
 export interface Pipeline {
   id: string;
   tenant_id: string;
   name: string;
+  kind: PipelineKind;
   version: number;
   is_active: boolean;
   created_at: string;
@@ -87,7 +90,7 @@ export function useDealPipeline() {
     const [pipelinesRes, stagesRes, consultoresRes] = await Promise.all([
       supabase
         .from("pipelines")
-        .select("id, tenant_id, name, version, is_active, created_at")
+        .select("id, tenant_id, name, kind, version, is_active, created_at")
         .eq("is_active", true)
         .order("created_at"),
       supabase
@@ -253,11 +256,11 @@ export function useDealPipeline() {
   }, [filters, fetchDeals, toast]);
 
   // ─── Pipeline CRUD ──────────────────────────────────
-  const createPipeline = useCallback(async (name: string, templateStages?: { name: string; probability: number; is_closed?: boolean; is_won?: boolean }[]) => {
+  const createPipeline = useCallback(async (name: string, templateStages?: { name: string; probability: number; is_closed?: boolean; is_won?: boolean }[], kind: PipelineKind = "process") => {
     const { data, error } = await supabase
       .from("pipelines")
-      .insert({ name } as any)
-      .select("id, tenant_id, name, version, is_active, created_at")
+      .insert({ name, kind } as any)
+      .select("id, tenant_id, name, kind, version, is_active, created_at")
       .single();
     if (error) { toast({ title: "Erro", description: error.message, variant: "destructive" }); return null; }
 
@@ -474,9 +477,12 @@ export function useDealPipeline() {
       return null;
     }
 
-    // Use provided stageId or fall back to first open stage
-    let targetStageId = params.stageId;
-    if (!targetStageId) {
+    // Check pipeline kind to determine stage requirement
+    const pipeline = pipelines.find(p => p.id === pipeId);
+    const isOwnerBoard = pipeline?.kind === "owner_board";
+
+    let targetStageId: string | null = params.stageId || null;
+    if (!isOwnerBoard && !targetStageId) {
       const pipeStages = stages
         .filter(s => s.pipeline_id === pipeId && !s.is_closed)
         .sort((a, b) => a.position - b.position);
@@ -487,6 +493,8 @@ export function useDealPipeline() {
       }
       targetStageId = firstStage.id;
     }
+    // For owner_board, stage_id must be null
+    if (isOwnerBoard) targetStageId = null;
 
     const { data, error } = await supabase
       .from("deals")

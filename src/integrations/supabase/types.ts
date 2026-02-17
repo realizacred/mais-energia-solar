@@ -2025,7 +2025,7 @@ export type Database = {
           owner_id: string
           owner_name: string
           pipeline_id: string
-          stage_id: string
+          stage_id: string | null
           stage_name: string
           stage_position: number
           stage_probability: number
@@ -2045,7 +2045,7 @@ export type Database = {
           owner_id: string
           owner_name?: string
           pipeline_id: string
-          stage_id: string
+          stage_id?: string | null
           stage_name: string
           stage_position?: number
           stage_probability?: number
@@ -2065,7 +2065,7 @@ export type Database = {
           owner_id?: string
           owner_name?: string
           pipeline_id?: string
-          stage_id?: string
+          stage_id?: string | null
           stage_name?: string
           stage_position?: number
           stage_probability?: number
@@ -2156,7 +2156,7 @@ export type Database = {
           notas: string | null
           owner_id: string
           pipeline_id: string
-          stage_id: string
+          stage_id: string | null
           status: string
           tenant_id: string
           title: string
@@ -2174,7 +2174,7 @@ export type Database = {
           notas?: string | null
           owner_id: string
           pipeline_id: string
-          stage_id: string
+          stage_id?: string | null
           status?: string
           tenant_id?: string
           title: string
@@ -2192,7 +2192,7 @@ export type Database = {
           notas?: string | null
           owner_id?: string
           pipeline_id?: string
-          stage_id?: string
+          stage_id?: string | null
           status?: string
           tenant_id?: string
           title?: string
@@ -5668,6 +5668,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          kind: Database["public"]["Enums"]["pipeline_kind"]
           name: string
           parent_pipeline_id: string | null
           tenant_id: string
@@ -5677,6 +5678,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          kind?: Database["public"]["Enums"]["pipeline_kind"]
           name: string
           parent_pipeline_id?: string | null
           tenant_id: string
@@ -5686,6 +5688,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          kind?: Database["public"]["Enums"]["pipeline_kind"]
           name?: string
           parent_pipeline_id?: string | null
           tenant_id?: string
@@ -6261,6 +6264,57 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "profiles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          deal_id: string
+          event_type: string
+          from_value: string | null
+          id: string
+          metadata: Json | null
+          tenant_id: string
+          to_value: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          deal_id: string
+          event_type: string
+          from_value?: string | null
+          id?: string
+          metadata?: Json | null
+          tenant_id: string
+          to_value?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          deal_id?: string
+          event_type?: string
+          from_value?: string | null
+          id?: string
+          metadata?: Json | null
+          tenant_id?: string
+          to_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -13903,6 +13957,7 @@ export type Database = {
         | "error"
         | "revoked"
         | "expired"
+      pipeline_kind: "process" | "owner_board"
       pricing_method_type: "margin_on_sale" | "margin_on_cost"
       pricing_policy_status: "draft" | "active" | "archived"
       projeto_etapa_categoria: "aberto" | "ganho" | "perdido" | "excluido"
@@ -14149,6 +14204,7 @@ export const Constants = {
         "revoked",
         "expired",
       ],
+      pipeline_kind: ["process", "owner_board"],
       pricing_method_type: ["margin_on_sale", "margin_on_cost"],
       pricing_policy_status: ["draft", "active", "archived"],
       projeto_etapa_categoria: ["aberto", "ganho", "perdido", "excluido"],
