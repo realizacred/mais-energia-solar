@@ -178,7 +178,7 @@ export function ProjetosManager() {
 
           await createDeal({
             title: data.nome || data.cliente.nome,
-            ownerId: data.consultorId || consultoresFilter[0]?.id,
+            ownerId: data.consultorId || undefined,
             pipelineId: data.pipelineId,
             stageId: data.stageId,
             customerId,

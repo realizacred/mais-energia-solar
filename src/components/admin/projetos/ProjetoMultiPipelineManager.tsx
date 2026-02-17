@@ -119,10 +119,6 @@ export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, o
   };
 
   const removeFromPipeline = async (membershipId: string) => {
-    if (memberships.length <= 1) {
-      toast({ title: "O projeto precisa estar em pelo menos 1 funil", variant: "destructive" });
-      return;
-    }
     setSaving(membershipId);
     try {
       const { error } = await supabase
@@ -255,7 +251,7 @@ export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, o
                       size="icon"
                       className="h-6 w-6 text-muted-foreground hover:text-destructive"
                       onClick={() => removeFromPipeline(membership.id)}
-                      disabled={saving === membership.id || memberships.length <= 1}
+                      disabled={saving === membership.id}
                     >
                       {saving === membership.id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
@@ -265,7 +261,7 @@ export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, o
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent side="left" className="text-xs">
-                    {memberships.length <= 1 ? "Precisa estar em pelo menos 1 funil" : "Remover deste funil"}
+                    {memberships.length <= 1 ? "Remover último funil" : "Remover deste funil"}
                   </TooltipContent>
                 </Tooltip>
               </div>
