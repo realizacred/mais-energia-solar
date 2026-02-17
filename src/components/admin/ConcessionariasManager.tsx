@@ -782,7 +782,7 @@ export function ConcessionariasManager() {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleSave}>Salvar</Button>
+              <Button onClick={handleSave}>Salvar alterações</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
