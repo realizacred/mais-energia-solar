@@ -6348,25 +6348,43 @@ export type Database = {
       }
       projeto_etiquetas: {
         Row: {
+          ativo: boolean
           cor: string
           created_at: string
+          grupo: string
+          icon: string | null
           id: string
           nome: string
+          ordem: number
+          short: string | null
           tenant_id: string
+          updated_at: string
         }
         Insert: {
+          ativo?: boolean
           cor?: string
           created_at?: string
+          grupo?: string
+          icon?: string | null
           id?: string
           nome: string
+          ordem?: number
+          short?: string | null
           tenant_id?: string
+          updated_at?: string
         }
         Update: {
+          ativo?: boolean
           cor?: string
           created_at?: string
+          grupo?: string
+          icon?: string | null
           id?: string
           nome?: string
+          ordem?: number
+          short?: string | null
           tenant_id?: string
+          updated_at?: string
         }
         Relationships: [
           {
