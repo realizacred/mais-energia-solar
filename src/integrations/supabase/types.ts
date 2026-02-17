@@ -2011,6 +2011,69 @@ export type Database = {
           },
         ]
       }
+      deal_activities: {
+        Row: {
+          activity_type: Database["public"]["Enums"]["deal_activity_type"]
+          assigned_to: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string
+          deal_id: string
+          description: string | null
+          due_date: string | null
+          id: string
+          status: Database["public"]["Enums"]["deal_activity_status"]
+          tenant_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          activity_type?: Database["public"]["Enums"]["deal_activity_type"]
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by: string
+          deal_id: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["deal_activity_status"]
+          tenant_id: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          activity_type?: Database["public"]["Enums"]["deal_activity_type"]
+          assigned_to?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string
+          deal_id?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["deal_activity_status"]
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_activities_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_activities_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_kanban_projection: {
         Row: {
           customer_name: string
@@ -2078,6 +2141,48 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: true
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_notes: {
+        Row: {
+          content: string
+          created_at: string
+          created_by: string
+          deal_id: string
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          created_by: string
+          deal_id: string
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          created_by?: string
+          deal_id?: string
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_notes_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_notes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -13939,6 +14044,15 @@ export type Database = {
         | "percentage_of_cost"
         | "composite"
         | "rule_based"
+      deal_activity_status: "pending" | "done" | "cancelled"
+      deal_activity_type:
+        | "call"
+        | "meeting"
+        | "email"
+        | "task"
+        | "visit"
+        | "follow_up"
+        | "other"
       integration_audit_action:
         | "connect_started"
         | "connect_completed"
@@ -14183,6 +14297,16 @@ export const Constants = {
         "percentage_of_cost",
         "composite",
         "rule_based",
+      ],
+      deal_activity_status: ["pending", "done", "cancelled"],
+      deal_activity_type: [
+        "call",
+        "meeting",
+        "email",
+        "task",
+        "visit",
+        "follow_up",
+        "other",
       ],
       integration_audit_action: [
         "connect_started",
