@@ -251,7 +251,11 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       variant="outline"
                       size="sm"
                       className="w-full h-8 text-xs font-medium border-dashed border-primary/40 text-primary hover:bg-primary/5"
-                      onClick={() => onNewProject?.()}
+                      onClick={() => {
+                        // Try to infer a single owner from this stage's deals
+                        const uniqueOwners = [...new Set(stageDeals.map(d => d.owner_id).filter(Boolean))];
+                        onNewProject?.(uniqueOwners.length === 1 ? uniqueOwners[0] : undefined);
+                      }}
                     >
                       <Plus className="h-3.5 w-3.5 mr-1" />
                       Novo projeto
@@ -403,7 +407,10 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                 {/* ── New Project Button ── */}
                 <div className="px-2.5 py-1.5">
                   <button
-                    onClick={() => onNewProject?.()}
+                    onClick={() => {
+                      const uniqueOwners = [...new Set(stageDeals.map(d => d.owner_id).filter(Boolean))];
+                      onNewProject?.(uniqueOwners.length === 1 ? uniqueOwners[0] : undefined);
+                    }}
                     className={cn(
                       "w-full h-7 rounded-lg border border-primary/40",
                       "flex items-center justify-center gap-1.5",
