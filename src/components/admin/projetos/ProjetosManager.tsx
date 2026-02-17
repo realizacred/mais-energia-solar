@@ -77,19 +77,31 @@ export function ProjetosManager() {
     }
   };
 
-  // Auto-select first active pipeline if none selected
+  // Auto-select first active pipeline (skip "Vendedor")
+  const nonVendedorPipelines = useMemo(
+    () => pipelines.filter(p => p.is_active && p.name.toLowerCase() !== "vendedor"),
+    [pipelines]
+  );
+
   useEffect(() => {
-    if (!selectedPipelineId && pipelines.length > 0) {
-      const firstActive = pipelines.find(p => p.is_active);
-      if (firstActive) {
-        setSelectedPipelineId(firstActive.id);
-        applyFilters({ pipelineId: firstActive.id });
+    if (!selectedPipelineId && nonVendedorPipelines.length > 0) {
+      const first = nonVendedorPipelines[0];
+      setSelectedPipelineId(first.id);
+      applyFilters({ pipelineId: first.id });
+    }
+    // If current selection is "Vendedor", switch away
+    if (selectedPipelineId) {
+      const current = pipelines.find(p => p.id === selectedPipelineId);
+      if (current && current.name.toLowerCase() === "vendedor" && nonVendedorPipelines.length > 0) {
+        const first = nonVendedorPipelines[0];
+        setSelectedPipelineId(first.id);
+        applyFilters({ pipelineId: first.id });
       }
     }
-  }, [pipelines, selectedPipelineId]);
+  }, [pipelines, selectedPipelineId, nonVendedorPipelines]);
 
   const clearFilters = () => {
-    const firstActive = pipelines.find(p => p.is_active);
+    const firstActive = nonVendedorPipelines[0] || pipelines.find(p => p.is_active);
     const pid = firstActive?.id || null;
     applyFilters({ pipelineId: pid, ownerId: "todos", status: "todos", search: "" });
     setSelectedPipelineId(pid);

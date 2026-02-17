@@ -71,11 +71,13 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
     return (
       <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
         <User className="h-8 w-8 mb-2 opacity-40" />
-        <p className="font-medium">Nenhum consultor com projetos</p>
-        <p className="text-sm mt-1">Crie um projeto para visualizar por consultor.</p>
+        <p className="font-medium">Nenhum consultor ativo</p>
+        <p className="text-sm mt-1">Cadastre consultores para visualizar por consultor.</p>
       </div>
     );
   }
+
+  const isOrphanColumn = (colId: string) => colId === "__sem_atribuicao__";
 
   // ── Mobile ──
   if (isMobile) {
@@ -155,14 +157,14 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
               onDrop={e => handleDrop(e, col.id)}
             >
               {/* Header */}
-              <div className="px-3 pt-3 pb-2 border-b-2 border-primary/20">
+              <div className={cn("px-3 pt-3 pb-2 border-b-2", isOrphanColumn(col.id) ? "border-warning/40" : "border-primary/20")}>
                 <div className="flex items-center gap-2 mb-1.5">
-                  <Avatar className="h-6 w-6 border border-primary/30">
-                    <AvatarFallback className="text-[9px] font-bold bg-primary/10 text-primary">
-                      {getInitials(col.nome)}
+                  <Avatar className={cn("h-6 w-6 border", isOrphanColumn(col.id) ? "border-warning/30" : "border-primary/30")}>
+                    <AvatarFallback className={cn("text-[9px] font-bold", isOrphanColumn(col.id) ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary")}>
+                      {isOrphanColumn(col.id) ? "?" : getInitials(col.nome)}
                     </AvatarFallback>
                   </Avatar>
-                  <h3 className="text-[11px] font-semibold text-foreground leading-tight truncate uppercase tracking-wider">
+                  <h3 className={cn("text-[11px] font-semibold leading-tight truncate uppercase tracking-wider", isOrphanColumn(col.id) ? "text-warning" : "text-foreground")}>
                     {col.nome}
                   </h3>
                 </div>
@@ -171,28 +173,30 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                     <DollarSign className="h-3 w-3" />
                     {formatBRL(col.totalValor)}
                   </span>
-                  <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full bg-primary/10 text-primary border-0">
+                  <Badge variant="secondary" className={cn("text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full border-0", isOrphanColumn(col.id) ? "bg-warning/10 text-warning" : "bg-primary/10 text-primary")}>
                     {col.count}
                   </Badge>
                 </div>
               </div>
 
-              {/* New Project Button */}
-              <div className="px-2.5 py-1.5">
-                <button
-                  onClick={() => onNewProject?.(col.id)}
-                  className={cn(
-                    "w-full h-7 rounded-lg border border-primary/40",
-                    "flex items-center justify-center gap-1.5",
-                    "text-[10px] font-semibold text-primary",
-                    "hover:bg-primary hover:text-primary-foreground hover:border-primary",
-                    "transition-all duration-200"
-                  )}
-                >
-                  <Plus className="h-3 w-3" />
-                  Novo projeto
-                </button>
-              </div>
+              {/* New Project Button - hide for orphan column */}
+              {!isOrphanColumn(col.id) && (
+                <div className="px-2.5 py-1.5">
+                  <button
+                    onClick={() => onNewProject?.(col.id)}
+                    className={cn(
+                      "w-full h-7 rounded-lg border border-primary/40",
+                      "flex items-center justify-center gap-1.5",
+                      "text-[10px] font-semibold text-primary",
+                      "hover:bg-primary hover:text-primary-foreground hover:border-primary",
+                      "transition-all duration-200"
+                    )}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Novo projeto
+                  </button>
+                </div>
+              )}
 
               {/* Cards */}
               <div className="flex-1 px-2.5 pb-2.5 space-y-1.5 overflow-y-auto" style={{ maxHeight: "calc(100vh - 340px)" }}>
