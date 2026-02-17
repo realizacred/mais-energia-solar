@@ -90,6 +90,7 @@ const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
 // AgendaConfigPage removed
 const TenantSettings = lazy(() => import("@/components/admin/TenantSettings").then(m => ({ default: m.TenantSettings })));
+const CustomFieldsSettings = lazy(() => import("@/components/admin/projetos/CustomFieldsSettings").then(m => ({ default: m.CustomFieldsSettings })));
 const DocumentosPage = lazy(() => import("@/components/admin/documentos/DocumentosPage").then(m => ({ default: m.DocumentosPage })));
 const ConfSolarPage = lazy(() => import("@/components/admin/conf-solar/ConfSolarPage").then(m => ({ default: m.ConfSolarPage })));
 const PremissasPage = lazy(() => import("@/components/admin/premissas/PremissasPage").then(m => ({ default: m.PremissasPage })));
@@ -211,6 +212,7 @@ const TAB_TITLES: Record<string, string> = {
   "tenant-settings": "Dados da empresa",
   "conf-solar": "Premissas solar",
   "pricing-policy": "Política de precificação",
+  "custom-fields": "Opções customizáveis",
   menus: "Personalizar menu",
   
 };
@@ -474,6 +476,7 @@ export default function Admin() {
                 
                 {/* Administração */}
                 <Route path="tenant-settings" element={<TenantSettings />} />
+                <Route path="custom-fields" element={<CustomFieldsSettings />} />
                 <Route path="auditoria" element={<AuditLogsViewer />} />
                 <Route path="data-reset" element={<DataResetManager />} />
                 

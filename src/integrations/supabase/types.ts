@@ -2074,6 +2074,173 @@ export type Database = {
           },
         ]
       }
+      deal_activity_types: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          ordem: number | null
+          tenant_id: string
+          title: string
+          visible_on_funnel: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          ordem?: number | null
+          tenant_id: string
+          title: string
+          visible_on_funnel?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          ordem?: number | null
+          tenant_id?: string
+          title?: string
+          visible_on_funnel?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_activity_types_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_custom_field_values: {
+        Row: {
+          created_at: string
+          deal_id: string
+          field_id: string
+          id: string
+          tenant_id: string
+          updated_at: string
+          value_boolean: boolean | null
+          value_date: string | null
+          value_number: number | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          field_id: string
+          id?: string
+          tenant_id: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          field_id?: string
+          id?: string
+          tenant_id?: string
+          updated_at?: string
+          value_boolean?: boolean | null
+          value_date?: string | null
+          value_number?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_custom_field_values_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_custom_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "deal_custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_custom_field_values_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_custom_fields: {
+        Row: {
+          created_at: string
+          field_context: string
+          field_key: string
+          field_type: string
+          id: string
+          important_on_funnel: boolean | null
+          is_active: boolean | null
+          options: Json | null
+          ordem: number | null
+          required_on_create: boolean | null
+          required_on_funnel: boolean | null
+          required_on_proposal: boolean | null
+          show_on_create: boolean | null
+          tenant_id: string
+          title: string
+          updated_at: string
+          visible_on_funnel: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          field_context?: string
+          field_key: string
+          field_type?: string
+          id?: string
+          important_on_funnel?: boolean | null
+          is_active?: boolean | null
+          options?: Json | null
+          ordem?: number | null
+          required_on_create?: boolean | null
+          required_on_funnel?: boolean | null
+          required_on_proposal?: boolean | null
+          show_on_create?: boolean | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+          visible_on_funnel?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          field_context?: string
+          field_key?: string
+          field_type?: string
+          id?: string
+          important_on_funnel?: boolean | null
+          is_active?: boolean | null
+          options?: Json | null
+          ordem?: number | null
+          required_on_create?: boolean | null
+          required_on_funnel?: boolean | null
+          required_on_proposal?: boolean | null
+          show_on_create?: boolean | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          visible_on_funnel?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_custom_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       deal_kanban_projection: {
         Row: {
           customer_name: string
