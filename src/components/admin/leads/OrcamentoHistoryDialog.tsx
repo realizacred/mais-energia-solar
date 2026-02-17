@@ -202,10 +202,17 @@ export function OrcamentoHistoryDialog({
                                 </Badge>
                               )}
                             </div>
-                            <div className="text-xs space-y-0.5 text-muted-foreground">
-                              <p>{orcamento.cidade}, {orcamento.estado} • {orcamento.media_consumo} kWh</p>
-                              <p className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
+                            <div className="text-sm space-y-1 mt-1">
+                              <p className="flex items-center gap-2 text-muted-foreground">
+                                <MapPin className="h-3.5 w-3.5" />
+                                {orcamento.cidade}, {orcamento.estado}
+                              </p>
+                              <p className="flex items-center gap-2 text-muted-foreground">
+                                <Zap className="h-3.5 w-3.5" />
+                                Consumo: {orcamento.media_consumo} kWh
+                              </p>
+                              <p className="flex items-center gap-2 text-muted-foreground">
+                                <Clock className="h-3.5 w-3.5" />
                                 {format(new Date(orcamento.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                               </p>
                             </div>
