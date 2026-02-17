@@ -439,7 +439,11 @@ export function BaseMeteorologicaPage() {
               const hasData = !!active && (active.row_count ?? 0) > 0;
 
               return (
-                <Card key={ds.code} className="rounded-xl">
+                <Card key={ds.code} className={`rounded-xl border-2 ${
+                  hasData ? "border-success/40 bg-success/5" :
+                  processing ? "border-warning/40 bg-warning/5" :
+                  "border-border"
+                }`}>
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
@@ -512,7 +516,9 @@ export function BaseMeteorologicaPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* NASA status */}
-              <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/30 border border-border/40">
+              <div className={`flex items-center gap-4 p-3 rounded-lg border-2 ${
+                nasaActive ? "border-success/40 bg-success/5" : "border-border bg-muted/30"
+              }`}>
                 <div className={`h-3 w-3 rounded-full ${nasaActive ? "bg-success" : "bg-muted-foreground"}`} />
                 <div className="text-xs">
                   <span className="font-medium">Status: </span>
@@ -714,7 +720,12 @@ export function BaseMeteorologicaPage() {
                   const active = getAuditActiveVersion(ds.id);
 
                   return (
-                    <div key={ds.id} className="rounded-lg border border-border/50 p-4 space-y-3">
+                    <div key={ds.id} className={`rounded-lg border-2 p-4 space-y-3 ${
+                      active ? "border-success/40 bg-success/5" :
+                      allVersions.some(v => v.status === "failed") ? "border-destructive/30 bg-destructive/5" :
+                      allVersions.some(v => v.status === "processing") ? "border-primary/30 bg-primary/5" :
+                      "border-warning/30 bg-warning/5"
+                    }`}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           {active ? (
@@ -795,7 +806,12 @@ export function BaseMeteorologicaPage() {
                             const summaryLabel = isProcessing ? "⏳ Em processamento" : errorCount > 0 ? `${errorCount} erro(s)` : warnCount > 0 ? `${warnCount} aviso(s)` : "✓ Tudo OK";
 
                             return (
-                              <div key={v.id} className="rounded-md border border-border/30 p-3 space-y-2">
+                              <div key={v.id} className={`rounded-md border p-3 space-y-2 ${
+                                isFailed ? "border-destructive/30 bg-destructive/5" :
+                                isActive ? "border-success/30 bg-success/5" :
+                                isProcessing ? "border-primary/30 bg-primary/5" :
+                                "border-border/30 bg-muted/30"
+                              }`}>
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     <Badge className={`text-[10px] ${STATUS_COLORS[v.status] || ""}`}>{v.status}</Badge>
@@ -979,8 +995,14 @@ function StatusCard({
 }: {
   icon: React.ReactNode; label: string; value: string; detail: string; color: string;
 }) {
+  // Derive border color from text color
+  const borderClass = color.includes("success") ? "border-success/40 bg-success/5"
+    : color.includes("warning") ? "border-warning/40 bg-warning/5"
+    : color.includes("primary") ? "border-primary/30 bg-primary/5"
+    : "border-border bg-card";
+
   return (
-    <Card className="rounded-xl">
+    <Card className={`rounded-xl border-2 ${borderClass}`}>
       <CardContent className="p-4 space-y-2">
         <div className="flex items-center gap-2 text-muted-foreground">
           {icon}
@@ -995,8 +1017,13 @@ function StatusCard({
 
 // ── Audit Metric ──
 function AuditMetric({ value, label, color }: { value: number | string; label: string; color: string }) {
+  const bgClass = color.includes("success") ? "bg-success/5 border-success/30"
+    : color.includes("warning") ? "bg-warning/5 border-warning/30"
+    : color.includes("primary") ? "bg-primary/5 border-primary/30"
+    : "bg-muted/30 border-border/50";
+
   return (
-    <div className="rounded-lg border border-border/50 p-3 text-center">
+    <div className={`rounded-lg border-2 p-3 text-center ${bgClass}`}>
       <p className={`text-2xl font-bold ${color}`}>{value}</p>
       <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>
