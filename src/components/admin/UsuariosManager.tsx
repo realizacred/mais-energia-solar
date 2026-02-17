@@ -60,7 +60,7 @@ import { UserEditDialog } from "./users/UserEditDialog";
 interface UserRole {
   id: string;
   user_id: string;
-  role: "admin" | "gerente" | "vendedor" | "instalador" | "financeiro";
+  role: "admin" | "gerente" | "consultor" | "instalador" | "financeiro";
   created_at: string;
 }
 
@@ -92,7 +92,7 @@ const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.El
   super_admin: { label: "Super Admin", color: "bg-primary/15 text-primary border-primary/30", icon: ShieldAlert },
   admin: { label: "Administrador", color: "bg-destructive/10 text-destructive border-destructive/30", icon: ShieldAlert },
   gerente: { label: "Gerente", color: "bg-accent text-accent-foreground border-border", icon: ShieldCheck },
-  vendedor: { label: "Consultor", color: "bg-info/10 text-info border-info/30", icon: Users },
+  consultor: { label: "Consultor", color: "bg-info/10 text-info border-info/30", icon: Users },
   instalador: { label: "Instalador", color: "bg-success/10 text-success border-success/30", icon: Users },
   financeiro: { label: "Financeiro", color: "bg-warning/10 text-warning border-warning/30", icon: Users },
 };
@@ -111,7 +111,7 @@ export function UsuariosManager() {
     nome: "",
     email: "",
     password: "",
-    role: "vendedor",
+    role: "consultor",
   });
   const [userToEdit, setUserToEdit] = useState<UserWithRoles | null>(null);
   const { toast } = useToast();
@@ -415,7 +415,7 @@ export function UsuariosManager() {
       });
       
       setIsCreateDialogOpen(false);
-      setNewUserForm({ nome: "", email: "", password: "", role: "vendedor" });
+      setNewUserForm({ nome: "", email: "", password: "", role: "consultor" });
       fetchUsers();
     } catch (error: any) {
       console.error("Error creating user:", error);
@@ -706,7 +706,7 @@ export function UsuariosManager() {
               variant="outline" 
               onClick={() => {
                 setIsCreateDialogOpen(false);
-                setNewUserForm({ nome: "", email: "", password: "", role: "vendedor" });
+                setNewUserForm({ nome: "", email: "", password: "", role: "consultor" });
               }}
             >
               Cancelar
