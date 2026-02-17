@@ -290,7 +290,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
   return (
     <>
       <ScrollArea className="w-full">
-        <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
+        <div className="flex gap-2.5 pb-4 px-1" style={{ minWidth: "max-content" }}>
           {sortedStages.map(stage => {
             const stageDeals = deals.filter(d => d.stage_id === stage.id);
             const totalValue = dealValueByStage.get(stage.id) || 0;
@@ -306,20 +306,19 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               <div
                 key={stage.id}
                 className={cn(
-                  "w-[280px] flex-shrink-0 rounded-xl border border-border/60 transition-all flex flex-col",
-                  "bg-card",
+                  "w-[272px] flex-shrink-0 rounded-xl border border-border/40 transition-all flex flex-col",
+                  "bg-muted/30",
                   isOver && "ring-2 ring-primary/30 bg-primary/5"
                 )}
-                style={{ boxShadow: "var(--shadow-sm)" }}
                 onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(stage.id); }}
                 onDragLeave={() => setDragOverCol(null)}
                 onDrop={e => handleDrop(e, stage.id)}
               >
                 {/* ── Column Header ── */}
-                <div className="px-3.5 pt-3 pb-2.5 border-b border-border/40">
-                  <div className="flex items-center justify-between mb-2">
+                <div className="px-3 pt-3 pb-2 border-b-2 border-primary/20">
+                  <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2 min-w-0">
-                      <h3 className="text-xs font-bold text-foreground leading-tight truncate uppercase tracking-wide">
+                      <h3 className="text-[11px] font-semibold text-foreground leading-tight truncate uppercase tracking-wider">
                         {stage.name}
                       </h3>
                       {hasActiveAutomation && (
@@ -384,42 +383,42 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                   </div>
 
                   {/* ── Metrics row: Value + kWp + Count ── */}
-                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-0.5 font-bold text-foreground text-[11px] font-mono">
-                      <DollarSign className="h-3 w-3 text-success" />
+                  <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-0.5 font-bold text-[11px] font-mono text-success">
+                      <DollarSign className="h-3 w-3" />
                       {formatBRL(totalValue)}
                     </span>
                     {totalKwp > 0 && (
-                      <span className="flex items-center gap-0.5 font-mono font-medium">
-                        <Zap className="h-3 w-3 text-warning" />
+                      <span className="flex items-center gap-0.5 font-mono font-bold text-info text-[11px]">
+                        <Zap className="h-3 w-3" />
                         {formatKwp(totalKwp)}
                       </span>
                     )}
-                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-semibold ml-auto rounded-md">
+                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full bg-primary/10 text-primary border-0">
                       {count}
                     </Badge>
                   </div>
                 </div>
 
                 {/* ── New Project Button ── */}
-                <div className="px-3 py-2">
+                <div className="px-2.5 py-1.5">
                   <button
                     onClick={() => onNewProject?.()}
                     className={cn(
-                      "w-full h-8 rounded-lg border-2 border-dashed border-primary/30",
+                      "w-full h-7 rounded-lg border border-primary/40",
                       "flex items-center justify-center gap-1.5",
-                      "text-[11px] font-medium text-primary/70",
-                      "hover:border-primary/50 hover:text-primary hover:bg-primary/5",
+                      "text-[10px] font-semibold text-primary",
+                      "hover:bg-primary hover:text-primary-foreground hover:border-primary",
                       "transition-all duration-200"
                     )}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-3 w-3" />
                     Novo projeto
                   </button>
                 </div>
 
                 {/* ── Cards ── */}
-                <div className="px-3 pb-2 min-h-[80px] space-y-2 flex-1">
+                <div className="px-2.5 pb-2 min-h-[80px] space-y-1.5 flex-1">
                   {stageDeals.length === 0 && (
                     <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
                       Arraste projetos aqui
@@ -540,15 +539,20 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "bg-card rounded-xl border border-border/50 p-3 cursor-grab active:cursor-grabbing",
-        "hover:shadow-md hover:border-primary/30 transition-all duration-150 relative group",
+        "bg-card rounded-xl p-3 cursor-grab active:cursor-grabbing",
+        "border border-border/30",
+        "shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/40",
+        "transition-all duration-200 relative group",
         isInactive && "opacity-50",
         isDragging && "opacity-30 scale-95",
-        stagnation === "critical" && "border-l-[3px] border-l-destructive",
-        stagnation === "warning" && "border-l-[3px] border-l-warning",
-        !stagnation && "border-l-[3px] border-l-primary/40"
+        stagnation === "critical" && "border-l-4 border-l-destructive",
+        stagnation === "warning" && "border-l-4 border-l-warning",
+        etiquetaCfg && !stagnation && "border-l-4",
+        !etiquetaCfg && !stagnation && "border-l-4 border-l-primary/40"
       )}
-      style={{ boxShadow: "0 1px 3px hsl(var(--foreground) / 0.04)" }}
+      style={{
+        ...(etiquetaCfg && !stagnation ? { borderLeftColor: etiquetaCfg.cor } : {}),
+      }}
     >
       {/* Row 1: Client name (prominent) + etiqueta badge */}
       <div className="flex items-start justify-between gap-1.5 mb-1.5">
@@ -564,13 +568,11 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
               {propostaInfo.label}
             </Badge>
           )}
-          {etiquetaCfg && (
+        {etiquetaCfg && (
             <span
-              className="text-[9px] font-bold rounded-md px-1.5 py-0.5 border"
+              className="text-[9px] font-bold rounded-full px-2 py-0.5 text-white shadow-sm"
               style={{
-                backgroundColor: `${etiquetaCfg.cor}20`,
-                color: etiquetaCfg.cor,
-                borderColor: `${etiquetaCfg.cor}40`,
+                backgroundColor: etiquetaCfg.cor,
               }}
             >
               {etiquetaCfg.icon ? `${etiquetaCfg.icon} ` : ""}{etiquetaCfg.short || etiquetaCfg.label}
@@ -580,15 +582,16 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
       </div>
 
       {/* Row 2: Value (green) + kWp */}
-      <div className="flex items-center gap-2 mb-1.5">
+      <div className="flex items-center gap-2.5 mb-1.5">
         {deal.deal_value > 0 && (
-          <span className="text-[12px] font-bold font-mono text-success">
+          <span className="inline-flex items-center gap-0.5 text-[12px] font-bold font-mono text-success">
+            <DollarSign className="h-3 w-3" />
             {formatBRL(deal.deal_value)}
           </span>
         )}
         {deal.deal_kwp > 0 && (
-          <span className="inline-flex items-center gap-0.5 text-[10px] font-mono text-muted-foreground">
-            <Zap className="h-2.5 w-2.5 text-warning" />
+          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold font-mono text-info">
+            <Zap className="h-3 w-3" />
             {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
           </span>
         )}

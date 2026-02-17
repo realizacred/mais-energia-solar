@@ -91,13 +91,13 @@ export function ProjetosManager() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         icon={FolderKanban}
         title="Projetos"
         description="Gestão operacional de engenharia — acompanhe cada projeto da documentação à vistoria"
         actions={
-          <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5 bg-primary hover:bg-primary/90">
+          <Button onClick={() => setNovoProjetoOpen(true)} className="gap-1.5 border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-none font-semibold">
             <Plus className="h-4 w-4" />
             Novo Projeto
           </Button>
