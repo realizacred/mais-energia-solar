@@ -226,10 +226,8 @@ export function ProviderCard({ config, datasetId, versions, activeVersion, proce
           <CsvImportPanel processingVersion={processingVersion} onReload={onReload} />
         )}
 
-        {/* ── Lookup Tester (only when active) ── */}
-        {isActive && (
-          <LookupTester activeVersion={activeVersion} />
-        )}
+        {/* ── Lookup Tester (always visible) ── */}
+        <LookupTester activeVersion={activeVersion} />
 
         {/* ── Advanced: Version History (collapsible) ── */}
         {versions.length > 0 && (
