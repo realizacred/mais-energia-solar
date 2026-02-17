@@ -252,9 +252,12 @@ function OwnerDealCard({
         "group relative bg-card rounded-lg border border-border/50 p-2.5 cursor-pointer",
         "hover:shadow-md hover:-translate-y-[1px] transition-all duration-150",
         isDragging && "opacity-40 scale-95",
-        stagnation === "critical" && "border-l-4 border-l-destructive",
-        stagnation === "warning" && "border-l-4 border-l-warning",
-        !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400/70"
+        // Status-based card styling
+        deal.deal_status === "won" && "bg-success/5 border-l-4 border-l-success",
+        deal.deal_status === "lost" && "bg-destructive/5 border-l-4 border-l-destructive opacity-60",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-4 border-l-destructive",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-4 border-l-warning",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400/70",
       )}
     >
       {/* Etiqueta + Stage */}

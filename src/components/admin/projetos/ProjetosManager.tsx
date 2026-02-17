@@ -42,7 +42,7 @@ export function ProjetosManager() {
     createDeal,
   } = useDealPipeline();
 
-  const [viewMode, setViewMode] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-etapa");
+  const [viewMode, setViewMode] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-consultor");
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);

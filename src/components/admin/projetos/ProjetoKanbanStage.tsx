@@ -559,16 +559,18 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
         "border border-border/30",
         "shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/40",
         "transition-all duration-200 relative group",
-        isInactive && "opacity-50",
+        // Status-based card styling
+        deal.deal_status === "won" && "bg-success/5 border-l-4 border-l-success",
+        deal.deal_status === "lost" && "bg-destructive/5 border-l-4 border-l-destructive opacity-60",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-4 border-l-destructive",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-4 border-l-warning",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400/70",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && etiquetaCfg && "border-l-4",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && !etiquetaCfg && "border-l-4 border-l-primary/40",
         isDragging && "opacity-30 scale-95",
-        stagnation === "critical" && "border-l-4 border-l-destructive",
-        stagnation === "warning" && "border-l-4 border-l-warning",
-        !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400/70",
-        etiquetaCfg && !stagnation && deal.proposta_id && "border-l-4",
-        !etiquetaCfg && !stagnation && deal.proposta_id && "border-l-4 border-l-primary/40"
       )}
       style={{
-        ...(etiquetaCfg && !stagnation ? { borderLeftColor: etiquetaCfg.cor } : {}),
+        ...(etiquetaCfg && !stagnation && deal.deal_status !== "won" && deal.deal_status !== "lost" ? { borderLeftColor: etiquetaCfg.cor } : {}),
       }}
     >
       {/* Row 1: Client name (prominent) + etiqueta badge */}
