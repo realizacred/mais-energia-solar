@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMotivosPerda } from "@/hooks/useDistribution";
+import { useTenantPremises } from "@/hooks/useTenantPremises";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,8 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Plus, Trash2, GripVertical, Pencil, Settings2, Layers, Zap, AlertTriangle,
   Save, Loader2, LayoutGrid, ListOrdered, Type, Hash, DollarSign, Calendar,
-  CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, HelpCircle
+  CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, HelpCircle,
+  Sliders
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -106,6 +108,9 @@ export function CustomFieldsSettings() {
 
   // ─── Use canonical hook for motivos_perda (SSOT) ───
   const { motivos, loading: motivosLoading, upsert: upsertMotivo, remove: removeMotivo } = useMotivosPerda();
+
+  // ─── Premissas (SSOT via useTenantPremises) ───
+  const premissasCtx = useTenantPremises();
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -303,7 +308,7 @@ export function CustomFieldsSettings() {
 
   const filteredFields = fields.filter(f => f.field_context === contextFilter);
 
-  if (loading || motivosLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+  if (loading || motivosLoading || premissasCtx.loading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
 
   return (
     <div className="space-y-6">
@@ -314,15 +319,18 @@ export function CustomFieldsSettings() {
             Opções Customizáveis
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Personalize campos, tipos de atividade e motivos de perda do seu CRM
+            Personalize campos, premissas, tipos de atividade e motivos de perda do seu CRM
           </p>
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
+        <TabsList className="flex-wrap">
           <TabsTrigger value="campos" className="gap-1.5">
             <LayoutGrid className="h-4 w-4" />Campos Customizados
+          </TabsTrigger>
+          <TabsTrigger value="premissas" className="gap-1.5">
+            <Sliders className="h-4 w-4" />Premissas
           </TabsTrigger>
           <TabsTrigger value="atividades" className="gap-1.5">
             <Zap className="h-4 w-4" />Tipos de Atividades
@@ -556,6 +564,11 @@ export function CustomFieldsSettings() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ═══ TAB: Premissas ═══ */}
+        <TabsContent value="premissas" className="space-y-4 mt-4">
+          <PremissasTabContent ctx={premissasCtx} />
         </TabsContent>
       </Tabs>
 
@@ -884,6 +897,64 @@ export function CustomFieldsSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ─── Premissas Tab (embedded from PremissasPage) ───
+import { TabFinanceiras } from "@/components/admin/premissas/tabs/TabFinanceiras";
+import { TabSistemaSolar } from "@/components/admin/premissas/tabs/TabSistemaSolar";
+import { TabAreaTelhado } from "@/components/admin/premissas/tabs/TabAreaTelhado";
+import { TabValoresPadroes } from "@/components/admin/premissas/tabs/TabValoresPadroes";
+import { PremissasFooter } from "@/components/admin/premissas/PremissasFooter";
+
+function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises> }) {
+  const [subTab, setSubTab] = useState("financeiras");
+
+  const PREMISSA_TABS = [
+    { value: "financeiras", label: "Financeiras", icon: DollarSign },
+    { value: "sistema-solar", label: "Sistema solar", icon: Calendar },
+    { value: "area-telhado", label: "Área útil por tipo de telhado", icon: LayoutGrid },
+    { value: "valores-padroes", label: "Valores padrões", icon: Sliders },
+  ] as const;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        Parâmetros financeiros, técnicos e valores padrões para dimensionamento e propostas.
+      </p>
+
+      <div className="flex items-center gap-2 flex-wrap">
+        {PREMISSA_TABS.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.value}
+              onClick={() => setSubTab(t.value)}
+              className={cn(
+                "px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-1.5",
+                subTab === t.value
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {subTab === "financeiras" && <TabFinanceiras premises={ctx.premises} onChange={ctx.setPremises} />}
+      {subTab === "sistema-solar" && <TabSistemaSolar premises={ctx.premises} onChange={ctx.setPremises} />}
+      {subTab === "area-telhado" && (
+        <TabAreaTelhado roofFactors={ctx.roofFactors} onSave={ctx.saveRoofFactors} saving={ctx.saving} />
+      )}
+      {subTab === "valores-padroes" && <TabValoresPadroes premises={ctx.premises} onChange={ctx.setPremises} />}
+
+      {subTab !== "area-telhado" && (
+        <PremissasFooter isDirty={ctx.isDirty} saving={ctx.saving} onSave={ctx.save} onCancel={ctx.reset} />
+      )}
     </div>
   );
 }
