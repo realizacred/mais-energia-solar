@@ -233,6 +233,7 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   // CONTA DE ENERGIA
   // ──────────────────────────────────────────────────────────────
+  // Legado (mantido por compatibilidade)
   v("conta_energia", "conta_energia.gasto_atual_mensal", "gasto_atual_mensal", "Gasto atual mensal", "Valor atual da conta de energia", "R$", "750.00"),
   v("conta_energia", "conta_energia.gasto_com_solar_mensal", "gasto_com_solar_mensal", "Gasto com solar mensal", "Valor estimado da conta com solar", "R$", "50.00"),
   v("conta_energia", "conta_energia.economia_percentual", "economia_percentual", "Economia (%)", "Percentual de economia na conta", "%", "93"),
@@ -240,6 +241,98 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("conta_energia", "conta_energia.tarifa_atual", "tarifa_atual", "Tarifa atual", "Tarifa vigente da distribuidora", "R$/kWh", "0.95"),
   v("conta_energia", "conta_energia.imposto_percentual", "imposto_percentual", "Imposto (%)", "Percentual de impostos na conta", "%", "25"),
   v("conta_energia", "conta_energia.bandeira_tarifaria", "bandeira_tarifaria", "Bandeira tarifária", "Bandeira tarifária vigente", "", "Verde"),
+
+  // Custo de Disponibilidade
+  v("conta_energia", "conta_energia.custo_disponibilidade_valor", "custo_disponibilidade_valor", "Custo de Disponibilidade", "Custo de disponibilidade da UC", "R$", "99,99"),
+  v("conta_energia", "conta_energia.custo_disponibilidade_valor_uc1", "custo_disponibilidade_valor_uc1", "Custo de Disponibilidade UC #", "Custo de disponibilidade por UC", "R$", "99,99"),
+
+  // Gasto Energia Mensal (BT)
+  v("conta_energia", "conta_energia.gasto_energia_mensal_atual", "gasto_energia_mensal_atual", "Gasto Energia Mensal Atual", "Gasto com energia mensal atual", "R$", "1.000"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_atual_uc1", "gasto_energia_mensal_atual_uc1", "Gasto Energia Mensal Atual UC #", "Gasto com energia mensal atual por UC", "R$", "1.000"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_bt_atual", "gasto_energia_mensal_bt_atual", "Gasto Energia Mensal BT Atual", "Gasto energia BT atual", "R$", "1.000"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_bt_atual_uc1", "gasto_energia_mensal_bt_atual_uc1", "Gasto Energia Mensal BT Atual UC #", "Gasto energia BT atual por UC", "R$", "1.000"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_novo", "gasto_energia_mensal_novo", "Gasto Energia Mensal Novo", "Gasto energia mensal com solar", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_novo_uc1", "gasto_energia_mensal_novo_uc1", "Gasto Energia Mensal Novo UC #", "Gasto energia mensal novo por UC", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_bt_novo", "gasto_energia_mensal_bt_novo", "Gasto Energia Mensal BT Novo", "Gasto energia BT com solar", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_bt_novo_uc1", "gasto_energia_mensal_bt_novo_uc1", "Gasto Energia Mensal BT Novo UC #", "Gasto energia BT novo por UC", "R$", "100"),
+
+  // Gasto Energia Mensal (Ponta / Fora Ponta)
+  v("conta_energia", "conta_energia.gasto_energia_mensal_p_atual", "gasto_energia_mensal_p_atual", "Gasto Energia Mensal Ponta Atual", "Gasto energia ponta atual", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_p_atual_uc1", "gasto_energia_mensal_p_atual_uc1", "Gasto Energia Mensal Ponta Atual UC #", "Gasto energia ponta atual por UC", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_p_novo", "gasto_energia_mensal_p_novo", "Gasto Energia Mensal Ponta Novo", "Gasto energia ponta com solar", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_p_novo_uc1", "gasto_energia_mensal_p_novo_uc1", "Gasto Energia Mensal Ponta Novo UC #", "Gasto energia ponta novo por UC", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_fp_atual", "gasto_energia_mensal_fp_atual", "Gasto Energia Mensal Fora Ponta Atual", "Gasto energia fora ponta atual", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_fp_atual_uc1", "gasto_energia_mensal_fp_atual_uc1", "Gasto Energia Mensal Fora Ponta Atual UC #", "Gasto energia fora ponta atual por UC", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_fp_novo", "gasto_energia_mensal_fp_novo", "Gasto Energia Mensal Fora Ponta Novo", "Gasto energia fora ponta com solar", "R$", "100"),
+  v("conta_energia", "conta_energia.gasto_energia_mensal_fp_novo_uc1", "gasto_energia_mensal_fp_novo_uc1", "Gasto Energia Mensal Fora Ponta Novo UC #", "Gasto energia fora ponta novo por UC", "R$", "100"),
+
+  // Gasto Demanda (MT)
+  v("conta_energia", "conta_energia.gasto_demanda_mensal_atual", "gasto_demanda_mensal_atual", "Gasto Demanda Mensal Atual", "Gasto demanda mensal atual (MT)", "R$", "5.000"),
+  v("conta_energia", "conta_energia.gasto_demanda_mensal_atual_uc1", "gasto_demanda_mensal_atual_uc1", "Gasto Demanda Mensal Atual UC #", "Gasto demanda atual por UC", "R$", "5.000"),
+  v("conta_energia", "conta_energia.gasto_demanda_mensal_novo", "gasto_demanda_mensal_novo", "Gasto Demanda Mensal Novo", "Gasto demanda com solar (MT)", "R$", "8.000"),
+  v("conta_energia", "conta_energia.gasto_demanda_mensal_novo_uc1", "gasto_demanda_mensal_novo_uc1", "Gasto Demanda Mensal Novo UC #", "Gasto demanda novo por UC", "R$", "8.000"),
+
+  // Economia Energia
+  v("conta_energia", "conta_energia.economia_energia_mensal", "economia_energia_mensal", "Economia Energia Mensal R$", "Economia de energia mensal em reais", "R$", "900"),
+  v("conta_energia", "conta_energia.economia_energia_mensal_uc1", "economia_energia_mensal_uc1", "Economia Energia Mensal R$ UC #", "Economia energia mensal por UC", "R$", "900"),
+  v("conta_energia", "conta_energia.economia_energia_mensal_p", "economia_energia_mensal_p", "Economia Energia Mensal %", "Percentual de economia energia mensal", "%", "90"),
+  v("conta_energia", "conta_energia.economia_energia_mensal_p_uc1", "economia_energia_mensal_p_uc1", "Economia Energia Mensal % UC #", "Percentual economia energia por UC", "%", "90"),
+
+  // Economia Demanda (MT)
+  v("conta_energia", "conta_energia.economia_demanda_mensal", "economia_demanda_mensal", "Economia Demanda Mensal R$", "Economia demanda mensal (MT)", "R$", "-3.000"),
+  v("conta_energia", "conta_energia.economia_demanda_mensal_uc1", "economia_demanda_mensal_uc1", "Economia Demanda Mensal R$ UC #", "Economia demanda por UC", "R$", "-3.000"),
+  v("conta_energia", "conta_energia.economia_demanda_mensal_p", "economia_demanda_mensal_p", "Economia Demanda Mensal %", "Percentual economia demanda", "%", "-60"),
+  v("conta_energia", "conta_energia.economia_demanda_mensal_p_uc1", "economia_demanda_mensal_p_uc1", "Economia Demanda Mensal % UC #", "Percentual economia demanda por UC", "%", "-60"),
+
+  // Gasto Total Mensal
+  v("conta_energia", "conta_energia.gasto_total_mensal_atual", "gasto_total_mensal_atual", "Gasto Total Mensal Atual", "Gasto total mensal atual", "R$", "500,00"),
+  v("conta_energia", "conta_energia.gasto_total_mensal_atual_uc1", "gasto_total_mensal_atual_uc1", "Gasto Total Mensal Atual UC #", "Gasto total atual por UC", "R$", "500,00"),
+  v("conta_energia", "conta_energia.gasto_total_mensal_atual_0", "gasto_total_mensal_atual_0", "Gasto Total Mensal Atual UCs", "Gasto total atual todas UCs (série)", "R$", "100,00"),
+  v("conta_energia", "conta_energia.gasto_total_mensal_novo", "gasto_total_mensal_novo", "Gasto Total Mensal Novo", "Gasto total mensal com solar", "R$", "400,00"),
+  v("conta_energia", "conta_energia.gasto_total_mensal_novo_uc1", "gasto_total_mensal_novo_uc1", "Gasto Total Mensal Novo UC #", "Gasto total novo por UC", "R$", "400,00"),
+
+  // Créditos e Tarifa (pontuais)
+  v("conta_energia", "conta_energia.creditos_jan", "creditos_jan", "Saldo de Créditos Janeiro", "Saldo de créditos em janeiro", "kWh", "12254"),
+  v("conta_energia", "conta_energia.creditos_jan_uc1", "creditos_jan_uc1", "Saldo de Créditos Janeiro UC #", "Saldo créditos janeiro por UC", "kWh", "12254"),
+  v("conta_energia", "conta_energia.tarifa_distribuidora_0", "tarifa_distribuidora_0", "Tarifa Distribuidora", "Tarifa distribuidora ano 0", "R$", "0,99"),
+  v("conta_energia", "conta_energia.tarifa_distribuidora_0_uc1", "tarifa_distribuidora_0_uc1", "Tarifa Distribuidora UC #", "Tarifa distribuidora ano 0 por UC", "R$", "0,99"),
+
+  // Economia Mensal (consolidada)
+  v("conta_energia", "conta_energia.economia_mensal", "economia_mensal", "Economia Mensal R$", "Economia mensal total em reais", "R$", "800"),
+  v("conta_energia", "conta_energia.economia_mensal_uc1", "economia_mensal_uc1", "Economia Mensal R$ UC #", "Economia mensal por UC", "R$", "800"),
+  v("conta_energia", "conta_energia.economia_mensal_p", "economia_mensal_p", "Economia Mensal %", "Percentual de economia mensal total", "%", "76.5"),
+  v("conta_energia", "conta_energia.economia_mensal_p_uc1", "economia_mensal_p_uc1", "Economia Mensal % UC #", "Percentual economia mensal por UC", "%", "10.5"),
+
+  // Créditos Alocados (conta)
+  v("conta_energia", "conta_energia.creditos_alocados", "creditos_alocados", "Créditos Alocados UCs", "Créditos alocados total UCs", "kWh", "800"),
+  v("conta_energia", "conta_energia.creditos_alocados_jan", "creditos_alocados_jan", "Créditos Alocados Janeiro", "Créditos alocados em janeiro", "kWh", "800"),
+  v("conta_energia", "conta_energia.creditos_alocados_uc1", "creditos_alocados_uc1", "Créditos Alocados UC #", "Créditos alocados por UC", "kWh", "800"),
+  v("conta_energia", "conta_energia.creditos_alocados_jan_uc1", "creditos_alocados_jan_uc1", "Créditos Alocados Janeiro UC #", "Créditos alocados janeiro por UC", "kWh", "800"),
+
+  // Consumo Abatido
+  v("conta_energia", "conta_energia.consumo_abatido", "consumo_abatido", "Consumo Abatido BT UCs", "Consumo abatido total BT", "kWh", "800"),
+  v("conta_energia", "conta_energia.consumo_abatido_uc1", "consumo_abatido_uc1", "Consumo Abatido BT UC #", "Consumo abatido por UC", "kWh", "800"),
+  v("conta_energia", "conta_energia.consumo_abatido_p", "consumo_abatido_p", "Consumo Abatido P UCs", "Consumo abatido ponta total", "kWh", "800"),
+  v("conta_energia", "conta_energia.consumo_abatido_p_uc1", "consumo_abatido_p_uc1", "Consumo Abatido P UC #", "Consumo abatido ponta por UC", "kWh", "800"),
+  v("conta_energia", "conta_energia.consumo_abatido_fp", "consumo_abatido_fp", "Consumo Abatido FP UCs", "Consumo abatido fora ponta total", "kWh", "800"),
+  v("conta_energia", "conta_energia.consumo_abatido_fp_uc1", "consumo_abatido_fp_uc1", "Consumo Abatido FP UC #", "Consumo abatido fora ponta por UC", "kWh", "800"),
+
+  // Imposto sobre Energia
+  v("conta_energia", "conta_energia.valor_imposto_energia", "valor_imposto_energia", "Imposto Sobre Energia UCs", "Valor do imposto sobre energia", "R$", "10,97"),
+  v("conta_energia", "conta_energia.valor_imposto_energia_uc1", "valor_imposto_energia_uc1", "Imposto Sobre Energia UC #", "Valor imposto energia por UC", "R$", "10,97"),
+
+  // Tarifação Energia Compensada (Fio B / Lei 14.300)
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_bt", "tarifacao_energia_compensada_bt", "Tarifação Energia Compensada BT", "Valor tarifação Fio B/Energia compensada BT", "R$", "12,34"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_bt_uc1", "tarifacao_energia_compensada_bt_uc1", "Tarifação Energia Compensada BT UC #", "Tarifação compensada BT por UC", "R$", "12,34"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp", "tarifacao_energia_compensada_fp", "Tarifação Energia Compensada FP", "Tarifação compensada fora ponta (MT)", "R$", "12,34"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_fp_uc1", "tarifacao_energia_compensada_fp_uc1", "Tarifação Energia Compensada FP UC #", "Tarifação compensada FP por UC", "R$", "12,34"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p", "tarifacao_energia_compensada_p", "Tarifação Energia Compensada P", "Tarifação compensada ponta (MT)", "R$", "12,34"),
+  v("conta_energia", "conta_energia.tarifacao_energia_compensada_p_uc1", "tarifacao_energia_compensada_p_uc1", "Tarifação Energia Compensada P UC #", "Tarifação compensada ponta por UC", "R$", "12,34"),
+
+  // Gasto Total Mensal (série por UC - disponível para 25 anos)
+  v("conta_energia", "conta_energia.gasto_total_mensal_atual_0_uc1", "gasto_total_mensal_atual_0_uc1", "Gasto Total Mensal Atual UC # (série)", "Gasto total atual UC série", "R$", "100,00"),
+  v("conta_energia", "conta_energia.gasto_total_mensal_novo_0", "gasto_total_mensal_novo_0", "Gasto Total Mensal Novo UCs (série)", "Gasto total novo UCs série", "R$", "100,00"),
+  v("conta_energia", "conta_energia.gasto_total_mensal_novo_0_uc1", "gasto_total_mensal_novo_0_uc1", "Gasto Total Mensal Novo UC # (série)", "Gasto total novo UC série", "R$", "100,00"),
 
   // ──────────────────────────────────────────────────────────────
   // COMERCIAL
