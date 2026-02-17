@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Plus, Trash2 } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, LayoutGrid } from "lucide-react";
 import type { RoofAreaFactor } from "@/hooks/useTenantPremises";
 
 const ROOF_LABELS: Record<string, string> = {
@@ -46,15 +45,20 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
   const isBuiltIn = (tipo: string) => tipo in ROOF_LABELS;
 
   return (
-    <Card>
-      <CardContent className="pt-6 space-y-4">
-        <p className="text-sm text-muted-foreground">
-          Apenas os tipos de telhados com os valores informados irão aparecer como opções no dimensionamento.
+    <div className="space-y-6">
+      {/* Tipos de telhado */}
+      <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <LayoutGrid className="h-4 w-4 text-primary" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Tipos de telhado</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Apenas os tipos habilitados aparecerão como opções no dimensionamento.
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {local.map((f, idx) => (
-            <div key={f.tipo_telhado} className="flex items-center gap-3 rounded-lg border border-border/50 p-3">
+            <div key={f.tipo_telhado} className="flex items-center gap-3 rounded-lg border border-border/50 bg-background p-3">
               <Switch
                 checked={f.enabled}
                 onCheckedChange={(v) => updateFactor(idx, "enabled", v)}
@@ -83,8 +87,8 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
           ))}
         </div>
 
-        {/* Add new roof type */}
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border p-3">
+        {/* Add new */}
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-primary/30 bg-background p-3">
           <Plus className="h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Nome do novo tipo de telhado"
@@ -97,14 +101,14 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
             Adicionar
           </Button>
         </div>
+      </div>
 
-        <div className="flex justify-end pt-2">
-          <Button onClick={() => onSave(local)} disabled={saving} className="gap-1.5">
-            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-            Salvar
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      <div className="flex justify-end pt-2">
+        <Button onClick={() => onSave(local)} disabled={saving} className="gap-1.5">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Salvar
+        </Button>
+      </div>
+    </div>
   );
 }

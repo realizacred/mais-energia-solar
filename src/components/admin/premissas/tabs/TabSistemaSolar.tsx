@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
-import { HelpCircle, Info, CheckCircle2, AlertTriangle } from "lucide-react";
+import { HelpCircle, Info, CheckCircle2, AlertTriangle, Sun, Gauge, RefreshCw, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 
@@ -94,14 +94,21 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
     { value: "inpe_2009", label: "Brazil Solar Global 10KM (INPE 2009)" },
   ];
 
+  const currentBase = baseStatus[premises.base_irradiancia];
+
   return (
-    <Card>
-      <CardContent className="pt-6 space-y-6">
-        {/* Linha 1 */}
+    <div className="space-y-6">
+      {/* Base de irradiância */}
+      <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Sun className="h-4 w-4 text-primary" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Base de irradiância</p>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="space-y-1.5">
+          <div className="md:col-span-2 space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">
-              Base de irradiância
+              Fonte dos dados
               <FieldTooltip text="Fonte dos dados de irradiação solar. INPE 2017 é mais recente e recomendado. INPE 2009 pode ser usado para comparação histórica." />
             </Label>
             <Select value={premises.base_irradiancia} onValueChange={(v) => set("base_irradiancia", v)}>
@@ -109,18 +116,21 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
               <SelectContent>
                 {BASES.map(base => {
                   const st = baseStatus[base.value];
+                  const hasData = st?.active;
                   return (
-                    <SelectItem key={base.value} value={base.value}>
+                    <SelectItem key={base.value} value={base.value} disabled={!hasData && st !== undefined}>
                       <div className="flex items-center gap-2">
-                        <span>{base.label}</span>
-                        {st?.active ? (
-                          <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/30 px-1.5 py-0">
-                            {st.points.toLocaleString("pt-BR")} pts
-                          </Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[9px] bg-warning/10 text-warning border-warning/30 px-1.5 py-0">
-                            Sem dados
-                          </Badge>
+                        <span className={!hasData && st !== undefined ? "text-muted-foreground" : ""}>{base.label}</span>
+                        {st !== undefined && (
+                          hasData ? (
+                            <Badge variant="secondary" className="text-[9px] bg-success/10 text-success border-success/30 px-1.5 py-0">
+                              {st.points.toLocaleString("pt-BR")} pts
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[9px] bg-destructive/10 text-destructive border-destructive/30 px-1.5 py-0">
+                              Sem dados
+                            </Badge>
+                          )
                         )}
                       </div>
                     </SelectItem>
@@ -128,14 +138,14 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
                 })}
               </SelectContent>
             </Select>
-            {/* Status indicator below the select */}
-            {baseStatus[premises.base_irradiancia] !== undefined && (
+            {/* Status indicator */}
+            {currentBase !== undefined && (
               <div className="flex items-center gap-1.5 mt-1">
-                {baseStatus[premises.base_irradiancia]?.active ? (
+                {currentBase.active ? (
                   <>
                     <CheckCircle2 className="h-3 w-3 text-success" />
                     <span className="text-[11px] text-success">
-                      Base ativa — {baseStatus[premises.base_irradiancia].points.toLocaleString("pt-BR")} pontos carregados
+                      Base ativa — {currentBase.points.toLocaleString("pt-BR")} pontos carregados
                     </span>
                   </>
                 ) : (
@@ -150,37 +160,60 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
             )}
           </div>
           <NumField label="Sobredimensionamento padrão" suffix="%" value={premises.sobredimensionamento_padrao} tooltip="Margem extra sobre a potência calculada para compensar perdas reais e garantir a geração esperada. Típico: 10-30%." onChange={(v) => set("sobredimensionamento_padrao", v)} />
-          <div />
         </div>
+      </div>
 
-        {/* Linha 2 - Eficiência */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <NumField label="Perda de Eficiência Anual (Tradicional)" suffix="%" value={premises.perda_eficiencia_tradicional} tooltip="Degradação anual dos módulos com inversor string. Fabricantes garantem ~0.5-0.7%/ano. Módulos Tier 1 tendem a degradar menos." onChange={(v) => set("perda_eficiencia_tradicional", v)} />
-          <NumField label="Perda de Eficiência Anual (MicroInversor)" suffix="%" value={premises.perda_eficiencia_microinversor} tooltip="Degradação anual com microinversores. Pode ser menor pois cada módulo opera no seu ponto ótimo de potência (MPPT individual)." onChange={(v) => set("perda_eficiencia_microinversor", v)} />
-          <NumField label="Perda de Eficiência Anual (Otimizador)" suffix="%" value={premises.perda_eficiencia_otimizador} tooltip="Degradação anual com otimizadores DC. Similar ao microinversor por ter MPPT individual, mas com inversor centralizado." onChange={(v) => set("perda_eficiencia_otimizador", v)} />
+      {/* Eficiência */}
+      <div className="rounded-xl border-2 border-warning/30 bg-warning/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Gauge className="h-4 w-4 text-warning" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-warning">Perda de eficiência anual</p>
         </div>
-
-        {/* Linha 3 - Troca inversor */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <NumField label="Troca de Inversor - Após (Tradicional)" suffix="Anos" step="1" value={premises.troca_inversor_anos_tradicional} tooltip="Vida útil estimada do inversor string antes da troca. Inversores de qualidade duram 10-15 anos." onChange={(v) => set("troca_inversor_anos_tradicional", v)} />
-          <NumField label="Troca de Inversor - Após (MicroInversor)" suffix="Anos" step="1" value={premises.troca_inversor_anos_microinversor} tooltip="Microinversores geralmente têm garantia de 25 anos, podendo não precisar de troca durante a vida útil do sistema." onChange={(v) => set("troca_inversor_anos_microinversor", v)} />
-          <NumField label="Troca de Inversor - Após (Otimizador)" suffix="Anos" step="1" value={premises.troca_inversor_anos_otimizador} tooltip="Otimizadores DC têm garantia de 20-25 anos, mas o inversor central pode precisar de troca em ~10-15 anos." onChange={(v) => set("troca_inversor_anos_otimizador", v)} />
+          <NumField label="Tradicional (String)" suffix="%" value={premises.perda_eficiencia_tradicional} tooltip="Degradação anual dos módulos com inversor string. Fabricantes garantem ~0.5-0.7%/ano." onChange={(v) => set("perda_eficiencia_tradicional", v)} />
+          <NumField label="Microinversor" suffix="%" value={premises.perda_eficiencia_microinversor} tooltip="Degradação anual com microinversores. Pode ser menor pois cada módulo opera no seu ponto ótimo (MPPT individual)." onChange={(v) => set("perda_eficiencia_microinversor", v)} />
+          <NumField label="Otimizador" suffix="%" value={premises.perda_eficiencia_otimizador} tooltip="Degradação anual com otimizadores DC. Similar ao microinversor por ter MPPT individual." onChange={(v) => set("perda_eficiencia_otimizador", v)} />
         </div>
+      </div>
 
-        {/* Linha 4 - Custo troca */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <NumField label="Custo da Troca de Inversor (Tradicional)" suffix="%" value={premises.custo_troca_inversor_tradicional} tooltip="Custo estimado da troca como percentual do valor total do sistema. Inclui equipamento + mão de obra." onChange={(v) => set("custo_troca_inversor_tradicional", v)} />
-          <NumField label="Custo da Troca de Inversor (MicroInversor)" suffix="%" value={premises.custo_troca_inversor_microinversor} onChange={(v) => set("custo_troca_inversor_microinversor", v)} />
-          <NumField label="Custo da Troca de Inversor (Otimizador)" suffix="%" value={premises.custo_troca_inversor_otimizador} onChange={(v) => set("custo_troca_inversor_otimizador", v)} />
+      {/* Troca inversor - Tempo */}
+      <div className="rounded-xl border-2 border-info/30 bg-info/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <RefreshCw className="h-4 w-4 text-info" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-info">Troca de inversor — vida útil</p>
         </div>
-
-        {/* Linha 5 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <NumField label="Margem para potência ideal" suffix="%" value={premises.margem_potencia_ideal} tooltip="Margem de tolerância para considerar a potência do sistema como 'ideal'. Usado no dimensionamento para evitar sub/sobredimensionamento excessivo." onChange={(v) => set("margem_potencia_ideal", v)} />
+          <NumField label="Tradicional (String)" suffix="Anos" step="1" value={premises.troca_inversor_anos_tradicional} tooltip="Vida útil estimada do inversor string antes da troca. Inversores de qualidade duram 10-15 anos." onChange={(v) => set("troca_inversor_anos_tradicional", v)} />
+          <NumField label="Microinversor" suffix="Anos" step="1" value={premises.troca_inversor_anos_microinversor} tooltip="Microinversores geralmente têm garantia de 25 anos." onChange={(v) => set("troca_inversor_anos_microinversor", v)} />
+          <NumField label="Otimizador" suffix="Anos" step="1" value={premises.troca_inversor_anos_otimizador} tooltip="Otimizadores DC têm garantia de 20-25 anos, mas o inversor central pode precisar de troca em ~10-15 anos." onChange={(v) => set("troca_inversor_anos_otimizador", v)} />
+        </div>
+      </div>
+
+      {/* Troca inversor - Custo */}
+      <div className="rounded-xl border-2 border-destructive/30 bg-destructive/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-destructive" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-destructive">Custo da troca de inversor</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <NumField label="Tradicional (String)" suffix="%" value={premises.custo_troca_inversor_tradicional} tooltip="Custo estimado como percentual do valor total do sistema. Inclui equipamento + mão de obra." onChange={(v) => set("custo_troca_inversor_tradicional", v)} />
+          <NumField label="Microinversor" suffix="%" value={premises.custo_troca_inversor_microinversor} onChange={(v) => set("custo_troca_inversor_microinversor", v)} />
+          <NumField label="Otimizador" suffix="%" value={premises.custo_troca_inversor_otimizador} onChange={(v) => set("custo_troca_inversor_otimizador", v)} />
+        </div>
+      </div>
+
+      {/* Outros parâmetros */}
+      <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-success">Outros parâmetros</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <NumField label="Margem para potência ideal" suffix="%" value={premises.margem_potencia_ideal} tooltip="Margem de tolerância para considerar a potência do sistema como 'ideal'." onChange={(v) => set("margem_potencia_ideal", v)} />
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
               Considerar custo de disponibilidade?
-              <FieldTooltip text="Se habilitado, subtrai o custo mínimo de disponibilidade (taxa de conexão à rede) do cálculo de economia. Afeta apenas clientes que migraram antes da Lei 14.300." />
+              <FieldTooltip text="Se habilitado, subtrai o custo mínimo de disponibilidade do cálculo de economia. Afeta apenas clientes que migraram antes da Lei 14.300." />
             </Label>
             <Select
               value={premises.considerar_custo_disponibilidade_solar ? "sim" : "nao"}
@@ -199,7 +232,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
           </div>
           <div />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
