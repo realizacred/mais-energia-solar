@@ -110,9 +110,11 @@ export function CustomFieldsSettings() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
+      const FIELD_COLS = "id, title, field_key, field_type, field_context, options, ordem, show_on_create, required_on_create, visible_on_funnel, important_on_funnel, required_on_funnel, required_on_proposal, is_active" as const;
+      const ACTIVITY_COLS = "id, title, ordem, visible_on_funnel, is_active, icon, pipeline_ids" as const;
       const [fieldsRes, actTypesRes] = await Promise.all([
-        supabase.from("deal_custom_fields").select("*").order("ordem"),
-        supabase.from("deal_activity_types").select("*").order("ordem"),
+        supabase.from("deal_custom_fields").select(FIELD_COLS).order("ordem"),
+        supabase.from("deal_activity_types").select(ACTIVITY_COLS).order("ordem"),
       ]);
       if (fieldsRes.data) setFields(fieldsRes.data as any);
       if (actTypesRes.data) setActivityTypes(actTypesRes.data as any);
@@ -192,6 +194,7 @@ export function CustomFieldsSettings() {
   };
 
   const handleDeleteField = async (id: string) => {
+    if (!window.confirm("Tem certeza que deseja remover este campo?")) return;
     try {
       await supabase.from("deal_custom_fields").delete().eq("id", id);
       setFields(prev => prev.filter(f => f.id !== id));
@@ -259,6 +262,7 @@ export function CustomFieldsSettings() {
   };
 
   const handleDeleteActivity = async (id: string) => {
+    if (!window.confirm("Tem certeza que deseja remover este tipo de atividade?")) return;
     try {
       await supabase.from("deal_activity_types").delete().eq("id", id);
       setActivityTypes(prev => prev.filter(a => a.id !== id));
@@ -293,6 +297,7 @@ export function CustomFieldsSettings() {
   };
 
   const handleDeleteMotivo = async (id: string) => {
+    if (!window.confirm("Tem certeza que deseja remover este motivo?")) return;
     removeMotivo(id);
   };
 
@@ -901,7 +906,9 @@ function SwitchCell({ value, fieldId, column, onUpdate }: { value: boolean; fiel
       onCheckedChange={async (v) => {
         setChecked(v);
         try {
-          await supabase.from("deal_custom_fields").update({ [column]: v } as any).eq("id", fieldId);
+          const { error } = await supabase.from("deal_custom_fields").update({ [column]: v } as any).eq("id", fieldId);
+          if (error) throw error;
+          onUpdate();
         } catch { setChecked(value); }
       }}
       className="scale-75"
