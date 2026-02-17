@@ -33,7 +33,7 @@ export function ComissoesStats({
       icon: DollarSign,
       color: "text-success",
       bgColor: "bg-success/10",
-      borderColor: "border-success/40 bg-success/5",
+      borderColor: "border-border bg-card",
     },
     {
       label: "Pendente",
@@ -41,7 +41,7 @@ export function ComissoesStats({
       icon: Calendar,
       color: "text-warning",
       bgColor: "bg-warning/10",
-      borderColor: "border-warning/40 bg-warning/5",
+      borderColor: "border-border bg-card",
     },
     {
       label: "Registros",
@@ -56,7 +56,7 @@ export function ComissoesStats({
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {stats.map((stat) => (
-        <Card key={stat.label} className={`rounded-xl border-2 ${stat.borderColor}`}>
+        <Card key={stat.label} className={`rounded-xl border ${stat.borderColor}`}>
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className={`p-2 rounded-lg ${stat.bgColor}`}>
@@ -72,7 +72,7 @@ export function ComissoesStats({
       ))}
       
       {comissoesAtrasadas > 0 && (
-        <Card className="rounded-xl border-2 border-warning/40 bg-warning/5 col-span-2 md:col-span-4">
+        <Card className="rounded-xl border border-warning/40 bg-warning/5 col-span-2 md:col-span-4">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-warning/20">

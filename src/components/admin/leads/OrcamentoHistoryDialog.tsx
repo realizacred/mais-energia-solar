@@ -98,7 +98,7 @@ export function OrcamentoHistoryDialog({
               <Zap className="h-4 w-4 text-success" />
               Proposta Mais Recente
             </h4>
-            <div className="rounded-lg border-2 border-success/40 bg-success/5 p-4">
+            <div className="rounded-lg border border-border bg-card p-4">
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">

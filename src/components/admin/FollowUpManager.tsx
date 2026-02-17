@@ -298,7 +298,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
           </div>
         </CardContent>
       </Card>
-      <Card className="rounded-xl border-2 border-success/40 bg-success/5">
+      <Card className="rounded-xl border border-border bg-card">
         <CardContent className="flex items-center gap-4 p-4">
           <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
             <CheckCircle className="w-5 h-5 text-success" />
