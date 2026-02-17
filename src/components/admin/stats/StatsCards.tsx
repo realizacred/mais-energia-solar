@@ -59,7 +59,7 @@ export function StatsCards({ totalLeads, totalKwh, uniqueEstados }: StatsCardsPr
           initial="hidden"
           animate="visible"
           variants={cardVariants}
-          className={`group relative overflow-hidden rounded-xl border border-border/60 border-l-[3px] bg-card p-5 transition-all duration-200 ease-out hover:border-border/80 ${stat.borderColor}`}
+          className={`group relative overflow-hidden rounded-xl border-2 bg-card p-5 transition-all duration-200 ease-out hover:border-border/80 ${stat.borderColor}`}
           style={{ boxShadow: "var(--shadow-sm)" }}
           onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-md)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "translateY(0)"; }}

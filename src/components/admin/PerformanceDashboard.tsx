@@ -367,36 +367,41 @@ export default function PerformanceDashboard() {
         <div className="flex gap-4 pb-2" style={{ minWidth: "max-content" }}>
           <KpiCard
             icon={<Clock className="h-5 w-5 text-info" />}
-            label="Ciclo de Venda"
+            label="Ciclo de venda"
             value={`${kpis.avgCycle} dias`}
-            color="border-l-info"
+            colorBorder="border-info/40"
+            colorBg="bg-info/5"
           />
           <KpiCard
             icon={<DollarSign className="h-5 w-5 text-success" />}
-            label="Ticket Médio"
+            label="Ticket médio"
             value={formatCompact(kpis.ticketMedio)}
-            color="border-l-success"
+            colorBorder="border-success/40"
+            colorBg="bg-success/5"
           />
           <KpiCard
             icon={<Target className="h-5 w-5 text-primary" />}
-            label="Taxa de Conversão"
+            label="Taxa de conversão"
             value={`${kpis.conversionRate}%`}
             sub={`${kpis.closedLeads} de ${kpis.totalLeads}`}
-            color="border-l-primary"
+            colorBorder="border-primary/40"
+            colorBg="bg-primary/5"
           />
           <KpiCard
             icon={<TrendingUp className="h-5 w-5 text-warning" />}
-            label="Pipeline Total"
+            label="Pipeline total"
             value={formatCompact(kpis.totalPipeline)}
             sub={`${kpis.wonValue > 0 ? formatCompact(kpis.wonValue) + " ganho" : ""}`}
-            color="border-l-warning"
+            colorBorder="border-warning/40"
+            colorBg="bg-warning/5"
             growth={kpis.revenueGrowth}
           />
           <KpiCard
             icon={<Users className="h-5 w-5 text-secondary" />}
-            label="Leads este Mês"
+            label="Leads este mês"
             value={String(kpis.thisMonthLeads)}
-            color="border-l-secondary"
+            colorBorder="border-secondary/40"
+            colorBg="bg-secondary/5"
             growth={kpis.leadsGrowth}
           />
         </div>
@@ -806,18 +811,19 @@ export default function PerformanceDashboard() {
 
 // ── KPI Card Sub-component ────────────────────────────────────
 
-function KpiCard({ icon, label, value, sub, color, growth }: {
+function KpiCard({ icon, label, value, sub, colorBorder, colorBg, growth }: {
   icon: React.ReactNode;
   label: string;
   value: string;
   sub?: string;
-  color: string;
+  colorBorder: string;
+  colorBg: string;
   growth?: number;
 }) {
   return (
-    <Card className={cn("min-w-[200px] border-l-4", color)}>
-      <CardContent className="flex items-center gap-3 pt-5 pb-4 px-4">
-        <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center shrink-0">
+    <Card className={cn("min-w-[200px] rounded-xl border-2", colorBorder, colorBg)}>
+      <CardContent className="flex items-center gap-3 p-4">
+        <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div className="min-w-0">

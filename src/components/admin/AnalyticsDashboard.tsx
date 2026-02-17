@@ -89,25 +89,25 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
     <div className="space-y-6">
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-primary">
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+        <Card className="rounded-xl border-2 border-primary/40 bg-primary/5">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Target className="w-5 h-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold">{summaryStats.total}</p>
-              <p className="text-xs text-muted-foreground">Total de Leads</p>
+              <p className="text-xs text-muted-foreground">Total de leads</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-success">
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+        <Card className="rounded-xl border-2 border-success/40 bg-success/5">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
               <TrendingUp className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-success">
+              <p className="text-2xl font-bold">
                 {summaryStats.growth > 0 ? "+" : ""}{summaryStats.growth}%
               </p>
               <p className="text-xs text-muted-foreground">Crescimento</p>
@@ -115,26 +115,26 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-info">
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center">
+        <Card className="rounded-xl border-2 border-info/40 bg-info/5">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
               <BarChart3 className="w-5 h-5 text-info" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-info">{summaryStats.conversionRate}%</p>
+              <p className="text-2xl font-bold">{summaryStats.conversionRate}%</p>
               <p className="text-xs text-muted-foreground">Conversão</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-l-4 border-l-accent">
-          <CardContent className="flex items-center gap-4 pt-6">
-            <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center">
-              <Users className="w-5 h-5 text-accent-foreground" />
+        <Card className="rounded-xl border-2 border-secondary/40 bg-secondary/5">
+          <CardContent className="flex items-center gap-4 p-4">
+            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-secondary" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-accent-foreground">{summaryStats.uniqueVendors}</p>
-              <p className="text-xs text-muted-foreground">Vendedores</p>
+              <p className="text-2xl font-bold">{summaryStats.uniqueVendors}</p>
+              <p className="text-xs text-muted-foreground">Consultores</p>
             </div>
           </CardContent>
         </Card>

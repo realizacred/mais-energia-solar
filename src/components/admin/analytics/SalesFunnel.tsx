@@ -82,7 +82,7 @@ export default function SalesFunnel({ leads, statuses }: SalesFunnelProps) {
   }, [leads]);
 
   return (
-    <Card>
+    <Card className="rounded-xl border-2 border-border/60">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-primary" />

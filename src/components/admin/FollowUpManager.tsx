@@ -276,36 +276,36 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
 
   const renderStats = (categories: ReturnType<typeof categorizeItems>) => (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <Card className="border-l-4 border-l-destructive">
-        <CardContent className="flex items-center gap-4 pt-6">
-          <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
-            <AlertTriangle className="w-6 h-6 text-destructive" />
+      <Card className="rounded-xl border-2 border-destructive/40 bg-destructive/5">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center shrink-0">
+            <AlertTriangle className="w-5 h-5 text-destructive" />
           </div>
           <div>
             <p className="text-2xl font-bold">{categories.urgentLeads.length}</p>
-            <p className="text-sm text-muted-foreground">Urgentes ({diasAlerta * 2}+ dias)</p>
+            <p className="text-xs text-muted-foreground">Urgentes ({diasAlerta * 2}+ dias)</p>
           </div>
         </CardContent>
       </Card>
-      <Card className="border-l-4 border-l-warning">
-        <CardContent className="flex items-center gap-4 pt-6">
-          <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center">
-            <Clock className="w-6 h-6 text-warning" />
+      <Card className="rounded-xl border-2 border-warning/40 bg-warning/5">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+            <Clock className="w-5 h-5 text-warning" />
           </div>
           <div>
             <p className="text-2xl font-bold">{categories.pendingLeads.length}</p>
-            <p className="text-sm text-muted-foreground">Pendentes ({diasAlerta}+ dias)</p>
+            <p className="text-xs text-muted-foreground">Pendentes ({diasAlerta}+ dias)</p>
           </div>
         </CardContent>
       </Card>
-      <Card className="border-l-4 border-l-success">
-        <CardContent className="flex items-center gap-4 pt-6">
-          <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
-            <CheckCircle className="w-6 h-6 text-success" />
+      <Card className="rounded-xl border-2 border-success/40 bg-success/5">
+        <CardContent className="flex items-center gap-4 p-4">
+          <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+            <CheckCircle className="w-5 h-5 text-success" />
           </div>
           <div>
             <p className="text-2xl font-bold">{categories.upToDateLeads.length}</p>
-            <p className="text-sm text-muted-foreground">Em dia</p>
+            <p className="text-xs text-muted-foreground">Em dia</p>
           </div>
         </CardContent>
       </Card>
@@ -325,7 +325,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
   return (
     <div className="space-y-6">
       {/* Ranking de Vendedores */}
-      <Card>
+      <Card className="rounded-xl border-2 border-border/60">
         <CardHeader>
           <div className="flex items-center gap-2">
             <Award className="w-5 h-5 text-warning" />
