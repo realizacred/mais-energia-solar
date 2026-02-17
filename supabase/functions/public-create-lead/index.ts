@@ -10,42 +10,74 @@ const corsHeaders = {
  * PUBLIC edge function — no auth required.
  * Unified server-side lead creation for public forms (/v/slug).
  *
- * 1. Rate-limits by IP
- * 2. Resolves vendedor from codigo/slug
- * 3. Creates lead (minimal) + orcamento (full data)
- * 4. Calls send-wa-welcome internally (fire-and-forget)
- * 5. Returns lead_id + orcamento_id
- *
- * This replaces the client-side flow of:
- *   insert lead → insert orcamento → call send-wa-welcome
- * ensuring atomicity and correct tenant/vendedor resolution on the server.
+ * SECURITY INVARIANTS:
+ * - vendedor_codigo is MANDATORY (no implicit tenant resolution)
+ * - vendedor_id from client payload is IGNORED (anti-IDOR)
+ * - No calls to resolve_public_tenant_id without code
+ * - No calls to resolve_default_consultor_id
+ * - All attempts are audited in security_events
  */
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  try {
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+  const supabaseAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
 
+  // Utility: hash for audit (no raw PII in logs)
+  const hashForAudit = async (value: string): Promise<string> => {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(value + "sec_salt_2024");
+    const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
+  };
+
+  const ipRaw =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    "unknown";
+  const userAgentRaw = req.headers.get("user-agent") || "unknown";
+
+  // Audit helper
+  const logSecurityEvent = async (
+    eventType: string,
+    success: boolean,
+    consultorCode: string | null,
+    tenantId: string | null,
+    details: Record<string, unknown> = {}
+  ) => {
+    try {
+      await supabaseAdmin.from("security_events").insert({
+        event_type: eventType,
+        ip_hash: await hashForAudit(ipRaw),
+        user_agent_hash: await hashForAudit(userAgentRaw),
+        path: "/functions/v1/public-create-lead",
+        consultor_code_hash: consultorCode ? await hashForAudit(consultorCode) : null,
+        success,
+        tenant_id: tenantId,
+        details,
+      });
+    } catch (e) {
+      console.error("[security_events] Failed to log:", e);
+    }
+  };
+
+  try {
     // ── RATE LIMITING ──
-    const identifier =
-      req.headers.get("x-forwarded-for") ||
-      req.headers.get("cf-connecting-ip") ||
-      "unknown";
     const { data: allowed } = await supabaseAdmin.rpc("check_rate_limit", {
       _function_name: "public-create-lead",
-      _identifier: identifier,
+      _identifier: await hashForAudit(ipRaw),
       _window_seconds: 60,
       _max_requests: 10,
     });
     if (allowed === false) {
-      console.warn(`[public-create-lead] Rate limited: ${identifier}`);
+      await logSecurityEvent("RATE_LIMITED", false, null, null);
       return new Response(
-        JSON.stringify({ success: false, error: "Rate limit exceeded" }),
+        JSON.stringify({ success: false, error: "Tente novamente em alguns minutos" }),
         {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "60" },
@@ -66,7 +98,7 @@ Deno.serve(async (req) => {
       nome,
       telefone,
       vendedor_codigo,
-      vendedor_id: explicit_vendedor_id,
+      // vendedor_id is INTENTIONALLY IGNORED (anti-IDOR)
       // Orcamento fields
       cep,
       estado,
@@ -82,15 +114,20 @@ Deno.serve(async (req) => {
       consumo_previsto,
       observacoes,
       arquivos_urls,
-      // Optional: for existing lead adoption
       existing_lead_id,
-      // Optional: skip WA
       skip_wa,
-      // Optional: lead source tracking
       origem,
     } = body;
 
-    // Validate required fields
+    // ── VALIDATE REQUIRED: vendedor_codigo ──
+    if (!vendedor_codigo || typeof vendedor_codigo !== "string" || vendedor_codigo.trim() === "") {
+      await logSecurityEvent("MISSING_CONSULTOR_CODE", false, null, null, { has_nome: !!nome });
+      return new Response(
+        JSON.stringify({ success: false, error: "Link inválido ou expirado" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!nome || !telefone) {
       return new Response(
         JSON.stringify({ success: false, error: "nome e telefone são obrigatórios" }),
@@ -100,72 +137,39 @@ Deno.serve(async (req) => {
 
     if (!estado || !cidade || !area || !tipo_telhado || !rede_atendimento) {
       return new Response(
-        JSON.stringify({ success: false, error: "Campos do orçamento são obrigatórios (estado, cidade, area, tipo_telhado, rede_atendimento)" }),
+        JSON.stringify({ success: false, error: "Campos do orçamento são obrigatórios" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // ── RESOLVE CONSULTOR ──
-    let vendedorId: string | null = explicit_vendedor_id || null;
-    let vendedorNome: string | null = null;
-    let tenantId: string | null = null;
+    // ── RESOLVE CONSULTOR (DETERMINISTIC — no fallback) ──
+    const { data: consultor } = await supabaseAdmin
+      .from("consultores")
+      .select("id, nome, tenant_id")
+      .or(`codigo.eq.${vendedor_codigo.trim()},slug.eq.${vendedor_codigo.trim()}`)
+      .eq("ativo", true)
+      .maybeSingle();
 
-    if (vendedor_codigo && !vendedorId) {
-      const { data: vendedor } = await supabaseAdmin
-        .from("consultores")
-        .select("id, nome, tenant_id")
-        .or(`codigo.eq.${vendedor_codigo},slug.eq.${vendedor_codigo}`)
-        .eq("ativo", true)
-        .maybeSingle();
-
-      if (vendedor) {
-        vendedorId = vendedor.id;
-        vendedorNome = vendedor.nome;
-        tenantId = vendedor.tenant_id;
-      }
-    }
-
-    // If vendedorId was explicit, fetch tenant from consultor
-    if (vendedorId && !tenantId) {
-      const { data: vendedor } = await supabaseAdmin
-        .from("consultores")
-        .select("nome, tenant_id")
-        .eq("id", vendedorId)
-        .maybeSingle();
-      if (vendedor) {
-        vendedorNome = vendedor.nome;
-        tenantId = vendedor.tenant_id;
-      }
-    }
-
-    // Fallback: resolve public tenant
-    if (!tenantId) {
-      const { data: publicTenant, error: ptErr } = await supabaseAdmin.rpc("resolve_public_tenant_id", { _consultor_code: vendedor_codigo || null });
-      if (ptErr || !publicTenant) {
-        console.error("[public-create-lead] Cannot resolve tenant:", ptErr);
-        return new Response(
-          JSON.stringify({ success: false, error: "Não foi possível resolver o tenant" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      tenantId = publicTenant;
-    }
-
-    // Resolve default consultor if none found
-    if (!vendedorId) {
-      const { data: defaultVendedor, error: dvErr } = await supabaseAdmin.rpc(
-        "resolve_default_consultor_id",
-        { _tenant_id: tenantId }
+    if (!consultor) {
+      await logSecurityEvent("INVALID_CONSULTOR_LINK_ATTEMPT", false, vendedor_codigo, null);
+      return new Response(
+        JSON.stringify({ success: false, error: "Link inválido ou expirado" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-      if (!dvErr && defaultVendedor) {
-        vendedorId = defaultVendedor;
-        const { data: v } = await supabaseAdmin
-          .from("consultores")
-          .select("nome")
-          .eq("id", vendedorId!)
-          .maybeSingle();
-        vendedorNome = v?.nome || null;
-      }
+    }
+
+    const vendedorId = consultor.id;
+    const vendedorNome = consultor.nome;
+    const tenantId = consultor.tenant_id;
+
+    // Verify tenant is active
+    const { data: tenantActive } = await supabaseAdmin.rpc("is_tenant_active", { _tenant_id: tenantId });
+    if (!tenantActive) {
+      await logSecurityEvent("INACTIVE_TENANT_ATTEMPT", false, vendedor_codigo, tenantId);
+      return new Response(
+        JSON.stringify({ success: false, error: "Link inválido ou expirado" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     console.log(`[public-create-lead] tenant=${tenantId}, consultor=${vendedorId} (${vendedorNome})`);
@@ -175,7 +179,6 @@ Deno.serve(async (req) => {
     let isNewLead = true;
 
     if (existing_lead_id) {
-      // Verify the lead exists in same tenant
       const { data: existingLead } = await supabaseAdmin
         .from("leads")
         .select("id, tenant_id")
@@ -193,15 +196,11 @@ Deno.serve(async (req) => {
       leadId = existingLead.id;
       isNewLead = false;
 
-      // Update vendedor if needed
-      if (vendedorId) {
-        await supabaseAdmin
-          .from("leads")
-          .update({ consultor_id: vendedorId, consultor: vendedorNome || "Site" })
-          .eq("id", leadId);
-      }
+      await supabaseAdmin
+        .from("leads")
+        .update({ consultor_id: vendedorId, consultor: vendedorNome })
+        .eq("id", leadId);
     } else {
-      // Check for existing leads with the same phone number (duplicate detection)
       const phoneNormalized = telefone.replace(/\D/g, "");
       if (phoneNormalized.length >= 10) {
         const { data: existingLeads } = await supabaseAdmin
@@ -213,22 +212,16 @@ Deno.serve(async (req) => {
           .limit(5);
 
         if (existingLeads && existingLeads.length > 0) {
-          console.log(`[public-create-lead] Duplicate detected: ${existingLeads.length} existing leads for phone ${phoneNormalized}`);
-          // Use the most recent existing lead — add new orcamento to it
           leadId = existingLeads[0].id;
           isNewLead = false;
 
-          // Update consultor if needed
-          if (vendedorId) {
-            await supabaseAdmin
-              .from("leads")
-              .update({ consultor_id: vendedorId, consultor: vendedorNome || "Site" })
-              .eq("id", leadId);
-          }
+          await supabaseAdmin
+            .from("leads")
+            .update({ consultor_id: vendedorId, consultor: vendedorNome })
+            .eq("id", leadId);
         }
       }
 
-      // Create new lead only if no duplicate found
       if (isNewLead) {
         const newLeadId = crypto.randomUUID();
         const { error: leadErr } = await supabaseAdmin
@@ -238,7 +231,7 @@ Deno.serve(async (req) => {
             nome: nome.trim(),
             telefone: telefone.trim(),
             consultor_id: vendedorId,
-            consultor: vendedorNome || "Site",
+            consultor: vendedorNome,
             tenant_id: tenantId,
             origem: origem || null,
             estado: "N/A",
@@ -268,7 +261,7 @@ Deno.serve(async (req) => {
       .from("orcamentos")
       .insert({
         id: orcamentoId,
-        lead_id: leadId,
+        lead_id: leadId!,
         cep: cep || null,
         estado,
         cidade: cidade.trim(),
@@ -283,24 +276,29 @@ Deno.serve(async (req) => {
         consumo_previsto: consumo_previsto || 0,
         observacoes: observacoes || null,
         arquivos_urls: arquivos_urls || [],
-        consultor: vendedorNome || "Site",
+        consultor: vendedorNome,
         consultor_id: vendedorId,
         tenant_id: tenantId,
       });
 
     if (orcErr) {
       console.error("[public-create-lead] Failed to create orcamento:", orcErr);
-      // Lead was created but orcamento failed — still return leadId for recovery
       return new Response(
         JSON.stringify({
           success: false,
           error: orcErr.message,
-          lead_id: leadId,
+          lead_id: leadId!,
           partial: true,
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // ── AUDIT: successful lead creation ──
+    await logSecurityEvent("LEAD_CREATED_PUBLIC", true, vendedor_codigo, tenantId, {
+      lead_id: leadId!,
+      is_new: isNewLead,
+    });
 
     console.log(`[public-create-lead] ✅ lead=${leadId} orcamento=${orcamentoId} isNew=${isNewLead}`);
 
@@ -318,7 +316,7 @@ Deno.serve(async (req) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${serviceRoleKey}`,
           },
-          body: JSON.stringify({ lead_id: leadId }),
+          body: JSON.stringify({ lead_id: leadId! }),
         });
 
         waResult = await waRes.json().catch(() => null);
@@ -331,7 +329,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        lead_id: leadId,
+        lead_id: leadId!,
         orcamento_id: orcamentoId,
         is_new_lead: isNewLead,
         wa_sent: waResult?.success || false,
@@ -340,10 +338,11 @@ Deno.serve(async (req) => {
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
-    console.error("[public-create-lead] Unhandled error:", error);
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.error("[public-create-lead] Unhandled error:", errMsg);
     return new Response(
-      JSON.stringify({ success: false, error: error?.message || String(error) }),
+      JSON.stringify({ success: false, error: "Erro interno do servidor" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

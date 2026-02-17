@@ -65,29 +65,20 @@ export async function buildStoragePath(...segments: string[]): Promise<string> {
 
 /**
  * Resolve tenant_id for anonymous uploads (public forms).
- * Uses the vendedor code or falls back to the single active tenant.
+ * Resolves tenant_id from vendedor code. NO FALLBACK — code is required.
  */
 export async function resolvePublicTenantId(vendedorCode?: string | null): Promise<string | null> {
-  // If we have a vendedor code, resolve through the validate function
-  if (vendedorCode) {
-    const { data } = await supabase.rpc("validate_consultor_code", { _codigo: vendedorCode });
-    if (data && data.length > 0) {
-      // Use secure RPC that only exposes safe fields (no telefone/email)
-      const { data: vendedor } = await supabase
-        .rpc("resolve_consultor_public", { _codigo: vendedorCode })
-        .maybeSingle();
-      if ((vendedor as any)?.tenant_id) return (vendedor as any).tenant_id;
-    }
+  if (!vendedorCode) {
+    console.warn("[resolvePublicTenantId] No vendedor code provided. Cannot resolve tenant.");
+    return null;
   }
 
-  // Fallback: single-tenant mode — resolve via RPC segura (nunca SELECT direto)
-  const { data: activeTenants } = await supabase
-    .rpc("resolve_tenant_public")
-    .limit(2);
-
-  if (activeTenants && activeTenants.length === 1) {
-    return (activeTenants[0] as any).id;
-  }
+  // Resolve via secure RPC
+  const { data: vendedor } = await supabase
+    .rpc("resolve_consultor_public", { _codigo: vendedorCode })
+    .maybeSingle();
+  
+  if ((vendedor as any)?.tenant_id) return (vendedor as any).tenant_id;
 
   return null;
 }

@@ -176,18 +176,20 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             return;
           }
 
-          if (data && data.length > 0) {
-            const vendedor = data[0];
-            setVendedorCodigo(vendedor.codigo);
-            setVendedorNome(vendedor.nome);
+          // RPC returns array of {valid, nome} — uniform for anti-enumeration
+          const results = Array.isArray(data) ? data : data ? [data] : [];
+          const result = results[0];
+          if (result && result.valid && result.nome) {
+            setVendedorCodigo(codigo);
+            setVendedorNome(result.nome);
             // Resolve consultor_id via secure RPC (no direct table access for anon)
             const { data: consultorRecord } = await supabase
-              .rpc("resolve_consultor_public", { _codigo: vendedor.codigo })
+              .rpc("resolve_consultor_public", { _codigo: codigo })
               .maybeSingle();
             if (consultorRecord) {
               setVendedorId((consultorRecord as any).id);
             }
-            console.log("Consultor validado:", vendedor.nome);
+            console.log("Consultor validado:", result.nome);
           } else {
             console.log("Vendedor não encontrado ou inativo:", codigo);
           }
