@@ -223,7 +223,7 @@ export function ProviderCard({ config, datasetId, versions, activeVersion, proce
 
         {/* ── CSV Import (always visible for CSV providers) ── */}
         {config.type === "csv" && (
-          <CsvImportPanel processingVersion={processingVersion} onReload={onReload} />
+          <CsvImportPanel datasetCode={config.code} datasetLabel={config.label} onReload={onReload} />
         )}
 
         {/* ── Lookup Tester (always visible) ── */}
