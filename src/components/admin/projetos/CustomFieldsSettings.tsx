@@ -351,7 +351,7 @@ export function CustomFieldsSettings() {
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-medium transition-all border",
                   contextFilter === key
-                    ? "bg-primary text-primary-foreground border-primary"
+                    ? "bg-secondary text-secondary-foreground border-secondary"
                     : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted"
                 )}
               >
@@ -603,7 +603,7 @@ export function CustomFieldsSettings() {
                     }}
                     className={cn(
                       "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                      "hover:border-primary/60 hover:bg-primary/5 cursor-pointer",
+                      "hover:border-secondary/60 hover:bg-secondary/5 cursor-pointer",
                       "border-border bg-card text-foreground"
                     )}
                   >
@@ -637,9 +637,9 @@ export function CustomFieldsSettings() {
                 {(() => {
                   const Icon = FIELD_TYPE_ICONS[fieldForm.field_type] || Type;
                   return (
-                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border-2 border-primary/40 bg-primary/5">
-                      <Icon className="h-6 w-6 text-primary" />
-                      <span className="text-xs font-semibold text-primary">{FIELD_TYPE_LABELS[fieldForm.field_type]}</span>
+                    <div className="flex flex-col items-center gap-1.5 px-6 py-3 rounded-xl border-2 border-secondary/40 bg-secondary/5">
+                      <Icon className="h-6 w-6 text-secondary" />
+                      <span className="text-xs font-semibold text-secondary">{FIELD_TYPE_LABELS[fieldForm.field_type]}</span>
                     </div>
                   );
                 })()}
@@ -688,7 +688,7 @@ export function CustomFieldsSettings() {
 
                 {/* Show on create */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs text-primary font-medium">Mostrar campo em novo projeto?</Label>
+                  <Label className="text-xs text-foreground font-medium">Mostrar campo em novo projeto?</Label>
                   <Select
                     value={fieldForm.show_on_create ? "sim" : "nao"}
                     onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
@@ -720,7 +720,7 @@ export function CustomFieldsSettings() {
 
                 {/* Visibility */}
                 <div className="space-y-2">
-                  <Label className="text-xs text-primary font-medium">Visibilidade em funis?</Label>
+                  <Label className="text-xs text-foreground font-medium">Visibilidade em funis?</Label>
                   <div className="flex gap-4">
                     <label className="flex items-center gap-1.5 cursor-pointer text-sm">
                       <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
@@ -740,7 +740,7 @@ export function CustomFieldsSettings() {
                 {/* Important + Required in funnel */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-primary font-medium">Campo importante em etapa do funil:</Label>
+                    <Label className="text-xs text-foreground font-medium">Campo importante em etapa do funil:</Label>
                     <Select
                       value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
                       onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
@@ -753,7 +753,7 @@ export function CustomFieldsSettings() {
                     </Select>
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs text-primary font-medium">Campo obrigatório em etapa do funil:</Label>
+                    <Label className="text-xs text-foreground font-medium">Campo obrigatório em etapa do funil:</Label>
                     <Select
                       value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
                       onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
@@ -808,7 +808,7 @@ export function CustomFieldsSettings() {
 
             {/* Visibilidade em funis */}
             <div className="space-y-2">
-              <Label className="text-xs text-primary font-medium">Visibilidade em funis?</Label>
+              <Label className="text-xs text-foreground font-medium">Visibilidade em funis?</Label>
               <div className="flex gap-4">
                 <label className="flex items-center gap-1.5 cursor-pointer text-sm">
                   <input type="radio" name="visMode" checked={activityForm.visibilityMode === "all"}
@@ -934,7 +934,7 @@ function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises
               className={cn(
                 "px-4 py-2 rounded-lg text-sm font-medium transition-all border flex items-center gap-1.5",
                 subTab === t.value
-                  ? "bg-primary text-primary-foreground border-primary"
+                  ? "bg-secondary text-secondary-foreground border-secondary"
                   : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted"
               )}
             >
@@ -1018,7 +1018,7 @@ function IconPicker({ selected, onSelect }: { selected: string; onSelect: (icon:
             className={cn(
               "w-8 h-8 rounded-md flex items-center justify-center transition-all",
               selected === name
-                ? "bg-primary text-primary-foreground ring-2 ring-primary/30"
+                ? "bg-secondary text-secondary-foreground ring-2 ring-secondary/30"
                 : "hover:bg-muted text-muted-foreground hover:text-foreground"
             )}
             title={name}
