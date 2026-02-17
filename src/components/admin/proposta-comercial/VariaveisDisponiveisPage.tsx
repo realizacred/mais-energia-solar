@@ -1,12 +1,11 @@
 import { useState, useMemo } from "react";
-import { Copy, Search, Filter, Info, AlertTriangle } from "lucide-react";
+import { Copy, Search, X } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   VARIABLES_CATALOG,
   CATEGORY_LABELS,
@@ -16,12 +15,12 @@ import {
 } from "@/lib/variablesCatalog";
 import { VariaveisCustomManager } from "@/components/admin/propostas-nativas/VariaveisCustomManager";
 
-function CopyButton({ text, label }: { text: string; label: string }) {
+function CopyButton({ text }: { text: string }) {
   return (
     <Button
       variant="ghost"
       size="icon"
-      className="h-6 w-6 shrink-0"
+      className="h-6 w-6 shrink-0 opacity-40 hover:opacity-100 transition-opacity"
       onClick={() => {
         navigator.clipboard.writeText(text);
         toast.success(`Copiado: ${text}`);
@@ -65,41 +64,48 @@ export function VariaveisDisponiveisPage() {
   }, [filtered]);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="space-y-4 max-w-6xl mx-auto">
       <div>
-        <h1 className="text-xl font-bold text-foreground">Catálogo de Variáveis</h1>
-        <p className="text-sm text-muted-foreground">
-          Fonte única de verdade para templates DOCX, WEB e E-mail. Use o formato canônico{" "}
-          <code className="text-primary bg-primary/10 px-1 rounded">{"{{grupo.campo}}"}</code> ou legado{" "}
-          <code className="text-primary bg-primary/10 px-1 rounded">{"[campo]"}</code>.
+        <h1 className="text-lg font-bold text-foreground">Catálogo de Variáveis</h1>
+        <p className="text-xs text-muted-foreground">
+          Use <code className="text-primary bg-primary/10 px-1 rounded text-[11px]">{"{{grupo.campo}}"}</code> (canônico) ou{" "}
+          <code className="text-muted-foreground bg-muted px-1 rounded text-[11px]">{"[campo]"}</code> (legado) nos templates.
         </p>
       </div>
 
       <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as any)}>
-        <div className="flex items-center gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        {/* Search + Tabs row */}
+        <div className="space-y-3">
+          <div className="relative max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Buscar variáveis..."
+              placeholder="Buscar por..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 h-9"
+              className="pl-8 h-8 text-sm"
             />
+            {search && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
+                onClick={() => setSearch("")}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
           </div>
           <div className="w-full overflow-x-auto">
-            <TabsList className="h-auto flex-wrap">
-              <TabsTrigger value="all" className="text-xs">
-                Todas ({VARIABLES_CATALOG.length})
+            <TabsList className="h-auto flex-wrap bg-transparent gap-0 p-0 border-b border-border rounded-none">
+              <TabsTrigger value="all" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                Entrada de Dados
               </TabsTrigger>
-              {CATEGORY_ORDER.filter((c) => c !== "customizada").map((cat) => {
-                const count = VARIABLES_CATALOG.filter((v) => v.category === cat).length;
-                return (
-                  <TabsTrigger key={cat} value={cat} className="text-xs">
-                    {CATEGORY_LABELS[cat]} ({count})
-                  </TabsTrigger>
-                );
-              })}
-              <TabsTrigger value="customizada" className="text-xs">
+              {CATEGORY_ORDER.filter((c) => c !== "customizada" && c !== "entrada").map((cat) => (
+                <TabsTrigger key={cat} value={cat} className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                  {CATEGORY_LABELS[cat]}
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value="customizada" className="text-xs rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                 Customizadas
               </TabsTrigger>
             </TabsList>
@@ -107,106 +113,97 @@ export function VariaveisDisponiveisPage() {
         </div>
 
         {/* Customizadas tab content */}
-        <TabsContent value="customizada">
+        <TabsContent value="customizada" className="mt-4">
           <VariaveisCustomManager />
         </TabsContent>
 
         {/* All other tabs show the catalog table */}
-        {["all", ...CATEGORY_ORDER.filter((c) => c !== "customizada")].map((tabVal) => (
-          <TabsContent key={tabVal} value={tabVal}>
+        {["all", ...CATEGORY_ORDER.filter((c) => c !== "customizada" && c !== "entrada")].map((tabVal) => (
+          <TabsContent key={tabVal} value={tabVal} className="mt-4">
             {Array.from(grouped.entries())
               .sort((a, b) => CATEGORY_ORDER.indexOf(a[0]) - CATEGORY_ORDER.indexOf(b[0]))
               .map(([cat, vars]) => (
-                <div key={cat} className="mb-6">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-sm font-semibold text-foreground">{CATEGORY_LABELS[cat]}</h3>
-                    <Badge variant="secondary" className="text-[10px]">
-                      {vars.length}
-                    </Badge>
-                    {cat === "cdd" && (
-                      <Badge variant="outline" className="text-[10px] text-warning border-warning/30 gap-1">
-                        <AlertTriangle className="h-3 w-3" /> Não implantado
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="rounded-lg border overflow-hidden">
-                    <div className="overflow-x-auto">
-                      <table className="w-full text-xs">
-                        <thead>
-                          <tr className="bg-muted/50 border-b">
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground w-[180px]">Item</th>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground w-[80px]">Aplica-se</th>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">
-                              Chave Canônica
-                            </th>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">
-                              Chave Legada
-                            </th>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground w-[60px]">Unidade</th>
-                            <th className="text-left px-3 py-2 font-medium text-muted-foreground w-[120px]">Exemplo</th>
-                            <th className="text-center px-3 py-2 font-medium text-muted-foreground w-[50px]">Copiar</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {vars.map((v) => (
-                            <tr
-                              key={v.canonicalKey}
-                              className={`border-b last:border-0 hover:bg-muted/30 transition-colors ${v.notImplemented ? "opacity-50" : ""}`}
-                            >
-                              <td className="px-3 py-2">
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="font-medium text-foreground cursor-help flex items-center gap-1">
-                                      {v.label}
-                                      {v.isSeries && (
-                                        <Badge variant="outline" className="text-[8px] px-1">
-                                          série
-                                        </Badge>
-                                      )}
-                                      <Info className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100" />
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs text-xs">
-                                    {v.description}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </td>
-                              <td className="px-3 py-2">
-                                <Badge variant="outline" className="text-[9px]">
-                                  {v.appliesTo}
-                                </Badge>
-                              </td>
-                              <td className="px-3 py-2">
-                                <code className="font-mono text-primary/80 text-[11px] bg-primary/5 px-1.5 py-0.5 rounded">
-                                  {v.canonicalKey}
-                                </code>
-                              </td>
-                              <td className="px-3 py-2">
-                                <code className="font-mono text-muted-foreground text-[11px] bg-muted/50 px-1.5 py-0.5 rounded">
+                <div key={cat} className="mb-8">
+                  {activeCategory === "all" && (
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                      {CATEGORY_LABELS[cat]}
+                    </h3>
+                  )}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left px-3 py-2.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Item</th>
+                          <th className="text-left px-3 py-2.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Aplica-se</th>
+                          <th className="text-left px-3 py-2.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
+                          <th className="text-left px-3 py-2.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Canônica</th>
+                          <th className="text-right px-3 py-2.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Unidade</th>
+                          <th className="text-right px-3 py-2.5 font-medium text-muted-foreground uppercase tracking-wider text-[10px]">Exemplo</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {vars.map((v, idx) => (
+                          <tr
+                            key={v.canonicalKey}
+                            className={`border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors ${v.notImplemented ? "opacity-40" : ""}`}
+                          >
+                            <td className="px-3 py-2.5">
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="font-medium text-primary hover:underline cursor-help inline-flex items-center gap-1.5">
+                                    {v.label}
+                                    {v.isSeries && (
+                                      <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 font-normal">
+                                        série
+                                      </Badge>
+                                    )}
+                                    {v.notImplemented && (
+                                      <Badge variant="outline" className="text-[8px] px-1 py-0 h-3.5 font-normal border-warning/40 text-warning">
+                                        pendente
+                                      </Badge>
+                                    )}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-xs text-xs">
+                                  {v.description}
+                                </TooltipContent>
+                              </Tooltip>
+                            </td>
+                            <td className="px-3 py-2.5 text-muted-foreground">
+                              {v.appliesTo === "todos" ? "BT e MT" : v.appliesTo}
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-1">
+                                <code className="font-mono text-muted-foreground text-[11px]">
                                   {v.legacyKey}
                                 </code>
-                              </td>
-                              <td className="px-3 py-2 text-muted-foreground">{v.unit || "—"}</td>
-                              <td className="px-3 py-2 text-muted-foreground truncate max-w-[120px]" title={v.example}>
-                                {v.example}
-                              </td>
-                              <td className="px-3 py-2 text-center">
-                                <div className="flex items-center justify-center gap-0.5">
-                                  <CopyButton text={v.canonicalKey} label="canônica" />
-                                  <CopyButton text={v.legacyKey} label="legada" />
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                                <CopyButton text={v.legacyKey} />
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5">
+                              <div className="flex items-center gap-1">
+                                <code className="font-mono text-primary/70 text-[11px]">
+                                  {v.canonicalKey}
+                                </code>
+                                <CopyButton text={v.canonicalKey} />
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground">
+                              {v.unit || "—"}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
+                              {v.example}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               ))}
             {filtered.length === 0 && (
               <div className="text-center py-12 text-muted-foreground">
-                <Search className="h-10 w-10 mx-auto opacity-20 mb-3" />
+                <Search className="h-8 w-8 mx-auto opacity-20 mb-2" />
                 <p className="text-sm">Nenhuma variável encontrada.</p>
               </div>
             )}
