@@ -8,7 +8,7 @@ import {
   Clock, User, ChevronRight, Zap, DollarSign, CalendarDays, Loader2,
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2,
-  AlertCircle, CheckCircle, Building, Paperclip
+  AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -16,8 +16,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
@@ -325,7 +327,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
         <CardContent className="p-4 sm:p-5">
           {/* Row 1: Title + Actions */}
           <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-3 min-w-0 flex-wrap">
               <h1 className="text-2xl font-bold text-foreground truncate">
                 Projeto: {customerName || deal.title}
               </h1>
@@ -345,6 +347,11 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                   {formatBRL(deal.value)}
                 </Badge>
               )}
+              {/* Consultor responsável - sempre visível */}
+              <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
+                <UserCircle className="h-3.5 w-3.5" />
+                {ownerName || "Sem consultor"}
+              </Badge>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
