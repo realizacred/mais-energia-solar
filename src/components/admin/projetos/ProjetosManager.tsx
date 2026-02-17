@@ -68,6 +68,13 @@ export function ProjetosManager() {
     if (key === "pipelineId") {
       setSelectedPipelineId(value);
       applyFilters({ pipelineId: value });
+      // Auto-switch view based on pipeline kind
+      const pipeline = pipelines.find(p => p.id === value);
+      if (pipeline?.kind === "owner_board") {
+        setViewMode("kanban-consultor");
+      } else if (viewMode === "kanban-consultor" && pipeline?.kind === "process") {
+        setViewMode("kanban-etapa");
+      }
     } else if (key === "ownerId") {
       applyFilters({ ownerId: value });
     } else if (key === "status") {
@@ -77,31 +84,30 @@ export function ProjetosManager() {
     }
   };
 
-  // Auto-select first active pipeline (skip "Vendedor")
-  const nonVendedorPipelines = useMemo(
-    () => pipelines.filter(p => p.is_active && p.name.toLowerCase() !== "vendedor"),
+  // Active pipelines only (inactive ones like old "Vendedor" are already filtered by the hook)
+  const activePipelines = useMemo(
+    () => pipelines.filter(p => p.is_active),
     [pipelines]
   );
 
   useEffect(() => {
-    if (!selectedPipelineId && nonVendedorPipelines.length > 0) {
-      const first = nonVendedorPipelines[0];
+    if (!selectedPipelineId && activePipelines.length > 0) {
+      const first = activePipelines[0];
       setSelectedPipelineId(first.id);
       applyFilters({ pipelineId: first.id });
     }
-    // If current selection is "Vendedor", switch away
     if (selectedPipelineId) {
       const current = pipelines.find(p => p.id === selectedPipelineId);
-      if (current && current.name.toLowerCase() === "vendedor" && nonVendedorPipelines.length > 0) {
-        const first = nonVendedorPipelines[0];
+      if (current && !current.is_active && activePipelines.length > 0) {
+        const first = activePipelines[0];
         setSelectedPipelineId(first.id);
         applyFilters({ pipelineId: first.id });
       }
     }
-  }, [pipelines, selectedPipelineId, nonVendedorPipelines]);
+  }, [pipelines, selectedPipelineId, activePipelines]);
 
   const clearFilters = () => {
-    const firstActive = nonVendedorPipelines[0] || pipelines.find(p => p.is_active);
+    const firstActive = activePipelines[0] || pipelines.find(p => p.is_active);
     const pid = firstActive?.id || null;
     applyFilters({ pipelineId: pid, ownerId: "todos", status: "todos", search: "" });
     setSelectedPipelineId(pid);
@@ -144,7 +150,7 @@ export function ProjetosManager() {
         defaultConsultorId={defaultConsultorId}
         defaultPipelineId={defaultModalPipelineId || selectedPipelineId || pipelines[0]?.id}
         defaultStageId={defaultStageId}
-        pipelines={pipelines.filter(p => p.is_active && p.name.toLowerCase() !== "vendedor").map(p => ({ id: p.id, name: p.name }))}
+        pipelines={activePipelines.map(p => ({ id: p.id, name: p.name }))}
         stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position }))}
         onSubmit={async (data) => {
           let customerId: string | undefined;
@@ -207,7 +213,7 @@ export function ProjetosManager() {
                 <ProjetoFilters
                   searchTerm={filters.search}
                   onSearchChange={(v) => handleFilterChange("search", v)}
-                  funis={pipelines.filter(p => p.name.toLowerCase() !== "vendedor").map(p => ({
+                  funis={activePipelines.map(p => ({
                     id: p.id,
                     nome: p.name,
                     ordem: 0,
