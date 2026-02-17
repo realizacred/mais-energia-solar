@@ -4275,7 +4275,9 @@ export type Database = {
           valor_estimado: number | null
           visto: boolean
           visto_admin: boolean
+          wa_welcome_error: string | null
           wa_welcome_sent: boolean
+          wa_welcome_status: string
         }
         Insert: {
           area: string
@@ -4313,7 +4315,9 @@ export type Database = {
           valor_estimado?: number | null
           visto?: boolean
           visto_admin?: boolean
+          wa_welcome_error?: string | null
           wa_welcome_sent?: boolean
+          wa_welcome_status?: string
         }
         Update: {
           area?: string
@@ -4351,7 +4355,9 @@ export type Database = {
           valor_estimado?: number | null
           visto?: boolean
           visto_admin?: boolean
+          wa_welcome_error?: string | null
           wa_welcome_sent?: boolean
+          wa_welcome_status?: string
         }
         Relationships: [
           {

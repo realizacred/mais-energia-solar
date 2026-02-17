@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp } from "lucide-react";
+import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
             <TableHead>Localização</TableHead>
             <TableHead>Consumo</TableHead>
             <TableHead>Consumo Previsto</TableHead>
+            <TableHead>WhatsApp</TableHead>
             <TableHead>Contratado</TableHead>
             <TableHead>Data</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -117,6 +118,53 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                 ) : (
                   <span className="text-muted-foreground text-sm">-</span>
                 )}
+              </TableCell>
+              <TableCell>
+                {(() => {
+                  const status = lead.wa_welcome_status || "pending";
+                  if (status === "sent") {
+                    return (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Enviado
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>Mensagem de boas-vindas enviada com sucesso</TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+                  if (status === "failed") {
+                    return (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20 text-xs gap-1">
+                            <AlertTriangle className="w-3 h-3" />
+                            Falhou
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {lead.wa_welcome_error || "Falha no envio — contate por outro meio"}
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  }
+                  if (status === "skipped") {
+                    return (
+                      <Badge variant="outline" className="bg-muted text-muted-foreground text-xs gap-1">
+                        <MessageSquare className="w-3 h-3" />
+                        Desativado
+                      </Badge>
+                    );
+                  }
+                  return (
+                    <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 text-xs gap-1">
+                      <Clock className="w-3 h-3" />
+                      Pendente
+                    </Badge>
+                  );
+                })()}
               </TableCell>
               <TableCell>
                 {lead.cliente_id_vinculado ? (
