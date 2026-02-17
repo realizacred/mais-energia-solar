@@ -28,8 +28,8 @@ interface Props {
   etiquetas: ProjetoEtiqueta[];
   filterEtiquetas: string[];
   onFilterEtiquetasChange: (ids: string[]) => void;
-  viewMode: "kanban-etapa" | "lista";
-  onViewModeChange: (v: "kanban-etapa" | "lista") => void;
+  viewMode: "kanban-etapa" | "kanban-consultor" | "lista";
+  onViewModeChange: (v: "kanban-etapa" | "kanban-consultor" | "lista") => void;
   onClearFilters: () => void;
 }
 
@@ -76,6 +76,18 @@ export function ProjetoFilters({
           >
             <Filter className="h-4 w-4" />
             Funil
+          </button>
+          <button
+            onClick={() => onViewModeChange("kanban-consultor")}
+            className={cn(
+              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors",
+              viewMode === "kanban-consultor"
+                ? "border-foreground text-foreground"
+                : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Users className="h-4 w-4" />
+            Por consultor
           </button>
           <button
             onClick={() => onViewModeChange("lista")}
