@@ -44,6 +44,7 @@ interface StageOption {
   name: string;
   pipeline_id: string;
   position: number;
+  is_closed?: boolean;
 }
 
 interface Props {
@@ -117,7 +118,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
         setSelectedStageId(defaultStageId);
       } else if (pid) {
         const firstStage = stages
-          .filter(s => s.pipeline_id === pid)
+          .filter(s => s.pipeline_id === pid && !s.is_closed)
           .sort((a, b) => a.position - b.position)[0];
         setSelectedStageId(firstStage?.id || "");
       } else {
@@ -272,10 +273,10 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                     value={selectedPipelineId}
                     onValueChange={(v) => {
                       setSelectedPipelineId(v);
-                      const firstStage = stages
-                        .filter(s => s.pipeline_id === v)
-                        .sort((a, b) => a.position - b.position)[0];
-                      setSelectedStageId(firstStage?.id || "");
+                        const firstStage = stages
+                          .filter(s => s.pipeline_id === v && !s.is_closed)
+                          .sort((a, b) => a.position - b.position)[0];
+                        setSelectedStageId(firstStage?.id || "");
                     }}
                     options={pipelines.map(p => ({ value: p.id, label: p.name }))}
                     placeholder="Selecione o funil"

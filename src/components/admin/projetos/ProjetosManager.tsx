@@ -151,7 +151,7 @@ export function ProjetosManager() {
         defaultPipelineId={defaultModalPipelineId || selectedPipelineId || pipelines[0]?.id}
         defaultStageId={defaultStageId}
         pipelines={activePipelines.map(p => ({ id: p.id, name: p.name }))}
-        stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position }))}
+        stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position, is_closed: s.is_closed }))}
         onSubmit={async (data) => {
           let customerId: string | undefined;
           if (data.cliente.nome.trim()) {
