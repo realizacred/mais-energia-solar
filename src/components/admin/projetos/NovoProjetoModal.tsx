@@ -16,11 +16,14 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  SelectGroup,
+  SelectLabel,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Phone, Loader2, Users, MapPin, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ETIQUETAS, ETIQUETA_GRUPOS, getEtiquetaConfig } from "@/lib/etiquetas";
 
 interface Props {
   open: boolean;
@@ -200,13 +203,33 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit }: 
               <Field label="Etiqueta">
                 <Select value={etiqueta} onValueChange={setEtiqueta}>
                   <SelectTrigger className="h-10 text-sm">
-                    <SelectValue placeholder="Selecione" />
+                    <SelectValue placeholder="Selecione">
+                      {etiqueta && (() => {
+                        const cfg = getEtiquetaConfig(etiqueta);
+                        return cfg ? (
+                          <span className={cn("text-xs font-bold rounded-md px-1.5 py-0.5 border", cfg.className)}>
+                            {cfg.label}
+                          </span>
+                        ) : null;
+                      })()}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="residencial">Residencial</SelectItem>
-                    <SelectItem value="comercial">Comercial</SelectItem>
-                    <SelectItem value="industrial">Industrial</SelectItem>
-                    <SelectItem value="rural">Rural</SelectItem>
+                    {ETIQUETA_GRUPOS.map(grupo => (
+                      <SelectGroup key={grupo.value}>
+                        <SelectLabel className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
+                          {grupo.label}
+                        </SelectLabel>
+                        {ETIQUETAS.filter(e => e.grupo === grupo.value).map(et => (
+                          <SelectItem key={et.value} value={et.value}>
+                            <span className={cn("text-xs font-semibold rounded-md px-1.5 py-0.5 border mr-2", et.className)}>
+                              {et.short}
+                            </span>
+                            {et.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    ))}
                   </SelectContent>
                 </Select>
               </Field>

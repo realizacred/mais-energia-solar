@@ -12,12 +12,7 @@ interface Props {
 
 // formatBRL imported at file top from @/lib/formatters
 
-const ETIQUETA_COLORS: Record<string, string> = {
-  residencial: "bg-info/10 text-info dark:bg-info/20",
-  comercial: "bg-warning/10 text-warning dark:bg-warning/20",
-  industrial: "bg-secondary/10 text-secondary dark:bg-secondary/20",
-  rural: "bg-success/10 text-success dark:bg-success/20",
-};
+// Etiqueta config now centralized in @/lib/etiquetas
 
 export function ProjetoListView({ projetos, etapas, onViewProjeto }: Props) {
   const etapaMap = new Map(etapas.map(e => [e.id, e]));

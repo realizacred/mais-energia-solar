@@ -1,4 +1,5 @@
 import { formatBRLCompact as formatBRL, formatBRLCompact as formatBRLCard } from "@/lib/formatters";
+import { getEtiquetaConfig } from "@/lib/etiquetas";
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Zap, Plus, LayoutGrid, Phone } from "lucide-react";
@@ -21,12 +22,7 @@ const formatKwp = (v: number) => {
   return v.toFixed(2).replace(".", ",");
 };
 
-const ETIQUETA_COLORS: Record<string, string> = {
-  residencial: "bg-info/10 text-info dark:bg-info/20",
-  comercial: "bg-warning/10 text-warning dark:bg-warning/20",
-  industrial: "bg-secondary/10 text-secondary dark:bg-secondary/20",
-  rural: "bg-success/10 text-success dark:bg-success/20",
-};
+// Etiqueta config now from @/lib/etiquetas
 
 export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCreateProjeto }: Props) {
   const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -157,7 +153,7 @@ interface OwnerDealCardProps {
 }
 
 function OwnerDealCard({ deal, isDragging, onDragStart, onClick }: OwnerDealCardProps) {
-  const etiquetaClass = deal.etiqueta ? ETIQUETA_COLORS[deal.etiqueta] : null;
+  const etiquetaCfg = getEtiquetaConfig(deal.etiqueta);
 
   return (
     <div
@@ -176,9 +172,9 @@ function OwnerDealCard({ deal, isDragging, onDragStart, onClick }: OwnerDealCard
         <p className="text-[13px] font-bold text-foreground leading-snug line-clamp-2">
           {deal.customer_name || deal.deal_title || "Sem nome"}
         </p>
-        {etiquetaClass && (
-          <span className={cn("text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full shrink-0", etiquetaClass)}>
-            {deal.etiqueta}
+        {etiquetaCfg && (
+          <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md border shrink-0", etiquetaCfg.className)}>
+            {etiquetaCfg.short || etiquetaCfg.label}
           </span>
         )}
       </div>
