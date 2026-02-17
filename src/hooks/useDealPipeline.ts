@@ -413,29 +413,44 @@ export function useDealPipeline() {
 
   const ownerColumns = useMemo((): OwnerColumn[] => {
     const map = new Map<string, DealKanbanCard[]>();
+    const orphanDeals: DealKanbanCard[] = [];
 
     deals.forEach(d => {
-      if (d.owner_id) {
+      if (d.owner_id && consultores.some(c => c.id === d.owner_id)) {
         const arr = map.get(d.owner_id) || [];
         arr.push(d);
         map.set(d.owner_id, arr);
+      } else {
+        // Orphan: no owner or owner not active
+        orphanDeals.push(d);
       }
     });
 
-    return consultores
-      .map(c => {
-        const items = map.get(c.id) || [];
-        return {
-          id: c.id,
-          nome: c.nome,
-          deals: items,
-          totalValor: items.reduce((sum, d) => sum + (d.deal_value || 0), 0),
-          totalKwp: 0,
-          count: items.length,
-        };
-      })
-      .filter(c => c.count > 0)
-      .sort((a, b) => b.totalValor - a.totalValor);
+    const columns: OwnerColumn[] = consultores.map(c => {
+      const items = map.get(c.id) || [];
+      return {
+        id: c.id,
+        nome: c.nome,
+        deals: items,
+        totalValor: items.reduce((sum, d) => sum + (d.deal_value || 0), 0),
+        totalKwp: 0,
+        count: items.length,
+      };
+    });
+
+    // Add "Sem atribuição" column for orphaned projects
+    if (orphanDeals.length > 0) {
+      columns.push({
+        id: "__sem_atribuicao__",
+        nome: "Sem atribuição",
+        deals: orphanDeals,
+        totalValor: orphanDeals.reduce((sum, d) => sum + (d.deal_value || 0), 0),
+        totalKwp: 0,
+        count: orphanDeals.length,
+      });
+    }
+
+    return columns;
   }, [deals, consultores]);
 
   const consultoresFilter = useMemo(() => {
