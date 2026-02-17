@@ -43,6 +43,8 @@ interface ActivityType {
   ordem: number;
   visible_on_funnel: boolean;
   is_active: boolean;
+  icon: string | null;
+  pipeline_ids: string[] | null;
 }
 
 interface MotivoPerda {
@@ -165,15 +167,32 @@ export function CustomFieldsSettings() {
   };
 
   // ─── Activity Types CRUD ───
-  const [activityForm, setActivityForm] = useState({ title: "", visible_on_funnel: true });
+  const [activityForm, setActivityForm] = useState({
+    title: "", visible_on_funnel: true, icon: "circle-dot",
+    visibilityMode: "all" as "all" | "some", pipeline_ids: [] as string[],
+  });
+  const [pipelines, setPipelines] = useState<{ id: string; name: string }[]>([]);
+
+  // Load pipelines for the funnel selector
+  useEffect(() => {
+    supabase.from("pipelines").select("id, name").order("created_at").then(({ data }) => {
+      if (data) setPipelines(data);
+    });
+  }, []);
 
   const openActivityDialog = (at?: ActivityType) => {
     if (at) {
       setEditingActivity(at);
-      setActivityForm({ title: at.title, visible_on_funnel: at.visible_on_funnel });
+      const pids = at.pipeline_ids || [];
+      setActivityForm({
+        title: at.title, visible_on_funnel: at.visible_on_funnel,
+        icon: at.icon || "circle-dot",
+        visibilityMode: pids.length > 0 ? "some" : "all",
+        pipeline_ids: pids,
+      });
     } else {
       setEditingActivity(null);
-      setActivityForm({ title: "", visible_on_funnel: true });
+      setActivityForm({ title: "", visible_on_funnel: true, icon: "circle-dot", visibilityMode: "all", pipeline_ids: [] });
     }
     setActivityDialogOpen(true);
   };
@@ -183,9 +202,15 @@ export function CustomFieldsSettings() {
     setSaving(true);
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
-      const payload = { ...activityForm, tenant_id: (profile as any)?.tenant_id };
+      const payload = {
+        title: activityForm.title,
+        visible_on_funnel: activityForm.visible_on_funnel,
+        icon: activityForm.icon || "circle-dot",
+        pipeline_ids: activityForm.visibilityMode === "all" ? [] : activityForm.pipeline_ids,
+        tenant_id: (profile as any)?.tenant_id,
+      };
       if (editingActivity) {
-        await supabase.from("deal_activity_types").update(payload).eq("id", editingActivity.id);
+        await supabase.from("deal_activity_types").update(payload as any).eq("id", editingActivity.id);
         toast({ title: "Tipo atualizado" });
       } else {
         await supabase.from("deal_activity_types").insert(payload as any);
@@ -397,32 +422,41 @@ export function CustomFieldsSettings() {
                     </tr>
                   </thead>
                   <tbody>
-                    {activityTypes.map((at, i) => (
-                      <tr key={at.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-2.5">
-                          <div className="flex items-center gap-1.5">
-                            <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
-                            <span className="text-xs text-muted-foreground">{i + 1}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-2.5 font-medium">{at.title}</td>
-                        <td className="text-center px-4">
-                          <Badge variant={at.visible_on_funnel ? "default" : "secondary"} className="text-[10px]">
-                            {at.visible_on_funnel ? "Sim" : "Não"}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openActivityDialog(at)}>
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteActivity(at.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {activityTypes.map((at, i) => {
+                      const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+                      const AtIcon = at.icon ? (icons as any)[toPascal(at.icon)] : null;
+                      return (
+                        <tr key={at.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-2.5">
+                            <div className="flex items-center gap-1.5">
+                              <GripVertical className="h-3.5 w-3.5 text-muted-foreground/50" />
+                              <span className="text-xs text-muted-foreground">{i + 1}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-2.5 font-medium">
+                            <div className="flex items-center gap-2">
+                              {AtIcon && <AtIcon className="h-4 w-4 text-muted-foreground" />}
+                              {at.title}
+                            </div>
+                          </td>
+                          <td className="text-center px-4">
+                            <Badge variant={at.visible_on_funnel ? "default" : "secondary"} className="text-[10px]">
+                              {at.visible_on_funnel ? "Sim" : "Não"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-2.5 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openActivityDialog(at)}>
+                                <Pencil className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDeleteActivity(at.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               )}
@@ -558,23 +592,82 @@ export function CustomFieldsSettings() {
 
       {/* ═══ Dialog: Tipo de Atividade ═══ */}
       <Dialog open={activityDialogOpen} onOpenChange={setActivityDialogOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingActivity ? "Editar Tipo" : "Novo Tipo de Atividade"}</DialogTitle>
-            <DialogDescription>Defina o título e a visibilidade</DialogDescription>
+            <DialogTitle>{editingActivity ? "Editar Tipo" : "Criar Tipo de Atividade"}</DialogTitle>
+            <DialogDescription>Defina o nome, visibilidade e ícone</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
+            {/* Nome */}
             <div className="space-y-1.5">
-              <Label className="text-xs">Título *</Label>
-              <Input value={activityForm.title} onChange={e => setActivityForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Visita técnica" />
+              <Label className="text-xs">Nome</Label>
+              <Input value={activityForm.title} onChange={e => setActivityForm(p => ({ ...p, title: e.target.value }))} placeholder="Digite o nome do tipo da atividade" />
             </div>
-            <SwitchRow label="Visível nos funis" checked={activityForm.visible_on_funnel} onChange={v => setActivityForm(p => ({ ...p, visible_on_funnel: v }))} />
+
+            {/* Visibilidade em funis */}
+            <div className="space-y-2">
+              <Label className="text-xs text-primary font-medium">Visibilidade em funis?</Label>
+              <div className="flex gap-4">
+                <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                  <input type="radio" name="visMode" checked={activityForm.visibilityMode === "all"}
+                    onChange={() => setActivityForm(p => ({ ...p, visibilityMode: "all", pipeline_ids: [] }))}
+                    className="accent-primary" />
+                  Todos
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                  <input type="radio" name="visMode" checked={activityForm.visibilityMode === "some"}
+                    onChange={() => setActivityForm(p => ({ ...p, visibilityMode: "some" }))}
+                    className="accent-primary" />
+                  Alguns
+                </label>
+              </div>
+            </div>
+
+            {/* Funil selector */}
+            {activityForm.visibilityMode === "some" && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Funil</Label>
+                <div className="flex flex-wrap gap-1.5 p-2 border rounded-lg bg-muted/30 min-h-[38px]">
+                  {activityForm.pipeline_ids.map(pid => {
+                    const p = pipelines.find(pp => pp.id === pid);
+                    return p ? (
+                      <Badge key={pid} variant="default" className="gap-1 text-xs">
+                        {p.name}
+                        <button onClick={() => setActivityForm(prev => ({
+                          ...prev, pipeline_ids: prev.pipeline_ids.filter(x => x !== pid)
+                        }))} className="ml-0.5 hover:text-destructive">×</button>
+                      </Badge>
+                    ) : null;
+                  })}
+                  {pipelines.filter(p => !activityForm.pipeline_ids.includes(p.id)).length > 0 && (
+                    <Select onValueChange={v => setActivityForm(prev => ({
+                      ...prev, pipeline_ids: [...prev.pipeline_ids, v]
+                    }))}>
+                      <SelectTrigger className="h-7 w-auto border-dashed text-xs gap-1">
+                        <SelectValue placeholder="+ Adicionar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pipelines.filter(p => !activityForm.pipeline_ids.includes(p.id)).map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Ícone */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Ícone</Label>
+              <IconPicker selected={activityForm.icon} onSelect={icon => setActivityForm(p => ({ ...p, icon }))} />
+            </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setActivityDialogOpen(false)}>Fechar</Button>
             <Button onClick={handleSaveActivity} disabled={!activityForm.title.trim() || saving}>
               {saving && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              {editingActivity ? "Salvar" : "Criar"}
+              {editingActivity ? "Salvar" : "Cadastrar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -629,5 +722,49 @@ function SwitchCell({ value, fieldId, column, onUpdate }: { value: boolean; fiel
       }}
       className="scale-75"
     />
+  );
+}
+
+// ─── Icon Picker ───
+import { icons } from "lucide-react";
+
+const ICON_PICKER_LIST = [
+  "circle-dot", "phone", "calendar", "mail", "message-circle", "video", "map-pin",
+  "clipboard-check", "file-text", "send", "user", "users", "briefcase", "wrench",
+  "zap", "star", "flag", "target", "eye", "link", "camera", "upload",
+  "download", "settings", "search", "bell", "clock", "check-circle", "x-circle",
+  "alert-triangle", "info", "help-circle", "bookmark", "heart", "thumbs-up",
+  "award", "shield", "lock", "unlock", "home", "building-2", "truck",
+  "package", "dollar-sign", "credit-card", "receipt-text", "calculator",
+  "bar-chart-3", "trending-up", "pie-chart", "activity", "sun", "bolt",
+];
+
+function IconPicker({ selected, onSelect }: { selected: string; onSelect: (icon: string) => void }) {
+  // Convert kebab to PascalCase for icons lookup
+  const toPascal = (s: string) => s.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join("");
+
+  return (
+    <div className="grid grid-cols-10 gap-1 p-2 border rounded-lg bg-muted/20 max-h-[140px] overflow-y-auto">
+      {ICON_PICKER_LIST.map(name => {
+        const Icon = (icons as any)[toPascal(name)];
+        if (!Icon) return null;
+        return (
+          <button
+            key={name}
+            type="button"
+            onClick={() => onSelect(name)}
+            className={cn(
+              "w-8 h-8 rounded-md flex items-center justify-center transition-all",
+              selected === name
+                ? "bg-primary text-primary-foreground ring-2 ring-primary/30"
+                : "hover:bg-muted text-muted-foreground hover:text-foreground"
+            )}
+            title={name}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        );
+      })}
+    </div>
   );
 }
