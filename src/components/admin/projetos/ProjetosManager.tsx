@@ -9,6 +9,7 @@ import { useDealPipeline } from "@/hooks/useDealPipeline";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { ProjetoFilters } from "./ProjetoFilters";
 import { ProjetoKanbanStage } from "./ProjetoKanbanStage";
+import { ProjetoKanbanConsultor } from "./ProjetoKanbanConsultor";
 import { ProjetoListView } from "./ProjetoListView";
 import { ProjetoEtapaManagerDialog } from "./ProjetoEtapaManagerDialog";
 import { NovoProjetoModal } from "./NovoProjetoModal";
@@ -40,7 +41,7 @@ export function ProjetosManager() {
     createDeal,
   } = useDealPipeline();
 
-  const [viewMode, setViewMode] = useState<"kanban-etapa" | "lista">("kanban-etapa");
+  const [viewMode, setViewMode] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-etapa");
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [defaultConsultorId, setDefaultConsultorId] = useState<string | undefined>();
@@ -192,7 +193,7 @@ export function ProjetosManager() {
                 <ProjetoFilters
                   searchTerm={filters.search}
                   onSearchChange={(v) => handleFilterChange("search", v)}
-                  funis={pipelines.map(p => ({
+                  funis={pipelines.filter(p => p.name.toLowerCase() !== "vendedor").map(p => ({
                     id: p.id,
                     nome: p.name,
                     ordem: 0,
@@ -262,25 +263,23 @@ export function ProjetosManager() {
                 onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
                 pipelineName={pipelines.find(p => p.id === selectedPipelineId)?.name}
                 onNewProject={(ctx) => {
-                  // Determine consultor: from context, from filter, or undefined
-                  let inferredConsultor = ctx?.consultorId || (filters.ownerId !== "todos" ? filters.ownerId : undefined);
-
-                  // If pipeline is "Vendedor", stage name = consultant name → match by name
-                  const currentPipeline = pipelines.find(p => p.id === (ctx?.pipelineId || selectedPipelineId));
-                  if (currentPipeline?.name?.toLowerCase() === "vendedor" && ctx?.stageName) {
-                    const matched = consultoresFilter.find(c => c.nome.toLowerCase() === ctx.stageName!.toLowerCase());
-                    if (matched) inferredConsultor = matched.id;
-                  }
-
-                  setDefaultConsultorId(inferredConsultor);
-                  // For "Vendedor" pipeline, don't set pipeline/stage in modal (it's not a process funnel)
-                  if (currentPipeline?.name?.toLowerCase() === "vendedor") {
-                    setDefaultModalPipelineId(undefined);
-                    setDefaultStageId(undefined);
-                  } else {
-                    setDefaultModalPipelineId(ctx?.pipelineId);
-                    setDefaultStageId(ctx?.stageId);
-                  }
+                  setDefaultConsultorId(ctx?.consultorId || (filters.ownerId !== "todos" ? filters.ownerId : undefined));
+                  setDefaultModalPipelineId(ctx?.pipelineId);
+                  setDefaultStageId(ctx?.stageId);
+                  setNovoProjetoOpen(true);
+                }}
+                dynamicEtiquetas={dynamicEtiquetas}
+              />
+            ) : viewMode === "kanban-consultor" ? (
+              <ProjetoKanbanConsultor
+                ownerColumns={ownerColumns}
+                allDeals={deals}
+                onViewProjeto={(deal) => setSelectedDealId(deal.deal_id)}
+                onMoveDealToOwner={moveDealToOwner}
+                onNewProject={(consultorId) => {
+                  setDefaultConsultorId(consultorId);
+                  setDefaultModalPipelineId(undefined);
+                  setDefaultStageId(undefined);
                   setNovoProjetoOpen(true);
                 }}
                 dynamicEtiquetas={dynamicEtiquetas}
