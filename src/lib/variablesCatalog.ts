@@ -302,6 +302,16 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("series", "series.consumo_mensal", "s_consumo_mensal", "Consumo mensal (série)", "Série de consumo mensal projetado", "kWh", "{jan:500,...,dez:490}", "proposta", { isSeries: true }),
   v("series", "series.creditos_mensal", "s_creditos_mensal", "Créditos mensal (série)", "Série de créditos de energia mensais", "kWh", "{jan:650,...,dez:710}", "proposta", { isSeries: true }),
   v("series", "series.creditos_gerados", "s_creditos_gerados", "Créditos gerados (série)", "Série de créditos gerados mensais", "kWh", "{jan:700,...,dez:710}", "proposta", { isSeries: true }),
+  v("series", "series.creditos_alocados", "s_creditos_alocados", "Créditos alocados (série)", "Série de créditos alocados mensais", "kWh", "800", "proposta", { isSeries: true }),
+  v("series", "series.creditos_alocados_uc1", "s_creditos_alocados_uc1", "Créditos alocados UC # (série)", "Série de créditos alocados por UC", "kWh", "800", "proposta", { isSeries: true }),
+  // UC-specific series
+  v("series", "series.consumo_mensal_uc1", "s_consumo_mensal_uc1", "Consumo mensal UC # (série)", "Série de consumo mensal por UC", "kWh", "{jan:350,...,dez:380}", "proposta", { isSeries: true }),
+  v("series", "series.creditos_mensal_uc1", "s_creditos_mensal_uc1", "Saldo créditos mensal UC # (série)", "Série de saldo de créditos mensal por UC", "kWh", "{jan:300,...,dez:330}", "proposta", { isSeries: true }),
+  v("series", "series.economia_anual_uc1", "s_economia_anual_uc1", "Economia anual UC # (série)", "Série de economia anual por UC", "R$", "{0:8500,...,24:23000}", "proposta", { isSeries: true }),
+  v("series", "series.fluxo_caixa_acumulado_uc1", "s_fluxo_caixa_acumulado_anual_uc1", "Fluxo caixa acum. UC # (série)", "Série de fluxo de caixa acumulado por UC", "R$", "{0:-30000,...,24:180000}", "proposta", { isSeries: true }),
+  v("series", "series.geracao_anual_uc1", "s_geracao_anual_uc1", "Geração anual UC # (série)", "Série de geração anual por UC", "kWh", "{0:11000,...,24:9900}", "proposta", { isSeries: true }),
+  v("series", "series.investimento_anual_uc1", "s_investimento_anual_uc1", "Investimento anual UC # (série)", "Série de investimento acumulado por UC", "R$", "{0:38000,...,24:38000}", "proposta", { isSeries: true }),
+  v("series", "series.tarifa_distribuidora_uc1", "s_tarifa_distribuidora_anual_uc1", "Tarifa distribuidora UC # (série)", "Série de tarifa projetada por UC", "R$/kWh", "{0:0.95,...,24:2.10}", "proposta", { isSeries: true }),
 
   // ──────────────────────────────────────────────────────────────
   // PREMISSAS
