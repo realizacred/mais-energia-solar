@@ -169,7 +169,7 @@ export function OrcamentoHistoryDialog({
                 Propostas Anteriores ({group.count - 1})
               </h4>
               
-              <div className="space-y-3">
+              <div className="space-y-3 pb-4">
                 {group.allOrcamentos
                   .filter((orc) => orc.id !== latestOrcamento.id)
                   .map((orc) => {
