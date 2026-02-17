@@ -1,4 +1,5 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
+import { getEtiquetaConfig } from "@/lib/etiquetas";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -53,12 +54,7 @@ const formatKwp = (v: number) => {
   return `${v.toFixed(1).replace(".", ",")} kWp`;
 };
 
-const ETIQUETA_LABELS: Record<string, string> = {
-  residencial: "R",
-  comercial: "C",
-  industrial: "I",
-  rural: "A",
-};
+// Etiqueta config now from @/lib/etiquetas
 
 const PROPOSTA_STATUS_MAP: Record<string, { label: string; className: string }> = {
   rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
@@ -488,7 +484,7 @@ interface StageDealCardProps {
 }
 
 function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }: StageDealCardProps) {
-  const etiquetaLabel = deal.etiqueta ? ETIQUETA_LABELS[deal.etiqueta] || deal.etiqueta?.[0]?.toUpperCase() : null;
+  const etiquetaCfg = getEtiquetaConfig(deal.etiqueta);
   const isInactive = deal.deal_status === "perdido" || deal.deal_status === "cancelado";
   const propostaInfo = deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
   const timeInStage = getTimeInStage(deal.last_stage_change);
@@ -525,7 +521,7 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
       )}
       style={{ boxShadow: "0 1px 3px hsl(var(--foreground) / 0.04)" }}
     >
-      {/* Row 1: Client name (prominent) */}
+      {/* Row 1: Client name (prominent) + etiqueta badge */}
       <div className="flex items-start justify-between gap-1.5 mb-1.5">
         <p className={cn(
           "text-[13px] font-bold leading-snug line-clamp-1 flex-1",
@@ -539,9 +535,12 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation }
               {propostaInfo.label}
             </Badge>
           )}
-          {etiquetaLabel && (
-            <span className="text-[9px] font-bold text-muted-foreground bg-muted rounded px-1 py-0.5">
-              {etiquetaLabel}
+          {etiquetaCfg && (
+            <span className={cn(
+              "text-[9px] font-bold rounded-md px-1.5 py-0.5 border",
+              etiquetaCfg.className
+            )}>
+              {etiquetaCfg.short || etiquetaCfg.label}
             </span>
           )}
         </div>
