@@ -13,9 +13,9 @@ const NASA_POWER_BASE = "https://power.larc.nasa.gov/api/temporal/climatology/po
 const BRAZIL_BBOX = { latMin: -33.5, latMax: 5.5, lonMin: -74.0, lonMax: -35.0 };
 
 // Max points per invocation to stay within edge function timeout (~150s)
-const MAX_POINTS_PER_CHUNK = 500;
-const CONCURRENT = 15;
-const DELAY_MS = 350; // NASA rate limit ~30 req/s — safe margin
+const MAX_POINTS_PER_CHUNK = 150; // Keep small to avoid edge function timeout (~150s)
+const CONCURRENT = 8;
+const DELAY_MS = 250; // NASA rate limit ~30 req/s — safe margin
 
 interface FetchParams {
   dataset_code: string;
