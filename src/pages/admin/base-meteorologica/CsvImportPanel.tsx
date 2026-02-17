@@ -1,6 +1,6 @@
 /**
  * CsvImportPanel — Self-contained CSV import: select files → validate → create version → upload.
- * No separate "create version" step needed.
+ * Supports replacing existing versions or creating new ones.
  */
 
 import { useState, useRef, useCallback } from "react";
@@ -9,7 +9,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Upload, CheckCircle2, Info, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Upload, CheckCircle2, Info, X, RefreshCw, PlusCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -48,6 +58,8 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [validation, setValidation] = useState<CsvValidationResult | null>(null);
   const [mergedPoints, setMergedPoints] = useState<MergedPoint[]>([]);
+  const [showReplaceDialog, setShowReplaceDialog] = useState(false);
+  const [existingVersionTag, setExistingVersionTag] = useState("");
   const abortRef = useRef(false);
 
   const log = useCallback((level: LogEntry["level"], msg: string) => {
@@ -119,17 +131,35 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
   };
 
   // ── STEP 2: Create version + upload all data ──
-  const handleImport = async () => {
+  const handleImport = async (replaceExisting = false) => {
     if (mergedPoints.length === 0) return;
     abortRef.current = false;
     setState("uploading");
+    setShowReplaceDialog(false);
 
     try {
       // 2a. Create version via edge function
-      log("info", "Criando versão no servidor...");
       const tag = `${datasetCode.toLowerCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`;
       const fileNames = [ghiFile?.name, dhiFile?.name, dniFile?.name].filter(Boolean);
 
+      // If replacing, delete old version first
+      if (replaceExisting) {
+        log("info", "Removendo versão anterior...");
+        const { data: delData, error: delError } = await supabase.functions.invoke("irradiance-import", {
+          body: {
+            action: "delete_version",
+            dataset_code: datasetCode,
+            version_tag: tag,
+          },
+        });
+        if (delError) {
+          log("warn", `Aviso ao remover versão: ${delError.message}. Tentando continuar...`);
+        } else {
+          log("success", "Versão anterior removida.");
+        }
+      }
+
+      log("info", "Criando versão no servidor...");
       const { data: initData, error: initError } = await supabase.functions.invoke("irradiance-import", {
         body: {
           action: "init",
@@ -143,8 +173,9 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
       if (initError) throw initError;
       if (initData?.error) {
         if (initData.error === "VERSION_EXISTS") {
-          log("warn", initData.message || `Versão ${tag} já existe.`);
-          setState("error");
+          setExistingVersionTag(tag);
+          setShowReplaceDialog(true);
+          setState("validated");
           return;
         }
         if (initData.error === "VERSION_PROCESSING") {
@@ -381,7 +412,7 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
           </Button>
         )}
         {state === "validated" && (
-          <Button size="sm" onClick={handleImport} className="gap-1.5 text-xs">
+          <Button size="sm" onClick={() => handleImport(false)} className="gap-1.5 text-xs">
             <Upload className="h-3.5 w-3.5" />
             Importar {mergedPoints.length.toLocaleString("pt-BR")} pontos
           </Button>
@@ -436,6 +467,29 @@ export function CsvImportPanel({ datasetCode, datasetLabel, onReload }: CsvImpor
           </div>
         </ScrollArea>
       )}
+
+      {/* Replace dialog */}
+      <AlertDialog open={showReplaceDialog} onOpenChange={setShowReplaceDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Versão já existe</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>A versão <strong className="font-mono">{existingVersionTag}</strong> já está ativa com dados importados.</p>
+              <p>O que deseja fazer?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleImport(true)}
+              className="gap-1.5 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Substituir dados existentes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

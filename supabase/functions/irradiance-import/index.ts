@@ -201,6 +201,43 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: true });
     }
 
+    // ────────────────────────────────────────────
+    // ACTION: delete_version — remove a specific version by tag (for replace flow)
+    // ────────────────────────────────────────────
+    if (action === "delete_version") {
+      const { dataset_code, version_tag } = body;
+      if (!dataset_code || !version_tag) {
+        return jsonResponse({ error: "Missing dataset_code or version_tag" }, 400);
+      }
+
+      console.log(`[IRRADIANCE_IMPORT] DELETE_VERSION — dataset=${dataset_code} tag=${version_tag}`);
+
+      const { data: dataset } = await admin
+        .from("irradiance_datasets")
+        .select("id")
+        .eq("code", dataset_code)
+        .single();
+
+      if (!dataset) return jsonResponse({ error: "Dataset not found" }, 404);
+
+      const { data: versions } = await admin
+        .from("irradiance_dataset_versions")
+        .select("id")
+        .eq("dataset_id", dataset.id)
+        .eq("version_tag", version_tag);
+
+      if (versions && versions.length > 0) {
+        for (const v of versions) {
+          await admin.from("irradiance_lookup_cache").delete().eq("version_id", v.id);
+          await admin.from("irradiance_points_monthly").delete().eq("version_id", v.id);
+          await admin.from("irradiance_dataset_versions").delete().eq("id", v.id);
+        }
+        console.log(`[IRRADIANCE_IMPORT] Deleted ${versions.length} version(s) for tag=${version_tag}`);
+      }
+
+      return jsonResponse({ success: true, deleted: versions?.length || 0 });
+    }
+
     return jsonResponse({ error: `Unknown action: ${action}` }, 400);
 
   } catch (error: any) {
