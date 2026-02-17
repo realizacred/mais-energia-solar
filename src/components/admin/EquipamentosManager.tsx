@@ -256,7 +256,7 @@ export function EquipamentosManager() {
         title="Equipamentos"
         description="Gerencie disjuntores e transformadores cadastrados"
       />
-      <Card>
+      <Card className="rounded-xl border-2 border-border/60">
         <CardContent className="pt-6">
         <Tabs defaultValue="disjuntores">
           <TabsList className="mb-4">

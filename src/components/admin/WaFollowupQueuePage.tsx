@@ -261,14 +261,14 @@ export function WaFollowupQueuePage() {
           <Spinner size="md" />
         </div>
       ) : filteredItems.length === 0 ? (
-        <Card>
+        <Card className="rounded-xl border-2 border-success/40 bg-success/5">
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="w-12 h-12 mx-auto text-success/50 mb-3" />
             <p className="text-muted-foreground">Nenhum follow-up encontrado.</p>
           </CardContent>
         </Card>
       ) : (
-        <Card>
+        <Card className="rounded-xl border-2 border-border/60">
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
