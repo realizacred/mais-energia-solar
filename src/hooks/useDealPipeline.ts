@@ -447,6 +447,7 @@ export function useDealPipeline() {
     title: string;
     ownerId: string;
     pipelineId?: string;
+    stageId?: string;
     customerId?: string;
     value?: number;
     etiqueta?: string;
@@ -458,14 +459,18 @@ export function useDealPipeline() {
       return null;
     }
 
-    // Get first open stage of this pipeline
-    const pipeStages = stages
-      .filter(s => s.pipeline_id === pipeId && !s.is_closed)
-      .sort((a, b) => a.position - b.position);
-    const firstStage = pipeStages[0];
-    if (!firstStage) {
-      toast({ title: "Erro", description: "Funil sem etapas abertas", variant: "destructive" });
-      return null;
+    // Use provided stageId or fall back to first open stage
+    let targetStageId = params.stageId;
+    if (!targetStageId) {
+      const pipeStages = stages
+        .filter(s => s.pipeline_id === pipeId && !s.is_closed)
+        .sort((a, b) => a.position - b.position);
+      const firstStage = pipeStages[0];
+      if (!firstStage) {
+        toast({ title: "Erro", description: "Funil sem etapas abertas", variant: "destructive" });
+        return null;
+      }
+      targetStageId = firstStage.id;
     }
 
     const { data, error } = await supabase
@@ -473,7 +478,7 @@ export function useDealPipeline() {
       .insert({
         title: params.title,
         pipeline_id: pipeId,
-        stage_id: firstStage.id,
+        stage_id: targetStageId,
         owner_id: params.ownerId,
         customer_id: params.customerId || null,
         value: params.value || 0,

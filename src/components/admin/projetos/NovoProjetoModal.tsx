@@ -32,6 +32,18 @@ interface DynamicEtiqueta {
   icon: string | null;
 }
 
+interface PipelineOption {
+  id: string;
+  name: string;
+}
+
+interface StageOption {
+  id: string;
+  name: string;
+  pipeline_id: string;
+  position: number;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,6 +51,9 @@ interface Props {
   onSubmit?: (data: NovoProjetoData) => void | Promise<void>;
   defaultConsultorId?: string;
   dynamicEtiquetas?: DynamicEtiqueta[];
+  pipelines?: PipelineOption[];
+  stages?: StageOption[];
+  defaultPipelineId?: string;
 }
 
 export interface NovoProjetoData {
@@ -47,6 +62,8 @@ export interface NovoProjetoData {
   consultorId: string;
   etiqueta: string;
   notas: string;
+  pipelineId?: string;
+  stageId?: string;
   cliente: {
     nome: string;
     email: string;
@@ -71,12 +88,14 @@ const emptyCliente = {
   cep: "", estado: "", cidade: "", endereco: "", numero: "", bairro: "", complemento: "",
 };
 
-export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, defaultConsultorId, dynamicEtiquetas = [] }: Props) {
+export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, defaultConsultorId, dynamicEtiquetas = [], pipelines = [], stages = [], defaultPipelineId }: Props) {
   const [nome, setNome] = useState("");
   const [descricao, setDescricao] = useState("");
   const [consultorId, setConsultorId] = useState(defaultConsultorId || "");
   const [etiqueta, setEtiqueta] = useState("");
   const [notas, setNotas] = useState("");
+  const [selectedPipelineId, setSelectedPipelineId] = useState(defaultPipelineId || "");
+  const [selectedStageId, setSelectedStageId] = useState("");
   const [cliente, setCliente] = useState(emptyCliente);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [similares, setSimilares] = useState<{ id: string; nome: string; telefone: string; email: string | null }[]>([]);
@@ -88,8 +107,17 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
   useEffect(() => {
     if (open) {
       setConsultorId(defaultConsultorId || "");
+      setSelectedPipelineId(defaultPipelineId || pipelines[0]?.id || "");
+      setSelectedStageId("");
     }
-  }, [open, defaultConsultorId]);
+  }, [open, defaultConsultorId, defaultPipelineId, pipelines]);
+
+  const filteredStages = useMemo(() => {
+    if (!selectedPipelineId) return [];
+    return stages
+      .filter(s => s.pipeline_id === selectedPipelineId)
+      .sort((a, b) => a.position - b.position);
+  }, [selectedPipelineId, stages]);
 
   const etiquetaGroups = useMemo(() => {
     const groups = new Map<string, DynamicEtiqueta[]>();
@@ -163,8 +191,8 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
 
     setSubmitting(true);
     try {
-      await onSubmit?.({ nome: nome.trim() || cliente.nome.trim(), descricao, consultorId, etiqueta, notas, cliente });
-      setNome(""); setDescricao(""); setConsultorId(""); setEtiqueta(""); setNotas("");
+      await onSubmit?.({ nome: nome.trim() || cliente.nome.trim(), descricao, consultorId, etiqueta, notas, pipelineId: selectedPipelineId || undefined, stageId: selectedStageId || undefined, cliente });
+      setNome(""); setDescricao(""); setConsultorId(""); setEtiqueta(""); setNotas(""); setSelectedPipelineId(""); setSelectedStageId("");
       setCliente(emptyCliente); setErrors({}); setSimilares([]);
       onOpenChange(false);
     } finally { setSubmitting(false); }
@@ -221,6 +249,35 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   </SelectContent>
                 </Select>
               </Field>
+
+              {pipelines.length > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Funil">
+                    <Select value={selectedPipelineId} onValueChange={(v) => { setSelectedPipelineId(v); setSelectedStageId(""); }}>
+                      <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
+                        <SelectValue placeholder="Selecione o funil" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {pipelines.map(p => (
+                          <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field label="Etapa">
+                    <Select value={selectedStageId} onValueChange={setSelectedStageId} disabled={!selectedPipelineId}>
+                      <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
+                        <SelectValue placeholder={selectedPipelineId ? "Selecione a etapa" : "Selecione o funil primeiro"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredStages.map(s => (
+                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+              )}
 
               <Field label="Etiqueta">
                 <Select value={etiqueta} onValueChange={setEtiqueta}>

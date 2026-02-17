@@ -125,6 +125,9 @@ export function ProjetosManager() {
         consultores={consultoresFilter}
         dynamicEtiquetas={dynamicEtiquetas}
         defaultConsultorId={defaultConsultorId}
+        pipelines={pipelines.filter(p => p.is_active).map(p => ({ id: p.id, name: p.name }))}
+        stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position }))}
+        defaultPipelineId={selectedPipelineId || pipelines[0]?.id}
         onSubmit={async (data) => {
           let customerId: string | undefined;
           if (data.cliente.nome.trim()) {
@@ -152,6 +155,8 @@ export function ProjetosManager() {
           await createDeal({
             title: data.nome || data.cliente.nome,
             ownerId: data.consultorId || consultoresFilter[0]?.id,
+            pipelineId: data.pipelineId,
+            stageId: data.stageId,
             customerId,
             etiqueta: data.etiqueta || undefined,
             notas: data.notas || undefined,
