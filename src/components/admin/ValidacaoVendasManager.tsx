@@ -360,9 +360,9 @@ export function ValidacaoVendasManager() {
     <div className="space-y-6">
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="border-l-4 border-l-warning">
-          <CardContent className="flex items-center gap-3 pt-5 pb-4">
-            <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
+        <Card className="rounded-xl border-2 border-warning/40 bg-warning/5">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
               <Clock className="h-5 w-5 text-warning" />
             </div>
             <div>
@@ -371,36 +371,36 @@ export function ValidacaoVendasManager() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-primary">
-          <CardContent className="flex items-center gap-3 pt-5 pb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+        <Card className="rounded-xl border-2 border-primary/40 bg-primary/5">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <DollarSign className="h-5 w-5 text-primary" />
             </div>
             <div>
               <p className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</p>
-              <p className="text-xs text-muted-foreground">Valor Total</p>
+              <p className="text-xs text-muted-foreground">Valor total</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-success">
-          <CardContent className="flex items-center gap-3 pt-5 pb-4">
-            <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
+        <Card className="rounded-xl border-2 border-success/40 bg-success/5">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
               <TrendingUp className="h-5 w-5 text-success" />
             </div>
             <div>
               <p className="text-2xl font-bold">{formatCurrency(stats.totalComissao)}</p>
-              <p className="text-xs text-muted-foreground">Comissão Estimada</p>
+              <p className="text-xs text-muted-foreground">Comissão estimada</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="border-l-4 border-l-info">
-          <CardContent className="flex items-center gap-3 pt-5 pb-4">
-            <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center shrink-0">
+        <Card className="rounded-xl border-2 border-info/40 bg-info/5">
+          <CardContent className="flex items-center gap-3 p-4">
+            <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
               <Zap className="h-5 w-5 text-info" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.totalPotencia.toFixed(1)} kWp</p>
-              <p className="text-xs text-muted-foreground">Potência Total</p>
+              <p className="text-xs text-muted-foreground">Potência total</p>
             </div>
           </CardContent>
         </Card>

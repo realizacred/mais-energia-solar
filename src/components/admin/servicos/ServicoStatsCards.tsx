@@ -20,77 +20,34 @@ export function ServicoStatsCards({ servicos }: ServicoStatsCardsProps) {
     }).length,
   };
 
+  const cards = [
+    { label: "Agendados", value: stats.agendados, icon: CalendarClock, color: "info" },
+    { label: "Em andamento", value: stats.emAndamento, icon: Play, color: "warning" },
+    { label: "Concluídos", value: stats.concluidos, icon: CheckCircle2, color: "success" },
+    { label: "Pend. validação", value: stats.pendentesValidacao, icon: ClipboardCheck, color: "secondary" },
+    { label: "Atrasados", value: stats.atrasados, icon: AlertTriangle, color: "destructive" },
+  ] as const;
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-info/10">
-              <CalendarClock className="h-5 w-5 text-info" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.agendados}</p>
-              <p className="text-xs text-muted-foreground">Agendados</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-warning/10">
-              <Play className="h-5 w-5 text-warning" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.emAndamento}</p>
-              <p className="text-xs text-muted-foreground">Em Andamento</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-success/10">
-              <CheckCircle2 className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.concluidos}</p>
-              <p className="text-xs text-muted-foreground">Concluídos</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary/10">
-              <ClipboardCheck className="h-5 w-5 text-secondary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.pendentesValidacao}</p>
-              <p className="text-xs text-muted-foreground">Pend. Validação</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-destructive/10">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.atrasados}</p>
-              <p className="text-xs text-muted-foreground">Atrasados</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {cards.map((card) => {
+        const Icon = card.icon;
+        return (
+          <Card key={card.label} className={`rounded-xl border-2 border-${card.color}/40 bg-${card.color}/5`}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg bg-${card.color}/10`}>
+                  <Icon className={`h-5 w-5 text-${card.color}`} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">{card.value}</p>
+                  <p className="text-xs text-muted-foreground">{card.label}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 }

@@ -290,7 +290,7 @@ export function InstaladorManager() {
 
         {/* Ranking Tab */}
         <TabsContent value="ranking" className="mt-6">
-          <Card>
+          <Card className="rounded-xl border-2 border-border/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Trophy className="h-5 w-5 text-primary" />
@@ -406,7 +406,7 @@ export function InstaladorManager() {
 
         {/* Metas Tab */}
         <TabsContent value="metas" className="mt-6">
-          <Card>
+          <Card className="rounded-xl border-2 border-border/60">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-primary" />

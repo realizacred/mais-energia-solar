@@ -146,7 +146,7 @@ export function AuditLogsViewer() {
   };
 
   return (
-    <Card>
+    <Card className="rounded-xl border-2 border-border/60">
       <CardHeader>
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <CardTitle className="flex items-center gap-2">
