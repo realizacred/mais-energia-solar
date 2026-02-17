@@ -174,40 +174,32 @@ export function UsuariosManager() {
 
   const fetchUsers = async () => {
     try {
-      // Fetch profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("user_id, nome, ativo, created_at")
-        .order("nome");
-
-      if (profilesError) throw profilesError;
-
-      // Fetch all roles
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("*");
-
-      if (rolesError) throw rolesError;
-
-      // Fetch emails from edge function (gets from auth.users)
-      let emailMap: Record<string, string> = {};
-      let lastSignInMap: Record<string, string | null> = {};
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.access_token) {
-          const response = await supabase.functions.invoke("list-users-emails", {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
-          if (response.data?.emails) {
-            emailMap = response.data.emails;
+      // Parallel fetch: profiles, roles, and emails
+      const [profilesRes, rolesRes, emailsRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, nome, ativo, created_at").order("nome"),
+        supabase.from("user_roles").select("*"),
+        (async () => {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              return await supabase.functions.invoke("list-users-emails", {
+                headers: { Authorization: `Bearer ${session.access_token}` },
+              });
+            }
+          } catch (e) {
+            console.warn("Could not fetch user emails:", e);
           }
-          if (response.data?.last_sign_in) {
-            lastSignInMap = response.data.last_sign_in;
-          }
-        }
-      } catch (emailError) {
-        console.warn("Could not fetch user emails:", emailError);
-      }
+          return null;
+        })(),
+      ]);
+
+      if (profilesRes.error) throw profilesRes.error;
+      if (rolesRes.error) throw rolesRes.error;
+
+      const profiles = profilesRes.data;
+      const roles = rolesRes.data;
+      const emailMap: Record<string, string> = emailsRes?.data?.emails || {};
+      const lastSignInMap: Record<string, string | null> = emailsRes?.data?.last_sign_in || {};
 
       // Combine profiles with roles and emails
       const usersWithRoles: UserWithRoles[] = (profiles || []).map(profile => {

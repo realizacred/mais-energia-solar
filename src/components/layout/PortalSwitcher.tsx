@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeftRight, Users, Settings, Wrench, ChevronRight, Building2 } from "lucide-react";
+import { ArrowLeftRight, Users, Settings, Wrench, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -24,133 +24,142 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { clearPortalPreference } from "@/pages/PortalSelector";
+import { useQuery } from "@tanstack/react-query";
 
 interface PortalAccess {
-  vendedor: boolean;
+  consultor: boolean;
   admin: boolean;
   instalador: boolean;
-  vendedorRecord: boolean;
+  consultorRecord: boolean;
   superAdmin: boolean;
 }
 
-interface Vendedor {
+interface Consultor {
   id: string;
   nome: string;
   codigo: string;
   slug: string;
 }
 
-interface Instalador {
+interface InstaladorProfile {
   id: string;
   nome: string;
   user_id: string;
+}
+
+async function fetchPortalAccess(userId: string): Promise<{
+  access: PortalAccess;
+  consultores: Consultor[];
+  instaladores: InstaladorProfile[];
+}> {
+  // 1. Fetch roles
+  const { data: roles } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
+
+  const isConsultor = roles?.some(r => r.role === "consultor" || r.role === ("vendedor" as any)) || false;
+  const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro") || false;
+  const isInstalador = roles?.some(r => r.role === "instalador") || false;
+  const isSuperAdmin = roles?.some(r => r.role === "super_admin") || false;
+
+  // 2. Parallel fetches based on roles
+  const promises: Promise<any>[] = [];
+
+  // Check consultor record
+  let hasConsultorRecord = false;
+  if (isConsultor) {
+    promises.push(
+      (supabase as any)
+        .from("consultores")
+        .select("id")
+        .eq("user_id", userId)
+        .single()
+        .then((r: any) => { hasConsultorRecord = !!r.data; })
+    );
+  }
+
+  let consultores: Consultor[] = [];
+  let instaladores: InstaladorProfile[] = [];
+
+  if (isAdmin) {
+    promises.push(
+      (supabase as any)
+        .from("consultores")
+        .select("id, nome, codigo, slug")
+        .eq("ativo", true)
+        .order("nome")
+        .then((r: any) => { consultores = r.data || []; })
+    );
+
+    promises.push(
+      (async () => {
+        const rolesRes = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "instalador");
+        const ids = rolesRes.data?.map(r => r.user_id) || [];
+        if (ids.length > 0) {
+          const { data } = await supabase
+            .from("profiles")
+            .select("id, nome, user_id")
+            .eq("ativo", true)
+            .in("user_id", ids)
+            .order("nome");
+          instaladores = (data as InstaladorProfile[]) || [];
+        }
+      })()
+    );
+  }
+
+  await Promise.all(promises);
+
+  return {
+    access: {
+      consultor: isConsultor,
+      admin: isAdmin,
+      instalador: isInstalador,
+      consultorRecord: hasConsultorRecord,
+      superAdmin: isSuperAdmin,
+    },
+    consultores,
+    instaladores,
+  };
 }
 
 export function PortalSwitcher() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [access, setAccess] = useState<PortalAccess>({ 
-    vendedor: false, 
-    admin: false, 
-    instalador: false,
-    vendedorRecord: false,
-    superAdmin: false,
-  });
-  const [loading, setLoading] = useState(true);
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-  const [instaladores, setInstaladores] = useState<Instalador[]>([]);
-  const [showVendedorDialog, setShowVendedorDialog] = useState(false);
+  const [showConsultorDialog, setShowConsultorDialog] = useState(false);
   const [showInstaladorDialog, setShowInstaladorDialog] = useState(false);
 
+  const { data, isLoading } = useQuery({
+    queryKey: ["portal-access", user?.id],
+    queryFn: () => fetchPortalAccess(user!.id),
+    enabled: !!user,
+    staleTime: 5 * 60 * 1000, // 5 min cache — roles rarely change
+    gcTime: 10 * 60 * 1000,
+  });
+
+  const access = data?.access ?? { consultor: false, admin: false, instalador: false, consultorRecord: false, superAdmin: false };
+  const consultores = data?.consultores ?? [];
+  const instaladores = data?.instaladores ?? [];
+
   const currentPortal = (location.pathname.startsWith("/consultor") || location.pathname.startsWith("/vendedor"))
-    ? "vendedor" 
+    ? "consultor"
     : location.pathname.startsWith("/instalador") || location.pathname.startsWith("/checklist")
     ? "instalador"
     : "admin";
 
-  useEffect(() => {
-    if (user) {
-      checkAccess();
-    }
-  }, [user]);
-
-  const checkAccess = async () => {
-    if (!user) return;
-
-    try {
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id);
-
-      const isVendedor = roles?.some(r => r.role === "consultor" || r.role === ("vendedor" as any));
-      const isAdmin = roles?.some(r => r.role === "admin" || r.role === "gerente" || r.role === "financeiro");
-      const isInstalador = roles?.some(r => r.role === "instalador");
-      const isSuperAdmin = roles?.some(r => r.role === "super_admin");
-
-      let hasVendedorRecord = false;
-      if (isVendedor) {
-        const { data: vendedorData } = await (supabase as any)
-          .from("consultores")
-          .select("id")
-          .eq("user_id", user.id)
-          .single();
-        hasVendedorRecord = !!vendedorData;
-      }
-
-      // If admin, load all vendedores and instaladores for selection
-      if (isAdmin) {
-        const [vendedoresRes, instaladoresRes] = await Promise.all([
-          (supabase as any)
-            .from("consultores")
-            .select("id, nome, codigo, slug")
-            .eq("ativo", true)
-            .order("nome"),
-          supabase
-            .from("profiles")
-            .select("id, nome, user_id")
-            .eq("ativo", true)
-            .in("user_id", 
-              (await supabase
-                .from("user_roles")
-                .select("user_id")
-                .eq("role", "instalador")
-              ).data?.map(r => r.user_id) || []
-            )
-            .order("nome")
-        ]);
-        setVendedores(vendedoresRes.data || []);
-        setInstaladores(instaladoresRes.data || []);
-      }
-
-      setAccess({
-        vendedor: isVendedor || false,
-        admin: isAdmin || false,
-        instalador: isInstalador || false,
-        vendedorRecord: hasVendedorRecord,
-        superAdmin: isSuperAdmin || false,
-      });
-    } catch (error) {
-      console.error("Error checking access:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSwitchToAdmin = () => {
-    navigate("/admin");
-  };
+  const handleSwitchToAdmin = () => navigate("/admin");
 
   const handleSwitchToInstalador = () => {
-    // If admin and multiple installers, show selection
     if (access.admin && !access.instalador && instaladores.length > 1) {
       setShowInstaladorDialog(true);
     } else if (access.admin && instaladores.length === 1) {
-      // Only one installer, go directly
       navigate(`/instalador?as=${instaladores[0].user_id}`);
     } else {
-      // User is an instalador, go to their portal
       navigate("/instalador");
     }
   };
@@ -160,19 +169,16 @@ export function PortalSwitcher() {
     navigate(`/instalador?as=${userId}`);
   };
 
-  const handleSwitchToVendedor = () => {
-    // Admin always gets the vendor selection dialog
-    if (access.admin && vendedores.length > 0) {
-      setShowVendedorDialog(true);
+  const handleSwitchToConsultor = () => {
+    if (access.admin && consultores.length > 0) {
+      setShowConsultorDialog(true);
     } else {
-      // User is a vendedor (non-admin), go to their portal
       navigate("/consultor");
     }
   };
 
-  const handleSelectVendedor = (codigo: string) => {
-    setShowVendedorDialog(false);
-    // Navigate to vendor portal with admin mode (viewing as specific vendor)
+  const handleSelectConsultor = (codigo: string) => {
+    setShowConsultorDialog(false);
     navigate(`/consultor?as=${codigo}`);
   };
 
@@ -181,14 +187,13 @@ export function PortalSwitcher() {
     navigate("/portal");
   };
 
-  // Show if admin (can access all portals) or has multiple roles
-  const hasMultipleAccess = access.admin || 
+  const hasMultipleAccess = access.admin ||
     access.superAdmin ||
-    (access.vendedor && access.vendedorRecord) || 
+    (access.consultor && access.consultorRecord) ||
     access.instalador ||
-    (access.vendedor && access.instalador);
-  
-  if (loading || !hasMultipleAccess) {
+    (access.consultor && access.instalador);
+
+  if (isLoading || !hasMultipleAccess) {
     return null;
   }
 
@@ -204,15 +209,15 @@ export function PortalSwitcher() {
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>Alternar Portal</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          
+
           {/* Portal do Consultor */}
-          {(access.admin || access.vendedor) && (
-            access.admin && vendedores.length > 0 ? (
+          {(access.admin || access.consultor) && (
+            access.admin && consultores.length > 0 ? (
               <DropdownMenuSub>
-                <DropdownMenuSubTrigger className={currentPortal === "vendedor" ? "bg-primary/10" : ""}>
+                <DropdownMenuSubTrigger className={currentPortal === "consultor" ? "bg-primary/10" : ""}>
                   <Users className="mr-2 h-4 w-4" />
                   <span>Portal do Consultor</span>
-                  {currentPortal === "vendedor" && (
+                  {currentPortal === "consultor" && (
                     <span className="ml-auto text-xs text-muted-foreground">Atual</span>
                   )}
                 </DropdownMenuSubTrigger>
@@ -220,33 +225,33 @@ export function PortalSwitcher() {
                   <DropdownMenuLabel className="text-xs">Selecionar Consultor</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <ScrollArea className="h-[200px]">
-                    {vendedores.map((v) => (
-                      <DropdownMenuItem 
-                        key={v.id}
-                        onClick={() => handleSelectVendedor(v.codigo)}
+                    {consultores.map((c) => (
+                      <DropdownMenuItem
+                        key={c.id}
+                        onClick={() => handleSelectConsultor(c.codigo)}
                         className="justify-between"
                       >
-                        <span className="truncate font-medium">{v.nome}</span>
-                        <span className="ml-2 text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{v.slug || v.codigo}</span>
+                        <span className="truncate font-medium">{c.nome}</span>
+                        <span className="ml-2 text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{c.slug || c.codigo}</span>
                       </DropdownMenuItem>
                     ))}
                   </ScrollArea>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             ) : (
-              <DropdownMenuItem 
-                onClick={handleSwitchToVendedor}
-                className={currentPortal === "vendedor" ? "bg-primary/10" : ""}
+              <DropdownMenuItem
+                onClick={handleSwitchToConsultor}
+                className={currentPortal === "consultor" ? "bg-primary/10" : ""}
               >
                 <Users className="mr-2 h-4 w-4" />
                 <span>Portal do Consultor</span>
-                {currentPortal === "vendedor" && (
+                {currentPortal === "consultor" && (
                   <span className="ml-auto text-xs text-muted-foreground">Atual</span>
                 )}
               </DropdownMenuItem>
             )
           )}
-          
+
           {/* Portal do Instalador */}
           {(access.admin || access.instalador) && (
             access.admin && instaladores.length > 1 ? (
@@ -263,7 +268,7 @@ export function PortalSwitcher() {
                   <DropdownMenuSeparator />
                   <ScrollArea className="h-[200px]">
                     {instaladores.map((i) => (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         key={i.id}
                         onClick={() => handleSelectInstalador(i.user_id)}
                       >
@@ -274,7 +279,7 @@ export function PortalSwitcher() {
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
             ) : (
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleSwitchToInstalador}
                 className={currentPortal === "instalador" ? "bg-primary/10" : ""}
               >
@@ -289,7 +294,7 @@ export function PortalSwitcher() {
 
           {/* Painel Admin */}
           {access.admin && (
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={handleSwitchToAdmin}
               className={currentPortal === "admin" ? "bg-primary/10" : ""}
             >
@@ -303,7 +308,7 @@ export function PortalSwitcher() {
 
           {/* Super Admin */}
           {access.superAdmin && (
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => navigate("/super-admin")}
               className={location.pathname === "/super-admin" ? "bg-primary/10" : ""}
             >
@@ -316,7 +321,7 @@ export function PortalSwitcher() {
           )}
 
           <DropdownMenuSeparator />
-          
+
           <DropdownMenuItem onClick={handleResetPreference} className="text-muted-foreground">
             <ArrowLeftRight className="mr-2 h-4 w-4" />
             <span className="text-sm">Redefinir preferência</span>
@@ -324,8 +329,8 @@ export function PortalSwitcher() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      {/* Dialog for vendedor selection (fallback for mobile) */}
-      <Dialog open={showVendedorDialog} onOpenChange={setShowVendedorDialog}>
+      {/* Dialog for consultor selection */}
+      <Dialog open={showConsultorDialog} onOpenChange={setShowConsultorDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Selecionar Consultor</DialogTitle>
@@ -335,15 +340,15 @@ export function PortalSwitcher() {
           </DialogHeader>
           <ScrollArea className="max-h-[300px]">
             <div className="space-y-1">
-              {vendedores.map((v) => (
+              {consultores.map((c) => (
                 <Button
-                  key={v.id}
+                  key={c.id}
                   variant="ghost"
                   className="w-full justify-between"
-                  onClick={() => handleSelectVendedor(v.codigo)}
+                  onClick={() => handleSelectConsultor(c.codigo)}
                 >
-                  <span className="truncate font-medium">{v.nome}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{v.slug || v.codigo}</span>
+                  <span className="truncate font-medium">{c.nome}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{c.slug || c.codigo}</span>
                 </Button>
               ))}
             </div>
@@ -351,7 +356,7 @@ export function PortalSwitcher() {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for instalador selection (fallback for mobile) */}
+      {/* Dialog for instalador selection */}
       <Dialog open={showInstaladorDialog} onOpenChange={setShowInstaladorDialog}>
         <DialogContent className="max-w-md">
           <DialogHeader>
