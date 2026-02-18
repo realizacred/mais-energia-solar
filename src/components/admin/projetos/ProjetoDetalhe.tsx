@@ -1449,23 +1449,28 @@ function ClientRow({ icon: Icon, label, muted, isLink }: { icon: typeof User; la
 // ═══════════════════════════════════════════════════
 // ─── TAB: Propostas ─────────────────────────────
 // ═══════════════════════════════════════════════════
-interface LinkedLead {
+interface LinkedOrcamento {
   id: string;
+  orc_code: string | null;
+  lead_id: string;
   lead_code: string | null;
-  nome: string;
   media_consumo: number;
   consumo_previsto: number;
   tipo_telhado: string;
   rede_atendimento: string;
+  estado: string;
+  cidade: string;
   status_id: string | null;
   status_nome?: string;
+  created_at: string;
 }
 
 function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean }) {
   const [propostas, setPropostas] = useState<PropostaNativa[]>([]);
   const [loading, setLoading] = useState(true);
-  const [linkedLeads, setLinkedLeads] = useState<LinkedLead[]>([]);
+  const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
+  const [selectedOrcId, setSelectedOrcId] = useState<string | null>(null);
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
   // Load proposals
@@ -1535,29 +1540,43 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
         // Find leads by phone match
         const { data: leads } = await (supabase as any)
           .from("leads")
-          .select("id, lead_code, nome, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, status_id")
+          .select("id, lead_code")
           .or(`telefone_normalized.ilike.%${suffix}%,telefone.ilike.%${suffix}%`)
-          .order("created_at", { ascending: false })
           .limit(10);
 
         if (leads && leads.length > 0) {
-          // Fetch status names
-          const statusIds = [...new Set(leads.map((l: any) => l.status_id).filter(Boolean))] as string[];
-          let statusMap = new Map<string, string>();
-          if (statusIds.length > 0) {
-            const { data: statuses } = await supabase
-              .from("lead_status")
-              .select("id, nome")
-              .in("id", statusIds);
-            (statuses || []).forEach((s: any) => statusMap.set(s.id, s.nome));
+          const leadIds = leads.map((l: any) => l.id);
+          const leadCodeMap = new Map<string, string>();
+          leads.forEach((l: any) => leadCodeMap.set(l.id, l.lead_code));
+
+          // Fetch orcamentos for these leads
+          const { data: orcs } = await supabase
+            .from("orcamentos")
+            .select("id, orc_code, lead_id, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, estado, cidade, status_id, created_at")
+            .in("lead_id", leadIds)
+            .order("created_at", { ascending: false })
+            .limit(20);
+
+          if (orcs && orcs.length > 0) {
+            // Fetch status names
+            const statusIds = [...new Set(orcs.map((o: any) => o.status_id).filter(Boolean))] as string[];
+            let statusMap = new Map<string, string>();
+            if (statusIds.length > 0) {
+              const { data: statuses } = await supabase
+                .from("lead_status")
+                .select("id, nome")
+                .in("id", statusIds);
+              (statuses || []).forEach((s: any) => statusMap.set(s.id, s.nome));
+            }
+
+            setLinkedOrcs(orcs.map((o: any) => ({
+              ...o,
+              lead_code: leadCodeMap.get(o.lead_id) || null,
+              status_nome: o.status_id ? statusMap.get(o.status_id) || "—" : "—",
+            })));
           }
 
-          setLinkedLeads(leads.map((l: any) => ({
-            ...l,
-            status_nome: l.status_id ? statusMap.get(l.status_id) || "—" : "—",
-          })));
-
-          // Auto-select first lead (e.g. the one directly linked)
+          // Auto-select the lead linked to the customer
           if (cliente.lead_id) {
             setSelectedLeadId(cliente.lead_id);
           }
@@ -1572,45 +1591,63 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
   return (
     <div className="space-y-4">
       {/* Lead discovery cards */}
-      {linkedLeads.length > 0 && (
+      {linkedOrcs.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
             <Activity className="h-3.5 w-3.5" /> Orçamentos (Leads) vinculados
           </p>
           <div className="grid gap-2 sm:grid-cols-2">
-            {linkedLeads.map(lead => (
+            {linkedOrcs.map(orc => (
               <Card
-                key={lead.id}
+                key={orc.id}
                 className={cn(
                   "cursor-pointer transition-all hover:shadow-md",
-                  selectedLeadId === lead.id && "ring-2 ring-primary shadow-md"
+                  selectedOrcId === orc.id && "ring-2 ring-primary shadow-md"
                 )}
-                onClick={() => setSelectedLeadId(prev => prev === lead.id ? null : lead.id)}
+                onClick={() => {
+                  if (selectedOrcId === orc.id) {
+                    setSelectedOrcId(null);
+                    setSelectedLeadId(null);
+                  } else {
+                    setSelectedOrcId(orc.id);
+                    setSelectedLeadId(orc.lead_id);
+                  }
+                }}
               >
                 <CardContent className="py-3 px-4">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs font-mono font-bold text-primary">
-                      {lead.lead_code || `ORC-${lead.id.slice(0, 6)}`}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono font-bold text-primary">
+                        {orc.orc_code || `ORC-${orc.id.slice(0, 6)}`}
+                      </span>
+                      {orc.lead_code && (
+                        <Badge variant="outline" className="text-[9px] font-mono">
+                          {orc.lead_code}
+                        </Badge>
+                      )}
+                    </div>
                     <Badge variant="outline" className="text-[9px]">
-                      {lead.status_nome}
+                      {orc.status_nome}
                     </Badge>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-[11px]">
                     <div>
                       <p className="text-muted-foreground">Consumo</p>
-                      <p className="font-semibold">{lead.consumo_previsto || lead.media_consumo} kWh</p>
+                      <p className="font-semibold">{orc.consumo_previsto || orc.media_consumo || 0} kWh</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Telhado</p>
-                      <p className="font-semibold truncate">{lead.tipo_telhado || "—"}</p>
+                      <p className="font-semibold truncate">{orc.tipo_telhado || "N/A"}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">Fase</p>
-                      <p className="font-semibold truncate">{lead.rede_atendimento || "—"}</p>
+                      <p className="font-semibold truncate">{orc.rede_atendimento || "N/A"}</p>
                     </div>
                   </div>
-                  {selectedLeadId === lead.id && (
+                  <div className="mt-1 text-[10px] text-muted-foreground">
+                    {orc.cidade && `${orc.cidade}, ${orc.estado}`} • {new Date(orc.created_at).toLocaleDateString("pt-BR")}
+                  </div>
+                  {selectedOrcId === orc.id && (
                     <div className="mt-2 flex items-center gap-1 text-[10px] text-primary font-semibold">
                       <CheckCircle className="h-3 w-3" /> Selecionado — dados serão herdados na nova proposta
                     </div>
