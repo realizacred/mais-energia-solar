@@ -8420,6 +8420,7 @@ export type Database = {
           label: string
           nome: string
           ordem: number
+          precisao: number
           tenant_id: string
           tipo_resultado: string
           updated_at: string
@@ -8434,6 +8435,7 @@ export type Database = {
           label: string
           nome: string
           ordem?: number
+          precisao?: number
           tenant_id: string
           tipo_resultado?: string
           updated_at?: string
@@ -8448,6 +8450,7 @@ export type Database = {
           label?: string
           nome?: string
           ordem?: number
+          precisao?: number
           tenant_id?: string
           tipo_resultado?: string
           updated_at?: string

@@ -1,9 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
-import { Copy, Search, X, Database, ChevronRight, Loader2 } from "lucide-react";
+import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   VARIABLES_CATALOG,
@@ -11,7 +15,6 @@ import {
   CATEGORY_ORDER,
   type VariableCategory,
 } from "@/lib/variablesCatalog";
-import { VariaveisCustomManager } from "@/components/admin/propostas-nativas/VariaveisCustomManager";
 import { supabase } from "@/integrations/supabase/client";
 
 /* ── Tiny copy button ───────────────────────────────────── */
@@ -57,10 +60,16 @@ interface DbCustomVar {
   expressao: string;
   tipo_resultado: string;
   categoria: string;
+  precisao: number;
   ativo: boolean;
 }
 
-/* ── Main page component ────────────────────────────────── */
+const PRECISAO_OPTIONS = [
+  { value: 0, label: "Nenhuma casa decimal" },
+  { value: 1, label: "1 casa decimal" },
+  { value: 2, label: "2 casas decimais" },
+  { value: 3, label: "3 casas decimais" },
+];
 function normalize(str: string) {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
@@ -70,20 +79,78 @@ export function VariaveisDisponiveisPage() {
   const [activeCategory, setActiveCategory] = useState<VariableCategory>("entrada");
   const [dbCustomVars, setDbCustomVars] = useState<DbCustomVar[]>([]);
   const [loadingCustom, setLoadingCustom] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingVar, setEditingVar] = useState<DbCustomVar | null>(null);
+  const [form, setForm] = useState({ nome: "vc_", label: "", expressao: "", precisao: 2 });
 
-  // Load custom vars from DB when tab is selected
-  useEffect(() => {
-    if (activeCategory !== "customizada") return;
+  const loadCustomVars = () => {
     setLoadingCustom(true);
     supabase
       .from("proposta_variaveis_custom")
-      .select("id, nome, label, expressao, tipo_resultado, categoria, ativo")
+      .select("id, nome, label, expressao, tipo_resultado, categoria, precisao, ativo")
       .order("ordem", { ascending: true })
       .then(({ data }) => {
         setDbCustomVars((data as DbCustomVar[]) || []);
         setLoadingCustom(false);
       });
+  };
+
+  // Load custom vars from DB when tab is selected
+  useEffect(() => {
+    if (activeCategory !== "customizada") return;
+    loadCustomVars();
   }, [activeCategory]);
+
+  const openNewModal = () => {
+    setEditingVar(null);
+    setForm({ nome: "vc_", label: "", expressao: "", precisao: 2 });
+    setModalOpen(true);
+  };
+
+  const openEditModal = (v: DbCustomVar) => {
+    setEditingVar(v);
+    setForm({ nome: v.nome, label: v.label, expressao: v.expressao, precisao: v.precisao ?? 2 });
+    setModalOpen(true);
+  };
+
+  const handleSaveCustom = async () => {
+    if (!form.nome || !form.label || !form.expressao) {
+      toast.error("Preencha Chave, Título e Expressão");
+      return;
+    }
+    if (!form.nome.startsWith("vc_")) {
+      toast.error("A chave deve começar com vc_");
+      return;
+    }
+    try {
+      if (editingVar) {
+        const { error } = await supabase
+          .from("proposta_variaveis_custom")
+          .update({ nome: form.nome, label: form.label, expressao: form.expressao, precisao: form.precisao } as any)
+          .eq("id", editingVar.id);
+        if (error) throw error;
+        toast.success("Variável atualizada!");
+      } else {
+        const { error } = await supabase
+          .from("proposta_variaveis_custom")
+          .insert({ nome: form.nome, label: form.label, expressao: form.expressao, precisao: form.precisao, tipo_resultado: "number", categoria: "geral", ordem: dbCustomVars.length, ativo: true } as any);
+        if (error) throw error;
+        toast.success("Variável cadastrada!");
+      }
+      setModalOpen(false);
+      loadCustomVars();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar");
+    }
+  };
+
+  const handleDeleteCustom = async (id: string) => {
+    if (!confirm("Excluir esta variável customizada?")) return;
+    const { error } = await supabase.from("proposta_variaveis_custom").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Variável excluída");
+    loadCustomVars();
+  };
 
   // Static catalog items for current category (includes customizada)
   const filtered = useMemo(() => {
@@ -102,41 +169,17 @@ export function VariaveisDisponiveisPage() {
     return [...items].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   }, [search, activeCategory]);
 
-  // DB custom vars (only for customizada tab, merged with static)
-  const filteredCustom = useMemo(() => {
-    if (activeCategory !== "customizada") return [];
-    // Get static catalog keys to avoid duplicates
-    const staticKeys = new Set(
-      VARIABLES_CATALOG.filter((v) => v.category === "customizada").map((v) => v.legacyKey)
-    );
-    // Only show DB vars that are NOT already in the static catalog
-    let items = dbCustomVars.filter((v) => !staticKeys.has(v.nome));
-    if (search.trim()) {
-      const q = normalize(search);
-      items = items.filter(
-        (v) =>
-          normalize(v.nome).includes(q) ||
-          normalize(v.label).includes(q) ||
-          normalize(v.expressao).includes(q)
-      );
-    }
-    return [...items].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
-  }, [search, activeCategory, dbCustomVars]);
-
   const totalCount = useMemo(() => {
-    const staticCount = VARIABLES_CATALOG.filter((v) => v.category === activeCategory).length;
-    if (activeCategory === "customizada") {
-      const staticKeys = new Set(
-        VARIABLES_CATALOG.filter((v) => v.category === "customizada").map((v) => v.legacyKey)
-      );
-      const dbExtra = dbCustomVars.filter((v) => !staticKeys.has(v.nome)).length;
-      return staticCount + dbExtra;
-    }
-    return staticCount;
+    if (activeCategory === "customizada") return dbCustomVars.length;
+    return VARIABLES_CATALOG.filter((v) => v.category === activeCategory).length;
   }, [activeCategory, dbCustomVars]);
 
   const currentCount = activeCategory === "customizada"
-    ? filtered.length + filteredCustom.length
+    ? dbCustomVars.filter((v) => {
+        if (!search.trim()) return true;
+        const q = normalize(search);
+        return normalize(v.label).includes(q) || normalize(v.nome).includes(q) || normalize(v.expressao).includes(q);
+      }).length
     : filtered.length;
 
   return (
@@ -214,119 +257,145 @@ export function VariaveisDisponiveisPage() {
         {/* Content */}
         {activeCategory === "customizada" ? (
           <div>
-            {/* Static catalog entries for customizada */}
-            {filtered.length > 0 && (
+            {/* Header with Add button */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/10">
+              <span className="text-xs text-muted-foreground font-medium">
+                {dbCustomVars.length} variável(is) customizada(s)
+              </span>
+              <Button size="sm" onClick={openNewModal} className="h-7 text-xs gap-1">
+                <Plus className="h-3 w-3" /> Nova Variável
+              </Button>
+            </div>
+
+            {loadingCustom ? (
+              <div className="flex items-center justify-center py-10 text-muted-foreground gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-xs">Carregando...</span>
+              </div>
+            ) : dbCustomVars.length === 0 ? (
+              <div className="text-center py-10 text-muted-foreground">
+                <p className="text-xs">Nenhuma variável customizada cadastrada.</p>
+                <Button variant="link" size="sm" onClick={openNewModal} className="mt-1 text-xs">Criar primeira variável</Button>
+              </div>
+            ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[240px]">Variável</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[80px]">Aplica-se</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave legada</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave canônica</th>
-                      <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[70px]">Unidade</th>
-                      <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[90px]">Exemplo</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Item</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Expressão</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[160px]">Precisão</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[80px]">Ação</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((v, idx) => (
-                      <tr
-                        key={v.canonicalKey}
-                        className={`border-b border-border/40 transition-colors group ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"} hover:bg-accent/5 ${v.notImplemented ? "opacity-40" : ""}`}
-                      >
-                        <td className="px-3 py-2">
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="flex items-center gap-1.5 cursor-help">
-                                <ChevronRight className="h-3 w-3 text-primary/30 group-hover:text-primary transition-colors shrink-0" />
-                                <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="right" className="max-w-[280px] text-xs">
-                              <p className="font-medium mb-0.5">{v.label}</p>
-                              <p className="text-muted-foreground">{v.description}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </td>
-                        <td className="px-3 py-2">
-                          <span className="text-[10px] text-muted-foreground">{v.appliesTo}</span>
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-1">
-                            <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-[10px]">{v.legacyKey}</code>
-                            <CopyButton text={v.legacyKey} />
-                          </div>
-                        </td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-1">
-                            <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">{v.canonicalKey}</code>
-                            <CopyButton text={v.canonicalKey} />
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <span className="text-[10px] text-muted-foreground font-mono">{v.unit || "—"}</span>
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <span className="text-[10px] text-foreground/60 font-mono tabular-nums">{v.example}</span>
-                        </td>
-                      </tr>
-                    ))}
+                    {dbCustomVars
+                      .filter((v) => {
+                        if (!search.trim()) return true;
+                        const q = normalize(search);
+                        return normalize(v.label).includes(q) || normalize(v.nome).includes(q) || normalize(v.expressao).includes(q);
+                      })
+                      .map((v, idx) => (
+                        <tr key={v.id} className={`border-b border-border/40 group transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"} hover:bg-accent/5`}>
+                          <td className="px-3 py-2.5">
+                            <span className="font-medium text-foreground text-[11px]">{v.label}</span>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <div className="flex items-center gap-1">
+                              <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">[{v.nome}]</code>
+                              <CopyButton text={`[${v.nome}]`} />
+                            </div>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <code className="font-mono text-muted-foreground text-[10px] max-w-[350px] truncate block" title={v.expressao}>
+                              {v.expressao}
+                            </code>
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <span className="text-[10px] text-muted-foreground">
+                              {v.precisao === 0 ? "Nenhuma casa decimal" : `${v.precisao} casa${v.precisao > 1 ? "s" : ""} decimal${v.precisao > 1 ? "is" : ""}`}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2.5 text-center">
+                            <div className="flex items-center justify-center gap-0.5">
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-primary" onClick={() => openEditModal(v)}>
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </Button>
+                              <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => handleDeleteCustom(v.id)}>
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                   </tbody>
                 </table>
               </div>
             )}
 
-            {/* DB-only custom vars (not in static catalog) */}
-            {loadingCustom ? (
-              <div className="flex items-center justify-center py-6 text-muted-foreground gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-xs">Carregando variáveis do banco...</span>
-              </div>
-            ) : filteredCustom.length > 0 ? (
-              <div className="overflow-x-auto border-t border-border">
-                <div className="px-3 py-1.5 bg-muted/20 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
-                  Variáveis do Banco de Dados
+            {/* Modal de Edição/Criação */}
+            <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="text-base">Variável Customizada</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="text-xs text-muted-foreground">
+                    Chave: <code className="text-primary font-semibold bg-primary/5 px-1.5 py-0.5 rounded">[{form.nome}]</code>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Título:</Label>
+                    <Input
+                      value={form.label}
+                      onChange={(e) => setForm((f) => ({ ...f, label: e.target.value }))}
+                      placeholder="Nome da variável"
+                      className="h-9 text-sm mt-1"
+                    />
+                  </div>
+                  {!editingVar && (
+                    <div>
+                      <Label className="text-xs">Chave (vc_*):</Label>
+                      <Input
+                        value={form.nome}
+                        onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))}
+                        placeholder="vc_minha_variavel"
+                        className="h-9 text-sm font-mono mt-1"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <Label className="text-xs">Expressão:</Label>
+                    <Textarea
+                      value={form.expressao}
+                      onChange={(e) => setForm((f) => ({ ...f, expressao: e.target.value }))}
+                      placeholder="[preco]*(1+0.074)^25"
+                      className="min-h-[80px] text-sm font-mono mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Precisão decimal (caso se aplique):</Label>
+                    <Select
+                      value={String(form.precisao)}
+                      onValueChange={(v) => setForm((f) => ({ ...f, precisao: Number(v) }))}
+                    >
+                      <SelectTrigger className="h-9 text-sm mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PRECISAO_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={String(o.value)}>{o.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-                <table className="w-full text-xs">
-                  <tbody>
-                    {filteredCustom.map((v, idx) => (
-                      <tr key={v.id} className={`border-b border-border/40 group transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"} hover:bg-accent/5`}>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-1.5">
-                            <ChevronRight className="h-3 w-3 text-primary/30 group-hover:text-primary shrink-0 transition-colors" />
-                            <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[11px]">{`{{customizada.${v.nome}}}`}</code>
-                            <CopyButton text={`{{customizada.${v.nome}}}`} />
-                          </div>
-                        </td>
-                        <td className="px-3 py-2">
-                          <span className="text-foreground text-[11px] font-medium">{v.label}</span>
-                        </td>
-                        <td className="px-3 py-2">
-                          <code className="font-mono text-muted-foreground bg-muted/30 px-1.5 py-0.5 rounded text-[10px] max-w-[200px] truncate block">{v.expressao}</code>
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 font-mono">{v.tipo_resultado}</Badge>
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          <span className={`inline-block h-2 w-2 rounded-full ${v.ativo ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-
-            {filtered.length === 0 && filteredCustom.length === 0 && !loadingCustom && (
-              <div className="text-center py-10 text-muted-foreground">
-                <p className="text-xs">Nenhuma variável customizada encontrada</p>
-              </div>
-            )}
-
-            {/* CRUD Manager */}
-            <div className="p-3 border-t border-border">
-              <VariaveisCustomManager />
-            </div>
+                <DialogFooter className="gap-2">
+                  <Button variant="ghost" onClick={() => setModalOpen(false)}>Fechar</Button>
+                  <Button onClick={handleSaveCustom}>Cadastrar</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         ) : (
           <div className="overflow-x-auto">
