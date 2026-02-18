@@ -765,16 +765,83 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("premissas", "premissas.vida_util_sistema", "vida_util_sistema", "Vida útil do sistema", "Vida útil projetada do sistema", "anos", "25"),
 
   // ──────────────────────────────────────────────────────────────
-  // CAMPOS DOS DISTRIBUIDORES (não implantado)
+  // CAMPOS DOS DISTRIBUIDORES (CDD)
   // ──────────────────────────────────────────────────────────────
-  v("cdd", "cdd.tipo_estrutura", "cdd_tipo_estrutura", "Tipo de estrutura", "Tipo de estrutura no sistema do distribuidor", "", "Solo", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.marca_estrutura", "cdd_marca_estrutura", "Marca estrutura", "Marca da estrutura", "", "Romagnole", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.comunicador", "cdd_comunicador", "Comunicador", "Tipo de comunicador de dados", "", "Wi-Fi", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.nivel", "cdd_nivel", "Nível", "Nível do distribuidor", "", "Gold", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.orientacao", "cdd_orientacao", "Orientação", "Orientação dos módulos", "", "Norte", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.string_config", "cdd_string", "Configuração string", "Configuração de strings CC", "", "2x8", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.string_ca", "cdd_sting_ca", "String CA", "Configuração de strings CA", "", "1x1", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.telhado", "cdd_telhado", "Telhado (CDD)", "Tipo de telhado no cadastro do distribuidor", "", "Cerâmico", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_estrutura", "cdd_tipo_estrutura", "Tipo de estrutura", "Tipo de estrutura no sistema do distribuidor (ECORI, GENYX, BLUESUN, SOLARMARKET)", "", "Solo", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.marca_estrutura", "cdd_marca_estrutura", "Marca/Solução estrutural", "Marca ou solução estrutural (ECORI)", "", "Romagnole", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.comunicador", "cdd_comunicador", "Comunicador", "Tipo de comunicador de dados (ECORI)", "", "Wi-Fi", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_sustentacao", "cdd_tipo_sustentacao", "Tipo de sustentação", "Tipo de sustentação (GENYX)", "", "Laje", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_telhado", "cdd_tipo_telhado", "Tipo de telhado utilizado", "Tipo de telhado utilizado (NEXEN)", "", "Cerâmico", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.nivel", "cdd_nivel", "Nível", "Nível do distribuidor (BLUESUN, SOLARMARKET)", "", "Gold", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.orientacao", "cdd_orientacao", "Orientação", "Orientação dos módulos (BLUESUN, SOLARMARKET)", "", "Norte", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.string_config", "cdd_string", "Adicionar StringBox CC?", "Configuração de strings CC (BLUESUN, SOLARMARKET)", "", "2x8", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.string_ca", "cdd_sting_ca", "Adicionar StringBox CA?", "Configuração de strings CA (BLUESUN, SOLARMARKET)", "", "1x1", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.telhado", "cdd_telhado", "Telhado (CDD)", "Tipo de telhado no cadastro do distribuidor (SOLARMARKET)", "", "Cerâmico", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura do telhado (A.DIAS SOLAR, SOPRANO, SOLARMARKET, FORTLEV)", "", "Fibrocimento", "proposta", { notImplemented: true }),
+
+  // ──────────────────────────────────────────────────────────────
+  // VARIÁVEIS CUSTOMIZADAS (vc_*)
+  // ──────────────────────────────────────────────────────────────
+  // ── Consumo e Geração ──
+  v("customizada", "customizada.vc_consumo", "vc_consumo", "Consumo BT/MT", "Consumo em Baixa e Média Tensão unificado", "kWh", "1000"),
+  v("customizada", "customizada.vc_aumento", "vc_aumento", "Aumento da Geração vs Consumo", "Percentual de aumento da geração em relação ao consumo", "%", "120"),
+  v("customizada", "customizada.vc_media_sonsumo_mensal", "vc_media_sonsumo_mensal", "Média de Consumo Mensal", "Média de consumo mensal (alias de consumo_mensal)", "kWh", "500"),
+
+  // ── Financeiro / Pagamento ──
+  v("customizada", "customizada.vc_valor_entrada", "vc_valor_entrada", "Valor Entrada", "Valor de entrada (kit_fechado_preco_total)", "R$", "15000"),
+  v("customizada", "customizada.vc_valor_parcelas_4", "vc_valor_parcelas_4", "Valor das Parcelas", "Valor das parcelas ((preco - entrada) / 3)", "R$", "5000"),
+  v("customizada", "customizada.vc_valor_parcela_troca_medidor", "vc_valor_parcela_troca_medidor", "Valor Parcela Após Troca Medidor", "Valor à vista menos entrada", "R$", "10000"),
+
+  // ── Financiamento / Banco ──
+  v("customizada", "customizada.vc_nome", "vc_nome", "Nome (Financiamento)", "Nome do banco/financeira ativo", "-", "BV"),
+  v("customizada", "customizada.vc_taxa_1", "vc_taxa_1", "Taxa 1", "Taxa de juros condição 1 (SWITCH por banco)", "%", "1.99"),
+  v("customizada", "customizada.vc_taxa_2", "vc_taxa_2", "Taxa 2", "Taxa de juros condição 2 (SWITCH por banco)", "%", "2.49"),
+  v("customizada", "customizada.vc_taxa_3", "vc_taxa_3", "Taxa 3", "Taxa de juros condição 3 (SWITCH por banco)", "%", "2.99"),
+  v("customizada", "customizada.vc_entrada_1", "vc_entrada_1", "Entrada 1", "Entrada condição 1 (SWITCH por banco)", "R$", "5000"),
+  v("customizada", "customizada.vc_entrada_2", "vc_entrada_2", "Entrada 2", "Entrada condição 2 (SWITCH por banco)", "R$", "3000"),
+  v("customizada", "customizada.vc_entrada_3", "vc_entrada_3", "Entrada 3", "Entrada condição 3 (SWITCH por banco)", "R$", "1000"),
+  v("customizada", "customizada.vc_prazo_1", "vc_prazo_1", "Prazo 1", "Prazo condição 1 (SWITCH por banco)", "meses", "24"),
+  v("customizada", "customizada.vc_prazo_2", "vc_prazo_2", "Prazo 2", "Prazo condição 2 (SWITCH por banco)", "meses", "36"),
+  v("customizada", "customizada.vc_prazo_3", "vc_prazo_3", "Prazo 3", "Prazo condição 3 (SWITCH por banco)", "meses", "48"),
+  v("customizada", "customizada.vc_parcela_1", "vc_parcela_1", "Parcela 1", "Parcela condição 1 (SWITCH por banco)", "R$", "1500"),
+  v("customizada", "customizada.vc_parcela_2", "vc_parcela_2", "Parcela 2", "Parcela condição 2 (SWITCH por banco)", "R$", "1200"),
+  v("customizada", "customizada.vc_parcela_3", "vc_parcela_3", "Parcela 3", "Parcela condição 3 (SWITCH por banco)", "R$", "1000"),
+
+  // ── Equipamentos ──
+  v("customizada", "customizada.vc_total_modulo", "vc_total_modulo", "Total Módulos", "Quantidade total de módulos calculada", "-", "16"),
+  v("customizada", "customizada.vc_p_total_cc", "vc_p_total_cc", "Potência Total CC", "Potência total CC dos inversores", "kW", "8.2"),
+  v("customizada", "customizada.vc_string_box_cc", "vc_string_box_cc", "Incluir String Box CC", "Texto condicional sobre string box", "-", "Este inversor..."),
+  v("customizada", "customizada.vc_potencia_sistema", "vc_potencia_sistema", "Potência Sistema Resumo", "Potência do sistema (alias)", "kWp", "8.2"),
+  v("customizada", "customizada.vc_modulo_potencia", "vc_modulo_potencia", "Módulo Potência", "Potência do módulo (alias)", "W", "550"),
+  v("customizada", "customizada.vc_inversor_potencia_nominal", "vc_inversor_potencia_nominal", "Inversor Potência Nominal", "Potência nominal do inversor / 1000", "kW", "8.2"),
+  v("customizada", "customizada.vc_estrutura", "vc_estrutura", "Estrutura", "Tipo de estrutura (alias cape_telhado)", "-", "Fibrocimento"),
+
+  // ── Comercial ──
+  v("customizada", "customizada.vc_garantiaservico", "vc_garantiaservico", "Garantia Serviço", "Tempo de garantia de serviço", "-", "2 ano"),
+  v("customizada", "customizada.vc_grafico_de_comparacao", "vc_grafico_de_comparacao", "Gráfico de Comparação", "Dados para gráfico comparativo (gasto atual vs geração)", "-", "{15000, 12000}"),
+  v("customizada", "customizada.vc_valor_gerac_prevista", "vc_valor_gerac_prevista", "Valor de Geração Prevista", "Tarifa distribuidora × geração mensal", "R$", "800"),
+
+  // ── Cartão de Crédito ──
+  v("customizada", "customizada.vc_cartao_credito_parcela_1", "vc_cartao_credito_parcela_1", "Cartão Crédito Parcela 1", "Parcela cartão 1x (à vista + taxa)", "R$", "45000"),
+  v("customizada", "customizada.vc_cartao_credito_parcela_2", "vc_cartao_credito_parcela_2", "Cartão Crédito Parcela 2", "Parcela cartão 2x (à vista + taxa)", "R$", "23000"),
+  v("customizada", "customizada.vc_cartao_credito_parcela_3", "vc_cartao_credito_parcela_3", "Cartão Crédito Parcela 3", "Parcela cartão 3x (à vista + taxa)", "R$", "16000"),
+  v("customizada", "customizada.vc_cartao_credito_parcela_4", "vc_cartao_credito_parcela_4", "Cartão Crédito Parcela 4", "Parcela cartão 4x (à vista + taxa)", "R$", "12500"),
+  v("customizada", "customizada.vc_cartao_credito_taxa_1", "vc_cartao_credito_taxa_1", "Cartão Crédito Taxa 1", "Taxa cartão 1x (7%)", "%", "7"),
+  v("customizada", "customizada.vc_cartao_credito_taxa_2", "vc_cartao_credito_taxa_2", "Cartão Crédito Taxa 2", "Taxa cartão 2x (11%)", "%", "11"),
+  v("customizada", "customizada.vc_cartao_credito_taxa_3", "vc_cartao_credito_taxa_3", "Cartão Crédito Taxa 3", "Taxa cartão 3x (15%)", "%", "15"),
+  v("customizada", "customizada.vc_cartao_credito_taxa_4", "vc_cartao_credito_taxa_4", "Cartão Crédito Taxa 4", "Taxa cartão 4x (17%)", "%", "17"),
+
+  // ── ICMS / Impostos ──
+  v("customizada", "customizada.vc_cal_icms_enel", "vc_cal_icms_enel", "Cálculo ICMS Enel", "Alíquota ICMS condicional por faixa de gasto", "%", "25"),
+  v("customizada", "customizada.vc_valor_icms_enel", "vc_valor_icms_enel", "Valor ICMS Enel (R$)", "Valor do ICMS calculado em reais", "R$", "150"),
+  v("customizada", "customizada.vc_valor_icms_enel_fator_simultaneidade", "vc_valor_icms_enel_fator_simultaneidade", "ICMS Enel c/ Fator Simultaneidade", "Valor ICMS ajustado pelo fator de simultaneidade", "R$", "135"),
+
+  // ── Seguro ──
+  v("customizada", "customizada.vc_incluir_seguro", "vc_incluir_seguro", "Incluir Seguro", "Condicional para inclusão de seguro (Sim/Não)", "-", "Sim"),
+  v("customizada", "customizada.vc_calculo_seguro", "vc_calculo_seguro", "Cálculo Seguro", "Valor calculado do seguro por período", "R$", "500"),
+
+  // ── Observação ──
+  v("customizada", "customizada.vc_observacao", "vc_observacao", "Observação", "Observação condicional (tensão/inversor)", "-", "Observação técnica"),
 ];
 
 // ── Variáveis Customizadas Default ───────────────────────────
