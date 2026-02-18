@@ -1,9 +1,9 @@
 // @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, User, BarChart3, Settings2, Package,
-  Wrench, DollarSign, CreditCard, FileText, Check, Cpu,
+  Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -74,7 +74,11 @@ function StepContent({ children }: { children: React.ReactNode }) {
 
 export function ProposalWizard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const dealIdFromUrl = searchParams.get("deal_id");
+  const customerIdFromUrl = searchParams.get("customer_id");
   const [step, setStep] = useState(0);
+  const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
   // Step 0 - Cliente
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
@@ -159,7 +163,81 @@ export function ProposalWizard() {
     }));
   }, [solarBrain]);
 
-  // ─── Lead selection handler ──────────────────────────
+  // ─── Auto-load from project context ──────────────────
+  useEffect(() => {
+    if (!customerIdFromUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: cli } = await supabase
+          .from("clientes")
+          .select("id, nome, telefone, email, cpf_cnpj, empresa, cep, rua, numero, complemento, bairro, cidade, estado, lead_id")
+          .eq("id", customerIdFromUrl)
+          .single();
+        if (cancelled || !cli) return;
+
+        setCliente({
+          nome: cli.nome || "",
+          empresa: cli.empresa || "",
+          cnpj_cpf: cli.cpf_cnpj || "",
+          email: cli.email || "",
+          celular: cli.telefone || "",
+          cep: cli.cep || "",
+          endereco: cli.rua || "",
+          numero: cli.numero || "",
+          complemento: cli.complemento || "",
+          bairro: cli.bairro || "",
+          cidade: cli.cidade || "",
+          estado: cli.estado || "",
+        });
+
+        if (dealIdFromUrl) {
+          setProjectContext({ dealId: dealIdFromUrl, customerId: customerIdFromUrl });
+        }
+
+        // If client has a lead, auto-select it
+        if (cli.lead_id) {
+          const { data: lead } = await supabase
+            .from("leads")
+            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado")
+            .eq("id", cli.lead_id)
+            .single();
+          if (!cancelled && lead) {
+            setSelectedLead({
+              id: lead.id,
+              nome: lead.nome,
+              telefone: lead.telefone,
+              lead_code: lead.lead_code || "",
+              estado: lead.estado,
+              cidade: lead.cidade,
+              media_consumo: lead.media_consumo,
+              tipo_telhado: lead.tipo_telhado,
+            });
+            // Also set UC data from lead
+            if (lead.estado || lead.media_consumo) {
+              setUcs(prev => {
+                const updated = [...prev];
+                updated[0] = {
+                  ...updated[0],
+                  estado: lead.estado || updated[0].estado,
+                  cidade: lead.cidade || updated[0].cidade,
+                  tipo_telhado: lead.tipo_telhado || updated[0].tipo_telhado,
+                  consumo_mensal: lead.media_consumo || updated[0].consumo_mensal,
+                };
+                return updated;
+              });
+            }
+          }
+        }
+
+        toast({ title: "Dados carregados do projeto", description: `Cliente: ${cli.nome}` });
+      } catch (err) {
+        console.error("[ProposalWizard] Error loading project context:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [customerIdFromUrl, dealIdFromUrl]);
+
   const handleSelectLead = (lead: LeadSelection) => {
     setSelectedLead(lead);
     if (lead.estado && ucs[0]) {
@@ -200,6 +278,7 @@ export function ProposalWizard() {
       const idempotencyKey = getOrCreateIdempotencyKey(selectedLead.id);
       const payload: GenerateProposalPayload = {
         lead_id: selectedLead.id,
+        projeto_id: projectContext?.dealId || dealIdFromUrl || undefined,
         grupo: grupo.startsWith("B") ? "B" : "A",
         idempotency_key: idempotencyKey,
         template_id: templateSelecionado || undefined,
@@ -277,6 +356,15 @@ export function ProposalWizard() {
   // ─── Render ──────────────────────────────────────────
   return (
     <div className="space-y-4 max-w-5xl mx-auto">
+      {/* ── Project Context Banner ── */}
+      {projectContext && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/20 bg-primary/5">
+          <Link2 className="h-4 w-4 text-primary shrink-0" />
+          <p className="text-xs font-medium text-primary">
+            Proposta vinculada ao projeto — dados do cliente carregados automaticamente
+          </p>
+        </div>
+      )}
       {/* ── Stepper ── */}
       <div className="flex items-center gap-0.5 overflow-x-auto pb-1 scrollbar-thin px-1 -mx-1">
         {STEPS.map((s, i) => {
@@ -317,7 +405,7 @@ export function ProposalWizard() {
 
             {step === 0 && (
               <StepContent key="step0">
-                <StepCliente selectedLead={selectedLead} onSelectLead={handleSelectLead} onClearLead={() => setSelectedLead(null)} cliente={cliente} onClienteChange={setCliente} />
+                <StepCliente selectedLead={selectedLead} onSelectLead={handleSelectLead} onClearLead={() => setSelectedLead(null)} cliente={cliente} onClienteChange={setCliente} fromProject={!!projectContext} />
               </StepContent>
             )}
 
