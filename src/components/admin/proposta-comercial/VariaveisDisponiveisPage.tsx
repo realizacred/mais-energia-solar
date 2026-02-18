@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2 } from "lucide-react";
+import { useState, useMemo, useEffect, useCallback } from "react";
+import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +82,17 @@ export function VariaveisDisponiveisPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVar, setEditingVar] = useState<DbCustomVar | null>(null);
   const [form, setForm] = useState({ nome: "vc_", label: "", expressao: "", precisao: 2 });
+  const [sortCol, setSortCol] = useState<string>("label");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const toggleSort = useCallback((col: string) => {
+    if (sortCol === col) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortCol(col);
+      setSortDir("asc");
+    }
+  }, [sortCol]);
 
   const loadCustomVars = () => {
     setLoadingCustom(true);
@@ -165,9 +176,13 @@ export function VariaveisDisponiveisPage() {
           normalize(v.legacyKey).includes(q)
       );
     }
-    // Ordenação alfabética por label
-    return [...items].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
-  }, [search, activeCategory]);
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...items].sort((a, b) => {
+      const aVal = sortCol === "label" ? a.label : sortCol === "legacyKey" ? a.legacyKey : sortCol === "canonicalKey" ? a.canonicalKey : sortCol === "unit" ? (a.unit || "") : a.label;
+      const bVal = sortCol === "label" ? b.label : sortCol === "legacyKey" ? b.legacyKey : sortCol === "canonicalKey" ? b.canonicalKey : sortCol === "unit" ? (b.unit || "") : b.label;
+      return dir * aVal.localeCompare(bVal, "pt-BR");
+    });
+  }, [search, activeCategory, sortCol, sortDir]);
 
   const totalCount = useMemo(() => {
     if (activeCategory === "customizada") return dbCustomVars.length;
@@ -402,12 +417,28 @@ export function VariaveisDisponiveisPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted/30 border-b border-border">
-                  <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[240px]">Variável</th>
-                  <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[80px]">Aplica-se</th>
-                  <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave legada</th>
-                  <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave canônica</th>
-                  <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[70px]">Unidade</th>
-                  <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[90px]">Exemplo</th>
+                  {[
+                    { key: "label", label: "Variável", align: "text-left", width: "w-[28%]" },
+                    { key: "legacyKey", label: "Chave Legada", align: "text-left", width: "w-[22%]" },
+                    { key: "canonicalKey", label: "Chave Canônica", align: "text-left", width: "w-[28%]" },
+                    { key: "unit", label: "Unidade", align: "text-center", width: "w-[10%]" },
+                    { key: "example", label: "Exemplo", align: "text-right", width: "w-[12%]" },
+                  ].map((col) => (
+                    <th
+                      key={col.key}
+                      className={`${col.align} px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] ${col.width} cursor-pointer hover:text-foreground select-none transition-colors`}
+                      onClick={() => toggleSort(col.key)}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {col.label}
+                        {sortCol === col.key ? (
+                          sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-30" />
+                        )}
+                      </span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -442,11 +473,6 @@ export function VariaveisDisponiveisPage() {
                       </Tooltip>
                     </td>
 
-                    <td className="px-3 py-2">
-                      <span className="text-[10px] text-muted-foreground">
-                        {v.appliesTo}
-                      </span>
-                    </td>
 
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-1">
