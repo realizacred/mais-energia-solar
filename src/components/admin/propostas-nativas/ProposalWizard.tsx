@@ -98,20 +98,36 @@ function applyTenantTarifasToUC(
     tarifa_te_fora_ponta: number; tarifa_tusd_fora_ponta: number; tusd_fio_b_fora_ponta: number;
     tarifacao_compensada_bt: number; tarifacao_compensada_ponta: number; tarifacao_compensada_fora_ponta: number;
     imposto_energia: number; fator_simultaneidade: number;
+    preco_demanda: number; preco_demanda_geracao: number;
+    outros_encargos_atual: number; outros_encargos_novo: number;
+    concessionaria_nome?: string; concessionaria_id?: string;
   },
 ): UCData {
   return {
     ...uc,
+    // Concessionária (se UC ainda não tem)
+    distribuidora: uc.distribuidora || t.concessionaria_nome || "",
+    distribuidora_id: uc.distribuidora_id || t.concessionaria_id || "",
+    // Grupo B
     tarifa_distribuidora: uc.tarifa_distribuidora || t.tarifa || 0,
     tarifa_fio_b: uc.tarifa_fio_b || t.tusd_fio_b_bt || 0,
+    // Grupo A - Ponta
     tarifa_te_p: uc.tarifa_te_p || t.tarifa_te_ponta || 0,
     tarifa_tusd_p: uc.tarifa_tusd_p || t.tarifa_tusd_ponta || 0,
     tarifa_fio_b_p: uc.tarifa_fio_b_p || t.tusd_fio_b_ponta || 0,
     tarifa_tarifacao_p: uc.tarifa_tarifacao_p || t.tarifacao_compensada_ponta || 0,
+    // Grupo A - Fora Ponta
     tarifa_te_fp: uc.tarifa_te_fp || t.tarifa_te_fora_ponta || 0,
     tarifa_tusd_fp: uc.tarifa_tusd_fp || t.tarifa_tusd_fora_ponta || 0,
     tarifa_fio_b_fp: uc.tarifa_fio_b_fp || t.tusd_fio_b_fora_ponta || 0,
     tarifa_tarifacao_fp: uc.tarifa_tarifacao_fp || t.tarifacao_compensada_fora_ponta || 0,
+    // Demanda (R$)
+    demanda_consumo_rs: uc.demanda_consumo_rs || t.preco_demanda || 0,
+    demanda_geracao_rs: uc.demanda_geracao_rs || t.preco_demanda_geracao || 0,
+    // Encargos
+    outros_encargos_atual: uc.outros_encargos_atual || t.outros_encargos_atual || 0,
+    outros_encargos_novo: uc.outros_encargos_novo || t.outros_encargos_novo || 0,
+    // Fiscal
     imposto_energia: uc.imposto_energia || t.imposto_energia || 0,
     fator_simultaneidade: uc.fator_simultaneidade || t.fator_simultaneidade || 30,
   };
@@ -271,23 +287,49 @@ export function ProposalWizard() {
     tarifa_te_fora_ponta: number; tarifa_tusd_fora_ponta: number; tusd_fio_b_fora_ponta: number;
     tarifacao_compensada_bt: number; tarifacao_compensada_ponta: number; tarifacao_compensada_fora_ponta: number;
     imposto_energia: number; fator_simultaneidade: number;
+    preco_demanda: number; preco_demanda_geracao: number;
+    outros_encargos_atual: number; outros_encargos_novo: number;
     fase_tensao_rede: string; grupo_tarifario: string;
+    concessionaria_nome?: string; concessionaria_id?: string;
   } | null>(null);
 
   useEffect(() => {
-    supabase
-      .from("tenant_premises")
-      .select(
-        "tarifa, tusd_fio_b_bt, tarifa_te_ponta, tarifa_tusd_ponta, tusd_fio_b_ponta, " +
-        "tarifa_te_fora_ponta, tarifa_tusd_fora_ponta, tusd_fio_b_fora_ponta, " +
-        "tarifacao_compensada_bt, tarifacao_compensada_ponta, tarifacao_compensada_fora_ponta, " +
-        "imposto_energia, fator_simultaneidade, fase_tensao_rede, grupo_tarifario"
-      )
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) setTenantTarifas(data as any);
+    (async () => {
+      const { data: tp } = await supabase
+        .from("tenant_premises")
+        .select(
+          "tarifa, tusd_fio_b_bt, tarifa_te_ponta, tarifa_tusd_ponta, tusd_fio_b_ponta, " +
+          "tarifa_te_fora_ponta, tarifa_tusd_fora_ponta, tusd_fio_b_fora_ponta, " +
+          "tarifacao_compensada_bt, tarifacao_compensada_ponta, tarifacao_compensada_fora_ponta, " +
+          "imposto_energia, fator_simultaneidade, fase_tensao_rede, grupo_tarifario, " +
+          "preco_demanda, preco_demanda_geracao, outros_encargos_atual, outros_encargos_novo, " +
+          "concessionaria_id"
+        )
+        .limit(1)
+        .maybeSingle();
+
+      if (!tp) return;
+
+      const tpAny = tp as any;
+
+      // Buscar nome da concessionária se houver concessionaria_id
+      let concNome = "";
+      const concId = tpAny.concessionaria_id as string | null;
+      if (concId) {
+        const { data: conc } = await supabase
+          .from("concessionarias")
+          .select("nome")
+          .eq("id", concId)
+          .maybeSingle();
+        concNome = conc?.nome || "";
+      }
+
+      setTenantTarifas({
+        ...tpAny,
+        concessionaria_nome: concNome,
+        concessionaria_id: concId || undefined,
       });
+    })();
   }, []);
 
   useEffect(() => {

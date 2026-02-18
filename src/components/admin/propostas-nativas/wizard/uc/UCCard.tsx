@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Info } from "lucide-react";
 import { AlertCircle, MoreVertical, Pencil, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -240,6 +241,17 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
         <div className="border-t border-border/40 my-3" />
 
         {/* ── SEÇÃO 3: Tarifas ── */}
+        {/* Indicador de dados auto-carregados */}
+        {(uc.tarifa_distribuidora > 0 || uc.tarifa_te_p > 0) && (
+          <div className="flex items-center gap-1.5 mb-2 px-1 py-1 rounded bg-accent/30 border border-accent/50">
+            <Info className="h-3 w-3 text-accent-foreground shrink-0" />
+            <p className="text-[10px] text-accent-foreground leading-tight">
+              Tarifas pré-carregadas das <strong>Premissas do Tenant</strong>
+              {uc.distribuidora ? ` (${uc.distribuidora})` : ""}. Clique nos valores para editar.
+            </p>
+          </div>
+        )}
+
         {isGrupoA ? (
           <>
             {/* Demanda */}
