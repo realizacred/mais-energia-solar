@@ -249,19 +249,11 @@ export function ProjectAddressFields({
           <MapPin className="h-3.5 w-3.5 text-primary" />
           Endereço de instalação
         </Label>
-        <div className="flex items-center gap-2">
-          {geocoding && (
-            <Badge variant="outline" className="text-[9px] gap-1 text-primary border-primary/30 animate-pulse">
-              <Loader2 className="h-2.5 w-2.5 animate-spin" /> Geocodificando...
-            </Badge>
-          )}
-          {address.lat !== null && address.lon !== null && (
-            <Badge variant="outline" className="text-[9px] gap-1 font-mono text-success border-success/30">
-              <Navigation className="h-2.5 w-2.5" />
-              {address.lat.toFixed(4)}, {address.lon.toFixed(4)}
-            </Badge>
-          )}
-        </div>
+        {geocoding && (
+          <Badge variant="outline" className="text-[9px] gap-1 text-primary border-primary/30 animate-pulse">
+            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Geocodificando...
+          </Badge>
+        )}
       </div>
 
       {/* Same as client checkbox */}

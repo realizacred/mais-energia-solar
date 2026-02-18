@@ -372,43 +372,20 @@ export function StepLocalizacao({
       </div>
 
       {/* Map on TOP — full width */}
-      <div className="space-y-1.5">
-        <Suspense fallback={
-          <div className="rounded-xl border border-border/50 overflow-hidden relative h-[220px] sm:h-[280px] md:h-[320px] flex items-center justify-center bg-muted/20">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        }>
-          <div className="rounded-xl border border-border/50 overflow-hidden relative h-[220px] sm:h-[280px] md:h-[320px]">
-            <GoogleMapView
-              lat={geoLat}
-              lon={geoLon}
-              cidade={cidade}
-              estado={estado}
-              onMapClick={handleMapClick}
-              onSnapshotsChange={onMapSnapshotsChange}
-            />
-          </div>
-        </Suspense>
-
-        {/* Coordinates bar below map */}
-        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-border/40 bg-card">
-          {geoLat !== null && geoLon !== null ? (
-            <div className="flex items-center gap-2">
-              <MapPin className="h-3 w-3 text-primary shrink-0" />
-              <span className="text-[11px] font-mono text-foreground font-medium">
-                {geoLat.toFixed(6)}, {geoLon.toFixed(6)}
-              </span>
-            </div>
-          ) : (
-            <span className="text-[10px] text-muted-foreground">
-              Clique no mapa ou preencha o endereço para localizar
-            </span>
-          )}
-          <span className="text-[9px] text-muted-foreground hidden sm:inline">
-            Arraste o marcador · Clique para reposicionar
-          </span>
+      <Suspense fallback={
+        <div className="rounded-xl border border-border/50 overflow-hidden relative h-[260px] sm:h-[300px] flex items-center justify-center bg-muted/20">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
-      </div>
+      }>
+        <GoogleMapView
+          lat={geoLat}
+          lon={geoLon}
+          cidade={cidade}
+          estado={estado}
+          onMapClick={handleMapClick}
+          onSnapshotsChange={onMapSnapshotsChange}
+        />
+      </Suspense>
 
       {/* Address + Config fields below map */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
