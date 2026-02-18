@@ -784,14 +784,35 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // VARIÁVEIS CUSTOMIZADAS (vc_*)
   // ──────────────────────────────────────────────────────────────
   // ── Consumo e Geração ──
-  v("customizada", "customizada.vc_consumo", "vc_consumo", "Consumo BT/MT", "Consumo em Baixa e Média Tensão unificado", "kWh", "1000"),
+  v("customizada", "customizada.vc_consumo", "vc_consumo", "Consumo BT/MT", "Consumo em Baixa e Média Tensão unificado (IF BT/MT)", "kWh", "1000"),
   v("customizada", "customizada.vc_aumento", "vc_aumento", "Aumento da Geração vs Consumo", "Percentual de aumento da geração em relação ao consumo", "%", "120"),
   v("customizada", "customizada.vc_media_sonsumo_mensal", "vc_media_sonsumo_mensal", "Média de Consumo Mensal", "Média de consumo mensal (alias de consumo_mensal)", "kWh", "500"),
+  v("customizada", "customizada.vc_consumo_anual", "vc_consumo_anual", "Consumo Anual", "Soma dos 12 meses de consumo", "kWh", "6000"),
+  v("customizada", "customizada.vc_economia_acumulada", "vc_economia_acumulada", "Economia Acumulada", "Soma da economia anual dos 25 anos", "R$", "250000"),
+
+  // ── Séries Consumo/Geração ──
+  v("customizada", "customizada.vc_s_consumo_mensal_media", "vc_s_consumo_mensal_media", "Consumo Mensal com Média", "Série de consumo mensal (jan-dez) + média", "kWh", "{500,480,...}"),
+  v("customizada", "customizada.vc_s_consumo_mt_p", "vc_s_consumo_mt_p", "Consumo Anual Ponta", "Série de consumo mensal Ponta (MT)", "kWh", "{100,110,...}"),
+  v("customizada", "customizada.vc_s_consumo_mt_fp", "vc_s_consumo_mt_fp", "Consumo Anual Fora Ponta", "Série de consumo mensal Fora Ponta (MT)", "kWh", "{400,390,...}"),
+  v("customizada", "customizada.vc_s_consumo_mt_p_e_fp", "vc_s_consumo_mt_p_e_fp", "Consumo Anual MT", "Série de consumo mensal Ponta + Fora Ponta (MT)", "kWh", "{500,500,...}"),
+  v("customizada", "customizada.vc_s_geracao_mensal_media", "vc_s_geracao_mensal_media", "Geração Mensal com Média", "Série de geração mensal (jan-dez) + média", "kWh", "{550,520,...}"),
 
   // ── Financeiro / Pagamento ──
+  v("customizada", "customizada.vc_a_vista", "vc_a_vista", "Preço à Vista", "Preço com desconto à vista aplicado", "R$", "40000"),
   v("customizada", "customizada.vc_valor_entrada", "vc_valor_entrada", "Valor Entrada", "Valor de entrada (kit_fechado_preco_total)", "R$", "15000"),
   v("customizada", "customizada.vc_valor_parcelas_4", "vc_valor_parcelas_4", "Valor das Parcelas", "Valor das parcelas ((preco - entrada) / 3)", "R$", "5000"),
   v("customizada", "customizada.vc_valor_parcela_troca_medidor", "vc_valor_parcela_troca_medidor", "Valor Parcela Após Troca Medidor", "Valor à vista menos entrada", "R$", "10000"),
+
+  // ── Indicadores Financeiros ──
+  v("customizada", "customizada.vc_saldo_solar_25_anos", "vc_saldo_solar_25_anos", "Saldo Solar 25 anos", "Fluxo de caixa acumulado ano 24", "R$", "350000"),
+  v("customizada", "customizada.vc_saldo_renda_fixa_25_anos", "vc_saldo_renda_fixa_25_anos", "Saldo Renda Fixa 25 anos", "Investimento equivalente em renda fixa (7.4% a.a.) por 25 anos", "R$", "250000"),
+  v("customizada", "customizada.vc_saldo_poupanca_25_anos", "vc_saldo_poupanca_25_anos", "Saldo Poupança 25 anos", "Investimento equivalente em poupança (4.5% a.a.) por 25 anos", "R$", "150000"),
+  v("customizada", "customizada.vc_roi_primeiro_mes", "vc_roi_primeiro_mes", "ROI 1º mês", "Retorno sobre investimento no primeiro mês (%)", "%", "0.5"),
+  v("customizada", "customizada.vc_tarifa_solar", "vc_tarifa_solar", "Tarifa Solar", "Custo efetivo por kWh com solar ao longo de 25 anos", "R$/kWh", "0.15"),
+  v("customizada", "customizada.vc_preco_watt", "vc_preco_watt", "Preço Watt", "Valor do investimento por Watt instalado", "R$/W", "4.50"),
+  v("customizada", "customizada.vc_investimento_solar_rendimento", "vc_investimento_solar_rendimento", "Rendimento Investimento Solar (%)", "Rendimento percentual do investimento solar no ano 0", "%", "25"),
+  v("customizada", "customizada.vc_economia_conta_total_rs", "vc_economia_conta_total_rs", "Economia Conta Total MT (R$)", "Economia total na conta MT (gasto atual - gasto novo)", "R$", "1500"),
+  v("customizada", "customizada.vc_economia_conta_total_pc", "vc_economia_conta_total_pc", "Economia Conta Total (%)", "Percentual de economia na conta MT", "%", "85"),
 
   // ── Financiamento / Banco ──
   v("customizada", "customizada.vc_nome", "vc_nome", "Nome (Financiamento)", "Nome do banco/financeira ativo", "-", "BV"),
