@@ -135,9 +135,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (!estado || !cidade || !area || !tipo_telhado || !rede_atendimento) {
+    const missingFields: string[] = [];
+    if (!estado) missingFields.push("Estado");
+    if (!cidade) missingFields.push("Cidade");
+    if (!area) missingFields.push("Área");
+    if (!tipo_telhado) missingFields.push("Tipo de Telhado");
+    if (!rede_atendimento) missingFields.push("Rede de Atendimento");
+    if (missingFields.length > 0) {
+      console.warn("[public-create-lead] Missing fields:", missingFields.join(", "));
       return new Response(
-        JSON.stringify({ success: false, error: "Campos do orçamento são obrigatórios" }),
+        JSON.stringify({ success: false, error: `Campos obrigatórios não preenchidos: ${missingFields.join(", ")}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
