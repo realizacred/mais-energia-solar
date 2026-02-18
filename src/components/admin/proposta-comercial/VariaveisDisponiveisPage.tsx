@@ -61,6 +61,10 @@ interface DbCustomVar {
 }
 
 /* ── Main page component ────────────────────────────────── */
+function normalize(str: string) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
 export function VariaveisDisponiveisPage() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<VariableCategory>("entrada");
@@ -85,13 +89,13 @@ export function VariaveisDisponiveisPage() {
     if (activeCategory === "customizada") return [];
     let items = VARIABLES_CATALOG.filter((v) => v.category === activeCategory);
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const q = normalize(search);
       items = items.filter(
         (v) =>
-          v.label.toLowerCase().includes(q) ||
-          v.description.toLowerCase().includes(q) ||
-          v.canonicalKey.toLowerCase().includes(q) ||
-          v.legacyKey.toLowerCase().includes(q)
+          normalize(v.label).includes(q) ||
+          normalize(v.description).includes(q) ||
+          normalize(v.canonicalKey).includes(q) ||
+          normalize(v.legacyKey).includes(q)
       );
     }
     return items;
@@ -100,12 +104,12 @@ export function VariaveisDisponiveisPage() {
   const filteredCustom = useMemo(() => {
     if (activeCategory !== "customizada") return [];
     if (!search.trim()) return dbCustomVars;
-    const q = search.toLowerCase();
+    const q = normalize(search);
     return dbCustomVars.filter(
       (v) =>
-        v.nome.toLowerCase().includes(q) ||
-        v.label.toLowerCase().includes(q) ||
-        v.expressao.toLowerCase().includes(q)
+        normalize(v.nome).includes(q) ||
+        normalize(v.label).includes(q) ||
+        normalize(v.expressao).includes(q)
     );
   }, [search, activeCategory, dbCustomVars]);
 
