@@ -882,8 +882,8 @@ export function ProposalWizard() {
         </div>
       )}
 
-      {/* ── Mobile/Tablet horizontal stepper — OUTSIDE flex body */}
-      <div className="lg:hidden flex items-center gap-1 overflow-x-auto px-3 py-2 border-b border-border/40 bg-card/50 shrink-0">
+      {/* ── Horizontal stepper — ALL screen sizes */}
+      <div className="flex items-center gap-1 overflow-x-auto px-3 py-2 border-b border-border/40 bg-card/50 shrink-0">
         {activeSteps.map((s, i) => {
           const Icon = s.icon;
           const isActive = i === step;
@@ -915,53 +915,25 @@ export function ProposalWizard() {
         })}
       </div>
 
-      {/* ── Body: Sidebar + Content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Desktop Sidebar */}
-        <div className="w-56 shrink-0 hidden lg:flex flex-col border-r border-border/60 bg-card/50">
-          <div className="flex-1 overflow-y-auto px-3 py-4">
-            <WizardSidebar
-              steps={activeSteps}
-              currentStep={step}
-              onStepClick={goToStep}
-            />
-          </div>
-          {!result && (
-            <div className="border-t border-border/60 p-3 space-y-2 shrink-0">
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={goPrev} disabled={step === 0} className="flex-1 gap-1 h-8 text-xs">
-                  <ChevronLeft className="h-3 w-3" /> Anterior
-                </Button>
-                {!isLastStep && (
-                  <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="flex-1 gap-1 h-8 text-xs">
-                    Próximo <ChevronRight className="h-3 w-3" />
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
+      {/* ── Body: Content only */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-4 lg:p-6">
+          <AnimatePresence mode="wait">
+            {renderStepContent()}
+          </AnimatePresence>
         </div>
-
-        {/* Main Content */}
-        <div className="flex-1 min-w-0 overflow-y-auto">
-          <div className="p-4 lg:p-6">
-            <AnimatePresence mode="wait">
-              {renderStepContent()}
-            </AnimatePresence>
-          </div>
-          {!result && (
-            <div className="lg:hidden flex items-center justify-between px-4 py-3 border-t border-border/60 bg-card sticky bottom-0">
-              <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
-                <ChevronLeft className="h-3 w-3" /> Voltar
+        {!result && (
+          <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-card sticky bottom-0">
+            <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
+              <ChevronLeft className="h-3 w-3" /> Voltar
+            </Button>
+            {!isLastStep && (
+              <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
+                Próximo <ChevronRight className="h-3 w-3" />
               </Button>
-              {!isLastStep && (
-                <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
-                  Próximo <ChevronRight className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Pos-dimensionamento dialog */}
