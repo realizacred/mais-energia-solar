@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,12 +18,26 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { Badge } from "@/components/ui/badge";
+import { Search, UserCheck, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { PropostaFormData } from "@/hooks/usePropostas";
+import { cn } from "@/lib/utils";
 
 interface Vendedor {
   id: string;
   nome: string;
+}
+
+interface FoundRecord {
+  source: "cliente" | "lead";
+  id: string;
+  nome: string;
+  telefone: string;
+  email?: string | null;
+  cidade?: string | null;
+  estado?: string | null;
+  potencia_kwp?: number | null;
 }
 
 interface NovaPropostaDialogProps {
@@ -64,6 +78,13 @@ export function NovaPropostaDialog({
     vendedor_id: "",
   });
 
+  // Phone lookup state
+  const [phoneLookupResults, setPhoneLookupResults] = useState<FoundRecord[]>([]);
+  const [phoneLookupLoading, setPhoneLookupLoading] = useState(false);
+  const [phoneLookupDone, setPhoneLookupDone] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<FoundRecord | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (open) {
       (supabase as any)
@@ -72,8 +93,100 @@ export function NovaPropostaDialog({
         .eq("ativo", true)
         .order("nome")
         .then(({ data }: any) => setVendedores(data || []));
+    } else {
+      // Reset on close
+      setPhoneLookupResults([]);
+      setPhoneLookupDone(false);
+      setSelectedRecord(null);
     }
   }, [open]);
+
+  const searchByPhone = useCallback(async (phone: string) => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 10) {
+      setPhoneLookupResults([]);
+      setPhoneLookupDone(false);
+      return;
+    }
+
+    setPhoneLookupLoading(true);
+    setPhoneLookupDone(false);
+    try {
+      // Search clientes
+      const { data: clientes } = await supabase
+        .from("clientes")
+        .select("id, nome, telefone, email, cidade, estado, potencia_kwp")
+        .or(`telefone.ilike.%${digits.slice(-9)}%,telefone_normalized.ilike.%${digits.slice(-9)}%`)
+        .limit(5);
+
+      // Search leads
+      const { data: leads } = await (supabase as any)
+        .from("leads")
+        .select("id, nome, telefone, email, cidade, estado")
+        .ilike("telefone", `%${digits.slice(-9)}%`)
+        .limit(5);
+
+      const results: FoundRecord[] = [];
+
+      (clientes || []).forEach((c: any) => {
+        results.push({
+          source: "cliente",
+          id: c.id,
+          nome: c.nome,
+          telefone: c.telefone,
+          email: c.email,
+          cidade: c.cidade,
+          estado: c.estado,
+          potencia_kwp: c.potencia_kwp,
+        });
+      });
+
+      (leads || []).forEach((l: any) => {
+        // Avoid duplicates if same phone already found in clientes
+        if (!results.some(r => r.telefone?.replace(/\D/g, "") === l.telefone?.replace(/\D/g, ""))) {
+          results.push({
+            source: "lead",
+            id: l.id,
+            nome: l.nome,
+            telefone: l.telefone,
+            email: l.email,
+            cidade: l.cidade,
+            estado: l.estado,
+          });
+        }
+      });
+
+      setPhoneLookupResults(results);
+      setPhoneLookupDone(true);
+    } catch (err) {
+      console.error("Phone lookup error:", err);
+      setPhoneLookupDone(true);
+    } finally {
+      setPhoneLookupLoading(false);
+    }
+  }, []);
+
+  const handlePhoneChange = (value: string) => {
+    handleChange("cliente_celular", value);
+    setSelectedRecord(null);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => searchByPhone(value), 500);
+  };
+
+  const applyRecord = (record: FoundRecord) => {
+    setSelectedRecord(record);
+    setForm((prev) => ({
+      ...prev,
+      cliente_nome: record.nome || prev.cliente_nome,
+      cliente_celular: record.telefone || prev.cliente_celular,
+      cliente_email: record.email || prev.cliente_email,
+      cliente_cidade: record.cidade || prev.cliente_cidade,
+      cliente_estado: record.estado || prev.cliente_estado,
+      potencia_kwp: record.potencia_kwp || prev.potencia_kwp,
+    }));
+    setPhoneLookupResults([]);
+  };
 
   const handleChange = (field: keyof PropostaFormData, value: string | number) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -133,6 +246,88 @@ export function NovaPropostaDialog({
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Dados do Cliente
             </p>
+
+            {/* Phone field with lookup */}
+            <div className="space-y-1.5">
+              <Label>Celular</Label>
+              <div className="relative">
+                <Input
+                  placeholder="(00) 00000-0000"
+                  value={form.cliente_celular}
+                  onChange={(e) => handlePhoneChange(e.target.value)}
+                  className="pr-8"
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                  {phoneLookupLoading ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <Search className="h-3.5 w-3.5 text-muted-foreground" />
+                  )}
+                </div>
+              </div>
+
+              {/* Selected record indicator */}
+              {selectedRecord && (
+                <div className="flex items-center gap-1.5 text-[11px] text-success">
+                  <UserCheck className="h-3 w-3" />
+                  <span>
+                    Dados preenchidos de {selectedRecord.source === "cliente" ? "cliente" : "lead"}: <strong>{selectedRecord.nome}</strong>
+                  </span>
+                </div>
+              )}
+
+              {/* Lookup results */}
+              {phoneLookupResults.length > 0 && (
+                <div className="border border-border rounded-lg bg-popover shadow-md overflow-hidden">
+                  <div className="px-3 py-1.5 bg-muted/50 border-b border-border">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Cadastros encontrados
+                    </p>
+                  </div>
+                  {phoneLookupResults.map((record) => (
+                    <button
+                      key={`${record.source}-${record.id}`}
+                      type="button"
+                      onClick={() => applyRecord(record)}
+                      className="w-full text-left px-3 py-2 hover:bg-muted/50 transition-colors border-b border-border/40 last:border-b-0"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold text-foreground truncate">{record.nome}</p>
+                          <p className="text-[10px] text-muted-foreground">{record.telefone}</p>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[9px] shrink-0",
+                            record.source === "cliente"
+                              ? "bg-success/10 text-success border-success/20"
+                              : "bg-info/10 text-info border-info/20"
+                          )}
+                        >
+                          {record.source === "cliente" ? "Cliente" : "Lead"}
+                        </Badge>
+                      </div>
+                      {(record.cidade || record.email) && (
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {[record.cidade, record.estado].filter(Boolean).join(", ")}
+                          {record.email && ` • ${record.email}`}
+                        </p>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* No results */}
+              {phoneLookupDone && phoneLookupResults.length === 0 && form.cliente_celular.replace(/\D/g, "").length >= 10 && !selectedRecord && (
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <AlertCircle className="h-3 w-3" />
+                  <span>Nenhum cadastro encontrado para este telefone</span>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2 space-y-1.5">
                 <Label>Nome *</Label>
@@ -140,14 +335,6 @@ export function NovaPropostaDialog({
                   placeholder="Nome completo"
                   value={form.cliente_nome}
                   onChange={(e) => handleChange("cliente_nome", e.target.value)}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Celular</Label>
-                <Input
-                  placeholder="(00) 00000-0000"
-                  value={form.cliente_celular}
-                  onChange={(e) => handleChange("cliente_celular", e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
