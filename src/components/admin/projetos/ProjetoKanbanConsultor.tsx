@@ -269,27 +269,30 @@ function OwnerDealCard({
       onDragStart={onDragStart}
       onClick={onClick}
       className={cn(
-        "group relative bg-card rounded-xl border border-border/40 p-2.5 cursor-pointer",
-        "shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all duration-150",
+        "group relative bg-card rounded-xl p-3 cursor-pointer",
+        "shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200",
+        "border-l-[4px]",
         isDragging && "opacity-40 scale-95",
-        // Status-based card styling with VIVID colors
-        deal.deal_status === "won" && "bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500",
-        deal.deal_status === "lost" && "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500 opacity-70",
-        isOpen && stagnation === "critical" && "border-l-4 border-l-red-500",
-        isOpen && stagnation === "warning" && "border-l-4 border-l-amber-400",
-        isOpen && !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400",
-        isOpen && !stagnation && deal.proposta_id && etiquetaInfo && "border-l-4",
-        isOpen && !stagnation && deal.proposta_id && !etiquetaInfo && "border-l-4 border-l-primary/40",
+        // Status-based border colors using semantic tokens
+        deal.deal_status === "won" && "border-l-success bg-success/5",
+        deal.deal_status === "lost" && "border-l-destructive bg-destructive/5 opacity-60",
+        isOpen && stagnation === "critical" && "border-l-destructive",
+        isOpen && stagnation === "warning" && "border-l-warning",
+        isOpen && !stagnation && !deal.proposta_id && "border-l-primary/60",
+        isOpen && !stagnation && deal.proposta_id && etiquetaInfo && "border-l-primary",
+        isOpen && !stagnation && deal.proposta_id && !etiquetaInfo && "border-l-primary",
+        // Right border glow
+        "border border-border/30 hover:border-border/60",
       )}
       style={{
         ...(etiquetaInfo && isOpen && !stagnation ? { borderLeftColor: etiquetaInfo.cor } : {}),
       }}
     >
-      {/* Row 1: Etiqueta + Stage + Time */}
-      <div className="flex items-center gap-1.5 mb-1">
+      {/* Row 1: Stage + Time */}
+      <div className="flex items-center gap-1.5 mb-1.5">
         {etiquetaInfo && (
           <span
-            className="text-[8px] font-bold rounded-full px-1.5 py-0.5 text-white leading-none shadow-sm"
+            className="text-[8px] font-bold rounded-full px-2 py-0.5 text-white leading-none shadow-sm"
             style={{ backgroundColor: etiquetaInfo.cor }}
           >
             {etiquetaInfo.icon ? `${etiquetaInfo.icon} ` : ""}{etiquetaInfo.short || etiquetaInfo.nome.substring(0, 3).toUpperCase()}
@@ -299,9 +302,9 @@ function OwnerDealCard({
           {deal.stage_name}
         </span>
         <span className={cn(
-          "ml-auto text-[9px] flex items-center gap-0.5 font-medium",
-          stagnation === "critical" && "text-red-500 font-bold",
-          stagnation === "warning" && "text-amber-500 font-bold",
+          "ml-auto text-[9px] flex items-center gap-0.5 font-semibold tabular-nums",
+          stagnation === "critical" && "text-destructive",
+          stagnation === "warning" && "text-warning",
           !stagnation && "text-muted-foreground",
         )}>
           <Clock className="h-2.5 w-2.5" />
@@ -311,7 +314,7 @@ function OwnerDealCard({
 
       {/* Row 2: Customer name */}
       <h4 className={cn(
-        "text-[13px] font-bold leading-tight truncate mb-1",
+        "text-[13px] font-bold leading-tight truncate mb-1.5",
         deal.deal_status === "lost" ? "text-muted-foreground line-through" : "text-foreground"
       )}>
         {deal.customer_name || deal.deal_title}
@@ -319,33 +322,29 @@ function OwnerDealCard({
 
       {/* Row 3: Phone + quick actions */}
       {deal.customer_phone && (
-        <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
-          <Phone className="h-2.5 w-2.5" />
-          <span>{deal.customer_phone}</span>
-          <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-2">
+          <Phone className="h-3 w-3 text-muted-foreground/60" />
+          <span className="font-mono text-[10px]">{deal.customer_phone}</span>
+          <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-5 w-5 p-0 rounded-full"
+                <button
+                  className="h-6 w-6 rounded-full bg-success/15 text-success hover:bg-success hover:text-white flex items-center justify-center transition-all duration-150"
                   onClick={handleSendWhatsApp}
                 >
-                  <MessageSquare className="h-2.5 w-2.5" />
-                </Button>
+                  <MessageSquare className="h-3 w-3" />
+                </button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">WhatsApp</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-5 w-5 p-0 rounded-full text-muted-foreground hover:text-foreground"
+                <button
+                  className="h-6 w-6 rounded-full bg-secondary/15 text-secondary hover:bg-secondary hover:text-white flex items-center justify-center transition-all duration-150"
                   onClick={handleCall}
                 >
-                  <Phone className="h-2.5 w-2.5" />
-                </Button>
+                  <Phone className="h-3 w-3" />
+                </button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">Ligar</TooltipContent>
             </Tooltip>
@@ -354,7 +353,7 @@ function OwnerDealCard({
       )}
 
       {/* Row 4: Value + kWp */}
-      <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-center gap-2.5 mb-1.5">
         {deal.deal_value > 0 && (
           <span className="inline-flex items-center gap-0.5 text-[11px] font-bold font-mono text-success">
             <DollarSign className="h-3 w-3" />
@@ -363,21 +362,21 @@ function OwnerDealCard({
         )}
         {deal.deal_kwp > 0 && (
           <span className="inline-flex items-center gap-0.5 text-[10px] font-bold font-mono text-info">
-            <Zap className="h-2.5 w-2.5" />
+            <Zap className="h-3 w-3" />
             {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
           </span>
         )}
       </div>
 
-      {/* Row 5: Indicators (proposal, notes) */}
+      {/* Row 5: Indicators */}
       <div className="flex items-center gap-1.5 flex-wrap">
         {hasProposta ? (
-          <Badge variant="outline" className="text-[8px] h-4 px-1.5 gap-0.5 bg-success/10 text-success border-success/30">
+          <Badge variant="outline" className="text-[8px] h-[18px] px-1.5 gap-0.5 bg-success/10 text-success border-success/40 font-semibold">
             <FileText className="h-2.5 w-2.5" />
             Proposta
           </Badge>
         ) : isOpen ? (
-          <Badge variant="outline" className="text-[8px] h-4 px-1.5 gap-0.5 bg-orange-50 dark:bg-orange-950/20 text-orange-600 border-orange-300/50">
+          <Badge variant="outline" className="text-[8px] h-[18px] px-1.5 gap-0.5 bg-warning/10 text-warning border-warning/40 font-semibold">
             <FileText className="h-2.5 w-2.5" />
             Sem proposta
           </Badge>
@@ -385,7 +384,7 @@ function OwnerDealCard({
         {hasNotas && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="outline" className="text-[8px] h-4 px-1.5 gap-0.5 bg-info/10 text-info border-info/30">
+              <Badge variant="outline" className="text-[8px] h-[18px] px-1.5 gap-0.5 bg-info/10 text-info border-info/40 font-semibold">
                 <StickyNote className="h-2.5 w-2.5" />
                 Notas
               </Badge>
