@@ -180,31 +180,52 @@ export function ScheduleWhatsAppDialog({
       const scheduledDate = new Date(selectedDate);
       scheduledDate.setHours(hours, minutes, 0, 0);
 
-      // Use wa_outbox for scheduling since wa_followup_queue requires conversation_id
-      // For now, store as a direct message to be sent later
+      // Resolve the active instance for this tenant
+      const { data: instances, error: instErr } = await supabase
+        .from("wa_instances")
+        .select("id")
+        .in("status", ["active", "connected"])
+        .order("created_at", { ascending: true })
+        .limit(1);
+
+      if (instErr || !instances?.length) {
+        toast({
+          title: "Nenhuma instância WhatsApp",
+          description: "Não há instância ativa para enviar mensagens. Configure em WhatsApp > Configurações.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const cleanPhone = lead.telefone.replace(/\D/g, "");
+      const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+
       const { error } = await supabase.from("wa_outbox").insert({
-        instance_id: "00000000-0000-0000-0000-000000000000", // Will be resolved at send time
-        conversation_id: "00000000-0000-0000-0000-000000000000", // Placeholder
-        remote_jid: lead.telefone?.replace(/\D/g, "") + "@s.whatsapp.net",
+        instance_id: instances[0].id,
+        conversation_id: null,
+        remote_jid: formattedPhone + "@s.whatsapp.net",
         message_type: "text",
         content: message,
         status: "scheduled",
+        scheduled_at: scheduledDate.toISOString(),
       });
 
       if (error) throw error;
 
       toast({
-        title: "Lembrete agendado!",
-        description: `Mensagem será enviada em ${format(scheduledDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
+        title: "Mensagem agendada! ⏰",
+        description: `Será enviada em ${format(scheduledDate, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}`,
       });
 
+      setMessage("");
+      setSelectedDate(undefined);
       onOpenChange(false);
       onSuccess?.();
-    } catch (error) {
-      console.error("Error scheduling reminder:", error);
+    } catch (error: any) {
+      console.error("Error scheduling message:", error);
       toast({
         title: "Erro ao agendar",
-        description: "Não foi possível agendar o lembrete.",
+        description: error?.message || "Não foi possível agendar a mensagem.",
         variant: "destructive",
       });
     } finally {
