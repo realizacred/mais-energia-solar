@@ -56,6 +56,8 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { service_key, api_key } = body;
 
+    console.log("[save-integration-key] Saving key for service:", service_key);
+
     if (!service_key || !api_key) {
       return new Response(JSON.stringify({ error: "service_key and api_key are required" }), {
         status: 400,
@@ -110,6 +112,29 @@ Deno.serve(async (req) => {
         if (res.ok) {
           await res.text();
           validation = { valid: true, details: "API key válida" };
+        } else {
+          const errText = await res.text();
+          validation = { valid: false, details: `HTTP ${res.status}: ${errText.slice(0, 100)}` };
+        }
+      } catch (err: any) {
+        validation = { valid: false, details: err.message || "Timeout ou erro de conexão" };
+      }
+    } else if (service_key === "google_maps") {
+      try {
+        const res = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?address=Brasilia&key=${api_key}`,
+          { method: "GET", signal: AbortSignal.timeout(10000) }
+        );
+        const latency = Date.now();
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status === "OK" || json.status === "ZERO_RESULTS") {
+            validation = { valid: true, details: "API key válida — Geocoding OK" };
+          } else if (json.status === "REQUEST_DENIED") {
+            validation = { valid: false, details: `Chave recusada pelo Google: ${json.error_message || "verifique se Geocoding API está habilitada"}` };
+          } else {
+            validation = { valid: false, details: `Google retornou status: ${json.status}` };
+          }
         } else {
           const errText = await res.text();
           validation = { valid: false, details: `HTTP ${res.status}: ${errText.slice(0, 100)}` };
