@@ -9,6 +9,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateProposal, renderProposal, type GenerateProposalPayload } from "@/services/proposalApi";
@@ -525,50 +526,89 @@ export function ProposalWizard() {
 
   // ─── Render
   return (
-    <div className="space-y-4 max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-bold">Nova Proposta</h1>
+    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden">
+      {/* ── Sticky Header */}
+      <div className="flex items-center justify-between px-4 lg:px-6 py-2.5 border-b border-border/60 bg-card shrink-0">
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1 h-7 text-xs text-muted-foreground hover:text-foreground">
+            <ChevronLeft className="h-3.5 w-3.5" /> Voltar
+          </Button>
+          <div className="h-4 w-px bg-border" />
+          <h1 className="text-sm font-bold">Nova Proposta</h1>
+          {selectedLead && (
+            <Badge variant="outline" className="text-[10px] font-mono border-primary/30 text-primary">
+              {selectedLead.nome}
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center gap-4">
           {potenciaKwp > 0 && (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Zap className="h-3.5 w-3.5 text-primary" />
-              <span>Potência Ideal</span>
+              <span className="hidden sm:inline">Potência</span>
               <span className="font-bold text-foreground">{potenciaKwp.toFixed(2)} kWp</span>
             </div>
           )}
-          <span className="text-[10px] font-mono text-primary font-bold">
-            Etapa {step + 1}/{activeSteps.length}
+          {consumoTotal > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <BarChart3 className="h-3.5 w-3.5 text-secondary" />
+              <span className="hidden sm:inline">Consumo</span>
+              <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
+            </div>
+          )}
+          {precoFinal > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <DollarSign className="h-3.5 w-3.5 text-success" />
+              <span className="font-bold text-foreground">{formatBRL(precoFinal)}</span>
+            </div>
+          )}
+          <span className="text-[10px] font-mono text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full">
+            {step + 1}/{activeSteps.length}
           </span>
         </div>
       </div>
 
       {/* Project Context Banner */}
       {projectContext && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/20 bg-primary/5">
-          <Link2 className="h-4 w-4 text-primary shrink-0" />
-          <p className="text-xs font-medium text-primary">
-            Proposta vinculada ao projeto — dados do cliente carregados automaticamente
+        <div className="flex items-center gap-2 px-4 lg:px-6 py-2 border-b border-primary/20 bg-primary/5 shrink-0">
+          <Link2 className="h-3.5 w-3.5 text-primary shrink-0" />
+          <p className="text-[11px] font-medium text-primary">
+            Proposta vinculada ao projeto — dados carregados automaticamente
           </p>
         </div>
       )}
 
-      {/* Layout: Sidebar + Content */}
-      <div className="flex gap-6">
-        {/* Sidebar Stepper */}
-        <div className="w-52 shrink-0 hidden lg:block">
-          <div className="sticky top-4">
+      {/* ── Body: Sidebar + Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-56 shrink-0 hidden lg:flex flex-col border-r border-border/60 bg-card/50">
+          <div className="flex-1 overflow-y-auto px-3 py-4">
             <WizardSidebar
               steps={activeSteps}
               currentStep={step}
               onStepClick={goToStep}
-              totalLabel={`Etapa ${step + 1}/${activeSteps.length}`}
             />
           </div>
+
+          {/* Navigation in sidebar */}
+          {!result && (
+            <div className="border-t border-border/60 p-3 space-y-2 shrink-0">
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={goPrev} disabled={step === 0} className="flex-1 gap-1 h-8 text-xs">
+                  <ChevronLeft className="h-3 w-3" /> Anterior
+                </Button>
+                {!isLastStep && (
+                  <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="flex-1 gap-1 h-8 text-xs">
+                    Próximo <ChevronRight className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Mobile stepper (horizontal, compact) */}
-        <div className="lg:hidden flex items-center gap-1 overflow-x-auto pb-2 scrollbar-thin w-full">
+        {/* Mobile stepper */}
+        <div className="lg:hidden flex items-center gap-1 overflow-x-auto px-3 py-2 border-b border-border/40 bg-card/50 shrink-0 w-full">
           {activeSteps.map((s, i) => {
             const Icon = s.icon;
             const isActive = i === step;
@@ -600,32 +640,25 @@ export function ProposalWizard() {
           })}
         </div>
 
-        {/* Main Content */}
-        <div className="flex-1 min-w-0">
-          <Card className="border-border/60 overflow-hidden">
-            <CardContent className="pt-5 pb-5 px-4 sm:px-6">
-              <AnimatePresence mode="wait">
-                {renderStepContent()}
-              </AnimatePresence>
-            </CardContent>
-          </Card>
+        {/* Main Content — fills remaining space */}
+        <div className="flex-1 min-w-0 overflow-y-auto">
+          <div className="p-4 lg:p-6">
+            <AnimatePresence mode="wait">
+              {renderStepContent()}
+            </AnimatePresence>
+          </div>
 
-          {/* Navigation Footer */}
+          {/* Mobile navigation footer */}
           {!result && (
-            <div className="flex items-center justify-between mt-4">
-              <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1 h-8 text-xs">
-                Cancelar
+            <div className="lg:hidden flex items-center justify-between px-4 py-3 border-t border-border/60 bg-card sticky bottom-0">
+              <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
+                <ChevronLeft className="h-3 w-3" /> Voltar
               </Button>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
-                  Voltar
+              {!isLastStep && (
+                <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
+                  Próximo <ChevronRight className="h-3 w-3" />
                 </Button>
-                {!isLastStep && (
-                  <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
-                    Prosseguir
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           )}
         </div>
