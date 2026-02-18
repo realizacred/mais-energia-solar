@@ -84,7 +84,7 @@ export function ProjetosManager() {
     if (key === "pipelineId") {
       const pipelineValue = value === "todos" ? null : value;
       setSelectedPipelineId(pipelineValue);
-      setUserChoseTodos(value === "todos");
+      
       applyFilters({ pipelineId: pipelineValue });
       // Auto-switch view based on pipeline kind (only when specific pipeline selected)
       // DON'T auto-switch when selecting "todos" — keep current view mode
@@ -113,36 +113,27 @@ export function ProjetosManager() {
     [pipelines]
   );
 
-  // Track if user explicitly chose "todos" to prevent default override
-  const [userChoseTodos, setUserChoseTodos] = useState(false);
 
   useEffect(() => {
     if (!defaultPipelineApplied && activePipelines.length > 0) {
-      // Prefer "Comercial" pipeline as default
-      const comercial = activePipelines.find(p => p.name.toLowerCase() === "comercial");
-      const defaultPipeline = comercial || activePipelines[0];
-      if (!selectedPipelineId && !userChoseTodos) {
-        setSelectedPipelineId(defaultPipeline.id);
-        applyFilters({ pipelineId: defaultPipeline.id });
+      // Default: "Todos" os funis (sem filtro de pipeline)
+      if (!selectedPipelineId) {
+        applyFilters({ pipelineId: null });
       }
       setDefaultPipelineApplied(true);
     }
     if (selectedPipelineId) {
       const current = pipelines.find(p => p.id === selectedPipelineId);
-      if (current && !current.is_active && activePipelines.length > 0) {
-        const comercial = activePipelines.find(p => p.name.toLowerCase() === "comercial");
-        const fallback = comercial || activePipelines[0];
-        setSelectedPipelineId(fallback.id);
-        applyFilters({ pipelineId: fallback.id });
+      if (current && !current.is_active) {
+        setSelectedPipelineId(null);
+        applyFilters({ pipelineId: null });
       }
     }
-  }, [pipelines, selectedPipelineId, activePipelines, defaultPipelineApplied, userChoseTodos]);
+  }, [pipelines, selectedPipelineId, activePipelines, defaultPipelineApplied]);
 
   const clearFilters = () => {
-    const comercial = activePipelines.find(p => p.name.toLowerCase() === "comercial");
-    const pid = comercial?.id || activePipelines[0]?.id || null;
-    applyFilters({ pipelineId: pid, ownerId: "todos", status: "todos", search: "" });
-    setSelectedPipelineId(pid);
+    applyFilters({ pipelineId: null, ownerId: "todos", status: "todos", search: "" });
+    setSelectedPipelineId(null);
     try { sessionStorage.removeItem(STORED_STATUS_KEY); } catch {}
   };
 
