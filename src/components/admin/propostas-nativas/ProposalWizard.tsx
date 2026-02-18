@@ -203,6 +203,7 @@ export function ProposalWizard() {
   // Kit
   const [modulos, setModulos] = useState<any[]>([]);
   const [inversores, setInversores] = useState<any[]>([]);
+  const [otimizadores, setOtimizadores] = useState<any[]>([]);
   const [loadingEquip, setLoadingEquip] = useState(false);
   const [itens, setItens] = useState<KitItemRow[]>([
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
@@ -266,9 +267,11 @@ export function ProposalWizard() {
     Promise.all([
       supabase.from("modulos_solares").select("id, fabricante, modelo, potencia_wp, tipo_celula, eficiencia_percent").eq("ativo", true).order("potencia_wp", { ascending: false }),
       supabase.from("inversores_catalogo").select("id, fabricante, modelo, potencia_nominal_kw, tipo, mppt_count, fases").eq("ativo", true).order("potencia_nominal_kw", { ascending: false }),
-    ]).then(([modRes, invRes]) => {
+      supabase.from("otimizadores_catalogo").select("id, fabricante, modelo, potencia_wp, eficiencia_percent, compatibilidade").eq("ativo", true).order("fabricante"),
+    ]).then(([modRes, invRes, otimRes]) => {
       setModulos(modRes.data || []);
       setInversores(invRes.data || []);
+      setOtimizadores(otimRes.data || []);
       setLoadingEquip(false);
     });
   }, []);
@@ -754,7 +757,7 @@ export function ProposalWizard() {
       case STEP_KEYS.KIT:
         return (
           <StepContent key="kit">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} />
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} />
           </StepContent>
         );
 
