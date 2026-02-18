@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2, Package,
-  Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2,
+  Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { useSolarPremises } from "@/hooks/useSolarPremises";
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
 import { StepCliente } from "./wizard/StepCliente";
 import { StepConsumptionIntelligence } from "./wizard/StepConsumptionIntelligence";
+import { StepCamposCustomizados } from "./wizard/StepCamposCustomizados";
 import { StepTechnicalConfig } from "./wizard/StepTechnicalConfig";
 import { StepEngineeringAnalysis } from "./wizard/StepEngineeringAnalysis";
 import { StepKitSelection } from "./wizard/StepKitSelection";
@@ -40,6 +41,7 @@ const STEPS = [
   { label: "Localização", icon: MapPin },
   { label: "Cliente", icon: User },
   { label: "Consumo", icon: BarChart3 },
+  { label: "Campos", icon: ClipboardList },
   { label: "Técnico", icon: Settings2 },
   { label: "Análise", icon: Cpu },
   { label: "Kit", icon: Package },
@@ -99,7 +101,10 @@ export function ProposalWizard() {
   const [grupo, setGrupo] = useState("B1");
   const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
 
-  // Step 3 - Premissas (loaded from tenant defaults)
+  // Step 3 - Campos Customizados
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
+
+  // Step 4 - Premissas (loaded from tenant defaults)
   const [premissas, setPremissas] = useState<PremissasData>(DEFAULT_PREMISSAS);
 
   // Step 4 - Kit
@@ -274,13 +279,14 @@ export function ProposalWizard() {
     /* 0 Localização */ !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
     /* 1 Cliente     */ !!cliente.nome && !!cliente.celular,
     /* 2 Consumo     */ consumoTotal > 0,
-    /* 3 Técnico     */ potenciaKwp > 0,
-    /* 4 Análise     */ true, // auto-advances
-    /* 5 Kit         */ itens.length > 0 && itens.some(i => i.descricao),
-    /* 6 Serviços    */ true,
-    /* 7 Financeiro  */ venda.margem_percentual >= 0,
-    /* 8 Pagamento   */ true,
-    /* 9 Documento   */ true,
+    /* 3 Campos      */ true,
+    /* 4 Técnico     */ potenciaKwp > 0,
+    /* 5 Análise     */ true, // auto-advances
+    /* 6 Kit         */ itens.length > 0 && itens.some(i => i.descricao),
+    /* 7 Serviços    */ true,
+    /* 8 Financeiro  */ venda.margem_percentual >= 0,
+    /* 9 Pagamento   */ true,
+    /* 10 Documento  */ true,
   ];
 
   // ─── Generate ────────────────────────────────────────
@@ -344,26 +350,26 @@ export function ProposalWizard() {
 
   const handleAnalysisComplete = useCallback(() => {
     setAnalysisComplete(true);
-    setStep(5);
+    setStep(6);
   }, []);
 
   // If step 3 was already completed, skip analysis on re-visit
   const goToStep = (target: number) => {
-    if (target === 4 && analysisComplete) {
-      setStep(5); // skip analysis
+    if (target === 5 && analysisComplete) {
+      setStep(6); // skip analysis
       return;
     }
     setStep(target);
   };
 
   const goNext = () => {
-    if (step === 4) return; // analysis auto-advances
+    if (step === 5) return; // analysis auto-advances
     goToStep(step + 1);
   };
 
   const goPrev = () => {
-    if (step === 5 && analysisComplete) {
-      setStep(3); // skip analysis going back
+    if (step === 6 && analysisComplete) {
+      setStep(4); // skip analysis going back
       return;
     }
     setStep(Math.max(0, step - 1));
@@ -386,7 +392,7 @@ export function ProposalWizard() {
         {STEPS.map((s, i) => {
           const Icon = s.icon;
           const isActive = i === step;
-          const isDone = i < step || (i === 4 && analysisComplete && step > 4);
+          const isDone = i < step || (i === 5 && analysisComplete && step > 5);
           return (
             <div key={s.label} className="flex items-center gap-0.5 flex-shrink-0">
               <button
@@ -447,42 +453,48 @@ export function ProposalWizard() {
 
             {step === 3 && (
               <StepContent key="step3">
-                <StepTechnicalConfig ucs={ucs} onUcsChange={setUcs} grupo={grupo} onGrupoChange={setGrupo} potenciaKwp={potenciaKwp} />
+                <StepCamposCustomizados values={customFieldValues} onValuesChange={setCustomFieldValues} />
               </StepContent>
             )}
 
             {step === 4 && (
               <StepContent key="step4">
-                <StepEngineeringAnalysis onComplete={handleAnalysisComplete} potenciaKwp={potenciaKwp} />
+                <StepTechnicalConfig ucs={ucs} onUcsChange={setUcs} grupo={grupo} onGrupoChange={setGrupo} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 5 && (
               <StepContent key="step5">
-                <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} />
+                <StepEngineeringAnalysis onComplete={handleAnalysisComplete} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 6 && (
               <StepContent key="step6">
-                <StepServicos servicos={servicos} onServicosChange={setServicos} />
+                <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 7 && (
               <StepContent key="step7">
-                <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
+                <StepServicos servicos={servicos} onServicosChange={setServicos} />
               </StepContent>
             )}
 
             {step === 8 && (
               <StepContent key="step8">
-                <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} />
+                <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 9 && (
               <StepContent key="step9">
+                <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} />
+              </StepContent>
+            )}
+
+            {step === 10 && (
+              <StepContent key="step10">
                 <StepDocumento
                   clienteNome={cliente.nome || selectedLead?.nome || ""}
                   potenciaKwp={potenciaKwp}
@@ -506,7 +518,7 @@ export function ProposalWizard() {
       </Card>
 
       {/* ── Navigation Footer ── */}
-      {step !== 4 && step < 9 && !result && (
+      {step !== 5 && step < 10 && !result && (
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
             <ChevronLeft className="h-3.5 w-3.5" /> Voltar
