@@ -27,6 +27,7 @@ import { StepServicos } from "./wizard/StepServicos";
 import { StepFinancialCenter, calcPrecoFinal } from "./wizard/StepFinancialCenter";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
+import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
 import { WizardSidebar, type WizardStep } from "./wizard/WizardSidebar";
 
 // ── Types
@@ -181,6 +182,11 @@ export function ProposalWizard() {
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
   const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
+
+  // Pos-dimensionamento dialog
+  const [showPosDialog, setShowPosDialog] = useState(false);
+  const [nomeProposta, setNomeProposta] = useState("");
+  const [descricaoProposta, setDescricaoProposta] = useState("");
 
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
@@ -401,7 +407,23 @@ export function ProposalWizard() {
   };
 
   const goNext = () => {
-    if (step < activeSteps.length - 1) setStep(step + 1);
+    if (step >= activeSteps.length - 1) return;
+    // Intercept: when advancing FROM Pagamento → show pos-dimensionamento dialog
+    const nextKey = activeSteps[step + 1]?.key;
+    if (currentStepKey === STEP_KEYS.PAGAMENTO && nextKey === STEP_KEYS.PROPOSTA) {
+      // Auto-fill nome if empty
+      if (!nomeProposta && (cliente.nome || selectedLead?.nome)) {
+        setNomeProposta(cliente.nome || selectedLead?.nome || "");
+      }
+      setShowPosDialog(true);
+      return;
+    }
+    setStep(step + 1);
+  };
+
+  const handlePosDialogConfirm = () => {
+    setShowPosDialog(false);
+    setStep(step + 1);
   };
 
   const goPrev = () => {
@@ -676,6 +698,23 @@ export function ProposalWizard() {
           )}
         </div>
       </div>
+
+      {/* Pos-dimensionamento dialog */}
+      <DialogPosDimensionamento
+        open={showPosDialog}
+        onOpenChange={setShowPosDialog}
+        clienteNome={cliente.nome || selectedLead?.nome || ""}
+        empresaNome={cliente.empresa || cliente.nome || selectedLead?.nome || ""}
+        potenciaKwp={potenciaKwp}
+        precoFinal={precoFinal}
+        nomeProposta={nomeProposta}
+        onNomePropostaChange={setNomeProposta}
+        descricaoProposta={descricaoProposta}
+        onDescricaoPropostaChange={setDescricaoProposta}
+        customFieldValues={customFieldValues}
+        onCustomFieldValuesChange={setCustomFieldValues}
+        onConfirm={handlePosDialogConfirm}
+      />
     </div>
   );
 }
