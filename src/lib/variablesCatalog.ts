@@ -62,7 +62,7 @@ export const CATEGORY_ORDER: VariableCategory[] = [
   "customizada",
 ];
 
-export type VariableAppliesTo = "proposta" | "contrato" | "email" | "todos";
+export type VariableAppliesTo = "BT" | "MT" | "BT e MT";
 
 export interface CatalogVariable {
   /** Chave canônica: {{grupo.campo}} */
@@ -97,7 +97,7 @@ function v(
   description: string,
   unit: string,
   example: string,
-  appliesTo: VariableAppliesTo = "todos",
+  appliesTo: VariableAppliesTo = "BT e MT",
   opts?: { isSeries?: boolean; notImplemented?: boolean }
 ): CatalogVariable {
   return {
@@ -124,60 +124,60 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ── Tipo e Consumo ──
   v("entrada", "entrada.tipo", "tipo", "Tipo de Dimensionamento", "BT ou MT", "-", "BT|MT"),
   v("entrada", "entrada.tipo_uc1", "tipo_uc1", "Tipo de Dimensionamento UC #", "Tipo de dimensionamento por UC", "-", "BT"),
-  v("entrada", "entrada.consumo_mensal", "consumo_mensal", "Consumo Mensal", "Consumo mensal total (BT)", "kWh", "1.000"),
-  v("entrada", "entrada.consumo_mensal_uc1", "consumo_mensal_uc1", "Consumo Mensal UC #", "Consumo mensal por UC (BT)", "kWh", "1.000"),
-  v("entrada", "entrada.consumo_mensal_p", "consumo_mensal_p", "Consumo Mensal Ponta", "Consumo mensal na ponta (MT)", "kWh", "12.000"),
-  v("entrada", "entrada.consumo_mensal_p_uc1", "consumo_mensal_p_uc1", "Consumo Mensal Ponta UC #", "Consumo mensal ponta por UC (MT)", "kWh", "12.000"),
-  v("entrada", "entrada.consumo_mensal_fp", "consumo_mensal_fp", "Consumo Mensal Fora Ponta", "Consumo mensal fora da ponta (MT)", "kWh", "11.000"),
-  v("entrada", "entrada.consumo_mensal_fp_uc1", "consumo_mensal_fp_uc1", "Consumo Mensal Fora Ponta UC #", "Consumo mensal fora ponta por UC (MT)", "kWh", "11.000"),
+  v("entrada", "entrada.consumo_mensal", "consumo_mensal", "Consumo Mensal", "Consumo mensal total (BT)", "kWh", "1.000", "BT"),
+  v("entrada", "entrada.consumo_mensal_uc1", "consumo_mensal_uc1", "Consumo Mensal UC #", "Consumo mensal por UC (BT)", "kWh", "1.000", "BT"),
+  v("entrada", "entrada.consumo_mensal_p", "consumo_mensal_p", "Consumo Mensal Ponta", "Consumo mensal na ponta (MT)", "kWh", "12.000", "MT"),
+  v("entrada", "entrada.consumo_mensal_p_uc1", "consumo_mensal_p_uc1", "Consumo Mensal Ponta UC #", "Consumo mensal ponta por UC (MT)", "kWh", "12.000", "MT"),
+  v("entrada", "entrada.consumo_mensal_fp", "consumo_mensal_fp", "Consumo Mensal Fora Ponta", "Consumo mensal fora da ponta (MT)", "kWh", "11.000", "MT"),
+  v("entrada", "entrada.consumo_mensal_fp_uc1", "consumo_mensal_fp_uc1", "Consumo Mensal Fora Ponta UC #", "Consumo mensal fora ponta por UC (MT)", "kWh", "11.000", "MT"),
 
   // ── Distribuidora e Subgrupo ──
   v("entrada", "entrada.dis_energia", "dis_energia", "Distribuidora de Energia", "Nome da concessionária/distribuidora", "-", "Copel-DIS"),
   v("entrada", "entrada.subgrupo_uc1", "subgrupo_uc1", "Subgrupo UC#", "Subgrupo tarifário por UC", "-", "A4 - Verde"),
 
   // ── Consumo mensal por mês (BT — Disponível para os 12 meses) ──
-  v("entrada", "entrada.consumo_jan", "consumo_jan", "Consumo Janeiro", "Consumo em janeiro (Disponível para os 12 meses)", "kWh", "1.236"),
-  v("entrada", "entrada.consumo_jan_uc1", "consumo_jan_uc1", "Consumo Janeiro UC #", "Consumo em janeiro por UC (Disponível para os 12 meses)", "kWh", "1.236"),
-  v("entrada", "entrada.consumo_fev", "consumo_fev", "Consumo Fevereiro", "Consumo em fevereiro", "kWh", "480"),
-  v("entrada", "entrada.consumo_mar", "consumo_mar", "Consumo Março", "Consumo em março", "kWh", "460"),
-  v("entrada", "entrada.consumo_abr", "consumo_abr", "Consumo Abril", "Consumo em abril", "kWh", "400"),
-  v("entrada", "entrada.consumo_mai", "consumo_mai", "Consumo Maio", "Consumo em maio", "kWh", "380"),
-  v("entrada", "entrada.consumo_jun", "consumo_jun", "Consumo Junho", "Consumo em junho", "kWh", "350"),
-  v("entrada", "entrada.consumo_jul", "consumo_jul", "Consumo Julho", "Consumo em julho", "kWh", "340"),
-  v("entrada", "entrada.consumo_ago", "consumo_ago", "Consumo Agosto", "Consumo em agosto", "kWh", "360"),
-  v("entrada", "entrada.consumo_set", "consumo_set", "Consumo Setembro", "Consumo em setembro", "kWh", "380"),
-  v("entrada", "entrada.consumo_out", "consumo_out", "Consumo Outubro", "Consumo em outubro", "kWh", "420"),
-  v("entrada", "entrada.consumo_nov", "consumo_nov", "Consumo Novembro", "Consumo em novembro", "kWh", "450"),
-  v("entrada", "entrada.consumo_dez", "consumo_dez", "Consumo Dezembro", "Consumo em dezembro", "kWh", "490"),
+  v("entrada", "entrada.consumo_jan", "consumo_jan", "Consumo Janeiro", "Consumo em janeiro (Disponível para os 12 meses)", "kWh", "1.236", "BT"),
+  v("entrada", "entrada.consumo_jan_uc1", "consumo_jan_uc1", "Consumo Janeiro UC #", "Consumo em janeiro por UC (Disponível para os 12 meses)", "kWh", "1.236", "BT"),
+  v("entrada", "entrada.consumo_fev", "consumo_fev", "Consumo Fevereiro", "Consumo em fevereiro", "kWh", "480", "BT"),
+  v("entrada", "entrada.consumo_mar", "consumo_mar", "Consumo Março", "Consumo em março", "kWh", "460", "BT"),
+  v("entrada", "entrada.consumo_abr", "consumo_abr", "Consumo Abril", "Consumo em abril", "kWh", "400", "BT"),
+  v("entrada", "entrada.consumo_mai", "consumo_mai", "Consumo Maio", "Consumo em maio", "kWh", "380", "BT"),
+  v("entrada", "entrada.consumo_jun", "consumo_jun", "Consumo Junho", "Consumo em junho", "kWh", "350", "BT"),
+  v("entrada", "entrada.consumo_jul", "consumo_jul", "Consumo Julho", "Consumo em julho", "kWh", "340", "BT"),
+  v("entrada", "entrada.consumo_ago", "consumo_ago", "Consumo Agosto", "Consumo em agosto", "kWh", "360", "BT"),
+  v("entrada", "entrada.consumo_set", "consumo_set", "Consumo Setembro", "Consumo em setembro", "kWh", "380", "BT"),
+  v("entrada", "entrada.consumo_out", "consumo_out", "Consumo Outubro", "Consumo em outubro", "kWh", "420", "BT"),
+  v("entrada", "entrada.consumo_nov", "consumo_nov", "Consumo Novembro", "Consumo em novembro", "kWh", "450", "BT"),
+  v("entrada", "entrada.consumo_dez", "consumo_dez", "Consumo Dezembro", "Consumo em dezembro", "kWh", "490", "BT"),
 
   // ── Consumo mensal Ponta por mês (MT — Disponível para os 12 meses) ──
-  v("entrada", "entrada.consumo_mensal_p_jan", "consumo_mensal_p_jan", "Consumo Mensal Ponta Janeiro", "Consumo ponta em janeiro (Disponível para os 12 meses)", "kWh", "12.000"),
-  v("entrada", "entrada.consumo_mensal_p_jan_uc1", "consumo_mensal_p_jan_uc1", "Consumo Mensal Ponta Janeiro UC #", "Consumo ponta em janeiro por UC", "kWh", "12.000"),
+  v("entrada", "entrada.consumo_mensal_p_jan", "consumo_mensal_p_jan", "Consumo Mensal Ponta Janeiro", "Consumo ponta em janeiro (Disponível para os 12 meses)", "kWh", "12.000", "MT"),
+  v("entrada", "entrada.consumo_mensal_p_jan_uc1", "consumo_mensal_p_jan_uc1", "Consumo Mensal Ponta Janeiro UC #", "Consumo ponta em janeiro por UC", "kWh", "12.000", "MT"),
 
   // ── Consumo mensal Fora Ponta por mês (MT — Disponível para os 12 meses) ──
-  v("entrada", "entrada.consumo_mensal_fp_jan", "consumo_mensal_fp_jan", "Consumo Mensal Fora Ponta Janeiro", "Consumo fora ponta em janeiro (Disponível para os 12 meses)", "kWh", "11.000"),
-  v("entrada", "entrada.consumo_mensal_fp_jan_uc1", "consumo_mensal_fp_jan_uc1", "Consumo Mensal Fora Ponta Janeiro UC #", "Consumo fora ponta em janeiro por UC", "kWh", "11.000"),
+  v("entrada", "entrada.consumo_mensal_fp_jan", "consumo_mensal_fp_jan", "Consumo Mensal Fora Ponta Janeiro", "Consumo fora ponta em janeiro (Disponível para os 12 meses)", "kWh", "11.000", "MT"),
+  v("entrada", "entrada.consumo_mensal_fp_jan_uc1", "consumo_mensal_fp_jan_uc1", "Consumo Mensal Fora Ponta Janeiro UC #", "Consumo fora ponta em janeiro por UC", "kWh", "11.000", "MT"),
 
   // ── Tarifas (BT) ──
-  v("entrada", "entrada.tarifa_distribuidora", "tarifa_distribuidora", "Tarifa Distribuidora", "Tarifa da distribuidora (BT)", "R$", "0,97"),
-  v("entrada", "entrada.tarifa_distribuidora_uc1", "tarifa_distribuidora_uc1", "Tarifa Distribuidora UC #", "Tarifa da distribuidora por UC (BT)", "R$", "0,97"),
+  v("entrada", "entrada.tarifa_distribuidora", "tarifa_distribuidora", "Tarifa Distribuidora", "Tarifa da distribuidora (BT)", "R$", "0,97", "BT"),
+  v("entrada", "entrada.tarifa_distribuidora_uc1", "tarifa_distribuidora_uc1", "Tarifa Distribuidora UC #", "Tarifa da distribuidora por UC (BT)", "R$", "0,97", "BT"),
 
   // ── Tarifas (MT) ──
-  v("entrada", "entrada.tarifa_te_p", "tarifa_te_p", "Tarifa TE Ponta", "Tarifa TE na ponta (MT)", "R$", "0,98"),
-  v("entrada", "entrada.tarifa_te_p_uc1", "tarifa_te_p_uc1", "Tarifa TE Ponta UC #", "Tarifa TE ponta por UC (MT)", "R$", "0,98"),
-  v("entrada", "entrada.tarifa_tusd_p", "tarifa_tusd_p", "Tarifa TUSD Ponta", "Tarifa TUSD na ponta (MT)", "R$", "0,89"),
-  v("entrada", "entrada.tarifa_tusd_p_uc1", "tarifa_tusd_p_uc1", "Tarifa TUSD Ponta UC #", "Tarifa TUSD ponta por UC (MT)", "R$", "0,89"),
-  v("entrada", "entrada.tarifa_te_fp", "tarifa_te_fp", "Tarifa TE Fora Ponta", "Tarifa TE fora ponta (MT)", "R$", "0,87"),
-  v("entrada", "entrada.tarifa_te_fp_uc1", "tarifa_te_fp_uc1", "Tarifa TE Fora Ponta UC #", "Tarifa TE fora ponta por UC (MT)", "R$", "0,87"),
-  v("entrada", "entrada.tarifa_tusd_fp", "tarifa_tusd_fp", "Tarifa TUSD Fora Ponta", "Tarifa TUSD fora ponta (MT)", "R$", "0,86"),
-  v("entrada", "entrada.tarifa_tusd_fp_uc1", "tarifa_tusd_fp_uc1", "Tarifa TUSD Fora Ponta UC #", "Tarifa TUSD fora ponta por UC (MT)", "R$", "0,86"),
+  v("entrada", "entrada.tarifa_te_p", "tarifa_te_p", "Tarifa TE Ponta", "Tarifa TE na ponta (MT)", "R$", "0,98", "MT"),
+  v("entrada", "entrada.tarifa_te_p_uc1", "tarifa_te_p_uc1", "Tarifa TE Ponta UC #", "Tarifa TE ponta por UC (MT)", "R$", "0,98", "MT"),
+  v("entrada", "entrada.tarifa_tusd_p", "tarifa_tusd_p", "Tarifa TUSD Ponta", "Tarifa TUSD na ponta (MT)", "R$", "0,89", "MT"),
+  v("entrada", "entrada.tarifa_tusd_p_uc1", "tarifa_tusd_p_uc1", "Tarifa TUSD Ponta UC #", "Tarifa TUSD ponta por UC (MT)", "R$", "0,89", "MT"),
+  v("entrada", "entrada.tarifa_te_fp", "tarifa_te_fp", "Tarifa TE Fora Ponta", "Tarifa TE fora ponta (MT)", "R$", "0,87", "MT"),
+  v("entrada", "entrada.tarifa_te_fp_uc1", "tarifa_te_fp_uc1", "Tarifa TE Fora Ponta UC #", "Tarifa TE fora ponta por UC (MT)", "R$", "0,87", "MT"),
+  v("entrada", "entrada.tarifa_tusd_fp", "tarifa_tusd_fp", "Tarifa TUSD Fora Ponta", "Tarifa TUSD fora ponta (MT)", "R$", "0,86", "MT"),
+  v("entrada", "entrada.tarifa_tusd_fp_uc1", "tarifa_tusd_fp_uc1", "Tarifa TUSD Fora Ponta UC #", "Tarifa TUSD fora ponta por UC (MT)", "R$", "0,86", "MT"),
 
   // ── Demanda (MT) ──
-  v("entrada", "entrada.demanda_preco", "demanda_preco", "Demanda Preço", "Preço da demanda (MT)", "R$", "12,56"),
-  v("entrada", "entrada.demanda_preco_uc1", "demanda_preco_uc1", "Demanda Preço UC #", "Preço da demanda por UC (MT)", "R$", "12,56"),
-  v("entrada", "entrada.demanda_contratada", "demanda_contratada", "Demanda Contratada", "Demanda contratada (MT)", "KW", "123"),
-  v("entrada", "entrada.demanda_contratada_uc1", "demanda_contratada_uc1", "Demanda Contratada UC #", "Demanda contratada por UC (MT)", "KW", "123"),
-  v("entrada", "entrada.demanda_adicional", "demanda_adicional", "Demanda Adicional", "Demanda adicional (MT)", "KW", "50"),
+  v("entrada", "entrada.demanda_preco", "demanda_preco", "Demanda Preço", "Preço da demanda (MT)", "R$", "12,56", "MT"),
+  v("entrada", "entrada.demanda_preco_uc1", "demanda_preco_uc1", "Demanda Preço UC #", "Preço da demanda por UC (MT)", "R$", "12,56", "MT"),
+  v("entrada", "entrada.demanda_contratada", "demanda_contratada", "Demanda Contratada", "Demanda contratada (MT)", "KW", "123", "MT"),
+  v("entrada", "entrada.demanda_contratada_uc1", "demanda_contratada_uc1", "Demanda Contratada UC #", "Demanda contratada por UC (MT)", "KW", "123", "MT"),
+  v("entrada", "entrada.demanda_adicional", "demanda_adicional", "Demanda Adicional", "Demanda adicional (MT)", "KW", "50", "MT"),
 
   // ── Outros Encargos ──
   v("entrada", "entrada.outros_encargos_atual", "outros_encargos_atual", "Outros Encargos Atual", "Outros encargos atuais", "R$", "123"),
@@ -202,8 +202,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("entrada", "entrada.tensao_rede", "tensao_rede", "Tensão da Rede", "Tensão da rede elétrica", "V", "127/220V"),
 
   // ── Custo de Disponibilidade ──
-  v("entrada", "entrada.custo_disponibilidade_kwh", "custo_disponibilidade_kwh", "Custo de Disponibilidade", "Custo de disponibilidade em kWh (BT)", "kWh", "100"),
-  v("entrada", "entrada.custo_disponibilidade_kwh_uc1", "custo_disponibilidade_kwh_uc1", "Custo de Disponibilidade UC #", "Custo de disponibilidade por UC (BT)", "kWh", "100"),
+  v("entrada", "entrada.custo_disponibilidade_kwh", "custo_disponibilidade_kwh", "Custo de Disponibilidade", "Custo de disponibilidade em kWh (BT)", "kWh", "100", "BT"),
+  v("entrada", "entrada.custo_disponibilidade_kwh_uc1", "custo_disponibilidade_kwh_uc1", "Custo de Disponibilidade UC #", "Custo de disponibilidade por UC (BT)", "kWh", "100", "BT"),
   v("entrada", "entrada.topologia", "topologia", "Topologia", "Microinversor, String, etc.", "-", "Microinversor"),
   v("entrada", "entrada.fator_simultaneidade", "fator_simultaneidade", "Fator de Simultaneidade", "Fator de simultaneidade para autoconsumo", "%", "10"),
 
@@ -221,16 +221,16 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("entrada", "entrada.nome_uc1", "nome_uc1", "Nome da Unidade Consumidora", "Nome/apelido da UC", "-", "Usina 1"),
 
   // ── Demanda Geração (MT) ──
-  v("entrada", "entrada.demanda_g_uc1", "demanda_g_uc1", "Demanda Geração UC 1", "Demanda de geração por UC (MT)", "kW", "30,00"),
-  v("entrada", "entrada.demanda_g_preco_uc1", "demanda_g_preco_uc1", "Demanda Geração Preço UC 1", "Preço da demanda de geração por UC (MT)", "R$", "10,00"),
+  v("entrada", "entrada.demanda_g_uc1", "demanda_g_uc1", "Demanda Geração UC 1", "Demanda de geração por UC (MT)", "kW", "30,00", "MT"),
+  v("entrada", "entrada.demanda_g_preco_uc1", "demanda_g_preco_uc1", "Demanda Geração Preço UC 1", "Preço da demanda de geração por UC (MT)", "R$", "10,00", "MT"),
 
   // ── Tarifa Fio B / Energia Compensada ──
-  v("entrada", "entrada.t_e_comp_fp_1_uc1", "t_e_comp_fp_1_uc1", "Tarifa Fio B/Energia Compensada Fora Ponta 1 UC #", "Tarifa Fio B energia compensada fora ponta período 1 por UC (MT)", "R$", "0,12345"),
-  v("entrada", "entrada.t_e_comp_fp_2_uc1", "t_e_comp_fp_2_uc1", "Tarifa Fio B/Energia Compensada Fora Ponta 2 UC #", "Tarifa Fio B energia compensada fora ponta período 2 por UC (MT)", "R$", "0,12345"),
-  v("entrada", "entrada.t_e_comp_p_1_uc1", "t_e_comp_p_1_uc1", "Tarifa Fio B/Energia Compensada Ponta 1 UC #", "Tarifa Fio B energia compensada ponta período 1 por UC (MT)", "R$", "0,12345"),
-  v("entrada", "entrada.t_e_comp_p_2_uc1", "t_e_comp_p_2_uc1", "Tarifa Fio B/Energia Compensada Ponta 2 UC #", "Tarifa Fio B energia compensada ponta período 2 por UC (MT)", "R$", "0,12345"),
-  v("entrada", "entrada.t_e_comp_bt_1_uc1", "t_e_comp_bt_1_uc1", "Tarifa Fio B/Energia Compensada BT 1 UC #", "Tarifa Fio B energia compensada BT período 1 por UC", "R$", "0,12345"),
-  v("entrada", "entrada.t_e_comp_bt_2_uc1", "t_e_comp_bt_2_uc1", "Tarifa Fio B/Energia Compensada BT 2 UC #", "Tarifa Fio B energia compensada BT período 2 por UC", "R$", "0,12345"),
+  v("entrada", "entrada.t_e_comp_fp_1_uc1", "t_e_comp_fp_1_uc1", "Tarifa Fio B/Energia Compensada Fora Ponta 1 UC #", "Tarifa Fio B energia compensada fora ponta período 1 por UC (MT)", "R$", "0,12345", "MT"),
+  v("entrada", "entrada.t_e_comp_fp_2_uc1", "t_e_comp_fp_2_uc1", "Tarifa Fio B/Energia Compensada Fora Ponta 2 UC #", "Tarifa Fio B energia compensada fora ponta período 2 por UC (MT)", "R$", "0,12345", "MT"),
+  v("entrada", "entrada.t_e_comp_p_1_uc1", "t_e_comp_p_1_uc1", "Tarifa Fio B/Energia Compensada Ponta 1 UC #", "Tarifa Fio B energia compensada ponta período 1 por UC (MT)", "R$", "0,12345", "MT"),
+  v("entrada", "entrada.t_e_comp_p_2_uc1", "t_e_comp_p_2_uc1", "Tarifa Fio B/Energia Compensada Ponta 2 UC #", "Tarifa Fio B energia compensada ponta período 2 por UC (MT)", "R$", "0,12345", "MT"),
+  v("entrada", "entrada.t_e_comp_bt_1_uc1", "t_e_comp_bt_1_uc1", "Tarifa Fio B/Energia Compensada BT 1 UC #", "Tarifa Fio B energia compensada BT período 1 por UC", "R$", "0,12345", "BT"),
+  v("entrada", "entrada.t_e_comp_bt_2_uc1", "t_e_comp_bt_2_uc1", "Tarifa Fio B/Energia Compensada BT 2 UC #", "Tarifa Fio B energia compensada BT período 2 por UC", "R$", "0,12345", "BT"),
 
   // ── Regra de Compensação ──
   v("entrada", "entrada.regra_comp_uc1", "regra_comp_uc1", "Regra de Compensação", "0 (GD I) ou 1 (GD II) por UC", "-", "1"),
@@ -682,26 +682,26 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   // COMERCIAL
   // ──────────────────────────────────────────────────────────────
-  v("comercial", "comercial.proposta_identificador", "proposta_identificador", "Identificador da Proposta", "Identificador único da proposta", "-", "2590-1", "proposta"),
-  v("comercial", "comercial.proposta_titulo", "proposta_titulo", "Título da Proposta", "Nome/título da proposta", "-", "Proposta Sistema Fotovoltaico", "proposta"),
-  v("comercial", "comercial.proposta_link", "proposta_link", "Link da Proposta", "URL de visualização pública da proposta", "-", "https://...", "proposta"),
-  v("comercial", "comercial.proposta_validade", "proposta_validade", "Validade", "Data de validade da proposta", "data", "15/03/2025", "proposta"),
-  v("comercial", "comercial.proposta_data", "proposta_data", "Data da proposta", "Data de criação da proposta", "data", "01/03/2025", "proposta"),
-  v("comercial", "comercial.responsavel_nome", "responsavel_nome", "Responsável", "Nome do responsável técnico", "-", "Ross", "proposta"),
-  v("comercial", "comercial.responsavel_email", "responsavel_email", "Responsável E-mail", "Email do responsável", "-", "ross@mail.com.br", "proposta"),
-  v("comercial", "comercial.responsavel_celular", "responsavel_celular", "Responsável Celular", "Celular do responsável", "-", "+55 21 99999-9999", "proposta"),
-  v("comercial", "comercial.representante_nome", "representante_nome", "Representante", "Nome do representante comercial", "-", "Rachel", "proposta"),
-  v("comercial", "comercial.representante_email", "representante_email", "Representante E-mail", "Email do representante", "-", "rachel@mail.com.br", "proposta"),
-  v("comercial", "comercial.representante_celular", "representante_celular", "Representante Celular", "Celular do representante", "-", "+55 21 88888-8888", "proposta"),
-  v("comercial", "comercial.projeto_id_externo", "projeto_id_externo", "Identificador externo do Projeto", "ID do projeto em sistema externo", "-", "123123", "proposta"),
-  v("comercial", "comercial.empresa_nome", "empresa_nome", "Empresa do integrador", "Razão social da empresa", "-", "Cruzeiro Esporte Clube", "proposta"),
-  v("comercial", "comercial.empresa_cnpj_cpf", "empresa_cnpj_cpf", "CNPJ/CPF do integrador", "CNPJ ou CPF da empresa", "-", "44.490.706/0001-54", "proposta"),
-  v("comercial", "comercial.empresa_cidade", "empresa_cidade", "Cidade do integrador", "Cidade da empresa", "-", "Belo Horizonte", "proposta"),
-  v("comercial", "comercial.empresa_estado", "empresa_estado", "Estado do integrador", "Estado da empresa", "-", "MG", "proposta"),
-  v("comercial", "comercial.empresa_endereco", "empresa_endereco", "Endereço do integrador", "Endereço completo da empresa", "-", "Rua Solar, 100", "proposta"),
-  v("comercial", "comercial.empresa_telefone", "empresa_telefone", "Telefone do integrador", "Telefone da empresa", "-", "(31) 3333-0000", "proposta"),
-  v("comercial", "comercial.empresa_email", "empresa_email", "E-mail do integrador", "Email da empresa", "-", "contato@solartech.com", "proposta"),
-  v("comercial", "comercial.empresa_logo_url", "empresa_logo_url", "Logo da empresa", "URL do logotipo da empresa", "-", "https://...", "proposta"),
+  v("comercial", "comercial.proposta_identificador", "proposta_identificador", "Identificador da Proposta", "Identificador único da proposta", "-", "2590-1"),
+  v("comercial", "comercial.proposta_titulo", "proposta_titulo", "Título da Proposta", "Nome/título da proposta", "-", "Proposta Sistema Fotovoltaico"),
+  v("comercial", "comercial.proposta_link", "proposta_link", "Link da Proposta", "URL de visualização pública da proposta", "-", "https://..."),
+  v("comercial", "comercial.proposta_validade", "proposta_validade", "Validade", "Data de validade da proposta", "data", "15/03/2025"),
+  v("comercial", "comercial.proposta_data", "proposta_data", "Data da proposta", "Data de criação da proposta", "data", "01/03/2025"),
+  v("comercial", "comercial.responsavel_nome", "responsavel_nome", "Responsável", "Nome do responsável técnico", "-", "Ross"),
+  v("comercial", "comercial.responsavel_email", "responsavel_email", "Responsável E-mail", "Email do responsável", "-", "ross@mail.com.br"),
+  v("comercial", "comercial.responsavel_celular", "responsavel_celular", "Responsável Celular", "Celular do responsável", "-", "+55 21 99999-9999"),
+  v("comercial", "comercial.representante_nome", "representante_nome", "Representante", "Nome do representante comercial", "-", "Rachel"),
+  v("comercial", "comercial.representante_email", "representante_email", "Representante E-mail", "Email do representante", "-", "rachel@mail.com.br"),
+  v("comercial", "comercial.representante_celular", "representante_celular", "Representante Celular", "Celular do representante", "-", "+55 21 88888-8888"),
+  v("comercial", "comercial.projeto_id_externo", "projeto_id_externo", "Identificador externo do Projeto", "ID do projeto em sistema externo", "-", "123123"),
+  v("comercial", "comercial.empresa_nome", "empresa_nome", "Empresa do integrador", "Razão social da empresa", "-", "Cruzeiro Esporte Clube"),
+  v("comercial", "comercial.empresa_cnpj_cpf", "empresa_cnpj_cpf", "CNPJ/CPF do integrador", "CNPJ ou CPF da empresa", "-", "44.490.706/0001-54"),
+  v("comercial", "comercial.empresa_cidade", "empresa_cidade", "Cidade do integrador", "Cidade da empresa", "-", "Belo Horizonte"),
+  v("comercial", "comercial.empresa_estado", "empresa_estado", "Estado do integrador", "Estado da empresa", "-", "MG"),
+  v("comercial", "comercial.empresa_endereco", "empresa_endereco", "Endereço do integrador", "Endereço completo da empresa", "-", "Rua Solar, 100"),
+  v("comercial", "comercial.empresa_telefone", "empresa_telefone", "Telefone do integrador", "Telefone da empresa", "-", "(31) 3333-0000"),
+  v("comercial", "comercial.empresa_email", "empresa_email", "E-mail do integrador", "Email da empresa", "-", "contato@solartech.com"),
+  v("comercial", "comercial.empresa_logo_url", "empresa_logo_url", "Logo da empresa", "URL do logotipo da empresa", "-", "https://..."),
 
   // ──────────────────────────────────────────────────────────────
   // CLIENTE
@@ -722,34 +722,34 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   // TABELAS (dados tabulares para loops)
   // ──────────────────────────────────────────────────────────────
-  v("tabelas", "tabelas.consumo_mensal", "tabela_consumo_mensal", "Tabela consumo mensal", "Tabela com consumo por mês (jan-dez)", "kWh", "{jan:500,...,dez:490}", "proposta", { isSeries: true }),
-  v("tabelas", "tabelas.geracao_mensal", "tabela_geracao_mensal", "Tabela geração mensal", "Tabela com geração estimada por mês", "kWh", "{jan:1200,...,dez:1200}", "proposta", { isSeries: true }),
-  v("tabelas", "tabelas.economia_mensal", "tabela_economia_mensal", "Tabela economia mensal", "Tabela com economia estimada por mês", "R$", "{jan:850,...,dez:830}", "proposta", { isSeries: true }),
-  v("tabelas", "tabelas.equipamentos", "tabela_equipamentos", "Tabela equipamentos", "Lista de equipamentos do sistema", "", "[{item,qtd,modelo}]", "proposta", { isSeries: true }),
-  v("tabelas", "tabelas.parcelas", "tabela_parcelas", "Tabela parcelas", "Parcelas do financiamento", "", "[{num,valor,vencimento}]", "proposta", { isSeries: true }),
+  v("tabelas", "tabelas.consumo_mensal", "tabela_consumo_mensal", "Tabela consumo mensal", "Tabela com consumo por mês (jan-dez)", "kWh", "{jan:500,...,dez:490}", "BT e MT", { isSeries: true }),
+  v("tabelas", "tabelas.geracao_mensal", "tabela_geracao_mensal", "Tabela geração mensal", "Tabela com geração estimada por mês", "kWh", "{jan:1200,...,dez:1200}", "BT e MT", { isSeries: true }),
+  v("tabelas", "tabelas.economia_mensal", "tabela_economia_mensal", "Tabela economia mensal", "Tabela com economia estimada por mês", "R$", "{jan:850,...,dez:830}", "BT e MT", { isSeries: true }),
+  v("tabelas", "tabelas.equipamentos", "tabela_equipamentos", "Tabela equipamentos", "Lista de equipamentos do sistema", "", "[{item,qtd,modelo}]", "BT e MT", { isSeries: true }),
+  v("tabelas", "tabelas.parcelas", "tabela_parcelas", "Tabela parcelas", "Parcelas do financiamento", "", "[{num,valor,vencimento}]", "BT e MT", { isSeries: true }),
 
   // ──────────────────────────────────────────────────────────────
   // SÉRIES (projeções anuais 0-24)
   // ──────────────────────────────────────────────────────────────
-  v("series", "series.economia_anual", "s_economia_anual", "Economia anual (série)", "Série de economia anual por 25 anos", "R$", "{0:10200,...,24:28500}", "proposta", { isSeries: true }),
-  v("series", "series.geracao_anual", "s_geracao_anual", "Geração anual (série)", "Série de geração anual por 25 anos", "kWh", "{0:13200,...,24:11880}", "proposta", { isSeries: true }),
-  v("series", "series.geracao_mensal", "s_geracao_mensal", "Geração mensal (série)", "Série de geração mensal por 25 anos", "kWh", "{0:1100,...,24:990}", "proposta", { isSeries: true }),
-  v("series", "series.investimento_anual", "s_investimento_anual", "Investimento anual (série)", "Série de investimento acumulado por ano", "R$", "{0:45000,...,24:45000}", "proposta", { isSeries: true }),
-  v("series", "series.fluxo_caixa_acumulado", "s_fluxo_caixa_acumulado_anual", "Fluxo de caixa acum. (série)", "Série de fluxo de caixa acumulado anual", "R$", "{0:-34800,...,24:210000}", "proposta", { isSeries: true }),
-  v("series", "series.tarifa_distribuidora", "s_tarifa_distribuidora_anual", "Tarifa distribuidora (série)", "Série de tarifa projetada por ano", "R$/kWh", "{0:0.95,...,24:2.10}", "proposta", { isSeries: true }),
-  v("series", "series.consumo_mensal", "s_consumo_mensal", "Consumo mensal (série)", "Série de consumo mensal projetado", "kWh", "{jan:500,...,dez:490}", "proposta", { isSeries: true }),
-  v("series", "series.creditos_mensal", "s_creditos_mensal", "Créditos mensal (série)", "Série de créditos de energia mensais", "kWh", "{jan:650,...,dez:710}", "proposta", { isSeries: true }),
-  v("series", "series.creditos_gerados", "s_creditos_gerados", "Créditos gerados (série)", "Série de créditos gerados mensais", "kWh", "{jan:700,...,dez:710}", "proposta", { isSeries: true }),
-  v("series", "series.creditos_alocados", "s_creditos_alocados", "Créditos alocados (série)", "Série de créditos alocados mensais", "kWh", "800", "proposta", { isSeries: true }),
-  v("series", "series.creditos_alocados_uc1", "s_creditos_alocados_uc1", "Créditos alocados UC # (série)", "Série de créditos alocados por UC", "kWh", "800", "proposta", { isSeries: true }),
+  v("series", "series.economia_anual", "s_economia_anual", "Economia anual (série)", "Série de economia anual por 25 anos", "R$", "{0:10200,...,24:28500}", "BT e MT", { isSeries: true }),
+  v("series", "series.geracao_anual", "s_geracao_anual", "Geração anual (série)", "Série de geração anual por 25 anos", "kWh", "{0:13200,...,24:11880}", "BT e MT", { isSeries: true }),
+  v("series", "series.geracao_mensal", "s_geracao_mensal", "Geração mensal (série)", "Série de geração mensal por 25 anos", "kWh", "{0:1100,...,24:990}", "BT e MT", { isSeries: true }),
+  v("series", "series.investimento_anual", "s_investimento_anual", "Investimento anual (série)", "Série de investimento acumulado por ano", "R$", "{0:45000,...,24:45000}", "BT e MT", { isSeries: true }),
+  v("series", "series.fluxo_caixa_acumulado", "s_fluxo_caixa_acumulado_anual", "Fluxo de caixa acum. (série)", "Série de fluxo de caixa acumulado anual", "R$", "{0:-34800,...,24:210000}", "BT e MT", { isSeries: true }),
+  v("series", "series.tarifa_distribuidora", "s_tarifa_distribuidora_anual", "Tarifa distribuidora (série)", "Série de tarifa projetada por ano", "R$/kWh", "{0:0.95,...,24:2.10}", "BT e MT", { isSeries: true }),
+  v("series", "series.consumo_mensal", "s_consumo_mensal", "Consumo mensal (série)", "Série de consumo mensal projetado", "kWh", "{jan:500,...,dez:490}", "BT e MT", { isSeries: true }),
+  v("series", "series.creditos_mensal", "s_creditos_mensal", "Créditos mensal (série)", "Série de créditos de energia mensais", "kWh", "{jan:650,...,dez:710}", "BT e MT", { isSeries: true }),
+  v("series", "series.creditos_gerados", "s_creditos_gerados", "Créditos gerados (série)", "Série de créditos gerados mensais", "kWh", "{jan:700,...,dez:710}", "BT e MT", { isSeries: true }),
+  v("series", "series.creditos_alocados", "s_creditos_alocados", "Créditos alocados (série)", "Série de créditos alocados mensais", "kWh", "800", "BT e MT", { isSeries: true }),
+  v("series", "series.creditos_alocados_uc1", "s_creditos_alocados_uc1", "Créditos alocados UC # (série)", "Série de créditos alocados por UC", "kWh", "800", "BT e MT", { isSeries: true }),
   // UC-specific series
-  v("series", "series.consumo_mensal_uc1", "s_consumo_mensal_uc1", "Consumo mensal UC # (série)", "Série de consumo mensal por UC", "kWh", "{jan:350,...,dez:380}", "proposta", { isSeries: true }),
-  v("series", "series.creditos_mensal_uc1", "s_creditos_mensal_uc1", "Saldo créditos mensal UC # (série)", "Série de saldo de créditos mensal por UC", "kWh", "{jan:300,...,dez:330}", "proposta", { isSeries: true }),
-  v("series", "series.economia_anual_uc1", "s_economia_anual_uc1", "Economia anual UC # (série)", "Série de economia anual por UC", "R$", "{0:8500,...,24:23000}", "proposta", { isSeries: true }),
-  v("series", "series.fluxo_caixa_acumulado_uc1", "s_fluxo_caixa_acumulado_anual_uc1", "Fluxo caixa acum. UC # (série)", "Série de fluxo de caixa acumulado por UC", "R$", "{0:-30000,...,24:180000}", "proposta", { isSeries: true }),
-  v("series", "series.geracao_anual_uc1", "s_geracao_anual_uc1", "Geração anual UC # (série)", "Série de geração anual por UC", "kWh", "{0:11000,...,24:9900}", "proposta", { isSeries: true }),
-  v("series", "series.investimento_anual_uc1", "s_investimento_anual_uc1", "Investimento anual UC # (série)", "Série de investimento acumulado por UC", "R$", "{0:38000,...,24:38000}", "proposta", { isSeries: true }),
-  v("series", "series.tarifa_distribuidora_uc1", "s_tarifa_distribuidora_anual_uc1", "Tarifa distribuidora UC # (série)", "Série de tarifa projetada por UC", "R$/kWh", "{0:0.95,...,24:2.10}", "proposta", { isSeries: true }),
+  v("series", "series.consumo_mensal_uc1", "s_consumo_mensal_uc1", "Consumo mensal UC # (série)", "Série de consumo mensal por UC", "kWh", "{jan:350,...,dez:380}", "BT e MT", { isSeries: true }),
+  v("series", "series.creditos_mensal_uc1", "s_creditos_mensal_uc1", "Saldo créditos mensal UC # (série)", "Série de saldo de créditos mensal por UC", "kWh", "{jan:300,...,dez:330}", "BT e MT", { isSeries: true }),
+  v("series", "series.economia_anual_uc1", "s_economia_anual_uc1", "Economia anual UC # (série)", "Série de economia anual por UC", "R$", "{0:8500,...,24:23000}", "BT e MT", { isSeries: true }),
+  v("series", "series.fluxo_caixa_acumulado_uc1", "s_fluxo_caixa_acumulado_anual_uc1", "Fluxo caixa acum. UC # (série)", "Série de fluxo de caixa acumulado por UC", "R$", "{0:-30000,...,24:180000}", "BT e MT", { isSeries: true }),
+  v("series", "series.geracao_anual_uc1", "s_geracao_anual_uc1", "Geração anual UC # (série)", "Série de geração anual por UC", "kWh", "{0:11000,...,24:9900}", "BT e MT", { isSeries: true }),
+  v("series", "series.investimento_anual_uc1", "s_investimento_anual_uc1", "Investimento anual UC # (série)", "Série de investimento acumulado por UC", "R$", "{0:38000,...,24:38000}", "BT e MT", { isSeries: true }),
+  v("series", "series.tarifa_distribuidora_uc1", "s_tarifa_distribuidora_anual_uc1", "Tarifa distribuidora UC # (série)", "Série de tarifa projetada por UC", "R$/kWh", "{0:0.95,...,24:2.10}", "BT e MT", { isSeries: true }),
 
   // ──────────────────────────────────────────────────────────────
   // PREMISSAS
@@ -767,18 +767,18 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   // CAMPOS DOS DISTRIBUIDORES (CDD)
   // ──────────────────────────────────────────────────────────────
-  v("cdd", "cdd.tipo_estrutura", "cdd_tipo_estrutura", "Tipo de estrutura", "Tipo de Telhado / Tipo de Estrutura — ECORI, GENYX, WEG SOLAR, NEOSOLAR, BLUESUN, SOLARMARKET", "", "Solo", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.marca_estrutura", "cdd_marca_estrutura", "Solução Estrutural", "Solução Estrutural / Marca da estrutura — ECORI", "", "Romagnole", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.comunicador", "cdd_comunicador", "Utiliza Comunicador?", "Tipo de comunicador de dados — ECORI", "", "Wi-Fi", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.tipo_sustentacao", "cdd_tipo_sustentacao", "Tipo de Sustentação", "Tipo de sustentação — GENYX", "", "Laje", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.tipo_telhado", "cdd_tipo_telhado", "Tipo de telhado utilizado", "Tipo de telhado utilizado / Onde será instalado — NEXEN, GTSOLAR", "", "Cerâmico", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.nivel", "cdd_nivel", "Nível da estrutura", "Nível do distribuidor — BLUESUN, SOLARMARKET", "", "Gold", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.orientacao", "cdd_orientacao", "Orientação", "Orientação dos módulos — BLUESUN, SOLARMARKET", "", "Norte", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.string_config", "cdd_string", "Adicionar StringBox CC?", "StringBox CC / Deseja Incluir StringBox — BLUESUN, SOLARMARKET", "", "2x8", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.string_ca", "cdd_sting_ca", "Adicionar StringBox CA?", "Configuração de strings CA — BLUESUN, SOLARMARKET", "", "1x1", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.telhado", "cdd_telhado", "Tipo de Telhado", "Tipo de telhado no cadastro — SOLARMARKET", "", "Cerâmico", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura / Estrutura do Telhado — A.DIAS SOLAR, SOPRANO, SOLARMARKET, BLUESUN, FORTLEV, ALDO", "", "Fibrocimento", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.tipo_perfil", "cdd_tipo_perfil", "Tipo de Perfil", "Tipo de perfil da estrutura — WEG SOLAR", "", "Perfil", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_estrutura", "cdd_tipo_estrutura", "Tipo de estrutura", "Tipo de Telhado / Tipo de Estrutura — ECORI, GENYX, WEG SOLAR, NEOSOLAR, BLUESUN, SOLARMARKET", "", "Solo", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.marca_estrutura", "cdd_marca_estrutura", "Solução Estrutural", "Solução Estrutural / Marca da estrutura — ECORI", "", "Romagnole", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.comunicador", "cdd_comunicador", "Utiliza Comunicador?", "Tipo de comunicador de dados — ECORI", "", "Wi-Fi", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.tipo_sustentacao", "cdd_tipo_sustentacao", "Tipo de Sustentação", "Tipo de sustentação — GENYX", "", "Laje", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.tipo_telhado", "cdd_tipo_telhado", "Tipo de telhado utilizado", "Tipo de telhado utilizado / Onde será instalado — NEXEN, GTSOLAR", "", "Cerâmico", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.nivel", "cdd_nivel", "Nível da estrutura", "Nível do distribuidor — BLUESUN, SOLARMARKET", "", "Gold", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.orientacao", "cdd_orientacao", "Orientação", "Orientação dos módulos — BLUESUN, SOLARMARKET", "", "Norte", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.string_config", "cdd_string", "Adicionar StringBox CC?", "StringBox CC / Deseja Incluir StringBox — BLUESUN, SOLARMARKET", "", "2x8", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.string_ca", "cdd_sting_ca", "Adicionar StringBox CA?", "Configuração de strings CA — BLUESUN, SOLARMARKET", "", "1x1", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.telhado", "cdd_telhado", "Tipo de Telhado", "Tipo de telhado no cadastro — SOLARMARKET", "", "Cerâmico", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura / Estrutura do Telhado — A.DIAS SOLAR, SOPRANO, SOLARMARKET, BLUESUN, FORTLEV, ALDO", "", "Fibrocimento", "BT e MT", { notImplemented: true }),
+  v("cdd", "cdd.tipo_perfil", "cdd_tipo_perfil", "Tipo de Perfil", "Tipo de perfil da estrutura — WEG SOLAR", "", "Perfil", "BT e MT", { notImplemented: true }),
 
   // ──────────────────────────────────────────────────────────────
   // VARIÁVEIS CUSTOMIZADAS (vc_*)
