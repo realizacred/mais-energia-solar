@@ -556,17 +556,17 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
       onClick={onClick}
       className={cn(
         "bg-card rounded-xl p-3 cursor-grab active:cursor-grabbing",
-        "border border-border/30",
+        "border border-border/30 border-l-[4px]",
         "shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/40",
         "transition-all duration-200 relative group",
-        // Status-based card styling with VIVID colors
-        deal.deal_status === "won" && "bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500",
-        deal.deal_status === "lost" && "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500 opacity-70",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-4 border-l-red-500",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-4 border-l-amber-400",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && etiquetaCfg && "border-l-4",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && !etiquetaCfg && "border-l-4 border-l-primary/40",
+        // Status-based card styling using semantic tokens
+        deal.deal_status === "won" && "border-l-success bg-success/5",
+        deal.deal_status === "lost" && "border-l-destructive bg-destructive/5 opacity-60",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-destructive",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-warning",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-primary/60",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && etiquetaCfg && "border-l-primary",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && !etiquetaCfg && "border-l-primary",
         isDragging && "opacity-30 scale-95",
       )}
       style={{
@@ -636,8 +636,8 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
         </div>
         <span className={cn(
           "flex items-center gap-0.5 font-medium",
-          stagnation === "critical" && "text-red-500 font-bold",
-          stagnation === "warning" && "text-amber-500 font-bold"
+          stagnation === "critical" && "text-destructive font-bold",
+          stagnation === "warning" && "text-warning font-bold"
         )}>
           <Clock className="h-2.5 w-2.5" />
           {timeInStage} na etapa
@@ -679,28 +679,24 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
           <>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="h-6 px-1.5 text-[10px]"
+                <button
+                  className="h-6 px-2 rounded-md bg-success/15 text-success hover:bg-success hover:text-white text-[10px] font-semibold flex items-center gap-1 transition-all duration-150"
                   onClick={handleSendWhatsApp}
                 >
-                  <MessageSquare className="h-3 w-3 mr-0.5" />
+                  <MessageSquare className="h-3 w-3" />
                   WhatsApp
-                </Button>
+                </button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">Enviar WhatsApp</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                <button
+                  className="h-6 w-6 rounded-full bg-secondary/15 text-secondary hover:bg-secondary hover:text-white flex items-center justify-center transition-all duration-150"
                   onClick={handleCall}
                 >
                   <Phone className="h-3 w-3" />
-                </Button>
+                </button>
               </TooltipTrigger>
               <TooltipContent className="text-xs">Ligar</TooltipContent>
             </Tooltip>

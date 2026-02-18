@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useDealPipeline } from "@/hooks/useDealPipeline";
@@ -285,44 +285,42 @@ export function ProjetosManager() {
                   </span>
                 </div>
 
-                {/* Color Legend */}
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground">
-                      <Info className="h-3 w-3" />
-                      Legenda
-                    </Button>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="absolute right-4 mt-1 z-20 bg-popover border border-border rounded-xl shadow-lg p-3 w-64">
-                    <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2">Bordas dos cards</p>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-emerald-500 shrink-0" />
+                {/* Color Legend — hover to reveal */}
+                <div className="relative group/legend">
+                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-[10px] text-muted-foreground hover:text-foreground">
+                    <Info className="h-3 w-3" />
+                    Legenda
+                  </Button>
+                  <div className="absolute right-0 mt-1 z-20 bg-popover border border-border rounded-xl shadow-xl p-3 w-64 invisible opacity-0 group-hover/legend:visible group-hover/legend:opacity-100 transition-all duration-200">
+                    <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2.5">Bordas dos cards</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-1 h-5 rounded-full bg-success shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Projeto ganho</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-red-500 shrink-0" />
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-1 h-5 rounded-full bg-destructive shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Projeto perdido / estagnado +7d</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-amber-400 shrink-0" />
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-1 h-5 rounded-full bg-warning shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Estagnado +3 dias</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-orange-400 shrink-0" />
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-1 h-5 rounded-full bg-primary/60 shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Sem proposta vinculada</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-primary/40 shrink-0" />
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-1 h-5 rounded-full bg-primary shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Com proposta (sem etiqueta)</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-info to-accent shrink-0" />
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-1 h-5 rounded-full bg-gradient-to-b from-info to-accent shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Cor da etiqueta do projeto</span>
                       </div>
                     </div>
-                  </CollapsibleContent>
-                </Collapsible>
+                  </div>
+                </div>
               </div>
             </div>
 
