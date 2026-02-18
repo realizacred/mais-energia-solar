@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, Sun, Zap, Plus, Loader2 } from "lucide-react";
+import { FileText, Sun, Zap, Plus, Loader2, Globe, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +42,9 @@ export function StepDocumento({
 }: StepDocumentoProps) {
   const [templates, setTemplates] = useState<PropostaTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
+  const [tipoFiltro, setTipoFiltro] = useState<"html" | "docx">("html");
+
+  const filteredTemplates = templates.filter(t => t.tipo === tipoFiltro);
 
   useEffect(() => {
     setLoadingTemplates(true);
@@ -53,9 +56,10 @@ export function StepDocumento({
       .then(({ data }) => {
         const tpls = (data || []) as PropostaTemplate[];
         setTemplates(tpls);
-        // Auto-select first template if none selected
-        if (tpls.length > 0 && !templateSelecionado) {
-          onTemplateSelecionado(tpls[0].id);
+        // Auto-select first template matching current filter
+        const matching = tpls.filter(t => t.tipo === tipoFiltro);
+        if (matching.length > 0 && !templateSelecionado) {
+          onTemplateSelecionado(matching[0].id);
         }
         setLoadingTemplates(false);
       });
@@ -68,6 +72,52 @@ export function StepDocumento({
           <FileText className="h-4 w-4 text-primary" /> Gerar Proposta
         </h3>
 
+        {/* Tipo Toggle */}
+        <div className="space-y-3">
+          <Label>Tipo de Modelo</Label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setTipoFiltro("html");
+                // Auto-select first of new filter
+                const match = templates.find(t => t.tipo === "html");
+                if (match) onTemplateSelecionado(match.id);
+              }}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-medium transition-all",
+                tipoFiltro === "html"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border/40 text-muted-foreground hover:border-border/70"
+              )}
+            >
+              <Globe className="h-4 w-4" />
+              WEB
+              <Badge variant="secondary" className="text-[9px] ml-1">
+                {templates.filter(t => t.tipo === "html").length}
+              </Badge>
+            </button>
+            <button
+              onClick={() => {
+                setTipoFiltro("docx");
+                const match = templates.find(t => t.tipo === "docx");
+                if (match) onTemplateSelecionado(match.id);
+              }}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-medium transition-all",
+                tipoFiltro === "docx"
+                  ? "border-primary bg-primary/5 text-primary"
+                  : "border-border/40 text-muted-foreground hover:border-border/70"
+              )}
+            >
+              <FileDown className="h-4 w-4" />
+              DOCX
+              <Badge variant="secondary" className="text-[9px] ml-1">
+                {templates.filter(t => t.tipo === "docx").length}
+              </Badge>
+            </button>
+          </div>
+        </div>
+
         {/* Template Selection */}
         <div className="space-y-2">
           <Label>Template</Label>
@@ -75,9 +125,9 @@ export function StepDocumento({
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {[1, 2].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
             </div>
-          ) : templates.length > 0 ? (
+          ) : filteredTemplates.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {templates.map(t => (
+              {filteredTemplates.map(t => (
                 <button
                   key={t.id}
                   onClick={() => onTemplateSelecionado(t.id)}
@@ -96,22 +146,16 @@ export function StepDocumento({
                   <p className="text-sm font-medium">{t.nome}</p>
                   {t.descricao && <p className="text-[10px] text-muted-foreground mt-0.5">{t.descricao}</p>}
                   <Badge variant="outline" className="text-[9px] mt-1">
-                    {t.grupo} • {t.tipo.toUpperCase()}
+                    {t.grupo}
                   </Badge>
                 </button>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {["modelo_1", "modelo_2"].map(t => (
-                <button key={t} onClick={() => onTemplateSelecionado(t)} className={cn(
-                  "p-4 rounded-xl border-2 text-center transition-all",
-                  templateSelecionado === t ? "border-primary bg-primary/5" : "border-border/40 hover:border-border/70"
-                )}>
-                  <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm font-medium">{t === "modelo_1" ? "Modelo 1" : "Modelo 2"}</p>
-                </button>
-              ))}
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-8 w-8 mx-auto opacity-20 mb-2" />
+              <p className="text-sm">Nenhum template {tipoFiltro.toUpperCase()} cadastrado</p>
+              <p className="text-xs mt-1">Cadastre em Proposta Comercial → Modelos de Proposta</p>
             </div>
           )}
         </div>
