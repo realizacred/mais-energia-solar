@@ -76,41 +76,10 @@ function kitItemsToCardData(itens: KitItemRow[]): KitCardData | null {
   };
 }
 
-function generateMockKits(modulos: CatalogoModuloUnificado[], inversores: CatalogoInversorUnificado[], potenciaKwp: number): KitCardData[] {
-  const kits: KitCardData[] = [];
-  const topologias = ["Microinversor", "Tradicional", "Otimizador"];
-
-  for (let i = 0; i < Math.min(modulos.length, 8); i++) {
-    const mod = modulos[i];
-    const inv = inversores[i % inversores.length] || inversores[0];
-    if (!mod || !inv) continue;
-
-    const potW = mod.potencia_wp || 550;
-    const numMod = potenciaKwp > 0 ? Math.ceil((potenciaKwp * 1000) / potW) : 4;
-    const totalKwp = (numMod * potW) / 1000;
-    const potInvKw = inv.potencia_nominal_kw || 2;
-    const topo = topologias[i % topologias.length];
-
-    kits.push({
-      id: `gen-${mod.id}-${inv.id}`,
-      distribuidorNome: mod.fabricante.toUpperCase(),
-      moduloDescricao: `${mod.fabricante} ${mod.modelo}`,
-      moduloQtd: numMod,
-      moduloPotenciaKwp: totalKwp,
-      inversorDescricao: `${inv.fabricante} ${inv.modelo}`,
-      inversorQtd: 1,
-      inversorPotenciaKw: potInvKw,
-      topologia: topo,
-      precoTotal: totalKwp * 3200,
-      precoWp: 3.2,
-      updatedAt: new Date().toLocaleDateString("pt-BR"),
-    });
-  }
-  return kits;
-}
+// Mock kits removed — manual mode only for now
 
 export function StepKitSelection({ itens, onItensChange, modulos, inversores, loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0 }: Props) {
-  const [tab, setTab] = useState<TabType>("customizado");
+  const [tab, setTab] = useState<TabType>("manual");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS, buscarValor: 0 });
   const [orderBy, setOrderBy] = useState("menor_preco");
@@ -125,7 +94,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
 
   const consumoTotal = filters.buscarValor;
 
-  const mockKits = useMemo(() => generateMockKits(modulos, inversores, potenciaKwp), [modulos, inversores, potenciaKwp]);
+  const mockKits: KitCardData[] = []; // Manual mode only for now
 
   const handleSelectKit = (kit: KitCardData) => {
     const newItens: KitItemRow[] = [
