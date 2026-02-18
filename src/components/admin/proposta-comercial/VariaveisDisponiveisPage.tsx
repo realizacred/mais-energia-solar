@@ -221,8 +221,8 @@ export function VariaveisDisponiveisPage() {
       {/* Card container */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
         {/* Category tabs — flex-wrap, no scroll */}
-        <div className="border-b border-border bg-muted/20 px-2 py-1.5">
-          <div className="flex flex-wrap items-center gap-1">
+        <div className="border-b border-border bg-muted/20 px-3 py-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {CATEGORY_ORDER.map((cat) => {
               const isActive = activeCategory === cat;
               const count = cat === "customizada"
@@ -305,12 +305,13 @@ export function VariaveisDisponiveisPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {dbCustomVars
+                    {[...dbCustomVars]
                       .filter((v) => {
                         if (!search.trim()) return true;
                         const q = normalize(search);
                         return normalize(v.label).includes(q) || normalize(v.nome).includes(q) || normalize(v.expressao).includes(q);
                       })
+                      .sort((a, b) => a.label.localeCompare(b.label, "pt-BR"))
                       .map((v, idx) => (
                         <tr key={v.id} className={`border-b border-border/40 group transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"} hover:bg-accent/5`}>
                           <td className="px-3 py-2.5">
