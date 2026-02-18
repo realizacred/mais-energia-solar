@@ -11,8 +11,8 @@ import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 import { UF_LIST } from "./types";
 import { ROOF_TYPE_ICONS } from "./roofTypeIcons";
 
-// Lazy-load Leaflet to prevent it from crashing the entire page
-const LeafletMap = lazy(() => import("./LeafletMap"));
+// Lazy-load Google Maps
+const GoogleMapView = lazy(() => import("./GoogleMapView"));
 
 
 interface Props {
@@ -59,7 +59,7 @@ export function StepLocalizacao({
 
   
 
-  // Nominatim geocoding when city+state change
+  // Google Maps Geocoding API when city+state change
   useEffect(() => {
     if (!cidade || !estado) {
       setGeoStatus("idle");
@@ -72,25 +72,53 @@ export function StepLocalizacao({
     }
 
     let cancelled = false;
-    const geocodeWithNominatim = async () => {
+    const geocode = async () => {
       setGeoStatus("buscando");
       setIrradiacao(null);
       setIrradSource(null);
       setDistKm(null);
 
       try {
-        const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`);
-        const resp = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
-          { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
-        );
-        const results = await resp.json();
+        // Try Google Maps Geocoding first
+        const { data: mapsConfig } = await supabase
+          .from("integration_configs")
+          .select("api_key, is_active")
+          .eq("service_key", "google_maps")
+          .eq("is_active", true)
+          .maybeSingle();
+
+        let lat: number | null = null;
+        let lon: number | null = null;
+
+        if (mapsConfig?.api_key) {
+          const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`);
+          const resp = await fetch(
+            `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.api_key}&region=br`,
+          );
+          const json = await resp.json();
+          if (json.status === "OK" && json.results?.[0]) {
+            lat = json.results[0].geometry.location.lat;
+            lon = json.results[0].geometry.location.lng;
+          }
+        }
+
+        // Fallback to Nominatim if Google Maps not configured or failed
+        if (lat === null) {
+          const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`);
+          const resp = await fetch(
+            `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
+            { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
+          );
+          const results = await resp.json();
+          if (results?.[0]) {
+            lat = parseFloat(results[0].lat);
+            lon = parseFloat(results[0].lon);
+          }
+        }
 
         if (cancelled) return;
 
-        if (results && results.length > 0) {
-          const lat = parseFloat(results[0].lat);
-          const lon = parseFloat(results[0].lon);
+        if (lat !== null && lon !== null) {
           setGeoLat(lat);
           setGeoLon(lon);
           setGeoStatus("localizado");
@@ -101,15 +129,14 @@ export function StepLocalizacao({
           setGeoLon(null);
         }
       } catch (err) {
-        console.error("[StepLocalizacao] Nominatim error:", err);
+        console.error("[StepLocalizacao] Geocoding error:", err);
         if (!cancelled) {
           setGeoStatus("manual");
         }
       }
     };
 
-    // Small debounce to avoid hammering Nominatim
-    const timer = setTimeout(geocodeWithNominatim, 400);
+    const timer = setTimeout(geocode, 400);
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -192,7 +219,7 @@ export function StepLocalizacao({
     fetchIrradiacao(lat, lon);
   };
 
-  // Handle click on Leaflet map
+  // Handle click on map
   const handleMapClick = useCallback((lat: number, lon: number) => {
     setGeoLat(lat);
     setGeoLon(lon);
@@ -441,13 +468,13 @@ export function StepLocalizacao({
           </div>
         </div>
 
-        {/* Right column: Leaflet Map (free, no API key needed) */}
+        {/* Right column: Google Maps */}
         <Suspense fallback={
           <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted/20">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         }>
-          <LeafletMap
+          <GoogleMapView
             lat={geoLat}
             lon={geoLon}
             cidade={cidade}
