@@ -537,6 +537,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
           <CardContent className="p-4 sm:p-5">
             <ProjetoMultiPipelineManager
               dealId={deal.id}
+              dealStatus={deal.status}
               pipelines={pipelines}
               allStagesMap={allStagesMap}
               onMembershipChange={silentRefresh}

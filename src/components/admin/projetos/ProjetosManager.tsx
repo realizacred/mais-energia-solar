@@ -67,14 +67,17 @@ export function ProjetosManager() {
 
   const handleFilterChange = (key: string, value: any) => {
     if (key === "pipelineId") {
-      setSelectedPipelineId(value);
-      applyFilters({ pipelineId: value });
-      // Auto-switch view based on pipeline kind
-      const pipeline = pipelines.find(p => p.id === value);
-      if (pipeline?.kind === "owner_board") {
-        setViewMode("kanban-consultor");
-      } else if (viewMode === "kanban-consultor" && pipeline?.kind === "process") {
-        setViewMode("kanban-etapa");
+      const pipelineValue = value === "todos" ? null : value;
+      setSelectedPipelineId(pipelineValue);
+      applyFilters({ pipelineId: pipelineValue });
+      // Auto-switch view based on pipeline kind (only when specific pipeline selected)
+      if (pipelineValue) {
+        const pipeline = pipelines.find(p => p.id === pipelineValue);
+        if (pipeline?.kind === "owner_board") {
+          setViewMode("kanban-consultor");
+        } else if (viewMode === "kanban-consultor" && pipeline?.kind === "process") {
+          setViewMode("kanban-etapa");
+        }
       }
     } else if (key === "ownerId") {
       applyFilters({ ownerId: value });
@@ -221,7 +224,7 @@ export function ProjetosManager() {
                     ativo: p.is_active,
                     tenant_id: p.tenant_id,
                   }))}
-                  filterFunil={filters.pipelineId || selectedPipelineId || ""}
+                  filterFunil={filters.pipelineId || selectedPipelineId || (viewMode === "kanban-consultor" ? "todos" : "")}
                   onFilterFunilChange={(v) => handleFilterChange("pipelineId", v)}
                   filterConsultor={filters.ownerId}
                   onFilterConsultorChange={(v) => handleFilterChange("ownerId", v)}
@@ -236,6 +239,7 @@ export function ProjetosManager() {
                   onClearFilters={clearFilters}
                   onEditEtapas={(funilId) => setEditingEtapasFunilId(funilId)}
                   onCreateFunil={() => setTemplateDialogOpen(true)}
+                  allowAllFunis={viewMode === "kanban-consultor"}
                 />
               </div>
 

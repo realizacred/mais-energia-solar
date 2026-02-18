@@ -526,6 +526,25 @@ export function useDealPipeline() {
 
     toast({ title: "Projeto criado com sucesso!" });
 
+    // Ensure deal is also in Comercial pipeline (mandatory)
+    if (data?.id) {
+      const comercialPipeline = pipelines.find(p => p.name.toLowerCase() === "comercial");
+      if (comercialPipeline && pipeId !== comercialPipeline.id) {
+        // Find first open stage of Comercial
+        const comercialStages = stages
+          .filter(s => s.pipeline_id === comercialPipeline.id && !s.is_closed)
+          .sort((a, b) => a.position - b.position);
+        const firstComercialStage = comercialStages[0];
+        if (firstComercialStage) {
+          await supabase.from("deal_pipeline_stages").insert({
+            deal_id: data.id,
+            pipeline_id: comercialPipeline.id,
+            stage_id: firstComercialStage.id,
+          } as any);
+        }
+      }
+    }
+
     // Refresh deals
     try {
       const enriched = await fetchDeals(filters);
