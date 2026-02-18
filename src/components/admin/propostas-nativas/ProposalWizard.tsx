@@ -34,6 +34,7 @@ import {
   type LeadSelection, type ClienteData, type UCData,
   type PremissasData, type KitItemRow, type ServicoItem, type VendaData,
   type PagamentoOpcao, type BancoFinanciamento, type PreDimensionamentoData,
+  type LayoutArranjo,
   EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC, formatBRL,
 } from "./wizard/types";
 
@@ -152,6 +153,9 @@ export function ProposalWizard() {
   const [itens, setItens] = useState<KitItemRow[]>([
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
   ]);
+
+  // Layouts
+  const [layouts, setLayouts] = useState<LayoutArranjo[]>([]);
 
   // Adicionais
   const [adicionais, setAdicionais] = useState<AdicionalItem[]>([]);
@@ -466,7 +470,16 @@ export function ProposalWizard() {
       case STEP_KEYS.ADICIONAIS:
         return (
           <StepContent key="adicionais">
-            <StepAdicionais adicionais={adicionais} onAdicionaisChange={setAdicionais} />
+            <StepAdicionais
+              adicionais={adicionais}
+              onAdicionaisChange={setAdicionais}
+              itens={itens}
+              onItensChange={setItens}
+              layouts={layouts}
+              onLayoutsChange={setLayouts}
+              modulos={modulos}
+              inversores={inversores}
+            />
           </StepContent>
         );
 
