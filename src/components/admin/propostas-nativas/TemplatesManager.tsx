@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Trash2, Edit2, Save, X, FileText, Eye } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ interface PropostaTemplate {
   categoria: string;
   tipo: string;
   template_html: string | null;
+  file_url: string | null;
   thumbnail_url: string | null;
   ativo: boolean;
   ordem: number;
@@ -31,9 +32,8 @@ const GRUPOS = [
 ];
 
 const TIPOS = [
-  { value: "html", label: "HTML" },
-  { value: "pdf", label: "PDF" },
-  { value: "docx", label: "DOCX" },
+  { value: "html", label: "HTML (Web)" },
+  { value: "docx", label: "DOCX (Word)" },
 ];
 
 export function TemplatesManager() {
@@ -42,12 +42,14 @@ export function TemplatesManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<PropostaTemplate>>({});
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadTemplates = async () => {
     setLoading(true);
     const { data } = await supabase
       .from("proposta_templates")
-      .select("id, nome, descricao, grupo, categoria, tipo, template_html, thumbnail_url, ativo, ordem")
+      .select("id, nome, descricao, grupo, categoria, tipo, template_html, file_url, thumbnail_url, ativo, ordem")
       .order("ordem", { ascending: true });
     setTemplates((data as PropostaTemplate[]) || []);
     setLoading(false);
@@ -57,7 +59,7 @@ export function TemplatesManager() {
 
   const startNew = () => {
     setEditingId("new");
-    setForm({ nome: "", descricao: "", grupo: "B", categoria: "geral", tipo: "html", template_html: "", ativo: true, ordem: templates.length });
+    setForm({ nome: "", descricao: "", grupo: "B", categoria: "geral", tipo: "html", template_html: "", file_url: null, ativo: true, ordem: templates.length });
   };
 
   const startEdit = (t: PropostaTemplate) => {
@@ -67,9 +69,62 @@ export function TemplatesManager() {
 
   const cancelEdit = () => { setEditingId(null); setForm({}); };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".docx")) {
+      toast({ title: "Apenas arquivos .docx são aceitos", variant: "destructive" });
+      return;
+    }
+
+    setUploading(true);
+    try {
+      // Refresh session for correct tenant claims
+      await supabase.auth.refreshSession();
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      // Get tenant_id from profile
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
+      const fileName = `${profile.tenant_id}/${Date.now()}_${file.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("proposta-templates")
+        .upload(fileName, file, { contentType: file.type, upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("proposta-templates")
+        .getPublicUrl(fileName);
+
+      setForm(f => ({ ...f, file_url: urlData.publicUrl, tipo: "docx" }));
+      toast({ title: "Arquivo enviado com sucesso!" });
+    } catch (err: any) {
+      toast({ title: "Erro no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const handleSave = async () => {
     if (!form.nome || !form.grupo) {
       toast({ title: "Preencha nome e grupo", variant: "destructive" });
+      return;
+    }
+
+    if (form.tipo === "docx" && !form.file_url) {
+      toast({ title: "Faça upload do arquivo DOCX", variant: "destructive" });
       return;
     }
 
@@ -80,7 +135,8 @@ export function TemplatesManager() {
         grupo: form.grupo,
         categoria: form.categoria || "geral",
         tipo: form.tipo || "html",
-        template_html: form.template_html || null,
+        template_html: form.tipo === "html" ? (form.template_html || null) : null,
+        file_url: form.tipo === "docx" ? (form.file_url || null) : null,
         thumbnail_url: form.thumbnail_url || null,
         ativo: form.ativo ?? true,
         ordem: form.ordem ?? 0,
@@ -111,19 +167,21 @@ export function TemplatesManager() {
     loadTemplates();
   };
 
+  const isDocx = form.tipo === "docx";
+
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" /> Templates de Proposta
+            <FileText className="h-5 w-5 text-primary" /> Templates de proposta
           </h2>
           <p className="text-sm text-muted-foreground">
-            Gerencie os modelos HTML usados na geração de propostas
+            Gerencie modelos HTML e DOCX usados na geração de propostas
           </p>
         </div>
         <Button onClick={startNew} className="gap-1.5" disabled={editingId !== null}>
-          <Plus className="h-4 w-4" /> Novo Template
+          <Plus className="h-4 w-4" /> Novo template
         </Button>
       </div>
 
@@ -164,20 +222,64 @@ export function TemplatesManager() {
                   className="h-8 text-xs" />
               </div>
             </div>
-            <div>
-              <Label className="text-xs">HTML do Template</Label>
-              <Textarea value={form.template_html || ""} onChange={e => setForm(f => ({ ...f, template_html: e.target.value }))}
-                placeholder="<html>...</html>" className="min-h-[200px] text-xs font-mono" />
-              <p className="text-[10px] text-muted-foreground mt-1">
-                Use placeholders como {"{{cliente_nome}}"}, {"{{valor_total}}"}, {"{{potencia_kwp}}"} etc.
-              </p>
-            </div>
+
+            {/* DOCX Upload */}
+            {isDocx ? (
+              <div className="space-y-2">
+                <Label className="text-xs">Arquivo DOCX</Label>
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".docx"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                  >
+                    {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                    {uploading ? "Enviando..." : "Upload DOCX"}
+                  </Button>
+                  {form.file_url && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[10px] gap-1 text-emerald-600 border-emerald-300 bg-emerald-50">
+                        <FileText className="h-3 w-3" /> Arquivo anexado
+                      </Badge>
+                      <a href={form.file_url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </a>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Use variáveis no formato <code className="text-primary bg-primary/5 px-1 rounded">[campo]</code> ou{" "}
+                  <code className="text-primary bg-primary/5 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
+                </p>
+              </div>
+            ) : (
+              <div>
+                <Label className="text-xs">HTML do template</Label>
+                <Textarea value={form.template_html || ""} onChange={e => setForm(f => ({ ...f, template_html: e.target.value }))}
+                  placeholder="<html>...</html>" className="min-h-[200px] text-xs font-mono" />
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  Use placeholders como {"{{cliente.nome}}"}, {"{{financeiro.valor_total}}"} etc.
+                </p>
+              </div>
+            )}
+
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Switch checked={form.ativo ?? true} onCheckedChange={v => setForm(f => ({ ...f, ativo: v }))} />
                 <Label className="text-xs">Ativo</Label>
               </div>
-              {form.template_html && (
+              {!isDocx && form.template_html && (
                 <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => setPreviewHtml(form.template_html || null)}>
                   <Eye className="h-3 w-3" /> Preview
                 </Button>
@@ -185,7 +287,7 @@ export function TemplatesManager() {
             </div>
             <div className="flex gap-2 justify-end">
               <Button variant="ghost" size="sm" onClick={cancelEdit}><X className="h-3 w-3 mr-1" /> Cancelar</Button>
-              <Button size="sm" onClick={handleSave}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
+              <Button size="sm" onClick={handleSave} disabled={uploading}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
             </div>
           </CardContent>
         </Card>
@@ -236,12 +338,20 @@ export function TemplatesManager() {
                         <p className="text-sm font-semibold">{t.nome}</p>
                         <Badge variant="outline" className="text-[9px]">Grupo {t.grupo}</Badge>
                         <Badge variant="secondary" className="text-[9px]">{t.tipo.toUpperCase()}</Badge>
+                        {t.file_url && <Badge variant="outline" className="text-[9px] text-emerald-600 border-emerald-300">📎 DOCX</Badge>}
                         {!t.ativo && <Badge variant="destructive" className="text-[9px]">Inativo</Badge>}
                       </div>
                       {t.descricao && <p className="text-[11px] text-muted-foreground">{t.descricao}</p>}
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {t.file_url && (
+                      <a href={t.file_url} target="_blank" rel="noopener noreferrer">
+                        <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar DOCX">
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </a>
+                    )}
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(t)} disabled={editingId !== null}>
                       <Edit2 className="h-3 w-3" />
                     </Button>
