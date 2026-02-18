@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Não autorizado", details: "Token de autenticação não encontrado. Faça login novamente." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     // Validate user identity
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Não autorizado", details: "Sessão expirada ou inválida. Faça login novamente." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!roleData) {
-      return new Response(JSON.stringify({ error: "Admin access required" }), {
+      return new Response(JSON.stringify({ error: "Acesso restrito", details: "Apenas administradores e gerentes podem configurar integrações." }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -169,7 +169,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (!profile?.tenant_id) {
-      return new Response(JSON.stringify({ error: "Tenant not found" }), {
+      return new Response(JSON.stringify({ error: "Empresa não encontrada", details: "Seu perfil não está vinculado a nenhuma empresa." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

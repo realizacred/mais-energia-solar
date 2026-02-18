@@ -55,17 +55,42 @@ export default function GoogleMapsConfigPage() {
         if (resp.error) {
           let msg = "Erro ao salvar chave";
           try {
+            // Try to get the response body from the error context
             const ctx = (resp.error as any).context;
-            if (ctx && typeof ctx.json === "function") {
-              const errorBody = await ctx.json();
-              msg = errorBody?.details
-                ? `${errorBody.error}: ${errorBody.details}`
-                : errorBody?.error || msg;
-            } else {
-              msg = resp.error.message || msg;
+            if (ctx) {
+              let errorBody: any = null;
+              if (typeof ctx.json === "function") {
+                errorBody = await ctx.json();
+              } else if (ctx.body) {
+                const text = await new Response(ctx.body).text();
+                try { errorBody = JSON.parse(text); } catch {}
+              }
+              if (errorBody) {
+                msg = errorBody?.details
+                  ? `${errorBody.error}: ${errorBody.details}`
+                  : errorBody?.error || msg;
+              }
+            }
+            // Fallback: if message is generic HTTP status text, provide Portuguese version
+            if (msg === "Erro ao salvar chave") {
+              const rawMsg = resp.error.message || "";
+              if (rawMsg.toLowerCase().includes("unauthorized") || rawMsg.includes("401")) {
+                msg = "Não autorizado: Sessão expirada. Faça login novamente.";
+              } else if (rawMsg.toLowerCase().includes("forbidden") || rawMsg.includes("403")) {
+                msg = "Acesso negado: Apenas administradores podem configurar integrações.";
+              } else if (rawMsg) {
+                msg = rawMsg;
+              }
             }
           } catch {
-            msg = resp.error.message || msg;
+            const rawMsg = resp.error.message || "";
+            if (rawMsg.toLowerCase().includes("unauthorized") || rawMsg.includes("401")) {
+              msg = "Não autorizado: Sessão expirada. Faça login novamente.";
+            } else if (rawMsg.toLowerCase().includes("forbidden") || rawMsg.includes("403")) {
+              msg = "Acesso negado: Apenas administradores podem configurar integrações.";
+            } else {
+              msg = rawMsg || msg;
+            }
           }
           throw new Error(msg);
         }
