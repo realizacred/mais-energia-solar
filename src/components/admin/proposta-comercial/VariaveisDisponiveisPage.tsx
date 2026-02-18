@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Copy, Search, X, Database, ChevronRight, Loader2, Plus, Edit2, Trash2, ArrowUpDown, ArrowUp, ArrowDown, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import {
   type VariableCategory,
 } from "@/lib/variablesCatalog";
 import { supabase } from "@/integrations/supabase/client";
+import { AuditTabContent } from "./AuditTabContent";
 
 /* ── Tiny copy button ───────────────────────────────────── */
 function CopyButton({ text }: { text: string }) {
@@ -76,7 +77,7 @@ function normalize(str: string) {
 
 export function VariaveisDisponiveisPage() {
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState<VariableCategory>("entrada");
+  const [activeCategory, setActiveCategory] = useState<VariableCategory | "auditoria">("entrada");
   const [dbCustomVars, setDbCustomVars] = useState<DbCustomVar[]>([]);
   const [loadingCustom, setLoadingCustom] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -108,7 +109,7 @@ export function VariaveisDisponiveisPage() {
 
   // Load custom vars from DB when tab is selected
   useEffect(() => {
-    if (activeCategory !== "customizada") return;
+    if (activeCategory !== "customizada" && activeCategory !== "auditoria") return;
     loadCustomVars();
   }, [activeCategory]);
 
@@ -248,6 +249,20 @@ export function VariaveisDisponiveisPage() {
                 </button>
               );
             })}
+            {/* Audit tab */}
+            <button
+              onClick={() => setActiveCategory("auditoria")}
+              className={`
+                flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all
+                ${activeCategory === "auditoria"
+                  ? "bg-warning text-warning-foreground shadow-sm ring-1 ring-warning/20"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
+                }
+              `}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Auditoria</span>
+            </button>
           </div>
         </div>
 
@@ -270,7 +285,9 @@ export function VariaveisDisponiveisPage() {
         </div>
 
         {/* Content */}
-        {activeCategory === "customizada" ? (
+        {activeCategory === "auditoria" ? (
+          <AuditTabContent dbCustomVars={dbCustomVars} loadingCustom={loadingCustom} onRefresh={loadCustomVars} />
+        ) : activeCategory === "customizada" ? (
           <div>
             {/* Header with Add button */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/10">
