@@ -95,6 +95,7 @@ export function ProposalWizard() {
   const [searchParams] = useSearchParams();
   const dealIdFromUrl = searchParams.get("deal_id");
   const customerIdFromUrl = searchParams.get("customer_id");
+  const leadIdFromUrl = searchParams.get("lead_id");
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
@@ -306,6 +307,62 @@ export function ProposalWizard() {
     })();
     return () => { cancelled = true; };
   }, [customerIdFromUrl, dealIdFromUrl]);
+
+  // ─── Auto-load from lead_id URL param (from PropostasTab selection)
+  useEffect(() => {
+    if (!leadIdFromUrl || selectedLead?.id === leadIdFromUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: lead } = await supabase
+          .from("leads")
+          .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento")
+          .eq("id", leadIdFromUrl)
+          .single();
+        if (cancelled || !lead) return;
+
+        setSelectedLead({
+          id: lead.id, nome: lead.nome, telefone: lead.telefone,
+          lead_code: lead.lead_code || "", estado: lead.estado,
+          cidade: lead.cidade, media_consumo: lead.media_consumo,
+          tipo_telhado: lead.tipo_telhado,
+        });
+
+        // Pre-fill location
+        if (lead.estado) setLocEstado(lead.estado);
+        if (lead.cidade) setLocCidade(lead.cidade);
+        if (lead.tipo_telhado) setLocTipoTelhado(lead.tipo_telhado);
+
+        // Pre-fill UCs: consumo + fase/tensão + tipo_telhado
+        const consumo = lead.consumo_previsto || lead.media_consumo || 0;
+        // Map rede_atendimento to fase
+        const faseMap: Record<string, "monofasico" | "bifasico" | "trifasico"> = {
+          "Monofásico": "monofasico", "monofasico": "monofasico",
+          "Bifásico": "bifasico", "bifasico": "bifasico",
+          "Trifásico": "trifasico", "trifasico": "trifasico",
+        };
+        const fase = lead.rede_atendimento ? faseMap[lead.rede_atendimento] : undefined;
+
+        setUcs(prev => {
+          const updated = [...prev];
+          updated[0] = {
+            ...updated[0],
+            estado: lead.estado || updated[0].estado,
+            cidade: lead.cidade || updated[0].cidade,
+            tipo_telhado: lead.tipo_telhado || updated[0].tipo_telhado,
+            consumo_mensal: consumo || updated[0].consumo_mensal,
+            ...(fase ? { fase } : {}),
+          };
+          return updated;
+        });
+
+        toast({ title: "Dados do orçamento carregados", description: `Lead: ${lead.nome} — ${consumo} kWh` });
+      } catch (err) {
+        console.error("[ProposalWizard] Error loading lead context:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [leadIdFromUrl]);
 
   const handleSelectLead = (lead: LeadSelection) => {
     setSelectedLead(lead);
