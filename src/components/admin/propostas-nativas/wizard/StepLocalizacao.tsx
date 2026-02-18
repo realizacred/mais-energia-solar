@@ -371,26 +371,11 @@ export function StepLocalizacao({
         </div>
       </div>
 
-      {/* Map on TOP — full width */}
-      <Suspense fallback={
-        <div className="rounded-xl border border-border/50 overflow-hidden relative h-[260px] sm:h-[300px] flex items-center justify-center bg-muted/20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      }>
-        <GoogleMapView
-          lat={geoLat}
-          lon={geoLon}
-          cidade={cidade}
-          estado={estado}
-          onMapClick={handleMapClick}
-          onSnapshotsChange={onMapSnapshotsChange}
-        />
-      </Suspense>
-
-      {/* Address + Config fields below map */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-        {/* Left: Address fields */}
-        <div className="space-y-3">
+      {/* Side-by-side: Fields LEFT, Map RIGHT */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Left column: Address + Telhado + Distribuidora + Irradiação */}
+        <div className="space-y-3 order-2 lg:order-1">
+          {/* Address */}
           {onProjectAddressChange && projectAddress && (
             <ProjectAddressFields
               address={projectAddress}
@@ -400,10 +385,7 @@ export function StepLocalizacao({
               reverseGeocodedAddress={reverseGeoResult}
             />
           )}
-        </div>
 
-        {/* Right: Telhado + Distribuidora + Irradiação */}
-        <div className="space-y-3">
           {/* Tipo de Telhado */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium flex items-center gap-1.5">
@@ -497,6 +479,24 @@ export function StepLocalizacao({
               )}
             </div>
           </div>
+        </div>
+
+        {/* Right column: Map — sticky on desktop */}
+        <div className="order-1 lg:order-2 lg:sticky lg:top-0 lg:self-start">
+          <Suspense fallback={
+            <div className="rounded-xl border border-border/50 h-[260px] sm:h-[400px] lg:h-[520px] flex items-center justify-center bg-muted/20">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          }>
+            <GoogleMapView
+              lat={geoLat}
+              lon={geoLon}
+              cidade={cidade}
+              estado={estado}
+              onMapClick={handleMapClick}
+              onSnapshotsChange={onMapSnapshotsChange}
+            />
+          </Suspense>
         </div>
       </div>
     </div>
