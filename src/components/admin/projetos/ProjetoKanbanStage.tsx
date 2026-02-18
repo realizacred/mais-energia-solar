@@ -1,5 +1,6 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User, ChevronDown, DollarSign, StickyNote } from "lucide-react";
@@ -534,18 +535,12 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
   const timeInStage = getTimeInStage(deal.last_stage_change);
   const stagnation = getStagnationLevel(deal.last_stage_change);
 
+  const navigate = useNavigate();
+
   const handleSendWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (deal.customer_phone) {
-      const phone = deal.customer_phone.replace(/\D/g, "");
-      window.open(`https://wa.me/55${phone}`, "_blank");
-    }
-  };
-
-  const handleCall = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (deal.customer_phone) {
-      window.open(`tel:${deal.customer_phone}`, "_self");
+      navigate("/admin/whatsapp");
     }
   };
 
@@ -564,8 +559,7 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
         deal.deal_status === "lost" && "border-l-red-500 bg-red-50/40 dark:bg-red-950/20 opacity-60",
         deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-red-500",
         deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-amber-500",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-orange-400",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && etiquetaCfg && "border-l-primary",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && !etiquetaCfg && "border-l-orange-400",
         deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && !etiquetaCfg && "border-l-primary",
         isDragging && "opacity-30 scale-95",
       )}
@@ -676,7 +670,6 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
           <TooltipContent className="text-xs">Ver propostas</TooltipContent>
         </Tooltip>
         {deal.customer_phone && (
-          <>
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
@@ -687,20 +680,8 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
                   WhatsApp
                 </button>
               </TooltipTrigger>
-              <TooltipContent className="text-xs">Enviar WhatsApp</TooltipContent>
+              <TooltipContent className="text-xs">Abrir no WhatsApp interno</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="h-6 w-6 rounded-full bg-secondary/15 text-secondary hover:bg-secondary hover:text-white flex items-center justify-center transition-all duration-150"
-                  onClick={handleCall}
-                >
-                  <Phone className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Ligar</TooltipContent>
-            </Tooltip>
-          </>
         )}
       </div>
     </div>
