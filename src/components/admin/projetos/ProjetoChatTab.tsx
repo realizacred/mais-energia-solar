@@ -39,6 +39,7 @@ interface WaMsg {
   sent_by_name?: string | null;
   sent_by_user_id: string | null;
   media_url: string | null;
+  media_mime_type: string | null;
 }
 
 interface ConversationSummary {
@@ -200,7 +201,7 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
         // Load messages with sender names
         const { data, error } = await supabase
           .from("wa_messages")
-          .select("id, direction, content, message_type, is_internal_note, created_at, sent_by_user_id, media_url")
+          .select("id, direction, content, message_type, is_internal_note, created_at, sent_by_user_id, media_url, media_mime_type")
           .eq("conversation_id", conversationId)
           .order("created_at", { ascending: true });
         if (error) throw error;
@@ -413,20 +414,83 @@ function MessageBubble({ msg }: { msg: WaMsg }) {
         {!isIncoming && msg.sent_by_name && (
           <p className="text-[9px] font-medium text-primary/70 mb-0.5">{msg.sent_by_name}</p>
         )}
+        {/* Image */}
         {msg.message_type === "image" && msg.media_url && (
-          <img src={msg.media_url} alt="" className="max-w-full rounded-md mb-1 max-h-40 object-cover" />
+          <a href={msg.media_url} target="_blank" rel="noopener noreferrer">
+            <img src={msg.media_url} alt="" className="max-w-full rounded-lg mb-1 max-h-48 object-cover hover:opacity-90 transition-opacity" />
+          </a>
         )}
+
+        {/* Audio — full player like WaInbox */}
         {msg.message_type === "audio" && (
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <span>🎵</span> Áudio
-          </div>
+          msg.media_url ? (
+            <audio controls preload="metadata" className="max-w-[260px] h-10">
+              <source src={msg.media_url} type={msg.media_mime_type || "audio/ogg"} />
+              Seu navegador não suporta áudio.
+            </audio>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <span>🎵</span> Mensagem de áudio (mídia indisponível)
+            </div>
+          )
         )}
+
+        {/* Video */}
+        {msg.message_type === "video" && (
+          msg.media_url ? (
+            <video controls preload="metadata" className="max-w-full rounded-lg mb-1 max-h-48">
+              <source src={msg.media_url} type={msg.media_mime_type || "video/mp4"} />
+            </video>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <span>🎬</span> Vídeo indisponível
+            </div>
+          )
+        )}
+
+        {/* Document — clickable link with filename */}
         {msg.message_type === "document" && (
+          msg.media_url ? (
+            <a
+              href={msg.media_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 p-2 rounded-lg bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+            >
+              <span className="text-base">📄</span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-foreground truncate">{msg.content || "Documento"}</p>
+                <p className="text-[9px] text-muted-foreground">Clique para abrir</p>
+              </div>
+            </a>
+          ) : (
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <span>📄</span> Documento indisponível
+            </div>
+          )
+        )}
+
+        {/* Sticker */}
+        {msg.message_type === "sticker" && msg.media_url && (
+          <img src={msg.media_url} alt="Sticker" className="max-w-[120px] max-h-[120px] object-contain" />
+        )}
+
+        {/* Location */}
+        {msg.message_type === "location" && (
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-            <span>📎</span> Documento
+            <span>📍</span> Localização
           </div>
         )}
-        <p className="text-[12px] text-foreground whitespace-pre-wrap leading-relaxed">{msg.content || ""}</p>
+
+        {/* Text content — only for text type or types not handled above */}
+        {(msg.message_type === "text" || !["audio", "document", "sticker", "location", "image", "video", "gif"].includes(msg.message_type)) && msg.content && (
+          <p className="text-[12px] text-foreground whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+        )}
+        {/* Caption for media */}
+        {["image", "video"].includes(msg.message_type) && msg.content && (
+          <p className="text-[11px] text-foreground/80 whitespace-pre-wrap mt-0.5">{msg.content}</p>
+        )}
+
         <p className={cn("text-[9px] mt-0.5", isIncoming ? "text-muted-foreground" : "text-primary/60 text-right")}>{time}</p>
       </div>
     </div>
@@ -452,70 +516,82 @@ const funilLabels: Record<string, string> = {
 };
 
 function SummaryDisplay({ summary, updatedAt }: { summary: ConversationSummary; updatedAt?: string }) {
+  const prob = summary.probabilidade_fechamento || 0;
+  const probColor = prob >= 70 ? "text-success" : prob >= 40 ? "text-warning" : "text-destructive";
+  const probBg = prob >= 70 ? "bg-success/10 border-success/20" : prob >= 40 ? "bg-warning/10 border-warning/20" : "bg-destructive/10 border-destructive/20";
+
   return (
-    <div className="space-y-2">
-      {/* Resumo */}
-      <div className="p-2.5 rounded-lg bg-muted/30 border border-border/20">
-        <p className="text-[11px] text-foreground leading-relaxed">{summary.resumo}</p>
-      </div>
-
-      {/* Quick metrics */}
-      <div className="grid grid-cols-3 gap-1.5">
-        <div className="p-2 rounded-lg bg-muted/20 border border-border/20 text-center">
-          <p className="text-[9px] text-muted-foreground">Funil</p>
-          <p className="text-[10px] font-medium">{funilLabels[summary.estagio_funil] || summary.estagio_funil}</p>
-        </div>
-        <div className="p-2 rounded-lg bg-muted/20 border border-border/20 text-center">
-          <p className="text-[9px] text-muted-foreground">Sentimento</p>
-          <p className={cn("text-[10px] font-medium", sentimentConfig[summary.sentimento_cliente]?.color)}>
-            {sentimentConfig[summary.sentimento_cliente]?.label || summary.sentimento_cliente}
-          </p>
-        </div>
-        <div className="p-2 rounded-lg bg-muted/20 border border-border/20 text-center">
-          <p className="text-[9px] text-muted-foreground">Fechamento</p>
-          <div className="flex items-center justify-center gap-1">
-            <TrendingUp className="h-3 w-3 text-primary" />
-            <span className="text-sm font-bold text-primary">{summary.probabilidade_fechamento}%</span>
+    <div className="space-y-3">
+      {/* ── Hero Card: Resumo + Probabilidade ── */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-3 space-y-2">
+          <p className="text-xs text-foreground leading-relaxed">{summary.resumo}</p>
+          <div className="flex items-center gap-3 pt-1">
+            <div className={cn("flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-bold", probBg, probColor)}>
+              <TrendingUp className="h-3.5 w-3.5" />
+              {prob}% fechamento
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs">{funilLabels[summary.estagio_funil] || summary.estagio_funil}</span>
+            </div>
+            <div className={cn("text-xs font-medium", sentimentConfig[summary.sentimento_cliente]?.color)}>
+              {sentimentConfig[summary.sentimento_cliente]?.label || summary.sentimento_cliente}
+            </div>
           </div>
-        </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Grid de Insights ── */}
+      <div className="grid grid-cols-2 gap-2">
+        {summary.assuntos_principais?.length > 0 && (
+          <InsightCard icon="💡" title="Assuntos" items={summary.assuntos_principais} />
+        )}
+        {summary.interesses?.length > 0 && (
+          <InsightCard icon="⭐" title="Interesses" items={summary.interesses} />
+        )}
+        {summary.dores_cliente?.length > 0 && (
+          <InsightCard icon="😰" title="Dores do cliente" items={summary.dores_cliente} variant="warning" />
+        )}
+        {summary.objecoes?.length > 0 && (
+          <InsightCard icon="⚡" title="Objeções" items={summary.objecoes} variant="warning" />
+        )}
       </div>
 
-      {/* Lists */}
-      {summary.assuntos_principais?.length > 0 && (
-        <MiniList title="💡 Assuntos" items={summary.assuntos_principais} />
-      )}
-      {summary.interesses?.length > 0 && (
-        <MiniList title="⭐ Interesses" items={summary.interesses} />
-      )}
-      {summary.dores_cliente?.length > 0 && (
-        <MiniList title="😰 Dores" items={summary.dores_cliente} />
-      )}
-      {summary.objecoes?.length > 0 && (
-        <MiniList title="⚡ Objeções" items={summary.objecoes} />
-      )}
-
-      {/* Next action */}
+      {/* ── Próxima Ação (destaque) ── */}
       {summary.proxima_acao_sugerida && (
-        <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
-          <div className="flex items-center gap-1 mb-0.5">
-            <Target className="h-3 w-3 text-primary" />
-            <p className="text-[10px] text-primary font-semibold">Próxima Ação</p>
-          </div>
-          <p className="text-[11px] text-foreground">{summary.proxima_acao_sugerida}</p>
-        </div>
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="p-3">
+            <div className="flex items-start gap-2">
+              <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center shrink-0 mt-0.5">
+                <Target className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-primary uppercase tracking-wide">Próxima ação sugerida</p>
+                <p className="text-xs text-foreground mt-0.5">{summary.proxima_acao_sugerida}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Alerts */}
+      {/* ── Alertas ── */}
       {summary.alertas?.length > 0 && (
-        <div className="p-2 rounded-lg bg-destructive/5 border border-destructive/20">
-          <div className="flex items-center gap-1 mb-0.5">
-            <ShieldAlert className="h-3 w-3 text-destructive" />
-            <p className="text-[10px] text-destructive font-semibold">Alertas</p>
-          </div>
-          {summary.alertas.map((a, i) => (
-            <p key={i} className="text-[11px] text-destructive/80">• {a}</p>
-          ))}
-        </div>
+        <Card className="border-destructive/20 bg-destructive/5">
+          <CardContent className="p-3">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
+              <p className="text-[10px] font-bold text-destructive uppercase tracking-wide">Alertas</p>
+            </div>
+            <div className="space-y-1">
+              {summary.alertas.map((a, i) => (
+                <div key={i} className="flex items-start gap-1.5">
+                  <AlertTriangle className="h-3 w-3 text-destructive/60 mt-0.5 shrink-0" />
+                  <p className="text-xs text-destructive/90">{a}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {updatedAt && (
@@ -527,14 +603,25 @@ function SummaryDisplay({ summary, updatedAt }: { summary: ConversationSummary; 
   );
 }
 
-function MiniList({ title, items }: { title: string; items: string[] }) {
+function InsightCard({ icon, title, items, variant }: { icon: string; title: string; items: string[]; variant?: "warning" }) {
   return (
-    <div className="p-2 rounded-lg bg-muted/20 border border-border/20">
-      <p className="text-[10px] font-medium text-muted-foreground mb-0.5">{title}</p>
-      {items.map((item, i) => (
-        <p key={i} className="text-[11px] text-foreground">• {item}</p>
-      ))}
-    </div>
+    <Card className={cn(
+      variant === "warning" ? "border-warning/20 bg-warning/5" : "border-border/30"
+    )}>
+      <CardContent className="p-2.5">
+        <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 flex items-center gap-1">
+          <span>{icon}</span> {title}
+        </p>
+        <div className="space-y-0.5">
+          {items.map((item, i) => (
+            <p key={i} className="text-[11px] text-foreground flex items-start gap-1">
+              <span className="text-muted-foreground/50 mt-px">•</span>
+              {item}
+            </p>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
