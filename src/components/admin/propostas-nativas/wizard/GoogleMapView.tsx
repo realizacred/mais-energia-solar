@@ -66,18 +66,13 @@ export default function GoogleMapView({
     onSnapshotsChange?.(snapshots);
   }, [snapshots, onSnapshotsChange]);
 
-  // ─── Load Google Maps script ──────────────────────
+  // ─── Load Google Maps script + drawing library ────
   useEffect(() => {
-    // If already loaded with drawing library, skip
-    if (window.google?.maps?.drawing) {
-      setLoading(false);
-      return;
-    }
-
     let cancelled = false;
 
-    const loadScript = async () => {
+    const load = async () => {
       try {
+        // 1. Fetch API key
         const { data } = await supabase
           .from("integration_configs")
           .select("api_key, is_active")
@@ -86,68 +81,73 @@ export default function GoogleMapView({
           .maybeSingle();
 
         if (cancelled) return;
-
         if (!data?.api_key) {
           setError("Google Maps não configurado");
           setLoading(false);
           return;
         }
-
         apiKeyRef.current = data.api_key;
 
-        // If Maps already loaded WITH drawing, done
-        if (window.google?.maps?.drawing) {
-          setLoading(false);
-          return;
-        }
-
-        // If Maps loaded WITHOUT drawing, we must remove old script and reload
-        const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
-        if (existingScript && !window.google?.maps?.drawing) {
-          // Can't re-load Google Maps. Use the built-in loader instead.
-          // Actually Google Maps JS API doesn't allow re-loading. If drawing is missing,
-          // we have to work without it. Let's check if it exists.
-          if (window.google?.maps) {
-            // Maps loaded but drawing missing — accept this and skip drawing
-            console.warn("[GoogleMapView] Drawing library not available. Drawing tools disabled.");
-            setLoading(false);
-            return;
+        // 2. Load core Maps script if not present
+        if (!window.google?.maps) {
+          const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+          if (!existing) {
+            await new Promise<void>((resolve, reject) => {
+              const script = document.createElement("script");
+              script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&libraries=marker,drawing&v=weekly`;
+              script.async = true;
+              script.defer = true;
+              script.onload = () => resolve();
+              script.onerror = () => reject(new Error("Script load failed"));
+              document.head.appendChild(script);
+            });
+          } else {
+            // Wait for existing script to finish loading
+            if (!window.google?.maps) {
+              await new Promise<void>((resolve) => {
+                existing.addEventListener("load", () => resolve());
+                // In case it already loaded
+                if (window.google?.maps) resolve();
+              });
+            }
           }
         }
 
-        if (existingScript) {
-          existingScript.addEventListener("load", () => {
-            if (!cancelled) setLoading(false);
-          });
-          // Also check if already loaded
-          if (window.google?.maps) {
-            setLoading(false);
+        if (cancelled) return;
+
+        // 3. Dynamically import drawing library if missing
+        if (window.google?.maps && !window.google.maps.drawing) {
+          try {
+            await (google.maps as any).importLibrary("drawing");
+          } catch (e) {
+            console.warn("[GoogleMapView] Could not import drawing library:", e);
           }
-          return;
         }
 
-        const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&libraries=marker,drawing&v=weekly`;
-        script.async = true;
-        script.defer = true;
-        script.onload = () => { if (!cancelled) setLoading(false); };
-        script.onerror = () => {
-          if (!cancelled) { setError("Falha ao carregar Google Maps"); setLoading(false); }
-        };
-        document.head.appendChild(script);
-      } catch {
+        // 4. Dynamically import marker library if missing
+        if (window.google?.maps && !window.google.maps.marker) {
+          try {
+            await (google.maps as any).importLibrary("marker");
+          } catch (e) {
+            console.warn("[GoogleMapView] Could not import marker library:", e);
+          }
+        }
+
+        if (!cancelled) setLoading(false);
+      } catch (err) {
         if (!cancelled) {
-          setError("Erro ao buscar configuração do mapa");
+          console.error("[GoogleMapView] load error:", err);
+          setError("Falha ao carregar Google Maps");
           setLoading(false);
         }
       }
     };
 
-    loadScript();
+    load();
     return () => { cancelled = true; };
   }, []);
 
-  // ─── Initialize map ──────────────────────────────
+  // ─── Initialize map + DrawingManager ─────────────
   useEffect(() => {
     if (loading || error || !mapRef.current || !window.google?.maps) return;
     if (mapInstanceRef.current) return;
@@ -157,10 +157,10 @@ export default function GoogleMapView({
       center,
       zoom: lat ? 18 : 5,
       mapTypeControl: false,
-      streetViewControl: true, // Enable street view (pegman)
+      streetViewControl: true,
       fullscreenControl: true,
       zoomControl: true,
-      gestureHandling: "greedy", // Allow panning without ctrl
+      gestureHandling: "greedy",
       mapId: "proposal-map",
       mapTypeId: mapType,
     });
@@ -175,7 +175,7 @@ export default function GoogleMapView({
     mapInstanceRef.current = map;
 
     // Add marker if we have coords
-    if (lat !== null && lon !== null) {
+    if (lat !== null && lon !== null && window.google.maps.marker) {
       const marker = new google.maps.marker.AdvancedMarkerElement({
         map,
         position: { lat, lng: lon },
@@ -183,8 +183,8 @@ export default function GoogleMapView({
       markerRef.current = marker;
     }
 
-    // Initialize DrawingManager if library available
-    if (window.google?.maps?.drawing) {
+    // Initialize DrawingManager
+    if (window.google.maps.drawing) {
       const sharedStyle = {
         strokeColor: "#FF6600",
         fillColor: "#FF6600",
@@ -211,6 +211,8 @@ export default function GoogleMapView({
       });
 
       drawingManagerRef.current = dm;
+    } else {
+      console.warn("[GoogleMapView] Drawing library not available after init");
     }
   }, [loading, error]); // eslint-disable-line react-hooks/exhaustive-deps
 
