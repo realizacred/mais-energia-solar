@@ -1416,11 +1416,14 @@ function ChatTab({ customerId, customerPhone }: { customerId: string | null; cus
       if (!customerPhone && !customerId) { setLoading(false); return; }
       try {
         const digits = customerPhone.replace(/\D/g, "");
-        if (digits.length >= 10) {
+        if (digits.length >= 8) {
+          // Use last 8 digits for matching (local number without DDD/country code)
+          // This handles cases where stored numbers may have different formats (with/without 9th digit, with/without country code)
+          const suffix = digits.slice(-8);
           const { data } = await supabase
             .from("wa_conversations")
             .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, status")
-            .or(`cliente_telefone.ilike.%${digits.slice(-10)}%,remote_jid.ilike.%${digits.slice(-11)}%`)
+            .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%`)
             .order("last_message_at", { ascending: false })
             .limit(10);
           setConversations((data || []) as WaConversation[]);
