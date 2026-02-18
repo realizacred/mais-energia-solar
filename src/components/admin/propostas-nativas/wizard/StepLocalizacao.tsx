@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,40 @@ import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 import { UF_LIST } from "./types";
 import { ROOF_TYPE_ICONS } from "./roofTypeIcons";
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Fix Leaflet default marker icon
+const defaultIcon = L.icon({
+  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
+  iconRetinaUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png",
+  shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41],
+});
+L.Marker.prototype.options.icon = defaultIcon;
+
+/** Helper: click on map to update coordinates */
+function MapClickHandler({ onClick }: { onClick: (lat: number, lon: number) => void }) {
+  useMapEvents({
+    click(e) {
+      onClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
+/** Helper: recenter map when coords change */
+function MapRecenter({ lat, lon }: { lat: number; lon: number }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([lat, lon], 13);
+  }, [lat, lon, map]);
+  return null;
+}
 
 interface Props {
   estado: string;
@@ -53,65 +87,7 @@ export function StepLocalizacao({
   const [manualLon, setManualLon] = useState("");
   const [distKm, setDistKm] = useState<number | null>(null);
 
-  // Google Maps (optional, for map display only)
-  const [mapsLoaded, setMapsLoaded] = useState(false);
-  const [mapsKey, setMapsKey] = useState<string | null>(null);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-
-  // Fetch Google Maps key (optional for map display)
-  useEffect(() => {
-    supabase.functions.invoke("get-maps-key").then(({ data }) => {
-      if (data?.key) setMapsKey(data.key);
-    });
-  }, []);
-
-  // Load Google Maps script
-  useEffect(() => {
-    if (!mapsKey || mapsLoaded) return;
-    if ((window as any).google?.maps) {
-      setMapsLoaded(true);
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${mapsKey}&libraries=places`;
-    script.async = true;
-    script.onload = () => setMapsLoaded(true);
-    document.head.appendChild(script);
-  }, [mapsKey]);
-
-  // Init map
-  useEffect(() => {
-    if (!mapsLoaded || !mapRef.current || mapInstanceRef.current) return;
-    const google = (window as any).google;
-    const map = new google.maps.Map(mapRef.current, {
-      center: { lat: -15.78, lng: -47.93 },
-      zoom: 5,
-      mapTypeId: "hybrid",
-      disableDefaultUI: true,
-      zoomControl: true,
-      streetViewControl: false,
-      mapTypeControl: false,
-      fullscreenControl: true,
-    });
-    mapInstanceRef.current = map;
-  }, [mapsLoaded]);
-
-  // Update map marker when coords change
-  useEffect(() => {
-    if (!mapsLoaded || !mapInstanceRef.current || geoLat === null || geoLon === null) return;
-    const google = (window as any).google;
-    const pos = { lat: geoLat, lng: geoLon };
-    mapInstanceRef.current.setCenter(pos);
-    mapInstanceRef.current.setZoom(13);
-    if (markerRef.current) markerRef.current.setMap(null);
-    markerRef.current = new google.maps.Marker({
-      position: pos,
-      map: mapInstanceRef.current,
-      title: `${cidade}, ${estado}`,
-    });
-  }, [geoLat, geoLon, mapsLoaded, cidade, estado]);
+  
 
   // Nominatim geocoding when city+state change
   useEffect(() => {
@@ -245,6 +221,14 @@ export function StepLocalizacao({
     setGeoStatus("localizado");
     fetchIrradiacao(lat, lon);
   };
+
+  // Handle click on Leaflet map
+  const handleMapClick = useCallback((lat: number, lon: number) => {
+    setGeoLat(lat);
+    setGeoLon(lon);
+    setGeoStatus("localizado");
+    fetchIrradiacao(lat, lon);
+  }, [fetchIrradiacao]);
 
   const handleEstadoChange = (v: string) => {
     onEstadoChange(v);
@@ -487,33 +471,35 @@ export function StepLocalizacao({
           </div>
         </div>
 
-        {/* Right column: Map */}
+        {/* Right column: Leaflet Map (free, no API key needed) */}
         <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px]">
-          {!mapsKey ? (
-            <div className="flex items-center justify-center h-full bg-muted/20">
-              <div className="text-center space-y-2 p-4">
-                <MapPin className="h-8 w-8 mx-auto text-muted-foreground/30" />
-                <p className="text-xs text-muted-foreground">Mapa indisponível — configure a API key do Google Maps</p>
-                {geoLat !== null && geoLon !== null && (
-                  <p className="text-[10px] text-muted-foreground font-mono">
-                    ({geoLat.toFixed(4)}, {geoLon.toFixed(4)})
-                  </p>
-                )}
-              </div>
-            </div>
-          ) : !mapsLoaded ? (
-            <div className="flex items-center justify-center h-full bg-muted/20">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : (
-            <div ref={mapRef} className="w-full h-full min-h-[280px] sm:min-h-[360px]" />
-          )}
+          <MapContainer
+            center={[geoLat ?? -15.78, geoLon ?? -47.93]}
+            zoom={geoLat ? 13 : 5}
+            className="w-full h-full min-h-[280px] sm:min-h-[360px]"
+            style={{ zIndex: 0 }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            <MapClickHandler onClick={handleMapClick} />
+            {geoLat !== null && geoLon !== null && (
+              <>
+                <Marker position={[geoLat, geoLon]} />
+                <MapRecenter lat={geoLat} lon={geoLon} />
+              </>
+            )}
+          </MapContainer>
           {cidade && estado && (
-            <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-background/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-md border border-border/50">
+            <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-background/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-md border border-border/50 z-[1000]">
               <p className="text-xs sm:text-sm font-semibold">{cidade}</p>
               <p className="text-[9px] sm:text-[10px] text-muted-foreground">{estado}, Brasil</p>
             </div>
           )}
+          <p className="absolute bottom-2 right-2 text-[9px] text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded z-[1000]">
+            Clique no mapa para alterar coordenadas
+          </p>
         </div>
       </div>
     </div>
