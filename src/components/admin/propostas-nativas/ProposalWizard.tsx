@@ -89,6 +89,34 @@ function StepContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ─── Helper: apply tenant tariff defaults to a UC ──────────
+function applyTenantTarifasToUC(
+  uc: UCData,
+  t: {
+    tarifa: number; tusd_fio_b_bt: number;
+    tarifa_te_ponta: number; tarifa_tusd_ponta: number; tusd_fio_b_ponta: number;
+    tarifa_te_fora_ponta: number; tarifa_tusd_fora_ponta: number; tusd_fio_b_fora_ponta: number;
+    tarifacao_compensada_bt: number; tarifacao_compensada_ponta: number; tarifacao_compensada_fora_ponta: number;
+    imposto_energia: number; fator_simultaneidade: number;
+  },
+): UCData {
+  return {
+    ...uc,
+    tarifa_distribuidora: uc.tarifa_distribuidora || t.tarifa || 0,
+    tarifa_fio_b: uc.tarifa_fio_b || t.tusd_fio_b_bt || 0,
+    tarifa_te_p: uc.tarifa_te_p || t.tarifa_te_ponta || 0,
+    tarifa_tusd_p: uc.tarifa_tusd_p || t.tarifa_tusd_ponta || 0,
+    tarifa_fio_b_p: uc.tarifa_fio_b_p || t.tusd_fio_b_ponta || 0,
+    tarifa_tarifacao_p: uc.tarifa_tarifacao_p || t.tarifacao_compensada_ponta || 0,
+    tarifa_te_fp: uc.tarifa_te_fp || t.tarifa_te_fora_ponta || 0,
+    tarifa_tusd_fp: uc.tarifa_tusd_fp || t.tarifa_tusd_fora_ponta || 0,
+    tarifa_fio_b_fp: uc.tarifa_fio_b_fp || t.tusd_fio_b_fora_ponta || 0,
+    tarifa_tarifacao_fp: uc.tarifa_tarifacao_fp || t.tarifacao_compensada_fora_ponta || 0,
+    imposto_energia: uc.imposto_energia || t.imposto_energia || 0,
+    fator_simultaneidade: uc.fator_simultaneidade || t.fator_simultaneidade || 30,
+  };
+}
+
 // ─── Main Component ───────────────────────────────────────
 
 export function ProposalWizard() {
@@ -236,6 +264,32 @@ export function ProposalWizard() {
   // Load premissas from Solar Brain
   const { data: solarBrain } = useSolarPremises();
 
+  // Tenant tariff defaults (loaded once from tenant_premises)
+  const [tenantTarifas, setTenantTarifas] = useState<{
+    tarifa: number; tusd_fio_b_bt: number;
+    tarifa_te_ponta: number; tarifa_tusd_ponta: number; tusd_fio_b_ponta: number;
+    tarifa_te_fora_ponta: number; tarifa_tusd_fora_ponta: number; tusd_fio_b_fora_ponta: number;
+    tarifacao_compensada_bt: number; tarifacao_compensada_ponta: number; tarifacao_compensada_fora_ponta: number;
+    imposto_energia: number; fator_simultaneidade: number;
+    fase_tensao_rede: string; grupo_tarifario: string;
+  } | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("tenant_premises")
+      .select(
+        "tarifa, tusd_fio_b_bt, tarifa_te_ponta, tarifa_tusd_ponta, tusd_fio_b_ponta, " +
+        "tarifa_te_fora_ponta, tarifa_tusd_fora_ponta, tusd_fio_b_fora_ponta, " +
+        "tarifacao_compensada_bt, tarifacao_compensada_ponta, tarifacao_compensada_fora_ponta, " +
+        "imposto_energia, fator_simultaneidade, fase_tensao_rede, grupo_tarifario"
+      )
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setTenantTarifas(data as any);
+      });
+  }, []);
+
   useEffect(() => {
     if (!solarBrain) return;
     setPremissas(prev => ({
@@ -246,6 +300,27 @@ export function ProposalWizard() {
       sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
     }));
   }, [solarBrain]);
+
+  // Apply tenant tariff defaults to UCs that still have zero values
+  useEffect(() => {
+    if (!tenantTarifas) return;
+    setUcs(prev => {
+      const needsUpdate = prev.some(u =>
+        u.tarifa_distribuidora === 0 && u.tarifa_te_p === 0 && u.tarifa_te_fp === 0
+      );
+      if (!needsUpdate) return prev;
+      return prev.map(u => applyTenantTarifasToUC(u, tenantTarifas));
+    });
+  }, [tenantTarifas]);
+
+  // Wrapper: auto-apply tenant tariff defaults when UCs change (e.g. new UC added)
+  const handleUcsChange = useCallback((newUcs: UCData[] | ((prev: UCData[]) => UCData[])) => {
+    setUcs(prev => {
+      const resolved = typeof newUcs === "function" ? newUcs(prev) : newUcs;
+      if (!tenantTarifas) return resolved;
+      return resolved.map(u => applyTenantTarifasToUC(u, tenantTarifas));
+    });
+  }, [tenantTarifas]);
 
   // ─── Auto-load from project context
   useEffect(() => {
@@ -612,7 +687,7 @@ export function ProposalWizard() {
         return (
           <StepContent key="ucs">
             <StepConsumptionIntelligence
-              ucs={ucs} onUcsChange={setUcs}
+              ucs={ucs} onUcsChange={handleUcsChange}
               potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp}
               preDimensionamento={preDimensionamento}
               onPreDimensionamentoChange={setPreDimensionamento}
