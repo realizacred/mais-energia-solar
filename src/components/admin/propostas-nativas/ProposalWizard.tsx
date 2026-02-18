@@ -208,6 +208,7 @@ export function ProposalWizard() {
   const [itens, setItens] = useState<KitItemRow[]>([
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
   ]);
+  const [manualKits, setManualKits] = useState<{ card: any; itens: KitItemRow[] }[]>([]);
 
   // Layouts
   const [layouts, setLayouts] = useState<LayoutArranjo[]>([]);
@@ -762,7 +763,7 @@ export function ProposalWizard() {
       case STEP_KEYS.KIT:
         return (
           <StepContent key="kit">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} />
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} />
           </StepContent>
         );
 
