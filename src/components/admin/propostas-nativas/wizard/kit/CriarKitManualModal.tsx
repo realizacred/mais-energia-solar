@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { type KitItemRow, formatBRL } from "../types";
 
 interface CatalogoModulo {
@@ -248,7 +249,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             </div>
             <div className="space-y-1">
               <Label className="text-xs">Custo *</Label>
-              <Input type="number" value={custo || ""} onChange={e => setCusto(Number(e.target.value))} className="h-8 text-xs" placeholder="R$ 0,00" />
+              <CurrencyInput value={custo} onChange={setCusto} className="h-8 text-xs" placeholder="0,00" />
             </div>
           </div>
 

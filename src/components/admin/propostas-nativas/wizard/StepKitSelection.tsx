@@ -50,6 +50,8 @@ interface Props {
   preDimensionamento?: PreDimensionamentoData;
   onPreDimensionamentoChange?: (pd: PreDimensionamentoData) => void;
   consumoTotal?: number;
+  manualKits?: { card: KitCardData; itens: KitItemRow[] }[];
+  onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[] }[]) => void;
 }
 
 type TabType = "customizado" | "fechado" | "manual";
@@ -84,14 +86,17 @@ function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardDat
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0 }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0, manualKits: manualKitsProp = [], onManualKitsChange }: Props) {
   const [tab, setTab] = useState<TabType>("manual");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS, buscarValor: 0 });
   const [orderBy, setOrderBy] = useState("menor_preco");
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [manualMode, setManualMode] = useState<"equipamentos" | "zero" | null>(null);
-  const [manualKits, setManualKits] = useState<{ card: KitCardData; itens: KitItemRow[] }[]>([]);
+  // Use lifted state if provided, fallback to local
+  const [localManualKits, setLocalManualKits] = useState<{ card: KitCardData; itens: KitItemRow[] }[]>([]);
+  const manualKits = onManualKitsChange ? manualKitsProp : localManualKits;
+  const setManualKits = onManualKitsChange || setLocalManualKits;
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
   const [showEditKitFechado, setShowEditKitFechado] = useState(false);
   const [showEditLayout, setShowEditLayout] = useState(false);
@@ -129,10 +134,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     const card = kitItemsToCardData(newItens, topoLabel);
     if (card) {
       if (editingKitIndex !== null) {
-        setManualKits(prev => prev.map((k, i) => i === editingKitIndex ? { card, itens: newItens } : k));
+        setManualKits(manualKits.map((k, i) => i === editingKitIndex ? { card, itens: newItens } : k));
         setEditingKitIndex(null);
       } else {
-        setManualKits(prev => [...prev, { card, itens: newItens }]);
+        setManualKits([...manualKits, { card, itens: newItens }]);
       }
     }
     setManualMode(null);
@@ -140,7 +145,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   };
 
   const handleDeleteManualKit = (index: number) => {
-    setManualKits(prev => prev.filter((_, i) => i !== index));
+    setManualKits(manualKits.filter((_, i) => i !== index));
     toast({ title: "Kit removido" });
   };
 
