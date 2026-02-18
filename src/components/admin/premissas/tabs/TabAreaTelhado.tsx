@@ -3,19 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Save, Loader2, Plus, Trash2, LayoutGrid } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, LayoutGrid, Pencil, Check } from "lucide-react";
 import type { RoofAreaFactor } from "@/hooks/useTenantPremises";
-
-const ROOF_LABELS: Record<string, string> = {
-  carport: "Carport",
-  ceramico: "Cerâmico",
-  fibrocimento: "Fibrocimento",
-  laje: "Laje",
-  shingle: "Shingle",
-  metalico: "Metálico",
-  zipado: "Zipado",
-  solo: "Solo",
-};
+import { getRoofLabel } from "@/hooks/useTenantPremises";
 
 interface Props {
   roofFactors: RoofAreaFactor[];
@@ -26,15 +16,19 @@ interface Props {
 export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
   const [local, setLocal] = useState<RoofAreaFactor[]>(() => [...roofFactors]);
   const [newName, setNewName] = useState("");
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editLabel, setEditLabel] = useState("");
 
   const updateFactor = (idx: number, key: keyof RoofAreaFactor, value: any) => {
     setLocal((prev) => prev.map((f, i) => (i === idx ? { ...f, [key]: value } : f)));
   };
 
   const addNew = () => {
-    const slug = newName.trim().toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
+    const name = newName.trim();
+    if (!name) return;
+    const slug = name.toLowerCase().replace(/\s+/g, "_").replace(/[^a-z0-9_]/g, "");
     if (!slug || local.some((f) => f.tipo_telhado === slug)) return;
-    setLocal((prev) => [...prev, { tipo_telhado: slug, fator_area: 1.20, enabled: true }]);
+    setLocal((prev) => [...prev, { tipo_telhado: slug, label: name, fator_area: 1.20, enabled: true }]);
     setNewName("");
   };
 
@@ -42,18 +36,28 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
     setLocal((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const isBuiltIn = (tipo: string) => tipo in ROOF_LABELS;
+  const startEditing = (idx: number) => {
+    setEditingIdx(idx);
+    setEditLabel(getRoofLabel(local[idx]));
+  };
+
+  const confirmEdit = () => {
+    if (editingIdx !== null && editLabel.trim()) {
+      updateFactor(editingIdx, "label", editLabel.trim());
+    }
+    setEditingIdx(null);
+    setEditLabel("");
+  };
 
   return (
     <div className="space-y-6">
-      {/* Tipos de telhado */}
       <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-4">
         <div className="flex items-center gap-2">
           <LayoutGrid className="h-4 w-4 text-primary" />
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">Tipos de telhado</p>
         </div>
         <p className="text-xs text-muted-foreground">
-          Apenas os tipos habilitados aparecerão como opções no dimensionamento.
+          Apenas os tipos habilitados aparecerão como opções no dimensionamento, cadastro de leads e propostas.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -63,9 +67,29 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
                 checked={f.enabled}
                 onCheckedChange={(v) => updateFactor(idx, "enabled", v)}
               />
-              <Label className="text-sm font-medium min-w-[100px]">
-                {ROOF_LABELS[f.tipo_telhado] || f.tipo_telhado}
-              </Label>
+              {editingIdx === idx ? (
+                <div className="flex items-center gap-1 min-w-[100px]">
+                  <Input
+                    value={editLabel}
+                    onChange={(e) => setEditLabel(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && confirmEdit()}
+                    className="h-7 text-sm"
+                    autoFocus
+                  />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={confirmEdit}>
+                    <Check className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 min-w-[100px]">
+                  <Label className="text-sm font-medium">
+                    {getRoofLabel(f)}
+                  </Label>
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => startEditing(idx)}>
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
               <div className="relative flex-1">
                 <Input
                   type="number"
@@ -78,11 +102,9 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
                   m² / m² de módulos
                 </span>
               </div>
-              {!isBuiltIn(f.tipo_telhado) && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => remove(idx)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
+              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => remove(idx)}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
             </div>
           ))}
         </div>

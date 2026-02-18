@@ -5,7 +5,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
-import { TIPO_TELHADO_OPTIONS, UF_LIST } from "./types";
+import { useTiposTelhado } from "@/hooks/useTiposTelhado";
+import { UF_LIST } from "./types";
 
 interface Props {
   estado: string;
@@ -32,6 +33,7 @@ export function StepLocalizacao({
   onIrradiacaoChange,
 }: Props) {
   const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(estado);
+  const { tiposTelhado } = useTiposTelhado();
   const [concessionarias, setConcessionarias] = useState<ConcessionariaOption[]>([]);
   const [loadingConc, setLoadingConc] = useState(false);
   const [irradiacao, setIrradiacao] = useState<number | null>(null);
@@ -247,7 +249,7 @@ export function StepLocalizacao({
               <SelectValue placeholder="Selecione" />
             </SelectTrigger>
             <SelectContent>
-              {TIPO_TELHADO_OPTIONS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              {tiposTelhado.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>

@@ -11329,6 +11329,7 @@ export type Database = {
           enabled: boolean
           fator_area: number
           id: string
+          label: string | null
           tenant_id: string
           tipo_telhado: string
           updated_at: string
@@ -11338,6 +11339,7 @@ export type Database = {
           enabled?: boolean
           fator_area?: number
           id?: string
+          label?: string | null
           tenant_id: string
           tipo_telhado: string
           updated_at?: string
@@ -11347,6 +11349,7 @@ export type Database = {
           enabled?: boolean
           fator_area?: number
           id?: string
+          label?: string | null
           tenant_id?: string
           tipo_telhado?: string
           updated_at?: string

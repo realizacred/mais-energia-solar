@@ -116,20 +116,37 @@ export interface RoofAreaFactor {
   id?: string;
   tenant_id?: string;
   tipo_telhado: string;
+  label?: string;
   fator_area: number;
   enabled: boolean;
 }
 
+export const ROOF_LABELS: Record<string, string> = {
+  carport: "Carport",
+  ceramico: "Cerâmico",
+  fibrocimento: "Fibrocimento",
+  laje: "Laje",
+  shingle: "Shingle",
+  metalico: "Metálico",
+  zipado: "Zipado",
+  solo: "Solo",
+};
+
 export const DEFAULT_ROOF_FACTORS: RoofAreaFactor[] = [
-  { tipo_telhado: "carport", fator_area: 1.30, enabled: true },
-  { tipo_telhado: "ceramico", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "fibrocimento", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "laje", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "shingle", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "metalico", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "zipado", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "solo", fator_area: 1.60, enabled: true },
+  { tipo_telhado: "carport", label: "Carport", fator_area: 1.30, enabled: true },
+  { tipo_telhado: "ceramico", label: "Cerâmico", fator_area: 1.20, enabled: true },
+  { tipo_telhado: "fibrocimento", label: "Fibrocimento", fator_area: 1.20, enabled: true },
+  { tipo_telhado: "laje", label: "Laje", fator_area: 1.20, enabled: true },
+  { tipo_telhado: "shingle", label: "Shingle", fator_area: 1.20, enabled: true },
+  { tipo_telhado: "metalico", label: "Metálico", fator_area: 1.20, enabled: true },
+  { tipo_telhado: "zipado", label: "Zipado", fator_area: 1.20, enabled: true },
+  { tipo_telhado: "solo", label: "Solo", fator_area: 1.60, enabled: true },
 ];
+
+/** Returns the display label for a roof factor */
+export function getRoofLabel(f: RoofAreaFactor): string {
+  return f.label || ROOF_LABELS[f.tipo_telhado] || f.tipo_telhado;
+}
 
 // ─── Hook ──────────────────────────────────────────
 

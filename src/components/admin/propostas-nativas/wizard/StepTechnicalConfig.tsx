@@ -9,8 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import {
   type UCData, type Concessionaria,
-  UF_LIST, TIPO_TELHADO_OPTIONS, GRUPO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT,
+  UF_LIST, GRUPO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT,
 } from "./types";
+import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 
 interface Props {
   ucs: UCData[];
@@ -25,6 +26,7 @@ export function StepTechnicalConfig({ ucs, onUcsChange, grupo, onGrupoChange, po
   const [loadingConc, setLoadingConc] = useState(false);
 
   const uc = ucs[0];
+  const { tiposTelhado } = useTiposTelhado();
   const ucEstado = uc?.estado || "";
   const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(ucEstado);
   const isMT = uc?.tipo_dimensionamento === "MT";
@@ -194,7 +196,7 @@ export function StepTechnicalConfig({ ucs, onUcsChange, grupo, onGrupoChange, po
             <Label className="text-[10px]">Tipo de Telhado</Label>
             <Select value={uc.tipo_telhado} onValueChange={v => updateUC("tipo_telhado", v)}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>{TIPO_TELHADO_OPTIONS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+              <SelectContent>{tiposTelhado.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1">
