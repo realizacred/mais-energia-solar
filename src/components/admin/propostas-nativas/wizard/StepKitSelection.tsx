@@ -1,11 +1,19 @@
 import { useState, useMemo } from "react";
-import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus } from "lucide-react";
+import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { type KitItemRow, type LayoutArranjo, formatBRL } from "./types";
+import {
+  type KitItemRow, type LayoutArranjo, type PreDimensionamentoData,
+  SOMBREAMENTO_OPTIONS, DESVIO_AZIMUTAL_OPTIONS, INCLINACAO_OPTIONS,
+  formatBRL,
+} from "./types";
 import { toast } from "@/hooks/use-toast";
 
 import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
@@ -33,6 +41,9 @@ interface Props {
   potenciaKwp: number;
   layouts?: LayoutArranjo[];
   onLayoutsChange?: (layouts: LayoutArranjo[]) => void;
+  preDimensionamento?: PreDimensionamentoData;
+  onPreDimensionamentoChange?: (pd: PreDimensionamentoData) => void;
+  consumoTotal?: number;
 }
 
 type TabType = "customizado" | "fechado" | "manual";
@@ -98,7 +109,7 @@ function generateMockKits(modulos: CatalogoModuloUnificado[], inversores: Catalo
   return kits;
 }
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, loadingEquip, potenciaKwp, layouts = [], onLayoutsChange }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0 }: Props) {
   const [tab, setTab] = useState<TabType>("customizado");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS, buscarValor: 0 });
@@ -109,6 +120,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
   const [showEditKitFechado, setShowEditKitFechado] = useState(false);
   const [showEditLayout, setShowEditLayout] = useState(false);
+  const [showPremissas, setShowPremissas] = useState(false);
+  const [premissasTab, setPremissasTab] = useState<"fator" | "sistema">("fator");
 
   const consumoTotal = filters.buscarValor;
 
@@ -178,7 +191,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
           <Zap className="h-4 w-4 text-primary" /> Kit Gerador
         </h3>
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7">
+          <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => { setShowPremissas(true); setPremissasTab("fator"); }}>
             <Settings2 className="h-3 w-3" /> Editar premissas
           </Button>
           {itens.length > 0 && itens.some(i => i.descricao) && (
@@ -407,6 +420,19 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
           toast({ title: "Layout atualizado" });
         }}
       />
+
+      {/* Premissas Modal */}
+      {pd && setPd && (
+        <PremissasModal
+          open={showPremissas}
+          onOpenChange={setShowPremissas}
+          pd={pd}
+          setPd={setPd}
+          activeTab={premissasTab}
+          onTabChange={setPremissasTab}
+          consumoTotal={consumoTotalProp}
+        />
+      )}
     </div>
   );
 }
@@ -464,5 +490,155 @@ function ManualKitRow({ entry, onSelect, onEdit, onDelete }: {
         </Button>
       </div>
     </div>
+  );
+}
+
+/* ── Premissas Modal ── */
+
+function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange, consumoTotal }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  pd: PreDimensionamentoData;
+  setPd: (pd: PreDimensionamentoData) => void;
+  activeTab: "fator" | "sistema";
+  onTabChange: (t: "fator" | "sistema") => void;
+  consumoTotal: number;
+}) {
+  const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
+    setPd({ ...pd, [field]: value });
+  };
+
+  const potenciaIdeal = useMemo(() => {
+    if (pd.fator_geracao <= 0) return 0;
+    return Math.round((consumoTotal / pd.fator_geracao) * 100) / 100;
+  }, [consumoTotal, pd.fator_geracao]);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-base">Premissas</DialogTitle>
+        </DialogHeader>
+
+        {/* Tabs */}
+        <div className="flex gap-6 border-b border-border">
+          <button
+            onClick={() => onTabChange("fator")}
+            className={cn(
+              "text-sm font-medium pb-2 border-b-2 transition-colors",
+              activeTab === "fator" ? "border-secondary text-secondary" : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Fator Geração
+          </button>
+          <button
+            onClick={() => onTabChange("sistema")}
+            className={cn(
+              "text-sm font-medium pb-2 border-b-2 transition-colors",
+              activeTab === "sistema" ? "border-secondary text-secondary" : "border-transparent text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Sistema Solar
+          </button>
+        </div>
+
+        {activeTab === "fator" ? (
+          <div className="space-y-4 pt-1">
+            {/* Sombreamento */}
+            <div className="space-y-1.5">
+              <Label className="text-[11px] flex items-center gap-1">
+                Sombreamento <span className="text-destructive">*</span>
+                <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Nível de sombreamento no local</p></TooltipContent></Tooltip></TooltipProvider>
+              </Label>
+              <Select value={pd.sombreamento} onValueChange={v => pdUpdate("sombreamento", v)}>
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>{SOMBREAMENTO_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+
+            {/* Desvio / Inclinação */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[11px]">Desvio Azimutal <span className="text-destructive">*</span></Label>
+                <Select value={String(pd.desvio_azimutal)} onValueChange={v => pdUpdate("desvio_azimutal", Number(v))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{DESVIO_AZIMUTAL_OPTIONS.map(d => <SelectItem key={d} value={String(d)}>{d}°</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px]">Inclinação <span className="text-destructive">*</span></Label>
+                <Select value={String(pd.inclinacao)} onValueChange={v => pdUpdate("inclinacao", Number(v))}>
+                  <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>{INCLINACAO_OPTIONS.map(i => <SelectItem key={i} value={String(i)}>{i}°</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Tradicional + badge */}
+            <div className="flex items-center gap-3 pt-1">
+              <p className="text-sm font-bold">Tradicional</p>
+              <Badge variant="outline" className="text-[10px] font-mono border-secondary text-secondary">
+                Pot. ideal: {potenciaIdeal.toFixed(2)} kWp
+              </Badge>
+            </div>
+
+            {/* Desempenho / Fator Geração */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[11px] flex items-center gap-1">
+                  Desempenho <span className="text-destructive">*</span>
+                  <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Performance Ratio do sistema</p></TooltipContent></Tooltip></TooltipProvider>
+                </Label>
+                <div className="relative">
+                  <Input type="number" step="0.01" value={pd.desempenho || ""} onChange={e => pdUpdate("desempenho", Number(e.target.value))} className="h-9 text-xs pr-8" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
+                  <button className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
+                </div>
+                <div className="relative">
+                  <Input type="number" step="0.01" value={pd.fator_geracao || ""} onChange={e => pdUpdate("fator_geracao", Number(e.target.value))} className="h-9 text-xs pr-16" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh/kWp</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4 pt-1">
+            {/* Sistema Solar tab */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-[11px]">Sobredimensionamento</Label>
+                <div className="relative">
+                  <Input type="number" step="0.01" value={pd.sobredimensionamento || ""} onChange={e => pdUpdate("sobredimensionamento", Number(e.target.value))} className="h-9 text-xs pr-8" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-[11px]">Margem para Pot. Ideal</Label>
+                <div className="relative">
+                  <Input type="number" step="0.01" value={pd.margem_pot_ideal || ""} onChange={e => pdUpdate("margem_pot_ideal", Number(e.target.value))} className="h-9 text-xs pr-8" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-1">
+              <Label className="text-xs">Considerar kits que necessitam de transformador</Label>
+              <Switch checked={pd.considerar_transformador} onCheckedChange={v => pdUpdate("considerar_transformador", v)} />
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="flex items-center justify-between pt-3 border-t border-border">
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>Voltar</Button>
+          <Button size="sm" onClick={() => onOpenChange(false)} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
