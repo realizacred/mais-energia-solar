@@ -48,10 +48,17 @@ export interface ComercialData {
   empresa_cidade: string;
 }
 
+export type RegraCompensacao = "GD2" | "GD3";
+export type GrupoTarifario = "A" | "B";
+export type FaseTensao = "monofasico_127_220" | "bifasico_127_220" | "trifasico_127_220" | "trifasico_220_380";
+
 export interface UCData {
   id: string; // local temp id
   uc_index: number;
   nome: string;
+  is_geradora: boolean;
+  regra: RegraCompensacao;
+  grupo_tarifario: GrupoTarifario;
   tipo_dimensionamento: "BT" | "MT";
   distribuidora: string;
   distribuidora_id: string;
@@ -59,24 +66,39 @@ export interface UCData {
   estado: string;
   cidade: string;
   fase: "monofasico" | "bifasico" | "trifasico";
+  fase_tensao: FaseTensao;
   tensao_rede: string;
-  // Consumo BT
+  // Consumo BT (Grupo B)
   consumo_mensal: number;
   consumo_meses: Record<string, number>; // jan..dez
-  // Consumo MT
+  // Consumo MT (Grupo A) - Ponta / Fora Ponta
   consumo_mensal_p: number;
   consumo_mensal_fp: number;
-  // Tarifas
+  consumo_meses_p: Record<string, number>;
+  consumo_meses_fp: Record<string, number>;
+  // Tarifas Grupo B
   tarifa_distribuidora: number;
+  tarifa_fio_b: number;
+  // Tarifas Grupo A - Ponta
   tarifa_te_p: number;
   tarifa_tusd_p: number;
+  tarifa_fio_b_p: number; // GD2
+  tarifa_tarifacao_p: number; // GD3
+  // Tarifas Grupo A - Fora Ponta
   tarifa_te_fp: number;
   tarifa_tusd_fp: number;
-  // Demanda MT
+  tarifa_fio_b_fp: number; // GD2
+  tarifa_tarifacao_fp: number; // GD3
+  // Demanda (Grupo A)
+  demanda_consumo_kw: number;
+  demanda_geracao_kw: number;
+  demanda_consumo_rs: number;
+  demanda_geracao_rs: number;
+  // Legacy demanda fields
   demanda_preco: number;
   demanda_contratada: number;
   demanda_adicional: number;
-  // Custos
+  // Custos / Configurações adicionais
   custo_disponibilidade_kwh: number;
   custo_disponibilidade_valor: number;
   outros_encargos_atual: number;
@@ -240,23 +262,31 @@ export function createEmptyUC(index: number): UCData {
   return {
     id: crypto.randomUUID(),
     uc_index: index,
-    nome: `UC ${index}`,
+    nome: index === 1 ? "Unidade (Geradora)" : `Unidade ${index}`,
+    is_geradora: index === 1,
+    regra: "GD2",
+    grupo_tarifario: "B",
     tipo_dimensionamento: "BT",
     distribuidora: "", distribuidora_id: "",
     subgrupo: "B1", estado: "", cidade: "",
-    fase: "bifasico", tensao_rede: "",
+    fase: "bifasico", fase_tensao: "bifasico_127_220", tensao_rede: "127/220V",
     consumo_mensal: 0,
     consumo_meses: Object.fromEntries(MESES.map(m => [m, 0])),
     consumo_mensal_p: 0, consumo_mensal_fp: 0,
-    tarifa_distribuidora: 0, tarifa_te_p: 0, tarifa_tusd_p: 0,
-    tarifa_te_fp: 0, tarifa_tusd_fp: 0,
+    consumo_meses_p: Object.fromEntries(MESES.map(m => [m, 0])),
+    consumo_meses_fp: Object.fromEntries(MESES.map(m => [m, 0])),
+    tarifa_distribuidora: 0, tarifa_fio_b: 0,
+    tarifa_te_p: 0, tarifa_tusd_p: 0, tarifa_fio_b_p: 0, tarifa_tarifacao_p: 0,
+    tarifa_te_fp: 0, tarifa_tusd_fp: 0, tarifa_fio_b_fp: 0, tarifa_tarifacao_fp: 0,
+    demanda_consumo_kw: 0, demanda_geracao_kw: 0,
+    demanda_consumo_rs: 0, demanda_geracao_rs: 0,
     demanda_preco: 0, demanda_contratada: 0, demanda_adicional: 0,
-    custo_disponibilidade_kwh: 0, custo_disponibilidade_valor: 0,
+    custo_disponibilidade_kwh: 50, custo_disponibilidade_valor: 0,
     outros_encargos_atual: 0, outros_encargos_novo: 0,
     distancia: 0, tipo_telhado: "", inclinacao: 0, desvio_azimutal: 0,
     taxa_desempenho: 80,
     regra_compensacao: 0, rateio_sugerido_creditos: 100,
-    rateio_creditos: 100, imposto_energia: 0, fator_simultaneidade: 100,
+    rateio_creditos: 100, imposto_energia: 0, fator_simultaneidade: 30,
   };
 }
 
@@ -289,6 +319,13 @@ export const GRUPO_OPTIONS = [
 
 export const SUBGRUPO_BT = ["B1", "B2", "B3"];
 export const SUBGRUPO_MT = ["A1", "A2", "A3", "A3a", "A4", "AS"];
+
+export const FASE_TENSAO_OPTIONS = [
+  { value: "monofasico_127_220", label: "Monofásico 127/220V" },
+  { value: "bifasico_127_220", label: "Bifásico 127/220V" },
+  { value: "trifasico_127_220", label: "Trifásico 127/220V" },
+  { value: "trifasico_220_380", label: "Trifásico 220/380V" },
+] as const;
 
 /** @deprecated Use `formatBRL` from `@/lib/formatters` instead. */
 export { formatBRL } from "@/lib/formatters";
