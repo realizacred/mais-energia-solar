@@ -866,7 +866,7 @@ export function ProposalWizard() {
               <span className="font-bold text-foreground">{formatBRL(precoFinal)}</span>
             </div>
           )}
-          <span className="text-[10px] font-mono text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-mono text-secondary font-bold bg-secondary/10 px-2 py-0.5 rounded-full">
             {step + 1}/{activeSteps.length}
           </span>
         </div>
@@ -883,11 +883,11 @@ export function ProposalWizard() {
       )}
 
       {/* ── Pipeline stepper — animated */}
-      <div className="relative overflow-x-auto shrink-0 border-b-2 border-primary/10 bg-gradient-to-b from-card to-muted/20">
-        {/* Progress track */}
+      <div className="relative overflow-x-auto shrink-0 border-b-2 border-secondary/10 bg-gradient-to-b from-card to-muted/20">
+        {/* Progress track — blue for done, orange tip */}
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/40">
           <motion.div
-            className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-r-full shadow-sm shadow-primary/30"
+            className="h-full bg-gradient-to-r from-secondary via-secondary to-primary rounded-r-full shadow-sm shadow-secondary/30"
             initial={{ width: "0%" }}
             animate={{ width: `${((step) / (activeSteps.length - 1)) * 100}%` }}
             transition={{ duration: 0.6, ease: "easeInOut" }}
@@ -905,7 +905,7 @@ export function ProposalWizard() {
                   className={cn(
                     "relative flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-colors whitespace-nowrap border",
                     isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/30 border-primary",
-                    isDone && "bg-primary/10 text-primary border-primary/20 cursor-pointer hover:bg-primary/20 hover:border-primary/40",
+                    isDone && "bg-secondary/10 text-secondary border-secondary/20 cursor-pointer hover:bg-secondary/20 hover:border-secondary/40",
                     !isActive && !isDone && "text-muted-foreground border-transparent cursor-default",
                   )}
                   initial={false}
@@ -916,7 +916,7 @@ export function ProposalWizard() {
                   <span className={cn(
                     "flex items-center justify-center h-6 w-6 rounded-full text-[10px] shrink-0 transition-colors",
                     isActive && "bg-primary-foreground/25",
-                    isDone && "bg-primary/20",
+                    isDone && "bg-secondary/20 text-secondary",
                     !isActive && !isDone && "bg-muted",
                   )}>
                     {isDone ? (
@@ -932,7 +932,7 @@ export function ProposalWizard() {
                     )}
                   </span>
                   <span className="hidden sm:block">{s.label}</span>
-                  {/* Active pulse */}
+                  {/* Active pulse — orange */}
                   {isActive && (
                     <motion.span
                       className="absolute inset-0 rounded-xl border-2 border-primary/50"
@@ -947,7 +947,7 @@ export function ProposalWizard() {
                   <div className="flex items-center mx-0.5 sm:mx-1">
                     <ChevronRight className={cn(
                       "h-4 w-4 transition-colors duration-300",
-                      isDone ? "text-primary" : "text-muted-foreground/30",
+                      isDone ? "text-secondary" : "text-muted-foreground/30",
                     )} />
                   </div>
                 )}
