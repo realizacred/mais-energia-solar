@@ -46,9 +46,9 @@ import {
   formatCEP,
   formatName,
   ESTADOS_BRASIL,
-  TIPOS_TELHADO,
   REDES_ATENDIMENTO,
 } from "@/lib/validations";
+import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 
 const STEPS = [
   { id: 1, title: "Dados Pessoais", icon: <User className="w-4 h-4" /> },
@@ -91,6 +91,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const logo = useLogo();
+  const { tiposTelhado: TIPOS_TELHADO } = useTiposTelhado();
   // Detect if this is a public vendor form (/v/slug) — always use Edge Function path
   const isPublicVendorForm = Boolean(
     vendorCode || searchParams.get("v") || searchParams.get("vendedor") || window.location.pathname.startsWith("/v/")
