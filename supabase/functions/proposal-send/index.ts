@@ -23,10 +23,12 @@ Deno.serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) return jsonError("Token inválido", 401);
-    const userId = claimsData.claims.sub as string;
+    const { data: { user }, error: authErr } = await callerClient.auth.getUser();
+    if (authErr || !user) {
+      console.error("[proposal-send] Auth failed:", authErr?.message);
+      return jsonError("Sessão expirada. Faça login novamente.", 401);
+    }
+    const userId = user.id;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
