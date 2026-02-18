@@ -348,6 +348,11 @@ export function ProposalWizard() {
       perda_eficiencia_anual: solarBrain.perda_eficiencia ?? prev.perda_eficiencia_anual,
       sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
     }));
+    // Sync preDimensionamento with tenant sobredimensionamento
+    setPreDimensionamento(prev => ({
+      ...prev,
+      sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
+    }));
   }, [solarBrain]);
 
   // Apply tenant tariff defaults to UCs that still have zero values
