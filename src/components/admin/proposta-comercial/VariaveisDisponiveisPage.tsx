@@ -302,7 +302,7 @@ export function VariaveisDisponiveisPage() {
 
                     <td className="px-3 py-2">
                       <span className="text-[10px] text-muted-foreground">
-                        {v.appliesTo === "todos" ? "Todos" : v.appliesTo === "proposta" ? "Proposta" : v.appliesTo}
+                        {v.appliesTo}
                       </span>
                     </td>
 
