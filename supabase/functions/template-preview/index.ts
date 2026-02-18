@@ -86,41 +86,52 @@ Deno.serve(async (req) => {
     const cliente = clienteRes.data;
 
     // ── 5. MONTAR MAPA DE VARIÁVEIS ───────────────────────
+    // Uses BOTH canonical (grupo.campo) and legacy (campo) keys
+    // docx-templates uses {key} syntax — we map legacy keys for that
     const now = new Date();
-    const vars: Record<string, string> = {
-      // Cliente
-      nome_cliente: cliente?.nome || lead.nome || "—",
-      telefone_cliente: cliente?.telefone || lead.telefone || "—",
-      email_cliente: cliente?.email || "—",
-      cpf_cnpj: cliente?.cpf_cnpj || "—",
-      empresa: cliente?.empresa || "—",
-      data_nascimento: cliente?.data_nascimento || "—",
-      // Endereço
-      cidade: cliente?.cidade || lead.cidade || "—",
-      estado: cliente?.estado || lead.estado || "—",
-      bairro: cliente?.bairro || lead.bairro || "—",
-      rua: cliente?.rua || lead.rua || "—",
-      numero: cliente?.numero || lead.numero || "—",
-      cep: cliente?.cep || lead.cep || "—",
-      complemento: cliente?.complemento || "—",
-      // Consumo / técnico
-      consumo_medio: String(lead.media_consumo || 0),
-      consumo_previsto: String(lead.consumo_previsto || 0),
-      potencia_kwp: String(cliente?.potencia_kwp || 0),
-      numero_placas: String(cliente?.numero_placas || 0),
-      modelo_inversor: cliente?.modelo_inversor || "—",
-      area: lead.area || "—",
-      tipo_telhado: lead.tipo_telhado || "—",
-      rede_atendimento: lead.rede_atendimento || "—",
-      // Financeiro
-      valor_total: formatCurrency(lead.valor_estimado || cliente?.valor_projeto || 0),
-      valor_projeto: formatCurrency(cliente?.valor_projeto || lead.valor_estimado || 0),
-      // Comercial
-      data_proposta: now.toLocaleDateString("pt-BR"),
-      validade_proposta: new Date(now.getTime() + 15 * 86400000).toLocaleDateString("pt-BR"),
-      // Observações
-      observacoes: lead.observacoes || "—",
+    const fmtCur = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+    const set = (vars: Record<string, string>, canonical: string, legacy: string, value: string) => {
+      vars[canonical] = value;
+      vars[legacy] = value;
     };
+
+    const vars: Record<string, string> = {};
+
+    // Cliente
+    set(vars, "cliente.nome", "cliente_nome", cliente?.nome || lead.nome || "—");
+    set(vars, "cliente.celular", "cliente_celular", cliente?.telefone || lead.telefone || "—");
+    set(vars, "cliente.email", "cliente_email", cliente?.email || "—");
+    set(vars, "cliente.cnpj_cpf", "cliente_cnpj_cpf", cliente?.cpf_cnpj || "—");
+    set(vars, "cliente.empresa", "cliente_empresa", cliente?.empresa || "—");
+    set(vars, "cliente.cep", "cliente_cep", cliente?.cep || lead.cep || "—");
+    set(vars, "cliente.endereco", "cliente_endereco", cliente?.rua || lead.rua || "—");
+    set(vars, "cliente.numero", "cliente_numero", cliente?.numero || lead.numero || "—");
+    set(vars, "cliente.complemento", "cliente_complemento", cliente?.complemento || "—");
+    set(vars, "cliente.bairro", "cliente_bairro", cliente?.bairro || lead.bairro || "—");
+    set(vars, "cliente.cidade", "cliente_cidade", cliente?.cidade || lead.cidade || "—");
+    set(vars, "cliente.estado", "cliente_estado", cliente?.estado || lead.estado || "—");
+
+    // Entrada
+    set(vars, "entrada.consumo_mensal", "consumo_mensal", String(lead.media_consumo || 0));
+    set(vars, "entrada.cidade", "cidade", cliente?.cidade || lead.cidade || "—");
+    set(vars, "entrada.estado", "estado", cliente?.estado || lead.estado || "—");
+    set(vars, "entrada.tipo_telhado", "tipo_telhado", lead.tipo_telhado || "—");
+    set(vars, "entrada.distancia", "distancia", "—");
+
+    // Sistema Solar
+    set(vars, "sistema_solar.potencia_sistema", "potencia_sistema", String(cliente?.potencia_kwp || 0));
+    set(vars, "sistema_solar.modulo_quantidade", "modulo_quantidade", String(cliente?.numero_placas || 0));
+    set(vars, "sistema_solar.inversor_modelo", "inversor_modelo", cliente?.modelo_inversor || "—");
+
+    // Financeiro
+    const valorTotal = lead.valor_estimado || cliente?.valor_projeto || 0;
+    set(vars, "financeiro.valor_total", "valor_total", fmtCur(valorTotal));
+    set(vars, "financeiro.preco_final", "preco_final", fmtCur(valorTotal));
+
+    // Comercial
+    set(vars, "comercial.proposta_data", "proposta_data", now.toLocaleDateString("pt-BR"));
+    set(vars, "comercial.proposta_validade", "proposta_validade", new Date(now.getTime() + 15 * 86400000).toLocaleDateString("pt-BR"));
 
     // ── 6. BAIXAR O DOCX DO STORAGE ───────────────────────
     console.log(`[template-preview] Downloading DOCX from: ${template.file_url}`);
