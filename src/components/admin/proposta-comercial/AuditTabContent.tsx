@@ -61,9 +61,11 @@ const SYSTEM_COLUMNS = new Set([
   "irradiance_source_point", "irradiance_dataset_code",
   "gerado_por", "engine_version", "grupo",
   "template_id", "versao_atual", "versao_numero",
+  // Deal system columns
+  "pipeline_id", "stage_id", "customer_id", "owner_id", "doc_checklist",
 ]);
 
-// ── Table definitions organized by data flow: Cliente → Projeto → Proposta ──
+// ── Table definitions organized by data flow: Cliente → Deal → Projeto → Proposta ──
 const SCHEMA_TABLES: {
   name: string;
   label: string;
@@ -99,10 +101,25 @@ const SCHEMA_TABLES: {
     ],
   },
   {
+    name: "deals",
+    label: "Deals (Kanban)",
+    icon: "🎯",
+    flowOrder: 2,
+    columns: [
+      { column: "title", label: "Título do Projeto" },
+      { column: "value", label: "Valor do Negócio", expectedKey: "preco" },
+      { column: "status", label: "Status (open/won/lost)" },
+      { column: "kwp", label: "Potência kWp", expectedKey: "potencia_sistema" },
+      { column: "etiqueta", label: "Etiqueta do Projeto" },
+      { column: "notas", label: "Notas / Observações" },
+      { column: "expected_close_date", label: "Previsão de Fechamento" },
+    ],
+  },
+  {
     name: "projetos",
     label: "Projetos",
     icon: "📁",
-    flowOrder: 2,
+    flowOrder: 3,
     columns: [
       { column: "codigo", label: "Código do Projeto", expectedKey: "proposta_identificador" },
       { column: "potencia_kwp", label: "Potência kWp", expectedKey: "potencia_sistema" },
@@ -135,7 +152,7 @@ const SCHEMA_TABLES: {
     name: "propostas_nativas",
     label: "Propostas",
     icon: "📄",
-    flowOrder: 3,
+    flowOrder: 4,
     columns: [
       { column: "titulo", label: "Título da Proposta" },
       { column: "codigo", label: "Código da Proposta", expectedKey: "proposta_identificador" },
@@ -151,7 +168,7 @@ const SCHEMA_TABLES: {
     name: "proposta_versoes",
     label: "Versões da Proposta",
     icon: "📋",
-    flowOrder: 4,
+    flowOrder: 5,
     columns: [
       { column: "valor_total", label: "Valor Total", expectedKey: "preco_total" },
       { column: "economia_mensal", label: "Economia Mensal", expectedKey: "economia_mensal" },
@@ -171,7 +188,7 @@ const SCHEMA_TABLES: {
     name: "simulacoes",
     label: "Simulações",
     icon: "🧮",
-    flowOrder: 5,
+    flowOrder: 6,
     columns: [
       { column: "tipo_conta", label: "Tipo de Conta" },
       { column: "valor_conta", label: "Valor da Conta", expectedKey: "gasto_atual_mensal" },
@@ -195,7 +212,7 @@ const SCHEMA_TABLES: {
     name: "consultores",
     label: "Consultores",
     icon: "👔",
-    flowOrder: 6,
+    flowOrder: 7,
     columns: [
       { column: "nome", label: "Nome", expectedKey: "responsavel_nome" },
       { column: "telefone", label: "Telefone", expectedKey: "responsavel_celular" },
@@ -208,7 +225,7 @@ const SCHEMA_TABLES: {
     name: "concessionarias",
     label: "Concessionárias",
     icon: "⚡",
-    flowOrder: 7,
+    flowOrder: 8,
     columns: [
       { column: "nome", label: "Nome", expectedKey: "dis_energia" },
       { column: "sigla", label: "Sigla" },
@@ -335,7 +352,7 @@ export function AuditTabContent({
 
   // Flow groups for visual hierarchy
   const flowGroups = [
-    { label: "Fluxo principal", description: "Cliente → Projeto → Proposta", tables: ["clientes", "projetos", "propostas_nativas", "proposta_versoes"] },
+    { label: "Fluxo principal", description: "Cliente → Deal → Projeto → Proposta", tables: ["clientes", "deals", "projetos", "propostas_nativas", "proposta_versoes"] },
     { label: "Dados complementares", description: "Simulações, Consultores, Concessionárias", tables: ["simulacoes", "consultores", "concessionarias"] },
   ];
 
@@ -366,7 +383,7 @@ export function AuditTabContent({
         {/* Data flow indicator */}
         <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-muted-foreground bg-muted/20 rounded-lg px-3 py-2 border border-border/40">
           <span className="font-semibold text-foreground">Fluxo de dados:</span>
-          {SORTED_TABLES.slice(0, 4).map((t, i) => (
+          {SORTED_TABLES.slice(0, 5).map((t, i) => (
             <span key={t.name} className="flex items-center gap-1">
               {i > 0 && <span className="text-primary font-bold">→</span>}
               <span className={cn(
