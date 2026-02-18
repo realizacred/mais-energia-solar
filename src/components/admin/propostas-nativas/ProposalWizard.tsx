@@ -883,17 +883,17 @@ export function ProposalWizard() {
       )}
 
       {/* ── Pipeline stepper — animated */}
-      <div className="relative overflow-x-auto shrink-0 border-b border-border/40 bg-card/50">
+      <div className="relative overflow-x-auto shrink-0 border-b-2 border-primary/10 bg-gradient-to-b from-card to-muted/20">
         {/* Progress track */}
-        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-muted/50">
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-muted/40">
           <motion.div
-            className="h-full bg-gradient-to-r from-primary via-primary to-primary/60 rounded-r-full"
+            className="h-full bg-gradient-to-r from-primary to-primary/70 rounded-r-full shadow-sm shadow-primary/30"
             initial={{ width: "0%" }}
             animate={{ width: `${((step) / (activeSteps.length - 1)) * 100}%` }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            transition={{ duration: 0.6, ease: "easeInOut" }}
           />
         </div>
-        <div className="flex items-center px-3 py-2.5 gap-0">
+        <div className="flex items-center px-2 sm:px-4 py-3 gap-0">
           {activeSteps.map((s, i) => {
             const Icon = s.icon;
             const isActive = i === step;
@@ -903,21 +903,19 @@ export function ProposalWizard() {
                 <motion.button
                   onClick={() => { if (isDone) goToStep(i); }}
                   className={cn(
-                    "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors whitespace-nowrap",
-                    isActive && "bg-primary text-primary-foreground shadow-md shadow-primary/25",
-                    isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20",
-                    !isActive && !isDone && "text-muted-foreground cursor-default",
+                    "relative flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-colors whitespace-nowrap border",
+                    isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/30 border-primary",
+                    isDone && "bg-primary/10 text-primary border-primary/20 cursor-pointer hover:bg-primary/20 hover:border-primary/40",
+                    !isActive && !isDone && "text-muted-foreground border-transparent cursor-default",
                   )}
                   initial={false}
-                  animate={{
-                    scale: isActive ? 1.05 : 1,
-                  }}
+                  animate={{ scale: isActive ? 1.05 : 1 }}
                   transition={{ type: "spring", stiffness: 400, damping: 25 }}
                   whileHover={isDone ? { scale: 1.05 } : undefined}
                 >
                   <span className={cn(
-                    "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0 transition-colors",
-                    isActive && "bg-primary-foreground/20",
+                    "flex items-center justify-center h-6 w-6 rounded-full text-[10px] shrink-0 transition-colors",
+                    isActive && "bg-primary-foreground/25",
                     isDone && "bg-primary/20",
                     !isActive && !isDone && "bg-muted",
                   )}>
@@ -927,36 +925,31 @@ export function ProposalWizard() {
                         animate={{ scale: 1, rotate: 0 }}
                         transition={{ type: "spring", stiffness: 500, damping: 20 }}
                       >
-                        <Check className="h-2.5 w-2.5" />
+                        <Check className="h-3 w-3" />
                       </motion.span>
                     ) : (
-                      <Icon className="h-2.5 w-2.5" />
+                      <Icon className="h-3 w-3" />
                     )}
                   </span>
                   <span className="hidden sm:block">{s.label}</span>
-                  {/* Active pulse ring */}
+                  {/* Active pulse */}
                   {isActive && (
                     <motion.span
-                      className="absolute inset-0 rounded-lg border-2 border-primary/40"
-                      initial={{ opacity: 0.8, scale: 1 }}
-                      animate={{ opacity: 0, scale: 1.08 }}
-                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                      className="absolute inset-0 rounded-xl border-2 border-primary/50"
+                      initial={{ opacity: 1, scale: 1 }}
+                      animate={{ opacity: 0, scale: 1.12 }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
                     />
                   )}
                 </motion.button>
                 {/* Arrow connector */}
                 {i < activeSteps.length - 1 && (
-                  <motion.div
-                    className="flex items-center mx-0.5"
-                    initial={false}
-                    animate={{ opacity: isDone ? 1 : 0.3 }}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <div className="flex items-center mx-0.5 sm:mx-1">
                     <ChevronRight className={cn(
-                      "h-3.5 w-3.5 transition-colors",
-                      isDone ? "text-primary" : "text-muted-foreground/40",
+                      "h-4 w-4 transition-colors duration-300",
+                      isDone ? "text-primary" : "text-muted-foreground/30",
                     )} />
-                  </motion.div>
+                  </div>
                 )}
               </div>
             );
