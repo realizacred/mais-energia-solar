@@ -14,11 +14,14 @@ Deno.serve(async (req) => {
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
+      console.error("[save-integration-key] Missing auth header");
       return new Response(JSON.stringify({ error: "Não autorizado", details: "Token de autenticação não encontrado. Faça login novamente." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const token = authHeader.replace("Bearer ", "");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -26,9 +29,10 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    // Validate user identity
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // CRITICAL: Pass token explicitly — getUser() without token fails in Deno edge functions
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
+      console.error("[save-integration-key] Auth failed:", authError?.message);
       return new Response(JSON.stringify({ error: "Não autorizado", details: "Sessão expirada ou inválida. Faça login novamente." }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
