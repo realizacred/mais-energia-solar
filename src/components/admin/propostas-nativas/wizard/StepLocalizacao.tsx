@@ -6,14 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
-import { UF_LIST } from "./types";
 import { ROOF_TYPE_ICONS } from "./roofTypeIcons";
+import { ProjectAddressFields, type ProjectAddress } from "./ProjectAddressFields";
+import type { ClienteData } from "./types";
 
 // Lazy-load Google Maps
 const GoogleMapView = lazy(() => import("./GoogleMapView"));
-
 
 interface Props {
   estado: string;
@@ -26,6 +25,11 @@ interface Props {
   onDistribuidoraChange: (id: string, nome: string) => void;
   onIrradiacaoChange?: (avg: number) => void;
   onMapSnapshotsChange?: (snapshots: string[]) => void;
+  /** Client data for "same address" feature */
+  clienteData?: ClienteData | null;
+  /** Project address sync */
+  projectAddress?: ProjectAddress;
+  onProjectAddressChange?: (addr: ProjectAddress) => void;
 }
 
 interface ConcessionariaOption {
@@ -40,10 +44,9 @@ type GeoStatus = "idle" | "buscando" | "localizado" | "manual" | "erro";
 export function StepLocalizacao({
   estado, cidade, tipoTelhado, distribuidoraId,
   onEstadoChange, onCidadeChange, onTipoTelhadoChange, onDistribuidoraChange,
-  onIrradiacaoChange,
-  onMapSnapshotsChange,
+  onIrradiacaoChange, onMapSnapshotsChange,
+  clienteData, projectAddress, onProjectAddressChange,
 }: Props) {
-  const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(estado);
   const { tiposTelhado } = useTiposTelhado();
   const [concessionarias, setConcessionarias] = useState<ConcessionariaOption[]>([]);
   const [loadingConc, setLoadingConc] = useState(false);
@@ -55,13 +58,34 @@ export function StepLocalizacao({
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
   const [geoLat, setGeoLat] = useState<number | null>(null);
   const [geoLon, setGeoLon] = useState<number | null>(null);
-  const [manualLat, setManualLat] = useState("");
-  const [manualLon, setManualLon] = useState("");
   const [distKm, setDistKm] = useState<number | null>(null);
 
-  
+  // Reverse geocoded address from map click
+  const [reverseGeoResult, setReverseGeoResult] = useState<Partial<ProjectAddress> | null>(null);
 
-  // Google Maps Geocoding API when city+state change
+  // Sync address coords → geoLat/geoLon
+  useEffect(() => {
+    if (projectAddress?.lat != null && projectAddress?.lon != null) {
+      if (projectAddress.lat !== geoLat || projectAddress.lon !== geoLon) {
+        setGeoLat(projectAddress.lat);
+        setGeoLon(projectAddress.lon);
+        setGeoStatus("localizado");
+        fetchIrradiacao(projectAddress.lat, projectAddress.lon);
+      }
+    }
+  }, [projectAddress?.lat, projectAddress?.lon]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync address uf/cidade → parent estado/cidade
+  useEffect(() => {
+    if (projectAddress?.uf && projectAddress.uf !== estado) {
+      onEstadoChange(projectAddress.uf);
+    }
+    if (projectAddress?.cidade && projectAddress.cidade !== cidade) {
+      onCidadeChange(projectAddress.cidade);
+    }
+  }, [projectAddress?.uf, projectAddress?.cidade]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Geocoding from estado+cidade when no address coords yet
   useEffect(() => {
     if (!cidade || !estado) {
       setGeoStatus("idle");
@@ -73,6 +97,9 @@ export function StepLocalizacao({
       return;
     }
 
+    // Skip if address already has coords
+    if (projectAddress?.lat != null && projectAddress?.lon != null) return;
+
     let cancelled = false;
     const geocode = async () => {
       setGeoStatus("buscando");
@@ -81,7 +108,6 @@ export function StepLocalizacao({
       setDistKm(null);
 
       try {
-        // Try Google Maps Geocoding first
         const { data: mapsConfig } = await supabase
           .from("integration_configs")
           .select("api_key, is_active")
@@ -104,7 +130,6 @@ export function StepLocalizacao({
           }
         }
 
-        // Fallback to Nominatim if Google Maps not configured or failed
         if (lat === null) {
           const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`);
           const resp = await fetch(
@@ -132,25 +157,17 @@ export function StepLocalizacao({
         }
       } catch (err) {
         console.error("[StepLocalizacao] Geocoding error:", err);
-        if (!cancelled) {
-          setGeoStatus("manual");
-        }
+        if (!cancelled) setGeoStatus("manual");
       }
     };
 
     const timer = setTimeout(geocode, 400);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [cidade, estado]);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [cidade, estado]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fetch concessionarias by estado
   useEffect(() => {
-    if (!estado) {
-      setConcessionarias([]);
-      return;
-    }
+    if (!estado) { setConcessionarias([]); return; }
     setLoadingConc(true);
     supabase
       .from("concessionarias")
@@ -211,18 +228,80 @@ export function StepLocalizacao({
     }
   }, [onIrradiacaoChange]);
 
-  const handleManualSubmit = () => {
-    const lat = parseFloat(manualLat);
-    const lon = parseFloat(manualLon);
-    if (isNaN(lat) || isNaN(lon) || lat < -34 || lat > 6 || lon < -74 || lon > -34) return;
+  // Handle click on map — reverse geocode to fill address
+  const handleMapClick = useCallback(async (lat: number, lon: number) => {
     setGeoLat(lat);
     setGeoLon(lon);
     setGeoStatus("localizado");
     fetchIrradiacao(lat, lon);
-  };
 
-  // Handle click on map
-  const handleMapClick = useCallback((lat: number, lon: number) => {
+    // Reverse geocode to fill address fields
+    try {
+      const { data: mapsConfig } = await supabase
+        .from("integration_configs")
+        .select("api_key, is_active")
+        .eq("service_key", "google_maps")
+        .eq("is_active", true)
+        .maybeSingle();
+
+      let result: Partial<ProjectAddress> = { lat, lon };
+
+      if (mapsConfig?.api_key) {
+        const resp = await fetch(
+          `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${mapsConfig.api_key}&language=pt-BR`
+        );
+        const json = await resp.json();
+        if (json.status === "OK" && json.results?.[0]) {
+          const components = json.results[0].address_components || [];
+          const get = (type: string) => components.find((c: any) => c.types.includes(type))?.long_name || "";
+          const getShort = (type: string) => components.find((c: any) => c.types.includes(type))?.short_name || "";
+
+          result = {
+            ...result,
+            rua: get("route"),
+            numero: get("street_number"),
+            bairro: get("sublocality_level_1") || get("sublocality") || get("neighborhood"),
+            cidade: get("administrative_area_level_2") || get("locality"),
+            uf: getShort("administrative_area_level_1"),
+            cep: get("postal_code").replace(/(\d{5})(\d{3})/, "$1-$2"),
+          };
+        }
+      } else {
+        // Fallback to Nominatim reverse
+        const resp = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`,
+          { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
+        );
+        const data = await resp.json();
+        if (data?.address) {
+          result = {
+            ...result,
+            rua: data.address.road || "",
+            numero: data.address.house_number || "",
+            bairro: data.address.suburb || data.address.neighbourhood || "",
+            cidade: data.address.city || data.address.town || data.address.municipality || "",
+            uf: data.address.state_code?.toUpperCase() || "",
+            cep: data.address.postcode?.replace(/(\d{5})(\d{3})/, "$1-$2") || "",
+          };
+        }
+      }
+
+      setReverseGeoResult(result);
+
+      // Update parent estado/cidade from reverse geocode
+      if (result.uf && result.uf !== estado) onEstadoChange(result.uf);
+      if (result.cidade && result.cidade !== cidade) onCidadeChange(result.cidade);
+    } catch (err) {
+      console.error("[StepLocalizacao] Reverse geocoding error:", err);
+      // Still update coords even if reverse geocode fails
+      if (onProjectAddressChange && projectAddress) {
+        onProjectAddressChange({ ...projectAddress, lat, lon });
+      }
+    }
+  }, [fetchIrradiacao, estado, cidade, onEstadoChange, onCidadeChange, onProjectAddressChange, projectAddress]);
+
+  // Handle coords change from address component (forward geocode)
+  const handleCoordsFromAddress = useCallback((lat: number, lon: number) => {
     setGeoLat(lat);
     setGeoLon(lon);
     setGeoStatus("localizado");
@@ -233,6 +312,10 @@ export function StepLocalizacao({
     onEstadoChange(v);
     onCidadeChange("");
     onDistribuidoraChange("", "");
+    // Sync to address
+    if (onProjectAddressChange && projectAddress) {
+      onProjectAddressChange({ ...projectAddress, uf: v, cidade: "" });
+    }
   };
 
   const handleConcChange = (id: string) => {
@@ -278,7 +361,7 @@ export function StepLocalizacao({
       {/* Header */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm sm:text-base font-bold flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-primary" /> Localização
+          <MapPin className="h-4 w-4 text-primary" /> Localização & Endereço
         </h3>
         <div className="flex items-center gap-2">
           {geoStatusBadge()}
@@ -288,97 +371,23 @@ export function StepLocalizacao({
         </div>
       </div>
 
-      {/* Main grid */}
+      {/* Main grid: Address + Fields on left, Map on right */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        {/* Left column: Form fields */}
-        <div className="space-y-3">
-          {/* Localização */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium">Localização *</Label>
-            <div className="flex gap-1.5">
-              <Select value={estado} onValueChange={handleEstadoChange}>
-                <SelectTrigger className="h-9 w-[72px] shrink-0 text-xs">
-                  <SelectValue placeholder="UF" />
-                </SelectTrigger>
-                <SelectContent>
-                  {UF_LIST.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              {cidadesLoading ? (
-                <div className="flex items-center gap-1.5 px-3 h-9 border rounded-md flex-1 bg-muted/30">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-xs text-muted-foreground">Carregando...</span>
-                </div>
-              ) : cidades.length > 0 ? (
-                <Select value={cidade} onValueChange={onCidadeChange}>
-                  <SelectTrigger className="h-9 flex-1 text-xs">
-                    <SelectValue placeholder="Selecione a cidade" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cidades.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <div className="flex items-center px-3 h-9 border rounded-md flex-1 bg-muted/20">
-                  <span className="text-xs text-muted-foreground">Selecione o estado</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Coordenadas - show when localizado or manual */}
-          {geoStatus === "localizado" && geoLat !== null && geoLon !== null && (
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-success/5 border border-success/20">
-              <MapPin className="h-3 w-3 text-success shrink-0" />
-              <span className="text-[10px] text-muted-foreground">
-                Lat: <span className="font-mono font-medium text-foreground">{geoLat.toFixed(4)}</span>
-                {" · "}
-                Lon: <span className="font-mono font-medium text-foreground">{geoLon.toFixed(4)}</span>
-              </span>
-              {distKm !== null && (
-                <span className="text-[9px] text-muted-foreground ml-auto">
-                  ~{distKm.toFixed(0)}km do ponto Atlas
-                </span>
-              )}
-            </div>
+        {/* Left column: Address + Config fields */}
+        <div className="space-y-4">
+          {/* Project Address Fields (bidirectional sync) */}
+          {onProjectAddressChange && projectAddress && (
+            <ProjectAddressFields
+              address={projectAddress}
+              onAddressChange={onProjectAddressChange}
+              clienteData={clienteData}
+              onCoordsChange={handleCoordsFromAddress}
+              reverseGeocodedAddress={reverseGeoResult}
+            />
           )}
 
-          {/* Manual lat/lon input */}
-          {geoStatus === "manual" && (
-            <div className="space-y-1.5 p-2.5 rounded-md bg-warning/5 border border-warning/20">
-              <p className="text-[10px] text-warning font-medium flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                Endereço não encontrado. Informe as coordenadas manualmente:
-              </p>
-              <div className="flex gap-1.5">
-                <Input
-                  placeholder="Latitude (ex: -23.5505)"
-                  value={manualLat}
-                  onChange={e => setManualLat(e.target.value)}
-                  className="h-8 text-xs flex-1"
-                  type="number"
-                  step="0.0001"
-                />
-                <Input
-                  placeholder="Longitude (ex: -46.6333)"
-                  value={manualLon}
-                  onChange={e => setManualLon(e.target.value)}
-                  className="h-8 text-xs flex-1"
-                  type="number"
-                  step="0.0001"
-                />
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs px-3"
-                  onClick={handleManualSubmit}
-                  disabled={!manualLat || !manualLon}
-                >
-                  Buscar
-                </Button>
-              </div>
-            </div>
-          )}
+          {/* Separator */}
+          <div className="border-t border-border/30" />
 
           {/* Tipo de Telhado */}
           <div className="space-y-1.5">
@@ -451,6 +460,11 @@ export function StepLocalizacao({
                     {irradiacao.toFixed(2)}
                   </span>
                   <span className="text-[10px] text-muted-foreground">kWh/m²/dia</span>
+                  {distKm !== null && (
+                    <span className="text-[9px] text-muted-foreground">
+                      ~{distKm.toFixed(0)}km
+                    </span>
+                  )}
                   <Badge variant="secondary" className="text-[9px] ml-auto">
                     {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "Atlas INPE" : irradSource || "Atlas"}
                   </Badge>
@@ -460,31 +474,33 @@ export function StepLocalizacao({
                   <Loader2 className="h-3 w-3 animate-spin" /> Buscando dados de irradiação...
                 </span>
               ) : geoStatus === "manual" ? (
-                <span className="text-xs text-muted-foreground">Informe as coordenadas para buscar</span>
+                <span className="text-xs text-muted-foreground">Informe o endereço para buscar</span>
               ) : cidade ? (
                 <span className="text-xs text-muted-foreground">Geocodificando endereço...</span>
               ) : (
-                <span className="text-xs text-muted-foreground">Selecione estado e cidade</span>
+                <span className="text-xs text-muted-foreground">Preencha o endereço para buscar</span>
               )}
             </div>
           </div>
         </div>
 
         {/* Right column: Google Maps */}
-        <Suspense fallback={
-          <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted/20">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        }>
-          <GoogleMapView
-            lat={geoLat}
-            lon={geoLon}
-            cidade={cidade}
-            estado={estado}
-            onMapClick={handleMapClick}
-            onSnapshotsChange={onMapSnapshotsChange}
-          />
-        </Suspense>
+        <div className="lg:sticky lg:top-4">
+          <Suspense fallback={
+            <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted/20">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          }>
+            <GoogleMapView
+              lat={geoLat}
+              lon={geoLon}
+              cidade={cidade}
+              estado={estado}
+              onMapClick={handleMapClick}
+              onSnapshotsChange={onMapSnapshotsChange}
+            />
+          </Suspense>
+        </div>
       </div>
     </div>
   );
