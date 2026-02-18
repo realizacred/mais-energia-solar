@@ -84,13 +84,14 @@ function extractDhi(pt: any): DhiSeries | null {
 }
 
 function buildDhiFromRecord(rec: Record<string, number>): DhiSeries | null {
+  // Support both formats: { dhi_m01: ... } and { m01: ... }
   const dhi: DhiSeries = {
-    dhi_m01: rec.dhi_m01 ?? 0, dhi_m02: rec.dhi_m02 ?? 0,
-    dhi_m03: rec.dhi_m03 ?? 0, dhi_m04: rec.dhi_m04 ?? 0,
-    dhi_m05: rec.dhi_m05 ?? 0, dhi_m06: rec.dhi_m06 ?? 0,
-    dhi_m07: rec.dhi_m07 ?? 0, dhi_m08: rec.dhi_m08 ?? 0,
-    dhi_m09: rec.dhi_m09 ?? 0, dhi_m10: rec.dhi_m10 ?? 0,
-    dhi_m11: rec.dhi_m11 ?? 0, dhi_m12: rec.dhi_m12 ?? 0,
+    dhi_m01: rec.dhi_m01 ?? rec.m01 ?? 0, dhi_m02: rec.dhi_m02 ?? rec.m02 ?? 0,
+    dhi_m03: rec.dhi_m03 ?? rec.m03 ?? 0, dhi_m04: rec.dhi_m04 ?? rec.m04 ?? 0,
+    dhi_m05: rec.dhi_m05 ?? rec.m05 ?? 0, dhi_m06: rec.dhi_m06 ?? rec.m06 ?? 0,
+    dhi_m07: rec.dhi_m07 ?? rec.m07 ?? 0, dhi_m08: rec.dhi_m08 ?? rec.m08 ?? 0,
+    dhi_m09: rec.dhi_m09 ?? rec.m09 ?? 0, dhi_m10: rec.dhi_m10 ?? rec.m10 ?? 0,
+    dhi_m11: rec.dhi_m11 ?? rec.m11 ?? 0, dhi_m12: rec.dhi_m12 ?? rec.m12 ?? 0,
   };
   return Object.values(dhi).some(v => v > 0) ? dhi : null;
 }
@@ -167,25 +168,44 @@ async function tryLocalGrid(
     .maybeSingle();
 
   if (cached) {
-    const series = cached.series as unknown as IrradianceSeries;
-    return {
-      series,
-      dhi_series: null,
-      annual_average: seriesAverage(series),
-      dataset_code: config.dataset_code,
-      version_tag: versionTag,
-      version_id: versionId,
-      method: config.lookup_method,
-      unit: "kwh_m2_day",
-      point_lat: Number(cached.point_lat),
-      point_lon: Number(cached.point_lon),
-      distance_km: Number(cached.distance_km),
-      cache_hit: true,
-      resolved_at: new Date().toISOString(),
-      has_dhi: false,
-      source: "local_grid",
-      source_tier: 1,
-    };
+    const raw = cached.series as any;
+    // Handle two cache formats:
+    // Format A (from irradiance-provider): { m01, m02, ... }
+    // Format B (from get_irradiance_for_simulation RPC): { ghi: { m01, m02, ... }, dhi: {...}, ... }
+    let series: IrradianceSeries;
+    let dhiSeries: DhiSeries | null = null;
+    let hasGhiWrapper = raw && typeof raw === "object" && raw.ghi && typeof raw.ghi === "object";
+
+    if (hasGhiWrapper) {
+      series = buildSeriesFromData(raw.ghi);
+      if (raw.dhi) dhiSeries = buildDhiFromRecord(raw.dhi);
+    } else if (raw && raw.m01 !== undefined) {
+      series = raw as IrradianceSeries;
+    } else {
+      // Invalid cache entry — skip and do fresh lookup
+      series = null as any;
+    }
+
+    if (series) {
+      return {
+        series,
+        dhi_series: dhiSeries,
+        annual_average: seriesAverage(series),
+        dataset_code: hasGhiWrapper ? (raw.dataset_code || config.dataset_code) : config.dataset_code,
+        version_tag: hasGhiWrapper ? (raw.version_tag || versionTag) : versionTag,
+        version_id: versionId,
+        method: config.lookup_method,
+        unit: "kwh_m2_day",
+        point_lat: Number(cached.point_lat),
+        point_lon: Number(cached.point_lon),
+        distance_km: Number(cached.distance_km),
+        cache_hit: true,
+        resolved_at: new Date().toISOString(),
+        has_dhi: dhiSeries !== null,
+        source: "local_grid",
+        source_tier: 1,
+      };
+    }
   }
 
   // Nearest-point lookup via RPC
