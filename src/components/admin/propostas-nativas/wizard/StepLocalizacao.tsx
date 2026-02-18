@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { MapPin, Sun, Zap, Loader2 } from "lucide-react";
+import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3 } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +30,8 @@ interface ConcessionariaOption {
   estado: string | null;
 }
 
+type GeoStatus = "idle" | "buscando" | "localizado" | "manual" | "erro";
+
 export function StepLocalizacao({
   estado, cidade, tipoTelhado, distribuidoraId,
   onEstadoChange, onCidadeChange, onTipoTelhadoChange, onDistribuidoraChange,
@@ -40,13 +44,23 @@ export function StepLocalizacao({
   const [irradiacao, setIrradiacao] = useState<number | null>(null);
   const [irradSource, setIrradSource] = useState<string | null>(null);
   const [loadingIrrad, setLoadingIrrad] = useState(false);
+
+  // Geo state
+  const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
+  const [geoLat, setGeoLat] = useState<number | null>(null);
+  const [geoLon, setGeoLon] = useState<number | null>(null);
+  const [manualLat, setManualLat] = useState("");
+  const [manualLon, setManualLon] = useState("");
+  const [distKm, setDistKm] = useState<number | null>(null);
+
+  // Google Maps (optional, for map display only)
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [mapsKey, setMapsKey] = useState<string | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  // Fetch Google Maps key
+  // Fetch Google Maps key (optional for map display)
   useEffect(() => {
     supabase.functions.invoke("get-maps-key").then(({ data }) => {
       if (data?.key) setMapsKey(data.key);
@@ -84,26 +98,77 @@ export function StepLocalizacao({
     mapInstanceRef.current = map;
   }, [mapsLoaded]);
 
-  // Geocode city and update map
+  // Update map marker when coords change
   useEffect(() => {
-    if (!mapsLoaded || !mapInstanceRef.current || !cidade || !estado) return;
+    if (!mapsLoaded || !mapInstanceRef.current || geoLat === null || geoLon === null) return;
     const google = (window as any).google;
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ address: `${cidade}, ${estado}, Brasil` }, (results: any, status: string) => {
-      if (status === "OK" && results[0]) {
-        const loc = results[0].geometry.location;
-        mapInstanceRef.current.setCenter(loc);
-        mapInstanceRef.current.setZoom(13);
-        if (markerRef.current) markerRef.current.setMap(null);
-        markerRef.current = new google.maps.Marker({
-          position: loc,
-          map: mapInstanceRef.current,
-          title: `${cidade}, ${estado}`,
-        });
-        fetchIrradiacao(loc.lat(), loc.lng());
-      }
+    const pos = { lat: geoLat, lng: geoLon };
+    mapInstanceRef.current.setCenter(pos);
+    mapInstanceRef.current.setZoom(13);
+    if (markerRef.current) markerRef.current.setMap(null);
+    markerRef.current = new google.maps.Marker({
+      position: pos,
+      map: mapInstanceRef.current,
+      title: `${cidade}, ${estado}`,
     });
-  }, [cidade, estado, mapsLoaded]);
+  }, [geoLat, geoLon, mapsLoaded, cidade, estado]);
+
+  // Nominatim geocoding when city+state change
+  useEffect(() => {
+    if (!cidade || !estado) {
+      setGeoStatus("idle");
+      setGeoLat(null);
+      setGeoLon(null);
+      setIrradiacao(null);
+      setIrradSource(null);
+      setDistKm(null);
+      return;
+    }
+
+    let cancelled = false;
+    const geocodeWithNominatim = async () => {
+      setGeoStatus("buscando");
+      setIrradiacao(null);
+      setIrradSource(null);
+      setDistKm(null);
+
+      try {
+        const query = encodeURIComponent(`${cidade}, ${estado}, Brasil`);
+        const resp = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
+          { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
+        );
+        const results = await resp.json();
+
+        if (cancelled) return;
+
+        if (results && results.length > 0) {
+          const lat = parseFloat(results[0].lat);
+          const lon = parseFloat(results[0].lon);
+          setGeoLat(lat);
+          setGeoLon(lon);
+          setGeoStatus("localizado");
+          fetchIrradiacao(lat, lon);
+        } else {
+          setGeoStatus("manual");
+          setGeoLat(null);
+          setGeoLon(null);
+        }
+      } catch (err) {
+        console.error("[StepLocalizacao] Nominatim error:", err);
+        if (!cancelled) {
+          setGeoStatus("manual");
+        }
+      }
+    };
+
+    // Small debounce to avoid hammering Nominatim
+    const timer = setTimeout(geocodeWithNominatim, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [cidade, estado]);
 
   // Fetch concessionarias by estado
   useEffect(() => {
@@ -126,6 +191,7 @@ export function StepLocalizacao({
 
   const fetchIrradiacao = useCallback(async (lat: number, lon: number) => {
     setLoadingIrrad(true);
+    setDistKm(null);
     try {
       const { data: activeVersion } = await supabase
         .from("irradiance_dataset_versions")
@@ -151,8 +217,10 @@ export function StepLocalizacao({
         if (data && typeof data === "object" && "ghi_annual_avg" in (data as any)) {
           const avg = (data as any).ghi_annual_avg;
           const dsCode = (data as any).dataset_code || activeVersion.version_tag || "Atlas";
+          const dist = (data as any).distance_km;
           setIrradiacao(Number(avg));
           setIrradSource(dsCode);
+          setDistKm(dist != null ? Number(dist) : null);
           onIrradiacaoChange?.(Number(avg));
           return;
         }
@@ -168,6 +236,16 @@ export function StepLocalizacao({
     }
   }, [onIrradiacaoChange]);
 
+  const handleManualSubmit = () => {
+    const lat = parseFloat(manualLat);
+    const lon = parseFloat(manualLon);
+    if (isNaN(lat) || isNaN(lon) || lat < -34 || lat > 6 || lon < -74 || lon > -34) return;
+    setGeoLat(lat);
+    setGeoLon(lon);
+    setGeoStatus("localizado");
+    fetchIrradiacao(lat, lon);
+  };
+
   const handleEstadoChange = (v: string) => {
     onEstadoChange(v);
     onCidadeChange("");
@@ -181,6 +259,37 @@ export function StepLocalizacao({
 
   const RoofIcon = ROOF_TYPE_ICONS[tipoTelhado] || ROOF_TYPE_ICONS["_default"];
 
+  const geoStatusBadge = () => {
+    switch (geoStatus) {
+      case "buscando":
+        return (
+          <Badge variant="outline" className="text-[9px] gap-1 text-primary border-primary/30">
+            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando
+          </Badge>
+        );
+      case "localizado":
+        return (
+          <Badge variant="outline" className="text-[9px] gap-1 text-success border-success/30">
+            <CheckCircle2 className="h-2.5 w-2.5" /> Localizado
+          </Badge>
+        );
+      case "manual":
+        return (
+          <Badge variant="outline" className="text-[9px] gap-1 text-warning border-warning/30">
+            <Edit3 className="h-2.5 w-2.5" /> Manual
+          </Badge>
+        );
+      case "erro":
+        return (
+          <Badge variant="outline" className="text-[9px] gap-1 text-destructive border-destructive/30">
+            <AlertTriangle className="h-2.5 w-2.5" /> Erro
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* Header */}
@@ -188,12 +297,15 @@ export function StepLocalizacao({
         <h3 className="text-sm sm:text-base font-bold flex items-center gap-2">
           <MapPin className="h-4 w-4 text-primary" /> Localização
         </h3>
-        <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
-          Etapa 1/10
-        </Badge>
+        <div className="flex items-center gap-2">
+          {geoStatusBadge()}
+          <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
+            Etapa 1/10
+          </Badge>
+        </div>
       </div>
 
-      {/* Main grid: 2 columns on desktop, 1 on mobile */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
         {/* Left column: Form fields */}
         <div className="space-y-3">
@@ -230,6 +342,60 @@ export function StepLocalizacao({
               )}
             </div>
           </div>
+
+          {/* Coordenadas - show when localizado or manual */}
+          {geoStatus === "localizado" && geoLat !== null && geoLon !== null && (
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-success/5 border border-success/20">
+              <MapPin className="h-3 w-3 text-success shrink-0" />
+              <span className="text-[10px] text-muted-foreground">
+                Lat: <span className="font-mono font-medium text-foreground">{geoLat.toFixed(4)}</span>
+                {" · "}
+                Lon: <span className="font-mono font-medium text-foreground">{geoLon.toFixed(4)}</span>
+              </span>
+              {distKm !== null && (
+                <span className="text-[9px] text-muted-foreground ml-auto">
+                  ~{distKm.toFixed(0)}km do ponto Atlas
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Manual lat/lon input */}
+          {geoStatus === "manual" && (
+            <div className="space-y-1.5 p-2.5 rounded-md bg-warning/5 border border-warning/20">
+              <p className="text-[10px] text-warning font-medium flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Endereço não encontrado. Informe as coordenadas manualmente:
+              </p>
+              <div className="flex gap-1.5">
+                <Input
+                  placeholder="Latitude (ex: -23.5505)"
+                  value={manualLat}
+                  onChange={e => setManualLat(e.target.value)}
+                  className="h-8 text-xs flex-1"
+                  type="number"
+                  step="0.0001"
+                />
+                <Input
+                  placeholder="Longitude (ex: -46.6333)"
+                  value={manualLon}
+                  onChange={e => setManualLon(e.target.value)}
+                  className="h-8 text-xs flex-1"
+                  type="number"
+                  step="0.0001"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs px-3"
+                  onClick={handleManualSubmit}
+                  disabled={!manualLat || !manualLon}
+                >
+                  Buscar
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Tipo de Telhado */}
           <div className="space-y-1.5">
@@ -303,13 +469,19 @@ export function StepLocalizacao({
                   </span>
                   <span className="text-[10px] text-muted-foreground">kWh/m²/dia</span>
                   <Badge variant="secondary" className="text-[9px] ml-auto">
-                    {irradSource?.includes("INPE") ? "Atlas INPE" : irradSource || "Atlas"}
+                    {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "Atlas INPE" : irradSource || "Atlas"}
                   </Badge>
                 </>
-              ) : (
-                <span className="text-xs text-muted-foreground">
-                  {cidade ? "Buscando dados de irradiação..." : "Selecione estado e cidade"}
+              ) : loadingIrrad ? (
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Buscando dados de irradiação...
                 </span>
+              ) : geoStatus === "manual" ? (
+                <span className="text-xs text-muted-foreground">Informe as coordenadas para buscar</span>
+              ) : cidade ? (
+                <span className="text-xs text-muted-foreground">Geocodificando endereço...</span>
+              ) : (
+                <span className="text-xs text-muted-foreground">Selecione estado e cidade</span>
               )}
             </div>
           </div>
@@ -322,6 +494,11 @@ export function StepLocalizacao({
               <div className="text-center space-y-2 p-4">
                 <MapPin className="h-8 w-8 mx-auto text-muted-foreground/30" />
                 <p className="text-xs text-muted-foreground">Mapa indisponível — configure a API key do Google Maps</p>
+                {geoLat !== null && geoLon !== null && (
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    ({geoLat.toFixed(4)}, {geoLon.toFixed(4)})
+                  </p>
+                )}
               </div>
             </div>
           ) : !mapsLoaded ? (
