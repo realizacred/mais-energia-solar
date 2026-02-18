@@ -124,6 +124,7 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     saveLead, 
     retrySync,
     refreshPendingCount,
+    clearSyncedLeads,
   } = useOfflineLeadSync({ vendedorNome });
 
   // Lead/Orcamento management with duplicate detection
@@ -530,9 +531,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   // Auto-save draft
   const { clearDraft, hasDraft } = useFormAutoSave(form, { key: "lead_wizard" });
 
-  // Auto-focus Nome on initial mount
+  // Auto-focus Nome on initial mount + clean up stale synced leads
   useEffect(() => {
     focusStepField(1);
+    // Clean stale synced leads from localStorage on mount
+    clearSyncedLeads();
   }, []);
 
   // Handle draft clear with confirmation
@@ -1006,23 +1009,46 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
             return;
           }
 
-          // Server-side failed — try offline fallback
+          // Server-side failed — distinguish network errors from server errors
           const errorDetail = result?.error || (response.error ? String(response.error) : "Unknown error");
           console.warn("[LeadFormWizard] public-create-lead failed:", errorDetail);
-          const offlineSuccess = await saveOfflineFallback();
-          if (offlineSuccess) return;
+          
+          // Only fall back to offline if it looks like a network/connectivity issue
+          const isNetworkError = !navigator.onLine || 
+            errorDetail.includes("FunctionsFetchError") || 
+            errorDetail.includes("Failed to fetch") ||
+            errorDetail.includes("NetworkError") ||
+            errorDetail.includes("TypeError") ||
+            errorDetail.includes("ECONNREFUSED");
 
+          if (isNetworkError) {
+            console.log("[LeadFormWizard] Network error detected, trying offline fallback");
+            const offlineSuccess = await saveOfflineFallback();
+            if (offlineSuccess) return;
+          }
+
+          // Server returned a real error — show it to the user, don't save offline
           toast({
             title: "Erro ao enviar cadastro",
-            description: result?.error || "Ocorreu um erro. Tente novamente.",
+            description: result?.error || "Ocorreu um erro no servidor. Tente novamente.",
             variant: "destructive",
           });
           setIsSubmitting(false);
           return;
-        } catch (publicErr) {
+        } catch (publicErr: any) {
           console.error("[LeadFormWizard] public-create-lead exception:", publicErr);
-          const offlineSuccess = await saveOfflineFallback();
-          if (offlineSuccess) return;
+          
+          // Network exceptions → offline fallback
+          const errMsg = publicErr?.message || "";
+          const isNetworkException = !navigator.onLine ||
+            errMsg.includes("Failed to fetch") ||
+            errMsg.includes("NetworkError") ||
+            errMsg.includes("TypeError");
+
+          if (isNetworkException) {
+            const offlineSuccess = await saveOfflineFallback();
+            if (offlineSuccess) return;
+          }
 
           toast({
             title: "Erro ao enviar cadastro",
@@ -1286,8 +1312,11 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     setSubmitAttempted(false);
     clearDraft();
     resetHoneypot();
+    // Clean up synced leads from localStorage to prevent stale data issues
+    clearSyncedLeads();
     refreshPendingCount();
     pendingFormDataRef.current = null;
+    lastWaParamsRef.current = null;
   };
 
   // After sync completes, update the success screen from "offline" to "sent"

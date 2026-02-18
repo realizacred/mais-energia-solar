@@ -122,14 +122,18 @@ export const offlineLeadService = {
     serverLeadId?: string,
     lastError?: string
   ): Promise<void> {
-    await offlineDb.leads.update(id, { 
+    const updateData: Partial<OfflineLead> = { 
       syncStatus, 
       serverLeadId,
       lastError,
-      retryCount: syncStatus === 'error' 
-        ? (await offlineDb.leads.get(id))?.retryCount ?? 0 + 1 
-        : undefined
-    });
+    };
+    
+    if (syncStatus === 'error') {
+      const current = await offlineDb.leads.get(id);
+      updateData.retryCount = (current?.retryCount ?? 0) + 1;
+    }
+    
+    await offlineDb.leads.update(id, updateData);
   },
 
   async delete(id: number): Promise<void> {
@@ -193,14 +197,18 @@ export const offlineChecklistService = {
     serverChecklistId?: string,
     lastError?: string
   ): Promise<void> {
-    await offlineDb.checklists.update(id, { 
+    const updateData: Partial<OfflineChecklist> = { 
       syncStatus, 
       serverChecklistId,
       lastError,
-      retryCount: syncStatus === 'error' 
-        ? (await offlineDb.checklists.get(id))?.retryCount ?? 0 + 1 
-        : undefined
-    });
+    };
+    
+    if (syncStatus === 'error') {
+      const current = await offlineDb.checklists.get(id);
+      updateData.retryCount = (current?.retryCount ?? 0) + 1;
+    }
+    
+    await offlineDb.checklists.update(id, updateData);
   },
 
   async delete(id: number): Promise<void> {

@@ -327,6 +327,13 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
 
       localStorage.setItem(storageKey, JSON.stringify(leads));
       
+      // Auto-clear synced leads to prevent localStorage bloat
+      const pendingOnly = leads.filter((l) => !l.synced);
+      if (pendingOnly.length < leads.length) {
+        localStorage.setItem(storageKey, JSON.stringify(pendingOnly));
+        console.log(`[syncPendingLeads] Cleaned ${leads.length - pendingOnly.length} synced leads from localStorage`);
+      }
+      
       // Store duplicates for later resolution
       if (duplicatesFound.length > 0) {
         const duplicateKey = getDuplicateStorageKey();
