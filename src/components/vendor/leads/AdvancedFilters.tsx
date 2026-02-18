@@ -43,13 +43,14 @@
    hasScores?: boolean;
  }
  
- const DEFAULT_TIPOS_TELHADO = [
-   "Cerâmico",
+const DEFAULT_TIPOS_TELHADO = [
    "Fibrocimento",
    "Metálico",
    "Laje",
+   "Cerâmico",
+   "Solo",
    "Outro",
- ];
+];
  
  export function AdvancedFilters({
    filters,

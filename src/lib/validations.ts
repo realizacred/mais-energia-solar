@@ -160,12 +160,21 @@ export const ESTADOS_BRASIL = [
 ];
 
 export const TIPOS_TELHADO = [
+  "Fibrocimento",
+  "Metálico",
+  "Laje",
+  "Cerâmico",
+  "Solo",
+  "Outro",
+];
+
+/** @deprecated Valores legados — mantidos apenas para mapeamento de dados antigos */
+export const TIPOS_TELHADO_LEGACY = [
   "Zinco (Metal)",
   "Colonial (Madeira)",
   "Colonial (Metal)",
   "Fibro (Madeira)",
   "Fibro (Metal)",
-  "Laje",
   "Solo com Zinco",
   "Solo com Eucalipto",
 ];
