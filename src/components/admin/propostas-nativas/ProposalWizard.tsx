@@ -2,7 +2,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  ChevronLeft, ChevronRight, User, BarChart3, Settings2, Package,
+  ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2, Package,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
 
 // ── Step Components
+import { StepLocalizacao } from "./wizard/StepLocalizacao";
 import { StepCliente } from "./wizard/StepCliente";
 import { StepConsumptionIntelligence } from "./wizard/StepConsumptionIntelligence";
 import { StepTechnicalConfig } from "./wizard/StepTechnicalConfig";
@@ -36,6 +37,7 @@ import {
 // ─── Steps Config ──────────────────────────────────────────
 
 const STEPS = [
+  { label: "Localização", icon: MapPin },
   { label: "Cliente", icon: User },
   { label: "Consumo", icon: BarChart3 },
   { label: "Técnico", icon: Settings2 },
@@ -80,7 +82,15 @@ export function ProposalWizard() {
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
-  // Step 0 - Cliente
+  // Step 0 - Localização
+  const [locEstado, setLocEstado] = useState("");
+  const [locCidade, setLocCidade] = useState("");
+  const [locTipoTelhado, setLocTipoTelhado] = useState("");
+  const [locDistribuidoraId, setLocDistribuidoraId] = useState("");
+  const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
+  const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
+
+  // Step 1 - Cliente
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
   const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
 
@@ -240,6 +250,11 @@ export function ProposalWizard() {
 
   const handleSelectLead = (lead: LeadSelection) => {
     setSelectedLead(lead);
+    // Sync lead data to location step
+    if (lead.estado) { setLocEstado(lead.estado); }
+    if (lead.cidade) { setLocCidade(lead.cidade); }
+    if (lead.tipo_telhado) { setLocTipoTelhado(lead.tipo_telhado); }
+    // Sync to UC
     if (lead.estado && ucs[0]) {
       const updated = [...ucs];
       updated[0] = { ...updated[0], estado: lead.estado, cidade: lead.cidade || "" };
@@ -256,15 +271,16 @@ export function ProposalWizard() {
 
   // ─── Validations ─────────────────────────────────────
   const canStep = [
-    /* 0 Cliente     */ !!cliente.nome && !!cliente.celular,
-    /* 1 Consumo     */ consumoTotal > 0,
-    /* 2 Técnico     */ potenciaKwp > 0,
-    /* 3 Análise     */ true, // auto-advances
-    /* 4 Kit         */ itens.length > 0 && itens.some(i => i.descricao),
-    /* 5 Serviços    */ true,
-    /* 6 Financeiro  */ venda.margem_percentual >= 0,
-    /* 7 Pagamento   */ true,
-    /* 8 Documento   */ true,
+    /* 0 Localização */ !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
+    /* 1 Cliente     */ !!cliente.nome && !!cliente.celular,
+    /* 2 Consumo     */ consumoTotal > 0,
+    /* 3 Técnico     */ potenciaKwp > 0,
+    /* 4 Análise     */ true, // auto-advances
+    /* 5 Kit         */ itens.length > 0 && itens.some(i => i.descricao),
+    /* 6 Serviços    */ true,
+    /* 7 Financeiro  */ venda.margem_percentual >= 0,
+    /* 8 Pagamento   */ true,
+    /* 9 Documento   */ true,
   ];
 
   // ─── Generate ────────────────────────────────────────
@@ -319,7 +335,7 @@ export function ProposalWizard() {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
     setResult(null);
     setHtmlPreview(null);
-    setStep(1);
+    setStep(2);
   };
 
   const handleViewDetail = () => {
@@ -328,26 +344,26 @@ export function ProposalWizard() {
 
   const handleAnalysisComplete = useCallback(() => {
     setAnalysisComplete(true);
-    setStep(4);
+    setStep(5);
   }, []);
 
   // If step 3 was already completed, skip analysis on re-visit
   const goToStep = (target: number) => {
-    if (target === 3 && analysisComplete) {
-      setStep(4); // skip analysis
+    if (target === 4 && analysisComplete) {
+      setStep(5); // skip analysis
       return;
     }
     setStep(target);
   };
 
   const goNext = () => {
-    if (step === 3) return; // analysis auto-advances
+    if (step === 4) return; // analysis auto-advances
     goToStep(step + 1);
   };
 
   const goPrev = () => {
-    if (step === 4 && analysisComplete) {
-      setStep(2); // skip analysis going back
+    if (step === 5 && analysisComplete) {
+      setStep(3); // skip analysis going back
       return;
     }
     setStep(Math.max(0, step - 1));
@@ -370,7 +386,7 @@ export function ProposalWizard() {
         {STEPS.map((s, i) => {
           const Icon = s.icon;
           const isActive = i === step;
-          const isDone = i < step || (i === 3 && analysisComplete && step > 3);
+          const isDone = i < step || (i === 4 && analysisComplete && step > 4);
           return (
             <div key={s.label} className="flex items-center gap-0.5 flex-shrink-0">
               <button
@@ -405,54 +421,68 @@ export function ProposalWizard() {
 
             {step === 0 && (
               <StepContent key="step0">
-                <StepCliente selectedLead={selectedLead} onSelectLead={handleSelectLead} onClearLead={() => setSelectedLead(null)} cliente={cliente} onClienteChange={setCliente} fromProject={!!projectContext} />
+                <StepLocalizacao
+                  estado={locEstado} cidade={locCidade} tipoTelhado={locTipoTelhado}
+                  distribuidoraId={locDistribuidoraId}
+                  onEstadoChange={(v) => { setLocEstado(v); setCliente(c => ({ ...c, estado: v })); }}
+                  onCidadeChange={(v) => { setLocCidade(v); setCliente(c => ({ ...c, cidade: v })); }}
+                  onTipoTelhadoChange={setLocTipoTelhado}
+                  onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
+                  onIrradiacaoChange={setLocIrradiacao}
+                />
               </StepContent>
             )}
 
             {step === 1 && (
               <StepContent key="step1">
-                <StepConsumptionIntelligence ucs={ucs} onUcsChange={setUcs} potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp} />
+                <StepCliente selectedLead={selectedLead} onSelectLead={handleSelectLead} onClearLead={() => setSelectedLead(null)} cliente={cliente} onClienteChange={setCliente} fromProject={!!projectContext} />
               </StepContent>
             )}
 
             {step === 2 && (
               <StepContent key="step2">
-                <StepTechnicalConfig ucs={ucs} onUcsChange={setUcs} grupo={grupo} onGrupoChange={setGrupo} potenciaKwp={potenciaKwp} />
+                <StepConsumptionIntelligence ucs={ucs} onUcsChange={setUcs} potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp} />
               </StepContent>
             )}
 
             {step === 3 && (
               <StepContent key="step3">
-                <StepEngineeringAnalysis onComplete={handleAnalysisComplete} potenciaKwp={potenciaKwp} />
+                <StepTechnicalConfig ucs={ucs} onUcsChange={setUcs} grupo={grupo} onGrupoChange={setGrupo} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 4 && (
               <StepContent key="step4">
-                <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} />
+                <StepEngineeringAnalysis onComplete={handleAnalysisComplete} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 5 && (
               <StepContent key="step5">
-                <StepServicos servicos={servicos} onServicosChange={setServicos} />
+                <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 6 && (
               <StepContent key="step6">
-                <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
+                <StepServicos servicos={servicos} onServicosChange={setServicos} />
               </StepContent>
             )}
 
             {step === 7 && (
               <StepContent key="step7">
-                <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} />
+                <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
               </StepContent>
             )}
 
             {step === 8 && (
               <StepContent key="step8">
+                <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} />
+              </StepContent>
+            )}
+
+            {step === 9 && (
+              <StepContent key="step9">
                 <StepDocumento
                   clienteNome={cliente.nome || selectedLead?.nome || ""}
                   potenciaKwp={potenciaKwp}
@@ -476,7 +506,7 @@ export function ProposalWizard() {
       </Card>
 
       {/* ── Navigation Footer ── */}
-      {step !== 3 && step < 8 && !result && (
+      {step !== 4 && step < 9 && !result && (
         <div className="flex items-center justify-between">
           <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
             <ChevronLeft className="h-3.5 w-3.5" /> Voltar
@@ -489,7 +519,7 @@ export function ProposalWizard() {
           </div>
         </div>
       )}
-      {step === 8 && !result && (
+      {step === 9 && !result && (
         <div className="flex justify-start">
           <Button variant="ghost" size="sm" onClick={goPrev} className="gap-1 h-8 text-xs">
             <ChevronLeft className="h-3.5 w-3.5" /> Voltar
