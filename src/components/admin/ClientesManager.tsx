@@ -559,63 +559,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                 </CardContent>
               </Card>
 
-              {/* Dados do Projeto */}
-              <Card className="rounded-xl border-2 border-warning/30 bg-warning/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Sun className="h-4 w-4 text-warning" />
-                    Dados do projeto solar
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="potencia_kwp">Potência (kWp)</Label>
-                    <Input
-                      id="potencia_kwp"
-                      type="number"
-                      step="0.01"
-                      value={formData.potencia_kwp}
-                      onChange={(e) => setFormData({ ...formData, potencia_kwp: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="valor_projeto">Valor do Projeto (R$)</Label>
-                    <Input
-                      id="valor_projeto"
-                      type="number"
-                      step="0.01"
-                      value={formData.valor_projeto}
-                      onChange={(e) => setFormData({ ...formData, valor_projeto: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="data_instalacao">Data da Instalação</Label>
-                    <Input
-                      id="data_instalacao"
-                      type="date"
-                      value={formData.data_instalacao}
-                      onChange={(e) => setFormData({ ...formData, data_instalacao: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="numero_placas">Número de Placas</Label>
-                    <Input
-                      id="numero_placas"
-                      type="number"
-                      value={formData.numero_placas}
-                      onChange={(e) => setFormData({ ...formData, numero_placas: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="modelo_inversor">Modelo do Inversor</Label>
-                    <Input
-                      id="modelo_inversor"
-                      value={formData.modelo_inversor}
-                      onChange={(e) => setFormData({ ...formData, modelo_inversor: e.target.value })}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Seção "Dados do projeto solar" removida — esses dados pertencem ao domínio Projetos */}
 
               {/* Observações */}
               <div className="space-y-2">
