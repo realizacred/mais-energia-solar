@@ -287,7 +287,15 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
 
   const getStageNameById = (id: string | null) => {
     if (!id) return "—";
-    return stages.find(s => s.id === id)?.name || "—";
+    // Search current pipeline stages first
+    const found = stages.find(s => s.id === id);
+    if (found) return found.name;
+    // Search ALL pipelines stages (for cross-pipeline history)
+    for (const [, pStages] of allStagesMap) {
+      const s = pStages.find(st => st.id === id);
+      if (s) return s.name;
+    }
+    return "—";
   };
 
   const updateDealLocal = (patch: Partial<DealDetail>) => {
@@ -427,6 +435,16 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                   <Button
                     size="sm"
                     onClick={async () => {
+                      // Verificar se tem proposta antes de marcar como ganho
+                      if (propostasCount === 0) {
+                        toast({
+                          title: "Sem proposta vinculada",
+                          description: "Não é possível marcar como ganho um projeto sem proposta. Crie uma proposta primeiro.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      if (!window.confirm("Tem certeza que deseja marcar este projeto como ganho?")) return;
                       const prevStatus = deal.status;
                       const prevStageId = deal.stage_id;
                       const wonStage = stages.find(s => s.is_won);
