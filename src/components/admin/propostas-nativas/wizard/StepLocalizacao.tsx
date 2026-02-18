@@ -25,7 +25,7 @@ interface Props {
   onTipoTelhadoChange: (v: string) => void;
   onDistribuidoraChange: (id: string, nome: string) => void;
   onIrradiacaoChange?: (avg: number) => void;
-  onMapSnapshot?: (dataUrl: string) => void;
+  onMapSnapshotsChange?: (snapshots: string[]) => void;
 }
 
 interface ConcessionariaOption {
@@ -41,7 +41,7 @@ export function StepLocalizacao({
   estado, cidade, tipoTelhado, distribuidoraId,
   onEstadoChange, onCidadeChange, onTipoTelhadoChange, onDistribuidoraChange,
   onIrradiacaoChange,
-  onMapSnapshot,
+  onMapSnapshotsChange,
 }: Props) {
   const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(estado);
   const { tiposTelhado } = useTiposTelhado();
@@ -482,7 +482,7 @@ export function StepLocalizacao({
             cidade={cidade}
             estado={estado}
             onMapClick={handleMapClick}
-            onSnapshot={onMapSnapshot}
+            onSnapshotsChange={onMapSnapshotsChange}
           />
         </Suspense>
       </div>
