@@ -60,30 +60,31 @@ export default function ApiKeyConfigPage({
 
   const saveMutation = useMutation({
     mutationFn: async ({ key, active }: { key?: string; active?: boolean }) => {
-      const payload: Record<string, unknown> = {
-        service_key: serviceKey,
-        updated_at: new Date().toISOString(),
-      };
-      if (key !== undefined) payload.api_key = key;
-      if (active !== undefined) payload.is_active = active;
+      if (key !== undefined) {
+        // Use edge function to save key (bypasses RLS safely)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
 
-      if (config?.id) {
+        const resp = await supabase.functions.invoke("save-integration-key", {
+          body: { service_key: serviceKey, api_key: key },
+        });
+
+        if (resp.error) throw new Error(resp.error.message || "Erro ao salvar chave");
+        const body = resp.data as any;
+        if (body?.error) throw new Error(body.error);
+      }
+
+      if (active !== undefined && config?.id) {
+        // Toggle active can use direct update (RLS allows update by tenant)
         const { error } = await supabase
           .from("integration_configs")
-          .update(payload)
+          .update({ is_active: active, updated_at: new Date().toISOString() })
           .eq("id", config.id);
-        if (error) throw error;
-      } else {
-        payload.is_active = true;
-        if (key) payload.api_key = key;
-        const { error } = await supabase
-          .from("integration_configs")
-          .insert(payload as any);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      toast.success("Configuração salva");
+      toast.success("Configuração salva com sucesso ✅");
       setHasEdited(false);
       setApiKey("");
       queryClient.invalidateQueries({ queryKey: ["integration-config", serviceKey] });

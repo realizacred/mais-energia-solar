@@ -102,9 +102,20 @@ const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 // SolarZap removed — functionality consolidated into WaInbox (Atendimento)
 const ProposalWizardPage = lazy(() =>
-  import("@/components/admin/propostas-nativas/ProposalWizard").then((m) => ({
-    default: m.ProposalWizard,
-  }))
+  import("@/components/admin/propostas-nativas/ProposalWizard")
+    .then((m) => ({ default: m.ProposalWizard }))
+    .catch((err) => {
+      console.error("[ProposalWizard] Lazy load failed:", err);
+      return {
+        default: () => (
+          <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center px-4">
+            <p className="text-destructive font-semibold">Erro ao carregar o Wizard de Propostas</p>
+            <p className="text-sm text-muted-foreground max-w-md">{String(err?.message || err)}</p>
+            <button onClick={() => window.location.reload()} className="text-sm text-primary underline">Recarregar página</button>
+          </div>
+        ),
+      };
+    })
 );
 
 // SolarWizardPage removed — was a mock prototype, ProposalWizard is the real engine
