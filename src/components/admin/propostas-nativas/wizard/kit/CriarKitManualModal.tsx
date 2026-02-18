@@ -223,6 +223,21 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       return;
     }
 
+    // Distribute custo proportionally by (quantidade * potencia_w) weight
+    if (custo > 0) {
+      const totalWeight = itens.reduce((s, i) => s + i.quantidade * Math.max(i.potencia_w, 1), 0);
+      if (totalWeight > 0) {
+        itens.forEach(i => {
+          const weight = i.quantidade * Math.max(i.potencia_w, 1);
+          i.preco_unitario = Math.round(((weight / totalWeight) * custo / i.quantidade) * 100) / 100;
+        });
+      } else {
+        // Equal distribution
+        const perItem = custo / itens.reduce((s, i) => s + i.quantidade, 0);
+        itens.forEach(i => { i.preco_unitario = Math.round(perItem * 100) / 100; });
+      }
+    }
+
     onKitCreated(itens);
     onOpenChange(false);
     toast({ title: "Kit criado manualmente", description: `${itens.length} itens adicionados` });

@@ -279,10 +279,16 @@ export function ProposalWizard() {
 
   useEffect(() => {
     setLoadingBancos(true);
-    supabase.rpc("get_active_financing_banks").then(({ data }) => {
-      setBancos((data || []) as BancoFinanciamento[]);
-      setLoadingBancos(false);
-    });
+    supabase
+      .from("financiamento_bancos")
+      .select("id, nome, taxa_mensal, max_parcelas")
+      .eq("ativo", true)
+      .order("ordem", { ascending: true })
+      .order("nome", { ascending: true })
+      .then(({ data }) => {
+        setBancos((data || []) as BancoFinanciamento[]);
+        setLoadingBancos(false);
+      });
   }, []);
 
   // Load premissas from Solar Brain
@@ -968,24 +974,26 @@ export function ProposalWizard() {
 
       {/* ── Body: Content only */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 lg:p-6">
+        <div className="p-4 lg:p-6 pb-20">
           <AnimatePresence mode="wait">
             {renderStepContent()}
           </AnimatePresence>
         </div>
-        {!result && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-card sticky bottom-0">
-            <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
-              <ChevronLeft className="h-3 w-3" /> Voltar
-            </Button>
-            {!isLastStep && (
-              <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
-                Próximo <ChevronRight className="h-3 w-3" />
-              </Button>
-            )}
-          </div>
-        )}
       </div>
+
+      {/* ── Sticky Footer Navigation — always visible */}
+      {!result && (
+        <div className="flex items-center justify-between px-4 lg:px-6 py-3 border-t border-border/60 bg-card shrink-0">
+          <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
+            <ChevronLeft className="h-3 w-3" /> Voltar
+          </Button>
+          {!isLastStep && (
+            <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
+              Próximo <ChevronRight className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Pos-dimensionamento dialog */}
       <DialogPosDimensionamento

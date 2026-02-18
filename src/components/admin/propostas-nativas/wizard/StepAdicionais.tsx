@@ -230,6 +230,9 @@ export function StepAdicionais({
         onOpenChange={setShowEditKit}
         kits={kitCards}
         onSave={(selected) => {
+          // Preserve existing prices from current itens
+          const existingModPrice = itens.find(i => i.categoria === "modulo")?.preco_unitario || 0;
+          const existingInvPrice = itens.find(i => i.categoria === "inversor")?.preco_unitario || 0;
           const newItens: KitItemRow[] = selected.flatMap(({ kit, quantidade }) => [
             {
               id: crypto.randomUUID(),
@@ -238,7 +241,7 @@ export function StepAdicionais({
               modelo: kit.moduloDescricao,
               potencia_w: (kit.moduloPotenciaKwp * 1000) / kit.moduloQtd,
               quantidade: kit.moduloQtd * quantidade,
-              preco_unitario: 0,
+              preco_unitario: existingModPrice,
               categoria: "modulo" as const,
               avulso: false,
             },
@@ -249,7 +252,7 @@ export function StepAdicionais({
               modelo: kit.inversorDescricao,
               potencia_w: kit.inversorPotenciaKw * 1000,
               quantidade: kit.inversorQtd * quantidade,
-              preco_unitario: 0,
+              preco_unitario: existingInvPrice,
               categoria: "inversor" as const,
               avulso: false,
             },
