@@ -116,6 +116,7 @@ Deno.serve(async (req) => {
     }
 
     const { telefone, mensagem, lead_id, tipo = "manual", instance_id } = body;
+    const skipScheduleCheck = (body as any).skip_schedule_check === true;
 
     if (!telefone || !mensagem) {
       return new Response(
@@ -348,6 +349,145 @@ Deno.serve(async (req) => {
     if (resolvedInstance && resolvedInstance.status && resolvedInstance.status !== "connected") {
       instanceHealthWarning = `Instância "${resolvedInstance.evolution_instance_key}" com status "${resolvedInstance.status}" — pode falhar no envio. Verifique a conexão na Evolution API.`;
       console.warn(`[send-wa] ⚠️ HEALTH CHECK: ${instanceHealthWarning}`);
+    }
+
+    // ── SCHEDULE CHECK (auto-send hours per consultant) ──────
+    // Only for tipo="automatico", only if consultant has horario_envio_auto configured
+    // and skip_schedule_check is not set (to avoid infinite loops from process-wa-outbox)
+    if (tipo === "automatico" && !skipScheduleCheck && resolvedInstance) {
+      try {
+        // Find consultant for this message
+        let consultorIdForSchedule: string | null = null;
+
+        if (userId) {
+          const { data: v } = await supabaseAdmin
+            .from("consultores")
+            .select("id, settings")
+            .eq("user_id", userId)
+            .eq("tenant_id", tenantIdResolved)
+            .eq("ativo", true)
+            .maybeSingle();
+          if (v) consultorIdForSchedule = v.id;
+        }
+
+        if (!consultorIdForSchedule && lead_id) {
+          const { data: ld } = await supabaseAdmin
+            .from("leads")
+            .select("consultor_id")
+            .eq("id", lead_id)
+            .maybeSingle();
+          consultorIdForSchedule = ld?.consultor_id || null;
+        }
+
+        if (consultorIdForSchedule) {
+          const { data: consultorRow } = await supabaseAdmin
+            .from("consultores")
+            .select("settings")
+            .eq("id", consultorIdForSchedule)
+            .maybeSingle();
+
+          const settings = consultorRow?.settings as Record<string, unknown> | null;
+          const horarioEnvio = settings?.horario_envio_auto as { inicio?: string; fim?: string } | undefined;
+
+          if (horarioEnvio?.inicio && horarioEnvio?.fim) {
+            // Get tenant timezone (default America/Sao_Paulo)
+            const { data: tenantRow2 } = await supabaseAdmin
+              .from("tenants")
+              .select("timezone")
+              .eq("id", tenantIdResolved)
+              .maybeSingle();
+            const tz = (tenantRow2 as any)?.timezone || "America/Sao_Paulo";
+
+            // Get current time in tenant timezone
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat("en-US", {
+              timeZone: tz,
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false,
+            });
+            const parts = formatter.formatToParts(now);
+            const currentHour = parseInt(parts.find(p => p.type === "hour")?.value || "0");
+            const currentMinute = parseInt(parts.find(p => p.type === "minute")?.value || "0");
+            const currentMinutes = currentHour * 60 + currentMinute;
+
+            const [iniH, iniM] = horarioEnvio.inicio.split(":").map(Number);
+            const [fimH, fimM] = horarioEnvio.fim.split(":").map(Number);
+            const iniMinutes = iniH * 60 + iniM;
+            const fimMinutes = fimH * 60 + fimM;
+
+            const isWithinHours = currentMinutes >= iniMinutes && currentMinutes < fimMinutes;
+
+            if (!isWithinHours) {
+              // Calculate next opening time
+              let scheduledAt: Date;
+              const dateFormatter = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" });
+              const todayStr = dateFormatter.format(now);
+
+              if (currentMinutes < iniMinutes) {
+                // Still before opening today — schedule for today at opening
+                scheduledAt = new Date(`${todayStr}T${horarioEnvio.inicio}:00`);
+              } else {
+                // After closing — schedule for tomorrow at opening
+                const tomorrow = new Date(now.getTime() + 86400000);
+                const tomorrowStr = dateFormatter.format(tomorrow);
+                scheduledAt = new Date(`${tomorrowStr}T${horarioEnvio.inicio}:00`);
+              }
+
+              // Format phone for outbox
+              let outboxPhone = telefone.replace(/\D/g, "");
+              if (!outboxPhone.startsWith("55")) outboxPhone = `55${outboxPhone}`;
+              const remoteJid = `${outboxPhone}@s.whatsapp.net`;
+
+              // Insert into wa_outbox with scheduled_at in the future
+              const { error: outboxErr } = await supabaseAdmin
+                .from("wa_outbox")
+                .insert({
+                  tenant_id: tenantIdResolved,
+                  instance_id: resolvedInstance.id,
+                  remote_jid: remoteJid,
+                  message_type: "text",
+                  content: mensagem,
+                  status: "pending",
+                  scheduled_at: scheduledAt.toISOString(),
+                });
+
+              if (outboxErr) {
+                console.error("[send-wa] Failed to queue scheduled message:", outboxErr);
+                // Fall through to send immediately if queueing fails
+              } else {
+                console.log(`[send-wa] ⏰ Message SCHEDULED for ${scheduledAt.toISOString()} (outside hours ${horarioEnvio.inicio}-${horarioEnvio.fim}, current=${currentHour}:${String(currentMinute).padStart(2, "0")})`);
+
+                // Log scheduled action
+                await supabaseAdmin.from("whatsapp_automation_logs").insert({
+                  lead_id: lead_id || null,
+                  telefone: outboxPhone,
+                  mensagem_enviada: mensagem,
+                  status: "agendado",
+                  erro_detalhes: JSON.stringify({ scheduled_at: scheduledAt.toISOString(), horario_envio: horarioEnvio }),
+                  tenant_id: tenantIdResolved,
+                  instance_id: resolvedInstance.id,
+                });
+
+                return new Response(
+                  JSON.stringify({
+                    success: true,
+                    scheduled: true,
+                    scheduled_at: scheduledAt.toISOString(),
+                    message: `Mensagem agendada para ${horarioEnvio.inicio} (fora do horário de envio)`,
+                    instance_used: resolvedInstance.evolution_instance_key,
+                    instance_source: instanceSource,
+                  }),
+                  { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+                );
+              }
+            }
+          }
+        }
+      } catch (schedErr) {
+        // Non-blocking: if schedule check fails, send immediately
+        console.warn("[send-wa] Schedule check failed (sending immediately):", schedErr);
+      }
     }
 
     // ── SEND MESSAGE ──────────────────────────────────────────
