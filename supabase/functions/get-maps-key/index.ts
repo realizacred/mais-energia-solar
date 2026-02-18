@@ -1,5 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,17 +12,71 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // The Google Maps API key is publishable (domain-restricted)
-  // We serve it via edge function to keep it out of the frontend bundle
-  const key = Deno.env.get("GOOGLE_MAPS_API_KEY");
-  if (!key) {
-    return new Response(JSON.stringify({ error: "GOOGLE_MAPS_API_KEY not configured" }), {
+  try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+    // Verify the user is authenticated
+    const anonClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await anonClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Read key from integration_configs using service role (bypasses RLS)
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
+    // Get user's tenant_id
+    const { data: profile } = await adminClient
+      .from("profiles")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .single();
+
+    if (!profile?.tenant_id) {
+      return new Response(JSON.stringify({ error: "Tenant not found" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: config } = await adminClient
+      .from("integration_configs")
+      .select("api_key, is_active")
+      .eq("service_key", "google_maps")
+      .eq("tenant_id", profile.tenant_id)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (!config?.api_key) {
+      return new Response(JSON.stringify({ error: "Google Maps API key not configured" }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(JSON.stringify({ key: config.api_key }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("[get-maps-key] Error:", err);
+    return new Response(JSON.stringify({ error: "Internal error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
-
-  return new Response(JSON.stringify({ key }), {
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
 });

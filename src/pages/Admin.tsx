@@ -85,6 +85,7 @@ const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const OpenAIConfigPage = lazy(() => import("@/pages/admin/OpenAIConfigPage"));
 const GeminiConfigPage = lazy(() => import("@/pages/admin/GeminiConfigPage"));
 const SolarMarketConfigPage = lazy(() => import("@/pages/admin/SolarMarketConfigPage"));
+const GoogleMapsConfigPage = lazy(() => import("@/pages/admin/GoogleMapsConfigPage"));
 const PaymentGatewayConfigPage = lazy(() => import("@/components/admin/settings/PaymentGatewayConfig").then(m => ({ default: m.PaymentGatewayConfig })));
 const MenuConfigPage = lazy(() => import("@/components/admin/MenuConfigPage"));
 const LoadingConfigAdmin = lazy(() => import("@/components/admin/LoadingConfigAdmin").then(m => ({ default: m.LoadingConfigAdmin })));
@@ -470,6 +471,7 @@ export default function Admin() {
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
                 <Route path="gemini-config" element={<GeminiConfigPage />} />
                 <Route path="solarmarket-config" element={<SolarMarketConfigPage />} />
+                <Route path="google-maps-config" element={<GoogleMapsConfigPage />} />
                 <Route path="ai-config" element={<AiConfigPage />} />
                 
                 {/* Site */}
