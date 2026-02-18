@@ -68,9 +68,24 @@ export default function ApiKeyConfigPage({
           body: { service_key: serviceKey, api_key: key },
         });
 
+        // supabase.functions.invoke returns error as FunctionsHttpError
+        // We need to try reading the response body for the real message
         if (resp.error) {
-          // Try to extract details from error
-          const msg = resp.error.message || "Erro ao salvar chave";
+          let msg = "Erro ao salvar chave";
+          try {
+            // The error context might contain the JSON body
+            const ctx = (resp.error as any).context;
+            if (ctx && typeof ctx.json === "function") {
+              const errorBody = await ctx.json();
+              msg = errorBody?.details
+                ? `${errorBody.error}: ${errorBody.details}`
+                : errorBody?.error || msg;
+            } else {
+              msg = resp.error.message || msg;
+            }
+          } catch {
+            msg = resp.error.message || msg;
+          }
           throw new Error(msg);
         }
         const body = resp.data as any;
