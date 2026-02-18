@@ -777,7 +777,8 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("cdd", "cdd.string_config", "cdd_string", "Adicionar StringBox CC?", "Configuração de strings CC (BLUESUN, SOLARMARKET)", "", "2x8", "proposta", { notImplemented: true }),
   v("cdd", "cdd.string_ca", "cdd_sting_ca", "Adicionar StringBox CA?", "Configuração de strings CA (BLUESUN, SOLARMARKET)", "", "1x1", "proposta", { notImplemented: true }),
   v("cdd", "cdd.telhado", "cdd_telhado", "Telhado (CDD)", "Tipo de telhado no cadastro do distribuidor (SOLARMARKET)", "", "Cerâmico", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura do telhado (A.DIAS SOLAR, SOPRANO, SOLARMARKET, FORTLEV)", "", "Fibrocimento", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura do telhado (A.DIAS SOLAR, SOPRANO, SOLARMARKET, FORTLEV, ALDO, NEOSOLAR)", "", "Fibrocimento", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_perfil", "cdd_tipo_perfil", "Tipo de Perfil", "Tipo de perfil da estrutura (WEG SOLAR)", "", "Perfil", "proposta", { notImplemented: true }),
 
   // ──────────────────────────────────────────────────────────────
   // VARIÁVEIS CUSTOMIZADAS (vc_*)
