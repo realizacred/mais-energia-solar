@@ -92,6 +92,7 @@ function StepContent({ children }: { children: React.ReactNode }) {
 // ─── Main Component ───────────────────────────────────────
 
 export function ProposalWizard() {
+  console.log("[ProposalWizard] Component render start");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const dealIdFromUrl = searchParams.get("deal_id");
@@ -575,6 +576,7 @@ export function ProposalWizard() {
 
   // ─── Render step content by key
   const renderStepContent = () => {
+    console.log("[ProposalWizard] renderStepContent, currentStepKey:", currentStepKey);
     switch (currentStepKey) {
       case STEP_KEYS.LOCALIZACAO:
         return (
