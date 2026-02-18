@@ -480,6 +480,45 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                       try {
                         const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
                         if (error) throw error;
+
+                        // CASCADE: Mark all project proposals
+                        if (deal.customer_id) {
+                          // Get all proposals for this project
+                          const { data: allPropostas } = await supabase
+                            .from("propostas_nativas")
+                            .select("id")
+                            .eq("projeto_id", deal.id);
+
+                          if (allPropostas && allPropostas.length > 0) {
+                            // The latest proposal gets "ganha", others get "arquivada"
+                            const latestId = allPropostas[0]?.id;
+                            const otherIds = allPropostas.filter(p => p.id !== latestId).map(p => p.id);
+
+                            await supabase.from("propostas_nativas")
+                              .update({ status: "ganha" })
+                              .eq("id", latestId);
+
+                            if (otherIds.length > 0) {
+                              await supabase.from("propostas_nativas")
+                                .update({ status: "arquivada" })
+                                .in("id", otherIds);
+                            }
+                          }
+
+                          // CASCADE: Mark linked lead as "Convertido"
+                          const { data: cli } = await supabase
+                            .from("clientes")
+                            .select("lead_id")
+                            .eq("id", deal.customer_id)
+                            .single();
+
+                          if (cli?.lead_id) {
+                            await supabase.from("leads")
+                              .update({ status_id: "b55bc691-f875-4c28-b167-0e5349156346" })
+                              .eq("id", cli.lead_id);
+                          }
+                        }
+
                         const valMsg = update.value ? ` | ${formatBRL(update.value)}` : "";
                         const kwpMsg = update.kwp ? ` | ${update.kwp} kWp` : "";
                         toast({ title: `🎉 Projeto ganho!${valMsg}${kwpMsg}` });
@@ -742,6 +781,31 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                 try {
                   const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
                   if (error) throw error;
+
+                  // CASCADE: Mark all project proposals as "perdida"
+                  await supabase.from("propostas_nativas")
+                    .update({ status: "perdida" })
+                    .eq("projeto_id", deal.id);
+
+                  // CASCADE: Mark linked lead as "Perdido"
+                  if (deal.customer_id) {
+                    const { data: cli } = await supabase
+                      .from("clientes")
+                      .select("lead_id")
+                      .eq("id", deal.customer_id)
+                      .single();
+
+                    if (cli?.lead_id) {
+                      await supabase.from("leads")
+                        .update({
+                          status_id: "a07b8727-0331-4431-a7c1-30a8d2b2326b",
+                          motivo_perda_id: lossMotivo,
+                          motivo_perda_obs: lossObs.trim() || null,
+                        })
+                        .eq("id", cli.lead_id);
+                    }
+                  }
+
                   toast({ title: "Projeto marcado como perdido" });
                   setLossDialogOpen(false);
                   silentRefresh();
@@ -1385,18 +1449,33 @@ function ClientRow({ icon: Icon, label, muted, isLink }: { icon: typeof User; la
 // ═══════════════════════════════════════════════════
 // ─── TAB: Propostas ─────────────────────────────
 // ═══════════════════════════════════════════════════
+interface LinkedLead {
+  id: string;
+  lead_code: string | null;
+  nome: string;
+  media_consumo: number;
+  consumo_previsto: number;
+  tipo_telhado: string;
+  rede_atendimento: string;
+  status_id: string | null;
+  status_nome?: string;
+}
+
 function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean }) {
   const [propostas, setPropostas] = useState<PropostaNativa[]>([]);
   const [loading, setLoading] = useState(true);
+  const [linkedLeads, setLinkedLeads] = useState<LinkedLead[]>([]);
+  const [loadingLeads, setLoadingLeads] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
 
+  // Load proposals
   useEffect(() => {
     async function load() {
       if (!dealId && !customerId) { setLoading(false); return; }
       try {
-        // Primary filter: projeto_id (deal_id). Fallback: cliente_id
         let query = supabase
           .from("propostas_nativas")
-          .select("id, titulo, codigo, versao_atual, created_at")
+          .select("id, titulo, codigo, versao_atual, status, created_at")
           .order("created_at", { ascending: false })
           .limit(20);
 
@@ -1437,12 +1516,118 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
     load();
   }, [customerId, dealId]);
 
-  // formatBRL imported from @/lib/formatters at file top
+  // Lead discovery by customer phone
+  useEffect(() => {
+    if (!customerId) return;
+    setLoadingLeads(true);
+    (async () => {
+      try {
+        const { data: cliente } = await supabase
+          .from("clientes")
+          .select("telefone, telefone_normalized, lead_id")
+          .eq("id", customerId)
+          .single();
+        if (!cliente?.telefone) { setLoadingLeads(false); return; }
+
+        const digits = (cliente.telefone_normalized || cliente.telefone).replace(/\D/g, "");
+        const suffix = digits.slice(-9);
+
+        // Find leads by phone match
+        const { data: leads } = await (supabase as any)
+          .from("leads")
+          .select("id, lead_code, nome, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, status_id")
+          .or(`telefone_normalized.ilike.%${suffix}%,telefone.ilike.%${suffix}%`)
+          .order("created_at", { ascending: false })
+          .limit(10);
+
+        if (leads && leads.length > 0) {
+          // Fetch status names
+          const statusIds = [...new Set(leads.map((l: any) => l.status_id).filter(Boolean))] as string[];
+          let statusMap = new Map<string, string>();
+          if (statusIds.length > 0) {
+            const { data: statuses } = await supabase
+              .from("lead_status")
+              .select("id, nome")
+              .in("id", statusIds);
+            (statuses || []).forEach((s: any) => statusMap.set(s.id, s.nome));
+          }
+
+          setLinkedLeads(leads.map((l: any) => ({
+            ...l,
+            status_nome: l.status_id ? statusMap.get(l.status_id) || "—" : "—",
+          })));
+
+          // Auto-select first lead (e.g. the one directly linked)
+          if (cliente.lead_id) {
+            setSelectedLeadId(cliente.lead_id);
+          }
+        }
+      } catch (err) { console.error("Lead discovery:", err); }
+      finally { setLoadingLeads(false); }
+    })();
+  }, [customerId]);
 
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
   return (
     <div className="space-y-4">
+      {/* Lead discovery cards */}
+      {linkedLeads.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5" /> Orçamentos (Leads) vinculados
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {linkedLeads.map(lead => (
+              <Card
+                key={lead.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:shadow-md",
+                  selectedLeadId === lead.id && "ring-2 ring-primary shadow-md"
+                )}
+                onClick={() => setSelectedLeadId(prev => prev === lead.id ? null : lead.id)}
+              >
+                <CardContent className="py-3 px-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-mono font-bold text-primary">
+                      {lead.lead_code || `ORC-${lead.id.slice(0, 6)}`}
+                    </span>
+                    <Badge variant="outline" className="text-[9px]">
+                      {lead.status_nome}
+                    </Badge>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                    <div>
+                      <p className="text-muted-foreground">Consumo</p>
+                      <p className="font-semibold">{lead.consumo_previsto || lead.media_consumo} kWh</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Telhado</p>
+                      <p className="font-semibold truncate">{lead.tipo_telhado || "—"}</p>
+                    </div>
+                    <div>
+                      <p className="text-muted-foreground">Fase</p>
+                      <p className="font-semibold truncate">{lead.rede_atendimento || "—"}</p>
+                    </div>
+                  </div>
+                  {selectedLeadId === lead.id && (
+                    <div className="mt-2 flex items-center gap-1 text-[10px] text-primary font-semibold">
+                      <CheckCircle className="h-3 w-3" /> Selecionado — dados serão herdados na nova proposta
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {loadingLeads && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando orçamentos vinculados...
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Propostas do Cliente</h3>
         {isClosed ? (
@@ -1454,6 +1639,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
           <Button size="sm" onClick={() => {
             const params = new URLSearchParams({ deal_id: dealId });
             if (customerId) params.set("customer_id", customerId);
+            if (selectedLeadId) params.set("lead_id", selectedLeadId);
             navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
           }} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />Nova Proposta
@@ -1484,7 +1670,10 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
                       v{p.versao_atual} • {new Date(p.created_at).toLocaleDateString("pt-BR")}
                     </p>
                   </div>
-                  <Badge variant="secondary" className="text-[10px]">{p.versoes.length} versões</Badge>
+                  <div className="flex items-center gap-2">
+                    {(p as any).status && <StatusBadge status={(p as any).status} />}
+                    <Badge variant="secondary" className="text-[10px]">{p.versoes.length} versões</Badge>
+                  </div>
                 </div>
 
                 {p.versoes.slice(0, 3).map(v => (
@@ -1522,9 +1711,15 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     rascunho: { label: "Rascunho", cls: "bg-muted text-muted-foreground" },
     gerada: { label: "Gerada", cls: "bg-primary/10 text-primary" },
+    generated: { label: "Gerada", cls: "bg-primary/10 text-primary" },
     enviada: { label: "Enviada", cls: "bg-info/10 text-info" },
+    sent: { label: "Enviada", cls: "bg-info/10 text-info" },
     aceita: { label: "Aceita", cls: "bg-success/10 text-success" },
+    ganha: { label: "Ganha", cls: "bg-success/10 text-success" },
     rejeitada: { label: "Rejeitada", cls: "bg-destructive/10 text-destructive" },
+    recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive" },
+    perdida: { label: "Perdida", cls: "bg-destructive/10 text-destructive" },
+    arquivada: { label: "Arquivada", cls: "bg-muted text-muted-foreground" },
     expirada: { label: "Expirada", cls: "bg-warning/10 text-warning" },
   };
   const s = map[status] || { label: status, cls: "bg-muted text-muted-foreground" };
