@@ -98,19 +98,24 @@ export function VariaveisDisponiveisPage() {
           normalize(v.legacyKey).includes(q)
       );
     }
-    return items;
+    // Ordenação alfabética por label
+    return [...items].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   }, [search, activeCategory]);
 
   const filteredCustom = useMemo(() => {
     if (activeCategory !== "customizada") return [];
-    if (!search.trim()) return dbCustomVars;
-    const q = normalize(search);
-    return dbCustomVars.filter(
-      (v) =>
-        normalize(v.nome).includes(q) ||
-        normalize(v.label).includes(q) ||
-        normalize(v.expressao).includes(q)
-    );
+    let items = dbCustomVars;
+    if (search.trim()) {
+      const q = normalize(search);
+      items = items.filter(
+        (v) =>
+          normalize(v.nome).includes(q) ||
+          normalize(v.label).includes(q) ||
+          normalize(v.expressao).includes(q)
+      );
+    }
+    // Ordenação alfabética por label
+    return [...items].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   }, [search, activeCategory, dbCustomVars]);
 
   const totalCount = useMemo(() => {
