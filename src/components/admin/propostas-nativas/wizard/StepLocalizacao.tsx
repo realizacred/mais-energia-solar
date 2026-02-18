@@ -501,19 +501,22 @@ export function StepLocalizacao({
             />
           </Suspense>
 
-          {/* Coordinates display + hint */}
-          <div className="flex items-center justify-between px-1">
+          {/* Coordinates bar */}
+          <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border/40 bg-card">
             {geoLat !== null && geoLon !== null ? (
-              <span className="text-[10px] font-mono text-muted-foreground">
-                📍 Lat: {geoLat.toFixed(6)} &nbsp;|&nbsp; Lon: {geoLon.toFixed(6)}
-              </span>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="text-xs font-mono text-foreground font-medium">
+                  {geoLat.toFixed(6)}, {geoLon.toFixed(6)}
+                </span>
+              </div>
             ) : (
-              <span className="text-[10px] text-muted-foreground">
-                Clique no mapa para definir a localização
+              <span className="text-[11px] text-muted-foreground">
+                Clique no mapa ou preencha o endereço para definir a localização
               </span>
             )}
-            <span className="text-[9px] text-muted-foreground/60">
-              Clique no mapa para alterar coordenadas · Arraste o boneco para Street View
+            <span className="text-[9px] text-muted-foreground hidden sm:inline">
+              Arraste o marcador · Clique para reposicionar
             </span>
           </div>
         </div>
