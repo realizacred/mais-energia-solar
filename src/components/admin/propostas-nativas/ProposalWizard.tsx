@@ -882,37 +882,86 @@ export function ProposalWizard() {
         </div>
       )}
 
-      {/* ── Horizontal stepper — ALL screen sizes */}
-      <div className="flex items-center gap-1 overflow-x-auto px-3 py-2 border-b border-border/40 bg-card/50 shrink-0">
-        {activeSteps.map((s, i) => {
-          const Icon = s.icon;
-          const isActive = i === step;
-          const isDone = i < step;
-          return (
-            <div key={s.key} className="flex items-center gap-0.5 flex-shrink-0">
-              <button
-                onClick={() => { if (isDone) goToStep(i); }}
-                className={cn(
-                  "flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all whitespace-nowrap",
-                  isActive && "bg-primary text-primary-foreground shadow-sm",
-                  isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15",
-                  !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
+      {/* ── Pipeline stepper — animated */}
+      <div className="relative overflow-x-auto shrink-0 border-b border-border/40 bg-card/50">
+        {/* Progress track */}
+        <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-muted/50">
+          <motion.div
+            className="h-full bg-gradient-to-r from-primary via-primary to-primary/60 rounded-r-full"
+            initial={{ width: "0%" }}
+            animate={{ width: `${((step) / (activeSteps.length - 1)) * 100}%` }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+          />
+        </div>
+        <div className="flex items-center px-3 py-2.5 gap-0">
+          {activeSteps.map((s, i) => {
+            const Icon = s.icon;
+            const isActive = i === step;
+            const isDone = i < step;
+            return (
+              <div key={s.key} className="flex items-center flex-shrink-0">
+                <motion.button
+                  onClick={() => { if (isDone) goToStep(i); }}
+                  className={cn(
+                    "relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors whitespace-nowrap",
+                    isActive && "bg-primary text-primary-foreground shadow-md shadow-primary/25",
+                    isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/20",
+                    !isActive && !isDone && "text-muted-foreground cursor-default",
+                  )}
+                  initial={false}
+                  animate={{
+                    scale: isActive ? 1.05 : 1,
+                  }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                  whileHover={isDone ? { scale: 1.05 } : undefined}
+                >
+                  <span className={cn(
+                    "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0 transition-colors",
+                    isActive && "bg-primary-foreground/20",
+                    isDone && "bg-primary/20",
+                    !isActive && !isDone && "bg-muted",
+                  )}>
+                    {isDone ? (
+                      <motion.span
+                        initial={{ scale: 0, rotate: -90 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                      >
+                        <Check className="h-2.5 w-2.5" />
+                      </motion.span>
+                    ) : (
+                      <Icon className="h-2.5 w-2.5" />
+                    )}
+                  </span>
+                  <span className="hidden sm:block">{s.label}</span>
+                  {/* Active pulse ring */}
+                  {isActive && (
+                    <motion.span
+                      className="absolute inset-0 rounded-lg border-2 border-primary/40"
+                      initial={{ opacity: 0.8, scale: 1 }}
+                      animate={{ opacity: 0, scale: 1.08 }}
+                      transition={{ duration: 1.5, repeat: Infinity, ease: "easeOut" }}
+                    />
+                  )}
+                </motion.button>
+                {/* Arrow connector */}
+                {i < activeSteps.length - 1 && (
+                  <motion.div
+                    className="flex items-center mx-0.5"
+                    initial={false}
+                    animate={{ opacity: isDone ? 1 : 0.3 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <ChevronRight className={cn(
+                      "h-3.5 w-3.5 transition-colors",
+                      isDone ? "text-primary" : "text-muted-foreground/40",
+                    )} />
+                  </motion.div>
                 )}
-              >
-                <span className={cn(
-                  "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0",
-                  isActive && "bg-primary-foreground/20",
-                  isDone && "bg-primary/20",
-                  !isActive && !isDone && "bg-muted",
-                )}>
-                  {isDone ? <Check className="h-2.5 w-2.5" /> : <Icon className="h-2.5 w-2.5" />}
-                </span>
-                <span className="hidden sm:block">{s.label}</span>
-              </button>
-              {i < activeSteps.length - 1 && <div className="w-2 h-px bg-border shrink-0" />}
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Body: Content only */}
