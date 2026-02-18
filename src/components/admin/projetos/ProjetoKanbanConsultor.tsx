@@ -271,7 +271,7 @@ function OwnerDealCard({
       className={cn(
         "group relative bg-card rounded-xl p-3 cursor-pointer",
         "shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200",
-        "border-l-[5px]",
+        "border border-border/40 hover:border-border/70 border-l-[5px]",
         isDragging && "opacity-40 scale-95",
         // Status-based border colors — VIVID
         deal.deal_status === "won" && "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
@@ -280,8 +280,6 @@ function OwnerDealCard({
         isOpen && stagnation === "warning" && "border-l-amber-500",
         isOpen && !stagnation && !hasProposta && !etiquetaInfo && "border-l-orange-400",
         isOpen && !stagnation && hasProposta && !etiquetaInfo && "border-l-primary",
-        // Outer border
-        "border border-border/40 hover:border-border/70",
       )}
       style={{
         // Etiqueta color overrides when applicable (open, no stagnation)
@@ -325,7 +323,7 @@ function OwnerDealCard({
         <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-2">
           <Phone className="h-3 w-3 text-muted-foreground/60" />
           <span className="font-mono text-[10px]">{deal.customer_phone}</span>
-          <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <div className="ml-auto flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
