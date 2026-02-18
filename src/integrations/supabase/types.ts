@@ -8122,6 +8122,7 @@ export type Database = {
           categoria: string
           created_at: string
           descricao: string | null
+          file_url: string | null
           grupo: string
           id: string
           nome: string
@@ -8138,6 +8139,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           descricao?: string | null
+          file_url?: string | null
           grupo?: string
           id?: string
           nome: string
@@ -8154,6 +8156,7 @@ export type Database = {
           categoria?: string
           created_at?: string
           descricao?: string | null
+          file_url?: string | null
           grupo?: string
           id?: string
           nome?: string
