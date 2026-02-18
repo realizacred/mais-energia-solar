@@ -882,9 +882,42 @@ export function ProposalWizard() {
         </div>
       )}
 
+      {/* ── Mobile/Tablet horizontal stepper — OUTSIDE flex body */}
+      <div className="lg:hidden flex items-center gap-1 overflow-x-auto px-3 py-2 border-b border-border/40 bg-card/50 shrink-0">
+        {activeSteps.map((s, i) => {
+          const Icon = s.icon;
+          const isActive = i === step;
+          const isDone = i < step;
+          return (
+            <div key={s.key} className="flex items-center gap-0.5 flex-shrink-0">
+              <button
+                onClick={() => { if (isDone) goToStep(i); }}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all whitespace-nowrap",
+                  isActive && "bg-primary text-primary-foreground shadow-sm",
+                  isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15",
+                  !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
+                )}
+              >
+                <span className={cn(
+                  "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0",
+                  isActive && "bg-primary-foreground/20",
+                  isDone && "bg-primary/20",
+                  !isActive && !isDone && "bg-muted",
+                )}>
+                  {isDone ? <Check className="h-2.5 w-2.5" /> : <Icon className="h-2.5 w-2.5" />}
+                </span>
+                <span className="hidden sm:block">{s.label}</span>
+              </button>
+              {i < activeSteps.length - 1 && <div className="w-2 h-px bg-border shrink-0" />}
+            </div>
+          );
+        })}
+      </div>
+
       {/* ── Body: Sidebar + Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
+        {/* Desktop Sidebar */}
         <div className="w-56 shrink-0 hidden lg:flex flex-col border-r border-border/60 bg-card/50">
           <div className="flex-1 overflow-y-auto px-3 py-4">
             <WizardSidebar
@@ -893,8 +926,6 @@ export function ProposalWizard() {
               onStepClick={goToStep}
             />
           </div>
-
-          {/* Navigation in sidebar */}
           {!result && (
             <div className="border-t border-border/60 p-3 space-y-2 shrink-0">
               <div className="flex gap-2">
@@ -911,48 +942,13 @@ export function ProposalWizard() {
           )}
         </div>
 
-        {/* Mobile stepper */}
-        <div className="lg:hidden flex items-center gap-1 overflow-x-auto px-3 py-2 border-b border-border/40 bg-card/50 shrink-0 w-full">
-          {activeSteps.map((s, i) => {
-            const Icon = s.icon;
-            const isActive = i === step;
-            const isDone = i < step;
-            return (
-              <div key={s.key} className="flex items-center gap-0.5 flex-shrink-0">
-                <button
-                  onClick={() => { if (isDone) goToStep(i); }}
-                  className={cn(
-                    "flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all whitespace-nowrap",
-                    isActive && "bg-primary text-primary-foreground shadow-sm",
-                    isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15",
-                    !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
-                  )}
-                >
-                  <span className={cn(
-                    "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0",
-                    isActive && "bg-primary-foreground/20",
-                    isDone && "bg-primary/20",
-                    !isActive && !isDone && "bg-muted",
-                  )}>
-                    {isDone ? <Check className="h-2.5 w-2.5" /> : <Icon className="h-2.5 w-2.5" />}
-                  </span>
-                  <span className="hidden sm:block">{s.label}</span>
-                </button>
-                {i < activeSteps.length - 1 && <div className="w-2 h-px bg-border shrink-0" />}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Main Content — fills remaining space */}
+        {/* Main Content */}
         <div className="flex-1 min-w-0 overflow-y-auto">
           <div className="p-4 lg:p-6">
             <AnimatePresence mode="wait">
               {renderStepContent()}
             </AnimatePresence>
           </div>
-
-          {/* Mobile navigation footer */}
           {!result && (
             <div className="lg:hidden flex items-center justify-between px-4 py-3 border-t border-border/60 bg-card sticky bottom-0">
               <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
