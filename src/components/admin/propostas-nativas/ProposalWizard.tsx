@@ -180,6 +180,21 @@ export function ProposalWizard() {
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
+  // Estimated generation (kWh/month) = potência * irradiação * 30 * PR(0.80)
+  const geracaoMensalEstimada = useMemo(() => {
+    if (potenciaKwp > 0 && locIrradiacao > 0) {
+      return Math.round(potenciaKwp * locIrradiacao * 30 * 0.80);
+    }
+    return 0;
+  }, [potenciaKwp, locIrradiacao]);
+
+  // Estimated area (m²) from module items — ~2m² per module panel
+  const areaUtilEstimada = useMemo(() => {
+    const modulosNoKit = itens.filter(i => i.categoria === "modulo");
+    const totalPaineis = modulosNoKit.reduce((sum, m) => sum + (m.quantidade || 0), 0);
+    return totalPaineis > 0 ? Math.round(totalPaineis * 2) : 0;
+  }, [itens]);
+
   // ─── Data fetching
   useEffect(() => {
     setLoadingEquip(true);
@@ -478,6 +493,8 @@ export function ProposalWizard() {
               clienteTelefone={cliente.celular || selectedLead?.telefone || ""}
               clienteEmail={cliente.email || ""}
               potenciaKwp={potenciaKwp}
+              areaUtilM2={areaUtilEstimada}
+              geracaoMensalKwh={geracaoMensalEstimada}
               numUcs={ucs.length}
               precoFinal={precoFinal}
               templateSelecionado={templateSelecionado}
@@ -588,21 +605,21 @@ export function ProposalWizard() {
           </Card>
 
           {/* Navigation Footer */}
-          {!isLastStep && !result && (
+          {!result && (
             <div className="flex items-center justify-between mt-4">
-              <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
-                <ChevronLeft className="h-3.5 w-3.5" /> Voltar
+              <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1 h-8 text-xs">
+                Cancelar
               </Button>
-              <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
-                Próximo <ChevronRight className="h-3.5 w-3.5" />
-              </Button>
-            </div>
-          )}
-          {isLastStep && !result && (
-            <div className="flex justify-start mt-4">
-              <Button variant="ghost" size="sm" onClick={goPrev} className="gap-1 h-8 text-xs">
-                <ChevronLeft className="h-3.5 w-3.5" /> Voltar
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
+                  Voltar
+                </Button>
+                {!isLastStep && (
+                  <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
+                    Prosseguir
+                  </Button>
+                )}
+              </div>
             </div>
           )}
         </div>
