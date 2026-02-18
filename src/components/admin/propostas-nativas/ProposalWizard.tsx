@@ -135,6 +135,7 @@ export function ProposalWizard() {
   const [locDistribuidoraId, setLocDistribuidoraId] = useState("");
   const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
   const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
+  const [mapSnapshotUrl, setMapSnapshotUrl] = useState<string | null>(null);
 
   // Cliente (embedded in Localização flow)
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
@@ -590,6 +591,7 @@ export function ProposalWizard() {
                 onTipoTelhadoChange={setLocTipoTelhado}
                 onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
                 onIrradiacaoChange={setLocIrradiacao}
+                onMapSnapshot={setMapSnapshotUrl}
               />
               {/* Cliente inline */}
               <div className="border-t border-border/50 pt-4">
