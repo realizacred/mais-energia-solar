@@ -898,21 +898,43 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
           }
         }
 
+        // Defensive validation: ensure required fields are present before calling edge function
+        const missingFields: string[] = [];
+        if (!data.estado) missingFields.push("Estado");
+        if (!data.cidade?.trim()) missingFields.push("Cidade");
+        if (!data.area) missingFields.push("Área");
+        if (!data.tipo_telhado) missingFields.push("Tipo de Telhado");
+        if (!data.rede_atendimento) missingFields.push("Rede de Atendimento");
+        if (!data.media_consumo || data.media_consumo <= 0) missingFields.push("Média de Consumo");
+        if (!data.consumo_previsto || data.consumo_previsto <= 0) missingFields.push("Consumo Previsto");
+
+        if (missingFields.length > 0) {
+          console.warn("[LeadFormWizard] Defensive check failed — missing fields:", missingFields);
+          setSubmitAttempted(true);
+          toast({
+            title: "Campos obrigatórios",
+            description: `Preencha: ${missingFields.join(", ")}`,
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
+
         const payload: Record<string, unknown> = {
           nome: (data.nome || "").trim(),
           telefone: (data.telefone || "").trim(),
           vendedor_codigo: vendedorCodigo || undefined,
           vendedor_id: vendedorId || undefined,
           cep: data.cep?.trim() || null,
-          estado: data.estado || "",
-          cidade: (data.cidade || "").trim(),
+          estado: data.estado,
+          cidade: data.cidade.trim(),
           rua: data.rua?.trim() || null,
           numero: data.numero?.trim() || null,
           bairro: data.bairro?.trim() || null,
           complemento: data.complemento?.trim() || null,
-          area: data.area || "",
-          tipo_telhado: data.tipo_telhado || "",
-          rede_atendimento: data.rede_atendimento || "",
+          area: data.area,
+          tipo_telhado: data.tipo_telhado,
+          rede_atendimento: data.rede_atendimento,
           media_consumo: data.media_consumo,
           consumo_previsto: data.consumo_previsto,
           observacoes: data.observacoes?.trim() || null,
