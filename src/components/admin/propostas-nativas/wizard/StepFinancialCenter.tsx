@@ -1,13 +1,27 @@
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, TrendingUp, AlertTriangle } from "lucide-react";
+import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
+
+// ── Types ──
+
+interface CustoRow {
+  id: string;
+  categoria: string;
+  item: string;
+  quantidade: number;
+  custoUnitario: number;
+  fixo: boolean; // Kit row can't be deleted
+  checked: boolean;
+}
 
 interface Props {
   venda: VendaData;
@@ -17,10 +31,21 @@ interface Props {
   potenciaKwp: number;
 }
 
+// ── View Modes ──
+
+type ViewMode = "resumido" | "detalhado";
+
+// ── Component ──
+
 export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, potenciaKwp }: Props) {
   const [loadedDefaults, setLoadedDefaults] = useState(false);
-  const [descontoMax, setDescontoMax] = useState(100);
+  const [viewMode, setViewMode] = useState<ViewMode>("detalhado");
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editMode, setEditMode] = useState<"margem" | "preco">("margem");
+  const [editValue, setEditValue] = useState("0");
+  const [custosExtras, setCustosExtras] = useState<CustoRow[]>([]);
 
+  // Load pricing defaults
   useEffect(() => {
     if (loadedDefaults) return;
     supabase
@@ -34,148 +59,476 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
           if (venda.margem_percentual === 20 && d.margem_minima_percent) {
             onVendaChange({ ...venda, margem_percentual: d.margem_minima_percent });
           }
-          if (d.desconto_maximo_percent) setDescontoMax(d.desconto_maximo_percent);
         }
         setLoadedDefaults(true);
       });
   }, []);
 
-  const update = (field: keyof VendaData, value: any) => {
-    onVendaChange({ ...venda, [field]: value });
-  };
+  // ── Calculations ──
 
   const custoKit = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-  const custoServicos = servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
-  const custoBase = custoKit + custoServicos + venda.custo_comissao + venda.custo_outros;
-  const margemValor = custoBase * (venda.margem_percentual / 100);
-  const precoComMargem = custoBase + margemValor;
-  const descontoValor = precoComMargem * (venda.desconto_percentual / 100);
-  const precoFinal = precoComMargem - descontoValor;
-  const margemLiquida = custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
-  const lucroLiquido = precoFinal - custoBase;
-  const rsKwp = potenciaKwp > 0 ? precoFinal / potenciaKwp : 0;
+  const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${potenciaKwp.toFixed(2)} kWp` : "Kit fotovoltaico";
 
-  // Color zone
-  const marginZone = margemLiquida < 10 ? "danger" : margemLiquida < 20 ? "warning" : "success";
-  const zoneColors = {
-    danger: { bg: "bg-destructive/10", border: "border-destructive/30", text: "text-destructive", slider: "destructive" },
-    warning: { bg: "bg-warning/10", border: "border-warning/30", text: "text-warning", slider: "warning" },
-    success: { bg: "bg-success/10", border: "border-success/30", text: "text-success", slider: "success" },
+  const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
+  const comissaoServico = servicos.find(s => s.categoria === "comissao");
+
+  // Build all cost rows
+  const allRows = useMemo<CustoRow[]>(() => {
+    const rows: CustoRow[] = [];
+
+    // Kit row (always first, not deletable)
+    rows.push({
+      id: "kit",
+      categoria: "KIT",
+      item: kitLabel,
+      quantidade: 1,
+      custoUnitario: custoKit,
+      fixo: true,
+      checked: true,
+    });
+
+    // Instalação
+    rows.push({
+      id: "instalacao",
+      categoria: "Instalação",
+      item: "Instalação",
+      quantidade: 1,
+      custoUnitario: instalacaoServico?.valor || 0,
+      fixo: true,
+      checked: true,
+    });
+
+    // Comissão
+    rows.push({
+      id: "comissao",
+      categoria: "Comissão",
+      item: "Comissão",
+      quantidade: 1,
+      custoUnitario: comissaoServico?.valor || 0,
+      fixo: true,
+      checked: true,
+    });
+
+    // User-added extras
+    custosExtras.forEach(c => rows.push(c));
+
+    return rows;
+  }, [custoKit, kitLabel, instalacaoServico, comissaoServico, custosExtras]);
+
+  const custoTotal = allRows.reduce((s, r) => s + r.quantidade * r.custoUnitario, 0);
+  const margemPercent = venda.margem_percentual;
+  const margemValor = custoTotal * (margemPercent / 100);
+  const precoVenda = custoTotal + margemValor;
+  const precoWp = potenciaKwp > 0 ? precoVenda / (potenciaKwp * 1000) : 0;
+
+  // Slider range
+  const sliderMin = custoTotal;
+  const sliderMax = custoTotal * 2 || 50000;
+
+  const handleSliderChange = (value: number[]) => {
+    const newPreco = value[0];
+    const newMargem = custoTotal > 0 ? ((newPreco - custoTotal) / custoTotal) * 100 : 0;
+    onVendaChange({ ...venda, margem_percentual: Math.max(0, Math.round(newMargem * 100) / 100) });
   };
-  const zone = zoneColors[marginZone];
+
+  // ── Edit Modal ──
+
+  const openEditModal = () => {
+    setEditMode("margem");
+    setEditValue(margemPercent.toFixed(2));
+    setShowEditModal(true);
+  };
+
+  const applyEditModal = () => {
+    const val = parseFloat(editValue) || 0;
+    if (editMode === "margem") {
+      onVendaChange({ ...venda, margem_percentual: val });
+    } else {
+      // Preço total → calculate margem
+      const newMargem = custoTotal > 0 ? ((val - custoTotal) / custoTotal) * 100 : 0;
+      onVendaChange({ ...venda, margem_percentual: Math.max(0, newMargem) });
+    }
+    setShowEditModal(false);
+  };
+
+  // ── Add Cost ──
+
+  const addCusto = () => {
+    setCustosExtras(prev => [...prev, {
+      id: crypto.randomUUID(),
+      categoria: "Outros",
+      item: "NovoItem",
+      quantidade: 1,
+      custoUnitario: 0,
+      fixo: false,
+      checked: true,
+    }]);
+  };
+
+  const updateExtra = (id: string, field: keyof CustoRow, value: any) => {
+    setCustosExtras(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const removeExtra = (id: string) => {
+    setCustosExtras(prev => prev.filter(c => c.id !== id));
+  };
+
+  // Per-row margem distribution
+  const getRowMargem = (row: CustoRow) => {
+    if (custoTotal === 0) return 0;
+    const rowTotal = row.quantidade * row.custoUnitario;
+    return (rowTotal / custoTotal) * margemValor;
+  };
+
+  const getRowVenda = (row: CustoRow) => {
+    return row.quantidade * row.custoUnitario + getRowMargem(row);
+  };
+
+  const getRowPercent = (row: CustoRow) => {
+    if (precoVenda === 0) return 0;
+    return (getRowVenda(row) / precoVenda) * 100;
+  };
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold flex items-center gap-2">
-          <DollarSign className="h-4 w-4 text-primary" /> Centro de Controle Financeiro
+        <h3 className="text-base font-bold flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" /> Venda
         </h3>
-        {potenciaKwp > 0 && (
-          <Badge variant="outline" className="text-[10px] font-mono">
-            R$ {rsKwp.toFixed(0)}/kWp
-          </Badge>
-        )}
       </div>
 
-      {/* LARGE Margin Slider */}
-      <div className={cn("rounded-md border-2 p-4 space-y-3 transition-colors", zone.bg, zone.border)}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold">Margem de Lucro</p>
-            <p className={cn("text-3xl font-bold font-mono", zone.text)}>{venda.margem_percentual}%</p>
+      {/* Price Slider Bar */}
+      <div className="rounded-xl border border-border/50 bg-card p-4">
+        <div className="flex items-center justify-end gap-4">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">Preço de venda</Label>
+          <div className="w-48">
+            <Slider
+              value={[precoVenda]}
+              onValueChange={handleSliderChange}
+              min={sliderMin}
+              max={sliderMax}
+              step={100}
+            />
           </div>
-          <div className="text-right">
-            <p className="text-[10px] text-muted-foreground">Lucro estimado</p>
-            <p className={cn("text-lg font-bold font-mono", zone.text)}>{formatBRL(lucroLiquido)}</p>
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-bold">{formatBRL(precoVenda)}</span>
+            {precoWp > 0 && (
+              <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
+                {formatBRL(precoWp)} / Wp
+              </Badge>
+            )}
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={openEditModal}>
+              <Pencil className="h-3.5 w-3.5 text-primary" />
+            </Button>
           </div>
-        </div>
-        <Slider
-          value={[venda.margem_percentual]}
-          onValueChange={v => update("margem_percentual", v[0])}
-          min={0}
-          max={80}
-          step={1}
-          className="py-2"
-        />
-        <div className="flex justify-between text-[9px] text-muted-foreground">
-          <span className="text-destructive font-medium">🔴 0%</span>
-          <span className="text-warning font-medium">🟡 20%</span>
-          <span className="text-success font-medium">🟢 40%</span>
-          <span>60%</span>
-          <span>80%</span>
-        </div>
-        {margemLiquida < 10 && (
-          <div className="flex items-center gap-1.5 text-[11px] text-destructive">
-            <AlertTriangle className="h-3.5 w-3.5" />
-            Margem líquida perigosamente baixa ({margemLiquida.toFixed(1)}%)
-          </div>
-        )}
-      </div>
 
-      {/* Live price display */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="p-3 rounded-md border border-border/50 bg-card text-center">
-          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Preço Final</p>
-          <p className="text-xl font-bold font-mono text-primary">{formatBRL(precoFinal)}</p>
-        </div>
-        <div className="p-3 rounded-md border border-border/50 bg-card text-center">
-          <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Margem Líquida</p>
-          <p className={cn("text-xl font-bold font-mono", zone.text)}>{margemLiquida.toFixed(1)}%</p>
+          {/* View mode toggle */}
+          <div className="flex items-center gap-1 border-l border-border/40 pl-3">
+            <button
+              onClick={() => setViewMode("resumido")}
+              className={cn("p-1.5 rounded", viewMode === "resumido" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
+              title="Resumido"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("detalhado")}
+              className={cn("p-1.5 rounded", viewMode === "detalhado" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
+              title="Detalhado"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Pricing breakdown table */}
-      <div className="rounded-md border border-border/50 overflow-hidden text-sm">
-        <div className="bg-muted/30 px-3 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Composição de Custo</div>
-        <div className="divide-y divide-border/30">
-          <Row label="Equipamentos" value={custoKit} />
-          <Row label="Serviços (inclusos)" value={custoServicos} />
-          <div className="grid grid-cols-2 gap-2 px-3 py-2">
-            <div className="space-y-0.5">
-              <Label className="text-[10px]">Comissão (R$)</Label>
-              <Input type="number" min={0} value={venda.custo_comissao || ""} onChange={e => update("custo_comissao", Number(e.target.value))} className="h-7 text-xs" />
+      {/* Cost Table */}
+      <div className="rounded-xl border border-border/50 overflow-hidden">
+        {/* Table Header */}
+        <div className={cn(
+          "grid items-center px-4 py-2.5 bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/20",
+          viewMode === "resumido"
+            ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
+            : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+        )}>
+          <span className="w-6" /> {/* checkbox */}
+          <span>Categoria</span>
+          <span>Item</span>
+          <span className="text-center">Qtd</span>
+          {viewMode === "resumido" ? (
+            <>
+              <span className="text-right">Valores</span>
+              <span className="text-right">% do total</span>
+            </>
+          ) : (
+            <>
+              <span className="text-right">Custo unitário</span>
+              <span className="text-right">Custo total</span>
+              <span className="text-right">Margem</span>
+              <span className="text-right">Venda</span>
+            </>
+          )}
+        </div>
+
+        {/* Rows */}
+        <div className="divide-y divide-border/20">
+          {allRows.map((row) => {
+            const rowTotal = row.quantidade * row.custoUnitario;
+            const rowMargem = getRowMargem(row);
+            const rowVenda = getRowVenda(row);
+            const rowPercent = getRowPercent(row);
+            const isKit = row.id === "kit";
+            const isExtra = !row.fixo;
+
+            return (
+              <div
+                key={row.id}
+                className={cn(
+                  "grid items-center px-4 py-2.5 text-xs",
+                  viewMode === "resumido"
+                    ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
+                    : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+                )}
+              >
+                {/* Checkbox */}
+                <div className="w-6">
+                  {!isKit && row.fixo && (
+                    <Checkbox checked={row.checked} disabled className="h-4 w-4" />
+                  )}
+                </div>
+
+                {/* Categoria */}
+                <span className="text-muted-foreground font-medium">{row.categoria}</span>
+
+                {/* Item */}
+                <div>
+                  {isExtra ? (
+                    <Input
+                      value={row.item}
+                      onChange={e => updateExtra(row.id, "item", e.target.value)}
+                      className="h-7 text-xs w-36"
+                    />
+                  ) : (
+                    <span className="flex items-center gap-1">
+                      {row.item}
+                      {isKit && (
+                        <svg className="h-3 w-3 text-muted-foreground" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M3 5l3 3 3-3" />
+                        </svg>
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                {/* Qtd */}
+                <div className="text-center">
+                  {isKit ? (
+                    <span>{row.quantidade}</span>
+                  ) : isExtra ? (
+                    <span className="text-primary">{row.quantidade}</span>
+                  ) : (
+                    <Input
+                      type="number"
+                      min={1}
+                      value={row.quantidade}
+                      onChange={e => {
+                        // For fixed service rows, we can't update via extras
+                      }}
+                      className="h-7 text-xs w-14 mx-auto text-center"
+                      readOnly={row.fixo}
+                    />
+                  )}
+                </div>
+
+                {viewMode === "resumido" ? (
+                  <>
+                    {/* Valores */}
+                    <span className="text-right font-medium">
+                      {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                    {/* % do total */}
+                    <span className="text-right text-muted-foreground">
+                      {rowPercent.toFixed(2)}%
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {/* Custo Unitário */}
+                    <div className="text-right">
+                      {isExtra ? (
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={row.custoUnitario || ""}
+                          onChange={e => updateExtra(row.id, "custoUnitario", Number(e.target.value))}
+                          className="h-7 text-xs w-24 ml-auto text-right"
+                        />
+                      ) : isKit ? (
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={row.custoUnitario || ""}
+                          className="h-7 text-xs w-24 ml-auto text-right"
+                          readOnly
+                        />
+                      ) : (
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={row.custoUnitario || ""}
+                          className="h-7 text-xs w-24 ml-auto text-right"
+                          readOnly
+                        />
+                      )}
+                    </div>
+                    {/* Custo Total */}
+                    <span className="text-right font-medium">
+                      {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                    {/* Margem */}
+                    <span className="text-right text-muted-foreground">
+                      {rowMargem.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                    {/* Venda */}
+                    <span className="text-right font-medium">
+                      {rowVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                    </span>
+                  </>
+                )}
+
+                {/* Delete button for extras */}
+                {isExtra && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-destructive/40 hover:text-destructive ml-1"
+                    onClick={() => removeExtra(row.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Margem row (resumido view only, as "Margem (Markup X%)") */}
+          {viewMode === "resumido" && (
+            <div className={cn(
+              "grid items-center px-4 py-2.5 text-xs",
+              "grid-cols-[auto_120px_1fr_80px_120px_100px]"
+            )}>
+              <span className="w-6" />
+              <span />
+              <span className="text-muted-foreground">Margem (Markup {margemPercent.toFixed(2)}%)</span>
+              <span />
+              <span className="text-right font-medium">
+                {margemValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </span>
+              <span className="text-right text-muted-foreground">0,00%</span>
             </div>
-            <div className="space-y-0.5">
-              <Label className="text-[10px]">Outros custos (R$)</Label>
-              <Input type="number" min={0} value={venda.custo_outros || ""} onChange={e => update("custo_outros", Number(e.target.value))} className="h-7 text-xs" />
-            </div>
-          </div>
-          <Row label={`Margem (${venda.margem_percentual}%)`} value={margemValor} className="text-success" />
-          <div className="px-3 py-2">
-            <div className="space-y-0.5">
-              <Label className="text-[10px]">Desconto (%) <span className="text-muted-foreground">máx {descontoMax}%</span></Label>
-              <Input
-                type="number"
-                min={0}
-                max={descontoMax}
-                value={venda.desconto_percentual || ""}
-                onChange={e => update("desconto_percentual", Math.min(Number(e.target.value), descontoMax))}
-                className="h-7 text-xs"
-              />
-            </div>
-          </div>
-          {venda.desconto_percentual > 0 && <Row label={`Desconto (${venda.desconto_percentual}%)`} value={-descontoValor} className="text-destructive" />}
-          <div className="flex justify-between px-3 py-2.5 bg-primary/5 font-bold">
-            <span>Preço Final</span>
-            <span className="font-mono text-primary">{formatBRL(precoFinal)}</span>
+          )}
+
+          {/* Total row */}
+          <div className={cn(
+            "grid items-center px-4 py-3 text-xs font-bold bg-muted/5",
+            viewMode === "resumido"
+              ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
+              : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+          )}>
+            <span className="w-6" />
+            <span />
+            <span />
+            <span />
+            {viewMode === "resumido" ? (
+              <>
+                <span className="text-right text-sm">
+                  {precoVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-right text-sm">100%</span>
+              </>
+            ) : (
+              <>
+                <span />
+                <span className="text-right text-sm">
+                  {custoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-right text-sm">
+                  {margemValor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+                <span className="text-right text-sm">
+                  {precoVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </span>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Observações */}
-      <div className="space-y-1">
-        <Label className="text-xs">Observações</Label>
-        <Textarea value={venda.observacoes} onChange={e => update("observacoes", e.target.value)} placeholder="Condições especiais..." rows={2} className="text-xs" />
-      </div>
-    </div>
-  );
-}
+      {/* + Adicionar Custo */}
+      <button
+        onClick={addCusto}
+        className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+      >
+        <Plus className="h-3.5 w-3.5" /> Adicionar Custo
+      </button>
 
-function Row({ label, value, className }: { label: string; value: number; className?: string }) {
-  return (
-    <div className="flex justify-between px-3 py-2 text-xs">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={cn("font-mono font-medium", className)}>{formatBRL(value)}</span>
+      {/* ── Edit Modal ── */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base">Editar valor total</DialogTitle>
+          </DialogHeader>
+
+          {/* Mode toggle */}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant={editMode === "margem" ? "default" : "outline"}
+              className="text-xs h-8"
+              onClick={() => {
+                setEditMode("margem");
+                setEditValue(margemPercent.toFixed(2));
+              }}
+            >
+              Margem
+            </Button>
+            <Button
+              size="sm"
+              variant={editMode === "preco" ? "default" : "outline"}
+              className="text-xs h-8"
+              onClick={() => {
+                setEditMode("preco");
+                setEditValue(precoVenda.toFixed(2));
+              }}
+            >
+              Preço total do projeto
+            </Button>
+          </div>
+
+          {/* Input */}
+          <div className="relative">
+            <Input
+              type="number"
+              step={0.01}
+              value={editValue}
+              onChange={e => setEditValue(e.target.value)}
+              className="pr-8"
+            />
+            {editMode === "margem" && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">%</span>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancelar</Button>
+            <Button onClick={applyEditModal}>Aplicar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
