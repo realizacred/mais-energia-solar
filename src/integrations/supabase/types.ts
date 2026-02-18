@@ -2490,6 +2490,8 @@ export type Database = {
           expected_close_date: string | null
           id: string
           kwp: number | null
+          motivo_perda_id: string | null
+          motivo_perda_obs: string | null
           notas: string | null
           owner_id: string
           pipeline_id: string
@@ -2508,6 +2510,8 @@ export type Database = {
           expected_close_date?: string | null
           id?: string
           kwp?: number | null
+          motivo_perda_id?: string | null
+          motivo_perda_obs?: string | null
           notas?: string | null
           owner_id: string
           pipeline_id: string
@@ -2526,6 +2530,8 @@ export type Database = {
           expected_close_date?: string | null
           id?: string
           kwp?: number | null
+          motivo_perda_id?: string | null
+          motivo_perda_obs?: string | null
           notas?: string | null
           owner_id?: string
           pipeline_id?: string
@@ -2542,6 +2548,13 @@ export type Database = {
             columns: ["customer_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_motivo_perda_id_fkey"
+            columns: ["motivo_perda_id"]
+            isOneToOne: false
+            referencedRelation: "motivos_perda"
             referencedColumns: ["id"]
           },
           {
