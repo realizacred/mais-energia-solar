@@ -410,7 +410,7 @@ export const DEFAULT_PRE_DIMENSIONAMENTO: PreDimensionamentoData = {
   desempenho: 69.80,
   fator_geracao: 108.49,
   fator_geracao_meses: {},
-  sobredimensionamento: 50,
+  sobredimensionamento: 20,
   margem_pot_ideal: 0,
   considerar_transformador: true,
 };

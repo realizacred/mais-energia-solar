@@ -54,7 +54,7 @@ interface Props {
 
 type TabType = "customizado" | "fechado" | "manual";
 
-function kitItemsToCardData(itens: KitItemRow[]): KitCardData | null {
+function kitItemsToCardData(itens: KitItemRow[], topologia?: string): KitCardData | null {
   const modItem = itens.find(i => i.categoria === "modulo");
   const invItem = itens.find(i => i.categoria === "inversor");
   if (!modItem && !invItem) return null;
@@ -75,7 +75,7 @@ function kitItemsToCardData(itens: KitItemRow[]): KitCardData | null {
     inversorDescricao: invItem ? `${invItem.fabricante} ${invItem.modelo}`.trim() : "—",
     inversorQtd: invItem?.quantidade || 0,
     inversorPotenciaKw: invPotKw * (invItem?.quantidade || 1),
-    topologia: "Inversor com otimizador",
+    topologia: topologia || "Tradicional",
     precoTotal,
     precoWp,
     updatedAt: new Date().toLocaleDateString("pt-BR"),
@@ -125,7 +125,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   };
 
   const handleManualKitCreated = (newItens: KitItemRow[]) => {
-    const card = kitItemsToCardData(newItens);
+    const topoLabel = pd?.topologias?.[0] || "Tradicional";
+    const card = kitItemsToCardData(newItens, topoLabel);
     if (card) {
       if (editingKitIndex !== null) {
         setManualKits(prev => prev.map((k, i) => i === editingKitIndex ? { card, itens: newItens } : k));
