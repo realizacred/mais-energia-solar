@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
       results.push(await checkPaymentGateway(supabaseAdmin, tenantId));
       results.push(await checkAutomations(supabaseAdmin, tenantId));
       results.push(await checkEvolutionApi(supabaseAdmin, tenantId));
-
+      results.push(await checkGoogleMaps(supabaseAdmin, tenantId));
       // Fix #3: Batch upsert (single call per tenant, not per integration)
       const now = new Date().toISOString();
       const rows = results.map((r) => ({
@@ -687,5 +687,60 @@ async function checkEvolutionApi(admin: any, tenantId: string): Promise<CheckRes
     }
   } catch (err: any) {
     return { integration_name: "evolution_api", status: "down", latency_ms: null, error_message: err.message, details: {} };
+  }
+}
+
+async function checkGoogleMaps(admin: any, tenantId: string): Promise<CheckResult> {
+  try {
+    const { data: configRow } = await admin
+      .from("integration_configs")
+      .select("api_key, is_active")
+      .eq("tenant_id", tenantId)
+      .eq("service_key", "google_maps")
+      .maybeSingle();
+
+    if (!configRow?.api_key) {
+      return { integration_name: "google_maps", status: "not_configured", latency_ms: null, error_message: null, details: {} };
+    }
+
+    if (!configRow.is_active) {
+      return { integration_name: "google_maps", status: "degraded", latency_ms: null, error_message: "Integração desativada", details: {} };
+    }
+
+    const start = Date.now();
+    try {
+      const res = await fetch(
+        `https://maps.googleapis.com/maps/api/geocode/json?address=Brasilia&key=${configRow.api_key}`,
+        { method: "GET", signal: AbortSignal.timeout(10000) }
+      );
+      const latency = Date.now() - start;
+
+      if (res.ok) {
+        const json = await res.json();
+        if (json.status === "OK" || json.status === "ZERO_RESULTS") {
+          return { integration_name: "google_maps", status: "healthy", latency_ms: latency, error_message: null, details: {} };
+        }
+        return {
+          integration_name: "google_maps",
+          status: "down",
+          latency_ms: latency,
+          error_message: json.error_message || `Google status: ${json.status}`,
+          details: { google_status: json.status },
+        };
+      }
+      const errText = await res.text();
+      return {
+        integration_name: "google_maps",
+        status: res.status === 403 ? "down" : "degraded",
+        latency_ms: latency,
+        error_message: `HTTP ${res.status}: ${errText.slice(0, 100)}`,
+        details: {},
+      };
+    } catch (fetchErr: any) {
+      const latency = Date.now() - start;
+      return { integration_name: "google_maps", status: "degraded", latency_ms: latency, error_message: fetchErr.message, details: {} };
+    }
+  } catch (err: any) {
+    return { integration_name: "google_maps", status: "down", latency_ms: null, error_message: err.message, details: {} };
   }
 }

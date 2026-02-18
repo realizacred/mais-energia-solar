@@ -61,7 +61,6 @@ export default function ApiKeyConfigPage({
   const saveMutation = useMutation({
     mutationFn: async ({ key, active }: { key?: string; active?: boolean }) => {
       if (key !== undefined) {
-        // Use edge function to save key (bypasses RLS safely)
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
 
@@ -69,13 +68,17 @@ export default function ApiKeyConfigPage({
           body: { service_key: serviceKey, api_key: key },
         });
 
-        if (resp.error) throw new Error(resp.error.message || "Erro ao salvar chave");
+        if (resp.error) {
+          // Try to extract details from error
+          const msg = resp.error.message || "Erro ao salvar chave";
+          throw new Error(msg);
+        }
         const body = resp.data as any;
-        if (body?.error) throw new Error(body.error);
+        if (body?.error) throw new Error(body.details ? `${body.error}: ${body.details}` : body.error);
+        return body;
       }
 
       if (active !== undefined && config?.id) {
-        // Toggle active can use direct update (RLS allows update by tenant)
         const { error } = await supabase
           .from("integration_configs")
           .update({ is_active: active, updated_at: new Date().toISOString() })
@@ -83,8 +86,12 @@ export default function ApiKeyConfigPage({
         if (error) throw error;
       }
     },
-    onSuccess: () => {
-      toast.success("Configuração salva com sucesso ✅");
+    onSuccess: (_data, variables) => {
+      if (variables.key) {
+        toast.success("Chave salva e validada com sucesso ✅");
+      } else {
+        toast.success("Status atualizado ✅");
+      }
       setHasEdited(false);
       setApiKey("");
       queryClient.invalidateQueries({ queryKey: ["integration-config", serviceKey] });
