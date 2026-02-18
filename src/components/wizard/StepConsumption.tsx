@@ -5,7 +5,8 @@ import { FloatingSelect } from "@/components/ui/floating-select";
 import { Textarea } from "@/components/ui/textarea";
 import ConsumptionChart from "@/components/ConsumptionChart";
 import FileUploadOffline, { type OfflineFile } from "@/components/FileUploadOffline";
-import { TIPOS_TELHADO, REDES_ATENDIMENTO } from "@/lib/validations";
+import { REDES_ATENDIMENTO } from "@/lib/validations";
+import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 import type { UseFormReturn } from "react-hook-form";
 import type { LeadFormData } from "@/lib/validations";
 
@@ -35,6 +36,7 @@ export function StepConsumption({
 }: StepConsumptionProps) {
   const { watch, setValue, trigger, formState: { errors } } = form;
   const values = watch();
+  const { tiposTelhado: TIPOS_TELHADO } = useTiposTelhado();
 
   return (
     <div className="space-y-5">
