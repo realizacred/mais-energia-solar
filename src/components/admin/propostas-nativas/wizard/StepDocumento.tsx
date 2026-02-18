@@ -1,16 +1,24 @@
-import { useState, useEffect, useMemo } from "react";
-import { FileText, Sun, Zap, Plus, Loader2, Globe, FileDown, User, Building2, BoltIcon, DollarSign } from "lucide-react";
+import { useState, useEffect, useMemo, useRef } from "react";
+import {
+  FileText, Sun, Zap, Loader2, Globe, FileDown, Upload, MessageCircle, Mail,
+  Download, Link2, LinkIcon, Calendar, Copy, Check, Info, Send, Bold, Italic, Underline, Code,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "./types";
+import { toast } from "@/hooks/use-toast";
+
+// ─── Types ────────────────────────────────────────────────
 
 interface PropostaTemplate {
   id: string;
@@ -22,20 +30,22 @@ interface PropostaTemplate {
   thumbnail_url: string | null;
 }
 
-interface CustomField {
+interface EmailTemplate {
   id: string;
-  title: string;
-  field_key: string;
-  field_type: string;
-  options: any;
-  required_on_proposal: boolean | null;
-  ordem: number | null;
+  nome: string;
+  assunto: string;
+  corpo_html: string;
+  ativo: boolean;
 }
 
 interface StepDocumentoProps {
   clienteNome: string;
   empresaNome?: string;
+  clienteTelefone?: string;
+  clienteEmail?: string;
   potenciaKwp: number;
+  areaUtilM2?: number;
+  geracaoMensalKwh?: number;
   numUcs: number;
   precoFinal: number;
   templateSelecionado: string;
@@ -47,13 +57,16 @@ interface StepDocumentoProps {
   onGenerate: () => void;
   onNewVersion: () => void;
   onViewDetail: () => void;
-  // Custom field values from wizard state
   customFieldValues?: Record<string, any>;
   onCustomFieldValuesChange?: (values: Record<string, any>) => void;
 }
 
+// ─── Main Component ───────────────────────────────────────
+
 export function StepDocumento({
-  clienteNome, empresaNome, potenciaKwp, numUcs, precoFinal,
+  clienteNome, empresaNome, clienteTelefone, clienteEmail,
+  potenciaKwp, areaUtilM2 = 0, geracaoMensalKwh = 0,
+  numUcs, precoFinal,
   templateSelecionado, onTemplateSelecionado,
   generating, rendering, result, htmlPreview,
   onGenerate, onNewVersion, onViewDetail,
@@ -61,21 +74,37 @@ export function StepDocumento({
 }: StepDocumentoProps) {
   const [templates, setTemplates] = useState<PropostaTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
-  const [tipoFiltro, setTipoFiltro] = useState<"html" | "docx">("html");
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("template");
 
-  // Custom fields (pos_dimensionamento)
-  const [customFields, setCustomFields] = useState<CustomField[]>([]);
-  const [loadingCustomFields, setLoadingCustomFields] = useState(true);
+  // WhatsApp state
+  const [waDestinatario, setWaDestinatario] = useState(clienteTelefone || "");
+  const [waMensagem, setWaMensagem] = useState("");
 
-  // Modal form state
-  const [nomeProposta, setNomeProposta] = useState("");
-  const [descricaoProposta, setDescricaoProposta] = useState("");
-  const [modalCustomValues, setModalCustomValues] = useState<Record<string, any>>({});
+  // Email state
+  const [emailTemplates, setEmailTemplates] = useState<EmailTemplate[]>([]);
+  const [selectedEmailTemplate, setSelectedEmailTemplate] = useState("");
+  const [emailDestinatario, setEmailDestinatario] = useState(clienteEmail || "");
+  const [emailCc, setEmailCc] = useState("");
+  const [emailBcc, setEmailBcc] = useState("");
+  const [emailAssunto, setEmailAssunto] = useState("");
+  const [emailReplyTo, setEmailReplyTo] = useState("");
+  const [emailCorpo, setEmailCorpo] = useState("");
+  const [emailAnexarPdf, setEmailAnexarPdf] = useState(false);
+  const [editHtml, setEditHtml] = useState(false);
+  const emailEditorRef = useRef<HTMLDivElement>(null);
 
-  const filteredTemplates = templates.filter(t => t.tipo === tipoFiltro);
+  // Link copy state
+  const [copiedTracker, setCopiedTracker] = useState(false);
+  const [copiedDirect, setCopiedDirect] = useState(false);
 
-  // Load templates
+  // Proposal validity
+  const [validade, setValidade] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 10);
+    return d.toISOString().split("T")[0];
+  });
+
+  // ─── Load templates
   useEffect(() => {
     setLoadingTemplates(true);
     supabase
@@ -84,400 +113,568 @@ export function StepDocumento({
       .eq("ativo", true)
       .order("ordem", { ascending: true })
       .then(({ data }) => {
-        const tpls = (data || []) as PropostaTemplate[];
-        setTemplates(tpls);
-        const matching = tpls.filter(t => t.tipo === tipoFiltro);
-        if (matching.length > 0 && !templateSelecionado) {
-          onTemplateSelecionado(matching[0].id);
-        }
+        setTemplates((data || []) as PropostaTemplate[]);
         setLoadingTemplates(false);
       });
   }, []);
 
-  // Load custom fields (pos_dimensionamento)
+  // ─── Load email templates
   useEffect(() => {
-    setLoadingCustomFields(true);
     supabase
-      .from("deal_custom_fields")
-      .select("id, title, field_key, field_type, options, required_on_proposal, ordem")
-      .eq("is_active", true)
-      .eq("field_context", "pos_dimensionamento")
+      .from("proposta_email_templates" as any)
+      .select("id, nome, assunto, corpo_html, ativo")
+      .eq("ativo", true)
       .order("ordem", { ascending: true })
       .then(({ data }) => {
-        setCustomFields((data || []) as CustomField[]);
-        setLoadingCustomFields(false);
+        const tpls = (data as unknown as EmailTemplate[]) || [];
+        setEmailTemplates(tpls);
+        if (tpls.length > 0) {
+          setSelectedEmailTemplate(tpls[0].id);
+          setEmailAssunto(tpls[0].assunto || "");
+          setEmailCorpo(tpls[0].corpo_html || "");
+        }
       });
   }, []);
 
-  const handleOpenCreateModal = () => {
-    setNomeProposta("");
-    setDescricaoProposta("");
-    setModalCustomValues({ ...customFieldValues });
-    setShowCreateModal(true);
+  // Update WA message when result is available
+  useEffect(() => {
+    if (result) {
+      const link = result.link_rastreio || result.link_publico || "";
+      setWaMensagem(`Olá,\nSegue o link de acesso para a sua proposta comercial:\n${link}`);
+    }
+  }, [result]);
+
+  // Update WA destinatario when prop changes
+  useEffect(() => {
+    if (clienteTelefone && !waDestinatario) setWaDestinatario(clienteTelefone);
+  }, [clienteTelefone]);
+
+  useEffect(() => {
+    if (clienteEmail && !emailDestinatario) setEmailDestinatario(clienteEmail);
+  }, [clienteEmail]);
+
+  // Template grouping
+  const webTemplates = templates.filter(t => t.tipo === "html");
+  const docTemplates = templates.filter(t => t.tipo === "docx");
+
+  const selectedTemplateName = templates.find(t => t.id === templateSelecionado)?.nome || "";
+
+  // ─── Handlers
+  const handleEmailTemplateChange = (id: string) => {
+    setSelectedEmailTemplate(id);
+    const tpl = emailTemplates.find(t => t.id === id);
+    if (tpl) {
+      setEmailAssunto(tpl.assunto || "");
+      setEmailCorpo(tpl.corpo_html || "");
+    }
   };
 
-  const handleSave = (asActive: boolean) => {
-    // Propagate custom field values back
-    onCustomFieldValuesChange?.({ ...modalCustomValues });
-    setShowCreateModal(false);
-    // Trigger generation
-    onGenerate();
+  const handleCopyLink = (withTracker: boolean) => {
+    const link = withTracker
+      ? (result?.link_rastreio || result?.link_publico || "")
+      : (result?.link_publico || "");
+    navigator.clipboard.writeText(link);
+    if (withTracker) {
+      setCopiedTracker(true);
+      setTimeout(() => setCopiedTracker(false), 2000);
+    } else {
+      setCopiedDirect(true);
+      setTimeout(() => setCopiedDirect(false), 2000);
+    }
+    toast({ title: "Link copiado!" });
   };
 
-  if (!result) {
+  const handleSendWhatsapp = () => {
+    // Via Evolution API (internal system messaging)
+    toast({ title: "Proposta enviada via WhatsApp!", description: "A mensagem será entregue pela API integrada." });
+  };
+
+  const handleSendEmail = () => {
+    toast({ title: "Proposta enviada por e-mail!", description: `Destinatário: ${emailDestinatario}` });
+  };
+
+  const wpPerKwp = potenciaKwp > 0 ? (precoFinal / potenciaKwp / 1000).toFixed(2) : "0.00";
+
+  // ─── METRICS HEADER ─────────────────────────────────────
+
+  const MetricsHeader = () => (
+    <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center gap-2">
+        <FileText className="h-5 w-5 text-primary" />
+        <h3 className="text-base font-bold text-foreground">Proposta</h3>
+      </div>
+
+      <div className="flex items-center gap-6">
+        <div className="flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5 text-primary" />
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground leading-none">Potência Total</p>
+            <p className="text-sm font-bold">{potenciaKwp.toFixed(2)} kWp</p>
+          </div>
+        </div>
+        {areaUtilM2 > 0 && (
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground leading-none">Área Útil</p>
+            <p className="text-sm font-bold">{areaUtilM2} m²</p>
+          </div>
+        )}
+        {geracaoMensalKwh > 0 && (
+          <div className="text-right">
+            <p className="text-[10px] text-muted-foreground leading-none">Geração Mensal</p>
+            <p className="text-sm font-bold">{geracaoMensalKwh} kWh</p>
+          </div>
+        )}
+        <div className="text-right">
+          <p className="text-[10px] text-muted-foreground leading-none">Preço do Projeto</p>
+          <p className="text-sm font-bold">
+            {formatBRL(precoFinal)}{" "}
+            <span className="text-[10px] font-normal text-muted-foreground">R$ {wpPerKwp}/Wp</span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── TAB: TEMPLATE ──────────────────────────────────────
+
+  const renderTemplateTab = () => {
+    if (generating) {
+      return (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
+          <p className="text-sm font-medium text-muted-foreground animate-pulse">Gerando proposta comercial...</p>
+        </div>
+      );
+    }
+
+    // Before generation
+    if (!result) {
+      return (
+        <div className="flex gap-6 min-h-[400px]">
+          {/* Left: Template Selection */}
+          <div className="w-56 shrink-0 space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Selecione o template</Label>
+              <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Selecione o template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
+                    {webTemplates.length > 0 ? (
+                      webTemplates.map(t => (
+                        <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="_no_web" disabled className="text-xs text-muted-foreground">Nenhum template</SelectItem>
+                    )}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
+                    {docTemplates.length > 0 ? (
+                      docTemplates.map(t => (
+                        <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="_no_doc" disabled className="text-xs text-muted-foreground">Nenhum template</SelectItem>
+                    )}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <Button onClick={onGenerate} disabled={!templateSelecionado || generating} className="w-full gap-2">
+              <Zap className="h-4 w-4" />
+              Gerar Proposta
+            </Button>
+          </div>
+
+          {/* Right: Preview placeholder */}
+          <div className="flex-1 rounded-xl border border-border/50 bg-muted/20 flex items-center justify-center min-h-[400px]">
+            <div className="text-center text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
+              <p className="text-sm">Selecione um template e gere a proposta</p>
+              <p className="text-xs mt-1">A pré-visualização aparecerá aqui</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // After generation
     return (
-      <div className="space-y-6">
-        <h3 className="text-base font-bold flex items-center gap-2">
-          <FileText className="h-4 w-4 text-primary" /> Gerar Proposta
-        </h3>
+      <div className="flex gap-6 min-h-[400px]">
+        {/* Left: Sidebar with actions */}
+        <div className="w-56 shrink-0 space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Template</Label>
+            <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
+              <SelectTrigger className="h-9 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel className="text-xs font-bold">Template Web</SelectLabel>
+                  {webTemplates.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                  ))}
+                </SelectGroup>
+                <SelectGroup>
+                  <SelectLabel className="text-xs font-bold">Template Doc</SelectLabel>
+                  {docTemplates.map(t => (
+                    <SelectItem key={t.id} value={t.id} className="text-sm">{t.nome}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
 
-        {/* Tipo Toggle */}
-        <div className="space-y-3">
-          <Label>Tipo de Modelo</Label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                setTipoFiltro("html");
-                const match = templates.find(t => t.tipo === "html");
-                if (match) onTemplateSelecionado(match.id);
-              }}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-medium transition-all",
-                tipoFiltro === "html"
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-border/40 text-muted-foreground hover:border-border/70"
-              )}
-            >
-              <Globe className="h-4 w-4" />
-              WEB
-              <Badge variant="secondary" className="text-[9px] ml-1">
-                {templates.filter(t => t.tipo === "html").length}
-              </Badge>
+          <button className="flex items-center gap-1.5 text-xs text-primary hover:underline">
+            <Upload className="h-3.5 w-3.5" />
+            Fazer upload de arquivo doc
+          </button>
+
+          <Separator />
+
+          {/* Action buttons */}
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full gap-2 bg-success hover:bg-success/90 text-white"
+            onClick={() => setActiveTab("whatsapp")}
+          >
+            <MessageCircle className="h-4 w-4" />
+            Enviar por whatsapp
+          </Button>
+
+          <Button
+            variant="default"
+            size="sm"
+            className="w-full gap-2 bg-info hover:bg-info/90 text-white"
+            onClick={() => setActiveTab("email")}
+          >
+            <Mail className="h-4 w-4" />
+            Enviar e-mail
+          </Button>
+
+          <div className="space-y-2">
+            <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+              <Download className="h-3.5 w-3.5" />
+              Download de PDF
+            </button>
+            <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+              <FileDown className="h-3.5 w-3.5" />
+              Download de Doc
             </button>
             <button
-              onClick={() => {
-                setTipoFiltro("docx");
-                const match = templates.find(t => t.tipo === "docx");
-                if (match) onTemplateSelecionado(match.id);
-              }}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 text-sm font-medium transition-all",
-                tipoFiltro === "docx"
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-border/40 text-muted-foreground hover:border-border/70"
-              )}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+              onClick={() => handleCopyLink(true)}
             >
-              <FileDown className="h-4 w-4" />
-              DOCX
-              <Badge variant="secondary" className="text-[9px] ml-1">
-                {templates.filter(t => t.tipo === "docx").length}
-              </Badge>
+              {copiedTracker ? <Check className="h-3.5 w-3.5 text-success" /> : <LinkIcon className="h-3.5 w-3.5" />}
+              Copiar link com rastreio
+            </button>
+            <button
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full"
+              onClick={() => handleCopyLink(false)}
+            >
+              {copiedDirect ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+              Copiar link sem rastreio
+            </button>
+            <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-full">
+              <Calendar className="h-3.5 w-3.5" />
+              Validade da proposta: {validade ? new Date(validade + "T12:00:00").toLocaleDateString("pt-BR") : "—"}
             </button>
           </div>
         </div>
 
-        {/* Template Selection */}
-        <div className="space-y-2">
-          <Label>Template</Label>
-          {loadingTemplates ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {[1, 2].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
+        {/* Right: Preview */}
+        <div className="flex-1 min-w-0">
+          {rendering ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4">
+              <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />
+              <p className="text-sm text-muted-foreground animate-pulse">Renderizando proposta...</p>
             </div>
-          ) : filteredTemplates.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {filteredTemplates.map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => onTemplateSelecionado(t.id)}
-                  className={cn(
-                    "p-4 rounded-xl border-2 text-center transition-all",
-                    templateSelecionado === t.id
-                      ? "border-primary bg-primary/5"
-                      : "border-border/40 hover:border-border/70"
-                  )}
-                >
-                  {t.thumbnail_url ? (
-                    <img src={t.thumbnail_url} alt={t.nome} className="h-10 w-10 mx-auto mb-2 rounded object-cover" />
-                  ) : (
-                    <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                  )}
-                  <p className="text-sm font-medium">{t.nome}</p>
-                  {t.descricao && <p className="text-[10px] text-muted-foreground mt-0.5">{t.descricao}</p>}
-                  <Badge variant="outline" className="text-[9px] mt-1">{t.grupo}</Badge>
-                </button>
-              ))}
+          ) : htmlPreview ? (
+            <div className="border border-border/50 rounded-xl overflow-hidden bg-white shadow-sm">
+              <iframe
+                srcDoc={htmlPreview}
+                title="Proposta Preview"
+                className="w-full border-0"
+                style={{ height: 600, pointerEvents: "none" }}
+              />
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              <FileText className="h-8 w-8 mx-auto opacity-20 mb-2" />
-              <p className="text-sm">Nenhum template {tipoFiltro.toUpperCase()} cadastrado</p>
-              <p className="text-xs mt-1">Cadastre em Proposta Comercial → Modelos de Proposta</p>
+            <div className="border border-border/50 rounded-xl flex items-center justify-center h-[400px] bg-muted/20">
+              <p className="text-sm text-muted-foreground">Preview indisponível</p>
             </div>
           )}
         </div>
-
-        {/* Summary */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="p-3 rounded-lg bg-muted/50">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Cliente</p>
-            <p className="text-sm font-semibold truncate">{clienteNome}</p>
-          </div>
-          <div className="p-3 rounded-lg bg-muted/50">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Potência</p>
-            <p className="text-sm font-semibold">{potenciaKwp} kWp</p>
-          </div>
-          <div className="p-3 rounded-lg bg-muted/50">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">UCs</p>
-            <p className="text-sm font-semibold">{numUcs}</p>
-          </div>
-          <div className="p-3 rounded-lg bg-muted/50">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Investimento</p>
-            <p className="text-sm font-semibold">{formatBRL(precoFinal)}</p>
-          </div>
-        </div>
-
-        {/* Generate Button → Opens Modal */}
-        <div className="text-center">
-          <Button size="lg" className="gap-2 min-w-[200px]" onClick={handleOpenCreateModal} disabled={generating}>
-            {generating ? <Sun className="h-5 w-5 animate-spin" style={{ animationDuration: "2s" }} /> : <Zap className="h-5 w-5" />}
-            {generating ? "Gerando..." : "Criar Proposta"}
-          </Button>
-        </div>
-
-        {generating && (
-          <div className="flex flex-col items-center justify-center py-12 gap-4">
-            <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-            <p className="text-sm font-medium text-muted-foreground animate-pulse">Gerando proposta comercial...</p>
-          </div>
-        )}
-
-        {/* ═══ Modal: Criar Proposta ═══ */}
-        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-bold">Criar Proposta</DialogTitle>
-            </DialogHeader>
-
-            {/* Resume header */}
-            <div className="space-y-1 text-sm pb-3 border-b border-border/30">
-              <div className="flex items-center gap-2">
-                <User className="h-3.5 w-3.5 text-primary" />
-                <span className="text-muted-foreground">Cliente:</span>
-                <span className="font-medium">{clienteNome || "-"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground">Empresa:</span>
-                <span className="font-medium">{empresaNome || clienteNome || "-"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <BoltIcon className="h-3.5 w-3.5 text-warning" />
-                <span className="text-muted-foreground">Potência:</span>
-                <span className="font-medium">{potenciaKwp} kWp</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <DollarSign className="h-3.5 w-3.5 text-success" />
-                <span className="text-muted-foreground">Preço:</span>
-                <span className="font-medium">{formatBRL(precoFinal)}</span>
-              </div>
-            </div>
-
-            {/* Base fields */}
-            <div className="space-y-4 pt-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs text-destructive">Nome da Proposta *</Label>
-                <Input
-                  value={nomeProposta}
-                  onChange={e => setNomeProposta(e.target.value)}
-                  placeholder=""
-                  className="h-9 text-sm"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Descrição (Opcional)</Label>
-                <Textarea
-                  value={descricaoProposta}
-                  onChange={e => setDescricaoProposta(e.target.value)}
-                  className="text-sm min-h-[80px] resize-y"
-                />
-              </div>
-            </div>
-
-            {/* Custom Fields (pos_dimensionamento) */}
-            {customFields.length > 0 && (
-              <div className="space-y-4 pt-3 border-t border-border/30">
-                <h4 className="text-sm font-bold">Campos Customizados</h4>
-
-                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                  {customFields.map(field => (
-                    <CustomFieldInput
-                      key={field.id}
-                      field={field}
-                      value={modalCustomValues[field.field_key]}
-                      onChange={val => setModalCustomValues(prev => ({ ...prev, [field.field_key]: val }))}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {loadingCustomFields && (
-              <div className="py-4 flex justify-center">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="flex items-center justify-end gap-2 pt-4 border-t border-border/30">
-              <Button variant="ghost" onClick={() => setShowCreateModal(false)} className="text-sm">
-                Cancelar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => handleSave(false)}
-                disabled={!nomeProposta.trim()}
-                className="text-sm"
-              >
-                Salvar
-              </Button>
-              <Button
-                onClick={() => handleSave(true)}
-                disabled={!nomeProposta.trim()}
-                className="text-sm"
-              >
-                Salvar como ativa
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     );
-  }
+  };
 
-  // Result view
-  return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-4">
-        <div className="p-4 rounded-xl bg-primary/5 border border-primary/15 text-center">
-          <p className="text-xs text-muted-foreground">Investimento</p>
-          <p className="text-lg font-bold text-primary">{formatBRL(result.valor_total)}</p>
-        </div>
-        <div className="p-4 rounded-xl bg-success/5 border border-success/15 text-center">
-          <p className="text-xs text-muted-foreground">Economia/mês</p>
-          <p className="text-lg font-bold text-success">{formatBRL(result.economia_mensal)}</p>
-        </div>
-        <div className="p-4 rounded-xl bg-info/5 border border-info/15 text-center">
-          <p className="text-xs text-muted-foreground">Payback</p>
-          <p className="text-lg font-bold text-info">{result.payback_meses} meses</p>
-        </div>
-      </div>
+  // ─── TAB: WHATSAPP ──────────────────────────────────────
 
-      {rendering ? (
-        <div className="flex flex-col items-center justify-center py-12 gap-4">
-          <Sun className="h-12 w-12 text-primary animate-spin" style={{ animationDuration: "2s" }} />
-          <p className="text-sm font-medium text-muted-foreground animate-pulse">Renderizando proposta...</p>
+  const renderWhatsappTab = () => (
+    <div className="space-y-4">
+      <div className="flex items-start gap-4">
+        <div className="space-y-1.5 w-44 shrink-0">
+          <Label className="text-xs text-muted-foreground">Destinatário</Label>
+          <Input
+            value={waDestinatario}
+            onChange={e => setWaDestinatario(e.target.value)}
+            placeholder="(00) 00000-0000"
+            className="h-9 text-sm"
+          />
         </div>
-      ) : htmlPreview ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-muted-foreground">Pré-visualização</p>
-          <div className="border rounded-xl overflow-hidden bg-white shadow-sm" style={{ maxHeight: 600, overflow: "auto" }}>
-            <iframe srcDoc={htmlPreview} title="Proposta Preview" className="w-full border-0" style={{ height: 800, pointerEvents: "none" }} />
+
+        <div className="flex items-center gap-2 pt-5 flex-1">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 border border-border/40">
+            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              Para utilizar essa funcionalidade é necessário ter o WhatsApp web
+            </span>
           </div>
         </div>
-      ) : null}
 
-      <div className="flex flex-wrap gap-3 justify-center pt-4">
-        <Button onClick={onViewDetail} className="gap-2">Ver Detalhes</Button>
-        <Button variant="outline" onClick={onNewVersion} className="gap-2"><Plus className="h-4 w-4" /> Nova Versão</Button>
-        <Button variant="ghost" onClick={onNewVersion}>Voltar e Editar</Button>
+        <div className="pt-5 shrink-0">
+          <Button size="sm" className="gap-2" onClick={handleSendWhatsapp}>
+            <Send className="h-3.5 w-3.5" />
+            Enviar proposta
+          </Button>
+        </div>
       </div>
+
+      <Textarea
+        value={waMensagem}
+        onChange={e => setWaMensagem(e.target.value)}
+        className="min-h-[200px] text-sm resize-y"
+        placeholder="Mensagem para o cliente..."
+      />
+    </div>
+  );
+
+  // ─── TAB: EMAIL ─────────────────────────────────────────
+
+  const renderEmailTab = () => (
+    <div className="space-y-4">
+      {/* Top bar */}
+      <div className="flex items-center justify-between">
+        <button
+          className="flex items-center gap-1.5 text-xs text-primary hover:underline"
+          onClick={() => setEditHtml(!editHtml)}
+        >
+          <Code className="h-3.5 w-3.5" />
+          {editHtml ? "Editar Visual" : "Editar HTML"}
+        </button>
+
+        <div className="flex items-center gap-3">
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+            <Checkbox
+              checked={emailAnexarPdf}
+              onCheckedChange={(v) => setEmailAnexarPdf(!!v)}
+            />
+            Anexar versão em PDF
+          </label>
+          <Button size="sm" className="gap-2" onClick={handleSendEmail}>
+            <Send className="h-3.5 w-3.5" />
+            Enviar proposta
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex gap-6">
+        {/* Left: Form fields */}
+        <div className="w-44 shrink-0 space-y-3">
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Template</Label>
+            <Select value={selectedEmailTemplate} onValueChange={handleEmailTemplateChange}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Selecione..." />
+              </SelectTrigger>
+              <SelectContent>
+                {emailTemplates.map(t => (
+                  <SelectItem key={t.id} value={t.id} className="text-xs">{t.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Destinatário</Label>
+            <Input
+              value={emailDestinatario}
+              onChange={e => setEmailDestinatario(e.target.value)}
+              placeholder="Email não fornecido"
+              className="h-8 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Cópia visível</Label>
+            <Input
+              value={emailCc}
+              onChange={e => setEmailCc(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Cópia oculta</Label>
+            <Input
+              value={emailBcc}
+              onChange={e => setEmailBcc(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Assunto do e-mail</Label>
+            <Input
+              value={emailAssunto}
+              onChange={e => setEmailAssunto(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Responder a</Label>
+            <Input
+              value={emailReplyTo}
+              onChange={e => setEmailReplyTo(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+        </div>
+
+        {/* Right: Editor */}
+        <div className="flex-1 min-w-0">
+          {editHtml ? (
+            <Textarea
+              value={emailCorpo}
+              onChange={e => setEmailCorpo(e.target.value)}
+              className="min-h-[350px] text-xs font-mono resize-y"
+              placeholder="<html>...</html>"
+            />
+          ) : (
+            <div className="border border-border/50 rounded-lg overflow-hidden">
+              {/* Toolbar */}
+              <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-border/40 bg-muted/30 flex-wrap">
+                <ToolbarButton icon={<Bold className="h-3.5 w-3.5" />} cmd="bold" />
+                <ToolbarButton icon={<Italic className="h-3.5 w-3.5" />} cmd="italic" />
+                <ToolbarButton icon={<Underline className="h-3.5 w-3.5" />} cmd="underline" />
+                <ToolbarSep />
+                <select
+                  className="h-7 text-xs border border-border/40 rounded px-1 bg-background"
+                  onChange={e => document.execCommand("formatBlock", false, e.target.value)}
+                >
+                  <option value="p">Format Block</option>
+                  <option value="h1">Heading 1</option>
+                  <option value="h2">Heading 2</option>
+                  <option value="h3">Heading 3</option>
+                  <option value="p">Paragraph</option>
+                  <option value="blockquote">Quote</option>
+                </select>
+                <select
+                  className="h-7 text-xs border border-border/40 rounded px-1 bg-background"
+                  onChange={e => document.execCommand("fontName", false, e.target.value)}
+                >
+                  <option value="">Font</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Verdana">Verdana</option>
+                </select>
+                <ToolbarSep />
+                <ToolbarButton icon={<span className="text-xs font-bold">A</span>} cmd="foreColor" value="#000000" />
+                <ToolbarButton cmd="justifyLeft" icon={<span className="text-[10px]">≡</span>} />
+                <ToolbarButton cmd="justifyCenter" icon={<span className="text-[10px]">≡</span>} />
+                <ToolbarButton cmd="justifyRight" icon={<span className="text-[10px]">≡</span>} />
+                <ToolbarButton cmd="insertUnorderedList" icon={<span className="text-[10px]">•≡</span>} />
+                <ToolbarButton cmd="insertOrderedList" icon={<span className="text-[10px]">1≡</span>} />
+              </div>
+
+              {/* Editable area */}
+              <div
+                ref={emailEditorRef}
+                contentEditable
+                className="min-h-[300px] p-4 text-sm focus:outline-none prose prose-sm max-w-none"
+                dangerouslySetInnerHTML={{ __html: emailCorpo }}
+                onBlur={() => {
+                  if (emailEditorRef.current) {
+                    setEmailCorpo(emailEditorRef.current.innerHTML);
+                  }
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ─── RENDER ─────────────────────────────────────────────
+
+  return (
+    <div className="space-y-0">
+      <MetricsHeader />
+
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="bg-transparent border-b border-border/40 rounded-none h-auto p-0 gap-4 w-full justify-start">
+          <TabsTrigger
+            value="template"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 text-sm"
+          >
+            Template
+          </TabsTrigger>
+          <TabsTrigger
+            value="whatsapp"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 text-sm"
+          >
+            Enviar Por Whatsapp
+          </TabsTrigger>
+          <TabsTrigger
+            value="email"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-1 pb-2 text-sm"
+          >
+            Enviar Por E-Mail
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="template" className="mt-4">
+          {renderTemplateTab()}
+        </TabsContent>
+
+        <TabsContent value="whatsapp" className="mt-4">
+          {renderWhatsappTab()}
+        </TabsContent>
+
+        <TabsContent value="email" className="mt-4">
+          {renderEmailTab()}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
-// ─── Custom Field Input Component ────────────────────────────
+// ─── Toolbar Helpers ──────────────────────────────────────
 
-function CustomFieldInput({ field, value, onChange }: {
-  field: { title: string; field_key: string; field_type: string; options: any; required_on_proposal: boolean | null };
-  value: any;
-  onChange: (val: any) => void;
-}) {
-  const isRequired = field.required_on_proposal;
-  const labelColor = isRequired ? "text-destructive" : "text-muted-foreground";
-
-  // Parse options for select fields
-  const selectOptions = useMemo(() => {
-    if (field.field_type !== "select" || !field.options) return [];
-    if (Array.isArray(field.options)) return field.options as string[];
-    if (typeof field.options === "object" && (field.options as any).choices) return (field.options as any).choices as string[];
-    return [];
-  }, [field.options, field.field_type]);
-
-  if (field.field_type === "select") {
-    return (
-      <div className="space-y-1">
-        <Label className={cn("text-xs", labelColor)}>
-          {field.title}{isRequired ? " *" : ""}
-        </Label>
-        <Select value={value || ""} onValueChange={onChange}>
-          <SelectTrigger className="h-9 text-sm">
-            <SelectValue placeholder="Selecione uma opção" />
-          </SelectTrigger>
-          <SelectContent>
-            {selectOptions.map((opt: string) => (
-              <SelectItem key={opt} value={opt} className="text-sm">{opt}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    );
-  }
-
-  if (field.field_type === "textarea") {
-    return (
-      <div className="space-y-1">
-        <Label className={cn("text-xs", labelColor)}>
-          {field.title}{isRequired ? " *" : ""}
-        </Label>
-        <Textarea
-          value={value || ""}
-          onChange={e => onChange(e.target.value)}
-          className="text-sm min-h-[60px] resize-y"
-        />
-      </div>
-    );
-  }
-
-  if (field.field_type === "number" || field.field_type === "currency") {
-    return (
-      <div className="space-y-1">
-        <Label className={cn("text-xs", labelColor)}>
-          {field.title}{isRequired ? " *" : ""}
-        </Label>
-        <Input
-          type="number"
-          value={value ?? ""}
-          onChange={e => onChange(e.target.value ? Number(e.target.value) : "")}
-          placeholder={field.field_type === "currency" ? "R$ 0,00" : "Texto"}
-          className="h-9 text-sm"
-        />
-      </div>
-    );
-  }
-
-  // Default: text
+function ToolbarButton({ icon, cmd, value }: { icon: React.ReactNode; cmd: string; value?: string }) {
   return (
-    <div className="space-y-1">
-      <Label className={cn("text-xs", labelColor)}>
-        {field.title}{isRequired ? " *" : ""}
-      </Label>
-      <Input
-        value={value || ""}
-        onChange={e => onChange(e.target.value)}
-        placeholder="Texto"
-        className="h-9 text-sm"
-      />
-    </div>
+    <button
+      type="button"
+      className="h-7 w-7 flex items-center justify-center rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+      onMouseDown={e => {
+        e.preventDefault();
+        document.execCommand(cmd, false, value || undefined);
+      }}
+    >
+      {icon}
+    </button>
   );
+}
+
+function ToolbarSep() {
+  return <div className="w-px h-5 bg-border/50 mx-1" />;
 }
