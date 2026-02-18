@@ -44,7 +44,7 @@ export default function GoogleMapView({
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const overlaysRef = useRef<google.maps.MVCObject[]>([]);
   const activeDrawingRef = useRef<DrawingMode>(null);
@@ -94,7 +94,7 @@ export default function GoogleMapView({
           if (!existing) {
             await new Promise<void>((resolve, reject) => {
               const script = document.createElement("script");
-              script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&libraries=marker,drawing&v=weekly`;
+              script.src = `https://maps.googleapis.com/maps/api/js?key=${data.api_key}&libraries=drawing&v=weekly`;
               script.async = true;
               script.defer = true;
               script.onload = () => resolve();
@@ -120,11 +120,7 @@ export default function GoogleMapView({
           } catch (e) {
             console.warn("[GoogleMapView] Could not import drawing library:", e);
           }
-          try {
-            await (google.maps as any).importLibrary("marker");
-          } catch (e) {
-            console.warn("[GoogleMapView] Could not import marker library:", e);
-          }
+          // marker library not needed — using legacy google.maps.Marker
         }
 
         if (!cancelled) setLoading(false);
@@ -174,22 +170,13 @@ export default function GoogleMapView({
 
     mapInstanceRef.current = map;
 
-    // Add marker
-    if (lat !== null && lon !== null && window.google.maps.marker) {
-      try {
-        const marker = new google.maps.marker.AdvancedMarkerElement({
-          map,
-          position: { lat, lng: lon },
-        });
-        markerRef.current = marker;
-      } catch {
-        // AdvancedMarkerElement may need mapId — fallback to legacy
-        const marker = new google.maps.Marker({
-          map,
-          position: { lat, lng: lon },
-        });
-        markerRef.current = marker as any;
-      }
+    // Add marker (legacy Marker — no mapId required)
+    if (lat !== null && lon !== null) {
+      const marker = new google.maps.Marker({
+        map,
+        position: { lat, lng: lon },
+      });
+      markerRef.current = marker;
     }
 
     // Initialize DrawingManager
@@ -264,17 +251,9 @@ export default function GoogleMapView({
       if (map.getZoom()! < 15) map.setZoom(18);
 
       if (markerRef.current) {
-        markerRef.current.position = pos;
-      } else if (window.google?.maps?.marker) {
-        try {
-          markerRef.current = new google.maps.marker.AdvancedMarkerElement({
-            map,
-            position: pos,
-          });
-        } catch {
-          const m = new google.maps.Marker({ map, position: pos });
-          markerRef.current = m as any;
-        }
+        markerRef.current.setPosition(pos);
+      } else {
+        markerRef.current = new google.maps.Marker({ map, position: pos });
       }
     }
   }, [lat, lon]);
