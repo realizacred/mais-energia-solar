@@ -111,17 +111,9 @@ export default function GoogleMapView({
           }
         }
 
-        if (cancelled) return;
-
-        // Dynamically import libraries
-        if (window.google?.maps) {
-          try {
-            await (google.maps as any).importLibrary("drawing");
-          } catch (e) {
-            console.warn("[GoogleMapView] Could not import drawing library:", e);
-          }
-          // marker library not needed — using legacy google.maps.Marker
-        }
+        // Drawing library is loaded via script tag parameter — do NOT call importLibrary()
+        // Mixing legacy (libraries=drawing) + dynamic (importLibrary) causes
+        // "Não é possível carregar corretamente o Google Maps nesta página"
 
         if (!cancelled) setLoading(false);
       } catch (err) {
