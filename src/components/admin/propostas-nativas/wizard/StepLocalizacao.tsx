@@ -371,11 +371,49 @@ export function StepLocalizacao({
         </div>
       </div>
 
-      {/* Main grid: Address + Fields on left, Map on right */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-        {/* Left column: Address + Config fields */}
-        <div className="space-y-4">
-          {/* Project Address Fields (bidirectional sync) */}
+      {/* Map on TOP — full width */}
+      <div className="space-y-1.5">
+        <Suspense fallback={
+          <div className="rounded-xl border border-border/50 overflow-hidden relative h-[220px] sm:h-[280px] md:h-[320px] flex items-center justify-center bg-muted/20">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        }>
+          <div className="rounded-xl border border-border/50 overflow-hidden relative h-[220px] sm:h-[280px] md:h-[320px]">
+            <GoogleMapView
+              lat={geoLat}
+              lon={geoLon}
+              cidade={cidade}
+              estado={estado}
+              onMapClick={handleMapClick}
+              onSnapshotsChange={onMapSnapshotsChange}
+            />
+          </div>
+        </Suspense>
+
+        {/* Coordinates bar below map */}
+        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg border border-border/40 bg-card">
+          {geoLat !== null && geoLon !== null ? (
+            <div className="flex items-center gap-2">
+              <MapPin className="h-3 w-3 text-primary shrink-0" />
+              <span className="text-[11px] font-mono text-foreground font-medium">
+                {geoLat.toFixed(6)}, {geoLon.toFixed(6)}
+              </span>
+            </div>
+          ) : (
+            <span className="text-[10px] text-muted-foreground">
+              Clique no mapa ou preencha o endereço para localizar
+            </span>
+          )}
+          <span className="text-[9px] text-muted-foreground hidden sm:inline">
+            Arraste o marcador · Clique para reposicionar
+          </span>
+        </div>
+      </div>
+
+      {/* Address + Config fields below map */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+        {/* Left: Address fields */}
+        <div className="space-y-3">
           {onProjectAddressChange && projectAddress && (
             <ProjectAddressFields
               address={projectAddress}
@@ -385,10 +423,10 @@ export function StepLocalizacao({
               reverseGeocodedAddress={reverseGeoResult}
             />
           )}
+        </div>
 
-          {/* Separator */}
-          <div className="border-t border-border/30" />
-
+        {/* Right: Telhado + Distribuidora + Irradiação */}
+        <div className="space-y-3">
           {/* Tipo de Telhado */}
           <div className="space-y-1.5">
             <Label className="text-xs font-medium flex items-center gap-1.5">
@@ -481,43 +519,6 @@ export function StepLocalizacao({
                 <span className="text-xs text-muted-foreground">Preencha o endereço para buscar</span>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Right column: Google Maps + Coords display */}
-        <div className="lg:sticky lg:top-4 space-y-2">
-          <Suspense fallback={
-            <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted/20">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
-          }>
-            <GoogleMapView
-              lat={geoLat}
-              lon={geoLon}
-              cidade={cidade}
-              estado={estado}
-              onMapClick={handleMapClick}
-              onSnapshotsChange={onMapSnapshotsChange}
-            />
-          </Suspense>
-
-          {/* Coordinates bar */}
-          <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-border/40 bg-card">
-            {geoLat !== null && geoLon !== null ? (
-              <div className="flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="text-xs font-mono text-foreground font-medium">
-                  {geoLat.toFixed(6)}, {geoLon.toFixed(6)}
-                </span>
-              </div>
-            ) : (
-              <span className="text-[11px] text-muted-foreground">
-                Clique no mapa ou preencha o endereço para definir a localização
-              </span>
-            )}
-            <span className="text-[9px] text-muted-foreground hidden sm:inline">
-              Arraste o marcador · Clique para reposicionar
-            </span>
           </div>
         </div>
       </div>
