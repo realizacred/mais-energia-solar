@@ -32,8 +32,8 @@ import { WizardSidebar, type WizardStep } from "./wizard/WizardSidebar";
 import {
   type LeadSelection, type ClienteData, type UCData,
   type PremissasData, type KitItemRow, type ServicoItem, type VendaData,
-  type PagamentoOpcao, type BancoFinanciamento,
-  EMPTY_CLIENTE, DEFAULT_PREMISSAS, createEmptyUC, formatBRL,
+  type PagamentoOpcao, type BancoFinanciamento, type PreDimensionamentoData,
+  EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC, formatBRL,
 } from "./wizard/types";
 
 // ─── Step Keys ─────────────────────────────────────────────
@@ -175,6 +175,7 @@ export function ProposalWizard() {
   const [result, setResult] = useState<any>(null);
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
+  const [preDimensionamento, setPreDimensionamento] = useState<PreDimensionamentoData>(DEFAULT_PRE_DIMENSIONAMENTO);
 
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
@@ -438,7 +439,12 @@ export function ProposalWizard() {
       case STEP_KEYS.UCS:
         return (
           <StepContent key="ucs">
-            <StepConsumptionIntelligence ucs={ucs} onUcsChange={setUcs} potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp} />
+            <StepConsumptionIntelligence
+              ucs={ucs} onUcsChange={setUcs}
+              potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp}
+              preDimensionamento={preDimensionamento}
+              onPreDimensionamentoChange={setPreDimensionamento}
+            />
           </StepContent>
         );
 

@@ -327,5 +327,45 @@ export const FASE_TENSAO_OPTIONS = [
   { value: "trifasico_220_380", label: "Trifásico 220/380V" },
 ] as const;
 
+// ─── Pre-Dimensionamento ───────────────────────────────────
+
+export interface PreDimensionamentoData {
+  sistema: "on_grid" | "hibrido" | "off_grid";
+  tipo_kit: "customizado" | "fechado";
+  topologias: string[]; // "tradicional" | "microinversor" | "otimizador"
+  sombreamento: string;
+  desvio_azimutal: number;
+  inclinacao: number;
+  dod: number;
+  desempenho: number;
+  fator_geracao: number;
+  fator_geracao_meses: Record<string, number>;
+  sobredimensionamento: number;
+  margem_pot_ideal: number;
+  considerar_transformador: boolean;
+}
+
+export const DEFAULT_PRE_DIMENSIONAMENTO: PreDimensionamentoData = {
+  sistema: "on_grid",
+  tipo_kit: "fechado",
+  topologias: ["tradicional"],
+  sombreamento: "Nenhuma",
+  desvio_azimutal: 0,
+  inclinacao: 20,
+  dod: 0,
+  desempenho: 69.80,
+  fator_geracao: 108.49,
+  fator_geracao_meses: {},
+  sobredimensionamento: 50,
+  margem_pot_ideal: 0,
+  considerar_transformador: true,
+};
+
+export const SOMBREAMENTO_OPTIONS = ["Nenhuma", "Leve (5%)", "Moderada (10%)", "Forte (15%)"];
+
+export const DESVIO_AZIMUTAL_OPTIONS = Array.from({ length: 19 }, (_, i) => i * 10); // 0° to 180°
+
+export const INCLINACAO_OPTIONS = Array.from({ length: 10 }, (_, i) => i * 5); // 0° to 45°
+
 /** @deprecated Use `formatBRL` from `@/lib/formatters` instead. */
 export { formatBRL } from "@/lib/formatters";
