@@ -8,8 +8,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Calendar, CheckCircle2, XCircle, AlertTriangle, Clock, Plug, Unplug,
-  RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2, Save, KeyRound, Eye, EyeOff, Copy, Info
+  RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2, Save, KeyRound, Eye, EyeOff, Copy, Info, MapPin
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,6 +59,7 @@ const ACTION_LABELS: Record<string, string> = {
 // ── Main Page ───────────────────────────────────────────────
 
 export function IntegrationsPage() {
+  const navigate = useNavigate();
   const {
     status, isLoading, config, isLoadingConfig, auditEvents, calendars,
     saveConfig, isSavingConfig,
@@ -369,6 +371,29 @@ export function IntegrationsPage() {
               </div>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* ── Google Maps Card ───────────────────────────────── */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <MapPin className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">Google Maps</CardTitle>
+                <CardDescription>API Key para exibição de mapas nas propostas</CardDescription>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Button variant="outline" onClick={() => navigate("/admin/google-maps-config")}>
+            <KeyRound className="mr-2 h-4 w-4" />
+            Configurar API Key
+          </Button>
         </CardContent>
       </Card>
 
