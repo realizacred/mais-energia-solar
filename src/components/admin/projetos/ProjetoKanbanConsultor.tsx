@@ -271,18 +271,18 @@ function OwnerDealCard({
       className={cn(
         "group relative bg-card rounded-xl p-3 cursor-pointer",
         "shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200",
-        "border-l-[4px]",
+        "border-l-[5px]",
         isDragging && "opacity-40 scale-95",
-        // Status-based border colors using semantic tokens
-        deal.deal_status === "won" && "border-l-success bg-success/5",
-        deal.deal_status === "lost" && "border-l-destructive bg-destructive/5 opacity-60",
-        isOpen && stagnation === "critical" && "border-l-destructive",
-        isOpen && stagnation === "warning" && "border-l-warning",
-        isOpen && !stagnation && !deal.proposta_id && "border-l-primary/60",
+        // Status-based border colors — VIVID
+        deal.deal_status === "won" && "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
+        deal.deal_status === "lost" && "border-l-red-500 bg-red-50/40 dark:bg-red-950/20 opacity-60",
+        isOpen && stagnation === "critical" && "border-l-red-500",
+        isOpen && stagnation === "warning" && "border-l-amber-500",
+        isOpen && !stagnation && !deal.proposta_id && "border-l-orange-400",
         isOpen && !stagnation && deal.proposta_id && etiquetaInfo && "border-l-primary",
         isOpen && !stagnation && deal.proposta_id && !etiquetaInfo && "border-l-primary",
-        // Right border glow
-        "border border-border/30 hover:border-border/60",
+        // Outer border
+        "border border-border/40 hover:border-border/70",
       )}
       style={{
         ...(etiquetaInfo && isOpen && !stagnation ? { borderLeftColor: etiquetaInfo.cor } : {}),

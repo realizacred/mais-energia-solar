@@ -556,15 +556,15 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
       onClick={onClick}
       className={cn(
         "bg-card rounded-xl p-3 cursor-grab active:cursor-grabbing",
-        "border border-border/30 border-l-[4px]",
+        "border border-border/40 border-l-[5px]",
         "shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/40",
         "transition-all duration-200 relative group",
-        // Status-based card styling using semantic tokens
-        deal.deal_status === "won" && "border-l-success bg-success/5",
-        deal.deal_status === "lost" && "border-l-destructive bg-destructive/5 opacity-60",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-destructive",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-warning",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-primary/60",
+        // Status-based card styling — VIVID
+        deal.deal_status === "won" && "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
+        deal.deal_status === "lost" && "border-l-red-500 bg-red-50/40 dark:bg-red-950/20 opacity-60",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-red-500",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-amber-500",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-orange-400",
         deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && etiquetaCfg && "border-l-primary",
         deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && !etiquetaCfg && "border-l-primary",
         isDragging && "opacity-30 scale-95",
