@@ -3,7 +3,8 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2, Package,
-  Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList,
+  Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
+  Zap,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -19,13 +20,13 @@ import { StepLocalizacao } from "./wizard/StepLocalizacao";
 import { StepCliente } from "./wizard/StepCliente";
 import { StepConsumptionIntelligence } from "./wizard/StepConsumptionIntelligence";
 import { StepCamposCustomizados } from "./wizard/StepCamposCustomizados";
-import { StepTechnicalConfig } from "./wizard/StepTechnicalConfig";
-import { StepEngineeringAnalysis } from "./wizard/StepEngineeringAnalysis";
 import { StepKitSelection } from "./wizard/StepKitSelection";
+import { StepAdicionais, type AdicionalItem } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
 import { StepFinancialCenter, calcPrecoFinal } from "./wizard/StepFinancialCenter";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
+import { WizardSidebar, type WizardStep } from "./wizard/WizardSidebar";
 
 // ── Types
 import {
@@ -35,20 +36,30 @@ import {
   EMPTY_CLIENTE, DEFAULT_PREMISSAS, createEmptyUC, formatBRL,
 } from "./wizard/types";
 
-// ─── Steps Config ──────────────────────────────────────────
+// ─── Step Keys ─────────────────────────────────────────────
 
-const STEPS = [
-  { label: "Localização", icon: MapPin },
-  { label: "Cliente", icon: User },
-  { label: "Consumo", icon: BarChart3 },
-  { label: "Campos", icon: ClipboardList },
-  { label: "Técnico", icon: Settings2 },
-  { label: "Análise", icon: Cpu },
-  { label: "Kit", icon: Package },
-  { label: "Serviços", icon: Wrench },
-  { label: "Financeiro", icon: DollarSign },
-  { label: "Pagamento", icon: CreditCard },
-  { label: "Documento", icon: FileText },
+const STEP_KEYS = {
+  LOCALIZACAO: "localizacao",
+  UCS: "ucs",
+  CAMPOS_PRE: "campos_pre",
+  KIT: "kit",
+  ADICIONAIS: "adicionais",
+  SERVICOS: "servicos",
+  VENDA: "venda",
+  PAGAMENTO: "pagamento",
+  PROPOSTA: "proposta",
+} as const;
+
+const BASE_STEPS: WizardStep[] = [
+  { key: STEP_KEYS.LOCALIZACAO, label: "Localização", icon: MapPin },
+  { key: STEP_KEYS.UCS, label: "Unidades Consumidoras", icon: Zap },
+  { key: STEP_KEYS.CAMPOS_PRE, label: "Campos Customizados", icon: ClipboardList, conditional: true },
+  { key: STEP_KEYS.KIT, label: "Kit Gerador", icon: Package },
+  { key: STEP_KEYS.ADICIONAIS, label: "Adicionais", icon: Box },
+  { key: STEP_KEYS.SERVICOS, label: "Serviços", icon: Wrench },
+  { key: STEP_KEYS.VENDA, label: "Venda", icon: DollarSign },
+  { key: STEP_KEYS.PAGAMENTO, label: "Formas de pagamento", icon: CreditCard },
+  { key: STEP_KEYS.PROPOSTA, label: "Proposta", icon: FileText },
 ];
 
 const IDEM_KEY_PREFIX = "proposal_idem_";
@@ -84,6 +95,32 @@ export function ProposalWizard() {
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
+  // ─── Custom fields availability (conditional steps)
+  const [hasCustomFieldsPre, setHasCustomFieldsPre] = useState(false);
+  const [loadingCustomFields, setLoadingCustomFields] = useState(true);
+
+  useEffect(() => {
+    supabase
+      .from("deal_custom_fields")
+      .select("id, field_context")
+      .eq("is_active", true)
+      .then(({ data }) => {
+        const fields = data || [];
+        setHasCustomFieldsPre(fields.some(f => f.field_context === "pre_dimensionamento") || fields.length > 0);
+        setLoadingCustomFields(false);
+      });
+  }, []);
+
+  // ─── Dynamic steps based on custom fields
+  const activeSteps = useMemo(() => {
+    return BASE_STEPS.filter(s => {
+      if (s.key === STEP_KEYS.CAMPOS_PRE) return hasCustomFieldsPre;
+      return true;
+    });
+  }, [hasCustomFieldsPre]);
+
+  const currentStepKey = activeSteps[step]?.key || STEP_KEYS.LOCALIZACAO;
+
   // Step 0 - Localização
   const [locEstado, setLocEstado] = useState("");
   const [locCidade, setLocCidade] = useState("");
@@ -92,22 +129,22 @@ export function ProposalWizard() {
   const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
   const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
 
-  // Step 1 - Cliente
+  // Cliente (embedded in Localização flow)
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
   const [cliente, setCliente] = useState<ClienteData>(EMPTY_CLIENTE);
 
-  // Step 1 & 2 - UCs & Technical
+  // UCs
   const [ucs, setUcs] = useState<UCData[]>([createEmptyUC(1)]);
   const [grupo, setGrupo] = useState("B1");
   const [potenciaKwp, setPotenciaKwp] = useState<number>(0);
 
-  // Step 3 - Campos Customizados
+  // Custom Fields
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>({});
 
-  // Step 4 - Premissas (loaded from tenant defaults)
+  // Premissas
   const [premissas, setPremissas] = useState<PremissasData>(DEFAULT_PREMISSAS);
 
-  // Step 4 - Kit
+  // Kit
   const [modulos, setModulos] = useState<any[]>([]);
   const [inversores, setInversores] = useState<any[]>([]);
   const [loadingEquip, setLoadingEquip] = useState(false);
@@ -115,35 +152,35 @@ export function ProposalWizard() {
     { id: crypto.randomUUID(), descricao: "", fabricante: "", modelo: "", potencia_w: 0, quantidade: 1, preco_unitario: 0, categoria: "modulo", avulso: false },
   ]);
 
-  // Step 5 - Serviços
+  // Adicionais
+  const [adicionais, setAdicionais] = useState<AdicionalItem[]>([]);
+
+  // Serviços
   const [servicos, setServicos] = useState<ServicoItem[]>([]);
 
-  // Step 6 - Venda
+  // Venda
   const [venda, setVenda] = useState<VendaData>({
     custo_kit: 0, custo_instalacao: 0, custo_comissao: 0, custo_outros: 0,
     margem_percentual: 20, desconto_percentual: 0, observacoes: "",
   });
 
-  // Step 7 - Pagamento
+  // Pagamento
   const [pagamentoOpcoes, setPagamentoOpcoes] = useState<PagamentoOpcao[]>([]);
   const [bancos, setBancos] = useState<BancoFinanciamento[]>([]);
   const [loadingBancos, setLoadingBancos] = useState(false);
 
-  // Step 8 - Documento
+  // Proposta (Documento)
   const [generating, setGenerating] = useState(false);
   const [rendering, setRendering] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [htmlPreview, setHtmlPreview] = useState<string | null>(null);
   const [templateSelecionado, setTemplateSelecionado] = useState("");
 
-  // Engineering analysis state
-  const [analysisComplete, setAnalysisComplete] = useState(false);
-
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
-  // ─── Data fetching ─────────────────
+  // ─── Data fetching
   useEffect(() => {
     setLoadingEquip(true);
     Promise.all([
@@ -164,7 +201,7 @@ export function ProposalWizard() {
     });
   }, []);
 
-  // Load premissas from Solar Brain (tenant_premises — single source of truth)
+  // Load premissas from Solar Brain
   const { data: solarBrain } = useSolarPremises();
 
   useEffect(() => {
@@ -178,7 +215,7 @@ export function ProposalWizard() {
     }));
   }, [solarBrain]);
 
-  // ─── Auto-load from project context ──────────────────
+  // ─── Auto-load from project context
   useEffect(() => {
     if (!customerIdFromUrl) return;
     let cancelled = false;
@@ -192,25 +229,20 @@ export function ProposalWizard() {
         if (cancelled || !cli) return;
 
         setCliente({
-          nome: cli.nome || "",
-          empresa: cli.empresa || "",
-          cnpj_cpf: cli.cpf_cnpj || "",
-          email: cli.email || "",
-          celular: cli.telefone || "",
-          cep: cli.cep || "",
-          endereco: cli.rua || "",
-          numero: cli.numero || "",
-          complemento: cli.complemento || "",
-          bairro: cli.bairro || "",
-          cidade: cli.cidade || "",
-          estado: cli.estado || "",
+          nome: cli.nome || "", empresa: cli.empresa || "", cnpj_cpf: cli.cpf_cnpj || "",
+          email: cli.email || "", celular: cli.telefone || "",
+          cep: cli.cep || "", endereco: cli.rua || "", numero: cli.numero || "",
+          complemento: cli.complemento || "", bairro: cli.bairro || "",
+          cidade: cli.cidade || "", estado: cli.estado || "",
         });
+
+        if (cli.estado) setLocEstado(cli.estado);
+        if (cli.cidade) setLocCidade(cli.cidade);
 
         if (dealIdFromUrl) {
           setProjectContext({ dealId: dealIdFromUrl, customerId: customerIdFromUrl });
         }
 
-        // If client has a lead, auto-select it
         if (cli.lead_id) {
           const { data: lead } = await supabase
             .from("leads")
@@ -219,16 +251,11 @@ export function ProposalWizard() {
             .single();
           if (!cancelled && lead) {
             setSelectedLead({
-              id: lead.id,
-              nome: lead.nome,
-              telefone: lead.telefone,
-              lead_code: lead.lead_code || "",
-              estado: lead.estado,
-              cidade: lead.cidade,
-              media_consumo: lead.media_consumo,
+              id: lead.id, nome: lead.nome, telefone: lead.telefone,
+              lead_code: lead.lead_code || "", estado: lead.estado,
+              cidade: lead.cidade, media_consumo: lead.media_consumo,
               tipo_telhado: lead.tipo_telhado,
             });
-            // Also set UC data from lead
             if (lead.estado || lead.media_consumo) {
               setUcs(prev => {
                 const updated = [...prev];
@@ -255,11 +282,9 @@ export function ProposalWizard() {
 
   const handleSelectLead = (lead: LeadSelection) => {
     setSelectedLead(lead);
-    // Sync lead data to location step
-    if (lead.estado) { setLocEstado(lead.estado); }
-    if (lead.cidade) { setLocCidade(lead.cidade); }
-    if (lead.tipo_telhado) { setLocTipoTelhado(lead.tipo_telhado); }
-    // Sync to UC
+    if (lead.estado) setLocEstado(lead.estado);
+    if (lead.cidade) setLocCidade(lead.cidade);
+    if (lead.tipo_telhado) setLocTipoTelhado(lead.tipo_telhado);
     if (lead.estado && ucs[0]) {
       const updated = [...ucs];
       updated[0] = { ...updated[0], estado: lead.estado, cidade: lead.cidade || "" };
@@ -274,22 +299,22 @@ export function ProposalWizard() {
     }
   };
 
-  // ─── Validations ─────────────────────────────────────
-  const canStep = [
-    /* 0 Localização */ !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
-    /* 1 Cliente     */ !!cliente.nome && !!cliente.celular,
-    /* 2 Consumo     */ consumoTotal > 0,
-    /* 3 Campos      */ true,
-    /* 4 Técnico     */ potenciaKwp > 0,
-    /* 5 Análise     */ true, // auto-advances
-    /* 6 Kit         */ itens.length > 0 && itens.some(i => i.descricao),
-    /* 7 Serviços    */ true,
-    /* 8 Financeiro  */ venda.margem_percentual >= 0,
-    /* 9 Pagamento   */ true,
-    /* 10 Documento  */ true,
-  ];
+  // ─── Validations per step key
+  const canAdvance: Record<string, boolean> = {
+    [STEP_KEYS.LOCALIZACAO]: !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
+    [STEP_KEYS.UCS]: consumoTotal > 0,
+    [STEP_KEYS.CAMPOS_PRE]: true,
+    [STEP_KEYS.KIT]: itens.length > 0 && itens.some(i => i.descricao),
+    [STEP_KEYS.ADICIONAIS]: true,
+    [STEP_KEYS.SERVICOS]: true,
+    [STEP_KEYS.VENDA]: venda.margem_percentual >= 0,
+    [STEP_KEYS.PAGAMENTO]: true,
+    [STEP_KEYS.PROPOSTA]: true,
+  };
 
-  // ─── Generate ────────────────────────────────────────
+  const canCurrentStep = canAdvance[currentStepKey] ?? true;
+
+  // ─── Generate
   const handleGenerate = async () => {
     if (!selectedLead) return;
     setGenerating(true);
@@ -341,44 +366,156 @@ export function ProposalWizard() {
     if (selectedLead) clearIdempotencyKey(selectedLead.id);
     setResult(null);
     setHtmlPreview(null);
-    setStep(2);
+    // Go back to UCs step
+    const ucsIndex = activeSteps.findIndex(s => s.key === STEP_KEYS.UCS);
+    setStep(ucsIndex >= 0 ? ucsIndex : 1);
   };
 
   const handleViewDetail = () => {
     if (result) navigate(`/admin/propostas-nativas/${result.proposta_id}/versoes/${result.versao_id}`);
   };
 
-  const handleAnalysisComplete = useCallback(() => {
-    setAnalysisComplete(true);
-    setStep(6);
-  }, []);
-
-  // If step 3 was already completed, skip analysis on re-visit
   const goToStep = (target: number) => {
-    if (target === 5 && analysisComplete) {
-      setStep(6); // skip analysis
-      return;
-    }
     setStep(target);
   };
 
   const goNext = () => {
-    if (step === 5) return; // analysis auto-advances
-    goToStep(step + 1);
+    if (step < activeSteps.length - 1) setStep(step + 1);
   };
 
   const goPrev = () => {
-    if (step === 6 && analysisComplete) {
-      setStep(4); // skip analysis going back
-      return;
-    }
     setStep(Math.max(0, step - 1));
   };
 
-  // ─── Render ──────────────────────────────────────────
+  const isLastStep = currentStepKey === STEP_KEYS.PROPOSTA;
+
+  // ─── Render step content by key
+  const renderStepContent = () => {
+    switch (currentStepKey) {
+      case STEP_KEYS.LOCALIZACAO:
+        return (
+          <StepContent key="localizacao">
+            <div className="space-y-6">
+              <StepLocalizacao
+                estado={locEstado} cidade={locCidade} tipoTelhado={locTipoTelhado}
+                distribuidoraId={locDistribuidoraId}
+                onEstadoChange={(v) => { setLocEstado(v); setCliente(c => ({ ...c, estado: v })); }}
+                onCidadeChange={(v) => { setLocCidade(v); setCliente(c => ({ ...c, cidade: v })); }}
+                onTipoTelhadoChange={setLocTipoTelhado}
+                onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
+                onIrradiacaoChange={setLocIrradiacao}
+              />
+              {/* Cliente inline */}
+              <div className="border-t border-border/50 pt-4">
+                <StepCliente
+                  selectedLead={selectedLead}
+                  onSelectLead={handleSelectLead}
+                  onClearLead={() => setSelectedLead(null)}
+                  cliente={cliente}
+                  onClienteChange={setCliente}
+                  fromProject={!!projectContext}
+                />
+              </div>
+            </div>
+          </StepContent>
+        );
+
+      case STEP_KEYS.UCS:
+        return (
+          <StepContent key="ucs">
+            <StepConsumptionIntelligence ucs={ucs} onUcsChange={setUcs} potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp} />
+          </StepContent>
+        );
+
+      case STEP_KEYS.CAMPOS_PRE:
+        return (
+          <StepContent key="campos_pre">
+            <StepCamposCustomizados values={customFieldValues} onValuesChange={setCustomFieldValues} />
+          </StepContent>
+        );
+
+      case STEP_KEYS.KIT:
+        return (
+          <StepContent key="kit">
+            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} />
+          </StepContent>
+        );
+
+      case STEP_KEYS.ADICIONAIS:
+        return (
+          <StepContent key="adicionais">
+            <StepAdicionais adicionais={adicionais} onAdicionaisChange={setAdicionais} />
+          </StepContent>
+        );
+
+      case STEP_KEYS.SERVICOS:
+        return (
+          <StepContent key="servicos">
+            <StepServicos servicos={servicos} onServicosChange={setServicos} />
+          </StepContent>
+        );
+
+      case STEP_KEYS.VENDA:
+        return (
+          <StepContent key="venda">
+            <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
+          </StepContent>
+        );
+
+      case STEP_KEYS.PAGAMENTO:
+        return (
+          <StepContent key="pagamento">
+            <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} />
+          </StepContent>
+        );
+
+      case STEP_KEYS.PROPOSTA:
+        return (
+          <StepContent key="proposta">
+            <StepDocumento
+              clienteNome={cliente.nome || selectedLead?.nome || ""}
+              potenciaKwp={potenciaKwp}
+              numUcs={ucs.length}
+              precoFinal={precoFinal}
+              templateSelecionado={templateSelecionado}
+              onTemplateSelecionado={setTemplateSelecionado}
+              generating={generating}
+              rendering={rendering}
+              result={result}
+              htmlPreview={htmlPreview}
+              onGenerate={handleGenerate}
+              onNewVersion={handleNewVersion}
+              onViewDetail={handleViewDetail}
+            />
+          </StepContent>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  // ─── Render
   return (
-    <div className="space-y-4 max-w-5xl mx-auto">
-      {/* ── Project Context Banner ── */}
+    <div className="space-y-4 max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-bold">Nova Proposta</h1>
+        <div className="flex items-center gap-4">
+          {potenciaKwp > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Zap className="h-3.5 w-3.5 text-primary" />
+              <span>Potência Ideal</span>
+              <span className="font-bold text-foreground">{potenciaKwp.toFixed(2)} kWp</span>
+            </div>
+          )}
+          <span className="text-[10px] font-mono text-primary font-bold">
+            Etapa {step + 1}/{activeSteps.length}
+          </span>
+        </div>
+      </div>
+
+      {/* Project Context Banner */}
       {projectContext && (
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-primary/20 bg-primary/5">
           <Link2 className="h-4 w-4 text-primary shrink-0" />
@@ -387,157 +524,84 @@ export function ProposalWizard() {
           </p>
         </div>
       )}
-      {/* ── Stepper ── */}
-      <div className="flex items-center gap-0.5 overflow-x-auto pb-1 scrollbar-thin px-1 -mx-1">
-        {STEPS.map((s, i) => {
-          const Icon = s.icon;
-          const isActive = i === step;
-          const isDone = i < step || (i === 5 && analysisComplete && step > 5);
-          return (
-            <div key={s.label} className="flex items-center gap-0.5 flex-shrink-0">
-              <button
-                onClick={() => { if (isDone) goToStep(i); }}
-                className={cn(
-                  "flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all whitespace-nowrap",
-                  isActive && "bg-primary text-primary-foreground shadow-sm",
-                  isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15",
-                  !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
-                )}
-              >
-                <span className={cn(
-                  "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0",
-                  isActive && "bg-primary-foreground/20",
-                  isDone && "bg-primary/20",
-                  !isActive && !isDone && "bg-muted",
-                )}>
-                  {isDone ? <Check className="h-2.5 w-2.5" /> : <Icon className="h-2.5 w-2.5" />}
-                </span>
-                <span className="hidden md:block">{s.label}</span>
-              </button>
-              {i < STEPS.length - 1 && <div className="w-2 h-px bg-border shrink-0" />}
-            </div>
-          );
-        })}
-      </div>
 
-      {/* ── Step Content ── */}
-      <Card className="border-border/60 overflow-hidden">
-        <CardContent className="pt-5 pb-5 px-4 sm:px-6">
-          <AnimatePresence mode="wait">
-
-            {step === 0 && (
-              <StepContent key="step0">
-                <StepLocalizacao
-                  estado={locEstado} cidade={locCidade} tipoTelhado={locTipoTelhado}
-                  distribuidoraId={locDistribuidoraId}
-                  onEstadoChange={(v) => { setLocEstado(v); setCliente(c => ({ ...c, estado: v })); }}
-                  onCidadeChange={(v) => { setLocCidade(v); setCliente(c => ({ ...c, cidade: v })); }}
-                  onTipoTelhadoChange={setLocTipoTelhado}
-                  onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
-                  onIrradiacaoChange={setLocIrradiacao}
-                />
-              </StepContent>
-            )}
-
-            {step === 1 && (
-              <StepContent key="step1">
-                <StepCliente selectedLead={selectedLead} onSelectLead={handleSelectLead} onClearLead={() => setSelectedLead(null)} cliente={cliente} onClienteChange={setCliente} fromProject={!!projectContext} />
-              </StepContent>
-            )}
-
-            {step === 2 && (
-              <StepContent key="step2">
-                <StepConsumptionIntelligence ucs={ucs} onUcsChange={setUcs} potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp} />
-              </StepContent>
-            )}
-
-            {step === 3 && (
-              <StepContent key="step3">
-                <StepCamposCustomizados values={customFieldValues} onValuesChange={setCustomFieldValues} />
-              </StepContent>
-            )}
-
-            {step === 4 && (
-              <StepContent key="step4">
-                <StepTechnicalConfig ucs={ucs} onUcsChange={setUcs} grupo={grupo} onGrupoChange={setGrupo} potenciaKwp={potenciaKwp} />
-              </StepContent>
-            )}
-
-            {step === 5 && (
-              <StepContent key="step5">
-                <StepEngineeringAnalysis onComplete={handleAnalysisComplete} potenciaKwp={potenciaKwp} />
-              </StepContent>
-            )}
-
-            {step === 6 && (
-              <StepContent key="step6">
-                <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} />
-              </StepContent>
-            )}
-
-            {step === 7 && (
-              <StepContent key="step7">
-                <StepServicos servicos={servicos} onServicosChange={setServicos} />
-              </StepContent>
-            )}
-
-            {step === 8 && (
-              <StepContent key="step8">
-                <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
-              </StepContent>
-            )}
-
-            {step === 9 && (
-              <StepContent key="step9">
-                <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} />
-              </StepContent>
-            )}
-
-            {step === 10 && (
-              <StepContent key="step10">
-                <StepDocumento
-                  clienteNome={cliente.nome || selectedLead?.nome || ""}
-                  potenciaKwp={potenciaKwp}
-                  numUcs={ucs.length}
-                  precoFinal={precoFinal}
-                  templateSelecionado={templateSelecionado}
-                  onTemplateSelecionado={setTemplateSelecionado}
-                  generating={generating}
-                  rendering={rendering}
-                  result={result}
-                  htmlPreview={htmlPreview}
-                  onGenerate={handleGenerate}
-                  onNewVersion={handleNewVersion}
-                  onViewDetail={handleViewDetail}
-                />
-              </StepContent>
-            )}
-
-          </AnimatePresence>
-        </CardContent>
-      </Card>
-
-      {/* ── Navigation Footer ── */}
-      {step !== 5 && step < 10 && !result && (
-        <div className="flex items-center justify-between">
-          <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
-            <ChevronLeft className="h-3.5 w-3.5" /> Voltar
-          </Button>
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground font-mono">{step + 1}/{STEPS.length}</span>
-            <Button size="sm" onClick={goNext} disabled={!canStep[step]} className="gap-1 h-8 text-xs">
-              Próximo <ChevronRight className="h-3.5 w-3.5" />
-            </Button>
+      {/* Layout: Sidebar + Content */}
+      <div className="flex gap-6">
+        {/* Sidebar Stepper */}
+        <div className="w-52 shrink-0 hidden lg:block">
+          <div className="sticky top-4">
+            <WizardSidebar
+              steps={activeSteps}
+              currentStep={step}
+              onStepClick={goToStep}
+              totalLabel={`Etapa ${step + 1}/${activeSteps.length}`}
+            />
           </div>
         </div>
-      )}
-      {step === 9 && !result && (
-        <div className="flex justify-start">
-          <Button variant="ghost" size="sm" onClick={goPrev} className="gap-1 h-8 text-xs">
-            <ChevronLeft className="h-3.5 w-3.5" /> Voltar
-          </Button>
+
+        {/* Mobile stepper (horizontal, compact) */}
+        <div className="lg:hidden flex items-center gap-1 overflow-x-auto pb-2 scrollbar-thin w-full">
+          {activeSteps.map((s, i) => {
+            const Icon = s.icon;
+            const isActive = i === step;
+            const isDone = i < step;
+            return (
+              <div key={s.key} className="flex items-center gap-0.5 flex-shrink-0">
+                <button
+                  onClick={() => { if (isDone) goToStep(i); }}
+                  className={cn(
+                    "flex items-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-semibold transition-all whitespace-nowrap",
+                    isActive && "bg-primary text-primary-foreground shadow-sm",
+                    isDone && "bg-primary/10 text-primary cursor-pointer hover:bg-primary/15",
+                    !isActive && !isDone && "bg-muted/50 text-muted-foreground cursor-default",
+                  )}
+                >
+                  <span className={cn(
+                    "flex items-center justify-center h-5 w-5 rounded-full text-[9px] shrink-0",
+                    isActive && "bg-primary-foreground/20",
+                    isDone && "bg-primary/20",
+                    !isActive && !isDone && "bg-muted",
+                  )}>
+                    {isDone ? <Check className="h-2.5 w-2.5" /> : <Icon className="h-2.5 w-2.5" />}
+                  </span>
+                  <span className="hidden sm:block">{s.label}</span>
+                </button>
+                {i < activeSteps.length - 1 && <div className="w-2 h-px bg-border shrink-0" />}
+              </div>
+            );
+          })}
         </div>
-      )}
+
+        {/* Main Content */}
+        <div className="flex-1 min-w-0">
+          <Card className="border-border/60 overflow-hidden">
+            <CardContent className="pt-5 pb-5 px-4 sm:px-6">
+              <AnimatePresence mode="wait">
+                {renderStepContent()}
+              </AnimatePresence>
+            </CardContent>
+          </Card>
+
+          {/* Navigation Footer */}
+          {!isLastStep && !result && (
+            <div className="flex items-center justify-between mt-4">
+              <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
+                <ChevronLeft className="h-3.5 w-3.5" /> Voltar
+              </Button>
+              <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
+                Próximo <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          )}
+          {isLastStep && !result && (
+            <div className="flex justify-start mt-4">
+              <Button variant="ghost" size="sm" onClick={goPrev} className="gap-1 h-8 text-xs">
+                <ChevronLeft className="h-3.5 w-3.5" /> Voltar
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
