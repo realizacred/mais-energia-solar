@@ -484,8 +484,8 @@ export function StepLocalizacao({
           </div>
         </div>
 
-        {/* Right column: Google Maps */}
-        <div className="lg:sticky lg:top-4">
+        {/* Right column: Google Maps + Coords display */}
+        <div className="lg:sticky lg:top-4 space-y-2">
           <Suspense fallback={
             <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted/20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -500,6 +500,22 @@ export function StepLocalizacao({
               onSnapshotsChange={onMapSnapshotsChange}
             />
           </Suspense>
+
+          {/* Coordinates display + hint */}
+          <div className="flex items-center justify-between px-1">
+            {geoLat !== null && geoLon !== null ? (
+              <span className="text-[10px] font-mono text-muted-foreground">
+                📍 Lat: {geoLat.toFixed(6)} &nbsp;|&nbsp; Lon: {geoLon.toFixed(6)}
+              </span>
+            ) : (
+              <span className="text-[10px] text-muted-foreground">
+                Clique no mapa para definir a localização
+              </span>
+            )}
+            <span className="text-[9px] text-muted-foreground/60">
+              Clique no mapa para alterar coordenadas · Arraste o boneco para Street View
+            </span>
+          </div>
         </div>
       </div>
     </div>

@@ -59,10 +59,11 @@ export default function GoogleMapView({
   const [inStreetView, setInStreetView] = useState(false);
   const [drawingReady, setDrawingReady] = useState(false);
   const apiKeyRef = useRef<string | null>(null);
+  const onMapClickRef = useRef(onMapClick);
 
-  useEffect(() => {
-    activeDrawingRef.current = activeDrawing;
-  }, [activeDrawing]);
+  // Keep refs in sync with latest props/state
+  useEffect(() => { onMapClickRef.current = onMapClick; }, [onMapClick]);
+  useEffect(() => { activeDrawingRef.current = activeDrawing; }, [activeDrawing]);
 
   useEffect(() => {
     onSnapshotsChange?.(snapshots);
@@ -158,17 +159,22 @@ export default function GoogleMapView({
 
     map.addListener("click", (e: google.maps.MapMouseEvent) => {
       if (!activeDrawingRef.current && e.latLng) {
-        onMapClick(e.latLng.lat(), e.latLng.lng());
+        onMapClickRef.current(e.latLng.lat(), e.latLng.lng());
       }
     });
 
     mapInstanceRef.current = map;
 
-    // Add marker (legacy Marker — no mapId required)
+    // Add draggable marker (legacy Marker — no mapId required)
     if (lat !== null && lon !== null) {
       const marker = new google.maps.Marker({
         map,
         position: { lat, lng: lon },
+        draggable: true,
+      });
+      marker.addListener("dragend", () => {
+        const pos = marker.getPosition();
+        if (pos) onMapClickRef.current(pos.lat(), pos.lng());
       });
       markerRef.current = marker;
     }
@@ -257,7 +263,12 @@ export default function GoogleMapView({
       if (markerRef.current) {
         markerRef.current.setPosition(pos);
       } else {
-        markerRef.current = new google.maps.Marker({ map, position: pos });
+        const marker = new google.maps.Marker({ map, position: pos, draggable: true });
+        marker.addListener("dragend", () => {
+          const p = marker.getPosition();
+          if (p) onMapClickRef.current(p.lat(), p.lng());
+        });
+        markerRef.current = marker;
       }
     }
   }, [lat, lon]);
