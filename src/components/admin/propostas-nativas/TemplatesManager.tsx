@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
 
 interface PropostaTemplate {
   id: string;
@@ -40,6 +41,7 @@ export function TemplatesManager() {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [tipoTab, setTipoTab] = useState<"html" | "docx">("html");
+  const [previewTemplate, setPreviewTemplate] = useState<PropostaTemplate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredTemplates = useMemo(
@@ -428,6 +430,11 @@ export function TemplatesManager() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {t.tipo === "html" && t.template_html && (
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-secondary" onClick={() => setPreviewTemplate(t)} title="Preview com dados reais">
+                        <Eye className="h-3 w-3" />
+                      </Button>
+                    )}
                     {t.file_url && (
                       <a href={t.file_url} target="_blank" rel="noopener noreferrer">
                         <Button variant="ghost" size="icon" className="h-7 w-7" title="Baixar DOCX">
@@ -447,6 +454,16 @@ export function TemplatesManager() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Preview Dialog */}
+      {previewTemplate && previewTemplate.template_html && (
+        <TemplatePreviewDialog
+          open={!!previewTemplate}
+          onOpenChange={(open) => { if (!open) setPreviewTemplate(null); }}
+          templateHtml={previewTemplate.template_html}
+          templateNome={previewTemplate.nome}
+        />
       )}
     </div>
   );
