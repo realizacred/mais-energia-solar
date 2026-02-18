@@ -609,7 +609,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
             <ProjetoChatTab customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
-            <PropostasTab customerId={deal.customer_id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} />
+            <PropostasTab customerId={deal.customer_id} dealId={deal.id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} />
           )}
           {activeTab === "vinculo" && (
             <VariableMapperPanel
@@ -1385,20 +1385,28 @@ function ClientRow({ icon: Icon, label, muted, isLink }: { icon: typeof User; la
 // ═══════════════════════════════════════════════════
 // ─── TAB: Propostas ─────────────────────────────
 // ═══════════════════════════════════════════════════
-function PropostasTab({ customerId, dealTitle, navigate, isClosed }: { customerId: string | null; dealTitle: string; navigate: any; isClosed?: boolean }) {
+function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { customerId: string | null; dealId: string; dealTitle: string; navigate: any; isClosed?: boolean }) {
   const [propostas, setPropostas] = useState<PropostaNativa[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load() {
-      if (!customerId) { setLoading(false); return; }
+      if (!dealId && !customerId) { setLoading(false); return; }
       try {
-        const { data } = await supabase
+        // Primary filter: projeto_id (deal_id). Fallback: cliente_id
+        let query = supabase
           .from("propostas_nativas")
           .select("id, titulo, codigo, versao_atual, created_at")
-          .eq("cliente_id", customerId)
           .order("created_at", { ascending: false })
           .limit(20);
+
+        if (dealId) {
+          query = query.eq("projeto_id", dealId);
+        } else if (customerId) {
+          query = query.eq("cliente_id", customerId);
+        }
+
+        const { data } = await query;
 
         if (data && data.length > 0) {
           const ids = data.map(p => p.id);
@@ -1427,7 +1435,7 @@ function PropostasTab({ customerId, dealTitle, navigate, isClosed }: { customerI
       finally { setLoading(false); }
     }
     load();
-  }, [customerId]);
+  }, [customerId, dealId]);
 
   // formatBRL imported from @/lib/formatters at file top
 
@@ -1443,7 +1451,11 @@ function PropostasTab({ customerId, dealTitle, navigate, isClosed }: { customerI
             Projeto fechado — não é possível criar propostas
           </Badge>
         ) : (
-          <Button size="sm" onClick={() => navigate("/admin/propostas-nativas/nova")} className="gap-1.5">
+          <Button size="sm" onClick={() => {
+            const params = new URLSearchParams({ deal_id: dealId });
+            if (customerId) params.set("customer_id", customerId);
+            navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+          }} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />Nova Proposta
           </Button>
         )}

@@ -15,6 +15,7 @@ interface Props {
   onClearLead: () => void;
   cliente: ClienteData;
   onClienteChange: (c: ClienteData) => void;
+  fromProject?: boolean;
 }
 
 interface DuplicateWarning {
@@ -24,7 +25,7 @@ interface DuplicateWarning {
   clienteNome: string;
 }
 
-export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, onClienteChange }: Props) {
+export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, onClienteChange, fromProject }: Props) {
   const [search, setSearch] = useState("");
   const [leads, setLeads] = useState<any[]>([]);
   const [searching, setSearching] = useState(true);
@@ -181,16 +182,16 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
         <User className="h-4 w-4 text-primary" /> Cliente
       </h3>
 
-      {/* Lead selection (optional) */}
+      {/* Lead selection (optional — hidden when from project with lead) */}
       {selectedLead ? (
         <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/15">
           <div>
             <p className="font-semibold">{selectedLead.nome}</p>
             <p className="text-sm text-muted-foreground">{selectedLead.telefone} • {selectedLead.lead_code}</p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClearLead}>Trocar</Button>
+          {!fromProject && <Button variant="ghost" size="sm" onClick={onClearLead}>Trocar</Button>}
         </div>
-      ) : (
+      ) : !fromProject ? (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Vincule um lead existente (opcional) ou preencha os dados manualmente abaixo.</p>
           <div className="relative">
@@ -212,7 +213,7 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
             </div>
           )}
         </div>
-      )}
+      ) : null}
 
       {/* Duplicate warnings */}
       {duplicateWarnings.length > 0 && (
