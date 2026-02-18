@@ -180,6 +180,10 @@ export function ProposalWizard() {
   const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
   const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
   const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
+  const [projectAddress, setProjectAddress] = useState<import("./wizard/ProjectAddressFields").ProjectAddress>({
+    cep: "", rua: "", numero: "", complemento: "",
+    bairro: "", cidade: "", uf: "", lat: null, lon: null,
+  });
 
   // Cliente (embedded in Localização flow)
   const [selectedLead, setSelectedLead] = useState<LeadSelection | null>(null);
@@ -709,6 +713,9 @@ export function ProposalWizard() {
                 onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
                 onIrradiacaoChange={setLocIrradiacao}
                 onMapSnapshotsChange={setMapSnapshots}
+                clienteData={cliente}
+                projectAddress={projectAddress}
+                onProjectAddressChange={setProjectAddress}
               />
               {/* Cliente inline */}
               <div className="border-t border-border/50 pt-4">

@@ -6844,8 +6844,12 @@ export type Database = {
       projetos: {
         Row: {
           area_util_m2: number | null
+          bairro_instalacao: string | null
+          cep_instalacao: string | null
+          cidade_instalacao: string | null
           cliente_id: string | null
           codigo: string | null
+          complemento_instalacao: string | null
           consultor_id: string | null
           created_at: string
           created_by: string | null
@@ -6859,11 +6863,14 @@ export type Database = {
           geracao_mensal_media_kwh: number | null
           id: string
           instalador_id: string | null
+          lat_instalacao: number | null
           lead_id: string | null
+          lon_instalacao: number | null
           modelo_inversor: string | null
           modelo_modulos: string | null
           motivo_perda_id: string | null
           motivo_perda_obs: string | null
+          numero_instalacao: string | null
           numero_inversores: number | null
           numero_modulos: number | null
           numero_parcelas: number | null
@@ -6872,9 +6879,11 @@ export type Database = {
           prazo_estimado_dias: number | null
           prazo_vistoria_dias: number | null
           proposta_id: string | null
+          rua_instalacao: string | null
           status: Database["public"]["Enums"]["projeto_status"]
           tenant_id: string
           tipo_instalacao: string | null
+          uf_instalacao: string | null
           updated_at: string
           valor_entrada: number | null
           valor_equipamentos: number | null
@@ -6885,8 +6894,12 @@ export type Database = {
         }
         Insert: {
           area_util_m2?: number | null
+          bairro_instalacao?: string | null
+          cep_instalacao?: string | null
+          cidade_instalacao?: string | null
           cliente_id?: string | null
           codigo?: string | null
+          complemento_instalacao?: string | null
           consultor_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -6900,11 +6913,14 @@ export type Database = {
           geracao_mensal_media_kwh?: number | null
           id?: string
           instalador_id?: string | null
+          lat_instalacao?: number | null
           lead_id?: string | null
+          lon_instalacao?: number | null
           modelo_inversor?: string | null
           modelo_modulos?: string | null
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
+          numero_instalacao?: string | null
           numero_inversores?: number | null
           numero_modulos?: number | null
           numero_parcelas?: number | null
@@ -6913,9 +6929,11 @@ export type Database = {
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
           proposta_id?: string | null
+          rua_instalacao?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
+          uf_instalacao?: string | null
           updated_at?: string
           valor_entrada?: number | null
           valor_equipamentos?: number | null
@@ -6926,8 +6944,12 @@ export type Database = {
         }
         Update: {
           area_util_m2?: number | null
+          bairro_instalacao?: string | null
+          cep_instalacao?: string | null
+          cidade_instalacao?: string | null
           cliente_id?: string | null
           codigo?: string | null
+          complemento_instalacao?: string | null
           consultor_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -6941,11 +6963,14 @@ export type Database = {
           geracao_mensal_media_kwh?: number | null
           id?: string
           instalador_id?: string | null
+          lat_instalacao?: number | null
           lead_id?: string | null
+          lon_instalacao?: number | null
           modelo_inversor?: string | null
           modelo_modulos?: string | null
           motivo_perda_id?: string | null
           motivo_perda_obs?: string | null
+          numero_instalacao?: string | null
           numero_inversores?: number | null
           numero_modulos?: number | null
           numero_parcelas?: number | null
@@ -6954,9 +6979,11 @@ export type Database = {
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
           proposta_id?: string | null
+          rua_instalacao?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
           tenant_id?: string
           tipo_instalacao?: string | null
+          uf_instalacao?: string | null
           updated_at?: string
           valor_entrada?: number | null
           valor_equipamentos?: number | null
