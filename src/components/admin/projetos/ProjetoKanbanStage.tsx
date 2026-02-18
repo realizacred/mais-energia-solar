@@ -1,6 +1,6 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User, ChevronDown, DollarSign, StickyNote } from "lucide-react";
@@ -535,16 +535,17 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
   const timeInStage = getTimeInStage(deal.last_stage_change);
   const stagnation = getStagnationLevel(deal.last_stage_change);
 
-  const navigate = useNavigate();
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
 
   const handleSendWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (deal.customer_phone) {
-      navigate("/admin/whatsapp");
+      setWhatsappDialogOpen(true);
     }
   };
 
   return (
+    <>
     <div
       draggable
       onDragStart={e => onDragStart(e, deal.deal_id)}
@@ -685,5 +686,12 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
         )}
       </div>
     </div>
+
+      <ScheduleWhatsAppDialog
+        lead={deal.customer_phone ? { nome: deal.customer_name, telefone: deal.customer_phone } : null}
+        open={whatsappDialogOpen}
+        onOpenChange={setWhatsappDialogOpen}
+      />
+    </>
   );
 }
