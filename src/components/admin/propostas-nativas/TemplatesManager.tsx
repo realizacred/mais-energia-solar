@@ -187,8 +187,8 @@ export function TemplatesManager() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" /> Templates de proposta
+        <h2 className="text-lg font-bold flex items-center gap-2">
+            <FileText className="h-5 w-5 text-secondary" /> Templates de proposta
           </h2>
           <p className="text-sm text-muted-foreground">
             Gerencie modelos HTML e DOCX usados na geração de propostas
@@ -200,36 +200,36 @@ export function TemplatesManager() {
       </div>
 
       {/* Tipo Tabs */}
-      <div className="flex gap-1 p-1 rounded-lg bg-muted/50 w-fit">
+      <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/40 w-fit">
         <button
           onClick={() => setTipoTab("html")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             tipoTab === "html"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-secondary text-secondary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <Globe className="h-4 w-4" />
           WEB
-          <Badge variant="secondary" className="text-[9px]">{htmlCount}</Badge>
+          <Badge className="text-[9px] bg-secondary/80 text-secondary-foreground border-0">{htmlCount}</Badge>
         </button>
         <button
           onClick={() => setTipoTab("docx")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             tipoTab === "docx"
-              ? "bg-background text-foreground shadow-sm"
+              ? "bg-secondary text-secondary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           }`}
         >
           <FileDown className="h-4 w-4" />
           DOCX
-          <Badge variant="secondary" className="text-[9px]">{docxCount}</Badge>
+          <Badge className="text-[9px] bg-secondary/80 text-secondary-foreground border-0">{docxCount}</Badge>
         </button>
       </div>
 
       {/* Edit Form */}
       {editingId && (
-        <Card className="border-primary/30 bg-primary/5">
+        <Card className="border-secondary/30 bg-secondary/5 rounded-xl">
           <CardContent className="pt-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -309,8 +309,8 @@ export function TemplatesManager() {
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Limite de 50MB. Use variáveis no formato <code className="text-primary bg-primary/5 px-1 rounded">[campo]</code> ou{" "}
-                  <code className="text-primary bg-primary/5 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
+                  Limite de 50MB. Use variáveis no formato <code className="text-secondary bg-secondary/5 px-1 rounded">[campo]</code> ou{" "}
+                  <code className="text-secondary bg-secondary/5 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
                 </p>
               </div>
             ) : (
@@ -390,7 +390,7 @@ export function TemplatesManager() {
                         <p className="text-sm font-semibold">{t.nome}</p>
                         <Badge variant="outline" className="text-[9px]">Grupo {t.grupo}</Badge>
                         <Badge variant="secondary" className="text-[9px]">{t.tipo.toUpperCase()}</Badge>
-                        {t.file_url && <Badge variant="outline" className="text-[9px] text-emerald-600 border-emerald-300">📎 DOCX</Badge>}
+                        {t.file_url && <Badge variant="outline" className="text-[9px] text-success border-success/30">📎 DOCX</Badge>}
                         {!t.ativo && <Badge variant="destructive" className="text-[9px]">Inativo</Badge>}
                       </div>
                       {t.descricao && <p className="text-[11px] text-muted-foreground">{t.descricao}</p>}
