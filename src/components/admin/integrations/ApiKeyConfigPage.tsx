@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Save, CheckCircle2, XCircle, Loader2, type LucideIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
 
 interface ApiKeyConfigPageProps {
   serviceKey: string;
@@ -71,21 +72,7 @@ export default function ApiKeyConfigPage({
         // supabase.functions.invoke returns error as FunctionsHttpError
         // We need to try reading the response body for the real message
         if (resp.error) {
-          let msg = "Erro ao salvar chave";
-          try {
-            // The error context might contain the JSON body
-            const ctx = (resp.error as any).context;
-            if (ctx && typeof ctx.json === "function") {
-              const errorBody = await ctx.json();
-              msg = errorBody?.details
-                ? `${errorBody.error}: ${errorBody.details}`
-                : errorBody?.error || msg;
-            } else {
-              msg = resp.error.message || msg;
-            }
-          } catch {
-            msg = resp.error.message || msg;
-          }
+          const msg = await parseEdgeFunctionError(resp.error, "Erro ao salvar chave");
           throw new Error(msg);
         }
         const body = resp.data as any;

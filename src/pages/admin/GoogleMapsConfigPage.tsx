@@ -17,6 +17,7 @@ import {
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useNavigate } from "react-router-dom";
+import { parseEdgeFunctionError } from "@/lib/parseEdgeFunctionError";
 
 export default function GoogleMapsConfigPage() {
   const queryClient = useQueryClient();
@@ -53,45 +54,7 @@ export default function GoogleMapsConfigPage() {
         });
 
         if (resp.error) {
-          let msg = "Erro ao salvar chave";
-          try {
-            // Try to get the response body from the error context
-            const ctx = (resp.error as any).context;
-            if (ctx) {
-              let errorBody: any = null;
-              if (typeof ctx.json === "function") {
-                errorBody = await ctx.json();
-              } else if (ctx.body) {
-                const text = await new Response(ctx.body).text();
-                try { errorBody = JSON.parse(text); } catch {}
-              }
-              if (errorBody) {
-                msg = errorBody?.details
-                  ? `${errorBody.error}: ${errorBody.details}`
-                  : errorBody?.error || msg;
-              }
-            }
-            // Fallback: if message is generic HTTP status text, provide Portuguese version
-            if (msg === "Erro ao salvar chave") {
-              const rawMsg = resp.error.message || "";
-              if (rawMsg.toLowerCase().includes("unauthorized") || rawMsg.includes("401")) {
-                msg = "Não autorizado: Sessão expirada. Faça login novamente.";
-              } else if (rawMsg.toLowerCase().includes("forbidden") || rawMsg.includes("403")) {
-                msg = "Acesso negado: Apenas administradores podem configurar integrações.";
-              } else if (rawMsg) {
-                msg = rawMsg;
-              }
-            }
-          } catch {
-            const rawMsg = resp.error.message || "";
-            if (rawMsg.toLowerCase().includes("unauthorized") || rawMsg.includes("401")) {
-              msg = "Não autorizado: Sessão expirada. Faça login novamente.";
-            } else if (rawMsg.toLowerCase().includes("forbidden") || rawMsg.includes("403")) {
-              msg = "Acesso negado: Apenas administradores podem configurar integrações.";
-            } else {
-              msg = rawMsg || msg;
-            }
-          }
+          const msg = await parseEdgeFunctionError(resp.error, "Erro ao salvar chave do Google Maps");
           throw new Error(msg);
         }
         const body = resp.data as any;
