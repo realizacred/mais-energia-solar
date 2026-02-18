@@ -596,18 +596,18 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             )}
 
             {/* Add buttons */}
-            {mode === "zero" && (
-              <div className="flex gap-2">
-                {showOtimizadores && (
-                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])}>
-                    + Otimizador
-                  </Button>
-                )}
+            <div className="flex gap-2">
+              {showOtimizadores && otimizadorEntries.length === 0 && (
+                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])}>
+                  + Otimizador
+                </Button>
+              )}
+              {mode === "zero" && (
                 <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])}>
                   + Componente
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Footer */}
