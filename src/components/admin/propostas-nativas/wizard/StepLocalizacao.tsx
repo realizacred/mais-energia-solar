@@ -481,8 +481,8 @@ export function StepLocalizacao({
           </div>
         </div>
 
-        {/* Right column: Map — sticky on desktop */}
-        <div className="order-1 lg:order-2 lg:sticky lg:top-0 lg:self-start">
+        {/* Right column: Map */}
+        <div className="order-1 lg:order-2">
           <Suspense fallback={
             <div className="rounded-xl border border-border/50 h-[260px] sm:h-[400px] lg:h-[520px] flex items-center justify-center bg-muted/20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
