@@ -365,7 +365,7 @@ export default function GoogleMapView({
   // ─── Loading / Error states ──────────────────────
   if (loading) {
     return (
-      <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted/20">
+      <div className="rounded-xl border border-border/50 overflow-hidden relative h-[260px] sm:h-[300px] md:h-[340px] flex items-center justify-center bg-muted/20">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
@@ -373,7 +373,7 @@ export default function GoogleMapView({
 
   if (error) {
     return (
-      <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted/20">
+      <div className="rounded-xl border border-border/50 overflow-hidden relative h-[260px] sm:h-[300px] md:h-[340px] flex items-center justify-center bg-muted/20">
         <p className="text-sm text-muted-foreground">{error}</p>
       </div>
     );
@@ -382,8 +382,8 @@ export default function GoogleMapView({
   return (
     <div className="space-y-2">
       {/* Map container */}
-      <div ref={mapContainerRef} className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[420px]">
-        <div ref={mapRef} className="w-full h-full min-h-[280px] sm:min-h-[420px]" />
+      <div ref={mapContainerRef} className="rounded-xl border border-border/50 overflow-hidden relative h-[260px] sm:h-[300px] md:h-[340px]">
+        <div ref={mapRef} className="w-full h-full" />
 
         {/* City label */}
         {cidade && estado && !inStreetView && (
