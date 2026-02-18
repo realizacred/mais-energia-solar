@@ -96,6 +96,7 @@ export function ProposalWizard() {
   const dealIdFromUrl = searchParams.get("deal_id");
   const customerIdFromUrl = searchParams.get("customer_id");
   const leadIdFromUrl = searchParams.get("lead_id");
+  const orcIdFromUrl = searchParams.get("orc_id");
   const [step, setStep] = useState(0);
   const [projectContext, setProjectContext] = useState<{ dealId: string; customerId: string } | null>(null);
 
@@ -363,6 +364,74 @@ export function ProposalWizard() {
     })();
     return () => { cancelled = true; };
   }, [leadIdFromUrl]);
+
+  // ─── Auto-load from orc_id URL param (direct ORC click from PropostasTab)
+  useEffect(() => {
+    if (!orcIdFromUrl) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: orc } = await supabase
+          .from("orcamentos")
+          .select("id, orc_code, lead_id, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, estado, cidade, area, observacoes")
+          .eq("id", orcIdFromUrl)
+          .single();
+        if (cancelled || !orc) return;
+
+        // Pre-fill location from ORC
+        if (orc.estado) setLocEstado(orc.estado);
+        if (orc.cidade) setLocCidade(orc.cidade);
+        if (orc.tipo_telhado) setLocTipoTelhado(orc.tipo_telhado);
+
+        // Pre-fill UC data from ORC
+        const consumo = orc.consumo_previsto || orc.media_consumo || 0;
+        const faseMap: Record<string, "monofasico" | "bifasico" | "trifasico"> = {
+          "Monofásico": "monofasico", "monofasico": "monofasico",
+          "Bifásico": "bifasico", "bifasico": "bifasico",
+          "Trifásico": "trifasico", "trifasico": "trifasico",
+        };
+        const fase = orc.rede_atendimento ? faseMap[orc.rede_atendimento] : undefined;
+
+        setUcs(prev => {
+          const updated = [...prev];
+          updated[0] = {
+            ...updated[0],
+            estado: orc.estado || updated[0].estado,
+            cidade: orc.cidade || updated[0].cidade,
+            tipo_telhado: orc.tipo_telhado || updated[0].tipo_telhado,
+            consumo_mensal: consumo || updated[0].consumo_mensal,
+            ...(fase ? { fase } : {}),
+          };
+          return updated;
+        });
+
+        // Also load the lead linked to this ORC for full context
+        if (orc.lead_id) {
+          const { data: lead } = await supabase
+            .from("leads")
+            .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado")
+            .eq("id", orc.lead_id)
+            .single();
+          if (!cancelled && lead) {
+            setSelectedLead({
+              id: lead.id, nome: lead.nome, telefone: lead.telefone,
+              lead_code: lead.lead_code || "", estado: lead.estado,
+              cidade: lead.cidade, media_consumo: lead.media_consumo,
+              tipo_telhado: lead.tipo_telhado,
+            });
+          }
+        }
+
+        toast({
+          title: "Dados do orçamento carregados",
+          description: `${orc.orc_code || "ORC"} — ${consumo} kWh • ${orc.tipo_telhado || ""} • ${orc.rede_atendimento || ""}`,
+        });
+      } catch (err) {
+        console.error("[ProposalWizard] Error loading ORC context:", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [orcIdFromUrl]);
 
   const handleSelectLead = (lead: LeadSelection) => {
     setSelectedLead(lead);
