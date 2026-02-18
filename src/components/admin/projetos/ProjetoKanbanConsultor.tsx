@@ -1,6 +1,7 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+
+import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Plus, DollarSign, Clock, Phone, User, ChevronDown, MessageSquare, StickyNote, FileText, Zap } from "lucide-react";
 import type { DealKanbanCard, OwnerColumn } from "@/hooks/useDealPipeline";
@@ -245,12 +246,12 @@ function OwnerDealCard({
     ? dynamicEtiquetas.find(e => e.id === deal.etiqueta || e.nome === deal.etiqueta)
     : null;
 
-  const navigate = useNavigate();
+  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
 
   const handleSendWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (deal.customer_phone) {
-      navigate("/admin/whatsapp");
+      setWhatsappDialogOpen(true);
     }
   };
 
@@ -264,6 +265,7 @@ function OwnerDealCard({
   const isOpen = deal.deal_status !== "won" && deal.deal_status !== "lost";
 
   return (
+    <>
     <div
       draggable
       onDragStart={onDragStart}
@@ -383,5 +385,12 @@ function OwnerDealCard({
         )}
       </div>
     </div>
+
+      <ScheduleWhatsAppDialog
+        lead={deal.customer_phone ? { nome: deal.customer_name, telefone: deal.customer_phone } : null}
+        open={whatsappDialogOpen}
+        onOpenChange={setWhatsappDialogOpen}
+      />
+    </>
   );
 }
