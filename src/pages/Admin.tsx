@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
@@ -117,6 +117,43 @@ const ProposalWizardPage = lazy(() =>
       };
     })
 );
+
+// Error Boundary to catch runtime crashes in ProposalWizard
+class ProposalWizardErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error("[ProposalWizard] Runtime crash:", error, info.componentStack);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center h-[60vh] gap-4 text-center px-4">
+          <p className="text-destructive font-semibold text-lg">Erro ao abrir o Wizard de Propostas</p>
+          <p className="text-sm text-muted-foreground max-w-lg">{this.state.error?.message || "Erro desconhecido"}</p>
+          <pre className="text-xs text-muted-foreground max-w-lg overflow-auto bg-muted p-3 rounded-md max-h-40">
+            {this.state.error?.stack?.slice(0, 500)}
+          </pre>
+          <button
+            onClick={() => { this.setState({ hasError: false, error: null }); window.location.reload(); }}
+            className="text-sm text-primary underline"
+          >
+            Recarregar página
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // SolarWizardPage removed — was a mock prototype, ProposalWizard is the real engine
 
@@ -401,7 +438,7 @@ export default function Admin() {
                 <Route path="propostas" element={<PropostasManager />} />
                 <Route path="projetos" element={<ProjetosManagerPage />} />
                 <Route path="propostas-nativas" element={<ProposalListPage />} />
-                <Route path="propostas-nativas/nova" element={<ProposalWizardPage />} />
+                <Route path="propostas-nativas/nova" element={<ProposalWizardErrorBoundary><ProposalWizardPage /></ProposalWizardErrorBoundary>} />
                 <Route path="propostas/novo" element={<Navigate to="/admin/propostas-nativas/nova" replace />} />
                 <Route path="propostas-nativas/dashboard" element={<ProposalDashboardPage />} />
                 <Route path="propostas-nativas/templates" element={<TemplatesManagerPage />} />
