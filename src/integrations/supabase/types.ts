@@ -12303,6 +12303,54 @@ export type Database = {
           },
         ]
       }
+      wa_conversation_summaries: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          id: string
+          last_message_id: string
+          message_count: number
+          summary_json: Json
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          id?: string
+          last_message_id: string
+          message_count?: number
+          summary_json?: Json
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          last_message_id?: string
+          message_count?: number
+          summary_json?: Json
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversation_summaries_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: true
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversation_summaries_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversation_tags: {
         Row: {
           conversation_id: string

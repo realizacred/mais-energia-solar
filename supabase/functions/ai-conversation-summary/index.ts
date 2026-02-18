@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, serviceKey);
 
-    const { conversation_id } = await req.json();
+    const { conversation_id, cache } = await req.json();
     if (!conversation_id) throw new Error("conversation_id is required");
 
     // Get tenant
@@ -64,6 +64,32 @@ Deno.serve(async (req) => {
       .eq("tenant_id", tenantId)
       .maybeSingle();
 
+    // ── Cache check: skip AI call if summary is still valid ──
+    if (cache) {
+      const { data: cached } = await adminClient
+        .from("wa_conversation_summaries")
+        .select("*")
+        .eq("conversation_id", conversation_id)
+        .maybeSingle();
+
+      if (cached) {
+        // Check if there are new messages after the cached one
+        const { count: newMsgCount } = await adminClient
+          .from("wa_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("conversation_id", conversation_id)
+          .gt("created_at", cached.updated_at);
+
+        if (!newMsgCount || newMsgCount === 0) {
+          // Cache is still valid
+          return new Response(
+            JSON.stringify({ summary: cached.summary_json, cache_id: cached.id, cached: true }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+
     // Get conversation
     const { data: conv } = await adminClient
       .from("wa_conversations")
@@ -76,7 +102,7 @@ Deno.serve(async (req) => {
     // Get all messages (up to 50 for comprehensive summary)
     const { data: messages = [] } = await adminClient
       .from("wa_messages")
-      .select("direction, content, message_type, created_at, is_internal_note, source")
+      .select("id, direction, content, message_type, created_at, is_internal_note, source")
       .eq("conversation_id", conversation_id)
       .eq("is_internal_note", false)
       .order("created_at", { ascending: false })
@@ -249,8 +275,30 @@ Gere o resumo estratégico.`;
       generated_at: new Date().toISOString(),
     });
 
+    // ── Cache the summary ──
+    let cacheId: string | null = null;
+    if (cache) {
+      const lastMsgId = messages[0]?.id; // messages are desc, so [0] is newest
+      const { data: upserted } = await adminClient
+        .from("wa_conversation_summaries")
+        .upsert(
+          {
+            conversation_id,
+            tenant_id: tenantId,
+            summary_json: summary,
+            last_message_id: lastMsgId,
+            message_count: messages.length,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "conversation_id" }
+        )
+        .select("id")
+        .single();
+      cacheId = upserted?.id || null;
+    }
+
     return new Response(
-      JSON.stringify({ summary, task_type: "conversation_summary" }),
+      JSON.stringify({ summary, task_type: "conversation_summary", cache_id: cacheId, cached: false }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: any) {

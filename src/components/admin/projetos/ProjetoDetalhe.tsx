@@ -30,6 +30,7 @@ import { toast } from "@/hooks/use-toast";
 import { VariableMapperPanel } from "./VariableMapperPanel";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
+import { ProjetoChatTab } from "./ProjetoChatTab";
 
 // ─── Types ──────────────────────────────────────────
 interface DealDetail {
@@ -84,15 +85,6 @@ interface PropostaNativa {
     payback_meses: number | null;
     created_at: string;
   }[];
-}
-
-interface WaConversation {
-  id: string;
-  cliente_nome: string | null;
-  cliente_telefone: string | null;
-  last_message_preview: string | null;
-  last_message_at: string | null;
-  status: string;
 }
 
 interface StorageFile {
@@ -614,7 +606,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
             />
           )}
           {activeTab === "chat" && (
-            <ChatTab customerId={deal.customer_id} customerPhone={customerPhone} />
+            <ProjetoChatTab customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
             <PropostasTab customerId={deal.customer_id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} />
@@ -1528,94 +1520,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 // ═══════════════════════════════════════════════════
-// ─── TAB: Chat WhatsApp ─────────────────────────
-// ═══════════════════════════════════════════════════
-function ChatTab({ customerId, customerPhone }: { customerId: string | null; customerPhone: string }) {
-  const [conversations, setConversations] = useState<WaConversation[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function load() {
-      if (!customerPhone && !customerId) { setLoading(false); return; }
-      try {
-        const digits = customerPhone.replace(/\D/g, "");
-        if (digits.length >= 8) {
-          // Use last 8 digits for matching (local number without DDD/country code)
-          // This handles cases where stored numbers may have different formats (with/without 9th digit, with/without country code)
-          const suffix = digits.slice(-8);
-          const { data } = await supabase
-            .from("wa_conversations")
-            .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, status")
-            .or(`cliente_telefone.ilike.%${suffix}%,remote_jid.ilike.%${suffix}%`)
-            .order("last_message_at", { ascending: false })
-            .limit(10);
-          setConversations((data || []) as WaConversation[]);
-        }
-      } catch (err) { console.error("ChatTab:", err); }
-      finally { setLoading(false); }
-    }
-    load();
-  }, [customerId, customerPhone]);
-
-  const navigate = useNavigate();
-
-  if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold text-foreground">Conversas WhatsApp</h3>
-
-      {conversations.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-            <MessageSquare className="h-10 w-10 mb-3 opacity-30" />
-            <p className="font-medium">Nenhuma conversa encontrada</p>
-            <p className="text-xs mt-1">
-              {customerPhone ? `Nenhuma conversa com ${customerPhone}` : "Vincule um cliente com telefone ao projeto"}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {conversations.map(conv => (
-            <Card
-              key={conv.id}
-              className="hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate("/admin/inbox")}
-            >
-              <CardContent className="py-3 px-4 flex items-center gap-4">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <MessageSquare className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-bold text-foreground truncate">{conv.cliente_nome || "Sem nome"}</p>
-                    <Badge variant={conv.status === "open" ? "default" : "secondary"} className="text-[9px] h-4">
-                      {conv.status === "open" ? "Aberta" : "Resolvida"}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate mt-0.5">{conv.last_message_preview || "..."}</p>
-                </div>
-                <div className="text-right shrink-0">
-                  {conv.cliente_telefone && (
-                    <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                      <Phone className="h-3 w-3" />{conv.cliente_telefone}
-                    </p>
-                  )}
-                  {conv.last_message_at && (
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      {new Date(conv.last_message_at).toLocaleDateString("pt-BR")}
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// ChatTab moved to ProjetoChatTab.tsx
 
 // ═══════════════════════════════════════════════════
 // ─── TAB: Documentos ────────────────────────────
