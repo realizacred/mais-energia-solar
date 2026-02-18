@@ -86,6 +86,12 @@ export function TemplatesManager() {
       return;
     }
 
+    const MAX_SIZE_MB = 50;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      toast({ title: `Arquivo excede o limite de ${MAX_SIZE_MB}MB`, variant: "destructive" });
+      return;
+    }
+
     setUploading(true);
     try {
       // Refresh session for correct tenant claims
@@ -283,19 +289,28 @@ export function TemplatesManager() {
                   </Button>
                   {form.file_url && (
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] gap-1 text-emerald-600 border-emerald-300 bg-emerald-50">
-                        <FileText className="h-3 w-3" /> Arquivo anexado
+                      <Badge variant="outline" className="text-[10px] gap-1 text-success border-success/30 bg-success/5">
+                        <FileText className="h-3 w-3" /> {form.file_url.split("/").pop()?.replace(/^\d+_/, "") || "Arquivo anexado"}
                       </Badge>
                       <a href={form.file_url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="icon" className="h-6 w-6">
+                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Baixar">
                           <Download className="h-3 w-3" />
                         </Button>
                       </a>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-destructive"
+                        title="Remover arquivo"
+                        onClick={() => setForm(f => ({ ...f, file_url: null }))}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   )}
                 </div>
                 <p className="text-[10px] text-muted-foreground">
-                  Use variáveis no formato <code className="text-primary bg-primary/5 px-1 rounded">[campo]</code> ou{" "}
+                  Limite de 50MB. Use variáveis no formato <code className="text-primary bg-primary/5 px-1 rounded">[campo]</code> ou{" "}
                   <code className="text-primary bg-primary/5 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
                 </p>
               </div>
