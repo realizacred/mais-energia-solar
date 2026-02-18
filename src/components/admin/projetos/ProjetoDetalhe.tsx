@@ -827,6 +827,7 @@ function GerenciamentoTab({
   getStageNameById: (id: string | null) => string;
   userNamesMap: Map<string, string>;
 }) {
+  const navigate = useNavigate();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
@@ -1066,8 +1067,8 @@ function GerenciamentoTab({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {customerPhone && (
-                    <DropdownMenuItem onClick={() => window.open(`https://wa.me/55${customerPhone.replace(/\D/g, "")}`, "_blank")}>
-                      <Send className="h-3.5 w-3.5 mr-2" />Enviar WhatsApp
+                    <DropdownMenuItem onClick={() => navigate("/admin/whatsapp")}>
+                      <Send className="h-3.5 w-3.5 mr-2" />Abrir WhatsApp interno
                     </DropdownMenuItem>
                   )}
                   {customerEmail && (

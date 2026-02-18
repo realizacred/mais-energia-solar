@@ -1,5 +1,6 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Plus, DollarSign, Clock, Phone, User, ChevronDown, MessageSquare, StickyNote, FileText, Zap } from "lucide-react";
 import type { DealKanbanCard, OwnerColumn } from "@/hooks/useDealPipeline";
@@ -244,19 +245,18 @@ function OwnerDealCard({
     ? dynamicEtiquetas.find(e => e.id === deal.etiqueta || e.nome === deal.etiqueta)
     : null;
 
+  const navigate = useNavigate();
+
   const handleSendWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (deal.customer_phone) {
-      const phone = deal.customer_phone.replace(/\D/g, "");
-      window.open(`https://wa.me/55${phone}`, "_blank");
+      navigate("/admin/whatsapp");
     }
   };
 
   const handleCall = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (deal.customer_phone) {
-      window.open(`tel:${deal.customer_phone}`, "_self");
-    }
+    // No-op: calls handled via internal system
   };
 
   const hasNotas = !!deal.notas?.trim();
@@ -278,13 +278,13 @@ function OwnerDealCard({
         deal.deal_status === "lost" && "border-l-red-500 bg-red-50/40 dark:bg-red-950/20 opacity-60",
         isOpen && stagnation === "critical" && "border-l-red-500",
         isOpen && stagnation === "warning" && "border-l-amber-500",
-        isOpen && !stagnation && !deal.proposta_id && "border-l-orange-400",
-        isOpen && !stagnation && deal.proposta_id && etiquetaInfo && "border-l-primary",
-        isOpen && !stagnation && deal.proposta_id && !etiquetaInfo && "border-l-primary",
+        isOpen && !stagnation && !hasProposta && !etiquetaInfo && "border-l-orange-400",
+        isOpen && !stagnation && hasProposta && !etiquetaInfo && "border-l-primary",
         // Outer border
         "border border-border/40 hover:border-border/70",
       )}
       style={{
+        // Etiqueta color overrides when applicable (open, no stagnation)
         ...(etiquetaInfo && isOpen && !stagnation ? { borderLeftColor: etiquetaInfo.cor } : {}),
       }}
     >
@@ -335,18 +335,7 @@ function OwnerDealCard({
                   <MessageSquare className="h-3 w-3" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent className="text-xs">WhatsApp</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="h-6 w-6 rounded-full bg-secondary/15 text-secondary hover:bg-secondary hover:text-white flex items-center justify-center transition-all duration-150"
-                  onClick={handleCall}
-                >
-                  <Phone className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Ligar</TooltipContent>
+              <TooltipContent className="text-xs">Abrir no WhatsApp interno</TooltipContent>
             </Tooltip>
           </div>
         </div>
