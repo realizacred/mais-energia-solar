@@ -192,6 +192,10 @@ export function BaseMeteorologicaPage() {
     setTestResult(null);
     try {
       const result = await getMonthlyIrradiance({ lat, lon });
+      if (!result || !result.series) {
+        setTestError("Consulta retornou resultado vazio. Verifique se há dados importados para essa região.");
+        return;
+      }
       setTestResult(result);
     } catch (e: any) {
       console.error("[LookupTester] Error:", e);
@@ -728,14 +732,14 @@ export function BaseMeteorologicaPage() {
                         return (
                           <div key={label} className="text-center">
                             <p className="text-[10px] text-muted-foreground">{label}</p>
-                            <p className="text-xs font-mono font-medium">{testResult.series[key].toFixed(2)}</p>
+                            <p className="text-xs font-mono font-medium">{(Number(testResult.series[key]) || 0).toFixed(2)}</p>
                           </div>
                         );
                       })}
                     </div>
                     <Separator className="my-2" />
                     <p className="text-xs text-center">
-                      Média anual: <span className="font-bold">{testResult.annual_average.toFixed(2)}</span> kWh/m²/dia
+                      Média anual: <span className="font-bold">{(Number(testResult.annual_average) || 0).toFixed(2)}</span> kWh/m²/dia
                     </p>
                   </div>
 
