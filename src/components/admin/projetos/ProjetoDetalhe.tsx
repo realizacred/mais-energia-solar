@@ -1470,8 +1470,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
   const [loading, setLoading] = useState(true);
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
-  const [selectedOrcId, setSelectedOrcId] = useState<string | null>(null);
-  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  // ORC selection removed — clicking navigates directly to wizard
 
   // Load proposals
   useEffect(() => {
@@ -1576,10 +1575,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
             })));
           }
 
-          // Auto-select the lead linked to the customer
-          if (cliente.lead_id) {
-            setSelectedLeadId(cliente.lead_id);
-          }
+          // Lead auto-select removed — ORC click navigates directly
         }
       } catch (err) { console.error("Lead discovery:", err); }
       finally { setLoadingLeads(false); }
@@ -1600,18 +1596,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
             {linkedOrcs.map(orc => (
               <Card
                 key={orc.id}
-                className={cn(
-                  "cursor-pointer transition-all hover:shadow-md",
-                  selectedOrcId === orc.id && "ring-2 ring-primary shadow-md"
-                )}
+                className="cursor-pointer transition-all hover:shadow-md hover:ring-2 hover:ring-primary/50"
                 onClick={() => {
-                  if (selectedOrcId === orc.id) {
-                    setSelectedOrcId(null);
-                    setSelectedLeadId(null);
-                  } else {
-                    setSelectedOrcId(orc.id);
-                    setSelectedLeadId(orc.lead_id);
-                  }
+                  if (isClosed) return;
+                  const params = new URLSearchParams({ deal_id: dealId });
+                  if (customerId) params.set("customer_id", customerId);
+                  params.set("lead_id", orc.lead_id);
+                  params.set("orc_id", orc.id);
+                  navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
                 }}
               >
                 <CardContent className="py-3 px-4">
@@ -1626,9 +1618,16 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
                         </Badge>
                       )}
                     </div>
-                    <Badge variant="outline" className="text-[9px]">
-                      {orc.status_nome}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-[9px]">
+                        {orc.status_nome}
+                      </Badge>
+                      {!isClosed && (
+                        <Badge variant="secondary" className="text-[9px] gap-1 bg-primary/10 text-primary border-primary/20">
+                          <Plus className="h-2.5 w-2.5" /> Criar Proposta
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2 text-[11px]">
                     <div>
@@ -1647,11 +1646,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
                   <div className="mt-1 text-[10px] text-muted-foreground">
                     {orc.cidade && `${orc.cidade}, ${orc.estado}`} • {new Date(orc.created_at).toLocaleDateString("pt-BR")}
                   </div>
-                  {selectedOrcId === orc.id && (
-                    <div className="mt-2 flex items-center gap-1 text-[10px] text-primary font-semibold">
-                      <CheckCircle className="h-3 w-3" /> Selecionado — dados serão herdados na nova proposta
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             ))}
@@ -1676,7 +1670,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
           <Button size="sm" onClick={() => {
             const params = new URLSearchParams({ deal_id: dealId });
             if (customerId) params.set("customer_id", customerId);
-            if (selectedLeadId) params.set("lead_id", selectedLeadId);
             navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
           }} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />Nova Proposta
