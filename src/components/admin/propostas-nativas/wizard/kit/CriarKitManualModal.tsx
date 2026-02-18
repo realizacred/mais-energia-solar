@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Trash2, Sun, Cpu } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Plus, Trash2, Sun, Cpu, Zap } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,12 @@ interface CatalogoModulo {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
 }
 interface CatalogoInversor {
-  id: string; fabricante: string; modelo: string; potencia_nominal_kw: number | null; fases: string | null;
+  id: string; fabricante: string; modelo: string; potencia_nominal_kw: number | null;
+  tipo: string | null; fases: string | null;
+}
+interface CatalogoOtimizador {
+  id: string; fabricante: string; modelo: string; potencia_wp: number | null;
+  eficiencia_percent: number | null; compatibilidade: string | null;
 }
 
 interface InversorEntry {
@@ -41,13 +46,26 @@ interface ModuloEntry {
   potenciaW: number;
 }
 
+interface OtimizadorEntry {
+  id: string;
+  selectedId: string;
+  quantidade: number;
+  avulso: boolean;
+  nome: string;
+  fabricante: string;
+  potenciaW: number;
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   modulos: CatalogoModulo[];
   inversores: CatalogoInversor[];
+  otimizadores?: CatalogoOtimizador[];
   onKitCreated: (itens: KitItemRow[]) => void;
   mode: "equipamentos" | "zero";
+  sistema?: "on_grid" | "hibrido" | "off_grid";
+  topologias?: string[];
 }
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
@@ -60,20 +78,68 @@ function createEmptyInversor(): InversorEntry {
   return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0, fases: "", tensaoLinha: 0 };
 }
 
-export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, onKitCreated, mode }: Props) {
+function createEmptyOtimizador(): OtimizadorEntry {
+  return { id: crypto.randomUUID(), selectedId: "", quantidade: 0, avulso: false, nome: "", fabricante: "", potenciaW: 0 };
+}
+
+/**
+ * Filter inversores by topologia + sistema rules:
+ * - Híbrido/Off grid sistema → only "Híbrido" type inverters
+ * - Tradicional topologia → "String" type
+ * - Microinversor topologia → "Microinversor" type
+ * - Otimizador topologia → "String" type (otimizadores are separate)
+ */
+function filterInversores(
+  inversores: CatalogoInversor[],
+  sistema: string,
+  topologia: string,
+): CatalogoInversor[] {
+  // Sistema override: Híbrido/Off grid → only Híbrido inverters
+  if (sistema === "hibrido" || sistema === "off_grid") {
+    return inversores.filter(i => i.tipo === "Híbrido");
+  }
+
+  // Topologia-based filtering for On grid
+  switch (topologia) {
+    case "Tradicional":
+      return inversores.filter(i => i.tipo === "String");
+    case "Microinversor":
+      return inversores.filter(i => i.tipo === "Microinversor");
+    case "Otimizador":
+      return inversores.filter(i => i.tipo === "String");
+    default:
+      return inversores;
+  }
+}
+
+export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, otimizadores = [], onKitCreated, mode, sistema: sistemaProp, topologias: topologiasProp }: Props) {
   const [distribuidorNome, setDistribuidorNome] = useState("");
   const [custo, setCusto] = useState(0);
   const [nomeKit, setNomeKit] = useState("");
   const [codigoKit, setCodigoKit] = useState("");
-  const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">("on_grid");
+  const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(sistemaProp || "on_grid");
   const [tipoKit, setTipoKit] = useState<"customizado" | "fechado">("customizado");
-  const [topologia, setTopologia] = useState("");
+  const [topologia, setTopologia] = useState(
+    topologiasProp?.length === 1
+      ? (topologiasProp[0] === "tradicional" ? "Tradicional" : topologiasProp[0] === "microinversor" ? "Microinversor" : "Otimizador")
+      : ""
+  );
   const [distribuidorSelect, setDistribuidorSelect] = useState("");
   const [custosEmbutidos, setCustosEmbutidos] = useState({ estruturas: false, transformador: false });
 
   const [moduloEntries, setModuloEntries] = useState<ModuloEntry[]>([createEmptyModulo()]);
   const [inversorEntries, setInversorEntries] = useState<InversorEntry[]>([createEmptyInversor()]);
+  const [otimizadorEntries, setOtimizadorEntries] = useState<OtimizadorEntry[]>([]);
   const [componenteEntries, setComponenteEntries] = useState<{ id: string; nome: string; quantidade: number }[]>([]);
+
+  // Filtered inversores based on sistema + topologia
+  const filteredInversores = useMemo(
+    () => filterInversores(inversores, sistema, topologia),
+    [inversores, sistema, topologia]
+  );
+
+  // Auto-add otimizador section when topologia = Otimizador
+  const showOtimizadores = topologia === "Otimizador";
 
   const potenciaTotal = moduloEntries.reduce((s, m) => {
     if (m.avulso) return s + (m.potenciaW * m.quantidade) / 1000;
@@ -122,6 +188,26 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       }
     });
 
+    // Otimizadores
+    otimizadorEntries.forEach(ot => {
+      if (ot.avulso) {
+        if (!ot.nome) return;
+        itens.push({
+          id: crypto.randomUUID(), descricao: `${ot.fabricante} ${ot.nome} ${ot.potenciaW}W`,
+          fabricante: ot.fabricante, modelo: ot.nome, potencia_w: ot.potenciaW,
+          quantidade: ot.quantidade, preco_unitario: 0, categoria: "outros", avulso: true,
+        });
+      } else {
+        const cat = otimizadores.find(c => c.id === ot.selectedId);
+        if (!cat) return;
+        itens.push({
+          id: crypto.randomUUID(), descricao: `${cat.fabricante} ${cat.modelo} ${cat.potencia_wp || 0}W`,
+          fabricante: cat.fabricante, modelo: cat.modelo, potencia_w: cat.potencia_wp || 0,
+          quantidade: ot.quantidade, preco_unitario: 0, categoria: "outros", avulso: false,
+        });
+      }
+    });
+
     componenteEntries.forEach(c => {
       if (!c.nome) return;
       itens.push({
@@ -142,6 +228,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   };
 
   const title = mode === "equipamentos" ? "Criar kit manualmente" : "Criar kit manual do zero";
+
+  // Inversor label based on topologia
+  const inversorLabel = topologia === "Microinversor" ? "Microinversor" : "Inversor";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -207,7 +296,19 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Topologia *</Label>
-              <Select value={topologia} onValueChange={setTopologia}>
+              <Select value={topologia} onValueChange={v => {
+                setTopologia(v);
+                // Auto-add otimizador entry when switching to Otimizador
+                if (v === "Otimizador" && otimizadorEntries.length === 0) {
+                  setOtimizadorEntries([createEmptyOtimizador()]);
+                }
+                // Clear otimizadores when switching away
+                if (v !== "Otimizador") {
+                  setOtimizadorEntries([]);
+                }
+                // Reset inversor selections since the filtered list changed
+                setInversorEntries([createEmptyInversor()]);
+              }}>
                 <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione uma topologia" /></SelectTrigger>
                 <SelectContent>
                   {TOPOLOGIAS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
@@ -241,6 +342,20 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
               </div>
             )}
           </div>
+
+          {/* Filter info banner */}
+          {topologia && (
+            <div className="rounded-md bg-muted/50 border border-border/40 px-3 py-2 text-[11px] text-muted-foreground flex items-center gap-2">
+              <Cpu className="h-3.5 w-3.5 shrink-0" />
+              <span>
+                Filtro ativo: <strong className="text-foreground">{topologia}</strong>
+                {(sistema === "hibrido" || sistema === "off_grid") && (
+                  <> • Sistema <strong className="text-foreground">{sistema === "hibrido" ? "Híbrido" : "Off grid"}</strong> → somente inversores híbridos</>
+                )}
+                {" "}({filteredInversores.length} inversores disponíveis)
+              </span>
+            </div>
+          )}
 
           {/* Itens */}
           <div className="space-y-3">
@@ -298,11 +413,11 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
               </div>
             ))}
 
-            {/* Inversores */}
+            {/* Inversores (filtered by topologia + sistema) */}
             {inversorEntries.map((inv, idx) => (
               <div key={inv.id} className="rounded-lg border-2 border-secondary/20 bg-secondary/5 p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold text-secondary">Inversor *</Label>
+                  <Label className="text-xs font-bold text-secondary">{inversorLabel} *</Label>
                   <div className="flex items-center gap-2">
                     {inversorEntries.length > 1 && (
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setInversorEntries(p => p.filter(x => x.id !== inv.id))}>
@@ -316,7 +431,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   <>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Nome do inversor *</Label>
+                        <Label className="text-[10px]">Nome do {inversorLabel.toLowerCase()} *</Label>
                         <Input value={inv.nome} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, nome: e.target.value } : x))} className="h-7 text-xs" />
                       </div>
                       <div className="space-y-1">
@@ -355,9 +470,18 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     <Select value={inv.selectedId} onValueChange={v => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, selectedId: v } : x))}>
                       <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
                       <SelectContent>
-                        {inversores.map(cat => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.fabricante} {cat.modelo} ({(cat.potencia_nominal_kw || 0).toFixed(1)}kW)</SelectItem>
-                        ))}
+                        {filteredInversores.length > 0 ? (
+                          filteredInversores.map(cat => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.fabricante} {cat.modelo} ({(cat.potencia_nominal_kw || 0).toFixed(1)}kW)
+                              {cat.tipo && <span className="text-muted-foreground ml-1">• {cat.tipo}</span>}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">
+                            Nenhum inversor encontrado para esta topologia/sistema
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                     <Input type="number" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-8 text-xs w-16" placeholder="0" />
@@ -371,6 +495,75 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   </div>
                   {idx === inversorEntries.length - 1 && (
                     <button onClick={() => setInversorEntries(p => [...p, createEmptyInversor()])} className="text-[11px] text-primary font-medium hover:underline">
+                      + Adicionar mais
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Otimizadores (only when topologia = Otimizador) */}
+            {showOtimizadores && otimizadorEntries.map((ot, idx) => (
+              <div key={ot.id} className="rounded-lg border-2 border-amber-500/20 bg-amber-500/5 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold text-amber-600 flex items-center gap-1.5">
+                    <Zap className="h-3 w-3" /> Otimizador *
+                  </Label>
+                  {otimizadorEntries.length > 1 && (
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setOtimizadorEntries(p => p.filter(x => x.id !== ot.id))}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+
+                {ot.avulso ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Nome do otimizador *</Label>
+                      <Input value={ot.nome} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, nome: e.target.value } : x))} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Qtd. *</Label>
+                      <Input type="number" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Fabricante</Label>
+                      <Input value={ot.fabricante} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, fabricante: e.target.value } : x))} className="h-7 text-xs" />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-[10px]">Potência (W)</Label>
+                      <Input type="number" value={ot.potenciaW || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, potenciaW: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Select value={ot.selectedId} onValueChange={v => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, selectedId: v } : x))}>
+                      <SelectTrigger className="h-8 text-xs flex-1"><SelectValue placeholder="Selecione um otimizador" /></SelectTrigger>
+                      <SelectContent>
+                        {otimizadores.length > 0 ? (
+                          otimizadores.map(cat => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.fabricante} {cat.modelo} ({cat.potencia_wp || 0}W)
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-3 py-2 text-xs text-muted-foreground">
+                            Nenhum otimizador cadastrado
+                          </div>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Input type="number" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-8 text-xs w-16" placeholder="0" />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Switch checked={ot.avulso} onCheckedChange={v => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, avulso: v } : x))} className="scale-75" />
+                    <span className="text-[10px] text-muted-foreground">Avulso?</span>
+                  </div>
+                  {idx === otimizadorEntries.length - 1 && (
+                    <button onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])} className="text-[11px] text-amber-600 font-medium hover:underline">
                       + Adicionar mais
                     </button>
                   )}
@@ -404,11 +597,13 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             {/* Add buttons */}
             {mode === "zero" && (
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setModuloEntries(p => [...p, createEmptyModulo()])}>
-                  Otimizador
-                </Button>
+                {showOtimizadores && (
+                  <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])}>
+                    + Otimizador
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])}>
-                  Componente
+                  + Componente
                 </Button>
               </div>
             )}

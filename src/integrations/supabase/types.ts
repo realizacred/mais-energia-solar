@@ -5427,6 +5427,65 @@ export type Database = {
           },
         ]
       }
+      otimizadores_catalogo: {
+        Row: {
+          ativo: boolean
+          compatibilidade: string | null
+          corrente_entrada_max_a: number | null
+          corrente_saida_max_a: number | null
+          created_at: string
+          eficiencia_percent: number | null
+          fabricante: string
+          id: string
+          modelo: string
+          potencia_wp: number | null
+          tenant_id: string | null
+          tensao_entrada_max_v: number | null
+          tensao_saida_v: number | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          compatibilidade?: string | null
+          corrente_entrada_max_a?: number | null
+          corrente_saida_max_a?: number | null
+          created_at?: string
+          eficiencia_percent?: number | null
+          fabricante: string
+          id?: string
+          modelo: string
+          potencia_wp?: number | null
+          tenant_id?: string | null
+          tensao_entrada_max_v?: number | null
+          tensao_saida_v?: number | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          compatibilidade?: string | null
+          corrente_entrada_max_a?: number | null
+          corrente_saida_max_a?: number | null
+          created_at?: string
+          eficiencia_percent?: number | null
+          fabricante?: string
+          id?: string
+          modelo?: string
+          potencia_wp?: number | null
+          tenant_id?: string | null
+          tensao_entrada_max_v?: number | null
+          tensao_saida_v?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "otimizadores_catalogo_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pagamentos: {
         Row: {
           comprovante_url: string | null

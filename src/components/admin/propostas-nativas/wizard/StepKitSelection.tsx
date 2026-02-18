@@ -32,11 +32,17 @@ interface CatalogoInversorUnificado {
   tipo: string | null; mppt_count: number | null; fases: string | null;
 }
 
+interface CatalogoOtimizador {
+  id: string; fabricante: string; modelo: string; potencia_wp: number | null;
+  eficiencia_percent: number | null; compatibilidade: string | null;
+}
+
 interface Props {
   itens: KitItemRow[];
   onItensChange: (itens: KitItemRow[]) => void;
   modulos: CatalogoModuloUnificado[];
   inversores: CatalogoInversorUnificado[];
+  otimizadores?: CatalogoOtimizador[];
   loadingEquip: boolean;
   potenciaKwp: number;
   layouts?: LayoutArranjo[];
@@ -78,7 +84,7 @@ function kitItemsToCardData(itens: KitItemRow[]): KitCardData | null {
 
 // Mock kits removed — manual mode only for now
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0 }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, otimizadores = [], loadingEquip, potenciaKwp, layouts = [], onLayoutsChange, preDimensionamento: pd, onPreDimensionamentoChange: setPd, consumoTotal: consumoTotalProp = 0 }: Props) {
   const [tab, setTab] = useState<TabType>("manual");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS, buscarValor: 0 });
@@ -349,8 +355,11 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
           onOpenChange={(v) => { if (!v) { setManualMode(null); setEditingKitIndex(null); } }}
           modulos={modulos}
           inversores={inversores}
+          otimizadores={otimizadores}
           onKitCreated={handleManualKitCreated}
           mode={manualMode}
+          sistema={pd?.sistema}
+          topologias={pd?.topologias}
         />
       )}
 
