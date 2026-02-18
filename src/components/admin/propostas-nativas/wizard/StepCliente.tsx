@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Search, User, Plus, AlertTriangle, Loader2, MapPin } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Search, User, Plus, AlertTriangle, Loader2, MapPin, Link2, FileText, Phone, Mail, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { toast } from "@/hooks/use-toast";
@@ -25,7 +26,263 @@ interface DuplicateWarning {
   clienteNome: string;
 }
 
+interface LeadSemProposta {
+  id: string;
+  nome: string;
+  telefone: string;
+  lead_code: string | null;
+  estado: string;
+  cidade: string;
+  media_consumo: number;
+  tipo_telhado: string;
+  created_at: string;
+}
+
+// ─── Read-only client summary (when fromProject) ──────────
+function ClienteSummary({ cliente }: { cliente: ClienteData }) {
+  const endereco = [cliente.endereco, cliente.numero, cliente.complemento, cliente.bairro]
+    .filter(Boolean)
+    .join(", ");
+  const localizacao = [cliente.cidade, cliente.estado].filter(Boolean).join(" - ");
+
+  return (
+    <div className="rounded-xl border border-border/50 bg-muted/30 p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <User className="h-4 w-4 text-primary" />
+        <p className="font-semibold text-sm">{cliente.nome || "—"}</p>
+        {cliente.empresa && (
+          <Badge variant="secondary" className="text-[10px]">
+            <Building2 className="h-3 w-3 mr-1" />
+            {cliente.empresa}
+          </Badge>
+        )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+        {cliente.celular && (
+          <span className="flex items-center gap-1.5">
+            <Phone className="h-3 w-3" /> {cliente.celular}
+          </span>
+        )}
+        {cliente.email && (
+          <span className="flex items-center gap-1.5">
+            <Mail className="h-3 w-3" /> {cliente.email}
+          </span>
+        )}
+        {cliente.cnpj_cpf && (
+          <span className="flex items-center gap-1.5">
+            <FileText className="h-3 w-3" /> {cliente.cnpj_cpf}
+          </span>
+        )}
+        {endereco && (
+          <span className="flex items-center gap-1.5 col-span-2">
+            <MapPin className="h-3 w-3 shrink-0" /> {endereco}
+          </span>
+        )}
+        {localizacao && (
+          <span className="flex items-center gap-1.5">
+            <MapPin className="h-3 w-3" /> {localizacao}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Leads without proposals section ──────────────────────
+function LeadsSemProposta({
+  clienteTelefone,
+  clienteNome,
+  selectedLead,
+  onSelectLead,
+}: {
+  clienteTelefone: string;
+  clienteNome: string;
+  selectedLead: LeadSelection | null;
+  onSelectLead: (lead: LeadSelection) => void;
+}) {
+  const [leads, setLeads] = useState<LeadSemProposta[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!clienteTelefone && !clienteNome) {
+      setLeads([]);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const phone = clienteTelefone.replace(/\D/g, "");
+        // Find leads matching by phone (last 8 digits) that don't have proposals yet
+        let query = supabase
+          .from("leads")
+          .select("id, nome, telefone, lead_code, estado, cidade, media_consumo, tipo_telhado, created_at")
+          .order("created_at", { ascending: false })
+          .limit(20);
+
+        if (phone.length >= 8) {
+          query = query.ilike("telefone", `%${phone.slice(-8)}%`);
+        } else {
+          // fallback: search by name
+          const safe = clienteNome.replace(/[%_]/g, "");
+          if (safe.length >= 2) {
+            query = query.ilike("nome", `%${safe}%`);
+          }
+        }
+
+        const { data: leadsData } = await query;
+        if (cancelled) return;
+
+        if (!leadsData || leadsData.length === 0) {
+          setLeads([]);
+          setLoading(false);
+          return;
+        }
+
+        // Filter out leads that already have proposals
+        const leadIds = leadsData.map(l => l.id);
+        const { data: propostas } = await supabase
+          .from("propostas_nativas")
+          .select("lead_id")
+          .in("lead_id", leadIds);
+
+        if (cancelled) return;
+
+        const leadIdsComProposta = new Set((propostas || []).map(p => p.lead_id));
+        const filtered = leadsData.filter(l => !leadIdsComProposta.has(l.id)) as LeadSemProposta[];
+        setLeads(filtered);
+      } catch (err) {
+        console.error("[LeadsSemProposta] Error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [clienteTelefone, clienteNome]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 py-4 justify-center text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Buscando leads vinculáveis...
+      </div>
+    );
+  }
+
+  if (leads.length === 0) {
+    return (
+      <p className="text-xs text-muted-foreground text-center py-3">
+        Nenhum lead sem proposta encontrado para este cliente.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+        <Link2 className="h-3.5 w-3.5" /> Leads sem proposta ({leads.length})
+      </p>
+      <div className="border rounded-xl divide-y max-h-52 overflow-y-auto">
+        {leads.map(l => {
+          const isSelected = selectedLead?.id === l.id;
+          return (
+            <button
+              key={l.id}
+              className={`w-full text-left px-4 py-3 transition-colors ${
+                isSelected
+                  ? "bg-primary/10 border-l-2 border-l-primary"
+                  : "hover:bg-muted/50"
+              }`}
+              onClick={() => {
+                onSelectLead({
+                  id: l.id,
+                  nome: l.nome,
+                  telefone: l.telefone,
+                  lead_code: l.lead_code || "",
+                  estado: l.estado,
+                  cidade: l.cidade,
+                  media_consumo: l.media_consumo,
+                  tipo_telhado: l.tipo_telhado,
+                });
+                toast({
+                  title: "Lead vinculado",
+                  description: `${l.nome} (${l.lead_code || "sem código"}) será vinculado à proposta.`,
+                });
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm truncate">{l.nome}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {l.telefone} • {l.lead_code || "—"}
+                    {l.media_consumo ? ` • ${l.media_consumo} kWh` : ""}
+                    {l.estado ? ` • ${l.estado}` : ""}
+                  </p>
+                </div>
+                {isSelected && (
+                  <Badge variant="default" className="text-[10px] shrink-0">
+                    Selecionado
+                  </Badge>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────
 export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, onClienteChange, fromProject }: Props) {
+  // ── When fromProject: show summary + leads sem proposta
+  if (fromProject) {
+    return (
+      <div className="space-y-5">
+        <h3 className="text-base font-bold flex items-center gap-2">
+          <User className="h-4 w-4 text-primary" /> Cliente
+        </h3>
+
+        <ClienteSummary cliente={cliente} />
+
+        {/* Selected lead badge */}
+        {selectedLead && (
+          <div className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/15">
+            <div>
+              <p className="text-xs text-muted-foreground">Lead vinculado</p>
+              <p className="font-semibold text-sm">{selectedLead.nome}</p>
+              <p className="text-xs text-muted-foreground">{selectedLead.telefone} • {selectedLead.lead_code}</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={onClearLead}>Desvincular</Button>
+          </div>
+        )}
+
+        {/* List leads without proposals for linking */}
+        <LeadsSemProposta
+          clienteTelefone={cliente.celular}
+          clienteNome={cliente.nome}
+          selectedLead={selectedLead}
+          onSelectLead={onSelectLead}
+        />
+      </div>
+    );
+  }
+
+  // ── Normal flow (no project context) — full form
+  return <StepClienteForm
+    selectedLead={selectedLead}
+    onSelectLead={onSelectLead}
+    onClearLead={onClearLead}
+    cliente={cliente}
+    onClienteChange={onClienteChange}
+  />;
+}
+
+// ─── Full form (standalone, not from project) ─────────────
+function StepClienteForm({
+  selectedLead, onSelectLead, onClearLead, cliente, onClienteChange,
+}: Omit<Props, "fromProject">) {
   const [search, setSearch] = useState("");
   const [leads, setLeads] = useState<any[]>([]);
   const [searching, setSearching] = useState(true);
@@ -47,14 +304,11 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
         query = query.or(`nome.ilike.%${safe}%,telefone.ilike.%${safe}%,lead_code.ilike.%${safe}%`);
       }
       const { data, error } = await query;
-      console.log("[StepCliente] fetchLeads result:", { q, count: data?.length, error: error?.message });
       if (error) {
-        console.error("[StepCliente] Erro ao buscar leads:", error.message);
         toast({ title: "Erro ao buscar leads", description: error.message, variant: "destructive" });
       }
       setLeads(data || []);
     } catch (e: any) {
-      console.error("[StepCliente] Exception ao buscar leads:", e);
       toast({ title: "Erro ao buscar leads", description: e?.message || "Erro desconhecido", variant: "destructive" });
       setLeads([]);
     } finally {
@@ -182,16 +436,16 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
         <User className="h-4 w-4 text-primary" /> Cliente
       </h3>
 
-      {/* Lead selection (optional — hidden when from project with lead) */}
+      {/* Lead selection */}
       {selectedLead ? (
         <div className="flex items-center justify-between p-4 bg-primary/5 rounded-xl border border-primary/15">
           <div>
             <p className="font-semibold">{selectedLead.nome}</p>
             <p className="text-sm text-muted-foreground">{selectedLead.telefone} • {selectedLead.lead_code}</p>
           </div>
-          {!fromProject && <Button variant="ghost" size="sm" onClick={onClearLead}>Trocar</Button>}
+          <Button variant="ghost" size="sm" onClick={onClearLead}>Trocar</Button>
         </div>
-      ) : !fromProject ? (
+      ) : (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground">Vincule um lead existente (opcional) ou preencha os dados manualmente abaixo.</p>
           <div className="relative">
@@ -213,7 +467,7 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
             </div>
           )}
         </div>
-      ) : null}
+      )}
 
       {/* Duplicate warnings */}
       {duplicateWarnings.length > 0 && (
@@ -230,9 +484,8 @@ export function StepCliente({ selectedLead, onSelectLead, onClearLead, cliente, 
                   size="sm"
                   className="h-6 text-[10px] px-2"
                   onClick={() => {
-                    // Pre-fill with existing client data
                     onClienteChange({ ...cliente, nome: w.clienteNome });
-                    toast({ title: `Dados de "${w.clienteNome}" carregados`, description: "Você pode continuar com os dados deste cliente." });
+                    toast({ title: `Dados de "${w.clienteNome}" carregados` });
                     setDuplicateWarnings([]);
                   }}
                 >
