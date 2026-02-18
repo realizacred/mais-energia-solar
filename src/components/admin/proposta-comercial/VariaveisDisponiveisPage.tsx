@@ -286,7 +286,21 @@ export function VariaveisDisponiveisPage() {
 
         {/* Content */}
         {activeCategory === "auditoria" ? (
-          <AuditTabContent dbCustomVars={dbCustomVars} loadingCustom={loadingCustom} onRefresh={loadCustomVars} />
+          <AuditTabContent
+            dbCustomVars={dbCustomVars}
+            loadingCustom={loadingCustom}
+            onRefresh={loadCustomVars}
+            onRequestCreateVariable={(suggested) => {
+              setEditingVar(null);
+              setForm({
+                nome: `vc_${suggested.nome}`,
+                label: suggested.label,
+                expressao: `// Origem: ${suggested.table}.${suggested.column}`,
+                precisao: 2,
+              });
+              setModalOpen(true);
+            }}
+          />
         ) : activeCategory === "customizada" ? (
           <div>
             {/* Header with Add button */}

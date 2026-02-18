@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import {
   ShieldCheck, RefreshCw, AlertTriangle, CheckCircle2, XCircle, Loader2,
-  ChevronDown, ChevronRight, Info, Database, Filter, TableProperties
+  ChevronDown, ChevronRight, Info, Database, Filter, TableProperties, PlusCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VARIABLES_CATALOG } from "@/lib/variablesCatalog";
+import { cn } from "@/lib/utils";
 
 // ── Types ──────────────────────────────────────────────────
 interface DbCustomVar {
@@ -38,7 +39,6 @@ interface SchemaField {
 }
 
 // ── Schema mapping: DB columns → expected variable keys ──────
-// System columns that should NOT have variables
 const SYSTEM_COLUMNS = new Set([
   "id", "tenant_id", "created_at", "updated_at", "created_by",
   "lead_id", "cliente_id", "consultor_id", "instalador_id",
@@ -55,19 +55,27 @@ const SYSTEM_COLUMNS = new Set([
   "visto", "visto_admin", "distribuido_em", "synced",
   "ultimo_contato", "proxima_acao", "data_proxima_acao",
   "consultor", "area",
+  // Proposal system columns
+  "sm_id", "sm_project_id", "sm_raw_payload", "origem",
+  "calc_hash", "idempotency_key", "snapshot", "snapshot_locked",
+  "irradiance_source_point", "irradiance_dataset_code",
+  "gerado_por", "engine_version", "grupo",
+  "template_id", "versao_atual", "versao_numero",
 ]);
 
-// Table definitions with their business columns and expected variable mappings
+// ── Table definitions organized by data flow: Cliente → Projeto → Proposta ──
 const SCHEMA_TABLES: {
   name: string;
   label: string;
   icon: string;
+  flowOrder: number;
   columns: { column: string; label: string; expectedKey?: string }[];
 }[] = [
   {
     name: "clientes",
     label: "Clientes",
     icon: "👤",
+    flowOrder: 1,
     columns: [
       { column: "nome", label: "Nome", expectedKey: "cliente_nome" },
       { column: "telefone", label: "Telefone", expectedKey: "cliente_celular" },
@@ -94,6 +102,7 @@ const SCHEMA_TABLES: {
     name: "projetos",
     label: "Projetos",
     icon: "📁",
+    flowOrder: 2,
     columns: [
       { column: "codigo", label: "Código do Projeto", expectedKey: "proposta_identificador" },
       { column: "potencia_kwp", label: "Potência kWp", expectedKey: "potencia_sistema" },
@@ -123,9 +132,46 @@ const SCHEMA_TABLES: {
     ],
   },
   {
+    name: "propostas_nativas",
+    label: "Propostas",
+    icon: "📄",
+    flowOrder: 3,
+    columns: [
+      { column: "titulo", label: "Título da Proposta" },
+      { column: "codigo", label: "Código da Proposta", expectedKey: "proposta_identificador" },
+      { column: "status", label: "Status da Proposta" },
+      { column: "validade_dias", label: "Validade (dias)" },
+      { column: "aceita_at", label: "Data de Aceite" },
+      { column: "enviada_at", label: "Data de Envio" },
+      { column: "recusa_motivo", label: "Motivo de Recusa" },
+      { column: "recusada_at", label: "Data de Recusa" },
+    ],
+  },
+  {
+    name: "proposta_versoes",
+    label: "Versões da Proposta",
+    icon: "📋",
+    flowOrder: 4,
+    columns: [
+      { column: "valor_total", label: "Valor Total", expectedKey: "preco_total" },
+      { column: "economia_mensal", label: "Economia Mensal", expectedKey: "economia_mensal" },
+      { column: "payback_meses", label: "Payback (meses)", expectedKey: "payback_meses" },
+      { column: "potencia_kwp", label: "Potência kWp", expectedKey: "potencia_sistema" },
+      { column: "validade_dias", label: "Validade (dias)" },
+      { column: "valido_ate", label: "Válido Até" },
+      { column: "gerado_em", label: "Gerado Em" },
+      { column: "aceito_em", label: "Aceito Em" },
+      { column: "rejeitado_em", label: "Rejeitado Em" },
+      { column: "motivo_rejeicao", label: "Motivo Rejeição" },
+      { column: "observacoes", label: "Observações" },
+      { column: "status", label: "Status da Versão" },
+    ],
+  },
+  {
     name: "simulacoes",
     label: "Simulações",
     icon: "🧮",
+    flowOrder: 5,
     columns: [
       { column: "tipo_conta", label: "Tipo de Conta" },
       { column: "valor_conta", label: "Valor da Conta", expectedKey: "gasto_atual_mensal" },
@@ -149,6 +195,7 @@ const SCHEMA_TABLES: {
     name: "consultores",
     label: "Consultores",
     icon: "👔",
+    flowOrder: 6,
     columns: [
       { column: "nome", label: "Nome", expectedKey: "responsavel_nome" },
       { column: "telefone", label: "Telefone", expectedKey: "responsavel_celular" },
@@ -161,6 +208,7 @@ const SCHEMA_TABLES: {
     name: "concessionarias",
     label: "Concessionárias",
     icon: "⚡",
+    flowOrder: 7,
     columns: [
       { column: "nome", label: "Nome", expectedKey: "dis_energia" },
       { column: "sigla", label: "Sigla" },
@@ -177,6 +225,9 @@ const SCHEMA_TABLES: {
   },
 ];
 
+// Sort by flowOrder
+const SORTED_TABLES = [...SCHEMA_TABLES].sort((a, b) => a.flowOrder - b.flowOrder);
+
 // ── Status config ──────────────────────────────────────────
 const statusConfig: Record<AuditStatus, { icon: typeof CheckCircle2; color: string; label: string }> = {
   ok: { icon: CheckCircle2, color: "text-success", label: "Sincronizada" },
@@ -189,10 +240,12 @@ export function AuditTabContent({
   dbCustomVars,
   loadingCustom,
   onRefresh,
+  onRequestCreateVariable,
 }: {
   dbCustomVars: DbCustomVar[];
   loadingCustom: boolean;
   onRefresh: () => void;
+  onRequestCreateVariable?: (suggested: { nome: string; label: string; table: string; column: string }) => void;
 }) {
   const [showSynced, setShowSynced] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "missing" | "mapped">("all");
@@ -234,7 +287,7 @@ export function AuditTabContent({
     const allLegacyKeys = new Set(VARIABLES_CATALOG.map((v) => v.legacyKey.replace(/^\[|\]$/g, "")));
     const fields: SchemaField[] = [];
 
-    for (const table of SCHEMA_TABLES) {
+    for (const table of SORTED_TABLES) {
       for (const col of table.columns) {
         const mapped = col.expectedKey ? allLegacyKeys.has(col.expectedKey) : false;
         fields.push({
@@ -248,7 +301,7 @@ export function AuditTabContent({
     }
 
     const byTable: Record<string, { total: number; mapped: number; missing: number }> = {};
-    for (const t of SCHEMA_TABLES) {
+    for (const t of SORTED_TABLES) {
       const tableFields = fields.filter((f) => f.table === t.name);
       byTable[t.name] = {
         total: tableFields.length,
@@ -280,6 +333,12 @@ export function AuditTabContent({
 
   const totalCustomDivergences = customAudit.missingCatalog.length + customAudit.missingDb.length;
 
+  // Flow groups for visual hierarchy
+  const flowGroups = [
+    { label: "Fluxo principal", description: "Cliente → Projeto → Proposta", tables: ["clientes", "projetos", "propostas_nativas", "proposta_versoes"] },
+    { label: "Dados complementares", description: "Simulações, Consultores, Concessionárias", tables: ["simulacoes", "consultores", "concessionarias"] },
+  ];
+
   return (
     <div className="divide-y divide-border">
       {/* Header */}
@@ -295,71 +354,119 @@ export function AuditTabContent({
       </div>
 
       {/* ════════════════════════════════════════════════════════ */}
-      {/* SECTION 1: Schema Coverage (NEW) */}
+      {/* SECTION 1: Data Flow Visual */}
       {/* ════════════════════════════════════════════════════════ */}
       <div className="px-4 py-3 space-y-3">
         <div className="flex items-center gap-2">
           <TableProperties className="h-4 w-4 text-primary" />
           <span className="text-xs font-semibold text-foreground">Cobertura do Schema</span>
-          <span className="text-[10px] text-muted-foreground">— Campos das tabelas × variáveis no catálogo</span>
+          <span className="text-[10px] text-muted-foreground">— Todos os dados que alimentam uma proposta</span>
+        </div>
+
+        {/* Data flow indicator */}
+        <div className="flex items-center gap-1.5 flex-wrap text-[10px] text-muted-foreground bg-muted/20 rounded-lg px-3 py-2 border border-border/40">
+          <span className="font-semibold text-foreground">Fluxo de dados:</span>
+          {SORTED_TABLES.slice(0, 4).map((t, i) => (
+            <span key={t.name} className="flex items-center gap-1">
+              {i > 0 && <span className="text-primary font-bold">→</span>}
+              <span className={cn(
+                "px-1.5 py-0.5 rounded font-medium",
+                activeTable === t.name ? "bg-primary text-primary-foreground" : "bg-card border border-border/40"
+              )}>
+                {t.icon} {t.label}
+              </span>
+            </span>
+          ))}
+          <span className="text-primary font-bold ml-1">+</span>
+          <span className="text-muted-foreground">dados complementares</span>
         </div>
 
         {/* Summary cards — clickable filters */}
         <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => setActiveFilter("all")}
-            className={`rounded-lg border p-2.5 text-left transition-all ${activeFilter === "all" ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:bg-muted/20"}`}
+            className={cn(
+              "rounded-lg border p-2.5 text-left transition-all",
+              activeFilter === "all" ? "border-primary/40 bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:bg-muted/20"
+            )}
           >
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total Campos</p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">Total campos</p>
             <p className="text-lg font-bold text-foreground tabular-nums">{schemaAudit.fields.length}</p>
-            <p className="text-[10px] text-muted-foreground">{SCHEMA_TABLES.length} tabelas</p>
+            <p className="text-[10px] text-muted-foreground">{SORTED_TABLES.length} tabelas</p>
           </button>
           <button
             onClick={() => setActiveFilter("mapped")}
-            className={`rounded-lg border p-2.5 text-left transition-all ${activeFilter === "mapped" ? "border-success/40 bg-success/5 ring-1 ring-success/20" : "border-border bg-card hover:bg-muted/20"}`}
+            className={cn(
+              "rounded-lg border p-2.5 text-left transition-all",
+              activeFilter === "mapped" ? "border-success/40 bg-success/5 ring-1 ring-success/20" : "border-border bg-card hover:bg-muted/20"
+            )}
           >
-            <p className="text-[10px] text-success uppercase tracking-wider font-medium">Com Variável</p>
+            <p className="text-[10px] text-success uppercase tracking-wider font-medium">Com variável</p>
             <p className="text-lg font-bold text-success tabular-nums">{schemaAudit.totalMapped}</p>
             <p className="text-[10px] text-muted-foreground">Mapeados no catálogo</p>
           </button>
           <button
             onClick={() => setActiveFilter("missing")}
-            className={`rounded-lg border p-2.5 text-left transition-all ${activeFilter === "missing" ? "border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card hover:bg-muted/20"}`}
+            className={cn(
+              "rounded-lg border p-2.5 text-left transition-all",
+              activeFilter === "missing" ? "border-destructive/40 bg-destructive/5 ring-1 ring-destructive/20" : "border-border bg-card hover:bg-muted/20"
+            )}
           >
-            <p className="text-[10px] text-destructive uppercase tracking-wider font-medium">Sem Variável</p>
+            <p className="text-[10px] text-destructive uppercase tracking-wider font-medium">Sem variável</p>
             <p className="text-lg font-bold text-destructive tabular-nums">{schemaAudit.totalMissing}</p>
             <p className="text-[10px] text-muted-foreground">Precisam mapeamento</p>
           </button>
         </div>
 
-        {/* Table filter chips */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Filter className="h-3 w-3 text-muted-foreground/50 mr-0.5" />
-          <button
-            onClick={() => setActiveTable(null)}
-            className={`px-2.5 py-1 text-[10px] font-medium rounded-md transition-all ${!activeTable ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
-          >
-            Todas
-          </button>
-          {SCHEMA_TABLES.map((t) => {
-            const stats = schemaAudit.byTable[t.name];
-            const isActive = activeTable === t.name;
-            return (
-              <button
-                key={t.name}
-                onClick={() => setActiveTable(isActive ? null : t.name)}
-                className={`flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md transition-all ${isActive ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"}`}
-              >
-                <span>{t.icon}</span>
-                <span>{t.label}</span>
-                {stats.missing > 0 && (
-                  <span className={`text-[8px] font-mono ${isActive ? "text-primary-foreground/70" : "text-destructive"}`}>
-                    {stats.missing}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+        {/* Table filter chips — grouped by flow */}
+        <div className="space-y-1.5">
+          {flowGroups.map((group) => (
+            <div key={group.label} className="flex flex-wrap items-center gap-1.5">
+              <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider w-[100px] shrink-0">{group.label}</span>
+              {SORTED_TABLES.filter(t => group.tables.includes(t.name)).map((t) => {
+                const stats = schemaAudit.byTable[t.name];
+                const isActive = activeTable === t.name;
+                return (
+                  <button
+                    key={t.name}
+                    onClick={() => setActiveTable(isActive ? null : t.name)}
+                    className={cn(
+                      "flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md transition-all",
+                      isActive ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"
+                    )}
+                  >
+                    <span>{t.icon}</span>
+                    <span>{t.label}</span>
+                    {stats.missing > 0 && (
+                      <span className={cn(
+                        "text-[8px] font-mono font-bold",
+                        isActive ? "text-primary-foreground/70" : "text-destructive"
+                      )}>
+                        {stats.missing}
+                      </span>
+                    )}
+                    {stats.missing === 0 && (
+                      <CheckCircle2 className={cn("h-2.5 w-2.5", isActive ? "text-primary-foreground/70" : "text-success")} />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+
+          {/* "All" reset button */}
+          <div className="flex items-center gap-1.5 ml-[100px]">
+            <button
+              onClick={() => setActiveTable(null)}
+              className={cn(
+                "flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium rounded-md transition-all",
+                !activeTable ? "bg-primary text-primary-foreground" : "bg-muted/40 text-muted-foreground hover:bg-muted"
+              )}
+            >
+              <Filter className="h-2.5 w-2.5" />
+              Todas as tabelas
+            </button>
+          </div>
         </div>
 
         {/* Schema results table */}
@@ -368,18 +475,23 @@ export function AuditTabContent({
             <table className="w-full text-xs">
               <thead>
                 <tr className="bg-muted/30 border-b border-border">
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[50px]">Status</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[40px]">Status</th>
                   <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Tabela</th>
                   <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Campo</th>
                   <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Descrição</th>
-                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Variável Mapeada</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Variável</th>
+                  <th className="text-left px-3 py-2 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[80px]">Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredFields.map((field, idx) => {
-                  const tableMeta = SCHEMA_TABLES.find((t) => t.name === field.table);
+                  const tableMeta = SORTED_TABLES.find((t) => t.name === field.table);
+                  const suggestedKey = field.variableKey || `${field.table.replace(/s$/, "").replace("proposta_versoe", "proposta")}_${field.column}`;
                   return (
-                    <tr key={`${field.table}.${field.column}`} className={`border-b border-border/40 transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"} hover:bg-accent/5`}>
+                    <tr key={`${field.table}.${field.column}`} className={cn(
+                      "border-b border-border/40 transition-colors hover:bg-accent/5",
+                      idx % 2 === 0 ? "bg-card" : "bg-muted/10"
+                    )}>
                       <td className="px-3 py-2">
                         {field.hasVariable ? (
                           <CheckCircle2 className="h-3.5 w-3.5 text-success" />
@@ -405,7 +517,25 @@ export function AuditTabContent({
                             <span>← esperada</span>
                           </span>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground/50 italic">sem mapeamento definido</span>
+                          <code className="font-mono text-muted-foreground/50 bg-muted/20 px-1.5 py-0.5 rounded text-[10px] italic">[{suggestedKey}]</code>
+                        )}
+                      </td>
+                      <td className="px-3 py-2">
+                        {!field.hasVariable && onRequestCreateVariable && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 px-2 text-[10px] gap-1 text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => onRequestCreateVariable({
+                              nome: suggestedKey,
+                              label: field.label,
+                              table: field.table,
+                              column: field.column,
+                            })}
+                          >
+                            <PlusCircle className="h-3 w-3" />
+                            Criar
+                          </Button>
                         )}
                       </td>
                     </tr>
@@ -449,7 +579,10 @@ export function AuditTabContent({
             <p className="text-[9px] text-success uppercase tracking-wider font-medium">Sync</p>
             <p className="text-lg font-bold text-success tabular-nums">{customAudit.synced.length}</p>
           </div>
-          <div className={`rounded-lg border p-2.5 space-y-0.5 ${totalCustomDivergences > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"}`}>
+          <div className={cn(
+            "rounded-lg border p-2.5 space-y-0.5",
+            totalCustomDivergences > 0 ? "border-warning/30 bg-warning/5" : "border-border bg-card"
+          )}>
             <p className="text-[9px] text-warning uppercase tracking-wider font-medium">Divergências</p>
             <p className="text-lg font-bold text-warning tabular-nums">{totalCustomDivergences}</p>
           </div>
@@ -526,7 +659,10 @@ function AuditSection({
               const cfg = statusConfig[item.status];
               const Icon = cfg.icon;
               return (
-                <tr key={item.key} className={`border-t border-border/40 ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"}`}>
+                <tr key={item.key} className={cn(
+                  "border-t border-border/40",
+                  idx % 2 === 0 ? "bg-card" : "bg-muted/10"
+                )}>
                   <td className="px-3 py-2 w-[30px]"><Icon className={`h-3 w-3 ${cfg.color}`} /></td>
                   <td className="px-3 py-2"><span className="text-[11px] font-medium text-foreground">{item.label}</span></td>
                   <td className="px-3 py-2"><code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">[{item.key}]</code></td>
