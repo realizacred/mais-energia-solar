@@ -31,6 +31,7 @@ interface UCCardProps {
   totalUcs: number;
 }
 
+/* ── Editable inline value ── */
 function EditableValue({ label, value, decimals = 5, onChange }: {
   label: string; value: number; decimals?: number; onChange: (v: number) => void;
 }) {
@@ -66,6 +67,19 @@ function EditableValue({ label, value, decimals = 5, onChange }: {
   );
 }
 
+/* ── Section wrapper for visual grouping ── */
+function Section({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {title && (
+        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">{title}</p>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/* ── Main UCCard component ── */
 export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesAMes, isFirst, totalUcs }: UCCardProps) {
   const isGrupoA = uc.grupo_tarifario === "A";
   const isGD3 = uc.regra === "GD3";
@@ -80,10 +94,12 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-3 min-w-[260px] flex-1">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-bold">{index + 1}. {isFirst ? "(Geradora)" : "Unidade"}</p>
+    <div className="rounded-xl border border-border bg-card min-w-[280px] max-w-[420px] flex-shrink-0 flex flex-col">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-4 pt-3 pb-2">
+        <p className="text-sm font-bold text-foreground">
+          {index + 1}. {isFirst ? "(Geradora)" : "Unidade"}
+        </p>
         <div className="flex items-center gap-1">
           <TooltipProvider>
             <Tooltip>
@@ -106,9 +122,10 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
         </div>
       </div>
 
-      <div className={isGrupoA ? "grid grid-cols-2 gap-4" : ""}>
-        {/* Left column */}
-        <div className="space-y-3">
+      {/* ── Body ── */}
+      <div className="flex-1 px-4 pb-3 space-y-0">
+        {/* ── SEÇÃO 1: Classificação ── */}
+        <Section>
           {/* Regra */}
           <div className="space-y-1">
             <Label className="text-[11px] flex items-center gap-1">
@@ -158,11 +175,15 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
               </SelectContent>
             </Select>
           </div>
+        </Section>
 
-          {/* Consumo */}
+        <div className="border-t border-border/40 my-3" />
+
+        {/* ── SEÇÃO 2: Consumo ── */}
+        <Section>
           {isGrupoA ? (
-            <div className="space-y-1">
-              <Label className="text-[11px]">Consumo Ponta (HP) e Fora Ponta (HFP)</Label>
+            <>
+              <Label className="text-[11px] text-muted-foreground">Consumo Ponta (HP) e Fora Ponta (HFP)</Label>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-0.5">
                   <div className="flex items-center justify-between">
@@ -185,9 +206,9 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           ) : (
-            <div className="space-y-1">
+            <>
               <div className="flex items-center justify-between">
                 <Label className="text-[11px]">Consumo <span className="text-destructive">*</span></Label>
                 <button onClick={() => onOpenMesAMes("consumo")} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
@@ -196,11 +217,11 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 <Input type="number" min={0} value={uc.consumo_mensal || ""} onChange={e => update("consumo_mensal", Number(e.target.value))} className="h-8 text-xs pr-10" />
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh</span>
               </div>
-            </div>
+            </>
           )}
 
-          {/* Fase e Tensão */}
-          <div className="space-y-1">
+          {/* Fase */}
+          <div className="space-y-1 pt-1">
             <Label className="text-[11px]">{isFirst ? "Fase e Tensão da Rede" : "Fase"} <span className="text-destructive">*</span></Label>
             {isFirst ? (
               <Select value={uc.fase_tensao} onValueChange={v => update("fase_tensao", v as any)}>
@@ -214,10 +235,87 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
               </Select>
             )}
           </div>
+        </Section>
 
-          {/* Tarifas inline (Grupo B) */}
-          {!isGrupoA && (
-            <div className="flex items-center gap-4 pt-1 flex-wrap">
+        <div className="border-t border-border/40 my-3" />
+
+        {/* ── SEÇÃO 3: Tarifas ── */}
+        {isGrupoA ? (
+          <>
+            {/* Demanda */}
+            <Section title="Demanda">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px]">Consumo <span className="text-destructive">*</span></Label>
+                  <div className="relative">
+                    <Input type="number" min={0} value={uc.demanda_consumo_kw || ""} onChange={e => update("demanda_consumo_kw", Number(e.target.value))} className="h-8 text-xs pr-8" />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kW</span>
+                  </div>
+                </div>
+                {isFirst && (
+                  <div className="space-y-1">
+                    <Label className="text-[11px]">Geração <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <Input type="number" min={0} value={uc.demanda_geracao_kw || ""} onChange={e => update("demanda_geracao_kw", Number(e.target.value))} className="h-8 text-xs pr-8" />
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kW</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </Section>
+
+            <div className="border-t border-border/40 my-3" />
+
+            {/* Tarifas Ponta / Fora Ponta */}
+            <Section>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold text-foreground">Tarifa Ponta</p>
+                  <div className="space-y-0.5 pl-1 border-l-2 border-secondary/30">
+                    <EditableValue label="TE" value={uc.tarifa_te_p} onChange={v => update("tarifa_te_p", v)} />
+                    <br />
+                    <EditableValue label="TUSD" value={uc.tarifa_tusd_p} onChange={v => update("tarifa_tusd_p", v)} />
+                    <br />
+                    <EditableValue
+                      label={isGD3 ? "Tarifação" : "FioB"}
+                      value={isGD3 ? (uc.tarifa_tarifacao_p || 0) : uc.tarifa_fio_b_p}
+                      onChange={v => isGD3 ? update("tarifa_tarifacao_p", v) : update("tarifa_fio_b_p", v)}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <p className="text-[11px] font-semibold text-foreground">Tarifa Fora Ponta</p>
+                  <div className="space-y-0.5 pl-1 border-l-2 border-primary/30">
+                    <EditableValue label="TE" value={uc.tarifa_te_fp} onChange={v => update("tarifa_te_fp", v)} />
+                    <br />
+                    <EditableValue label="TUSD" value={uc.tarifa_tusd_fp} onChange={v => update("tarifa_tusd_fp", v)} />
+                    <br />
+                    <EditableValue
+                      label={isGD3 ? "Tarifação" : "FioB"}
+                      value={isGD3 ? (uc.tarifa_tarifacao_fp || 0) : uc.tarifa_fio_b_fp}
+                      onChange={v => isGD3 ? update("tarifa_tarifacao_fp", v) : update("tarifa_fio_b_fp", v)}
+                    />
+                  </div>
+                </div>
+              </div>
+            </Section>
+
+            <div className="border-t border-border/40 my-3" />
+
+            {/* Demanda R$ */}
+            <Section title="Demanda (R$)">
+              <div className="flex items-center gap-4">
+                <EditableValue label="Consumo" value={uc.demanda_consumo_rs} decimals={2} onChange={v => update("demanda_consumo_rs", v)} />
+                {isFirst && (
+                  <EditableValue label="Geração" value={uc.demanda_geracao_rs} decimals={2} onChange={v => update("demanda_geracao_rs", v)} />
+                )}
+              </div>
+            </Section>
+          </>
+        ) : (
+          /* Tarifas Grupo B */
+          <Section title="Tarifas">
+            <div className="flex items-center gap-4 flex-wrap">
               <EditableValue label="Tarifa" value={uc.tarifa_distribuidora} onChange={v => update("tarifa_distribuidora", v)} />
               <EditableValue
                 label={isGD3 ? "Tarifação" : "FioB"}
@@ -225,69 +323,12 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 onChange={v => isGD3 ? update("tarifa_tarifacao_fp", v) : update("tarifa_fio_b", v)}
               />
             </div>
-          )}
-        </div>
-
-        {/* Right column (Grupo A) */}
-        {isGrupoA && (
-          <div className="space-y-3">
-            <div className="space-y-1">
-              <Label className="text-[11px]">Demanda Consumo <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Input type="number" min={0} value={uc.demanda_consumo_kw || ""} onChange={e => update("demanda_consumo_kw", Number(e.target.value))} className="h-8 text-xs pr-8" />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kW</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-[11px]">Demanda de Geração <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Input type="number" min={0} value={uc.demanda_geracao_kw || ""} onChange={e => update("demanda_geracao_kw", Number(e.target.value))} className="h-8 text-xs pr-8" />
-                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kW</span>
-              </div>
-            </div>
-
-            {/* Tarifas Ponta / Fora Ponta */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-semibold">Tarifa Ponta</p>
-                <div className="space-y-0.5">
-                  <EditableValue label="TE" value={uc.tarifa_te_p} onChange={v => update("tarifa_te_p", v)} />
-                  <EditableValue label="TUSD" value={uc.tarifa_tusd_p} onChange={v => update("tarifa_tusd_p", v)} />
-                  <EditableValue
-                    label={isGD3 ? "Tarifação" : "FioB"}
-                    value={isGD3 ? (uc.tarifa_tarifacao_p || 0) : uc.tarifa_fio_b_p}
-                    onChange={v => isGD3 ? update("tarifa_tarifacao_p", v) : update("tarifa_fio_b_p", v)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <p className="text-[11px] font-semibold">Tarifa Fora Ponta</p>
-                <div className="space-y-0.5">
-                  <EditableValue label="TE" value={uc.tarifa_te_fp} onChange={v => update("tarifa_te_fp", v)} />
-                  <EditableValue label="TUSD" value={uc.tarifa_tusd_fp} onChange={v => update("tarifa_tusd_fp", v)} />
-                  <EditableValue
-                    label={isGD3 ? "Tarifação" : "FioB"}
-                    value={isGD3 ? (uc.tarifa_tarifacao_fp || 0) : uc.tarifa_fio_b_fp}
-                    onChange={v => isGD3 ? update("tarifa_tarifacao_fp", v) : update("tarifa_fio_b_fp", v)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Demanda R$ */}
-            <div className="space-y-1">
-              <p className="text-[11px] font-semibold">Demanda</p>
-              <div className="flex items-center gap-4">
-                <EditableValue label="Consumo" value={uc.demanda_consumo_rs} decimals={2} onChange={v => update("demanda_consumo_rs", v)} />
-                <EditableValue label="Geração" value={uc.demanda_geracao_rs} decimals={2} onChange={v => update("demanda_geracao_rs", v)} />
-              </div>
-            </div>
-          </div>
+          </Section>
         )}
       </div>
 
-      {/* Footer */}
-      <div className="border-t border-border/50 pt-3">
+      {/* ── Footer ── */}
+      <div className="border-t border-border/50 px-4 py-2.5 mt-auto">
         <button onClick={onOpenConfig} className="text-xs text-secondary hover:underline flex items-center gap-1.5">
           <Settings2 className="h-3.5 w-3.5" /> Configurações adicionais
         </button>
