@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { MapPin, Sun, Home, Zap, Loader2, RotateCcw } from "lucide-react";
+import { MapPin, Sun, Zap, Loader2 } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
 import { UF_LIST } from "./types";
+import { ROOF_TYPE_ICONS } from "./roofTypeIcons";
 
 interface Props {
   estado: string;
@@ -70,7 +71,7 @@ export function StepLocalizacao({
     if (!mapsLoaded || !mapRef.current || mapInstanceRef.current) return;
     const google = (window as any).google;
     const map = new google.maps.Map(mapRef.current, {
-      center: { lat: -15.78, lng: -47.93 }, // Brazil center
+      center: { lat: -15.78, lng: -47.93 },
       zoom: 5,
       mapTypeId: "hybrid",
       disableDefaultUI: true,
@@ -92,15 +93,12 @@ export function StepLocalizacao({
         const loc = results[0].geometry.location;
         mapInstanceRef.current.setCenter(loc);
         mapInstanceRef.current.setZoom(13);
-
         if (markerRef.current) markerRef.current.setMap(null);
         markerRef.current = new google.maps.Marker({
           position: loc,
           map: mapInstanceRef.current,
           title: `${cidade}, ${estado}`,
         });
-
-        // Fetch irradiation for this location
         fetchIrradiacao(loc.lat(), loc.lng());
       }
     });
@@ -128,7 +126,6 @@ export function StepLocalizacao({
   const fetchIrradiacao = useCallback(async (lat: number, lon: number) => {
     setLoadingIrrad(true);
     try {
-      // Try to get from irradiance system
       const { data: activeVersion } = await supabase
         .from("irradiance_dataset_versions")
         .select("id")
@@ -169,6 +166,8 @@ export function StepLocalizacao({
     onDistribuidoraChange(id, c?.nome || "");
   };
 
+  const RoofIcon = ROOF_TYPE_ICONS[tipoTelhado] || ROOF_TYPE_ICONS["_default"];
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -181,9 +180,8 @@ export function StepLocalizacao({
         </Badge>
       </div>
 
-      {/* Fields Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-        {/* Localização (Estado + Cidade) */}
+      {/* Row 1: Localização + Irradiação */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium">Localização *</Label>
           <div className="flex gap-1.5">
@@ -217,7 +215,6 @@ export function StepLocalizacao({
           </div>
         </div>
 
-        {/* Irradiação */}
         <div className="space-y-1.5">
           <Label className="text-xs font-medium flex items-center gap-1.5">
             <Sun className="h-3 w-3 text-warning" /> Irradiação
@@ -238,23 +235,37 @@ export function StepLocalizacao({
             )}
           </div>
         </div>
+      </div>
 
-        {/* Tipo de Telhado */}
+      {/* Row 2: Tipo de Telhado + Distribuidora */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium flex items-center gap-1.5">
-            <Home className="h-3 w-3" /> Tipo de Telhado *
+            <RoofIcon className="h-3.5 w-3.5" /> Tipo de Telhado / Estrutura *
           </Label>
           <Select value={tipoTelhado} onValueChange={onTipoTelhadoChange}>
-            <SelectTrigger className="h-9">
-              <SelectValue placeholder="Selecione" />
+            <SelectTrigger className={`h-9 ${!tipoTelhado ? "border-destructive/50" : ""}`}>
+              <SelectValue placeholder="Selecione o tipo" />
             </SelectTrigger>
             <SelectContent>
-              {tiposTelhado.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+              {tiposTelhado.map(t => {
+                const Icon = ROOF_TYPE_ICONS[t] || ROOF_TYPE_ICONS["_default"];
+                return (
+                  <SelectItem key={t} value={t}>
+                    <span className="flex items-center gap-2">
+                      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                      {t}
+                    </span>
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
+          {!tipoTelhado && (
+            <p className="text-[10px] text-destructive">O tipo de telhado é obrigatório!</p>
+          )}
         </div>
 
-        {/* Distribuidora */}
         <div className="space-y-1.5">
           <Label className="text-xs font-medium flex items-center gap-1.5">
             <Zap className="h-3 w-3" /> Distribuidora de Energia *
@@ -285,7 +296,7 @@ export function StepLocalizacao({
       </div>
 
       {/* Map */}
-      <div className="rounded-xl border border-border/50 overflow-hidden relative" style={{ height: 420 }}>
+      <div className="rounded-xl border border-border/50 overflow-hidden relative" style={{ height: 360 }}>
         {!mapsKey ? (
           <div className="flex items-center justify-center h-full bg-muted/20">
             <div className="text-center space-y-2">
@@ -300,23 +311,12 @@ export function StepLocalizacao({
         ) : (
           <div ref={mapRef} className="w-full h-full" />
         )}
-        {/* Map label overlay */}
         {cidade && estado && (
           <div className="absolute top-3 left-3 bg-background/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md border border-border/50">
             <p className="text-sm font-semibold">{cidade}</p>
             <p className="text-[10px] text-muted-foreground">{cidade}, {estado}</p>
           </div>
         )}
-      </div>
-
-      {/* Footer nav hint */}
-      <div className="flex justify-between items-center">
-        <button
-          onClick={() => window.history.back()}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Cancelar
-        </button>
       </div>
     </div>
   );
