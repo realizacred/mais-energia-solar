@@ -50,7 +50,10 @@ export interface ComercialData {
 
 export type RegraCompensacao = "GD2" | "GD3";
 export type GrupoTarifario = "A" | "B";
-export type FaseTensao = "monofasico_127_220" | "bifasico_127_220" | "trifasico_127_220" | "trifasico_220_380";
+export type FaseTensao =
+  | "monofasico_127" | "monofasico_220"
+  | "bifasico_127_220" | "bifasico_220_380" | "bifasico_277_480"
+  | "trifasico_127_220" | "trifasico_220_380" | "trifasico_277_480";
 
 export interface UCData {
   id: string; // local temp id
@@ -321,11 +324,62 @@ export const SUBGRUPO_BT = ["B1", "B2", "B3"];
 export const SUBGRUPO_MT = ["A1", "A2", "A3", "A3a", "A4", "AS"];
 
 export const FASE_TENSAO_OPTIONS = [
-  { value: "monofasico_127_220", label: "Monofásico 127/220V" },
+  { value: "monofasico_127", label: "Monofásico 127V" },
+  { value: "monofasico_220", label: "Monofásico 220V" },
   { value: "bifasico_127_220", label: "Bifásico 127/220V" },
+  { value: "bifasico_220_380", label: "Bifásico 220/380V" },
+  { value: "bifasico_277_480", label: "Bifásico 277/480V" },
   { value: "trifasico_127_220", label: "Trifásico 127/220V" },
   { value: "trifasico_220_380", label: "Trifásico 220/380V" },
+  { value: "trifasico_277_480", label: "Trifásico 277/480V" },
 ] as const;
+
+/**
+ * Maps rede_atendimento (from lead/ORC) to FaseTensao value.
+ * Handles both new format ("Monofásico 127V") and legacy ("Monofásico").
+ */
+export function redeAtendimentoToFaseTensao(rede: string | null | undefined): { fase: UCData["fase"]; fase_tensao: FaseTensao; tensao_rede: string } | null {
+  if (!rede) return null;
+  const map: Record<string, { fase: UCData["fase"]; fase_tensao: FaseTensao; tensao_rede: string }> = {
+    "Monofásico 127V":    { fase: "monofasico", fase_tensao: "monofasico_127", tensao_rede: "127V" },
+    "Monofásico 220V":    { fase: "monofasico", fase_tensao: "monofasico_220", tensao_rede: "220V" },
+    "Bifásico 127/220V":  { fase: "bifasico",   fase_tensao: "bifasico_127_220", tensao_rede: "127/220V" },
+    "Bifásico 220/380V":  { fase: "bifasico",   fase_tensao: "bifasico_220_380", tensao_rede: "220/380V" },
+    "Bifásico 277/480V":  { fase: "bifasico",   fase_tensao: "bifasico_277_480", tensao_rede: "277/480V" },
+    "Trifásico 127/220V": { fase: "trifasico",  fase_tensao: "trifasico_127_220", tensao_rede: "127/220V" },
+    "Trifásico 220/380V": { fase: "trifasico",  fase_tensao: "trifasico_220_380", tensao_rede: "220/380V" },
+    "Trifásico 277/480V": { fase: "trifasico",  fase_tensao: "trifasico_277_480", tensao_rede: "277/480V" },
+    // Legacy fallbacks (sem tensão)
+    "Monofásico":  { fase: "monofasico", fase_tensao: "monofasico_127", tensao_rede: "127V" },
+    "Bifásico":    { fase: "bifasico",   fase_tensao: "bifasico_127_220", tensao_rede: "127/220V" },
+    "Trifásico":   { fase: "trifasico",  fase_tensao: "trifasico_127_220", tensao_rede: "127/220V" },
+    "monofasico":  { fase: "monofasico", fase_tensao: "monofasico_127", tensao_rede: "127V" },
+    "bifasico":    { fase: "bifasico",   fase_tensao: "bifasico_127_220", tensao_rede: "127/220V" },
+    "trifasico":   { fase: "trifasico",  fase_tensao: "trifasico_127_220", tensao_rede: "127/220V" },
+  };
+  return map[rede] || null;
+}
+
+/**
+ * Maps lead tipo_telhado (e.g. "Zinco (Metal)") to proposal tipo_telhado (e.g. "Metálico").
+ * Returns the original value if no mapping found (user can adjust manually).
+ */
+export function mapLeadTipoTelhadoToProposal(leadTipo: string | null | undefined): string {
+  if (!leadTipo) return "";
+  const map: Record<string, string> = {
+    "Zinco (Metal)":       "Metálico",
+    "Colonial (Madeira)":  "Cerâmico",
+    "Colonial (Metal)":    "Cerâmico",
+    "Fibro (Madeira)":     "Fibrocimento",
+    "Fibro (Metal)":       "Fibrocimento",
+    "Laje":                "Laje",
+    "Solo com Zinco":      "Solo",
+    "Solo com Eucalipto":  "Solo",
+  };
+  // If it's already a proposal value, return as-is
+  if (TIPO_TELHADO_OPTIONS.includes(leadTipo)) return leadTipo;
+  return map[leadTipo] || leadTipo;
+}
 
 // ─── Pre-Dimensionamento ───────────────────────────────────
 

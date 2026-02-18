@@ -170,4 +170,16 @@ export const TIPOS_TELHADO = [
   "Solo com Eucalipto",
 ];
 
-export const REDES_ATENDIMENTO = ["Monofásico", "Bifásico", "Trifásico"];
+export const REDES_ATENDIMENTO = [
+  "Monofásico 127V",
+  "Monofásico 220V",
+  "Bifásico 127/220V",
+  "Bifásico 220/380V",
+  "Bifásico 277/480V",
+  "Trifásico 127/220V",
+  "Trifásico 220/380V",
+  "Trifásico 277/480V",
+];
+
+/** @deprecated kept for backward-compatibility parsing of legacy values */
+export const REDES_ATENDIMENTO_LEGACY = ["Monofásico", "Bifásico", "Trifásico"];

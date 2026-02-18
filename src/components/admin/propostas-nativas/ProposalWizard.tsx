@@ -37,6 +37,7 @@ import {
   type PagamentoOpcao, type BancoFinanciamento, type PreDimensionamentoData,
   type LayoutArranjo,
   EMPTY_CLIENTE, DEFAULT_PREMISSAS, DEFAULT_PRE_DIMENSIONAMENTO, createEmptyUC, formatBRL,
+  redeAtendimentoToFaseTensao, mapLeadTipoTelhadoToProposal,
 } from "./wizard/types";
 
 // ─── Step Keys ─────────────────────────────────────────────
@@ -329,20 +330,15 @@ export function ProposalWizard() {
           tipo_telhado: lead.tipo_telhado,
         });
 
-        // Pre-fill location
+        // Pre-fill location (with tipo_telhado mapping)
         if (lead.estado) setLocEstado(lead.estado);
         if (lead.cidade) setLocCidade(lead.cidade);
-        if (lead.tipo_telhado) setLocTipoTelhado(lead.tipo_telhado);
+        const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
+        if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
 
         // Pre-fill UCs: consumo + fase/tensão + tipo_telhado
         const consumo = lead.consumo_previsto || lead.media_consumo || 0;
-        // Map rede_atendimento to fase
-        const faseMap: Record<string, "monofasico" | "bifasico" | "trifasico"> = {
-          "Monofásico": "monofasico", "monofasico": "monofasico",
-          "Bifásico": "bifasico", "bifasico": "bifasico",
-          "Trifásico": "trifasico", "trifasico": "trifasico",
-        };
-        const fase = lead.rede_atendimento ? faseMap[lead.rede_atendimento] : undefined;
+        const faseData = redeAtendimentoToFaseTensao(lead.rede_atendimento);
 
         setUcs(prev => {
           const updated = [...prev];
@@ -350,9 +346,13 @@ export function ProposalWizard() {
             ...updated[0],
             estado: lead.estado || updated[0].estado,
             cidade: lead.cidade || updated[0].cidade,
-            tipo_telhado: lead.tipo_telhado || updated[0].tipo_telhado,
+            tipo_telhado: mappedTelhado || updated[0].tipo_telhado,
             consumo_mensal: consumo || updated[0].consumo_mensal,
-            ...(fase ? { fase } : {}),
+            ...(faseData ? {
+              fase: faseData.fase,
+              fase_tensao: faseData.fase_tensao,
+              tensao_rede: faseData.tensao_rede,
+            } : {}),
           };
           return updated;
         });
@@ -378,19 +378,15 @@ export function ProposalWizard() {
           .single();
         if (cancelled || !orc) return;
 
-        // Pre-fill location from ORC
+        // Pre-fill location from ORC (with tipo_telhado mapping)
         if (orc.estado) setLocEstado(orc.estado);
         if (orc.cidade) setLocCidade(orc.cidade);
-        if (orc.tipo_telhado) setLocTipoTelhado(orc.tipo_telhado);
+        const mappedTelhado = mapLeadTipoTelhadoToProposal(orc.tipo_telhado);
+        if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
 
         // Pre-fill UC data from ORC
         const consumo = orc.consumo_previsto || orc.media_consumo || 0;
-        const faseMap: Record<string, "monofasico" | "bifasico" | "trifasico"> = {
-          "Monofásico": "monofasico", "monofasico": "monofasico",
-          "Bifásico": "bifasico", "bifasico": "bifasico",
-          "Trifásico": "trifasico", "trifasico": "trifasico",
-        };
-        const fase = orc.rede_atendimento ? faseMap[orc.rede_atendimento] : undefined;
+        const faseData = redeAtendimentoToFaseTensao(orc.rede_atendimento);
 
         setUcs(prev => {
           const updated = [...prev];
@@ -398,9 +394,13 @@ export function ProposalWizard() {
             ...updated[0],
             estado: orc.estado || updated[0].estado,
             cidade: orc.cidade || updated[0].cidade,
-            tipo_telhado: orc.tipo_telhado || updated[0].tipo_telhado,
+            tipo_telhado: mappedTelhado || updated[0].tipo_telhado,
             consumo_mensal: consumo || updated[0].consumo_mensal,
-            ...(fase ? { fase } : {}),
+            ...(faseData ? {
+              fase: faseData.fase,
+              fase_tensao: faseData.fase_tensao,
+              tensao_rede: faseData.tensao_rede,
+            } : {}),
           };
           return updated;
         });
@@ -437,19 +437,28 @@ export function ProposalWizard() {
     setSelectedLead(lead);
     if (lead.estado) setLocEstado(lead.estado);
     if (lead.cidade) setLocCidade(lead.cidade);
-    if (lead.tipo_telhado) setLocTipoTelhado(lead.tipo_telhado);
-    if (lead.estado && ucs[0]) {
-      const updated = [...ucs];
-      updated[0] = { ...updated[0], estado: lead.estado, cidade: lead.cidade || "" };
-      if (lead.tipo_telhado) updated[0].tipo_telhado = lead.tipo_telhado;
-      setUcs(updated);
-    }
-    if (lead.consumo_kwh || lead.media_consumo) {
-      const consumo = lead.consumo_kwh || lead.media_consumo || 0;
-      const updated = [...ucs];
-      updated[0] = { ...updated[0], consumo_mensal: consumo };
-      setUcs(updated);
-    }
+    const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
+    if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
+
+    const faseData = redeAtendimentoToFaseTensao(lead.rede_atendimento);
+    const consumo = lead.consumo_kwh || lead.media_consumo || 0;
+
+    setUcs(prev => {
+      const updated = [...prev];
+      updated[0] = {
+        ...updated[0],
+        estado: lead.estado || updated[0].estado,
+        cidade: lead.cidade || updated[0].cidade,
+        tipo_telhado: mappedTelhado || updated[0].tipo_telhado,
+        ...(consumo ? { consumo_mensal: consumo } : {}),
+        ...(faseData ? {
+          fase: faseData.fase,
+          fase_tensao: faseData.fase_tensao,
+          tensao_rede: faseData.tensao_rede,
+        } : {}),
+      };
+      return updated;
+    });
   };
 
   // ─── Validations per step key
