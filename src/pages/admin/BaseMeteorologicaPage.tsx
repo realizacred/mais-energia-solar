@@ -181,14 +181,21 @@ export function BaseMeteorologicaPage() {
 
   // Lookup tester
   const handleTestLookup = async () => {
+    const lat = Number(testLat);
+    const lon = Number(testLon);
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      setTestError("Coordenadas inválidas. Latitude deve estar entre -90 e 90, longitude entre -180 e 180.");
+      return;
+    }
     setTestLoading(true);
     setTestError("");
     setTestResult(null);
     try {
-      const result = await getMonthlyIrradiance({ lat: Number(testLat), lon: Number(testLon) });
+      const result = await getMonthlyIrradiance({ lat, lon });
       setTestResult(result);
     } catch (e: any) {
-      setTestError(e.message);
+      console.error("[LookupTester] Error:", e);
+      setTestError(e?.message || "Erro desconhecido ao consultar irradiância. Verifique se há dados importados na região.");
     } finally {
       setTestLoading(false);
     }
