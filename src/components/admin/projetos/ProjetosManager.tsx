@@ -293,19 +293,19 @@ export function ProjetosManager() {
                     <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2">Bordas dos cards</p>
                     <div className="space-y-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-success shrink-0" />
+                        <span className="w-3 h-3 rounded-sm bg-emerald-500 shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Projeto ganho</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-destructive shrink-0" />
+                        <span className="w-3 h-3 rounded-sm bg-red-500 shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Projeto perdido / estagnado +7d</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-warning shrink-0" />
+                        <span className="w-3 h-3 rounded-sm bg-amber-400 shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Estagnado +3 dias</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="w-3 h-3 rounded-sm bg-orange-400/70 shrink-0" />
+                        <span className="w-3 h-3 rounded-sm bg-orange-400 shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Sem proposta vinculada</span>
                       </div>
                       <div className="flex items-center gap-2">

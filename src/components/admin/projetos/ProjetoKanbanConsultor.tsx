@@ -1,13 +1,14 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useMemo } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Plus, DollarSign, Clock, Phone, User, ChevronDown } from "lucide-react";
+import { Plus, DollarSign, Clock, Phone, User, ChevronDown, MessageSquare, StickyNote, FileText, Zap } from "lucide-react";
 import type { DealKanbanCard, OwnerColumn } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { differenceInDays, differenceInHours } from "date-fns";
 
@@ -243,28 +244,52 @@ function OwnerDealCard({
     ? dynamicEtiquetas.find(e => e.id === deal.etiqueta || e.nome === deal.etiqueta)
     : null;
 
+  const handleSendWhatsApp = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (deal.customer_phone) {
+      const phone = deal.customer_phone.replace(/\D/g, "");
+      window.open(`https://wa.me/55${phone}`, "_blank");
+    }
+  };
+
+  const handleCall = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (deal.customer_phone) {
+      window.open(`tel:${deal.customer_phone}`, "_self");
+    }
+  };
+
+  const hasNotas = !!deal.notas?.trim();
+  const hasProposta = !!deal.proposta_id;
+  const isOpen = deal.deal_status !== "won" && deal.deal_status !== "lost";
+
   return (
     <div
       draggable
       onDragStart={onDragStart}
       onClick={onClick}
       className={cn(
-        "group relative bg-card rounded-lg border border-border/50 p-2.5 cursor-pointer",
-        "hover:shadow-md hover:-translate-y-[1px] transition-all duration-150",
+        "group relative bg-card rounded-xl border border-border/40 p-2.5 cursor-pointer",
+        "shadow-sm hover:shadow-md hover:-translate-y-[1px] transition-all duration-150",
         isDragging && "opacity-40 scale-95",
-        // Status-based card styling
-        deal.deal_status === "won" && "bg-success/5 border-l-4 border-l-success",
-        deal.deal_status === "lost" && "bg-destructive/5 border-l-4 border-l-destructive opacity-60",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-4 border-l-destructive",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-4 border-l-warning",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400/70",
+        // Status-based card styling with VIVID colors
+        deal.deal_status === "won" && "bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500",
+        deal.deal_status === "lost" && "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500 opacity-70",
+        isOpen && stagnation === "critical" && "border-l-4 border-l-red-500",
+        isOpen && stagnation === "warning" && "border-l-4 border-l-amber-400",
+        isOpen && !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400",
+        isOpen && !stagnation && deal.proposta_id && etiquetaInfo && "border-l-4",
+        isOpen && !stagnation && deal.proposta_id && !etiquetaInfo && "border-l-4 border-l-primary/40",
       )}
+      style={{
+        ...(etiquetaInfo && isOpen && !stagnation ? { borderLeftColor: etiquetaInfo.cor } : {}),
+      }}
     >
-      {/* Etiqueta + Stage */}
-      <div className="flex items-center gap-1.5 mb-1.5">
+      {/* Row 1: Etiqueta + Stage + Time */}
+      <div className="flex items-center gap-1.5 mb-1">
         {etiquetaInfo && (
           <span
-            className="text-[8px] font-bold rounded-full px-1.5 py-0.5 text-white leading-none"
+            className="text-[8px] font-bold rounded-full px-1.5 py-0.5 text-white leading-none shadow-sm"
             style={{ backgroundColor: etiquetaInfo.cor }}
           >
             {etiquetaInfo.icon ? `${etiquetaInfo.icon} ` : ""}{etiquetaInfo.short || etiquetaInfo.nome.substring(0, 3).toUpperCase()}
@@ -273,32 +298,104 @@ function OwnerDealCard({
         <span className="text-[9px] text-muted-foreground font-medium truncate">
           {deal.stage_name}
         </span>
-        <span className="ml-auto text-[9px] text-muted-foreground flex items-center gap-0.5">
+        <span className={cn(
+          "ml-auto text-[9px] flex items-center gap-0.5 font-medium",
+          stagnation === "critical" && "text-red-500 font-bold",
+          stagnation === "warning" && "text-amber-500 font-bold",
+          !stagnation && "text-muted-foreground",
+        )}>
           <Clock className="h-2.5 w-2.5" />
           {getTimeInStage(deal.last_stage_change)}
         </span>
       </div>
 
-      {/* Customer name */}
-      <h4 className="text-xs font-semibold text-foreground leading-tight truncate mb-1">
+      {/* Row 2: Customer name */}
+      <h4 className={cn(
+        "text-[13px] font-bold leading-tight truncate mb-1",
+        deal.deal_status === "lost" ? "text-muted-foreground line-through" : "text-foreground"
+      )}>
         {deal.customer_name || deal.deal_title}
       </h4>
 
-      {/* Phone */}
+      {/* Row 3: Phone + quick actions */}
       {deal.customer_phone && (
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-1.5">
           <Phone className="h-2.5 w-2.5" />
           <span>{deal.customer_phone}</span>
+          <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="h-5 w-5 p-0 rounded-full"
+                  onClick={handleSendWhatsApp}
+                >
+                  <MessageSquare className="h-2.5 w-2.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">WhatsApp</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-5 w-5 p-0 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={handleCall}
+                >
+                  <Phone className="h-2.5 w-2.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">Ligar</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
       )}
 
-      {/* Value */}
-      {deal.deal_value > 0 && (
-        <div className="flex items-center gap-1">
-          <DollarSign className="h-3 w-3 text-success" />
-          <span className="text-[11px] font-mono font-bold text-success">{formatBRL(deal.deal_value)}</span>
-        </div>
-      )}
+      {/* Row 4: Value + kWp */}
+      <div className="flex items-center gap-2 mb-1">
+        {deal.deal_value > 0 && (
+          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold font-mono text-success">
+            <DollarSign className="h-3 w-3" />
+            {formatBRL(deal.deal_value)}
+          </span>
+        )}
+        {deal.deal_kwp > 0 && (
+          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold font-mono text-info">
+            <Zap className="h-2.5 w-2.5" />
+            {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
+          </span>
+        )}
+      </div>
+
+      {/* Row 5: Indicators (proposal, notes) */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {hasProposta ? (
+          <Badge variant="outline" className="text-[8px] h-4 px-1.5 gap-0.5 bg-success/10 text-success border-success/30">
+            <FileText className="h-2.5 w-2.5" />
+            Proposta
+          </Badge>
+        ) : isOpen ? (
+          <Badge variant="outline" className="text-[8px] h-4 px-1.5 gap-0.5 bg-orange-50 dark:bg-orange-950/20 text-orange-600 border-orange-300/50">
+            <FileText className="h-2.5 w-2.5" />
+            Sem proposta
+          </Badge>
+        ) : null}
+        {hasNotas && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="outline" className="text-[8px] h-4 px-1.5 gap-0.5 bg-info/10 text-info border-info/30">
+                <StickyNote className="h-2.5 w-2.5" />
+                Notas
+              </Badge>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs max-w-[200px]">
+              <p className="line-clamp-3">{deal.notas}</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
     </div>
   );
 }

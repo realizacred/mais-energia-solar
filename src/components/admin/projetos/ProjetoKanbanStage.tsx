@@ -2,7 +2,7 @@ import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User, ChevronDown, DollarSign } from "lucide-react";
+import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User, ChevronDown, DollarSign, StickyNote } from "lucide-react";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -559,12 +559,12 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
         "border border-border/30",
         "shadow-md hover:shadow-lg hover:-translate-y-0.5 hover:border-primary/40",
         "transition-all duration-200 relative group",
-        // Status-based card styling
-        deal.deal_status === "won" && "bg-success/5 border-l-4 border-l-success",
-        deal.deal_status === "lost" && "bg-destructive/5 border-l-4 border-l-destructive opacity-60",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-4 border-l-destructive",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-4 border-l-warning",
-        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400/70",
+        // Status-based card styling with VIVID colors
+        deal.deal_status === "won" && "bg-emerald-50 dark:bg-emerald-950/30 border-l-4 border-l-emerald-500",
+        deal.deal_status === "lost" && "bg-red-50 dark:bg-red-950/20 border-l-4 border-l-red-500 opacity-70",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "critical" && "border-l-4 border-l-red-500",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && stagnation === "warning" && "border-l-4 border-l-amber-400",
+        deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && !deal.proposta_id && "border-l-4 border-l-orange-400",
         deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && etiquetaCfg && "border-l-4",
         deal.deal_status !== "won" && deal.deal_status !== "lost" && !stagnation && deal.proposta_id && !etiquetaCfg && "border-l-4 border-l-primary/40",
         isDragging && "opacity-30 scale-95",
@@ -636,13 +636,28 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
         </div>
         <span className={cn(
           "flex items-center gap-0.5 font-medium",
-          stagnation === "critical" && "text-destructive font-bold",
-          stagnation === "warning" && "text-warning font-bold"
+          stagnation === "critical" && "text-red-500 font-bold",
+          stagnation === "warning" && "text-amber-500 font-bold"
         )}>
           <Clock className="h-2.5 w-2.5" />
           {timeInStage} na etapa
         </span>
       </div>
+
+      {/* Row 3.5: Notes indicator */}
+      {deal.notas?.trim() && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1 mt-1 text-[9px] text-info">
+              <StickyNote className="h-2.5 w-2.5" />
+              <span className="truncate max-w-[150px] italic">{deal.notas}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="text-xs max-w-[250px]">
+            <p className="whitespace-pre-wrap">{deal.notas}</p>
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Row 4: Quick actions (hover) */}
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 mt-1.5 pt-1.5 border-t border-border/30">
