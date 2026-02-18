@@ -36,12 +36,14 @@ interface DealPipelineMembership {
 
 interface Props {
   dealId: string;
+  dealStatus?: string;
   pipelines: PipelineInfo[];
   allStagesMap: Map<string, StageInfo[]>;
   onMembershipChange?: () => void;
 }
 
-export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, onMembershipChange }: Props) {
+export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange }: Props) {
+  const isLocked = dealStatus === "lost" || dealStatus === "won";
   const [memberships, setMemberships] = useState<DealPipelineMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -81,6 +83,7 @@ export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, o
   );
 
   const addToPipeline = async (pipelineId: string, stageId: string) => {
+    if (isLocked) { toast({ title: "Projeto fechado", description: "Não é possível alterar funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
     setSaving(pipelineId);
     try {
       const { error } = await supabase.from("deal_pipeline_stages").insert({
@@ -101,6 +104,7 @@ export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, o
   };
 
   const changeStage = async (membershipId: string, newStageId: string) => {
+    if (isLocked) { toast({ title: "Projeto fechado", description: "Não é possível alterar etapas de um projeto ganho/perdido.", variant: "destructive" }); return; }
     setSaving(membershipId);
     try {
       const { error } = await supabase
@@ -119,6 +123,7 @@ export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, o
   };
 
   const removeFromPipeline = async (membershipId: string) => {
+    if (isLocked) { toast({ title: "Projeto fechado", description: "Não é possível remover funis de um projeto ganho/perdido.", variant: "destructive" }); return; }
     setSaving(membershipId);
     try {
       const { error } = await supabase
@@ -233,6 +238,7 @@ export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, o
         {memberships.map(membership => {
           const pStages = (allStagesMap.get(membership.pipeline_id) || []).sort((a, b) => a.position - b.position);
           const currentIndex = pStages.findIndex(s => s.id === membership.stage_id);
+          const isComercial = membership.pipeline_name.toLowerCase() === "comercial";
 
           return (
             <div key={membership.id} className="rounded-xl border border-border/60 bg-card p-3 space-y-2">
@@ -244,26 +250,28 @@ export function ProjetoMultiPipelineManager({ dealId, pipelines, allStagesMap, o
                     {membership.stage_name}
                   </Badge>
                 </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                      onClick={() => removeFromPipeline(membership.id)}
-                      disabled={saving === membership.id}
-                    >
-                      {saving === membership.id ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <X className="h-3 w-3" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="left" className="text-xs">
-                    {memberships.length <= 1 ? "Remover último funil" : "Remover deste funil"}
-                  </TooltipContent>
-                </Tooltip>
+                {!isComercial && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeFromPipeline(membership.id)}
+                        disabled={saving === membership.id || isLocked}
+                      >
+                        {saving === membership.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <X className="h-3 w-3" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="text-xs">
+                      Remover deste funil
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
 
               {/* Mini stepper */}

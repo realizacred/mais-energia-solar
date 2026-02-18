@@ -36,6 +36,7 @@ interface Props {
   onFilterEtiquetasChange: (ids: string[]) => void;
   viewMode: "kanban-etapa" | "kanban-consultor" | "lista";
   onViewModeChange: (v: "kanban-etapa" | "kanban-consultor" | "lista") => void;
+  allowAllFunis?: boolean;
   onClearFilters: () => void;
   onEditEtapas?: (funilId: string) => void;
   onCreateFunil?: () => void;
@@ -59,6 +60,7 @@ export function ProjetoFilters({
   viewMode, onViewModeChange,
   onClearFilters,
   onEditEtapas, onCreateFunil, onReorderFunis,
+  allowAllFunis,
 }: Props) {
   const hasActive = filterConsultor !== "todos" || filterStatus !== "todos" || filterEtiquetas.length > 0 || searchTerm.length > 0;
   const [funilPopoverOpen, setFunilPopoverOpen] = useState(false);
@@ -71,7 +73,7 @@ export function ProjetoFilters({
     return activeFunis.filter(f => f.nome.toLowerCase().includes(q));
   }, [activeFunis, funilSearch]);
 
-  const selectedFunilNome = funis.find(f => f.id === filterFunil)?.nome || "Selecione";
+  const selectedFunilNome = filterFunil === "todos" ? "Todos os funis" : (funis.find(f => f.id === filterFunil)?.nome || "Selecione");
 
   const toggleEtiqueta = (id: string) => {
     if (filterEtiquetas.includes(id)) {
@@ -155,6 +157,22 @@ export function ProjetoFilters({
                 </div>
                 {/* List */}
                 <div className="max-h-[200px] overflow-y-auto py-1">
+                  {allowAllFunis && (
+                    <div
+                      className={cn(
+                        "flex items-center px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors",
+                        filterFunil === "todos" && "bg-accent/30"
+                      )}
+                    >
+                      <button
+                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                        onClick={() => { onFilterFunilChange("todos"); setFunilPopoverOpen(false); setFunilSearch(""); }}
+                      >
+                        {filterFunil === "todos" && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                        <span className={cn("text-xs truncate", filterFunil === "todos" ? "font-semibold text-foreground" : "text-foreground/80")}>Todos os funis</span>
+                      </button>
+                    </div>
+                  )}
                   {filteredFunis.map(f => (
                     <div
                       key={f.id}
