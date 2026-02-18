@@ -85,8 +85,8 @@ export function VariaveisDisponiveisPage() {
       });
   }, [activeCategory]);
 
+  // Static catalog items for current category (includes customizada)
   const filtered = useMemo(() => {
-    if (activeCategory === "customizada") return [];
     let items = VARIABLES_CATALOG.filter((v) => v.category === activeCategory);
     if (search.trim()) {
       const q = normalize(search);
@@ -102,9 +102,15 @@ export function VariaveisDisponiveisPage() {
     return [...items].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   }, [search, activeCategory]);
 
+  // DB custom vars (only for customizada tab, merged with static)
   const filteredCustom = useMemo(() => {
     if (activeCategory !== "customizada") return [];
-    let items = dbCustomVars;
+    // Get static catalog keys to avoid duplicates
+    const staticKeys = new Set(
+      VARIABLES_CATALOG.filter((v) => v.category === "customizada").map((v) => v.legacyKey)
+    );
+    // Only show DB vars that are NOT already in the static catalog
+    let items = dbCustomVars.filter((v) => !staticKeys.has(v.nome));
     if (search.trim()) {
       const q = normalize(search);
       items = items.filter(
@@ -114,16 +120,24 @@ export function VariaveisDisponiveisPage() {
           normalize(v.expressao).includes(q)
       );
     }
-    // Ordenação alfabética por label
     return [...items].sort((a, b) => a.label.localeCompare(b.label, "pt-BR"));
   }, [search, activeCategory, dbCustomVars]);
 
   const totalCount = useMemo(() => {
-    if (activeCategory === "customizada") return dbCustomVars.length;
-    return VARIABLES_CATALOG.filter((v) => v.category === activeCategory).length;
+    const staticCount = VARIABLES_CATALOG.filter((v) => v.category === activeCategory).length;
+    if (activeCategory === "customizada") {
+      const staticKeys = new Set(
+        VARIABLES_CATALOG.filter((v) => v.category === "customizada").map((v) => v.legacyKey)
+      );
+      const dbExtra = dbCustomVars.filter((v) => !staticKeys.has(v.nome)).length;
+      return staticCount + dbExtra;
+    }
+    return staticCount;
   }, [activeCategory, dbCustomVars]);
 
-  const currentCount = activeCategory === "customizada" ? filteredCustom.length : filtered.length;
+  const currentCount = activeCategory === "customizada"
+    ? filtered.length + filteredCustom.length
+    : filtered.length;
 
   return (
     <div className="space-y-4 max-w-7xl mx-auto">
@@ -200,32 +214,88 @@ export function VariaveisDisponiveisPage() {
         {/* Content */}
         {activeCategory === "customizada" ? (
           <div>
-            {/* Custom vars from DB */}
-            {loadingCustom ? (
-              <div className="flex items-center justify-center py-12 text-muted-foreground gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span className="text-xs">Carregando variáveis...</span>
-              </div>
-            ) : filteredCustom.length > 0 ? (
+            {/* Static catalog entries for customizada */}
+            {filtered.length > 0 && (
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-muted/30 border-b border-border">
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Nome</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Label</th>
-                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Expressão</th>
-                      <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[80px]">Tipo</th>
-                      <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[60px]">Status</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[240px]">Variável</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[80px]">Aplica-se</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave legada</th>
+                      <th className="text-left px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px]">Chave canônica</th>
+                      <th className="text-center px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[70px]">Unidade</th>
+                      <th className="text-right px-3 py-2.5 font-semibold text-muted-foreground uppercase tracking-wider text-[10px] w-[90px]">Exemplo</th>
                     </tr>
                   </thead>
+                  <tbody>
+                    {filtered.map((v, idx) => (
+                      <tr
+                        key={v.canonicalKey}
+                        className={`border-b border-border/40 transition-colors group ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"} hover:bg-accent/5 ${v.notImplemented ? "opacity-40" : ""}`}
+                      >
+                        <td className="px-3 py-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5 cursor-help">
+                                <ChevronRight className="h-3 w-3 text-primary/30 group-hover:text-primary transition-colors shrink-0" />
+                                <span className="font-medium text-foreground text-[11px] leading-tight">{v.label}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-[280px] text-xs">
+                              <p className="font-medium mb-0.5">{v.label}</p>
+                              <p className="text-muted-foreground">{v.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </td>
+                        <td className="px-3 py-2">
+                          <span className="text-[10px] text-muted-foreground">{v.appliesTo}</span>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1">
+                            <code className="font-mono text-muted-foreground bg-muted/40 px-1.5 py-0.5 rounded text-[10px]">{v.legacyKey}</code>
+                            <CopyButton text={v.legacyKey} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1">
+                            <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[10px]">{v.canonicalKey}</code>
+                            <CopyButton text={v.canonicalKey} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          <span className="text-[10px] text-muted-foreground font-mono">{v.unit || "—"}</span>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <span className="text-[10px] text-foreground/60 font-mono tabular-nums">{v.example}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* DB-only custom vars (not in static catalog) */}
+            {loadingCustom ? (
+              <div className="flex items-center justify-center py-6 text-muted-foreground gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-xs">Carregando variáveis do banco...</span>
+              </div>
+            ) : filteredCustom.length > 0 ? (
+              <div className="overflow-x-auto border-t border-border">
+                <div className="px-3 py-1.5 bg-muted/20 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                  Variáveis do Banco de Dados
+                </div>
+                <table className="w-full text-xs">
                   <tbody>
                     {filteredCustom.map((v, idx) => (
                       <tr key={v.id} className={`border-b border-border/40 group transition-colors ${idx % 2 === 0 ? "bg-card" : "bg-muted/10"} hover:bg-accent/5`}>
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-1.5">
                             <ChevronRight className="h-3 w-3 text-primary/30 group-hover:text-primary shrink-0 transition-colors" />
-                            <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[11px]">{`{{vc.${v.nome}}}`}</code>
-                            <CopyButton text={`{{vc.${v.nome}}}`} />
+                            <code className="font-mono text-primary bg-primary/5 px-1.5 py-0.5 rounded text-[11px]">{`{{customizada.${v.nome}}}`}</code>
+                            <CopyButton text={`{{customizada.${v.nome}}}`} />
                           </div>
                         </td>
                         <td className="px-3 py-2">
@@ -245,11 +315,14 @@ export function VariaveisDisponiveisPage() {
                   </tbody>
                 </table>
               </div>
-            ) : (
+            ) : null}
+
+            {filtered.length === 0 && filteredCustom.length === 0 && !loadingCustom && (
               <div className="text-center py-10 text-muted-foreground">
-                <p className="text-xs">Nenhuma variável customizada cadastrada</p>
+                <p className="text-xs">Nenhuma variável customizada encontrada</p>
               </div>
             )}
+
             {/* CRUD Manager */}
             <div className="p-3 border-t border-border">
               <VariaveisCustomManager />
