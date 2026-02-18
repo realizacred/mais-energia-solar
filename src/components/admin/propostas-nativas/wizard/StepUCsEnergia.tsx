@@ -1,18 +1,21 @@
-import { useState, useEffect } from "react";
-import { Plus, Trash2, BarChart3, ChevronDown, ChevronRight } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Plus, Settings, Zap, Edit2, MoreVertical, Info, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase } from "@/integrations/supabase/client";
-import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import {
-  type UCData, type Concessionaria, createEmptyUC,
-  UF_LIST, TIPO_TELHADO_OPTIONS, GRUPO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT, MESES,
+  type UCData, type Concessionaria, type RegraCompensacao, type GrupoTarifario,
+  createEmptyUC, SUBGRUPO_BT, SUBGRUPO_MT, MESES, FASE_TENSAO_OPTIONS,
 } from "./types";
 
 interface Props {
@@ -25,392 +28,704 @@ interface Props {
 }
 
 export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenciaKwp, onPotenciaChange }: Props) {
-  const [activeUC, setActiveUC] = useState("0");
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
   const [loadingConc, setLoadingConc] = useState(false);
-  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
-    consumo: true, tarifas: false, demanda: false, tecnico: false, compensacao: false,
-  });
+  const [configModalUC, setConfigModalUC] = useState<number | null>(null);
+  const [rateioModalOpen, setRateioModalOpen] = useState(false);
+  const [rateioManual, setRateioManual] = useState(false);
+  const [mesAMesUC, setMesAMesUC] = useState<{ ucIndex: number; tipo: "consumo" | "hp" | "hfp" } | null>(null);
+  const [activeTab, setActiveTab] = useState<"ucs" | "predim">("ucs");
 
-  const currentUC = ucs[Number(activeUC)] || ucs[0];
-  const currentEstado = currentUC?.estado;
-  const { cidades: cidadesUC, isLoading: cidadesLoading } = useCidadesPorEstado(currentEstado || "");
+  const firstUCEstado = ucs[0]?.estado;
 
-  // Fetch concessionárias when estado changes
   useEffect(() => {
-    if (!currentEstado) { setConcessionarias([]); return; }
+    if (!firstUCEstado) { setConcessionarias([]); return; }
     setLoadingConc(true);
     supabase
       .from("concessionarias")
       .select("id, nome, sigla, estado, tarifa_energia, tarifa_fio_b")
       .eq("ativo", true)
-      .eq("estado", currentEstado)
+      .eq("estado", firstUCEstado)
       .order("nome")
       .then(({ data }) => {
         setConcessionarias((data || []) as Concessionaria[]);
         setLoadingConc(false);
       });
-  }, [currentEstado]);
+  }, [firstUCEstado]);
 
+  // ── Computed metrics ──
+  const consumoTotal = useMemo(() => {
+    return ucs.reduce((sum, uc) => {
+      if (uc.grupo_tarifario === "A") {
+        return sum + (uc.consumo_mensal_p || 0) + (uc.consumo_mensal_fp || 0);
+      }
+      return sum + (uc.consumo_mensal || 0);
+    }, 0);
+  }, [ucs]);
+
+  // ── Handlers ──
   const addUC = () => {
     const newUC = createEmptyUC(ucs.length + 1);
-    // Copy estado from first UC if available
-    if (ucs.length > 0 && ucs[0].estado) {
+    newUC.is_geradora = false;
+    newUC.nome = `Unidade ${ucs.length + 1}`;
+    if (ucs.length > 0) {
       newUC.estado = ucs[0].estado;
-      newUC.cidade = ucs[0].cidade;
+      newUC.regra = ucs[0].regra;
+      newUC.grupo_tarifario = ucs[0].grupo_tarifario;
     }
     onUcsChange([...ucs, newUC]);
-    setActiveUC(String(ucs.length));
   };
 
   const removeUC = (index: number) => {
     if (ucs.length <= 1) return;
-    const updated = ucs.filter((_, i) => i !== index).map((uc, i) => ({ ...uc, uc_index: i + 1 }));
+    const updated = ucs.filter((_, i) => i !== index).map((uc, i) => ({
+      ...uc, uc_index: i + 1,
+      is_geradora: i === 0,
+      nome: i === 0 ? "Unidade (Geradora)" : uc.nome,
+    }));
     onUcsChange(updated);
-    setActiveUC("0");
   };
 
   const updateUC = (index: number, field: keyof UCData, value: any) => {
     const updated = [...ucs];
-    if (field === "estado" && value !== updated[index].estado) {
-      updated[index] = { ...updated[index], [field]: value, cidade: "" };
-    } else {
-      updated[index] = { ...updated[index], [field]: value };
+    updated[index] = { ...updated[index], [field]: value };
+    // Sync tipo_dimensionamento with grupo_tarifario
+    if (field === "grupo_tarifario") {
+      updated[index].tipo_dimensionamento = value === "A" ? "MT" : "BT";
+      if (value === "B") {
+        updated[index].subgrupo = "B1";
+      } else {
+        updated[index].subgrupo = "A4";
+      }
     }
     onUcsChange(updated);
   };
 
-  const updateConsumoMes = (index: number, mes: string, value: number) => {
+  const updateConsumoMes = (ucIndex: number, tipo: "consumo" | "hp" | "hfp", mes: string, value: number) => {
     const updated = [...ucs];
-    updated[index] = {
-      ...updated[index],
-      consumo_meses: { ...updated[index].consumo_meses, [mes]: value },
-    };
+    if (tipo === "consumo") {
+      updated[ucIndex] = { ...updated[ucIndex], consumo_meses: { ...updated[ucIndex].consumo_meses, [mes]: value } };
+    } else if (tipo === "hp") {
+      updated[ucIndex] = { ...updated[ucIndex], consumo_meses_p: { ...updated[ucIndex].consumo_meses_p, [mes]: value } };
+    } else {
+      updated[ucIndex] = { ...updated[ucIndex], consumo_meses_fp: { ...updated[ucIndex].consumo_meses_fp, [mes]: value } };
+    }
     onUcsChange(updated);
   };
 
-  const handleConcChange = (index: number, concId: string) => {
-    const conc = concessionarias.find(c => c.id === concId);
-    if (!conc) return;
-    const updated = [...ucs];
-    updated[index] = {
-      ...updated[index],
-      distribuidora: conc.sigla || conc.nome,
-      distribuidora_id: conc.id,
-      tarifa_distribuidora: conc.tarifa_energia || 0,
-    };
-    onUcsChange(updated);
-  };
-
-  const toggleSection = (key: string) => {
-    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const ucIdx = Number(activeUC);
-  const uc = ucs[ucIdx];
-  if (!uc) return null;
-
-  const isMT = uc.tipo_dimensionamento === "MT";
-  const subgrupos = isMT ? SUBGRUPO_MT : SUBGRUPO_BT;
+  const totalRateio = useMemo(() => ucs.reduce((s, uc) => s + (uc.rateio_creditos || 0), 0), [ucs]);
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-bold flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-primary" /> Unidades Consumidoras
-        </h3>
-        <Button variant="outline" size="sm" className="gap-1 h-8 text-xs" onClick={addUC}>
-          <Plus className="h-3 w-3" /> Adicionar UC
+    <div className="space-y-4">
+      {/* ── Header Metrics Bar ── */}
+      <div className="flex items-center justify-end gap-6 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5 text-primary" />
+          <span className="font-medium text-foreground">Consumo Mensal Total</span>
+          <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <Zap className="h-3.5 w-3.5 text-primary" />
+          <span className="font-medium text-foreground">Potência Ideal</span>
+          <span className="font-mono">T: {potenciaKwp?.toFixed(2) || "0,00"}</span>
+          <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => {}}>
+            <Edit2 className="h-3 w-3 text-primary" />
+          </Button>
+        </div>
+      </div>
+
+      {/* ── Sub-tabs ── */}
+      <div className="flex gap-2">
+        <Button
+          variant={activeTab === "ucs" ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5 h-9"
+          onClick={() => setActiveTab("ucs")}
+        >
+          <Zap className="h-3.5 w-3.5" /> Unidades Consumidoras
+        </Button>
+        <Button
+          variant={activeTab === "predim" ? "default" : "outline"}
+          size="sm"
+          className="gap-1.5 h-9"
+          onClick={() => setActiveTab("predim")}
+        >
+          <Settings className="h-3.5 w-3.5" /> Pré-Dimensionamento
         </Button>
       </div>
 
-      {/* Global fields */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Grupo Tarifário</Label>
-          <Select value={grupo} onValueChange={onGrupoChange}>
-            <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {GRUPO_OPTIONS.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
+      {activeTab === "ucs" && (
+        <div className="flex gap-4 flex-wrap">
+          {/* ── UC Cards ── */}
+          {ucs.map((uc, i) => (
+            <UCCard
+              key={uc.id}
+              uc={uc}
+              index={i}
+              concessionarias={concessionarias}
+              loadingConc={loadingConc}
+              onUpdate={(field, value) => updateUC(i, field, value)}
+              onRemove={() => removeUC(i)}
+              onOpenConfig={() => setConfigModalUC(i)}
+              onOpenMesAMes={(tipo) => setMesAMesUC({ ucIndex: i, tipo })}
+              canRemove={ucs.length > 1}
+              totalUCs={ucs.length}
+              onOpenRateio={() => setRateioModalOpen(true)}
+            />
+          ))}
+
+          {/* ── Add UC Area ── */}
+          <button
+            onClick={addUC}
+            className="min-w-[280px] min-h-[400px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+          >
+            <Plus className="h-6 w-6" />
+            <span className="text-sm font-medium">+ Nova Unidade</span>
+          </button>
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Potência do Sistema (kWp) *</Label>
-          <Input type="number" min={0} step={0.1} value={potenciaKwp || ""} onChange={e => onPotenciaChange(Number(e.target.value))} placeholder="Ex: 6.6" className="h-9" />
+      )}
+
+      {activeTab === "predim" && (
+        <div className="p-6 text-center text-muted-foreground text-sm">
+          Pré-Dimensionamento será configurado nas etapas seguintes do wizard.
+        </div>
+      )}
+
+      {/* ── Config Modal ── */}
+      {configModalUC !== null && (
+        <UCConfigModal
+          uc={ucs[configModalUC]}
+          onUpdate={(field, value) => updateUC(configModalUC, field, value)}
+          onClose={() => setConfigModalUC(null)}
+        />
+      )}
+
+      {/* ── Rateio Modal ── */}
+      <RateioModal
+        open={rateioModalOpen}
+        onOpenChange={setRateioModalOpen}
+        ucs={ucs}
+        rateioManual={rateioManual}
+        onRateioManualChange={setRateioManual}
+        onUpdateRateio={(i, val) => updateUC(i, "rateio_creditos", val)}
+        totalRateio={totalRateio}
+      />
+
+      {/* ── Mês a Mês Modal ── */}
+      {mesAMesUC && (
+        <MesAMesModal
+          uc={ucs[mesAMesUC.ucIndex]}
+          tipo={mesAMesUC.tipo}
+          onUpdate={(mes, val) => updateConsumoMes(mesAMesUC.ucIndex, mesAMesUC.tipo, mes, val)}
+          onClose={() => setMesAMesUC(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── UC Card ───────────────────────────────────────────────
+interface UCCardProps {
+  uc: UCData;
+  index: number;
+  concessionarias: Concessionaria[];
+  loadingConc: boolean;
+  onUpdate: (field: keyof UCData, value: any) => void;
+  onRemove: () => void;
+  onOpenConfig: () => void;
+  onOpenMesAMes: (tipo: "consumo" | "hp" | "hfp") => void;
+  canRemove: boolean;
+  totalUCs: number;
+  onOpenRateio: () => void;
+}
+
+function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, onOpenConfig, onOpenMesAMes, canRemove, totalUCs, onOpenRateio }: UCCardProps) {
+  const isGrupoA = uc.grupo_tarifario === "A";
+  const isGD3 = uc.regra === "GD3";
+  const subgrupos = isGrupoA ? SUBGRUPO_MT : SUBGRUPO_BT;
+
+  return (
+    <div className="border rounded-xl bg-card p-4 min-w-[480px] max-w-[520px] space-y-4 relative">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-bold text-foreground">
+          {index + 1}. {uc.nome}
+        </h4>
+        <div className="flex items-center gap-1">
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-primary">
+                  <Info className="h-3.5 w-3.5" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Informações da UC</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-7 w-7">
+                <MoreVertical className="h-3.5 w-3.5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {canRemove && (
+                <DropdownMenuItem onClick={onRemove} className="text-destructive">
+                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover UC
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
-      {/* UC Tabs */}
-      <Tabs value={activeUC} onValueChange={setActiveUC}>
-        <div className="flex items-center gap-2">
-          <TabsList className="h-8">
-            {ucs.map((u, i) => (
-              <TabsTrigger key={u.id} value={String(i)} className="text-xs px-3 h-7">
-                {u.nome || `UC ${i + 1}`}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          {ucs.length > 1 && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => removeUC(ucIdx)}>
-              <Trash2 className="h-3 w-3" />
-            </Button>
+      <div className="flex gap-4">
+        {/* Left column */}
+        <div className="space-y-3 flex-1">
+          {/* Regra */}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Regra *</Label>
+            <RadioGroup
+              value={uc.regra}
+              onValueChange={(v) => onUpdate("regra", v as RegraCompensacao)}
+              className="flex gap-3"
+            >
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="GD2" id={`regra-gd2-${uc.id}`} />
+                <Label htmlFor={`regra-gd2-${uc.id}`} className="text-xs cursor-pointer">GD II</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="GD3" id={`regra-gd3-${uc.id}`} />
+                <Label htmlFor={`regra-gd3-${uc.id}`} className="text-xs cursor-pointer">GD III</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Grupo Tarifário */}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Grupo Tarifário *</Label>
+            <RadioGroup
+              value={uc.grupo_tarifario}
+              onValueChange={(v) => onUpdate("grupo_tarifario", v as GrupoTarifario)}
+              className="flex gap-3"
+            >
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="A" id={`grupo-a-${uc.id}`} />
+                <Label htmlFor={`grupo-a-${uc.id}`} className="text-xs cursor-pointer">A</Label>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <RadioGroupItem value="B" id={`grupo-b-${uc.id}`} />
+                <Label htmlFor={`grupo-b-${uc.id}`} className="text-xs cursor-pointer">B</Label>
+              </div>
+            </RadioGroup>
+          </div>
+
+          {/* Subgrupo */}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Subgrupo *</Label>
+            <Select value={uc.subgrupo} onValueChange={v => onUpdate("subgrupo", v)}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Selecione uma opção" />
+              </SelectTrigger>
+              <SelectContent>
+                {subgrupos.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Consumo */}
+          {isGrupoA ? (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Consumo Ponta (HP) e Fora Ponta (HFP)</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] text-muted-foreground">HP *</Label>
+                    <button onClick={() => onOpenMesAMes("hp")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                      mês a mês <Edit2 className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input type="number" min={0} value={uc.consumo_mensal_p || ""} onChange={e => onUpdate("consumo_mensal_p", Number(e.target.value))} className="h-8 text-xs pr-10" />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh</span>
+                  </div>
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-[10px] text-muted-foreground">HFP *</Label>
+                    <button onClick={() => onOpenMesAMes("hfp")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                      mês a mês <Edit2 className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <Input type="number" min={0} value={uc.consumo_mensal_fp || ""} onChange={e => onUpdate("consumo_mensal_fp", Number(e.target.value))} className="h-8 text-xs pr-10" />
+                    <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs text-muted-foreground">Consumo *</Label>
+                <button onClick={() => onOpenMesAMes("consumo")} className="text-[10px] text-primary hover:underline flex items-center gap-0.5">
+                  mês a mês <Edit2 className="h-2.5 w-2.5" />
+                </button>
+              </div>
+              <div className="relative">
+                <Input type="number" min={0} value={uc.consumo_mensal || ""} onChange={e => onUpdate("consumo_mensal", Number(e.target.value))} className="h-8 text-xs pr-10" />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh</span>
+              </div>
+            </div>
+          )}
+
+          {/* Fase e Tensão */}
+          <div className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Fase e Tensão da Rede *</Label>
+            <Select value={uc.fase_tensao} onValueChange={v => onUpdate("fase_tensao", v)}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FASE_TENSAO_OPTIONS.map(f => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Tarifa (Grupo B only) */}
+          {!isGrupoA && (
+            <div className="flex items-center gap-4 text-xs">
+              <span className="text-primary">
+                Tarifa: R${(uc.tarifa_distribuidora || 0).toFixed(5)}
+                <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+              </span>
+              <span className="text-primary">
+                FioB: R${(uc.tarifa_fio_b || 0).toFixed(5)}
+                <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+              </span>
+            </div>
           )}
         </div>
 
-        {ucs.map((u, i) => (
-          <TabsContent key={u.id} value={String(i)} className="mt-3 space-y-3">
-            {/* Base fields */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Nome da UC</Label>
-                <Input value={u.nome} onChange={e => updateUC(i, "nome", e.target.value)} className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tipo</Label>
-                <Select value={u.tipo_dimensionamento} onValueChange={v => updateUC(i, "tipo_dimensionamento", v)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BT">BT - Baixa Tensão</SelectItem>
-                    <SelectItem value="MT">MT - Média Tensão</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Estado</Label>
-                <Select value={u.estado} onValueChange={v => updateUC(i, "estado", v)}>
-                  <SelectTrigger className="h-9"><SelectValue placeholder="UF" /></SelectTrigger>
-                  <SelectContent>{UF_LIST.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Distribuidora</Label>
-                {loadingConc ? <Skeleton className="h-9 w-full" /> : (
-                  <Select value={u.distribuidora_id} onValueChange={v => handleConcChange(i, v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder={concessionarias.length ? "Selecione" : "Selecione UF primeiro"} /></SelectTrigger>
-                    <SelectContent>{concessionarias.map(c => <SelectItem key={c.id} value={c.id}>{c.sigla ? `${c.sigla} - ` : ""}{c.nome}</SelectItem>)}</SelectContent>
-                  </Select>
-                )}
+        {/* Right column (Grupo A only) */}
+        {isGrupoA && (
+          <div className="space-y-3 flex-1">
+            {/* Demanda Consumo */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Demanda Consumo *</Label>
+              <div className="relative">
+                <Input type="number" min={0} value={uc.demanda_consumo_kw || ""} onChange={e => onUpdate("demanda_consumo_kw", Number(e.target.value))} className="h-8 text-xs pr-8" />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kW</span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Subgrupo</Label>
-                <Select value={u.subgrupo} onValueChange={v => updateUC(i, "subgrupo", v)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>{subgrupos.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Fase</Label>
-                <Select value={u.fase} onValueChange={v => updateUC(i, "fase", v as any)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="monofasico">Monofásico</SelectItem>
-                    <SelectItem value="bifasico">Bifásico</SelectItem>
-                    <SelectItem value="trifasico">Trifásico</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Tensão da Rede</Label>
-                <Input value={u.tensao_rede} onChange={e => updateUC(i, "tensao_rede", e.target.value)} placeholder="127/220V" className="h-9" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">{cidadesLoading ? "Carregando cidades..." : "Cidade"}</Label>
-                {cidadesUC.length > 0 ? (
-                  <Select value={u.cidade} onValueChange={v => updateUC(i, "cidade", v)}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>{cidadesUC.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                  </Select>
-                ) : (
-                  <Input value={u.cidade} onChange={e => updateUC(i, "cidade", e.target.value)} className="h-9" />
-                )}
+            {/* Demanda Geração */}
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Demanda de Geração *</Label>
+              <div className="relative">
+                <Input type="number" min={0} value={uc.demanda_geracao_kw || ""} onChange={e => onUpdate("demanda_geracao_kw", Number(e.target.value))} className="h-8 text-xs pr-8" />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kW</span>
               </div>
             </div>
 
-            {/* ── Consumo Section ── */}
-            <Collapsible open={expandedSections.consumo} onOpenChange={() => toggleSection("consumo")}>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                {expandedSections.consumo ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                Consumo {isMT ? "(Ponta / Fora Ponta)" : "(BT)"}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-1">
-                {!isMT ? (
-                  <>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Consumo Médio Mensal (kWh) *</Label>
-                      <Input type="number" min={0} value={u.consumo_mensal || ""} onChange={e => updateUC(i, "consumo_mensal", Number(e.target.value))} placeholder="Ex: 500" className="h-9" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Consumo por mês (opcional — detalhar)</Label>
-                      <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-                        {MESES.map(m => (
-                          <div key={m} className="space-y-0.5">
-                            <Label className="text-[10px] text-muted-foreground uppercase">{m}</Label>
-                            <Input type="number" min={0} value={u.consumo_meses[m] || ""} onChange={e => updateConsumoMes(i, m, Number(e.target.value))} className="h-8 text-xs" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Consumo Ponta (kWh) *</Label>
-                      <Input type="number" min={0} value={u.consumo_mensal_p || ""} onChange={e => updateUC(i, "consumo_mensal_p", Number(e.target.value))} className="h-9" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Consumo Fora Ponta (kWh) *</Label>
-                      <Input type="number" min={0} value={u.consumo_mensal_fp || ""} onChange={e => updateUC(i, "consumo_mensal_fp", Number(e.target.value))} className="h-9" />
-                    </div>
-                  </div>
-                )}
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* ── Tarifas Section ── */}
-            <Collapsible open={expandedSections.tarifas} onOpenChange={() => toggleSection("tarifas")}>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                {expandedSections.tarifas ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                Tarifas
-                {u.tarifa_distribuidora > 0 && <Badge variant="outline" className="text-[10px] ml-2">R$ {u.tarifa_distribuidora.toFixed(4)}</Badge>}
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-1">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Tarifa Distribuidora (R$/kWh)</Label>
-                    <Input type="number" step={0.0001} value={u.tarifa_distribuidora || ""} onChange={e => updateUC(i, "tarifa_distribuidora", Number(e.target.value))} className="h-9" />
-                  </div>
-                  {isMT && (
-                    <>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">TE Ponta</Label>
-                        <Input type="number" step={0.0001} value={u.tarifa_te_p || ""} onChange={e => updateUC(i, "tarifa_te_p", Number(e.target.value))} className="h-9" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">TUSD Ponta</Label>
-                        <Input type="number" step={0.0001} value={u.tarifa_tusd_p || ""} onChange={e => updateUC(i, "tarifa_tusd_p", Number(e.target.value))} className="h-9" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">TE Fora Ponta</Label>
-                        <Input type="number" step={0.0001} value={u.tarifa_te_fp || ""} onChange={e => updateUC(i, "tarifa_te_fp", Number(e.target.value))} className="h-9" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs">TUSD Fora Ponta</Label>
-                        <Input type="number" step={0.0001} value={u.tarifa_tusd_fp || ""} onChange={e => updateUC(i, "tarifa_tusd_fp", Number(e.target.value))} className="h-9" />
-                      </div>
-                    </>
+            {/* Tarifa Ponta / Fora Ponta */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Tarifa Ponta</Label>
+                <div className="space-y-0.5 text-xs">
+                  <TarifaEditRow label="TE" value={uc.tarifa_te_p} onEdit={onOpenConfig} />
+                  <TarifaEditRow label="TUSD" value={uc.tarifa_tusd_p} onEdit={onOpenConfig} />
+                  {isGD3 ? (
+                    <TarifaEditRow label="Tarifação" value={uc.tarifa_tarifacao_p} onEdit={onOpenConfig} />
+                  ) : (
+                    <TarifaEditRow label="FioB" value={uc.tarifa_fio_b_p} onEdit={onOpenConfig} />
                   )}
                 </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* ── Demanda (MT only) ── */}
-            {isMT && (
-              <Collapsible open={expandedSections.demanda} onOpenChange={() => toggleSection("demanda")}>
-                <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                  {expandedSections.demanda ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                  Demanda
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-3 pt-1">
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Preço Demanda (R$/kW)</Label>
-                      <Input type="number" step={0.01} value={u.demanda_preco || ""} onChange={e => updateUC(i, "demanda_preco", Number(e.target.value))} className="h-9" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Demanda Contratada (kW)</Label>
-                      <Input type="number" value={u.demanda_contratada || ""} onChange={e => updateUC(i, "demanda_contratada", Number(e.target.value))} className="h-9" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Demanda Adicional (kW)</Label>
-                      <Input type="number" value={u.demanda_adicional || ""} onChange={e => updateUC(i, "demanda_adicional", Number(e.target.value))} className="h-9" />
-                    </div>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            )}
-
-            {/* ── Técnico Section ── */}
-            <Collapsible open={expandedSections.tecnico} onOpenChange={() => toggleSection("tecnico")}>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                {expandedSections.tecnico ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                Dados Técnicos / Telhado
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-1">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Tipo de Telhado</Label>
-                    <Select value={u.tipo_telhado} onValueChange={v => updateUC(i, "tipo_telhado", v)}>
-                      <SelectTrigger className="h-9"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{TIPO_TELHADO_OPTIONS.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Inclinação (°)</Label>
-                    <Input type="number" value={u.inclinacao || ""} onChange={e => updateUC(i, "inclinacao", Number(e.target.value))} className="h-9" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Desvio Azimutal (°)</Label>
-                    <Input type="number" value={u.desvio_azimutal || ""} onChange={e => updateUC(i, "desvio_azimutal", Number(e.target.value))} className="h-9" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Taxa Desempenho (%)</Label>
-                    <Input type="number" value={u.taxa_desempenho || ""} onChange={e => updateUC(i, "taxa_desempenho", Number(e.target.value))} className="h-9" />
-                  </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold">Tarifa Fora Ponta</Label>
+                <div className="space-y-0.5 text-xs">
+                  <TarifaEditRow label="TE" value={uc.tarifa_te_fp} onEdit={onOpenConfig} />
+                  <TarifaEditRow label="TUSD" value={uc.tarifa_tusd_fp} onEdit={onOpenConfig} />
+                  {isGD3 ? (
+                    <TarifaEditRow label="Tarifação" value={uc.tarifa_tarifacao_fp} onEdit={onOpenConfig} />
+                  ) : (
+                    <TarifaEditRow label="FioB" value={uc.tarifa_fio_b_fp} onEdit={onOpenConfig} />
+                  )}
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Distância (km)</Label>
-                    <Input type="number" value={u.distancia || ""} onChange={e => updateUC(i, "distancia", Number(e.target.value))} className="h-9" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Custo Disponibilidade (kWh)</Label>
-                    <Input type="number" value={u.custo_disponibilidade_kwh || ""} onChange={e => updateUC(i, "custo_disponibilidade_kwh", Number(e.target.value))} className="h-9" />
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
+              </div>
+            </div>
 
-            {/* ── Compensação Section ── */}
-            <Collapsible open={expandedSections.compensacao} onOpenChange={() => toggleSection("compensacao")}>
-              <CollapsibleTrigger className="flex items-center gap-2 w-full text-left py-2 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors">
-                {expandedSections.compensacao ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                Compensação e Rateio
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-1">
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Regra Compensação</Label>
-                    <Select value={String(u.regra_compensacao)} onValueChange={v => updateUC(i, "regra_compensacao", Number(v))}>
-                      <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">GD-I</SelectItem>
-                        <SelectItem value="1">GD-II</SelectItem>
-                        <SelectItem value="2">GD-III</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Rateio Créditos (%)</Label>
-                    <Input type="number" value={u.rateio_creditos || ""} onChange={e => updateUC(i, "rateio_creditos", Number(e.target.value))} className="h-9" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Imposto Energia (%)</Label>
-                    <Input type="number" value={u.imposto_energia || ""} onChange={e => updateUC(i, "imposto_energia", Number(e.target.value))} className="h-9" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Fator Simultaneidade (%)</Label>
-                    <Input type="number" value={u.fator_simultaneidade || ""} onChange={e => updateUC(i, "fator_simultaneidade", Number(e.target.value))} className="h-9" />
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </TabsContent>
-        ))}
-      </Tabs>
+            {/* Demanda R$ */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Demanda</Label>
+              <div className="flex gap-4 text-xs">
+                <span className="text-primary">
+                  Consumo: R${(uc.demanda_consumo_rs || 0).toFixed(2)}
+                  <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                </span>
+                <span className="text-primary">
+                  Geração: R${(uc.demanda_geracao_rs || 0).toFixed(2)}
+                  <button className="ml-1 inline-flex" onClick={onOpenConfig}><Edit2 className="h-2.5 w-2.5 text-primary" /></button>
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <Separator className="opacity-40" />
+      <div className="flex items-center justify-between">
+        <button onClick={onOpenConfig} className="text-xs text-primary hover:underline flex items-center gap-1.5">
+          <Settings className="h-3.5 w-3.5" /> Configurações adicionais
+        </button>
+        {totalUCs > 1 && uc.is_geradora && (
+          <button onClick={onOpenRateio} className="text-xs text-primary hover:underline flex items-center gap-1.5">
+            <Zap className="h-3.5 w-3.5" /> Gerenciar rateio de créditos
+          </button>
+        )}
+      </div>
     </div>
+  );
+}
+
+// ─── Tarifa Edit Row ──────────────────────────────────────
+function TarifaEditRow({ label, value, onEdit }: { label: string; value: number; onEdit: () => void }) {
+  return (
+    <div className="flex items-center gap-1 text-primary">
+      <span className="text-muted-foreground">{label}:</span>
+      <span>R${(value || 0).toFixed(5)}</span>
+      <button className="inline-flex" onClick={onEdit}><Edit2 className="h-2.5 w-2.5" /></button>
+    </div>
+  );
+}
+
+// ─── Config Modal ─────────────────────────────────────────
+function UCConfigModal({ uc, onUpdate, onClose }: {
+  uc: UCData;
+  onUpdate: (field: keyof UCData, value: any) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-sm">Configurações adicionais — {uc.nome}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Fator de Simultaneidade *</Label>
+            <div className="relative">
+              <Input type="number" step={0.1} value={uc.fator_simultaneidade || ""} onChange={e => onUpdate("fator_simultaneidade", Number(e.target.value))} className="h-9 pr-6" />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Imposto Energia Compensada</Label>
+            <div className="relative">
+              <Input type="number" step={0.01} value={uc.imposto_energia || ""} onChange={e => onUpdate("imposto_energia", Number(e.target.value))} className="h-9 pr-6" />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Custo de Disponibilidade *</Label>
+            <div className="relative">
+              <Input type="number" value={uc.custo_disponibilidade_kwh || ""} onChange={e => onUpdate("custo_disponibilidade_kwh", Number(e.target.value))} className="h-9 pr-10" />
+              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kWh</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Encargos Atual</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                <Input type="number" step={0.01} value={uc.outros_encargos_atual || ""} onChange={e => onUpdate("outros_encargos_atual", Number(e.target.value))} className="h-9 pl-8" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Encargos Novo</Label>
+              <div className="relative">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                <Input type="number" step={0.01} value={uc.outros_encargos_novo || ""} onChange={e => onUpdate("outros_encargos_novo", Number(e.target.value))} className="h-9 pl-8" />
+              </div>
+            </div>
+          </div>
+
+          {/* Tarifas editáveis para Grupo A */}
+          {uc.grupo_tarifario === "A" && (
+            <>
+              <Separator />
+              <Label className="text-xs font-semibold">Tarifas detalhadas</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label className="text-[10px] text-muted-foreground font-semibold">Ponta</Label>
+                  <InputField label="TE" value={uc.tarifa_te_p} onChange={v => onUpdate("tarifa_te_p", v)} prefix="R$" />
+                  <InputField label="TUSD" value={uc.tarifa_tusd_p} onChange={v => onUpdate("tarifa_tusd_p", v)} prefix="R$" />
+                  {uc.regra === "GD3" ? (
+                    <InputField label="Tarifação" value={uc.tarifa_tarifacao_p} onChange={v => onUpdate("tarifa_tarifacao_p", v)} prefix="R$" />
+                  ) : (
+                    <InputField label="FioB" value={uc.tarifa_fio_b_p} onChange={v => onUpdate("tarifa_fio_b_p", v)} prefix="R$" />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] text-muted-foreground font-semibold">Fora Ponta</Label>
+                  <InputField label="TE" value={uc.tarifa_te_fp} onChange={v => onUpdate("tarifa_te_fp", v)} prefix="R$" />
+                  <InputField label="TUSD" value={uc.tarifa_tusd_fp} onChange={v => onUpdate("tarifa_tusd_fp", v)} prefix="R$" />
+                  {uc.regra === "GD3" ? (
+                    <InputField label="Tarifação" value={uc.tarifa_tarifacao_fp} onChange={v => onUpdate("tarifa_tarifacao_fp", v)} prefix="R$" />
+                  ) : (
+                    <InputField label="FioB" value={uc.tarifa_fio_b_fp} onChange={v => onUpdate("tarifa_fio_b_fp", v)} prefix="R$" />
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <InputField label="Demanda Consumo (R$)" value={uc.demanda_consumo_rs} onChange={v => onUpdate("demanda_consumo_rs", v)} prefix="R$" />
+                <InputField label="Demanda Geração (R$)" value={uc.demanda_geracao_rs} onChange={v => onUpdate("demanda_geracao_rs", v)} prefix="R$" />
+              </div>
+            </>
+          )}
+
+          {/* Tarifas para Grupo B */}
+          {uc.grupo_tarifario === "B" && (
+            <>
+              <Separator />
+              <div className="grid grid-cols-2 gap-3">
+                <InputField label="Tarifa (R$/kWh)" value={uc.tarifa_distribuidora} onChange={v => onUpdate("tarifa_distribuidora", v)} prefix="R$" step={0.00001} />
+                <InputField label="Fio B (R$/kWh)" value={uc.tarifa_fio_b} onChange={v => onUpdate("tarifa_fio_b", v)} prefix="R$" step={0.00001} />
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={onClose}>Fechar</Button>
+          <Button size="sm" onClick={onClose}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Input Field Helper ────────────────────────────────────
+function InputField({ label, value, onChange, prefix, step }: {
+  label: string; value: number; onChange: (v: number) => void; prefix?: string; step?: number;
+}) {
+  return (
+    <div className="space-y-0.5">
+      <Label className="text-[10px] text-muted-foreground">{label}</Label>
+      <div className="relative">
+        {prefix && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">{prefix}</span>}
+        <Input
+          type="number"
+          step={step || 0.01}
+          value={value || ""}
+          onChange={e => onChange(Number(e.target.value))}
+          className={`h-7 text-xs ${prefix ? "pl-7" : ""}`}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─── Rateio Modal ──────────────────────────────────────────
+function RateioModal({ open, onOpenChange, ucs, rateioManual, onRateioManualChange, onUpdateRateio, totalRateio }: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  ucs: UCData[];
+  rateioManual: boolean;
+  onRateioManualChange: (v: boolean) => void;
+  onUpdateRateio: (index: number, value: number) => void;
+  totalRateio: number;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-sm flex items-center justify-between">
+            Gerenciador de rateio de créditos
+            <Badge variant={totalRateio === 100 ? "default" : "destructive"} className="text-xs">
+              Rateio Total: {totalRateio}%
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Switch checked={rateioManual} onCheckedChange={onRateioManualChange} />
+            <Label className="text-xs">Habilitar rateio manual dos créditos</Label>
+          </div>
+          {rateioManual ? (
+            <div className="space-y-3">
+              {ucs.map((uc, i) => (
+                <div key={uc.id} className="flex items-center justify-between gap-3 p-2 rounded-lg bg-muted/30">
+                  <span className="text-xs font-medium">{i + 1}. {uc.nome} {uc.is_geradora ? "(Geradora)" : ""}</span>
+                  <div className="relative w-20">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      value={uc.rateio_creditos || ""}
+                      onChange={e => onUpdateRateio(i, Number(e.target.value))}
+                      className="h-7 text-xs pr-5"
+                    />
+                    <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-4">
+              <Badge variant="outline" className="text-xs">Rateio automático</Badge>
+              <br /><br />
+              Os créditos serão distribuídos automaticamente entre as UCs.
+            </p>
+          )}
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>Voltar</Button>
+          <Button size="sm" onClick={() => onOpenChange(false)}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Mês a Mês Modal ──────────────────────────────────────
+function MesAMesModal({ uc, tipo, onUpdate, onClose }: {
+  uc: UCData;
+  tipo: "consumo" | "hp" | "hfp";
+  onUpdate: (mes: string, value: number) => void;
+  onClose: () => void;
+}) {
+  const label = tipo === "consumo" ? "Consumo" : tipo === "hp" ? "Consumo Ponta (HP)" : "Consumo Fora Ponta (HFP)";
+  const meses = tipo === "consumo" ? uc.consumo_meses : tipo === "hp" ? uc.consumo_meses_p : uc.consumo_meses_fp;
+
+  return (
+    <Dialog open onOpenChange={onClose}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-sm">{label} — mês a mês — {uc.nome}</DialogTitle>
+        </DialogHeader>
+        <div className="grid grid-cols-4 gap-2">
+          {MESES.map(m => (
+            <div key={m} className="space-y-0.5">
+              <Label className="text-[10px] uppercase text-muted-foreground">{m}</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min={0}
+                  value={meses[m] || ""}
+                  onChange={e => onUpdate(m, Number(e.target.value))}
+                  className="h-8 text-xs pr-10"
+                />
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <DialogFooter>
+          <Button size="sm" onClick={onClose}>Fechar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
