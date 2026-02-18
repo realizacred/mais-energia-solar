@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,11 +30,6 @@ const GRUPOS = [
   { value: "B", label: "Grupo B (Baixa Tensão)" },
   { value: "A", label: "Grupo A (Média/Alta Tensão)" },
   { value: "AB", label: "Ambos" },
-];
-
-const TIPOS = [
-  { value: "html", label: "HTML (Web)" },
-  { value: "docx", label: "DOCX (Word)" },
 ];
 
 export function TemplatesManager() {
@@ -77,6 +73,11 @@ export function TemplatesManager() {
 
   const cancelEdit = () => { setEditingId(null); setForm({}); };
 
+  const handleTabChange = (tab: "html" | "docx") => {
+    cancelEdit();
+    setTipoTab(tab);
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -94,13 +95,10 @@ export function TemplatesManager() {
 
     setUploading(true);
     try {
-      // Refresh session for correct tenant claims
       await supabase.auth.refreshSession();
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Não autenticado");
 
-      // Get tenant_id from profile
       const { data: profile } = await supabase
         .from("profiles")
         .select("tenant_id")
@@ -182,19 +180,20 @@ export function TemplatesManager() {
   };
 
   const isDocx = form.tipo === "docx";
+  const dialogOpen = editingId !== null;
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       <div className="flex items-center justify-between">
         <div>
-        <h2 className="text-lg font-bold flex items-center gap-2">
+          <h2 className="text-lg font-bold flex items-center gap-2">
             <FileText className="h-5 w-5 text-secondary" /> Templates de proposta
           </h2>
           <p className="text-sm text-muted-foreground">
             Gerencie modelos HTML e DOCX usados na geração de propostas
           </p>
         </div>
-        <Button onClick={() => { setForm(f => ({ ...f, tipo: tipoTab })); startNew(); }} className="gap-1.5" disabled={editingId !== null}>
+        <Button onClick={startNew} className="gap-1.5" disabled={dialogOpen}>
           <Plus className="h-4 w-4" /> Novo template
         </Button>
       </div>
@@ -202,7 +201,7 @@ export function TemplatesManager() {
       {/* Tipo Tabs */}
       <div className="flex gap-1 p-1 rounded-xl bg-muted/30 border border-border/40 w-fit">
         <button
-          onClick={() => setTipoTab("html")}
+          onClick={() => handleTabChange("html")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             tipoTab === "html"
               ? "bg-secondary text-secondary-foreground shadow-sm"
@@ -214,7 +213,7 @@ export function TemplatesManager() {
           <Badge className="text-[9px] bg-secondary/80 text-secondary-foreground border-0">{htmlCount}</Badge>
         </button>
         <button
-          onClick={() => setTipoTab("docx")}
+          onClick={() => handleTabChange("docx")}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
             tipoTab === "docx"
               ? "bg-secondary text-secondary-foreground shadow-sm"
@@ -227,10 +226,18 @@ export function TemplatesManager() {
         </button>
       </div>
 
-      {/* Edit Form */}
-      {editingId && (
-        <Card className="border-secondary/30 bg-secondary/5 rounded-xl">
-          <CardContent className="pt-4 space-y-4">
+      {/* Dialog Form */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) cancelEdit(); }}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <FileText className="h-4 w-4 text-secondary" />
+              {editingId === "new" ? "Novo template" : "Editar template"}
+              <Badge variant="secondary" className="text-[10px]">{form.tipo === "docx" ? "DOCX" : "WEB"}</Badge>
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Nome</Label>
@@ -335,13 +342,14 @@ export function TemplatesManager() {
                 </Button>
               )}
             </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="ghost" size="sm" onClick={cancelEdit}><X className="h-3 w-3 mr-1" /> Cancelar</Button>
-              <Button size="sm" onClick={handleSave} disabled={uploading}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+
+          <DialogFooter>
+            <Button variant="ghost" size="sm" onClick={cancelEdit}><X className="h-3 w-3 mr-1" /> Cancelar</Button>
+            <Button size="sm" onClick={handleSave} disabled={uploading}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Preview */}
       {previewHtml && (
@@ -363,11 +371,11 @@ export function TemplatesManager() {
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : filteredTemplates.length === 0 && !editingId ? (
+      ) : filteredTemplates.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <FileText className="h-10 w-10 mx-auto opacity-20 mb-3" />
           <p className="text-sm">Nenhum template {tipoTab === "html" ? "WEB" : "DOCX"} criado.</p>
-          <Button variant="link" onClick={() => { setForm(f => ({ ...f, tipo: tipoTab })); startNew(); }} className="mt-2">
+          <Button variant="link" onClick={startNew} className="mt-2">
             Criar primeiro template {tipoTab.toUpperCase()}
           </Button>
         </div>
@@ -404,10 +412,10 @@ export function TemplatesManager() {
                         </Button>
                       </a>
                     )}
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(t)} disabled={editingId !== null}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(t)} disabled={dialogOpen}>
                       <Edit2 className="h-3 w-3" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => handleDelete(t.id)} disabled={editingId !== null}>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => handleDelete(t.id)} disabled={dialogOpen}>
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
