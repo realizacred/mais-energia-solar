@@ -57,49 +57,35 @@ export function StepPagamento({
   const [fluxoFinanciamento, setFluxoFinanciamento] = useState("sem_financiamento");
 
   // ─── Bank groups with auto-generated options
-  const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() =>
-    bancos.map(b => ({
+  const buildBancoGroups = (bankList: BancoFinanciamento[], price: number): BancoGroup[] =>
+    bankList.map(b => ({
       banco: b,
       opcoes: DEFAULT_PARCELAS
         .filter(p => p <= b.max_parcelas)
-        .map(parcelas => {
-          const vf = precoFinal;
-          return {
-            id: crypto.randomUUID(),
-            banco_id: b.id,
-            banco_nome: b.nome,
-            entrada: 0,
-            num_parcelas: parcelas,
-            taxa_mensal: b.taxa_mensal,
-            carencia_meses: 2,
-            valor_financiado: vf,
-            valor_parcela: calcParcela({ valor_financiado: vf, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
-          };
-        }),
-    }))
-  );
+        .map(parcelas => ({
+          id: crypto.randomUUID(),
+          banco_id: b.id,
+          banco_nome: b.nome,
+          entrada: 0,
+          num_parcelas: parcelas,
+          taxa_mensal: b.taxa_mensal,
+          carencia_meses: 2,
+          valor_financiado: price,
+          valor_parcela: calcParcela({ valor_financiado: price, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+        })),
+    }));
 
+  const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() => buildBancoGroups(bancos, precoFinal));
   const [selectedBancoIdx, setSelectedBancoIdx] = useState(0);
+  const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
+  const [novoNome, setNovoNome] = useState("");
+  const [novoTaxa, setNovoTaxa] = useState("");
+  const [novoMaxParcelas, setNovoMaxParcelas] = useState("60");
 
   // Sync bank groups when bancos load
   useMemo(() => {
     if (bancos.length > 0 && bancoGroups.length === 0) {
-      setBancoGroups(bancos.map(b => ({
-        banco: b,
-        opcoes: DEFAULT_PARCELAS
-          .filter(p => p <= b.max_parcelas)
-          .map(parcelas => ({
-            id: crypto.randomUUID(),
-            banco_id: b.id,
-            banco_nome: b.nome,
-            entrada: 0,
-            num_parcelas: parcelas,
-            taxa_mensal: b.taxa_mensal,
-            carencia_meses: 2,
-            valor_financiado: precoFinal,
-            valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: 0, num_parcelas: parcelas, taxa_mensal: b.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
-          })),
-      })));
+      setBancoGroups(buildBancoGroups(bancos, precoFinal));
     }
   }, [bancos]);
 
@@ -317,7 +303,7 @@ export function StepPagamento({
                 <Badge variant="outline" className="text-[9px] h-4 px-1.5">{g.opcoes.length}</Badge>
               </button>
             ))}
-            <Button variant="ghost" size="sm" className="w-full text-xs text-primary gap-1 mt-2 h-8">
+            <Button variant="ghost" size="sm" className="w-full text-xs text-primary gap-1 mt-2 h-8" onClick={() => setShowNovoFinanciamento(true)}>
               <Plus className="h-3 w-3" /> Novo financiamento
             </Button>
           </div>
@@ -411,7 +397,7 @@ export function StepPagamento({
                     <td className="py-2 px-3 text-right text-muted-foreground">{row.geracao.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</td>
                     <td className="py-2 px-3 text-right text-muted-foreground">{row.tarifa.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td className="py-2 px-3 text-right text-foreground">{row.economia.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}</td>
-                    <td className={cn("py-2 px-3 text-right font-medium", row.investimento < 0 ? "text-orange-500" : "text-muted-foreground")}>
+                    <td className={cn("py-2 px-3 text-right font-medium", row.investimento < 0 ? "text-warning" : "text-muted-foreground")}>
                       {row.investimento < 0 ? `-${Math.abs(row.investimento).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}` : row.investimento.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}
                     </td>
                     <td className={cn("py-2 px-3 text-right font-semibold", row.fluxoCaixa < 0 ? "text-destructive" : "text-success")}>
@@ -440,6 +426,63 @@ export function StepPagamento({
 
       {/* ═══ Modal: Variáveis ═══ */}
       <VariaveisModal open={showVariaveisModal} onClose={() => setShowVariaveisModal(false)} />
+
+      {/* ═══ Modal: Novo Financiamento ═══ */}
+      <Dialog open={showNovoFinanciamento} onOpenChange={setShowNovoFinanciamento}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Novo financiamento</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs">Nome do banco *</Label>
+              <Input value={novoNome} onChange={e => setNovoNome(e.target.value)} className="h-8 text-xs" placeholder="Ex: Sicoob" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Taxa mensal (%)</Label>
+              <Input type="number" step={0.01} value={novoTaxa} onChange={e => setNovoTaxa(e.target.value)} className="h-8 text-xs" placeholder="1.49" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Máx. parcelas</Label>
+              <Input type="number" value={novoMaxParcelas} onChange={e => setNovoMaxParcelas(e.target.value)} className="h-8 text-xs" />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setShowNovoFinanciamento(false)}>Cancelar</Button>
+            <Button size="sm" onClick={() => {
+              if (!novoNome.trim()) return;
+              const newBanco: BancoFinanciamento = {
+                id: crypto.randomUUID(),
+                nome: novoNome.trim(),
+                taxa_mensal: parseFloat(novoTaxa) || 0,
+                max_parcelas: parseInt(novoMaxParcelas) || 60,
+              };
+              const newGroup: BancoGroup = {
+                banco: newBanco,
+                opcoes: DEFAULT_PARCELAS
+                  .filter(p => p <= newBanco.max_parcelas)
+                  .map(parcelas => ({
+                    id: crypto.randomUUID(),
+                    banco_id: newBanco.id,
+                    banco_nome: newBanco.nome,
+                    entrada: 0,
+                    num_parcelas: parcelas,
+                    taxa_mensal: newBanco.taxa_mensal,
+                    carencia_meses: 2,
+                    valor_financiado: precoFinal,
+                    valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: 0, num_parcelas: parcelas, taxa_mensal: newBanco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
+                  })),
+              };
+              setBancoGroups(prev => [...prev, newGroup]);
+              setSelectedBancoIdx(bancoGroups.length);
+              setShowNovoFinanciamento(false);
+              setNovoNome("");
+              setNovoTaxa("");
+              setNovoMaxParcelas("60");
+            }}>Adicionar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
