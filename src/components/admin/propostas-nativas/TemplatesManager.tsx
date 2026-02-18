@@ -430,7 +430,7 @@ export function TemplatesManager() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
-                    {t.tipo === "html" && t.template_html && (
+                    {((t.tipo === "html" && t.template_html) || (t.tipo === "docx" && t.file_url)) && (
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-secondary" onClick={() => setPreviewTemplate(t)} title="Preview com dados reais">
                         <Eye className="h-3 w-3" />
                       </Button>
@@ -457,12 +457,15 @@ export function TemplatesManager() {
       )}
 
       {/* Preview Dialog */}
-      {previewTemplate && previewTemplate.template_html && (
+      {previewTemplate && (previewTemplate.template_html || previewTemplate.file_url) && (
         <TemplatePreviewDialog
           open={!!previewTemplate}
           onOpenChange={(open) => { if (!open) setPreviewTemplate(null); }}
           templateHtml={previewTemplate.template_html}
           templateNome={previewTemplate.nome}
+          templateId={previewTemplate.id}
+          templateTipo={previewTemplate.tipo as "html" | "docx"}
+          fileUrl={previewTemplate.file_url}
         />
       )}
     </div>

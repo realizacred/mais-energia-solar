@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Eye, Loader2, Search, User, X } from "lucide-react";
+import { Eye, Loader2, Search, User, Download, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +12,12 @@ import { supabase } from "@/integrations/supabase/client";
 interface TemplatePreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  templateHtml: string;
+  templateHtml?: string | null;
   templateNome: string;
+  /** For DOCX preview */
+  templateId?: string;
+  templateTipo?: "html" | "docx";
+  fileUrl?: string | null;
 }
 
 interface LeadOption {
@@ -31,14 +35,19 @@ export function TemplatePreviewDialog({
   onOpenChange,
   templateHtml,
   templateNome,
+  templateId,
+  templateTipo = "html",
+  fileUrl,
 }: TemplatePreviewDialogProps) {
   const [leads, setLeads] = useState<LeadOption[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [selectedLead, setSelectedLead] = useState<LeadOption | null>(null);
   const [search, setSearch] = useState("");
   const [renderedHtml, setRenderedHtml] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
 
-  // Load leads when dialog opens
+  const isDocx = templateTipo === "docx";
+
   useEffect(() => {
     if (!open) {
       setSelectedLead(null);
@@ -73,7 +82,16 @@ export function TemplatePreviewDialog({
   const handleSelectLead = async (lead: LeadOption) => {
     setSelectedLead(lead);
 
-    // Fetch additional data for full variable replacement
+    if (isDocx) {
+      await handleDocxPreview(lead);
+    } else {
+      await handleHtmlPreview(lead);
+    }
+  };
+
+  const handleHtmlPreview = async (lead: LeadOption) => {
+    if (!templateHtml) return;
+
     let clienteData: Record<string, any> = {};
     const { data: cliente } = await supabase
       .from("clientes")
@@ -83,10 +101,8 @@ export function TemplatePreviewDialog({
 
     if (cliente) clienteData = cliente;
 
-    // Build variable map from real data
     const now = new Date();
     const vars: Record<string, string> = {
-      // Cliente
       "cliente.nome": clienteData.nome || lead.nome || "—",
       "cliente.telefone": clienteData.telefone || lead.telefone || "—",
       "cliente.email": clienteData.email || "—",
@@ -97,17 +113,13 @@ export function TemplatePreviewDialog({
       "cliente.rua": clienteData.rua || "—",
       "cliente.numero": clienteData.numero || "—",
       "cliente.cep": clienteData.cep || "—",
-      // Lead data
       "entrada.consumo_medio": String(lead.media_consumo || 0),
       "entrada.potencia_kwp": String(clienteData.potencia_kwp || 0),
-      // Financeiro
       "financeiro.valor_total": formatCurrency(lead.valor_estimado || clienteData.valor_projeto || 0),
-      // Data
       "comercial.data_proposta": now.toLocaleDateString("pt-BR"),
       "comercial.validade_proposta": new Date(now.getTime() + 15 * 86400000).toLocaleDateString("pt-BR"),
     };
 
-    // Also support legacy [campo] format
     const legacyMap: Record<string, string> = {
       nome_cliente: vars["cliente.nome"],
       telefone_cliente: vars["cliente.telefone"],
@@ -122,20 +134,13 @@ export function TemplatePreviewDialog({
       validade_proposta: vars["comercial.validade_proposta"],
     };
 
-    // Replace variables in HTML
     let html = templateHtml;
-
-    // Replace {{grupo.campo}} format
     for (const [key, value] of Object.entries(vars)) {
       html = html.replace(new RegExp(`\\{\\{\\s*${escapeRegex(key)}\\s*\\}\\}`, "gi"), value);
     }
-
-    // Replace [campo] format
     for (const [key, value] of Object.entries(legacyMap)) {
       html = html.replace(new RegExp(`\\[${escapeRegex(key)}\\]`, "gi"), value);
     }
-
-    // Mark remaining unresolved variables
     html = html.replace(/\{\{[^}]+\}\}/g, (match) => `<span style="background:#fef3c7;color:#92400e;padding:0 4px;border-radius:3px;font-size:0.8em">${match}</span>`);
     html = html.replace(/\[[a-z_]+\]/gi, (match) => `<span style="background:#fef3c7;color:#92400e;padding:0 4px;border-radius:3px;font-size:0.8em">${match}</span>`);
 
@@ -143,13 +148,55 @@ export function TemplatePreviewDialog({
     toast({ title: `Preview gerado com dados de ${lead.nome}` });
   };
 
+  const handleDocxPreview = async (lead: LeadOption) => {
+    if (!templateId) return;
+
+    setGenerating(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) throw new Error("Não autenticado");
+
+      const response = await supabase.functions.invoke("template-preview", {
+        body: { template_id: templateId, lead_id: lead.id },
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message || "Erro ao gerar preview DOCX");
+      }
+
+      // Response data is the DOCX binary
+      const blob = response.data instanceof Blob
+        ? response.data
+        : new Blob([response.data], {
+            type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          });
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `preview_${templateNome.replace(/[^a-zA-Z0-9]/g, "_")}_${lead.nome.replace(/[^a-zA-Z0-9]/g, "_")}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: `DOCX gerado com dados de ${lead.nome}`, description: "Download iniciado!" });
+    } catch (err: any) {
+      console.error("[DOCX Preview]", err);
+      toast({ title: "Erro ao gerar preview DOCX", description: err.message, variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px] max-h-[85vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-5 pb-3">
           <DialogTitle className="text-base font-bold flex items-center gap-2">
-            <Eye className="h-4 w-4 text-secondary" />
+            {isDocx ? <FileDown className="h-4 w-4 text-secondary" /> : <Eye className="h-4 w-4 text-secondary" />}
             Preview: {templateNome}
+            {isDocx && <Badge variant="secondary" className="text-[9px]">DOCX</Badge>}
           </DialogTitle>
         </DialogHeader>
 
@@ -183,11 +230,12 @@ export function TemplatePreviewDialog({
                     <button
                       key={lead.id}
                       onClick={() => handleSelectLead(lead)}
+                      disabled={generating}
                       className={`w-full text-left px-2.5 py-2 rounded-lg transition-all text-xs ${
                         selectedLead?.id === lead.id
                           ? "bg-secondary/10 border border-secondary/30"
                           : "hover:bg-muted/50"
-                      }`}
+                      } ${generating ? "opacity-50 cursor-wait" : ""}`}
                     >
                       <div className="flex items-center gap-2">
                         <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
@@ -209,33 +257,66 @@ export function TemplatePreviewDialog({
 
           {/* Preview area */}
           <div className="flex-1 flex flex-col min-h-0">
-            {!renderedHtml ? (
+            {isDocx ? (
+              /* DOCX mode - show status/instructions */
               <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                <div className="text-center space-y-2">
-                  <Eye className="h-8 w-8 mx-auto opacity-20" />
-                  <p className="text-sm">Selecione um lead para gerar o preview</p>
-                  <p className="text-[10px]">As variáveis serão substituídas por dados reais</p>
+                <div className="text-center space-y-3 px-8">
+                  {generating ? (
+                    <>
+                      <Loader2 className="h-10 w-10 mx-auto animate-spin text-secondary" />
+                      <p className="text-sm font-medium text-foreground">Gerando DOCX com dados reais...</p>
+                      <p className="text-[11px]">As variáveis estão sendo substituídas no documento</p>
+                    </>
+                  ) : selectedLead ? (
+                    <>
+                      <Download className="h-10 w-10 mx-auto text-success opacity-70" />
+                      <p className="text-sm font-medium text-foreground">Download iniciado!</p>
+                      <p className="text-[11px]">
+                        DOCX gerado com dados de <strong>{selectedLead.nome}</strong>
+                      </p>
+                      <p className="text-[10px]">Selecione outro lead para gerar novamente</p>
+                    </>
+                  ) : (
+                    <>
+                      <FileDown className="h-10 w-10 mx-auto opacity-20" />
+                      <p className="text-sm">Selecione um lead para gerar o DOCX</p>
+                      <p className="text-[10px]">
+                        As variáveis do template serão substituídas por dados reais e o arquivo será baixado automaticamente
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             ) : (
-              <div className="flex-1 min-h-0">
-                <div className="px-3 py-1.5 border-b border-border/50 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="text-[9px]">
-                      {selectedLead?.nome}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">
-                      Variáveis em amarelo = não resolvidas
-                    </span>
+              /* HTML mode - inline preview */
+              !renderedHtml ? (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  <div className="text-center space-y-2">
+                    <Eye className="h-8 w-8 mx-auto opacity-20" />
+                    <p className="text-sm">Selecione um lead para gerar o preview</p>
+                    <p className="text-[10px]">As variáveis serão substituídas por dados reais</p>
                   </div>
                 </div>
-                <iframe
-                  srcDoc={renderedHtml}
-                  title="Template Preview"
-                  className="w-full border-0"
-                  style={{ height: "calc(85vh - 140px)", pointerEvents: "none" }}
-                />
-              </div>
+              ) : (
+                <div className="flex-1 min-h-0">
+                  <div className="px-3 py-1.5 border-b border-border/50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-[9px]">
+                        {selectedLead?.nome}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">
+                        Variáveis em amarelo = não resolvidas
+                      </span>
+                    </div>
+                  </div>
+                  <iframe
+                    srcDoc={renderedHtml}
+                    title="Template Preview"
+                    className="w-full border-0"
+                    style={{ height: "calc(85vh - 140px)", pointerEvents: "none" }}
+                  />
+                </div>
+              )
             )}
           </div>
         </div>
