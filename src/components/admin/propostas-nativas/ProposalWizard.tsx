@@ -280,12 +280,14 @@ export function ProposalWizard() {
             .eq("id", cli.lead_id)
             .single();
           if (!cancelled && lead) {
+            const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
             setSelectedLead({
               id: lead.id, nome: lead.nome, telefone: lead.telefone,
               lead_code: lead.lead_code || "", estado: lead.estado,
               cidade: lead.cidade, media_consumo: lead.media_consumo,
               tipo_telhado: lead.tipo_telhado,
             });
+            if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
             if (lead.estado || lead.media_consumo) {
               setUcs(prev => {
                 const updated = [...prev];
@@ -293,7 +295,7 @@ export function ProposalWizard() {
                   ...updated[0],
                   estado: lead.estado || updated[0].estado,
                   cidade: lead.cidade || updated[0].cidade,
-                  tipo_telhado: lead.tipo_telhado || updated[0].tipo_telhado,
+                  tipo_telhado: mappedTelhado || updated[0].tipo_telhado,
                   consumo_mensal: lead.media_consumo || updated[0].consumo_mensal,
                 };
                 return updated;
