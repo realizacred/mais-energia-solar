@@ -313,8 +313,11 @@ export function ProposalWizard() {
   }, [customerIdFromUrl, dealIdFromUrl]);
 
   // ─── Auto-load from lead_id URL param (from PropostasTab selection)
+  // When orc_id is also present, skip location pre-fill (ORC takes priority)
   useEffect(() => {
     if (!leadIdFromUrl || selectedLead?.id === leadIdFromUrl) return;
+    // If ORC is present, only load lead for context (name/phone) — ORC handles location
+    const orcTakesPriority = !!orcIdFromUrl;
     let cancelled = false;
     (async () => {
       try {
@@ -332,40 +335,41 @@ export function ProposalWizard() {
           tipo_telhado: lead.tipo_telhado,
         });
 
-        // Pre-fill location (with tipo_telhado mapping)
-        if (lead.estado) setLocEstado(lead.estado);
-        if (lead.cidade) setLocCidade(lead.cidade);
-        const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
-        if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
+        // When ORC is present, skip location pre-fill — ORC data has priority
+        if (!orcTakesPriority) {
+          if (lead.estado) setLocEstado(lead.estado);
+          if (lead.cidade) setLocCidade(lead.cidade);
+          const mappedTelhado = mapLeadTipoTelhadoToProposal(lead.tipo_telhado);
+          if (mappedTelhado) setLocTipoTelhado(mappedTelhado);
 
-        // Pre-fill UCs: consumo + fase/tensão + tipo_telhado
-        const consumo = lead.consumo_previsto || lead.media_consumo || 0;
-        const faseData = redeAtendimentoToFaseTensao(lead.rede_atendimento);
+          const consumo = lead.consumo_previsto || lead.media_consumo || 0;
+          const faseData = redeAtendimentoToFaseTensao(lead.rede_atendimento);
 
-        setUcs(prev => {
-          const updated = [...prev];
-          updated[0] = {
-            ...updated[0],
-            estado: lead.estado || updated[0].estado,
-            cidade: lead.cidade || updated[0].cidade,
-            tipo_telhado: mappedTelhado || updated[0].tipo_telhado,
-            consumo_mensal: consumo || updated[0].consumo_mensal,
-            ...(faseData ? {
-              fase: faseData.fase,
-              fase_tensao: faseData.fase_tensao,
-              tensao_rede: faseData.tensao_rede,
-            } : {}),
-          };
-          return updated;
-        });
+          setUcs(prev => {
+            const updated = [...prev];
+            updated[0] = {
+              ...updated[0],
+              estado: lead.estado || updated[0].estado,
+              cidade: lead.cidade || updated[0].cidade,
+              tipo_telhado: mappedTelhado || updated[0].tipo_telhado,
+              consumo_mensal: consumo || updated[0].consumo_mensal,
+              ...(faseData ? {
+                fase: faseData.fase,
+                fase_tensao: faseData.fase_tensao,
+                tensao_rede: faseData.tensao_rede,
+              } : {}),
+            };
+            return updated;
+          });
 
-        toast({ title: "Dados do orçamento carregados", description: `Lead: ${lead.nome} — ${consumo} kWh` });
+          toast({ title: "Dados do orçamento carregados", description: `Lead: ${lead.nome} — ${consumo} kWh` });
+        }
       } catch (err) {
         console.error("[ProposalWizard] Error loading lead context:", err);
       }
     })();
     return () => { cancelled = true; };
-  }, [leadIdFromUrl]);
+  }, [leadIdFromUrl, orcIdFromUrl]);
 
   // ─── Auto-load from orc_id URL param (direct ORC click from PropostasTab)
   useEffect(() => {
