@@ -67,7 +67,7 @@ export function TemplatesManager() {
 
   const startNew = () => {
     setEditingId("new");
-    setForm({ nome: "", descricao: "", grupo: "B", categoria: "geral", tipo: "html", template_html: "", file_url: null, ativo: true, ordem: templates.length });
+    setForm({ nome: "", descricao: "", grupo: "B", categoria: "geral", tipo: tipoTab, template_html: "", file_url: null, ativo: true, ordem: templates.length });
   };
 
   const startEdit = (t: PropostaTemplate) => {
@@ -253,10 +253,9 @@ export function TemplatesManager() {
               </div>
               <div>
                 <Label className="text-xs">Tipo</Label>
-                <Select value={form.tipo || "html"} onValueChange={v => setForm(f => ({ ...f, tipo: v }))}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>{TIPOS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
-                </Select>
+                <div className="h-8 flex items-center px-3 rounded-md border border-border/40 bg-muted/30 text-xs font-medium text-muted-foreground">
+                  {form.tipo === "docx" ? "📄 DOCX (Word)" : "🌐 HTML (Web)"}
+                </div>
               </div>
               <div>
                 <Label className="text-xs">Ordem</Label>
