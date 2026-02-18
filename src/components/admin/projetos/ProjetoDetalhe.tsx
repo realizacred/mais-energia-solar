@@ -451,6 +451,16 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                     size="sm"
                     variant="destructive"
                     onClick={async () => {
+                      // Verificar se tem proposta antes de marcar como perdido
+                      if (propostasCount === 0) {
+                        toast({
+                          title: "Sem proposta vinculada",
+                          description: "Não é possível marcar como perdido um projeto sem proposta. Crie uma proposta primeiro ou exclua o projeto.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      if (!window.confirm("Tem certeza que deseja marcar este projeto como perdido? Após isso, não será possível editar funis, etapas, consultor ou criar propostas.")) return;
                       const prevStatus = deal.status;
                       const prevStageId = deal.stage_id;
                       const lostStage = stages.find(s => s.is_closed && !s.is_won);
@@ -571,7 +581,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
             <ChatTab customerId={deal.customer_id} customerPhone={customerPhone} />
           )}
           {activeTab === "propostas" && (
-            <PropostasTab customerId={deal.customer_id} dealTitle={deal.title} navigate={navigate} />
+            <PropostasTab customerId={deal.customer_id} dealTitle={deal.title} navigate={navigate} isClosed={isClosed} />
           )}
           {activeTab === "vinculo" && (
             <VariableMapperPanel
@@ -1260,7 +1270,7 @@ function ClientRow({ icon: Icon, label, muted, isLink }: { icon: typeof User; la
 // ═══════════════════════════════════════════════════
 // ─── TAB: Propostas ─────────────────────────────
 // ═══════════════════════════════════════════════════
-function PropostasTab({ customerId, dealTitle, navigate }: { customerId: string | null; dealTitle: string; navigate: any }) {
+function PropostasTab({ customerId, dealTitle, navigate, isClosed }: { customerId: string | null; dealTitle: string; navigate: any; isClosed?: boolean }) {
   const [propostas, setPropostas] = useState<PropostaNativa[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -1312,9 +1322,16 @@ function PropostasTab({ customerId, dealTitle, navigate }: { customerId: string 
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">Propostas do Cliente</h3>
-        <Button size="sm" onClick={() => navigate("/admin/propostas-nativas/nova")} className="gap-1.5">
-          <Plus className="h-3.5 w-3.5" />Nova Proposta
-        </Button>
+        {isClosed ? (
+          <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Projeto fechado — não é possível criar propostas
+          </Badge>
+        ) : (
+          <Button size="sm" onClick={() => navigate("/admin/propostas-nativas/nova")} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />Nova Proposta
+          </Button>
+        )}
       </div>
 
       {propostas.length === 0 ? (
