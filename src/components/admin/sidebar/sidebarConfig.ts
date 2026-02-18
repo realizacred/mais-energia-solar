@@ -46,6 +46,7 @@ import {
   QrCode,
   History as HistoryIcon,
   FolderKanban,
+  MapPin,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -248,6 +249,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     defaultOpen: false,
     items: [
       { id: "integracoes", title: "Integrações", icon: Cable, description: "Google Agenda e serviços externos", keywords: ["integração", "google", "calendar", "agenda", "oauth"] },
+      { id: "google-maps-config", title: "Google Maps", icon: MapPin, description: "API Key para mapas", keywords: ["google", "maps", "mapa", "api", "geocodificação"] },
 
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"] },
       { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens", keywords: ["API", "automação", "webhook", "bot"] },
