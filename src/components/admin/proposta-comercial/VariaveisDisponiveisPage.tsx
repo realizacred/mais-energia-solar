@@ -53,10 +53,7 @@ export function VariaveisDisponiveisPage() {
   const [activeCategory, setActiveCategory] = useState<VariableCategory | "customizada">("entrada");
 
   const filtered = useMemo(() => {
-    let items = VARIABLES_CATALOG;
-    if (activeCategory !== "customizada") {
-      items = items.filter((v) => v.category === activeCategory);
-    }
+    let items = VARIABLES_CATALOG.filter((v) => v.category === activeCategory);
     if (search.trim()) {
       const q = search.toLowerCase();
       items = items.filter(
@@ -159,8 +156,68 @@ export function VariaveisDisponiveisPage() {
 
         {/* Content */}
         {activeCategory === "customizada" ? (
-          <div className="p-4">
-            <VariaveisCustomManager />
+          <div>
+            {/* Show catalog vc_* entries first */}
+            {filtered.length > 0 && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-secondary/5 border-b-2 border-secondary/20">
+                      <th className="text-left px-4 py-3 font-semibold text-secondary uppercase tracking-wider text-[10px] w-[260px]">Item</th>
+                      <th className="text-left px-3 py-3 font-semibold text-secondary uppercase tracking-wider text-[10px]">Chave</th>
+                      <th className="text-left px-3 py-3 font-semibold text-secondary uppercase tracking-wider text-[10px]">Canônica</th>
+                      <th className="text-center px-3 py-3 font-semibold text-secondary uppercase tracking-wider text-[10px] w-[80px]">Unidade</th>
+                      <th className="text-right px-4 py-3 font-semibold text-secondary uppercase tracking-wider text-[10px] w-[100px]">Exemplo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((v, idx) => (
+                      <tr
+                        key={v.canonicalKey}
+                        className={`border-b border-border/30 transition-colors group ${idx % 2 === 0 ? "bg-card" : "bg-muted/15"} hover:bg-primary/5`}
+                      >
+                        <td className="px-4 py-2.5">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center gap-1.5 cursor-help">
+                                <ChevronRight className="h-3 w-3 text-primary/40 group-hover:text-primary transition-colors shrink-0" />
+                                <span className="font-semibold text-foreground text-[12px]">{v.label}</span>
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" className="max-w-[300px] text-xs">
+                              <p className="font-medium mb-0.5">{v.label}</p>
+                              <p className="text-muted-foreground">{v.description}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-1">
+                            <code className="font-mono text-secondary/80 bg-secondary/5 px-1.5 py-0.5 rounded text-[11px]">{v.legacyKey}</code>
+                            <CopyButton text={v.legacyKey} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex items-center gap-1">
+                            <code className="font-mono text-primary/80 bg-primary/5 px-1.5 py-0.5 rounded text-[11px]">{v.canonicalKey}</code>
+                            <CopyButton text={v.canonicalKey} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2.5 text-center">
+                          <span className="text-[11px] text-muted-foreground font-mono">{v.unit || "—"}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          <span className="text-[11px] text-foreground/70 font-mono tabular-nums">{v.example}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {/* Manager for CRUD */}
+            <div className="p-4 border-t border-border/40">
+              <VariaveisCustomManager />
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
