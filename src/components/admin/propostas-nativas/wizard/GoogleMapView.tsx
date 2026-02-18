@@ -1,10 +1,14 @@
 /// <reference types="google.maps" />
 import { useEffect, useRef, useCallback, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Map, Satellite, Pencil, Trash2, Camera, Circle, Square, Minus, ArrowRight } from "lucide-react";
+import {
+  Loader2, Map, Satellite, Pencil, Trash2, Camera, Circle, Square,
+  Minus, MapPin as MarkerIcon, X, ZoomIn,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 
 declare global {
@@ -21,7 +25,8 @@ interface GoogleMapProps {
   cidade?: string;
   estado?: string;
   onMapClick: (lat: number, lon: number) => void;
-  onSnapshot?: (dataUrl: string) => void;
+  /** Called whenever snapshots change (add/remove). Array of data URLs. */
+  onSnapshotsChange?: (snapshots: string[]) => void;
 }
 
 const DRAWING_TOOLS: { mode: DrawingMode; icon: React.ElementType; label: string }[] = [
@@ -29,31 +34,42 @@ const DRAWING_TOOLS: { mode: DrawingMode; icon: React.ElementType; label: string
   { mode: "polygon", icon: Pencil, label: "Polígono" },
   { mode: "rectangle", icon: Square, label: "Retângulo" },
   { mode: "circle", icon: Circle, label: "Círculo" },
-  { mode: "marker", icon: ArrowRight, label: "Marcador" },
+  { mode: "marker", icon: MarkerIcon, label: "Marcador" },
 ];
 
-export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, onSnapshot }: GoogleMapProps) {
+export default function GoogleMapView({
+  lat, lon, cidade, estado, onMapClick, onSnapshotsChange,
+}: GoogleMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
   const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
   const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
   const overlaysRef = useRef<google.maps.MVCObject[]>([]);
+  const activeDrawingRef = useRef<DrawingMode>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mapType, setMapType] = useState<"roadmap" | "satellite" | "hybrid">("roadmap");
+  const [mapType, setMapType] = useState<"roadmap" | "satellite" | "hybrid">("hybrid");
   const [activeDrawing, setActiveDrawing] = useState<DrawingMode>(null);
   const [snapshotting, setSnapshotting] = useState(false);
+  const [snapshots, setSnapshots] = useState<string[]>([]);
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const apiKeyRef = useRef<string | null>(null);
 
-  // Load Google Maps script with drawing library
+  // Keep ref in sync for closure access
   useEffect(() => {
+    activeDrawingRef.current = activeDrawing;
+  }, [activeDrawing]);
+
+  // Emit snapshots to parent
+  useEffect(() => {
+    onSnapshotsChange?.(snapshots);
+  }, [snapshots, onSnapshotsChange]);
+
+  // ─── Load Google Maps script ──────────────────────
+  useEffect(() => {
+    // If already loaded with drawing library, skip
     if (window.google?.maps?.drawing) {
-      setLoading(false);
-      return;
-    }
-    if (window.google?.maps) {
-      // Maps loaded but not drawing library — need to reload with drawing
-      // For simplicity, treat as loaded
       setLoading(false);
       return;
     }
@@ -79,16 +95,34 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
 
         apiKeyRef.current = data.api_key;
 
-        if (window.google?.maps) {
+        // If Maps already loaded WITH drawing, done
+        if (window.google?.maps?.drawing) {
           setLoading(false);
           return;
         }
 
+        // If Maps loaded WITHOUT drawing, we must remove old script and reload
         const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+        if (existingScript && !window.google?.maps?.drawing) {
+          // Can't re-load Google Maps. Use the built-in loader instead.
+          // Actually Google Maps JS API doesn't allow re-loading. If drawing is missing,
+          // we have to work without it. Let's check if it exists.
+          if (window.google?.maps) {
+            // Maps loaded but drawing missing — accept this and skip drawing
+            console.warn("[GoogleMapView] Drawing library not available. Drawing tools disabled.");
+            setLoading(false);
+            return;
+          }
+        }
+
         if (existingScript) {
           existingScript.addEventListener("load", () => {
             if (!cancelled) setLoading(false);
           });
+          // Also check if already loaded
+          if (window.google?.maps) {
+            setLoading(false);
+          }
           return;
         }
 
@@ -97,7 +131,9 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
         script.async = true;
         script.defer = true;
         script.onload = () => { if (!cancelled) setLoading(false); };
-        script.onerror = () => { if (!cancelled) { setError("Falha ao carregar Google Maps"); setLoading(false); } };
+        script.onerror = () => {
+          if (!cancelled) { setError("Falha ao carregar Google Maps"); setLoading(false); }
+        };
         document.head.appendChild(script);
       } catch {
         if (!cancelled) {
@@ -111,7 +147,7 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
     return () => { cancelled = true; };
   }, []);
 
-  // Initialize map
+  // ─── Initialize map ──────────────────────────────
   useEffect(() => {
     if (loading || error || !mapRef.current || !window.google?.maps) return;
     if (mapInstanceRef.current) return;
@@ -119,17 +155,19 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
     const center = { lat: lat ?? -15.78, lng: lon ?? -47.93 };
     const map = new google.maps.Map(mapRef.current, {
       center,
-      zoom: lat ? 17 : 5,
+      zoom: lat ? 18 : 5,
       mapTypeControl: false,
-      streetViewControl: false,
+      streetViewControl: true, // Enable street view (pegman)
       fullscreenControl: true,
       zoomControl: true,
+      gestureHandling: "greedy", // Allow panning without ctrl
       mapId: "proposal-map",
-      mapTypeId: "roadmap",
+      mapTypeId: mapType,
     });
 
+    // Use ref to avoid stale closure
     map.addListener("click", (e: google.maps.MapMouseEvent) => {
-      if (!activeDrawing && e.latLng) {
+      if (!activeDrawingRef.current && e.latLng) {
         onMapClick(e.latLng.lat(), e.latLng.lng());
       }
     });
@@ -145,67 +183,48 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
       markerRef.current = marker;
     }
 
-    // Initialize DrawingManager (hidden by default)
+    // Initialize DrawingManager if library available
     if (window.google?.maps?.drawing) {
+      const sharedStyle = {
+        strokeColor: "#FF6600",
+        fillColor: "#FF6600",
+        fillOpacity: 0.15,
+        strokeWeight: 2,
+        editable: true,
+      };
+
       const dm = new google.maps.drawing.DrawingManager({
         drawingMode: null,
-        drawingControl: false, // We use our own UI
-        polylineOptions: {
-          strokeColor: "#FF6600",
-          strokeWeight: 3,
-          editable: true,
-        },
-        polygonOptions: {
-          strokeColor: "#FF6600",
-          fillColor: "#FF6600",
-          fillOpacity: 0.15,
-          strokeWeight: 2,
-          editable: true,
-        },
-        rectangleOptions: {
-          strokeColor: "#FF6600",
-          fillColor: "#FF6600",
-          fillOpacity: 0.15,
-          strokeWeight: 2,
-          editable: true,
-        },
-        circleOptions: {
-          strokeColor: "#FF6600",
-          fillColor: "#FF6600",
-          fillOpacity: 0.15,
-          strokeWeight: 2,
-          editable: true,
-        },
-        markerOptions: {
-          draggable: true,
-        },
+        drawingControl: false,
+        polylineOptions: { ...sharedStyle, strokeWeight: 3 },
+        polygonOptions: sharedStyle,
+        rectangleOptions: sharedStyle,
+        circleOptions: sharedStyle,
+        markerOptions: { draggable: true },
       });
       dm.setMap(map);
 
       dm.addListener("overlaycomplete", (e: google.maps.drawing.OverlayCompleteEvent) => {
         overlaysRef.current.push(e.overlay!);
-        // Reset drawing mode after placing
         dm.setDrawingMode(null);
         setActiveDrawing(null);
       });
 
       drawingManagerRef.current = dm;
     }
-  }, [loading, error]);
+  }, [loading, error]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update map type
+  // ─── Update map type ─────────────────────────────
   useEffect(() => {
-    const map = mapInstanceRef.current;
-    if (!map) return;
-    map.setMapTypeId(mapType);
+    mapInstanceRef.current?.setMapTypeId(mapType);
   }, [mapType]);
 
-  // Update drawing mode
+  // ─── Update drawing mode ─────────────────────────
   useEffect(() => {
     const dm = drawingManagerRef.current;
-    if (!dm) return;
+    if (!dm || !window.google?.maps?.drawing) return;
 
-    const modeMap: Record<string, google.maps.drawing.OverlayType | null> = {
+    const modeMap: Record<string, google.maps.drawing.OverlayType> = {
       marker: google.maps.drawing.OverlayType.MARKER,
       polyline: google.maps.drawing.OverlayType.POLYLINE,
       polygon: google.maps.drawing.OverlayType.POLYGON,
@@ -216,7 +235,7 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
     dm.setDrawingMode(activeDrawing ? modeMap[activeDrawing] ?? null : null);
   }, [activeDrawing]);
 
-  // Update marker/center when coords change
+  // ─── Update marker/center when coords change ────
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
@@ -224,7 +243,7 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
     if (lat !== null && lon !== null) {
       const pos = { lat, lng: lon };
       map.setCenter(pos);
-      if (map.getZoom()! < 15) map.setZoom(17);
+      if (map.getZoom()! < 15) map.setZoom(18);
 
       if (markerRef.current) {
         markerRef.current.position = pos;
@@ -237,15 +256,16 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
     }
   }, [lat, lon]);
 
-  // Clear all drawings
+  // ─── Clear all drawings ──────────────────────────
   const handleClearDrawings = useCallback(() => {
     overlaysRef.current.forEach((o: any) => {
       if (o.setMap) o.setMap(null);
     });
     overlaysRef.current = [];
+    toast({ title: "Desenhos removidos" });
   }, []);
 
-  // Capture map snapshot using Static Maps API
+  // ─── Capture snapshot ────────────────────────────
   const handleSnapshot = useCallback(async () => {
     const map = mapInstanceRef.current;
     const key = apiKeyRef.current;
@@ -266,10 +286,10 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
       const reader = new FileReader();
       reader.onloadend = () => {
         const dataUrl = reader.result as string;
-        onSnapshot?.(dataUrl);
+        setSnapshots(prev => [...prev, dataUrl]);
         toast({
           title: "📸 Snapshot capturado",
-          description: "A imagem do mapa foi salva na proposta.",
+          description: "Clique na miniatura para visualizar.",
         });
       };
       reader.readAsDataURL(blob);
@@ -277,14 +297,23 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
       console.error("[GoogleMapView] snapshot error:", err);
       toast({
         title: "Erro ao capturar mapa",
-        description: "Não foi possível gerar o snapshot. Verifique a API key.",
+        description: "Não foi possível gerar o snapshot.",
         variant: "destructive",
       });
     } finally {
       setSnapshotting(false);
     }
-  }, [mapType, onSnapshot]);
+  }, [mapType]);
 
+  // ─── Delete snapshot ─────────────────────────────
+  const handleDeleteSnapshot = useCallback((idx: number) => {
+    setSnapshots(prev => prev.filter((_, i) => i !== idx));
+    setPreviewIdx(null);
+  }, []);
+
+  const drawingAvailable = !!drawingManagerRef.current || !!window.google?.maps?.drawing;
+
+  // ─── Loading / Error states ──────────────────────
   if (loading) {
     return (
       <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted/20">
@@ -302,125 +331,172 @@ export default function GoogleMapView({ lat, lon, cidade, estado, onMapClick, on
   }
 
   return (
-    <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[420px]">
-      <div ref={mapRef} className="w-full h-full min-h-[280px] sm:min-h-[420px]" />
+    <div className="space-y-2">
+      {/* Map container */}
+      <div className="rounded-xl border border-border/50 overflow-hidden relative min-h-[280px] sm:min-h-[420px]">
+        <div ref={mapRef} className="w-full h-full min-h-[280px] sm:min-h-[420px]" />
 
-      {/* City label */}
-      {cidade && estado && (
-        <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-background/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-md border border-border/50 z-10">
-          <p className="text-xs sm:text-sm font-semibold">{cidade}</p>
-          <p className="text-[9px] sm:text-[10px] text-muted-foreground">{estado}, Brasil</p>
+        {/* City label */}
+        {cidade && estado && (
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-background/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-md border border-border/50 z-10">
+            <p className="text-xs sm:text-sm font-semibold">{cidade}</p>
+            <p className="text-[9px] sm:text-[10px] text-muted-foreground">{estado}, Brasil</p>
+          </div>
+        )}
+
+        {/* Map type toggle — top right */}
+        <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10">
+          <TooltipProvider delayDuration={200}>
+            <div className="bg-background/90 backdrop-blur-sm rounded-lg shadow-md border border-border/50 p-0.5 flex flex-col gap-0.5">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Toggle size="sm" pressed={mapType === "roadmap"} onPressedChange={() => setMapType("roadmap")} className="h-7 w-7 p-0">
+                    <Map className="h-3.5 w-3.5" />
+                  </Toggle>
+                </TooltipTrigger>
+                <TooltipContent side="left"><p className="text-xs">Mapa</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Toggle size="sm" pressed={mapType === "satellite"} onPressedChange={() => setMapType("satellite")} className="h-7 w-7 p-0">
+                    <Satellite className="h-3.5 w-3.5" />
+                  </Toggle>
+                </TooltipTrigger>
+                <TooltipContent side="left"><p className="text-xs">Satélite</p></TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Toggle size="sm" pressed={mapType === "hybrid"} onPressedChange={() => setMapType("hybrid")} className="h-7 w-7 p-0">
+                    <span className="text-[8px] font-bold leading-none">H</span>
+                  </Toggle>
+                </TooltipTrigger>
+                <TooltipContent side="left"><p className="text-xs">Híbrido</p></TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        </div>
+
+        {/* Drawing tools — bottom left */}
+        <div className="absolute bottom-10 left-2 sm:bottom-12 sm:left-3 z-10">
+          <TooltipProvider delayDuration={200}>
+            <div className="bg-background/90 backdrop-blur-sm rounded-lg shadow-md border border-border/50 p-0.5 flex gap-0.5 items-center">
+              {DRAWING_TOOLS.map(({ mode, icon: Icon, label }) => (
+                <Tooltip key={mode}>
+                  <TooltipTrigger asChild>
+                    <Toggle
+                      size="sm"
+                      pressed={activeDrawing === mode}
+                      onPressedChange={(pressed) => setActiveDrawing(pressed ? mode : null)}
+                      className="h-7 w-7 p-0"
+                      disabled={!drawingAvailable}
+                    >
+                      <Icon className="h-3.5 w-3.5" />
+                    </Toggle>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p className="text-xs">{drawingAvailable ? label : `${label} (indisponível)`}</p>
+                  </TooltipContent>
+                </Tooltip>
+              ))}
+
+              {/* Clear drawings */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost" size="sm"
+                    className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+                    onClick={handleClearDrawings}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top"><p className="text-xs">Limpar desenhos</p></TooltipContent>
+              </Tooltip>
+
+              <div className="w-px h-5 bg-border/50 mx-0.5" />
+
+              {/* Snapshot */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost" size="sm"
+                    className="h-7 w-7 p-0 text-primary hover:text-primary"
+                    onClick={handleSnapshot}
+                    disabled={snapshotting}
+                  >
+                    {snapshotting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top"><p className="text-xs">Capturar snapshot</p></TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
+        </div>
+
+        {/* Hint */}
+        <p className="absolute bottom-2 right-2 text-[9px] text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded z-10">
+          Clique no mapa para alterar coordenadas · Arraste o boneco para Street View
+        </p>
+      </div>
+
+      {/* ─── Snapshots gallery ────────────────────── */}
+      {snapshots.length > 0 && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+            📸 Snapshots do mapa ({snapshots.length})
+          </p>
+          <div className="flex gap-2 flex-wrap">
+            {snapshots.map((src, idx) => (
+              <div
+                key={idx}
+                className="relative group rounded-lg overflow-hidden border border-border/50 shadow-sm w-[100px] h-[75px] cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all"
+                onClick={() => setPreviewIdx(idx)}
+              >
+                <img src={src} alt={`Snapshot ${idx + 1}`} className="w-full h-full object-cover" />
+                {/* Overlay on hover */}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                  <ZoomIn className="h-4 w-4 text-white" />
+                </div>
+                {/* Delete button */}
+                <button
+                  className="absolute top-0.5 right-0.5 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/90"
+                  onClick={(e) => { e.stopPropagation(); handleDeleteSnapshot(idx); }}
+                  title="Remover snapshot"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Map type toggle */}
-      <div className="absolute top-2 right-2 sm:top-3 sm:right-3 z-10 flex flex-col gap-1">
-        <TooltipProvider delayDuration={200}>
-          <div className="bg-background/90 backdrop-blur-sm rounded-lg shadow-md border border-border/50 p-0.5 flex flex-col gap-0.5">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Toggle
-                  size="sm"
-                  pressed={mapType === "roadmap"}
-                  onPressedChange={() => setMapType("roadmap")}
-                  className="h-7 w-7 p-0"
-                >
-                  <Map className="h-3.5 w-3.5" />
-                </Toggle>
-              </TooltipTrigger>
-              <TooltipContent side="left"><p className="text-xs">Mapa</p></TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Toggle
-                  size="sm"
-                  pressed={mapType === "satellite"}
-                  onPressedChange={() => setMapType("satellite")}
-                  className="h-7 w-7 p-0"
-                >
-                  <Satellite className="h-3.5 w-3.5" />
-                </Toggle>
-              </TooltipTrigger>
-              <TooltipContent side="left"><p className="text-xs">Satélite</p></TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Toggle
-                  size="sm"
-                  pressed={mapType === "hybrid"}
-                  onPressedChange={() => setMapType("hybrid")}
-                  className="h-7 w-7 p-0"
-                >
-                  <span className="text-[8px] font-bold leading-none">H</span>
-                </Toggle>
-              </TooltipTrigger>
-              <TooltipContent side="left"><p className="text-xs">Híbrido</p></TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
-      </div>
-
-      {/* Drawing tools */}
-      <div className="absolute bottom-10 left-2 sm:bottom-12 sm:left-3 z-10">
-        <TooltipProvider delayDuration={200}>
-          <div className="bg-background/90 backdrop-blur-sm rounded-lg shadow-md border border-border/50 p-0.5 flex gap-0.5">
-            {DRAWING_TOOLS.map(({ mode, icon: Icon, label }) => (
-              <Tooltip key={mode}>
-                <TooltipTrigger asChild>
-                  <Toggle
-                    size="sm"
-                    pressed={activeDrawing === mode}
-                    onPressedChange={(pressed) => setActiveDrawing(pressed ? mode : null)}
-                    className="h-7 w-7 p-0"
-                  >
-                    <Icon className="h-3.5 w-3.5" />
-                  </Toggle>
-                </TooltipTrigger>
-                <TooltipContent side="top"><p className="text-xs">{label}</p></TooltipContent>
-              </Tooltip>
-            ))}
-
-            {/* Clear */}
-            <Tooltip>
-              <TooltipTrigger asChild>
+      {/* ─── Snapshot preview dialog ─────────────── */}
+      <Dialog open={previewIdx !== null} onOpenChange={() => setPreviewIdx(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          {previewIdx !== null && snapshots[previewIdx] && (
+            <div className="space-y-2">
+              <img
+                src={snapshots[previewIdx]}
+                alt={`Snapshot ${previewIdx + 1}`}
+                className="w-full rounded-lg"
+              />
+              <div className="flex items-center justify-between px-1">
+                <span className="text-xs text-muted-foreground">
+                  Snapshot {previewIdx + 1} de {snapshots.length}
+                </span>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-destructive hover:text-destructive"
-                  onClick={handleClearDrawings}
+                  variant="destructive" size="sm"
+                  className="h-7 text-xs gap-1"
+                  onClick={() => handleDeleteSnapshot(previewIdx)}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3 w-3" /> Remover
                 </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top"><p className="text-xs">Limpar desenhos</p></TooltipContent>
-            </Tooltip>
-
-            {/* Divider */}
-            <div className="w-px bg-border/50 mx-0.5" />
-
-            {/* Snapshot */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 w-7 p-0 text-primary hover:text-primary"
-                  onClick={handleSnapshot}
-                  disabled={snapshotting}
-                >
-                  {snapshotting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="top"><p className="text-xs">Capturar snapshot</p></TooltipContent>
-            </Tooltip>
-          </div>
-        </TooltipProvider>
-      </div>
-
-      {/* Bottom hint */}
-      <p className="absolute bottom-2 right-2 text-[9px] text-muted-foreground bg-background/80 px-1.5 py-0.5 rounded z-10">
-        Clique no mapa para alterar coordenadas
-      </p>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
