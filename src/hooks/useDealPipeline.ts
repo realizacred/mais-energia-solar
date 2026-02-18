@@ -45,6 +45,7 @@ export interface DealKanbanCard {
   stage_probability: number;
   last_stage_change: string;
   etiqueta: string | null;
+  notas: string | null;
   // Enriched proposal data
   proposta_status?: string | null;
   proposta_economia_mensal?: number | null;
@@ -153,12 +154,14 @@ export function useDealPipeline() {
       // Fetch customer_id from deals
       const { data: dealsData } = await supabase
         .from("deals")
-        .select("id, customer_id")
+        .select("id, customer_id, notas")
         .in("id", dealIds);
       
       const customerMap = new Map<string, string>();
+      const notasMap = new Map<string, string | null>();
       (dealsData || []).forEach((d: any) => {
         if (d.customer_id) customerMap.set(d.id, d.customer_id);
+        notasMap.set(d.id, d.notas || null);
       });
 
       // Fetch latest proposal per customer
@@ -204,6 +207,7 @@ export function useDealPipeline() {
           const proposta = custId ? bestPropostaByCustomer.get(custId) : null;
           return {
             ...d,
+            notas: notasMap.get(d.deal_id) || d.notas || null,
             customer_id: custId || null,
             proposta_id: proposta?.id || null,
             proposta_status: proposta?.status || null,
@@ -211,7 +215,11 @@ export function useDealPipeline() {
           };
         });
       } else {
-        results = results.map(d => ({ ...d, customer_id: customerMap.get(d.deal_id) || null }));
+        results = results.map(d => ({
+          ...d,
+          notas: notasMap.get(d.deal_id) || d.notas || null,
+          customer_id: customerMap.get(d.deal_id) || null,
+        }));
       }
     }
 
