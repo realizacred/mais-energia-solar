@@ -474,6 +474,7 @@ export function ProposalWizard() {
           <StepContent key="proposta">
             <StepDocumento
               clienteNome={cliente.nome || selectedLead?.nome || ""}
+              empresaNome={cliente.empresa || cliente.nome || selectedLead?.nome || ""}
               potenciaKwp={potenciaKwp}
               numUcs={ucs.length}
               precoFinal={precoFinal}
@@ -486,6 +487,8 @@ export function ProposalWizard() {
               onGenerate={handleGenerate}
               onNewVersion={handleNewVersion}
               onViewDetail={handleViewDetail}
+              customFieldValues={customFieldValues}
+              onCustomFieldValuesChange={setCustomFieldValues}
             />
           </StepContent>
         );

@@ -1,9 +1,13 @@
-import { useState, useEffect } from "react";
-import { FileText, Sun, Zap, Plus, Loader2, Globe, FileDown } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { FileText, Sun, Zap, Plus, Loader2, Globe, FileDown, User, Building2, BoltIcon, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRL } from "./types";
@@ -18,8 +22,19 @@ interface PropostaTemplate {
   thumbnail_url: string | null;
 }
 
+interface CustomField {
+  id: string;
+  title: string;
+  field_key: string;
+  field_type: string;
+  options: any;
+  required_on_proposal: boolean | null;
+  ordem: number | null;
+}
+
 interface StepDocumentoProps {
   clienteNome: string;
+  empresaNome?: string;
   potenciaKwp: number;
   numUcs: number;
   precoFinal: number;
@@ -32,20 +47,35 @@ interface StepDocumentoProps {
   onGenerate: () => void;
   onNewVersion: () => void;
   onViewDetail: () => void;
+  // Custom field values from wizard state
+  customFieldValues?: Record<string, any>;
+  onCustomFieldValuesChange?: (values: Record<string, any>) => void;
 }
 
 export function StepDocumento({
-  clienteNome, potenciaKwp, numUcs, precoFinal,
+  clienteNome, empresaNome, potenciaKwp, numUcs, precoFinal,
   templateSelecionado, onTemplateSelecionado,
   generating, rendering, result, htmlPreview,
   onGenerate, onNewVersion, onViewDetail,
+  customFieldValues = {}, onCustomFieldValuesChange,
 }: StepDocumentoProps) {
   const [templates, setTemplates] = useState<PropostaTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [tipoFiltro, setTipoFiltro] = useState<"html" | "docx">("html");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Custom fields (pos_dimensionamento)
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [loadingCustomFields, setLoadingCustomFields] = useState(true);
+
+  // Modal form state
+  const [nomeProposta, setNomeProposta] = useState("");
+  const [descricaoProposta, setDescricaoProposta] = useState("");
+  const [modalCustomValues, setModalCustomValues] = useState<Record<string, any>>({});
 
   const filteredTemplates = templates.filter(t => t.tipo === tipoFiltro);
 
+  // Load templates
   useEffect(() => {
     setLoadingTemplates(true);
     supabase
@@ -56,7 +86,6 @@ export function StepDocumento({
       .then(({ data }) => {
         const tpls = (data || []) as PropostaTemplate[];
         setTemplates(tpls);
-        // Auto-select first template matching current filter
         const matching = tpls.filter(t => t.tipo === tipoFiltro);
         if (matching.length > 0 && !templateSelecionado) {
           onTemplateSelecionado(matching[0].id);
@@ -64,6 +93,36 @@ export function StepDocumento({
         setLoadingTemplates(false);
       });
   }, []);
+
+  // Load custom fields (pos_dimensionamento)
+  useEffect(() => {
+    setLoadingCustomFields(true);
+    supabase
+      .from("deal_custom_fields")
+      .select("id, title, field_key, field_type, options, required_on_proposal, ordem")
+      .eq("is_active", true)
+      .eq("field_context", "pos_dimensionamento")
+      .order("ordem", { ascending: true })
+      .then(({ data }) => {
+        setCustomFields((data || []) as CustomField[]);
+        setLoadingCustomFields(false);
+      });
+  }, []);
+
+  const handleOpenCreateModal = () => {
+    setNomeProposta("");
+    setDescricaoProposta("");
+    setModalCustomValues({ ...customFieldValues });
+    setShowCreateModal(true);
+  };
+
+  const handleSave = (asActive: boolean) => {
+    // Propagate custom field values back
+    onCustomFieldValuesChange?.({ ...modalCustomValues });
+    setShowCreateModal(false);
+    // Trigger generation
+    onGenerate();
+  };
 
   if (!result) {
     return (
@@ -79,7 +138,6 @@ export function StepDocumento({
             <button
               onClick={() => {
                 setTipoFiltro("html");
-                // Auto-select first of new filter
                 const match = templates.find(t => t.tipo === "html");
                 if (match) onTemplateSelecionado(match.id);
               }}
@@ -145,9 +203,7 @@ export function StepDocumento({
                   )}
                   <p className="text-sm font-medium">{t.nome}</p>
                   {t.descricao && <p className="text-[10px] text-muted-foreground mt-0.5">{t.descricao}</p>}
-                  <Badge variant="outline" className="text-[9px] mt-1">
-                    {t.grupo}
-                  </Badge>
+                  <Badge variant="outline" className="text-[9px] mt-1">{t.grupo}</Badge>
                 </button>
               ))}
             </div>
@@ -180,11 +236,11 @@ export function StepDocumento({
           </div>
         </div>
 
-        {/* Generate Button */}
+        {/* Generate Button → Opens Modal */}
         <div className="text-center">
-          <Button size="lg" className="gap-2 min-w-[200px]" onClick={onGenerate} disabled={generating}>
+          <Button size="lg" className="gap-2 min-w-[200px]" onClick={handleOpenCreateModal} disabled={generating}>
             {generating ? <Sun className="h-5 w-5 animate-spin" style={{ animationDuration: "2s" }} /> : <Zap className="h-5 w-5" />}
-            {generating ? "Gerando..." : "Gerar PDF"}
+            {generating ? "Gerando..." : "Criar Proposta"}
           </Button>
         </div>
 
@@ -194,6 +250,107 @@ export function StepDocumento({
             <p className="text-sm font-medium text-muted-foreground animate-pulse">Gerando proposta comercial...</p>
           </div>
         )}
+
+        {/* ═══ Modal: Criar Proposta ═══ */}
+        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold">Criar Proposta</DialogTitle>
+            </DialogHeader>
+
+            {/* Resume header */}
+            <div className="space-y-1 text-sm pb-3 border-b border-border/30">
+              <div className="flex items-center gap-2">
+                <User className="h-3.5 w-3.5 text-primary" />
+                <span className="text-muted-foreground">Cliente:</span>
+                <span className="font-medium">{clienteNome || "-"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-muted-foreground">Empresa:</span>
+                <span className="font-medium">{empresaNome || clienteNome || "-"}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <BoltIcon className="h-3.5 w-3.5 text-warning" />
+                <span className="text-muted-foreground">Potência:</span>
+                <span className="font-medium">{potenciaKwp} kWp</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-3.5 w-3.5 text-success" />
+                <span className="text-muted-foreground">Preço:</span>
+                <span className="font-medium">{formatBRL(precoFinal)}</span>
+              </div>
+            </div>
+
+            {/* Base fields */}
+            <div className="space-y-4 pt-2">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-destructive">Nome da Proposta *</Label>
+                <Input
+                  value={nomeProposta}
+                  onChange={e => setNomeProposta(e.target.value)}
+                  placeholder=""
+                  className="h-9 text-sm"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Descrição (Opcional)</Label>
+                <Textarea
+                  value={descricaoProposta}
+                  onChange={e => setDescricaoProposta(e.target.value)}
+                  className="text-sm min-h-[80px] resize-y"
+                />
+              </div>
+            </div>
+
+            {/* Custom Fields (pos_dimensionamento) */}
+            {customFields.length > 0 && (
+              <div className="space-y-4 pt-3 border-t border-border/30">
+                <h4 className="text-sm font-bold">Campos Customizados</h4>
+
+                <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  {customFields.map(field => (
+                    <CustomFieldInput
+                      key={field.id}
+                      field={field}
+                      value={modalCustomValues[field.field_key]}
+                      onChange={val => setModalCustomValues(prev => ({ ...prev, [field.field_key]: val }))}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {loadingCustomFields && (
+              <div className="py-4 flex justify-center">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-2 pt-4 border-t border-border/30">
+              <Button variant="ghost" onClick={() => setShowCreateModal(false)} className="text-sm">
+                Cancelar
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleSave(false)}
+                disabled={!nomeProposta.trim()}
+                className="text-sm"
+              >
+                Salvar
+              </Button>
+              <Button
+                onClick={() => handleSave(true)}
+                disabled={!nomeProposta.trim()}
+                className="text-sm"
+              >
+                Salvar como ativa
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
@@ -235,6 +392,92 @@ export function StepDocumento({
         <Button variant="outline" onClick={onNewVersion} className="gap-2"><Plus className="h-4 w-4" /> Nova Versão</Button>
         <Button variant="ghost" onClick={onNewVersion}>Voltar e Editar</Button>
       </div>
+    </div>
+  );
+}
+
+// ─── Custom Field Input Component ────────────────────────────
+
+function CustomFieldInput({ field, value, onChange }: {
+  field: { title: string; field_key: string; field_type: string; options: any; required_on_proposal: boolean | null };
+  value: any;
+  onChange: (val: any) => void;
+}) {
+  const isRequired = field.required_on_proposal;
+  const labelColor = isRequired ? "text-destructive" : "text-muted-foreground";
+
+  // Parse options for select fields
+  const selectOptions = useMemo(() => {
+    if (field.field_type !== "select" || !field.options) return [];
+    if (Array.isArray(field.options)) return field.options as string[];
+    if (typeof field.options === "object" && (field.options as any).choices) return (field.options as any).choices as string[];
+    return [];
+  }, [field.options, field.field_type]);
+
+  if (field.field_type === "select") {
+    return (
+      <div className="space-y-1">
+        <Label className={cn("text-xs", labelColor)}>
+          {field.title}{isRequired ? " *" : ""}
+        </Label>
+        <Select value={value || ""} onValueChange={onChange}>
+          <SelectTrigger className="h-9 text-sm">
+            <SelectValue placeholder="Selecione uma opção" />
+          </SelectTrigger>
+          <SelectContent>
+            {selectOptions.map((opt: string) => (
+              <SelectItem key={opt} value={opt} className="text-sm">{opt}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+
+  if (field.field_type === "textarea") {
+    return (
+      <div className="space-y-1">
+        <Label className={cn("text-xs", labelColor)}>
+          {field.title}{isRequired ? " *" : ""}
+        </Label>
+        <Textarea
+          value={value || ""}
+          onChange={e => onChange(e.target.value)}
+          className="text-sm min-h-[60px] resize-y"
+        />
+      </div>
+    );
+  }
+
+  if (field.field_type === "number" || field.field_type === "currency") {
+    return (
+      <div className="space-y-1">
+        <Label className={cn("text-xs", labelColor)}>
+          {field.title}{isRequired ? " *" : ""}
+        </Label>
+        <Input
+          type="number"
+          value={value ?? ""}
+          onChange={e => onChange(e.target.value ? Number(e.target.value) : "")}
+          placeholder={field.field_type === "currency" ? "R$ 0,00" : "Texto"}
+          className="h-9 text-sm"
+        />
+      </div>
+    );
+  }
+
+  // Default: text
+  return (
+    <div className="space-y-1">
+      <Label className={cn("text-xs", labelColor)}>
+        {field.title}{isRequired ? " *" : ""}
+      </Label>
+      <Input
+        value={value || ""}
+        onChange={e => onChange(e.target.value)}
+        placeholder="Texto"
+        className="h-9 text-sm"
+      />
     </div>
   );
 }
