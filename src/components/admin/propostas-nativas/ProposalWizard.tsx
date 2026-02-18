@@ -451,7 +451,7 @@ export function ProposalWizard() {
       case STEP_KEYS.SERVICOS:
         return (
           <StepContent key="servicos">
-            <StepServicos servicos={servicos} onServicosChange={setServicos} />
+            <StepServicos servicos={servicos} onServicosChange={setServicos} kitItens={itens} potenciaKwp={potenciaKwp} />
           </StepContent>
         );
 
