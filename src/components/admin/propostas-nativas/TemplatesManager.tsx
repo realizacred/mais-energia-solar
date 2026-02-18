@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2 } from "lucide-react";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2, Globe, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,7 +43,15 @@ export function TemplatesManager() {
   const [form, setForm] = useState<Partial<PropostaTemplate>>({});
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [tipoTab, setTipoTab] = useState<"html" | "docx">("html");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredTemplates = useMemo(
+    () => templates.filter(t => t.tipo === tipoTab),
+    [templates, tipoTab]
+  );
+  const htmlCount = useMemo(() => templates.filter(t => t.tipo === "html").length, [templates]);
+  const docxCount = useMemo(() => templates.filter(t => t.tipo === "docx").length, [templates]);
 
   const loadTemplates = async () => {
     setLoading(true);
@@ -180,9 +188,37 @@ export function TemplatesManager() {
             Gerencie modelos HTML e DOCX usados na geração de propostas
           </p>
         </div>
-        <Button onClick={startNew} className="gap-1.5" disabled={editingId !== null}>
+        <Button onClick={() => { setForm(f => ({ ...f, tipo: tipoTab })); startNew(); }} className="gap-1.5" disabled={editingId !== null}>
           <Plus className="h-4 w-4" /> Novo template
         </Button>
+      </div>
+
+      {/* Tipo Tabs */}
+      <div className="flex gap-1 p-1 rounded-lg bg-muted/50 w-fit">
+        <button
+          onClick={() => setTipoTab("html")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            tipoTab === "html"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Globe className="h-4 w-4" />
+          WEB
+          <Badge variant="secondary" className="text-[9px]">{htmlCount}</Badge>
+        </button>
+        <button
+          onClick={() => setTipoTab("docx")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+            tipoTab === "docx"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <FileDown className="h-4 w-4" />
+          DOCX
+          <Badge variant="secondary" className="text-[9px]">{docxCount}</Badge>
+        </button>
       </div>
 
       {/* Edit Form */}
@@ -313,15 +349,17 @@ export function TemplatesManager() {
         <div className="flex items-center justify-center py-12">
           <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : templates.length === 0 && !editingId ? (
+      ) : filteredTemplates.length === 0 && !editingId ? (
         <div className="text-center py-12 text-muted-foreground">
           <FileText className="h-10 w-10 mx-auto opacity-20 mb-3" />
-          <p className="text-sm">Nenhum template criado.</p>
-          <Button variant="link" onClick={startNew} className="mt-2">Criar primeiro template</Button>
+          <p className="text-sm">Nenhum template {tipoTab === "html" ? "WEB" : "DOCX"} criado.</p>
+          <Button variant="link" onClick={() => { setForm(f => ({ ...f, tipo: tipoTab })); startNew(); }} className="mt-2">
+            Criar primeiro template {tipoTab.toUpperCase()}
+          </Button>
         </div>
       ) : (
         <div className="space-y-2">
-          {templates.map(t => (
+          {filteredTemplates.map(t => (
             <Card key={t.id} className={`border-border/40 ${!t.ativo ? "opacity-50" : ""}`}>
               <CardContent className="py-3 px-4">
                 <div className="flex items-center justify-between">
