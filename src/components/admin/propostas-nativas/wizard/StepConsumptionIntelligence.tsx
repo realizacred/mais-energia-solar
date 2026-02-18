@@ -1,248 +1,413 @@
-import { useState, useCallback, useRef, useMemo } from "react";
-import { BarChart3, Clipboard, Sparkles, Zap } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Cell, ReferenceLine } from "recharts";
-import { type UCData, MESES, formatBRL } from "./types";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  type UCData, type PreDimensionamentoData, MESES,
+  SOMBREAMENTO_OPTIONS, DESVIO_AZIMUTAL_OPTIONS, INCLINACAO_OPTIONS,
+  createEmptyUC,
+} from "./types";
+import { UCCard } from "./uc/UCCard";
+import { UCConfigModal, RateioCreditsModal, MesAMesDialog } from "./uc/UCModals";
 
 interface Props {
   ucs: UCData[];
   onUcsChange: (ucs: UCData[]) => void;
   potenciaKwp: number;
   onPotenciaChange: (p: number) => void;
+  preDimensionamento: PreDimensionamentoData;
+  onPreDimensionamentoChange: (pd: PreDimensionamentoData) => void;
 }
 
-const MONTH_LABELS: Record<string, string> = {
-  jan: "Jan", fev: "Fev", mar: "Mar", abr: "Abr", mai: "Mai", jun: "Jun",
-  jul: "Jul", ago: "Ago", set: "Set", out: "Out", nov: "Nov", dez: "Dez",
-};
+type ActiveTab = "ucs" | "pre";
 
-// Solar irradiation seasonality factor (Brazil avg)
-const SEASON_FACTOR: Record<string, number> = {
-  jan: 1.15, fev: 1.10, mar: 1.05, abr: 0.95, mai: 0.85, jun: 0.80,
-  jul: 0.80, ago: 0.85, set: 0.95, out: 1.05, nov: 1.10, dez: 1.15,
-};
+export function StepConsumptionIntelligence({
+  ucs, onUcsChange, potenciaKwp, onPotenciaChange,
+  preDimensionamento: pd, onPreDimensionamentoChange: setPd,
+}: Props) {
+  const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
+  const [configModal, setConfigModal] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
+  const [rateioOpen, setRateioOpen] = useState(false);
+  const [mesAMes, setMesAMes] = useState<{ open: boolean; ucIndex: number; field: "consumo" | "hp" | "hfp" }>({ open: false, ucIndex: 0, field: "consumo" });
+  const [preDimModal, setPreDimModal] = useState(false);
 
-export function StepConsumptionIntelligence({ ucs, onUcsChange, potenciaKwp, onPotenciaChange }: Props) {
-  const [annualInput, setAnnualInput] = useState("");
-  const [pasteMode, setPasteMode] = useState(false);
-  const [dragging, setDragging] = useState(false);
-  const chartRef = useRef<HTMLDivElement>(null);
+  // ─── Derived metrics
+  const consumoTotal = useMemo(() => {
+    return ucs.reduce((s, u) => {
+      if (u.grupo_tarifario === "A") return s + (u.consumo_mensal_p || 0) + (u.consumo_mensal_fp || 0);
+      return s + (u.consumo_mensal || 0);
+    }, 0);
+  }, [ucs]);
 
-  const uc = ucs[0];
-  const consumoMeses = uc?.consumo_meses || {};
+  const potenciaIdeal = useMemo(() => {
+    if (pd.fator_geracao <= 0) return 0;
+    return Math.round((consumoTotal / pd.fator_geracao) * 100) / 100;
+  }, [consumoTotal, pd.fator_geracao]);
 
-  const mediaConsumo = useMemo(() => {
-    const vals = MESES.map(m => consumoMeses[m] || 0);
-    const total = vals.reduce((a, b) => a + b, 0);
-    return total > 0 ? total / 12 : 0;
-  }, [consumoMeses]);
+  // Auto-update potenciaKwp when potenciaIdeal changes
+  const applyPotIdeal = useCallback(() => {
+    if (potenciaIdeal > 0) onPotenciaChange(potenciaIdeal);
+  }, [potenciaIdeal, onPotenciaChange]);
 
-  const totalAnual = useMemo(() => {
-    return MESES.reduce((s, m) => s + (consumoMeses[m] || 0), 0);
-  }, [consumoMeses]);
-
-  // Suggested kWp based on consumption (approx 130 kWh/kWp/month in Brazil)
-  const suggestedKwp = useMemo(() => {
-    if (mediaConsumo <= 0) return 0;
-    return Math.round((mediaConsumo / 130) * 100) / 100;
-  }, [mediaConsumo]);
-
-  const updateMonth = useCallback((mes: string, value: number) => {
-    if (!uc) return;
+  // ─── UC handlers
+  const updateUC = (index: number, uc: UCData) => {
     const updated = [...ucs];
-    updated[0] = {
-      ...updated[0],
-      consumo_meses: { ...updated[0].consumo_meses, [mes]: Math.max(0, value) },
-    };
-    // Update consumo_mensal as average
-    const total = MESES.reduce((s, m) => s + (m === mes ? Math.max(0, value) : (updated[0].consumo_meses[m] || 0)), 0);
-    updated[0].consumo_mensal = Math.round(total / 12);
+    updated[index] = uc;
     onUcsChange(updated);
-  }, [ucs, onUcsChange]);
-
-  const autoDistribute = useCallback((annual: number) => {
-    if (annual <= 0) return;
-    const updated = [...ucs];
-    const newMeses: Record<string, number> = {};
-    MESES.forEach(m => {
-      newMeses[m] = Math.round((annual / 12) * (SEASON_FACTOR[m] || 1));
-    });
-    updated[0] = {
-      ...updated[0],
-      consumo_meses: newMeses,
-      consumo_mensal: Math.round(annual / 12),
-    };
-    onUcsChange(updated);
-  }, [ucs, onUcsChange]);
-
-  const handlePaste = useCallback((text: string) => {
-    // Try to parse 12 numbers from pasted text (comma, tab, newline separated)
-    const nums = text.replace(/[^\d.,\s\t\n]/g, "").split(/[\s,\t\n]+/).map(s => parseInt(s.replace(/\./g, "").replace(",", "."), 10)).filter(n => !isNaN(n) && n > 0);
-    if (nums.length >= 12) {
-      const updated = [...ucs];
-      const newMeses: Record<string, number> = {};
-      MESES.forEach((m, i) => { newMeses[m] = nums[i] || 0; });
-      const total = Object.values(newMeses).reduce((a, b) => a + b, 0);
-      updated[0] = { ...updated[0], consumo_meses: newMeses, consumo_mensal: Math.round(total / 12) };
-      onUcsChange(updated);
-      setPasteMode(false);
-    }
-  }, [ucs, onUcsChange]);
-
-  const chartData = useMemo(() => MESES.map(m => ({
-    mes: MONTH_LABELS[m],
-    key: m,
-    kwh: consumoMeses[m] || 0,
-  })), [consumoMeses]);
-
-  const maxKwh = Math.max(500, ...chartData.map(d => d.kwh)) * 1.2;
-
-  if (!uc) return null;
-
-  const applySuggested = () => {
-    if (suggestedKwp > 0) onPotenciaChange(suggestedKwp);
   };
+
+  const removeUC = (index: number) => {
+    if (ucs.length <= 1) return;
+    onUcsChange(ucs.filter((_, i) => i !== index));
+  };
+
+  const addUC = () => {
+    const newUC = createEmptyUC(ucs.length + 1);
+    // Inherit regra/grupo from first UC
+    newUC.regra = ucs[0].regra;
+    newUC.grupo_tarifario = ucs[0].grupo_tarifario;
+    newUC.tipo_dimensionamento = ucs[0].tipo_dimensionamento;
+    newUC.is_geradora = false;
+    onUcsChange([...ucs, newUC]);
+  };
+
+  const handleAutoRateio = () => {
+    const equal = Math.round(100 / ucs.length);
+    const updated = ucs.map((u, i) => ({
+      ...u,
+      rateio_creditos: i === 0 ? 100 - equal * (ucs.length - 1) : equal,
+    }));
+    onUcsChange(updated);
+  };
+
+  // ─── MesAMes handlers
+  const mesAMesValues = useMemo(() => {
+    const uc = ucs[mesAMes.ucIndex];
+    if (!uc) return {};
+    if (mesAMes.field === "hp") return uc.consumo_meses_p || {};
+    if (mesAMes.field === "hfp") return uc.consumo_meses_fp || {};
+    return uc.consumo_meses || {};
+  }, [ucs, mesAMes]);
+
+  const handleMesAMesSave = (values: Record<string, number>) => {
+    const updated = [...ucs];
+    const uc = { ...updated[mesAMes.ucIndex] };
+    const total = MESES.reduce((s, m) => s + (values[m] || 0), 0);
+    if (mesAMes.field === "hp") {
+      uc.consumo_meses_p = values;
+      uc.consumo_mensal_p = Math.round(total / 12);
+    } else if (mesAMes.field === "hfp") {
+      uc.consumo_meses_fp = values;
+      uc.consumo_mensal_fp = Math.round(total / 12);
+    } else {
+      uc.consumo_meses = values;
+      uc.consumo_mensal = Math.round(total / 12);
+    }
+    updated[mesAMes.ucIndex] = uc;
+    onUcsChange(updated);
+  };
+
+  const mesAMesTitle = mesAMes.field === "hp" ? "Consumo Ponta (HP)" : mesAMes.field === "hfp" ? "Consumo Fora Ponta (HFP)" : "Consumo";
+
+  // ─── Pre-dimensionamento update helper
+  const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
+    setPd({ ...pd, [field]: value });
+  };
+
+  const toggleTopologia = (t: string) => {
+    const current = pd.topologias;
+    if (current.includes(t)) {
+      if (current.length > 1) pdUpdate("topologias", current.filter(x => x !== t));
+    } else {
+      pdUpdate("topologias", [...current, t]);
+    }
+  };
+
+  const showDoD = pd.sistema === "hibrido" || pd.sistema === "off_grid";
+
+  // ─── Pre-dimensionamento content (reused in tab and modal)
+  const preDimContent = (
+    <div className="space-y-5">
+      {/* Sistema / Tipo Kit / Topologia */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-[11px] flex items-center gap-1">Sistema <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Tipo do sistema solar</p></TooltipContent></Tooltip></TooltipProvider></Label>
+          <RadioGroup value={pd.sistema} onValueChange={v => pdUpdate("sistema", v as any)} className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5"><RadioGroupItem value="on_grid" id="sys-on" /><Label htmlFor="sys-on" className="text-xs cursor-pointer">On grid</Label></div>
+            <div className="flex items-center gap-1.5"><RadioGroupItem value="hibrido" id="sys-hib" /><Label htmlFor="sys-hib" className="text-xs cursor-pointer">Híbrido</Label></div>
+            <div className="flex items-center gap-1.5"><RadioGroupItem value="off_grid" id="sys-off" /><Label htmlFor="sys-off" className="text-xs cursor-pointer">Off grid</Label></div>
+          </RadioGroup>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Label className="text-[11px]">Tipo de kit <span className="text-destructive">*</span></Label>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <Checkbox id="kit-custom" checked={pd.tipo_kit === "customizado"} onCheckedChange={() => pdUpdate("tipo_kit", "customizado")} />
+              <Label htmlFor="kit-custom" className="text-xs cursor-pointer">Customizado</Label>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Checkbox id="kit-fechado" checked={pd.tipo_kit === "fechado"} onCheckedChange={() => pdUpdate("tipo_kit", "fechado")} />
+              <Label htmlFor="kit-fechado" className="text-xs cursor-pointer">Fechado</Label>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <Label className="text-[11px]">Topologia <span className="text-destructive">*</span></Label>
+          <div className="flex items-center gap-3">
+            {["tradicional", "microinversor", "otimizador"].map(t => (
+              <div key={t} className="flex items-center gap-1.5">
+                <Checkbox id={`topo-${t}`} checked={pd.topologias.includes(t)} onCheckedChange={() => toggleTopologia(t)} />
+                <Label htmlFor={`topo-${t}`} className="text-xs cursor-pointer capitalize">{t === "microinversor" ? "Microinversor" : t === "otimizador" ? "Otimizador" : "Tradicional"}</Label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Sub-tabs: Premissas | Equipamentos */}
+      <div className="border-b border-border">
+        <div className="flex gap-6">
+          <button className="text-sm font-semibold text-secondary border-b-2 border-secondary pb-2 px-1">Premissas</button>
+          <button className="text-sm text-muted-foreground pb-2 px-1 hover:text-foreground">Equipamentos</button>
+        </div>
+      </div>
+
+      {/* Premissas content */}
+      <div className="space-y-4">
+        <p className="text-xs font-semibold">Fator Geração</p>
+
+        {/* Sombreamento / Desvio / Inclinação / DoD */}
+        <div className="space-y-1.5">
+          <Label className="text-[11px] flex items-center gap-1">
+            Sombreamento <span className="text-destructive">*</span>
+            <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Nível de sombreamento no local</p></TooltipContent></Tooltip></TooltipProvider>
+          </Label>
+          <Select value={pd.sombreamento} onValueChange={v => pdUpdate("sombreamento", v)}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{SOMBREAMENTO_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+
+        <div className={`grid gap-3 ${showDoD ? "grid-cols-3" : "grid-cols-2"}`}>
+          <div className="space-y-1.5">
+            <Label className="text-[11px]">Desvio Azimutal <span className="text-destructive">*</span></Label>
+            <Select value={String(pd.desvio_azimutal)} onValueChange={v => pdUpdate("desvio_azimutal", Number(v))}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>{DESVIO_AZIMUTAL_OPTIONS.map(d => <SelectItem key={d} value={String(d)}>{d}°</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[11px]">Inclinação <span className="text-destructive">*</span></Label>
+            <Select value={String(pd.inclinacao)} onValueChange={v => pdUpdate("inclinacao", Number(v))}>
+              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>{INCLINACAO_OPTIONS.map(i => <SelectItem key={i} value={String(i)}>{i}°</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          {showDoD && (
+            <div className="space-y-1.5">
+              <Label className="text-[11px] flex items-center gap-1">
+                DoD <span className="text-destructive">*</span>
+                <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Depth of Discharge — profundidade de descarga da bateria</p></TooltipContent></Tooltip></TooltipProvider>
+              </Label>
+              <div className="relative">
+                <Input type="number" step="0.01" value={pd.dod || ""} onChange={e => pdUpdate("dod", Number(e.target.value))} className="h-9 text-xs pr-8" />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Tradicional + badge Pot ideal */}
+        <div className="flex items-center gap-3 pt-1">
+          <p className="text-sm font-bold">Tradicional</p>
+          <Badge variant="outline" className="text-[10px] font-mono border-secondary text-secondary">
+            Pot. ideal: {potenciaIdeal.toFixed(2)} kWp
+          </Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-[11px] flex items-center gap-1">
+              Desempenho <span className="text-destructive">*</span>
+              <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Performance Ratio do sistema</p></TooltipContent></Tooltip></TooltipProvider>
+            </Label>
+            <div className="relative">
+              <Input type="number" step="0.01" value={pd.desempenho || ""} onChange={e => pdUpdate("desempenho", Number(e.target.value))} className="h-9 text-xs pr-8" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
+              <button className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
+            </div>
+            <div className="relative">
+              <Input type="number" step="0.01" value={pd.fator_geracao || ""} onChange={e => pdUpdate("fator_geracao", Number(e.target.value))} className="h-9 text-xs pr-16" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh/kWp</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Sistema Solar */}
+        <p className="text-sm font-bold pt-1">Sistema Solar</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-[11px]">Sobredimensionamento</Label>
+            <div className="relative">
+              <Input type="number" step="0.01" value={pd.sobredimensionamento || ""} onChange={e => pdUpdate("sobredimensionamento", Number(e.target.value))} className="h-9 text-xs pr-8" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-[11px]">Margem para Pot. Ideal</Label>
+            <div className="relative">
+              <Input type="number" step="0.01" value={pd.margem_pot_ideal || ""} onChange={e => pdUpdate("margem_pot_ideal", Number(e.target.value))} className="h-9 text-xs pr-8" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 pt-1">
+          <Label className="text-xs">Considerar kits que necessitam de transformador</Label>
+          <Switch checked={pd.considerar_transformador} onCheckedChange={v => pdUpdate("considerar_transformador", v)} />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-bold flex items-center gap-2">
-          <BarChart3 className="h-4 w-4 text-primary" /> Inteligência de Consumo
-        </h3>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-[11px] gap-1"
-            onClick={() => setPasteMode(!pasteMode)}
-          >
-            <Clipboard className="h-3 w-3" /> Colar 12 meses
-          </Button>
+      {/* ─── Header metrics bar */}
+      <div className="flex items-center justify-end gap-6 text-xs">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <BarChart3 className="h-3.5 w-3.5" />
+          <span>Consumo Mensal Total</span>
+          <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
         </div>
+        <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
+          <Pencil className="h-3.5 w-3.5" />
+          <span>Potência Ideal</span>
+          <span className="font-bold text-foreground">{potenciaIdeal.toFixed(2)} kWp</span>
+          <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
+        <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
+          <Zap className="h-3.5 w-3.5" />
+          <span>Fator de Geração</span>
+          <span className="font-bold text-foreground">{pd.fator_geracao.toFixed(2)} kWh/kWp</span>
+          <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
+        </button>
       </div>
 
-      {/* Paste mode */}
-      {pasteMode && (
-        <div className="p-3 rounded-md border border-primary/20 bg-primary/5 space-y-2">
-          <Label className="text-xs">Cole aqui os 12 valores de consumo (separados por vírgula, tab ou linha)</Label>
-          <Textarea
-            className="h-16 text-xs font-mono"
-            placeholder="350, 380, 420, 410, 390, 370, 360, 380, 400, 430, 450, 370"
-            onPaste={(e) => {
-              e.preventDefault();
-              handlePaste(e.clipboardData.getData("text"));
-            }}
-            onChange={(e) => handlePaste(e.target.value)}
-          />
-        </div>
-      )}
-
-      {/* Annual quick input */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 flex-1">
-          <Label className="text-xs whitespace-nowrap">Consumo Anual (kWh):</Label>
-          <Input
-            type="number"
-            min={0}
-            value={annualInput}
-            onChange={(e) => setAnnualInput(e.target.value)}
-            placeholder="Ex: 6000"
-            className="h-8 text-xs w-28"
-          />
+      {/* ─── Tabs + actions */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-2">
           <Button
-            variant="secondary"
+            variant={activeTab === "ucs" ? "outline" : "ghost"}
             size="sm"
-            className="h-8 text-[11px] gap-1"
-            disabled={!annualInput || Number(annualInput) <= 0}
-            onClick={() => autoDistribute(Number(annualInput))}
+            className={`gap-1.5 ${activeTab === "ucs" ? "border-2 border-secondary text-secondary font-semibold" : ""}`}
+            onClick={() => setActiveTab("ucs")}
           >
-            <Sparkles className="h-3 w-3" /> Auto-distribuir
+            <Zap className="h-3.5 w-3.5" /> Unidades Consumidoras
+          </Button>
+          <Button
+            variant={activeTab === "pre" ? "outline" : "ghost"}
+            size="sm"
+            className={`gap-1.5 ${activeTab === "pre" ? "border-2 border-secondary text-secondary font-semibold" : ""}`}
+            onClick={() => setActiveTab("pre")}
+          >
+            <Settings2 className="h-3.5 w-3.5" /> Pré-Dimensionamento
           </Button>
         </div>
-        {totalAnual > 0 && (
-          <Badge variant="outline" className="text-[10px] font-mono shrink-0">
-            Total: {totalAnual.toLocaleString("pt-BR")} kWh/ano
-          </Badge>
+
+        {ucs.length > 1 && (
+          <div className="flex items-center gap-2">
+            <Button size="sm" className="h-7 text-[11px] bg-primary hover:bg-primary/90" onClick={handleAutoRateio}>
+              Rateio automático
+            </Button>
+            <button onClick={() => setRateioOpen(true)} className="text-[11px] text-secondary hover:underline flex items-center gap-1">
+              <Settings2 className="h-3 w-3" /> Gerenciar rateio de créditos
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Interactive Chart */}
-      <div className="rounded-md border border-border/50 bg-card p-3" ref={chartRef}>
-        <div className="text-[10px] text-muted-foreground mb-2 text-right">Arraste as barras para ajustar • Clique para editar</div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.4} />
-            <XAxis dataKey="mes" tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
-            <YAxis tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" width={40} />
-            {mediaConsumo > 0 && (
-              <ReferenceLine y={mediaConsumo} stroke="hsl(var(--primary))" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: `Média: ${Math.round(mediaConsumo)}`, fontSize: 10, fill: "hsl(var(--primary))", position: "right" }} />
-            )}
-            <Bar dataKey="kwh" radius={[3, 3, 0, 0]} cursor="ns-resize">
-              {chartData.map((entry, i) => (
-                <Cell
-                  key={entry.key}
-                  fill={entry.kwh > mediaConsumo * 1.2 ? "hsl(var(--destructive))" : entry.kwh < mediaConsumo * 0.8 ? "hsl(var(--warning))" : "hsl(var(--primary))"}
-                  fillOpacity={0.75}
-                />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Monthly inputs grid */}
-      <div className="grid grid-cols-6 sm:grid-cols-12 gap-1.5">
-        {MESES.map(m => (
-          <div key={m} className="space-y-0.5">
-            <Label className="text-[9px] text-muted-foreground uppercase text-center block">{MONTH_LABELS[m]}</Label>
-            <Input
-              type="number"
-              min={0}
-              value={consumoMeses[m] || ""}
-              onChange={(e) => updateMonth(m, Number(e.target.value))}
-              className="h-7 text-[11px] text-center px-1 font-mono"
+      {/* ─── Tab content */}
+      {activeTab === "ucs" ? (
+        <div className="flex gap-4 overflow-x-auto pb-2">
+          {ucs.map((uc, i) => (
+            <UCCard
+              key={uc.id}
+              uc={uc}
+              index={i}
+              onChange={u => updateUC(i, u)}
+              onRemove={() => removeUC(i)}
+              onOpenConfig={() => setConfigModal({ open: true, index: i })}
+              onOpenMesAMes={field => setMesAMes({ open: true, ucIndex: i, field })}
+              isFirst={i === 0}
+              totalUcs={ucs.length}
             />
-          </div>
-        ))}
-      </div>
+          ))}
 
-      {/* Suggested System Size */}
-      {mediaConsumo > 0 && (
-        <div className="rounded-md border-2 border-primary/30 bg-primary/5 p-4 flex items-center justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground">Sistema Sugerido</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold font-mono text-primary">{suggestedKwp}</span>
-              <span className="text-sm text-muted-foreground">kWp</span>
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              Média {Math.round(mediaConsumo)} kWh/mês • ~{Math.ceil(suggestedKwp * 1000 / 550)} módulos (550W)
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-            <Button size="sm" className="h-8 text-xs gap-1" onClick={applySuggested}>
-              <Zap className="h-3 w-3" /> Aplicar {suggestedKwp} kWp
-            </Button>
-            <div className="flex items-center gap-2">
-              <Label className="text-[10px]">ou manual:</Label>
-              <Input
-                type="number"
-                min={0}
-                step={0.1}
-                value={potenciaKwp || ""}
-                onChange={(e) => onPotenciaChange(Number(e.target.value))}
-                className="h-7 text-xs w-20 font-mono"
-              />
-              <span className="text-[10px] text-muted-foreground">kWp</span>
-            </div>
-          </div>
+          {/* + Nova Unidade card */}
+          <button
+            onClick={addUC}
+            className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 min-w-[200px] min-h-[300px] flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-colors flex-shrink-0"
+          >
+            <Plus className="h-5 w-5 text-primary" />
+            <span className="text-sm text-primary font-medium">+ Nova Unidade</span>
+          </button>
         </div>
+      ) : (
+        preDimContent
       )}
+
+      {/* ─── Modals */}
+      <UCConfigModal
+        open={configModal.open}
+        onOpenChange={o => setConfigModal({ ...configModal, open: o })}
+        uc={ucs[configModal.index] || null}
+        index={configModal.index}
+        onSave={uc => updateUC(configModal.index, uc)}
+      />
+
+      <RateioCreditsModal
+        open={rateioOpen}
+        onOpenChange={setRateioOpen}
+        ucs={ucs}
+        onSave={onUcsChange}
+      />
+
+      <MesAMesDialog
+        open={mesAMes.open}
+        onOpenChange={o => setMesAMes({ ...mesAMes, open: o })}
+        title={mesAMesTitle}
+        values={mesAMesValues}
+        onSave={handleMesAMesSave}
+      />
+
+      {/* Pre-dimensionamento modal (from header click) */}
+      <Dialog open={preDimModal} onOpenChange={setPreDimModal}>
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Pré-dimensionamento</DialogTitle>
+          </DialogHeader>
+          {preDimContent}
+          <div className="flex items-center justify-end gap-3 pt-2 border-t">
+            <Button variant="ghost" onClick={() => setPreDimModal(false)}>Voltar</Button>
+            <Button onClick={() => { applyPotIdeal(); setPreDimModal(false); }} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
