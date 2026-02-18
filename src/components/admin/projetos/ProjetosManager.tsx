@@ -53,6 +53,21 @@ export function ProjetosManager() {
   const [selectedDealId, setSelectedDealId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("kanban");
   const [dynamicEtiquetas, setDynamicEtiquetas] = useState<DynamicEtiqueta[]>([]);
+  const [defaultPipelineApplied, setDefaultPipelineApplied] = useState(false);
+
+  // Persist status filter in sessionStorage
+  const STORED_STATUS_KEY = "projetos_filter_status";
+  const getStoredStatus = () => {
+    try { return sessionStorage.getItem(STORED_STATUS_KEY) || "todos"; } catch { return "todos"; }
+  };
+
+  // Apply stored status on mount
+  useEffect(() => {
+    const stored = getStoredStatus();
+    if (stored !== "todos" && filters.status !== stored) {
+      applyFilters({ status: stored });
+    }
+  }, []);
 
   // Fetch dynamic etiquetas from DB
   useEffect(() => {
@@ -69,8 +84,10 @@ export function ProjetosManager() {
     if (key === "pipelineId") {
       const pipelineValue = value === "todos" ? null : value;
       setSelectedPipelineId(pipelineValue);
+      setUserChoseTodos(value === "todos");
       applyFilters({ pipelineId: pipelineValue });
       // Auto-switch view based on pipeline kind (only when specific pipeline selected)
+      // DON'T auto-switch when selecting "todos" — keep current view mode
       if (pipelineValue) {
         const pipeline = pipelines.find(p => p.id === pipelineValue);
         if (pipeline?.kind === "owner_board") {
@@ -83,6 +100,8 @@ export function ProjetosManager() {
       applyFilters({ ownerId: value });
     } else if (key === "status") {
       applyFilters({ status: value });
+      // Persist status filter
+      try { sessionStorage.setItem(STORED_STATUS_KEY, value); } catch {}
     } else if (key === "search") {
       applyFilters({ search: value });
     }
@@ -94,27 +113,37 @@ export function ProjetosManager() {
     [pipelines]
   );
 
+  // Track if user explicitly chose "todos" to prevent default override
+  const [userChoseTodos, setUserChoseTodos] = useState(false);
+
   useEffect(() => {
-    if (!selectedPipelineId && activePipelines.length > 0) {
-      const first = activePipelines[0];
-      setSelectedPipelineId(first.id);
-      applyFilters({ pipelineId: first.id });
+    if (!defaultPipelineApplied && activePipelines.length > 0) {
+      // Prefer "Comercial" pipeline as default
+      const comercial = activePipelines.find(p => p.name.toLowerCase() === "comercial");
+      const defaultPipeline = comercial || activePipelines[0];
+      if (!selectedPipelineId && !userChoseTodos) {
+        setSelectedPipelineId(defaultPipeline.id);
+        applyFilters({ pipelineId: defaultPipeline.id });
+      }
+      setDefaultPipelineApplied(true);
     }
     if (selectedPipelineId) {
       const current = pipelines.find(p => p.id === selectedPipelineId);
       if (current && !current.is_active && activePipelines.length > 0) {
-        const first = activePipelines[0];
-        setSelectedPipelineId(first.id);
-        applyFilters({ pipelineId: first.id });
+        const comercial = activePipelines.find(p => p.name.toLowerCase() === "comercial");
+        const fallback = comercial || activePipelines[0];
+        setSelectedPipelineId(fallback.id);
+        applyFilters({ pipelineId: fallback.id });
       }
     }
-  }, [pipelines, selectedPipelineId, activePipelines]);
+  }, [pipelines, selectedPipelineId, activePipelines, defaultPipelineApplied, userChoseTodos]);
 
   const clearFilters = () => {
-    const firstActive = activePipelines[0] || pipelines.find(p => p.is_active);
-    const pid = firstActive?.id || null;
+    const comercial = activePipelines.find(p => p.name.toLowerCase() === "comercial");
+    const pid = comercial?.id || activePipelines[0]?.id || null;
     applyFilters({ pipelineId: pid, ownerId: "todos", status: "todos", search: "" });
     setSelectedPipelineId(pid);
+    try { sessionStorage.removeItem(STORED_STATUS_KEY); } catch {}
   };
 
   const totalValue = useMemo(() => {
