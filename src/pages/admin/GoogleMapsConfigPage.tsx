@@ -46,8 +46,9 @@ export default function GoogleMapsConfigPage() {
   const saveMutation = useMutation({
     mutationFn: async ({ key, active }: { key?: string; active?: boolean }) => {
       if (key !== undefined) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) throw new Error("Sessão expirada. Faça login novamente.");
+        // Force token refresh to avoid stale session
+        const { data: { user }, error: authErr } = await supabase.auth.getUser();
+        if (authErr || !user) throw new Error("Sessão expirada. Faça login novamente.");
 
         const resp = await supabase.functions.invoke("save-integration-key", {
           body: { service_key: "google_maps", api_key: key },
