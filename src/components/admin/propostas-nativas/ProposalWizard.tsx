@@ -475,6 +475,8 @@ export function ProposalWizard() {
             <StepDocumento
               clienteNome={cliente.nome || selectedLead?.nome || ""}
               empresaNome={cliente.empresa || cliente.nome || selectedLead?.nome || ""}
+              clienteTelefone={cliente.celular || selectedLead?.telefone || ""}
+              clienteEmail={cliente.email || ""}
               potenciaKwp={potenciaKwp}
               numUcs={ucs.length}
               precoFinal={precoFinal}
