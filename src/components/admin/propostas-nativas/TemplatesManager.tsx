@@ -141,6 +141,18 @@ export function TemplatesManager() {
     }
 
     try {
+      // Get tenant_id for insert
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
       const payload = {
         nome: form.nome,
         descricao: form.descricao || null,
@@ -153,6 +165,7 @@ export function TemplatesManager() {
         ativo: form.ativo ?? true,
         ordem: form.ordem ?? 0,
         variaveis_disponiveis: {} as Record<string, unknown>,
+        tenant_id: profile.tenant_id,
       };
 
       if (editingId === "new") {
@@ -160,7 +173,7 @@ export function TemplatesManager() {
         if (error) throw error;
         toast({ title: "Template criado!" });
       } else {
-        const { variaveis_disponiveis, ...updatePayload } = payload;
+        const { variaveis_disponiveis, tenant_id, ...updatePayload } = payload;
         const { error } = await supabase.from("proposta_templates").update(updatePayload as any).eq("id", editingId!);
         if (error) throw error;
         toast({ title: "Template atualizado!" });
