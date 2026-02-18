@@ -220,37 +220,35 @@ export function VariaveisDisponiveisPage() {
 
       {/* Card container */}
       <div className="rounded-xl border border-border bg-card overflow-hidden">
-        {/* Category tabs — 2 rows */}
-        <div className="border-b border-border bg-muted/20 px-3 py-2.5 space-y-1.5">
-          {[CATEGORY_ORDER.slice(0, 6), CATEGORY_ORDER.slice(6)].map((row, rowIdx) => (
-            <div key={rowIdx} className="flex items-center gap-1.5">
-              {row.map((cat) => {
-                const isActive = activeCategory === cat;
-                const count = cat === "customizada"
-                  ? dbCustomVars.length
-                  : VARIABLES_CATALOG.filter((v) => v.category === cat).length;
-                return (
-                  <button
-                    key={cat}
-                    onClick={() => setActiveCategory(cat)}
-                    className={`
-                      flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all
-                      ${isActive
-                        ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
-                      }
-                    `}
-                  >
-                    <span className="text-xs">{CATEGORY_ICONS[cat]}</span>
-                    <span>{CATEGORY_LABELS[cat]}</span>
-                    <span className={`text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center ${isActive ? "text-primary-foreground/70" : "text-muted-foreground/40"}`}>
-                      {count}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+        {/* Category tabs — auto-wrap responsivo */}
+        <div className="border-b border-border bg-muted/20 px-3 py-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            {CATEGORY_ORDER.map((cat) => {
+              const isActive = activeCategory === cat;
+              const count = cat === "customizada"
+                ? dbCustomVars.length
+                : VARIABLES_CATALOG.filter((v) => v.category === cat).length;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={`
+                    flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium rounded-lg whitespace-nowrap transition-all
+                    ${isActive
+                      ? "bg-primary text-primary-foreground shadow-sm ring-1 ring-primary/20"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/60 border border-transparent hover:border-border/50"
+                    }
+                  `}
+                >
+                  <span className="text-xs">{CATEGORY_ICONS[cat]}</span>
+                  <span>{CATEGORY_LABELS[cat]}</span>
+                  <span className={`text-[9px] font-mono tabular-nums ml-0.5 min-w-[1.2rem] text-center ${isActive ? "text-primary-foreground/70" : "text-muted-foreground/40"}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Search */}
