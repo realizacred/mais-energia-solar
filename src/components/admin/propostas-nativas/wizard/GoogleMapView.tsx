@@ -89,6 +89,7 @@ export default function GoogleMapView({
         }
         apiKeyRef.current = data.api_key;
 
+        // Load Google Maps script only if not already present
         if (!window.google?.maps) {
           const existing = document.querySelector('script[src*="maps.googleapis.com"]');
           if (!existing) {
@@ -102,18 +103,19 @@ export default function GoogleMapView({
               document.head.appendChild(script);
             });
           } else {
-            if (!window.google?.maps) {
-              await new Promise<void>((resolve) => {
-                existing.addEventListener("load", () => resolve());
-                if (window.google?.maps) resolve();
-              });
-            }
+            // Script tag exists but hasn't finished loading yet
+            await new Promise<void>((resolve) => {
+              const check = () => {
+                if (window.google?.maps) { resolve(); return; }
+                setTimeout(check, 100);
+              };
+              existing.addEventListener("load", () => resolve());
+              check();
+            });
           }
         }
-
-        // Drawing library is loaded via script tag parameter — do NOT call importLibrary()
-        // Mixing legacy (libraries=drawing) + dynamic (importLibrary) causes
-        // "Não é possível carregar corretamente o Google Maps nesta página"
+        // NOTE: Drawing library loaded via script tag `libraries=drawing`
+        // Do NOT call importLibrary() — mixing methods causes init errors
 
         if (!cancelled) setLoading(false);
       } catch (err) {
@@ -194,8 +196,9 @@ export default function GoogleMapView({
 
       dm.addListener("overlaycomplete", (e: google.maps.drawing.OverlayCompleteEvent) => {
         overlaysRef.current.push(e.overlay!);
-        // After completing a shape, return to navigation mode
+        // After completing a shape, return to navigation mode and unlock map
         dm.setDrawingMode(null);
+        map.setOptions({ draggable: true, gestureHandling: "greedy" });
         setActiveDrawing(null);
       });
 
@@ -211,13 +214,16 @@ export default function GoogleMapView({
     mapInstanceRef.current?.setMapTypeId(mapType);
   }, [mapType]);
 
-  // ─── Update drawing mode on DrawingManager ───────
+  // ─── Update drawing mode on DrawingManager + lock/unlock map drag ───
   useEffect(() => {
     const dm = drawingManagerRef.current;
-    if (!dm || !window.google?.maps?.drawing) return;
+    const map = mapInstanceRef.current;
+    if (!dm || !map || !window.google?.maps?.drawing) return;
 
     if (!activeDrawing) {
       dm.setDrawingMode(null);
+      // Unlock map dragging
+      map.setOptions({ draggable: true, gestureHandling: "greedy" });
       return;
     }
 
@@ -229,7 +235,13 @@ export default function GoogleMapView({
       circle: google.maps.drawing.OverlayType.CIRCLE,
     };
 
-    dm.setDrawingMode(modeMap[activeDrawing] ?? null);
+    const mode = modeMap[activeDrawing] ?? null;
+    dm.setDrawingMode(mode);
+
+    // Lock map dragging while drawing tool is active
+    if (mode) {
+      map.setOptions({ draggable: false, gestureHandling: "none" });
+    }
   }, [activeDrawing]);
 
   // ─── Update marker/center when coords change ────
