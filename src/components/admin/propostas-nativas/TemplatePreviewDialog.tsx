@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { VARIABLES_CATALOG, replaceVariables } from "@/lib/variablesCatalog";
 
 interface TemplatePreviewDialogProps {
   open: boolean;
@@ -28,6 +29,83 @@ interface LeadOption {
   estado: string | null;
   media_consumo: number | null;
   valor_estimado: number | null;
+}
+
+/**
+ * Builds a comprehensive variable context from lead + client data.
+ * Maps both canonical (grupo.campo) and legacy (campo) keys from the SSOT catalog.
+ */
+async function buildVariableContext(lead: LeadOption): Promise<Record<string, any>> {
+  // Fetch cliente data linked to lead
+  const { data: cliente } = await supabase
+    .from("clientes")
+    .select("nome, telefone, email, cpf_cnpj, cidade, estado, bairro, rua, numero, cep, complemento, empresa, potencia_kwp, valor_projeto, numero_placas, modelo_inversor, data_nascimento")
+    .eq("lead_id", lead.id)
+    .maybeSingle();
+
+  const now = new Date();
+  const fmtCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
+  // Build context with both canonical AND legacy keys
+  // This feeds into replaceVariables() which handles both {{grupo.campo}} and [campo]
+  const ctx: Record<string, any> = {};
+
+  // Helper: set both canonical dotted key and legacy flat key
+  const set = (canonical: string, legacy: string, value: any) => {
+    if (value !== undefined && value !== null && value !== "") {
+      ctx[canonical] = value;
+      ctx[legacy] = value;
+    }
+  };
+
+  // ── Cliente ──
+  set("cliente.nome", "cliente_nome", cliente?.nome || lead.nome || "—");
+  set("cliente.celular", "cliente_celular", cliente?.telefone || lead.telefone || "—");
+  set("cliente.email", "cliente_email", cliente?.email || "—");
+  set("cliente.cnpj_cpf", "cliente_cnpj_cpf", cliente?.cpf_cnpj || "—");
+  set("cliente.empresa", "cliente_empresa", cliente?.empresa || "—");
+  set("cliente.cep", "cliente_cep", cliente?.cep || "—");
+  set("cliente.endereco", "cliente_endereco", cliente?.rua || "—");
+  set("cliente.numero", "cliente_numero", cliente?.numero || "—");
+  set("cliente.complemento", "cliente_complemento", cliente?.complemento || "—");
+  set("cliente.bairro", "cliente_bairro", cliente?.bairro || "—");
+  set("cliente.cidade", "cliente_cidade", cliente?.cidade || lead.cidade || "—");
+  set("cliente.estado", "cliente_estado", cliente?.estado || lead.estado || "—");
+
+  // ── Entrada ──
+  set("entrada.consumo_mensal", "consumo_mensal", String(lead.media_consumo || 0));
+  set("entrada.cidade", "cidade", cliente?.cidade || lead.cidade || "—");
+  set("entrada.estado", "estado", cliente?.estado || lead.estado || "—");
+
+  // ── Sistema Solar ──
+  set("sistema_solar.potencia_sistema", "potencia_sistema", String(cliente?.potencia_kwp || 0));
+  set("sistema_solar.modulo_quantidade", "modulo_quantidade", String(cliente?.numero_placas || 0));
+
+  // ── Financeiro ──
+  const valorTotal = lead.valor_estimado || cliente?.valor_projeto || 0;
+  set("financeiro.valor_total", "valor_total", fmtCurrency(valorTotal));
+  set("financeiro.preco_final", "preco_final", fmtCurrency(valorTotal));
+
+  // ── Comercial ──
+  set("comercial.proposta_data", "proposta_data", now.toLocaleDateString("pt-BR"));
+  set("comercial.proposta_validade", "proposta_validade", new Date(now.getTime() + 15 * 86400000).toLocaleDateString("pt-BR"));
+
+  // ── Populate example values for all catalog variables not yet filled ──
+  for (const v of VARIABLES_CATALOG) {
+    if (v.isSeries || v.notImplemented) continue;
+    // Extract bare keys
+    const canonicalBare = v.canonicalKey.replace(/^\{\{|\}\}$/g, "");
+    const legacyBare = v.legacyKey.replace(/^\[|\]$/g, "");
+    // Only fill if not already set from real data
+    if (!(canonicalBare in ctx)) {
+      ctx[canonicalBare] = v.example;
+    }
+    if (!(legacyBare in ctx)) {
+      ctx[legacyBare] = v.example;
+    }
+  }
+
+  return ctx;
 }
 
 export function TemplatePreviewDialog({
@@ -92,57 +170,14 @@ export function TemplatePreviewDialog({
   const handleHtmlPreview = async (lead: LeadOption) => {
     if (!templateHtml) return;
 
-    let clienteData: Record<string, any> = {};
-    const { data: cliente } = await supabase
-      .from("clientes")
-      .select("nome, telefone, email, cpf_cnpj, cidade, estado, bairro, rua, numero, cep, potencia_kwp, valor_projeto")
-      .eq("lead_id", lead.id)
-      .maybeSingle();
+    const context = await buildVariableContext(lead);
 
-    if (cliente) clienteData = cliente;
+    // Use the SSOT replaceVariables function
+    let html = replaceVariables(templateHtml, context);
 
-    const now = new Date();
-    const vars: Record<string, string> = {
-      "cliente.nome": clienteData.nome || lead.nome || "—",
-      "cliente.telefone": clienteData.telefone || lead.telefone || "—",
-      "cliente.email": clienteData.email || "—",
-      "cliente.cpf_cnpj": clienteData.cpf_cnpj || "—",
-      "cliente.cidade": clienteData.cidade || lead.cidade || "—",
-      "cliente.estado": clienteData.estado || lead.estado || "—",
-      "cliente.bairro": clienteData.bairro || "—",
-      "cliente.rua": clienteData.rua || "—",
-      "cliente.numero": clienteData.numero || "—",
-      "cliente.cep": clienteData.cep || "—",
-      "entrada.consumo_medio": String(lead.media_consumo || 0),
-      "entrada.potencia_kwp": String(clienteData.potencia_kwp || 0),
-      "financeiro.valor_total": formatCurrency(lead.valor_estimado || clienteData.valor_projeto || 0),
-      "comercial.data_proposta": now.toLocaleDateString("pt-BR"),
-      "comercial.validade_proposta": new Date(now.getTime() + 15 * 86400000).toLocaleDateString("pt-BR"),
-    };
-
-    const legacyMap: Record<string, string> = {
-      nome_cliente: vars["cliente.nome"],
-      telefone_cliente: vars["cliente.telefone"],
-      email_cliente: vars["cliente.email"],
-      cpf_cnpj: vars["cliente.cpf_cnpj"],
-      cidade: vars["cliente.cidade"],
-      estado: vars["cliente.estado"],
-      consumo_medio: vars["entrada.consumo_medio"],
-      potencia_kwp: vars["entrada.potencia_kwp"],
-      valor_total: vars["financeiro.valor_total"],
-      data_proposta: vars["comercial.data_proposta"],
-      validade_proposta: vars["comercial.validade_proposta"],
-    };
-
-    let html = templateHtml;
-    for (const [key, value] of Object.entries(vars)) {
-      html = html.replace(new RegExp(`\\{\\{\\s*${escapeRegex(key)}\\s*\\}\\}`, "gi"), value);
-    }
-    for (const [key, value] of Object.entries(legacyMap)) {
-      html = html.replace(new RegExp(`\\[${escapeRegex(key)}\\]`, "gi"), value);
-    }
+    // Mark remaining unresolved variables
     html = html.replace(/\{\{[^}]+\}\}/g, (match) => `<span style="background:#fef3c7;color:#92400e;padding:0 4px;border-radius:3px;font-size:0.8em">${match}</span>`);
-    html = html.replace(/\[[a-z_]+\]/gi, (match) => `<span style="background:#fef3c7;color:#92400e;padding:0 4px;border-radius:3px;font-size:0.8em">${match}</span>`);
+    html = html.replace(/\[[a-z_0-9]+\]/gi, (match) => `<span style="background:#fef3c7;color:#92400e;padding:0 4px;border-radius:3px;font-size:0.8em">${match}</span>`);
 
     setRenderedHtml(html);
     toast({ title: `Preview gerado com dados de ${lead.nome}` });
