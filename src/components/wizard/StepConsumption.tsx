@@ -25,6 +25,7 @@ interface StepConsumptionProps {
   markFieldTouched: (field: string) => void;
   isFieldValid: (field: string) => boolean;
   onFilesChange: (files: OfflineFile[]) => void;
+  consultorCode?: string;
 }
 
 export function StepConsumption({
@@ -33,10 +34,11 @@ export function StepConsumption({
   markFieldTouched,
   isFieldValid,
   onFilesChange,
+  consultorCode,
 }: StepConsumptionProps) {
   const { watch, setValue, trigger, formState: { errors } } = form;
   const values = watch();
-  const { tiposTelhado: TIPOS_TELHADO } = useTiposTelhado();
+  const { tiposTelhado: TIPOS_TELHADO } = useTiposTelhado(consultorCode);
 
   return (
     <div className="space-y-5">

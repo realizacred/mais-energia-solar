@@ -14167,6 +14167,13 @@ export type Database = {
           title: string
         }[]
       }
+      get_roof_types_by_consultor: {
+        Args: { p_consultor_code: string }
+        Returns: {
+          label: string
+          tipo_telhado: string
+        }[]
+      }
       get_smtp_password: { Args: { secret: string }; Returns: string }
       get_super_admin_metrics: {
         Args: {

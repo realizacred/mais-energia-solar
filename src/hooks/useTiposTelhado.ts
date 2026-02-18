@@ -7,9 +7,13 @@ const FALLBACK_LABELS = Object.values(ROOF_LABELS);
 
 /**
  * Returns the list of enabled roof type labels for the current tenant.
- * Used in lead/ORC forms and proposal wizard to populate dropdowns.
+ * 
+ * When a consultorCode is provided (public forms), it uses a SECURITY DEFINER
+ * RPC to fetch tenant-specific roof types without requiring authentication.
+ * When logged in (no consultorCode), it queries the table directly via RLS.
+ * Falls back to FALLBACK_LABELS if no data is returned.
  */
-export function useTiposTelhado() {
+export function useTiposTelhado(consultorCode?: string | null) {
   const [labels, setLabels] = useState<string[]>(FALLBACK_LABELS);
   const [loading, setLoading] = useState(true);
 
@@ -17,15 +21,29 @@ export function useTiposTelhado() {
     let cancelled = false;
     (async () => {
       try {
-        const { data } = await supabase
-          .from("tenant_roof_area_factors")
-          .select("tipo_telhado, label, enabled")
-          .eq("enabled", true)
-          .order("tipo_telhado");
-        if (cancelled) return;
-        if (data && data.length > 0) {
-          setLabels(data.map((d: any) => getRoofLabel(d as RoofAreaFactor)));
+        let rows: { tipo_telhado: string; label: string | null }[] | null = null;
+
+        if (consultorCode) {
+          // Public context: use SECURITY DEFINER RPC
+          const { data } = await supabase.rpc("get_roof_types_by_consultor", {
+            p_consultor_code: consultorCode,
+          });
+          rows = data as any;
+        } else {
+          // Authenticated context: direct query (RLS enforced)
+          const { data } = await supabase
+            .from("tenant_roof_area_factors")
+            .select("tipo_telhado, label, enabled")
+            .eq("enabled", true)
+            .order("tipo_telhado");
+          rows = data as any;
         }
+
+        if (cancelled) return;
+        if (rows && rows.length > 0) {
+          setLabels(rows.map((d: any) => getRoofLabel(d as RoofAreaFactor)));
+        }
+        // else keep fallback
       } catch {
         // keep fallback
       } finally {
@@ -33,7 +51,7 @@ export function useTiposTelhado() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [consultorCode]);
 
   return { tiposTelhado: labels, loading };
 }

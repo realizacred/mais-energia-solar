@@ -91,7 +91,8 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const logo = useLogo();
-  const { tiposTelhado: TIPOS_TELHADO } = useTiposTelhado();
+  const resolvedVendorCode = vendorCode || searchParams.get("v") || searchParams.get("vendedor") || undefined;
+  const { tiposTelhado: TIPOS_TELHADO } = useTiposTelhado(user ? undefined : resolvedVendorCode);
   // Detect if this is a public vendor form (/v/slug) — always use Edge Function path
   const isPublicVendorForm = Boolean(
     vendorCode || searchParams.get("v") || searchParams.get("vendedor") || window.location.pathname.startsWith("/v/")
