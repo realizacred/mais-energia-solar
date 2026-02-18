@@ -128,7 +128,20 @@ export async function generateProposal(
   });
 
   if (error) {
-    throw new Error(error.message || "Erro ao gerar proposta");
+    // Extract Portuguese error from edge function response body
+    let msg = "Erro ao gerar proposta";
+    try {
+      const ctx = (error as any).context;
+      if (ctx && typeof ctx.json === "function") {
+        const body = await ctx.json();
+        msg = body?.error || msg;
+      } else {
+        msg = error.message || msg;
+      }
+    } catch {
+      msg = error.message || msg;
+    }
+    throw new Error(msg);
   }
   if (!data?.success) {
     throw new Error(data?.error || "Erro desconhecido ao gerar proposta");
@@ -144,7 +157,19 @@ export async function renderProposal(
   });
 
   if (error) {
-    throw new Error(error.message || "Erro ao renderizar proposta");
+    let msg = "Erro ao renderizar proposta";
+    try {
+      const ctx = (error as any).context;
+      if (ctx && typeof ctx.json === "function") {
+        const body = await ctx.json();
+        msg = body?.error || msg;
+      } else {
+        msg = error.message || msg;
+      }
+    } catch {
+      msg = error.message || msg;
+    }
+    throw new Error(msg);
   }
   if (!data?.success) {
     throw new Error(data?.error || "Erro desconhecido ao renderizar");
@@ -174,7 +199,19 @@ export async function sendProposal(
   });
 
   if (error) {
-    throw new Error(error.message || "Erro ao enviar proposta");
+    let msg = "Erro ao enviar proposta";
+    try {
+      const ctx = (error as any).context;
+      if (ctx && typeof ctx.json === "function") {
+        const body = await ctx.json();
+        msg = body?.error || msg;
+      } else {
+        msg = error.message || msg;
+      }
+    } catch {
+      msg = error.message || msg;
+    }
+    throw new Error(msg);
   }
   if (!data?.success) {
     throw new Error(data?.error || "Erro desconhecido ao enviar");

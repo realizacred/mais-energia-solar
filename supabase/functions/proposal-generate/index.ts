@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
     // ── 1. AUTH ──────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return jsonError("Não autorizado", 401);
+      return jsonError("Não autorizado. Faça login novamente.", 401);
     }
 
     const callerClient = createClient(
@@ -140,10 +140,12 @@ Deno.serve(async (req) => {
       { global: { headers: { Authorization: authHeader } } }
     );
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsErr } = await callerClient.auth.getClaims(token);
-    if (claimsErr || !claimsData?.claims) return jsonError("Token inválido", 401);
-    const userId = claimsData.claims.sub as string;
+    const { data: { user }, error: authErr } = await callerClient.auth.getUser();
+    if (authErr || !user) {
+      console.error("[proposal-generate] Auth failed:", authErr?.message);
+      return jsonError("Sessão expirada ou inválida. Faça login novamente.", 401);
+    }
+    const userId = user.id;
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
