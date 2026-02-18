@@ -228,113 +228,123 @@ export function TemplatesManager() {
 
       {/* Dialog Form */}
       <Dialog open={dialogOpen} onOpenChange={(open) => { if (!open) cancelEdit(); }}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[620px] p-6 gap-5">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base">
-              <FileText className="h-4 w-4 text-secondary" />
+            <DialogTitle className="text-base font-bold">
               {editingId === "new" ? "Novo template" : "Editar template"}
-              <Badge variant="secondary" className="text-[10px]">{form.tipo === "docx" ? "DOCX" : "WEB"}</Badge>
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Nome</Label>
-                <Input value={form.nome || ""} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
-                  placeholder="Modelo Premium" className="h-8 text-xs" />
-              </div>
-              <div>
-                <Label className="text-xs">Descrição</Label>
-                <Input value={form.descricao || ""} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
-                  placeholder="Template com layout moderno" className="h-8 text-xs" />
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <Label className="text-xs">Grupo</Label>
-                <Select value={form.grupo || "B"} onValueChange={v => setForm(f => ({ ...f, grupo: v }))}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>{GRUPOS.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Tipo</Label>
-                <div className="h-8 flex items-center px-3 rounded-md border border-border/40 bg-muted/30 text-xs font-medium text-muted-foreground">
-                  {form.tipo === "docx" ? "📄 DOCX (Word)" : "🌐 HTML (Web)"}
+          <div className="space-y-5">
+            {/* Dados do template */}
+            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-4">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" /> Dados do template
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs font-medium">Nome *</Label>
+                  <Input value={form.nome || ""} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                    placeholder="Modelo Premium" className="h-9 text-sm bg-background" />
+                </div>
+                <div>
+                  <Label className="text-xs font-medium">Descrição</Label>
+                  <Input value={form.descricao || ""} onChange={e => setForm(f => ({ ...f, descricao: e.target.value }))}
+                    placeholder="Template com layout moderno" className="h-9 text-sm bg-background" />
                 </div>
               </div>
-              <div>
-                <Label className="text-xs">Ordem</Label>
-                <Input type="number" value={form.ordem ?? 0} onChange={e => setForm(f => ({ ...f, ordem: Number(e.target.value) }))}
-                  className="h-8 text-xs" />
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <Label className="text-xs font-medium">Grupo</Label>
+                  <Select value={form.grupo || "B"} onValueChange={v => setForm(f => ({ ...f, grupo: v }))}>
+                    <SelectTrigger className="h-9 text-sm bg-background"><SelectValue /></SelectTrigger>
+                    <SelectContent>{GRUPOS.map(g => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs font-medium">Tipo</Label>
+                  <div className="h-9 flex items-center px-3 rounded-md border border-border/40 bg-muted/30 text-sm font-medium text-muted-foreground">
+                    {form.tipo === "docx" ? "📄 DOCX (Word)" : "🌐 HTML (Web)"}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs font-medium">Ordem</Label>
+                  <Input type="number" value={form.ordem ?? 0} onChange={e => setForm(f => ({ ...f, ordem: Number(e.target.value) }))}
+                    className="h-9 text-sm bg-background" />
+                </div>
               </div>
             </div>
 
-            {/* DOCX Upload */}
-            {isDocx ? (
-              <div className="space-y-2">
-                <Label className="text-xs">Arquivo DOCX</Label>
-                <div className="flex items-center gap-3">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".docx"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
-                  >
-                    {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
-                    {uploading ? "Enviando..." : "Upload DOCX"}
-                  </Button>
-                  {form.file_url && (
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-[10px] gap-1 text-success border-success/30 bg-success/5">
-                        <FileText className="h-3 w-3" /> {form.file_url.split("/").pop()?.replace(/^\d+_/, "") || "Arquivo anexado"}
-                      </Badge>
-                      <a href={form.file_url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="icon" className="h-6 w-6" title="Baixar">
-                          <Download className="h-3 w-3" />
+            {/* Conteúdo */}
+            <div className="rounded-xl border-2 border-secondary/30 bg-secondary/5 p-4 space-y-3">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                {isDocx ? <Upload className="h-4 w-4 text-secondary" /> : <Globe className="h-4 w-4 text-secondary" />}
+                {isDocx ? "Arquivo DOCX" : "Conteúdo HTML"}
+              </p>
+
+              {isDocx ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-3">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".docx"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5 text-xs bg-background"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Upload className="h-3 w-3" />}
+                      {uploading ? "Enviando..." : "Upload DOCX"}
+                    </Button>
+                    {form.file_url && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[10px] gap-1 text-success border-success/30 bg-success/5">
+                          <FileText className="h-3 w-3" /> {form.file_url.split("/").pop()?.replace(/^\d+_/, "") || "Arquivo anexado"}
+                        </Badge>
+                        <a href={form.file_url} target="_blank" rel="noopener noreferrer">
+                          <Button variant="ghost" size="icon" className="h-6 w-6" title="Baixar">
+                            <Download className="h-3 w-3" />
+                          </Button>
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive"
+                          title="Remover arquivo"
+                          onClick={() => setForm(f => ({ ...f, file_url: null }))}
+                        >
+                          <Trash2 className="h-3 w-3" />
                         </Button>
-                      </a>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-destructive"
-                        title="Remover arquivo"
-                        onClick={() => setForm(f => ({ ...f, file_url: null }))}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">
+                    Limite de 50MB. Use variáveis no formato <code className="text-secondary bg-secondary/10 px-1 rounded">[campo]</code> ou{" "}
+                    <code className="text-secondary bg-secondary/10 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
+                  </p>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Limite de 50MB. Use variáveis no formato <code className="text-secondary bg-secondary/5 px-1 rounded">[campo]</code> ou{" "}
-                  <code className="text-secondary bg-secondary/5 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
-                </p>
-              </div>
-            ) : (
-              <div>
-                <Label className="text-xs">HTML do template</Label>
-                <Textarea value={form.template_html || ""} onChange={e => setForm(f => ({ ...f, template_html: e.target.value }))}
-                  placeholder="<html>...</html>" className="min-h-[200px] text-xs font-mono" />
-                <p className="text-[10px] text-muted-foreground mt-1">
-                  Use placeholders como {"{{cliente.nome}}"}, {"{{financeiro.valor_total}}"} etc.
-                </p>
-              </div>
-            )}
+              ) : (
+                <div>
+                  <Textarea value={form.template_html || ""} onChange={e => setForm(f => ({ ...f, template_html: e.target.value }))}
+                    placeholder="<html>...</html>" className="min-h-[180px] text-xs font-mono bg-background" />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Use placeholders como {"{{cliente.nome}}"}, {"{{financeiro.valor_total}}"} etc.
+                  </p>
+                </div>
+              )}
+            </div>
 
+            {/* Opções */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <Switch checked={form.ativo ?? true} onCheckedChange={v => setForm(f => ({ ...f, ativo: v }))} />
-                <Label className="text-xs">Ativo</Label>
+                <Label className="text-xs font-medium">Ativo</Label>
               </div>
               {!isDocx && form.template_html && (
                 <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => setPreviewHtml(form.template_html || null)}>
@@ -344,7 +354,7 @@ export function TemplatesManager() {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 pt-2">
             <Button variant="ghost" size="sm" onClick={cancelEdit}><X className="h-3 w-3 mr-1" /> Cancelar</Button>
             <Button size="sm" onClick={handleSave} disabled={uploading}><Save className="h-3 w-3 mr-1" /> Salvar</Button>
           </DialogFooter>
