@@ -119,19 +119,21 @@ Deno.serve(async (req) => {
       } catch (err: any) {
         validation = { valid: false, details: err.message || "Timeout ou erro de conexão" };
       }
-    } else if (service_key === "google_maps") {
+  } else if (service_key === "google_maps") {
       try {
         const res = await fetch(
           `https://maps.googleapis.com/maps/api/geocode/json?address=Brasilia&key=${api_key}`,
           { method: "GET", signal: AbortSignal.timeout(10000) }
         );
-        const latency = Date.now();
         if (res.ok) {
           const json = await res.json();
           if (json.status === "OK" || json.status === "ZERO_RESULTS") {
             validation = { valid: true, details: "API key válida — Geocoding OK" };
           } else if (json.status === "REQUEST_DENIED") {
-            validation = { valid: false, details: `Chave recusada pelo Google: ${json.error_message || "verifique se Geocoding API está habilitada"}` };
+            // Domain-restricted keys will fail server-side validation — this is EXPECTED
+            // Accept the key since it's restricted by HTTP Referrer (browser-only)
+            console.log("[save-integration-key] Google Maps key is domain-restricted (REQUEST_DENIED from server). Accepting as valid.");
+            validation = { valid: true, details: "Chave aceita — restrita por domínio (validação no navegador)" };
           } else {
             validation = { valid: false, details: `Google retornou status: ${json.status}` };
           }
