@@ -767,18 +767,18 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   // ──────────────────────────────────────────────────────────────
   // CAMPOS DOS DISTRIBUIDORES (CDD)
   // ──────────────────────────────────────────────────────────────
-  v("cdd", "cdd.tipo_estrutura", "cdd_tipo_estrutura", "Tipo de estrutura", "Tipo de estrutura no sistema do distribuidor (ECORI, GENYX, BLUESUN, SOLARMARKET)", "", "Solo", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.marca_estrutura", "cdd_marca_estrutura", "Marca/Solução estrutural", "Marca ou solução estrutural (ECORI)", "", "Romagnole", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.comunicador", "cdd_comunicador", "Comunicador", "Tipo de comunicador de dados (ECORI)", "", "Wi-Fi", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.tipo_sustentacao", "cdd_tipo_sustentacao", "Tipo de sustentação", "Tipo de sustentação (GENYX)", "", "Laje", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.tipo_telhado", "cdd_tipo_telhado", "Tipo de telhado utilizado", "Tipo de telhado utilizado (NEXEN)", "", "Cerâmico", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.nivel", "cdd_nivel", "Nível", "Nível do distribuidor (BLUESUN, SOLARMARKET)", "", "Gold", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.orientacao", "cdd_orientacao", "Orientação", "Orientação dos módulos (BLUESUN, SOLARMARKET)", "", "Norte", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.string_config", "cdd_string", "Adicionar StringBox CC?", "Configuração de strings CC (BLUESUN, SOLARMARKET)", "", "2x8", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.string_ca", "cdd_sting_ca", "Adicionar StringBox CA?", "Configuração de strings CA (BLUESUN, SOLARMARKET)", "", "1x1", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.telhado", "cdd_telhado", "Telhado (CDD)", "Tipo de telhado no cadastro do distribuidor (SOLARMARKET)", "", "Cerâmico", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura do telhado (A.DIAS SOLAR, SOPRANO, SOLARMARKET, FORTLEV, ALDO, NEOSOLAR)", "", "Fibrocimento", "proposta", { notImplemented: true }),
-  v("cdd", "cdd.tipo_perfil", "cdd_tipo_perfil", "Tipo de Perfil", "Tipo de perfil da estrutura (WEG SOLAR)", "", "Perfil", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_estrutura", "cdd_tipo_estrutura", "Tipo de estrutura", "Tipo de Telhado / Tipo de Estrutura — ECORI, GENYX, WEG SOLAR, NEOSOLAR, BLUESUN, SOLARMARKET", "", "Solo", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.marca_estrutura", "cdd_marca_estrutura", "Solução Estrutural", "Solução Estrutural / Marca da estrutura — ECORI", "", "Romagnole", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.comunicador", "cdd_comunicador", "Utiliza Comunicador?", "Tipo de comunicador de dados — ECORI", "", "Wi-Fi", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_sustentacao", "cdd_tipo_sustentacao", "Tipo de Sustentação", "Tipo de sustentação — GENYX", "", "Laje", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_telhado", "cdd_tipo_telhado", "Tipo de telhado utilizado", "Tipo de telhado utilizado / Onde será instalado — NEXEN, GTSOLAR", "", "Cerâmico", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.nivel", "cdd_nivel", "Nível da estrutura", "Nível do distribuidor — BLUESUN, SOLARMARKET", "", "Gold", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.orientacao", "cdd_orientacao", "Orientação", "Orientação dos módulos — BLUESUN, SOLARMARKET", "", "Norte", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.string_config", "cdd_string", "Adicionar StringBox CC?", "StringBox CC / Deseja Incluir StringBox — BLUESUN, SOLARMARKET", "", "2x8", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.string_ca", "cdd_sting_ca", "Adicionar StringBox CA?", "Configuração de strings CA — BLUESUN, SOLARMARKET", "", "1x1", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.telhado", "cdd_telhado", "Tipo de Telhado", "Tipo de telhado no cadastro — SOLARMARKET", "", "Cerâmico", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.estrutura", "cdd_estrutura", "Estrutura", "Estrutura / Estrutura do Telhado — A.DIAS SOLAR, SOPRANO, SOLARMARKET, BLUESUN, FORTLEV, ALDO", "", "Fibrocimento", "proposta", { notImplemented: true }),
+  v("cdd", "cdd.tipo_perfil", "cdd_tipo_perfil", "Tipo de Perfil", "Tipo de perfil da estrutura — WEG SOLAR", "", "Perfil", "proposta", { notImplemented: true }),
 
   // ──────────────────────────────────────────────────────────────
   // VARIÁVEIS CUSTOMIZADAS (vc_*)
