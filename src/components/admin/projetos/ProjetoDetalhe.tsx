@@ -2,6 +2,8 @@ import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useMotivosPerda } from "@/hooks/useDistribution";
+import { Spinner } from "@/components/ui-kit/Spinner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Settings, MessageSquare, FileText, FolderOpen,
@@ -34,6 +36,7 @@ interface DealDetail {
   id: string;
   title: string;
   value: number;
+  kwp: number | null;
   status: string;
   created_at: string;
   updated_at: string;
@@ -42,6 +45,8 @@ interface DealDetail {
   stage_id: string;
   customer_id: string | null;
   expected_close_date: string | null;
+  motivo_perda_id: string | null;
+  motivo_perda_obs: string | null;
 }
 
 interface StageHistory {
@@ -140,6 +145,12 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const [deleting, setDeleting] = useState(false);
   const [confirmConsultorId, setConfirmConsultorId] = useState<string | null>(null);
   const [confirmConsultorName, setConfirmConsultorName] = useState("");
+  // Loss dialog state
+  const [lossDialogOpen, setLossDialogOpen] = useState(false);
+  const [lossMotivo, setLossMotivo] = useState("");
+  const [lossObs, setLossObs] = useState("");
+  const [lossSaving, setLossSaving] = useState(false);
+  const { motivos, loading: loadingMotivos } = useMotivosPerda();
 
   const isClosed = deal?.status === "won" || deal?.status === "lost";
 
@@ -190,7 +201,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
       setLoading(true);
       try {
         const [dealRes, historyRes] = await Promise.all([
-          supabase.from("deals").select("id, title, value, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date").eq("id", dealId).single(),
+          supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs").eq("id", dealId).single(),
           supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
         ]);
 
@@ -304,7 +315,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
 
   const silentRefresh = async () => {
     try {
-      const { data: d } = await supabase.from("deals").select("id, title, value, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date").eq("id", dealId).single();
+      const { data: d } = await supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs").eq("id", dealId).single();
       if (d) {
         setDeal(d as DealDetail);
         const [stagesRes, historyRes, ownerRes] = await Promise.all([
@@ -435,29 +446,54 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                   <Button
                     size="sm"
                     onClick={async () => {
-                      // Verificar se tem proposta antes de marcar como ganho
                       if (propostasCount === 0) {
-                        toast({
-                          title: "Sem proposta vinculada",
-                          description: "Não é possível marcar como ganho um projeto sem proposta. Crie uma proposta primeiro.",
-                          variant: "destructive",
-                        });
+                        toast({ title: "Sem proposta vinculada", description: "Crie uma proposta primeiro.", variant: "destructive" });
                         return;
                       }
                       if (!window.confirm("Tem certeza que deseja marcar este projeto como ganho?")) return;
                       const prevStatus = deal.status;
                       const prevStageId = deal.stage_id;
+                      const prevValue = deal.value;
+                      const prevKwp = deal.kwp;
                       const wonStage = stages.find(s => s.is_won);
                       const update: any = { status: "won" };
                       if (wonStage) update.stage_id = wonStage.id;
+
+                      // Auto-fill value and kwp from the latest proposal version
+                      try {
+                        if (deal.customer_id) {
+                          const { data: propostas } = await supabase
+                            .from("propostas_nativas")
+                            .select("id, versoes:proposta_versoes(valor_total, potencia_kwp, versao_numero)")
+                            .eq("cliente_id", deal.customer_id)
+                            .order("created_at", { ascending: false })
+                            .limit(1);
+                          
+                          if (propostas && propostas.length > 0) {
+                            const versoes = (propostas[0] as any).versoes || [];
+                            const latestVersao = versoes.sort((a: any, b: any) => b.versao_numero - a.versao_numero)[0];
+                            if (latestVersao) {
+                              if (latestVersao.valor_total && latestVersao.valor_total > 0) {
+                                update.value = latestVersao.valor_total;
+                              }
+                              if (latestVersao.potencia_kwp && latestVersao.potencia_kwp > 0) {
+                                update.kwp = latestVersao.potencia_kwp;
+                              }
+                            }
+                          }
+                        }
+                      } catch { /* proceed without auto-fill */ }
+
                       updateDealLocal(update);
                       try {
                         const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
                         if (error) throw error;
-                        toast({ title: "🎉 Projeto ganho!" });
+                        const valMsg = update.value ? ` | ${formatBRL(update.value)}` : "";
+                        const kwpMsg = update.kwp ? ` | ${update.kwp} kWp` : "";
+                        toast({ title: `🎉 Projeto ganho!${valMsg}${kwpMsg}` });
                         silentRefresh();
                       } catch (err: any) {
-                        updateDealLocal({ status: prevStatus, stage_id: prevStageId });
+                        updateDealLocal({ status: prevStatus, stage_id: prevStageId, value: prevValue, kwp: prevKwp });
                         toast({ title: "Erro", description: err.message, variant: "destructive" });
                       }
                     }}
@@ -468,32 +504,14 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={async () => {
-                      // Verificar se tem proposta antes de marcar como perdido
+                    onClick={() => {
                       if (propostasCount === 0) {
-                        toast({
-                          title: "Sem proposta vinculada",
-                          description: "Não é possível marcar como perdido um projeto sem proposta. Crie uma proposta primeiro ou exclua o projeto.",
-                          variant: "destructive",
-                        });
+                        toast({ title: "Sem proposta vinculada", description: "Crie uma proposta primeiro ou exclua o projeto.", variant: "destructive" });
                         return;
                       }
-                      if (!window.confirm("Tem certeza que deseja marcar este projeto como perdido? Após isso, não será possível editar funis, etapas, consultor ou criar propostas.")) return;
-                      const prevStatus = deal.status;
-                      const prevStageId = deal.stage_id;
-                      const lostStage = stages.find(s => s.is_closed && !s.is_won);
-                      const update: any = { status: "lost" };
-                      if (lostStage) update.stage_id = lostStage.id;
-                      updateDealLocal(update);
-                      try {
-                        const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
-                        if (error) throw error;
-                        toast({ title: "Projeto marcado como perdido" });
-                        silentRefresh();
-                      } catch (err: any) {
-                        updateDealLocal({ status: prevStatus, stage_id: prevStageId });
-                        toast({ title: "Erro", description: err.message, variant: "destructive" });
-                      }
+                      setLossMotivo("");
+                      setLossObs("");
+                      setLossDialogOpen(true);
                     }}
                     className="font-semibold gap-1.5"
                   >
@@ -663,6 +681,92 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Loss reason dialog ── */}
+      <Dialog open={lossDialogOpen} onOpenChange={setLossDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              Registrar Perda do Projeto
+            </DialogTitle>
+            <DialogDescription>
+              Informe o motivo da perda de <strong>{customerName || deal.title}</strong>. Após isso, o projeto será bloqueado para edições.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Motivo de Perda *</Label>
+              {loadingMotivos ? (
+                <div className="flex items-center gap-2 py-2">
+                  <Spinner size="sm" />
+                  <span className="text-sm text-muted-foreground">Carregando motivos...</span>
+                </div>
+              ) : motivos.filter(m => m.ativo).length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">
+                  Nenhum motivo cadastrado. Configure em Cadastros → Status de Leads.
+                </p>
+              ) : (
+                <Select value={lossMotivo} onValueChange={setLossMotivo}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Selecione o motivo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {motivos.filter(m => m.ativo).map((m) => (
+                      <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+            <div>
+              <Label>Observações (opcional)</Label>
+              <Textarea
+                value={lossObs}
+                onChange={(e) => setLossObs(e.target.value)}
+                rows={3}
+                placeholder="Detalhes adicionais sobre a perda..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              disabled={!lossMotivo || lossSaving}
+              onClick={async () => {
+                if (!lossMotivo) return;
+                setLossSaving(true);
+                const prevStatus = deal.status;
+                const prevStageId = deal.stage_id;
+                const lostStage = stages.find(s => s.is_closed && !s.is_won);
+                const update: any = {
+                  status: "lost",
+                  motivo_perda_id: lossMotivo,
+                  motivo_perda_obs: lossObs.trim() || null,
+                };
+                if (lostStage) update.stage_id = lostStage.id;
+                updateDealLocal(update);
+                try {
+                  const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
+                  if (error) throw error;
+                  toast({ title: "Projeto marcado como perdido" });
+                  setLossDialogOpen(false);
+                  silentRefresh();
+                } catch (err: any) {
+                  updateDealLocal({ status: prevStatus, stage_id: prevStageId });
+                  toast({ title: "Erro", description: err.message, variant: "destructive" });
+                } finally {
+                  setLossSaving(false);
+                }
+              }}
+            >
+              {lossSaving && <Spinner size="sm" className="mr-2" />}
+              Registrar Perda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
