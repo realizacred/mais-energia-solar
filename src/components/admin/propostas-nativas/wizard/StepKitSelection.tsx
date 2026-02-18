@@ -5,12 +5,14 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { type KitItemRow, formatBRL } from "./types";
+import { type KitItemRow, type LayoutArranjo, formatBRL } from "./types";
 import { toast } from "@/hooks/use-toast";
 
 import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
 import { KitCard, type KitCardData } from "./kit/KitCard";
 import { CriarKitManualModal } from "./kit/CriarKitManualModal";
+import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
+import { EditarLayoutModal } from "./kit/EditarLayoutModal";
 
 interface CatalogoModuloUnificado {
   id: string; fabricante: string; modelo: string; potencia_wp: number | null;
@@ -29,6 +31,8 @@ interface Props {
   inversores: CatalogoInversorUnificado[];
   loadingEquip: boolean;
   potenciaKwp: number;
+  layouts?: LayoutArranjo[];
+  onLayoutsChange?: (layouts: LayoutArranjo[]) => void;
 }
 
 type TabType = "customizado" | "fechado" | "manual";
@@ -94,7 +98,7 @@ function generateMockKits(modulos: CatalogoModuloUnificado[], inversores: Catalo
   return kits;
 }
 
-export function StepKitSelection({ itens, onItensChange, modulos, inversores, loadingEquip, potenciaKwp }: Props) {
+export function StepKitSelection({ itens, onItensChange, modulos, inversores, loadingEquip, potenciaKwp, layouts = [], onLayoutsChange }: Props) {
   const [tab, setTab] = useState<TabType>("customizado");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [filters, setFilters] = useState<KitFiltersState>({ ...DEFAULT_FILTERS, buscarValor: 0 });
@@ -103,6 +107,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
   const [manualMode, setManualMode] = useState<"equipamentos" | "zero" | null>(null);
   const [manualKits, setManualKits] = useState<{ card: KitCardData; itens: KitItemRow[] }[]>([]);
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
+  const [showEditKitFechado, setShowEditKitFechado] = useState(false);
+  const [showEditLayout, setShowEditLayout] = useState(false);
 
   const consumoTotal = filters.buscarValor;
 
@@ -176,9 +182,17 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
             <Settings2 className="h-3 w-3" /> Editar premissas
           </Button>
           {itens.length > 0 && itens.some(i => i.descricao) && (
-            <Badge variant="secondary" className="text-[10px] font-mono bg-success/10 text-success border-success/20">
-              Kit selecionado • {itens.length} itens
-            </Badge>
+            <>
+              <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => setShowEditKitFechado(true)}>
+                <Pencil className="h-3 w-3" /> Editar kit
+              </Button>
+              <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => setShowEditLayout(true)}>
+                <LayoutGrid className="h-3 w-3" /> Editar layout
+              </Button>
+              <Badge variant="secondary" className="text-[10px] font-mono bg-success/10 text-success border-success/20">
+                Kit selecionado • {itens.length} itens
+              </Badge>
+            </>
           )}
         </div>
       </div>
@@ -357,6 +371,42 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
           mode={manualMode}
         />
       )}
+
+      {/* Edit Kit Fechado Modal */}
+      <EditarKitFechadoModal
+        open={showEditKitFechado}
+        onOpenChange={setShowEditKitFechado}
+        kits={mockKits.filter(k => itens.some(i => i.descricao.includes(k.moduloDescricao)))}
+        onSave={(selected) => {
+          // Re-build itens from selected kits
+          const newItens: KitItemRow[] = selected.flatMap(({ kit, quantidade }) => [
+            {
+              id: crypto.randomUUID(), descricao: `${kit.moduloQtd * quantidade}x ${kit.moduloDescricao}`,
+              fabricante: kit.distribuidorNome, modelo: kit.moduloDescricao, potencia_w: (kit.moduloPotenciaKwp * 1000) / kit.moduloQtd,
+              quantidade: kit.moduloQtd * quantidade, preco_unitario: 0, categoria: "modulo" as const, avulso: false,
+            },
+            {
+              id: crypto.randomUUID(), descricao: `${kit.inversorQtd * quantidade}x ${kit.inversorDescricao}`,
+              fabricante: kit.distribuidorNome, modelo: kit.inversorDescricao, potencia_w: kit.inversorPotenciaKw * 1000,
+              quantidade: kit.inversorQtd * quantidade, preco_unitario: 0, categoria: "inversor" as const, avulso: false,
+            },
+          ]);
+          onItensChange(newItens);
+          toast({ title: "Kit atualizado" });
+        }}
+      />
+
+      {/* Edit Layout Modal */}
+      <EditarLayoutModal
+        open={showEditLayout}
+        onOpenChange={setShowEditLayout}
+        layouts={layouts}
+        totalModulos={itens.filter(i => i.categoria === "modulo").reduce((s, i) => s + i.quantidade, 0)}
+        onSave={(newLayouts) => {
+          onLayoutsChange?.(newLayouts);
+          toast({ title: "Layout atualizado" });
+        }}
+      />
     </div>
   );
 }
