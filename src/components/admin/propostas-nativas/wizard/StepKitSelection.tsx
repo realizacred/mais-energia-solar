@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Package, Zap, LayoutGrid, List, Settings2, Plus, Loader2 } from "lucide-react";
+import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -32,6 +32,34 @@ interface Props {
 }
 
 type TabType = "customizado" | "fechado" | "manual";
+
+function kitItemsToCardData(itens: KitItemRow[]): KitCardData | null {
+  const modItem = itens.find(i => i.categoria === "modulo");
+  const invItem = itens.find(i => i.categoria === "inversor");
+  if (!modItem && !invItem) return null;
+
+  const moduloQtd = modItem?.quantidade || 0;
+  const moduloPotW = modItem?.potencia_w || 0;
+  const totalKwp = (moduloQtd * moduloPotW) / 1000;
+  const invPotKw = invItem ? (invItem.potencia_w || 0) / 1000 : 0;
+  const precoTotal = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+  const precoWp = totalKwp > 0 ? precoTotal / (totalKwp * 1000) : 0;
+
+  return {
+    id: `manual-${Date.now()}`,
+    distribuidorNome: modItem?.fabricante || invItem?.fabricante || "",
+    moduloDescricao: modItem ? `${modItem.fabricante} ${modItem.modelo}`.trim() : "—",
+    moduloQtd,
+    moduloPotenciaKwp: totalKwp,
+    inversorDescricao: invItem ? `${invItem.fabricante} ${invItem.modelo}`.trim() : "—",
+    inversorQtd: invItem?.quantidade || 0,
+    inversorPotenciaKw: invPotKw * (invItem?.quantidade || 1),
+    topologia: "Inversor com otimizador",
+    precoTotal,
+    precoWp,
+    updatedAt: new Date().toLocaleDateString("pt-BR"),
+  };
+}
 
 function generateMockKits(modulos: CatalogoModuloUnificado[], inversores: CatalogoInversorUnificado[], potenciaKwp: number): KitCardData[] {
   const kits: KitCardData[] = [];
@@ -73,6 +101,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
   const [orderBy, setOrderBy] = useState("menor_preco");
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [manualMode, setManualMode] = useState<"equipamentos" | "zero" | null>(null);
+  const [manualKits, setManualKits] = useState<{ card: KitCardData; itens: KitItemRow[] }[]>([]);
+  const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
 
   const consumoTotal = filters.buscarValor;
 
@@ -95,9 +125,33 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
     toast({ title: "Kit selecionado", description: `${kit.moduloPotenciaKwp.toFixed(2)} kWp • ${kit.topologia}` });
   };
 
+  const handleSelectManualKit = (entry: { card: KitCardData; itens: KitItemRow[] }) => {
+    onItensChange(entry.itens);
+    toast({ title: "Kit selecionado", description: `${entry.card.moduloPotenciaKwp.toFixed(2)} kWp` });
+  };
+
   const handleManualKitCreated = (newItens: KitItemRow[]) => {
-    onItensChange(newItens);
+    const card = kitItemsToCardData(newItens);
+    if (card) {
+      if (editingKitIndex !== null) {
+        setManualKits(prev => prev.map((k, i) => i === editingKitIndex ? { card, itens: newItens } : k));
+        setEditingKitIndex(null);
+      } else {
+        setManualKits(prev => [...prev, { card, itens: newItens }]);
+      }
+    }
     setManualMode(null);
+    setTab("manual");
+  };
+
+  const handleDeleteManualKit = (index: number) => {
+    setManualKits(prev => prev.filter((_, i) => i !== index));
+    toast({ title: "Kit removido" });
+  };
+
+  const handleEditManualKit = (index: number) => {
+    setEditingKitIndex(index);
+    setManualMode("zero");
   };
 
   if (loadingEquip) {
@@ -107,6 +161,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
       </div>
     );
   }
+
+  const activeKits = tab === "manual" ? [] : mockKits;
 
   return (
     <div className="space-y-4">
@@ -132,23 +188,16 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
         {([
           { key: "customizado" as const, label: "Customizado" },
           { key: "fechado" as const, label: "Fechado" },
-          { key: "manual" as const, label: "+ Criar manualmente" },
+          { key: "manual" as const, label: "Manual" },
         ]).map(t => (
           <button
             key={t.key}
-            onClick={() => {
-              if (t.key === "manual") {
-                setShowChoiceModal(true);
-              } else {
-                setTab(t.key);
-              }
-            }}
+            onClick={() => setTab(t.key)}
             className={cn(
               "px-4 py-2.5 text-xs font-medium border-b-2 transition-colors",
-              tab === t.key && t.key !== "manual"
+              tab === t.key
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground",
-              t.key === "manual" && "text-primary font-bold",
             )}
           >
             {t.label}
@@ -183,8 +232,8 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
                 <Select value={orderBy} onValueChange={setOrderBy}>
                   <SelectTrigger className="h-7 text-xs w-32"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="menor_preco">Menor preço</SelectItem>
-                    <SelectItem value="maior_preco">Maior preço</SelectItem>
+                    <SelectItem value="menor_preco">Menor Preço</SelectItem>
+                    <SelectItem value="maior_preco">Maior Preço</SelectItem>
                     <SelectItem value="potencia">Potência</SelectItem>
                   </SelectContent>
                 </Select>
@@ -206,27 +255,60 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
             </div>
           </div>
 
-          {/* Kit Cards */}
-          {mockKits.length > 0 ? (
-            viewMode === "grid" ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
-                {mockKits.map(kit => (
-                  <KitCard key={kit.id} kit={kit} onSelect={handleSelectKit} viewMode="grid" />
-                ))}
-              </div>
+          {/* Manual Tab Content */}
+          {tab === "manual" ? (
+            <div className="space-y-3">
+              {/* Manual Kit Cards */}
+              {manualKits.map((entry, index) => (
+                <ManualKitRow
+                  key={entry.card.id}
+                  entry={entry}
+                  onSelect={() => handleSelectManualKit(entry)}
+                  onEdit={() => handleEditManualKit(index)}
+                  onDelete={() => handleDeleteManualKit(index)}
+                />
+              ))}
+
+              {manualKits.length === 0 && (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                  <p className="text-sm font-medium text-muted-foreground">Nenhum kit manual criado</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1 mb-4">Crie um kit manualmente para começar</p>
+                  <Button size="sm" className="gap-1.5" onClick={() => setShowChoiceModal(true)}>
+                    <Plus className="h-3.5 w-3.5" /> Criar kit manualmente
+                  </Button>
+                </div>
+              )}
+
+              {manualKits.length > 0 && (
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowChoiceModal(true)}>
+                  <Plus className="h-3 w-3" /> Criar outro kit
+                </Button>
+              )}
+            </div>
+          ) : (
+            /* Customizado / Fechado Tabs */
+            activeKits.length > 0 ? (
+              viewMode === "grid" ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3">
+                  {activeKits.map(kit => (
+                    <KitCard key={kit.id} kit={kit} onSelect={handleSelectKit} viewMode="grid" />
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {activeKits.map(kit => (
+                    <KitCard key={kit.id} kit={kit} onSelect={handleSelectKit} viewMode="list" />
+                  ))}
+                </div>
+              )
             ) : (
-              <div className="space-y-2">
-                {mockKits.map(kit => (
-                  <KitCard key={kit.id} kit={kit} onSelect={handleSelectKit} viewMode="list" />
-                ))}
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                <p className="text-sm font-medium text-muted-foreground">Nenhum kit encontrado</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou crie manualmente</p>
               </div>
             )
-          ) : (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Package className="h-10 w-10 text-muted-foreground/30 mb-3" />
-              <p className="text-sm font-medium text-muted-foreground">Nenhum kit encontrado</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">Ajuste os filtros ou crie manualmente</p>
-            </div>
           )}
         </div>
       </div>
@@ -268,13 +350,69 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, lo
       {manualMode && (
         <CriarKitManualModal
           open={!!manualMode}
-          onOpenChange={(v) => { if (!v) setManualMode(null); }}
+          onOpenChange={(v) => { if (!v) { setManualMode(null); setEditingKitIndex(null); } }}
           modulos={modulos}
           inversores={inversores}
           onKitCreated={handleManualKitCreated}
           mode={manualMode}
         />
       )}
+    </div>
+  );
+}
+
+/* ── Manual Kit Row (list-style card matching reference screenshot) ── */
+
+function ManualKitRow({ entry, onSelect, onEdit, onDelete }: {
+  entry: { card: KitCardData; itens: KitItemRow[] };
+  onSelect: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { card } = entry;
+
+  return (
+    <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-border/40 hover:border-primary/30 transition-all bg-card">
+      {/* Distributor placeholder */}
+      <div className="w-20 h-16 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center leading-tight px-1">
+          {card.distribuidorNome || "—"}
+        </span>
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0 space-y-1.5">
+        <p className="text-xs font-bold">
+          {card.moduloQtd} {card.moduloDescricao} + {card.inversorQtd} {card.inversorDescricao}
+        </p>
+        <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
+          <span>{card.moduloQtd} {card.moduloDescricao}</span>
+          <span>Total {card.moduloPotenciaKwp.toFixed(2)} kWp</span>
+          <span>{card.inversorQtd} {card.inversorDescricao}</span>
+          <span>Total {card.inversorPotenciaKw.toFixed(2)} kW</span>
+          <span>Topologia</span>
+          <span>{card.topologia}</span>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-sm font-bold">{formatBRL(card.precoTotal)}</span>
+          <Badge variant="outline" className="text-[10px] h-5 bg-primary/5 border-primary/20 text-primary">
+            {formatBRL(card.precoWp)} / Wp
+          </Badge>
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 shrink-0">
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive" onClick={onDelete}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button size="sm" className="gap-1 h-8 text-xs" onClick={onSelect}>
+          <Plus className="h-3 w-3" /> Selecionar
+        </Button>
+      </div>
     </div>
   );
 }
