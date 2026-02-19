@@ -216,7 +216,7 @@ export function TemplatesManager() {
             <FileText className="h-5 w-5 text-secondary" /> Templates de proposta
           </h2>
           <p className="text-sm text-muted-foreground">
-            Gerencie modelos HTML e DOCX usados na geração de propostas
+            Gerencie modelos WEB e DOCX usados na geração de propostas
           </p>
         </div>
         <Button onClick={startNew} className="gap-1.5" disabled={dialogOpen}>
