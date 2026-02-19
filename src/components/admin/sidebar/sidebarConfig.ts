@@ -318,6 +318,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     items: [
       { id: "tenant-settings", title: "Empresa", icon: Building2, description: "Identidade, localização e regras de cadastro", keywords: ["empresa", "cnpj", "tenant", "configuração", "crm", "cadastro"] },
       { id: "usuarios", title: "Usuários & Permissões", icon: Shield, description: "Gerenciar acessos e roles", keywords: ["usuário", "permissão", "role", "acesso"] },
+      { id: "permissoes", title: "Permissões por Papel", icon: Shield, description: "Configurar acesso de cada papel aos módulos", keywords: ["permissão", "role", "papel", "acesso", "módulo", "gerente", "consultor"] },
       { id: "auditoria", title: "Auditoria (Logs)", icon: FileSearch, description: "Histórico de alterações", keywords: ["log", "auditoria", "histórico", "alteração"] },
       { id: "notificacoes-config", title: "Notificações", icon: Bell, description: "Configurar tipos de notificação da empresa", keywords: ["notificação", "push", "alerta", "configurar", "ativar"], separator: true },
       { id: "links-instalacao", title: "Links & Captação", icon: Smartphone, description: "Links de captação, QR Codes e App PWA", keywords: ["PWA", "link", "instalação", "app", "canal", "captação", "qr", "whatsapp"] },
