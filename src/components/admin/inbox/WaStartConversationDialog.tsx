@@ -100,6 +100,9 @@ export function WaStartConversationDialog({
               onChange={(e) => setPhone(e.target.value)}
               disabled={loading}
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               name="sc-phone-field"
             />
             {phone.length >= 10 && (
@@ -120,6 +123,9 @@ export function WaStartConversationDialog({
               onChange={(e) => setName(e.target.value)}
               disabled={loading}
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               name="sc-name-field"
             />
           </div>
@@ -134,6 +140,9 @@ export function WaStartConversationDialog({
               disabled={loading}
               className="min-h-[80px]"
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               name="sc-message-field"
             />
           </div>

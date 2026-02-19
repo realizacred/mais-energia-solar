@@ -295,6 +295,9 @@ export function RecallDialog({
               onChange={(e) => setPhone(e.target.value)}
               disabled={loading || !!prefillPhone}
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               name="recall-phone-input"
             />
             {phone.length >= 10 && (
@@ -315,6 +318,9 @@ export function RecallDialog({
               onChange={(e) => setName(e.target.value)}
               disabled={loading}
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               name="recall-name-input"
             />
           </div>
@@ -329,6 +335,9 @@ export function RecallDialog({
               disabled={loading}
               className="min-h-[80px]"
               autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="none"
+              spellCheck={false}
               name="recall-message-input"
             />
           </div>
