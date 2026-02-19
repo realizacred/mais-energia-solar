@@ -349,6 +349,63 @@ export function RecallDialog({
   );
 }
 
+/* ====== Contact Details (right pane on desktop) ====== */
+
+function ContactDetails({ contact, onRecall }: { contact: Contact; onRecall: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+      <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+        <span className="text-2xl font-bold text-primary">
+          {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
+        </span>
+      </div>
+      <h2 className="text-lg font-semibold text-foreground mb-1">
+        {contact.name || formatPhone(contact.phone_e164)}
+      </h2>
+      <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1.5">
+        <Phone className="h-3.5 w-3.5" />
+        {formatPhone(contact.phone_e164)}
+      </p>
+      {contact.last_interaction_at && (
+        <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
+          <Clock className="h-3 w-3" />
+          Última interação{" "}
+          {formatDistanceToNow(new Date(contact.last_interaction_at), {
+            addSuffix: true,
+            locale: ptBR,
+          })}
+        </p>
+      )}
+      {contact.tags?.length > 0 && (
+        <div className="flex gap-1.5 flex-wrap justify-center mb-4">
+          {contact.tags.map((tag) => (
+            <Badge key={tag} variant="secondary" className="text-xs">
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
+      <Button onClick={onRecall} className="mt-2">
+        <MessageCircle className="h-4 w-4 mr-2" />
+        Chamar / Abrir conversa
+      </Button>
+    </div>
+  );
+}
+
+function EmptyRightPane() {
+  return (
+    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
+      <div className="p-4 rounded-full bg-muted/50 mb-4">
+        <ContactIcon className="h-10 w-10 text-muted-foreground/50" />
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Selecione um contato para ver detalhes
+      </p>
+    </div>
+  );
+}
+
 /* ====== Full Page Component ====== */
 
 export default function ContactsPage() {
@@ -360,6 +417,13 @@ export default function ContactsPage() {
 
   const handleRecall = (contact: Contact) => {
     setSelectedContact(contact);
+    // On mobile: open dialog immediately. On desktop: just select (user clicks button in detail pane)
+    if (window.innerWidth < 768) {
+      setShowRecall(true);
+    }
+  };
+
+  const handleOpenRecallDialog = () => {
     setShowRecall(true);
   };
 
@@ -370,12 +434,24 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <ContactsList
-        onRecall={handleRecall}
-        onNewContact={() => setShowNew(true)}
-        selectedId={selectedContact?.id}
-      />
+    <div className="h-full md:grid md:grid-cols-[360px_1fr]">
+      {/* Left: contacts list (always visible) */}
+      <div className="h-full border-r border-border/40 overflow-hidden">
+        <ContactsList
+          onRecall={handleRecall}
+          onNewContact={() => setShowNew(true)}
+          selectedId={selectedContact?.id}
+        />
+      </div>
+
+      {/* Right: detail pane (desktop only) */}
+      <div className="hidden md:flex h-full overflow-y-auto">
+        {selectedContact ? (
+          <ContactDetails contact={selectedContact} onRecall={handleOpenRecallDialog} />
+        ) : (
+          <EmptyRightPane />
+        )}
+      </div>
 
       {/* Recall from contact */}
       <RecallDialog
