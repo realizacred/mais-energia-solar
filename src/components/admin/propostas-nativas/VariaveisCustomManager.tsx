@@ -194,7 +194,7 @@ export function VariaveisCustomManager() {
       {editingId && (
         <Card className="border-primary/30 bg-primary/5">
           <CardContent className="pt-4 space-y-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs">Nome (vc_*)</Label>
                 <Input value={form.nome || ""} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
@@ -218,7 +218,7 @@ export function VariaveisCustomManager() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <Label className="text-xs">Tipo resultado</Label>
                 <Select value={form.tipo_resultado || "number"} onValueChange={v => setForm(f => ({ ...f, tipo_resultado: v }))}>

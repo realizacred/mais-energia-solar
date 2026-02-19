@@ -85,13 +85,13 @@ export function ProjetoFilters({
 
   return (
     <div className="space-y-3">
-      <div className="flex items-end gap-4 flex-wrap">
+      <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-4 flex-wrap">
         {/* Left: Funil | Lista toggle */}
-        <div className="flex items-center gap-4 shrink-0">
+        <div className="flex items-center gap-3 sm:gap-4 shrink-0 overflow-x-auto">
           <button
             onClick={() => onViewModeChange("kanban-consultor")}
             className={cn(
-              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors",
+              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap",
               viewMode === "kanban-consultor"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -103,7 +103,7 @@ export function ProjetoFilters({
           <button
             onClick={() => onViewModeChange("kanban-etapa")}
             className={cn(
-              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors",
+              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap",
               viewMode === "kanban-etapa"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -115,7 +115,7 @@ export function ProjetoFilters({
           <button
             onClick={() => onViewModeChange("lista")}
             className={cn(
-              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors",
+              "flex items-center gap-1.5 pb-1 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap",
               viewMode === "lista"
                 ? "border-foreground text-foreground"
                 : "border-transparent text-muted-foreground hover:text-foreground"
@@ -127,7 +127,7 @@ export function ProjetoFilters({
         </div>
 
         {/* Right: Filters with labels above */}
-        <div className="flex items-end gap-3 ml-auto flex-wrap">
+        <div className="grid grid-cols-2 sm:flex sm:items-end gap-2 sm:gap-3 sm:ml-auto">
           {/* Funil */}
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -136,7 +136,7 @@ export function ProjetoFilters({
             </label>
             <Popover open={funilPopoverOpen} onOpenChange={(v) => { setFunilPopoverOpen(v); if (!v) setFunilSearch(""); }}>
               <PopoverTrigger asChild>
-                <button className="flex items-center justify-between w-[170px] h-9 px-3 text-xs rounded-md border border-border/60 bg-card hover:bg-accent/50 transition-colors">
+                <button className="flex items-center justify-between w-full sm:w-[170px] h-9 px-3 text-xs rounded-md border border-border/60 bg-card hover:bg-accent/50 transition-colors">
                   <span className="truncate font-medium">{selectedFunilNome}</span>
                   <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-1" />
                 </button>
@@ -235,7 +235,7 @@ export function ProjetoFilters({
               Consultor
             </label>
             <Select value={filterConsultor} onValueChange={onFilterConsultorChange}>
-              <SelectTrigger className="w-[150px] h-9 text-xs border-border/60 bg-card">
+              <SelectTrigger className="w-full sm:w-[150px] h-9 text-xs border-border/60 bg-card">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
@@ -253,7 +253,7 @@ export function ProjetoFilters({
               Status
             </label>
             <Select value={filterStatus} onValueChange={onFilterStatusChange}>
-              <SelectTrigger className="w-[140px] h-9 text-xs border-border/60 bg-card">
+              <SelectTrigger className="w-full sm:w-[140px] h-9 text-xs border-border/60 bg-card">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent>
@@ -271,7 +271,7 @@ export function ProjetoFilters({
               Etiquetas
             </label>
             <Select value="todas" onValueChange={(v) => { if (v !== "todas") toggleEtiqueta(v); }}>
-              <SelectTrigger className="w-[140px] h-9 text-xs border-border/60 bg-card">
+              <SelectTrigger className="w-full sm:w-[140px] h-9 text-xs border-border/60 bg-card">
                 <SelectValue placeholder="Todas">
                   {filterEtiquetas.length > 0 ? `${filterEtiquetas.length} selecionada(s)` : "Todas"}
                 </SelectValue>
@@ -294,8 +294,8 @@ export function ProjetoFilters({
           </div>
 
           {/* Search */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider opacity-0">
+          <div className="flex flex-col gap-1 col-span-2 sm:col-span-1">
+            <label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider opacity-0 hidden sm:block">
               Buscar
             </label>
             <div className="relative">
@@ -304,14 +304,14 @@ export function ProjetoFilters({
                 placeholder="Buscar..."
                 value={searchTerm}
                 onChange={e => onSearchChange(e.target.value)}
-                className="pl-8 h-9 w-[160px] text-xs border-border/60 bg-card"
+                className="pl-8 h-9 w-full sm:w-[160px] text-xs border-border/60 bg-card"
               />
             </div>
           </div>
 
           {/* Clear */}
           {hasActive && (
-            <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground h-9 px-2 text-xs gap-1 hover:text-destructive">
+            <Button variant="ghost" size="sm" onClick={onClearFilters} className="text-muted-foreground h-9 px-2 text-xs gap-1 hover:text-destructive col-span-2 sm:col-span-1">
               <X className="h-3.5 w-3.5" />
               Limpar
             </Button>

@@ -250,14 +250,14 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-base">{title}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Header fields */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Nome do distribuidor *</Label>
               <Input value={distribuidorNome} onChange={e => setDistribuidorNome(e.target.value)} className="h-8 text-xs" />
@@ -268,7 +268,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Nome do Kit *</Label>
               <Input value={nomeKit} onChange={e => setNomeKit(e.target.value)} className="h-8 text-xs" />
@@ -309,7 +309,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
           )}
 
           {/* Topologia + Custos */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Topologia *</Label>
               <Select value={topologia} onValueChange={v => {

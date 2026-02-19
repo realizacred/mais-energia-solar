@@ -349,7 +349,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
   const projectCode = deal.title?.match(/#(\d+)/)?.[1] || deal.id.slice(0, 6);
 
   return (
-    <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-4 sm:p-6">
+    <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
       {/* ── Breadcrumbs ── */}
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
         <button onClick={onBack} className="hover:text-foreground transition-colors">Projetos</button>
@@ -361,9 +361,9 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
       <Card className="mb-4">
         <CardContent className="p-4 sm:p-5">
           {/* Row 1: Title + Actions */}
-          <div className="flex items-start justify-between gap-4 mb-4">
-            <div className="flex items-center gap-3 min-w-0 flex-wrap">
-              <h1 className="text-2xl font-bold text-foreground truncate">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
+              <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full">
                 Projeto: {customerName || deal.title}
               </h1>
               <Badge
@@ -405,182 +405,10 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              {isClosed ? (
-                /* ── Reabrir projeto fechado ── */
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={async () => {
-                    if (!window.confirm("Tem certeza que deseja reabrir este projeto?")) return;
-                    const prevStatus = deal.status;
-                    const firstOpenStage = stages.find(s => !s.is_closed);
-                    const update: any = { status: "open" };
-                    if (firstOpenStage) update.stage_id = firstOpenStage.id;
-                    updateDealLocal(update);
-                    try {
-                      const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
-                      if (error) throw error;
-                      toast({ title: "Projeto reaberto!" });
-                      silentRefresh();
-                    } catch (err: any) {
-                      updateDealLocal({ status: prevStatus });
-                      toast({ title: "Erro", description: err.message, variant: "destructive" });
-                    }
-                  }}
-                  className="font-semibold gap-1.5"
-                >
-                  <Activity className="h-3.5 w-3.5" /> Reabrir Projeto
-                </Button>
-              ) : (
-                <>
-                  <Button
-                    size="sm"
-                    onClick={async () => {
-                      if (propostasCount === 0) {
-                        toast({ title: "Sem proposta vinculada", description: "Crie uma proposta primeiro.", variant: "destructive" });
-                        return;
-                      }
-                      if (!window.confirm("Tem certeza que deseja marcar este projeto como ganho?")) return;
-                      const prevStatus = deal.status;
-                      const prevStageId = deal.stage_id;
-                      const prevValue = deal.value;
-                      const prevKwp = deal.kwp;
-                      const wonStage = stages.find(s => s.is_won);
-                      const update: any = { status: "won" };
-                      if (wonStage) update.stage_id = wonStage.id;
-
-                      // Auto-fill value and kwp from the latest proposal version
-                      try {
-                        if (deal.customer_id) {
-                          const { data: propostas } = await supabase
-                            .from("propostas_nativas")
-                            .select("id, versoes:proposta_versoes(valor_total, potencia_kwp, versao_numero)")
-                            .eq("cliente_id", deal.customer_id)
-                            .order("created_at", { ascending: false })
-                            .limit(1);
-                          
-                          if (propostas && propostas.length > 0) {
-                            const versoes = (propostas[0] as any).versoes || [];
-                            const latestVersao = versoes.sort((a: any, b: any) => b.versao_numero - a.versao_numero)[0];
-                            if (latestVersao) {
-                              if (latestVersao.valor_total && latestVersao.valor_total > 0) {
-                                update.value = latestVersao.valor_total;
-                              }
-                              if (latestVersao.potencia_kwp && latestVersao.potencia_kwp > 0) {
-                                update.kwp = latestVersao.potencia_kwp;
-                              }
-                            }
-                          }
-                        }
-                      } catch { /* proceed without auto-fill */ }
-
-                      updateDealLocal(update);
-                      try {
-                        const { error } = await supabase.from("deals").update(update).eq("id", deal.id);
-                        if (error) throw error;
-
-                        // CASCADE: Mark all project proposals
-                        if (deal.customer_id) {
-                          // Get all proposals for this project
-                          const { data: allPropostas } = await supabase
-                            .from("propostas_nativas")
-                            .select("id")
-                            .eq("projeto_id", deal.id);
-
-                          if (allPropostas && allPropostas.length > 0) {
-                            // The latest proposal gets "ganha", others get "arquivada"
-                            const latestId = allPropostas[0]?.id;
-                            const otherIds = allPropostas.filter(p => p.id !== latestId).map(p => p.id);
-
-                            await supabase.from("propostas_nativas")
-                              .update({ status: "ganha" })
-                              .eq("id", latestId);
-
-                            if (otherIds.length > 0) {
-                              await supabase.from("propostas_nativas")
-                                .update({ status: "arquivada" })
-                                .in("id", otherIds);
-                            }
-                          }
-
-                          // CASCADE: Mark linked lead as "Convertido"
-                          const { data: cli } = await supabase
-                            .from("clientes")
-                            .select("lead_id")
-                            .eq("id", deal.customer_id)
-                            .single();
-
-                          if (cli?.lead_id) {
-                            await supabase.from("leads")
-                              .update({ status_id: "b55bc691-f875-4c28-b167-0e5349156346" })
-                              .eq("id", cli.lead_id);
-                          }
-                        }
-
-                        const valMsg = update.value ? ` | ${formatBRL(update.value)}` : "";
-                        const kwpMsg = update.kwp ? ` | ${update.kwp} kWp` : "";
-                        toast({ title: `🎉 Projeto ganho!${valMsg}${kwpMsg}` });
-                        silentRefresh();
-                      } catch (err: any) {
-                        updateDealLocal({ status: prevStatus, stage_id: prevStageId, value: prevValue, kwp: prevKwp });
-                        toast({ title: "Erro", description: err.message, variant: "destructive" });
-                      }
-                    }}
-                    className="bg-success hover:bg-success/90 text-success-foreground font-semibold gap-1.5"
-                  >
-                    <Trophy className="h-3.5 w-3.5" /> Ganhar
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => {
-                      if (propostasCount === 0) {
-                        toast({ title: "Sem proposta vinculada", description: "Crie uma proposta primeiro ou exclua o projeto.", variant: "destructive" });
-                        return;
-                      }
-                      setLossMotivo("");
-                      setLossObs("");
-                      setLossDialogOpen(true);
-                    }}
-                    className="font-semibold gap-1.5"
-                  >
-                    <XCircle className="h-3.5 w-3.5" /> Perder
-                  </Button>
-                </>
-              )}
-
-              <Separator orientation="vertical" className="h-7 mx-1" />
-
-              <div className="flex flex-col items-end gap-0.5">
-                <span className="text-[10px] text-muted-foreground font-medium">Trocar Consultor</span>
-                <Select
-                  value={deal.owner_id}
-                  disabled={isClosed}
-                  onValueChange={(ownerId) => {
-                    if (ownerId === deal.owner_id || isClosed) return;
-                    // Store selected id and resolve name for confirmation
-                    setConfirmConsultorId(ownerId);
-                    // Name will be looked up from the SelectItem label
-                    setConfirmConsultorName(ownerId);
-                  }}
-                >
-                  <SelectTrigger className={cn("h-8 w-[180px] text-sm", isClosed && "opacity-60 cursor-not-allowed")}>
-                    <SelectValue placeholder="Selecionar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <ConsultorOptions onResolveName={(id, name) => {
-                      if (id === confirmConsultorId) setConfirmConsultorName(name);
-                    }} />
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
           </div>
 
           {/* Row 2: Tabs */}
-          <div className="flex items-center border-b border-border/60 -mx-4 sm:-mx-5 px-4 sm:px-5 overflow-x-auto">
+          <div className="flex items-center border-b border-border/60 -mx-4 sm:-mx-5 px-2 sm:px-5 overflow-x-auto scrollbar-hide">
             {TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1629,7 +1457,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
                       )}
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-2 text-[11px]">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-[11px]">
                     <div>
                       <p className="text-muted-foreground">Consumo</p>
                       <p className="font-semibold">{orc.consumo_previsto || orc.media_consumo || 0} kWh</p>

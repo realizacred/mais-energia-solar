@@ -105,7 +105,7 @@ export function SmtpConfigCard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Host SMTP</Label>
             <Input
@@ -126,7 +126,7 @@ export function SmtpConfigCard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Usuário</Label>
             <Input
@@ -157,7 +157,7 @@ export function SmtpConfigCard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <Label className="text-xs">Email de envio</Label>
             <Input
