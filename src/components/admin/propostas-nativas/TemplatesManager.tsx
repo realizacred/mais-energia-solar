@@ -61,12 +61,13 @@ export function TemplatesManager() {
     
     const all = (data as PropostaTemplate[]) || [];
     const htmlTemplates = all.filter(t => t.tipo === "html");
-    const hasNewDefaults = htmlTemplates.some(t => 
-      t.nome.includes("Grid") || t.nome.includes("Híbrido") || t.nome.includes("Dual")
-    );
+    const hasGrid = htmlTemplates.some(t => t.nome.includes("Grid"));
+    const hasHibrido = htmlTemplates.some(t => t.nome.includes("Híbrido"));
+    const hasDual = htmlTemplates.some(t => t.nome.includes("Dual"));
+    const hasAllDefaults = hasGrid && hasHibrido && hasDual;
 
     // Auto-seed: if no new default templates exist, import them
-    if (!hasNewDefaults) {
+    if (!hasAllDefaults) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { console.error("Auto-seed: user not authenticated"); }
@@ -78,21 +79,25 @@ export function TemplatesManager() {
             .single();
           
           if (profile?.tenant_id) {
-            console.log("Auto-seed: deleting", htmlTemplates.length, "old HTML templates");
-            // Delete old HTML templates one by one
-            for (const old of htmlTemplates) {
+            // Delete legacy HTML templates (not Grid/Híbrido/Dual)
+            const legacyTemplates = htmlTemplates.filter(t => 
+              !t.nome.includes("Grid") && !t.nome.includes("Híbrido") && !t.nome.includes("Dual")
+            );
+            console.log("Auto-seed: deleting", legacyTemplates.length, "legacy HTML templates");
+            for (const old of legacyTemplates) {
               const { error: delErr } = await supabase.from("proposta_templates").delete().eq("id", old.id);
               if (delErr) console.error("Auto-seed delete error:", old.id, delErr.message);
             }
 
             const defaults = [
-              { nome: "Template Grid (On-Grid)", file: "template-grid.json", ordem: 1 },
-              { nome: "Template Híbrido", file: "template-hybrid.json", ordem: 2 },
-              { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", ordem: 3 },
+              { nome: "Template Grid (On-Grid)", file: "template-grid.json", ordem: 1, check: hasGrid },
+              { nome: "Template Híbrido", file: "template-hybrid.json", ordem: 2, check: hasHibrido },
+              { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", ordem: 3, check: hasDual },
             ];
 
             let insertedCount = 0;
             for (const def of defaults) {
+              if (def.check) continue; // already exists
               const res = await fetch(`/default-templates/${def.file}`);
               console.log("Auto-seed fetch:", def.file, "status:", res.status);
               if (!res.ok) continue;
