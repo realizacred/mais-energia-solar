@@ -516,7 +516,7 @@ export function useWaMessages(conversationId?: string) {
       const [convResult, profileResult] = await Promise.all([
         supabase
           .from("wa_conversations")
-          .select("instance_id, remote_jid")
+          .select("instance_id, remote_jid, tenant_id")
           .eq("id", conversationId)
           .single(),
         user?.id
@@ -570,18 +570,19 @@ export function useWaMessages(conversationId?: string) {
             ? `*${senderName}:*\n${content}`
             : content;
 
-        const { error: outboxError } = await supabase
-          .from("wa_outbox")
-          .insert({
-            instance_id: conv.instance_id,
-            conversation_id: conversationId,
-            message_id: msg.id,
-            remote_jid: conv.remote_jid,
-            message_type: messageType,
-            content: outboxContent,
-            media_url: mediaUrl || null,
-            status: "pending",
-          });
+        const idempKey = `inbox_send:${conv.tenant_id}:${msg.id}`;
+        const { error: outboxError } = await (supabase.rpc as any)("enqueue_wa_outbox_item", {
+          p_tenant_id: conv.tenant_id,
+          p_instance_id: conv.instance_id,
+          p_remote_jid: conv.remote_jid,
+          p_message_type: messageType,
+          p_content: outboxContent,
+          p_media_url: mediaUrl || null,
+          p_conversation_id: conversationId,
+          p_message_id: msg.id,
+          p_idempotency_key: idempKey,
+          p_status: "pending",
+        });
 
         if (outboxError) {
           console.error("Failed to queue message:", outboxError);

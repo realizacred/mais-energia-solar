@@ -13133,7 +13133,7 @@ export type Database = {
           delivery_status: string | null
           error_message: string | null
           id: string
-          idempotency_key: string | null
+          idempotency_key: string
           instance_id: string
           max_retries: number
           media_url: string | null
@@ -13157,7 +13157,7 @@ export type Database = {
           delivery_status?: string | null
           error_message?: string | null
           id?: string
-          idempotency_key?: string | null
+          idempotency_key: string
           instance_id: string
           max_retries?: number
           media_url?: string | null
@@ -13181,7 +13181,7 @@ export type Database = {
           delivery_status?: string | null
           error_message?: string | null
           id?: string
-          idempotency_key?: string | null
+          idempotency_key?: string
           instance_id?: string
           max_retries?: number
           media_url?: string | null
@@ -14043,13 +14043,13 @@ export type Database = {
       }
       enqueue_wa_outbox_item: {
         Args: {
-          p_content?: string
+          p_content: string
           p_conversation_id?: string
           p_idempotency_key?: string
           p_instance_id: string
           p_media_url?: string
           p_message_id?: string
-          p_message_type?: string
+          p_message_type: string
           p_remote_jid: string
           p_scheduled_at?: string
           p_status?: string
