@@ -1,6 +1,7 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -31,6 +32,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { InternalChat } from "@/components/admin/inbox/InternalChat";
 
 interface Contact {
   id: string;
@@ -454,24 +456,41 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
   };
 
   return (
-    <div className="h-[calc(100dvh-56px)] md:grid md:grid-cols-[360px_1fr]">
-      {/* Left: contacts list (always visible) */}
-      <div className="h-full border-r border-border/40 overflow-hidden">
-        <ContactsList
-          onRecall={handleRecall}
-          onNewContact={() => setShowNew(true)}
-          selectedId={selectedContact?.id}
-        />
-      </div>
+    <div className="h-[calc(100dvh-56px)] flex flex-col">
+      {/* Segment tabs */}
+      <Tabs defaultValue="team" className="flex flex-col h-full">
+        <div className="shrink-0 border-b border-border/40 px-3 pt-2">
+          <TabsList className="w-full grid grid-cols-2 h-9">
+            <TabsTrigger value="team" className="text-xs">🏢 Equipe</TabsTrigger>
+            <TabsTrigger value="clients" className="text-xs">👤 Clientes</TabsTrigger>
+          </TabsList>
+        </div>
 
-      {/* Right: detail pane (desktop only) */}
-      <div className="hidden md:flex h-full overflow-y-auto">
-        {selectedContact ? (
-          <ContactDetails contact={selectedContact} onRecall={handleOpenRecallDialog} />
-        ) : (
-          <EmptyRightPane />
-        )}
-      </div>
+        <TabsContent value="team" className="flex-1 min-h-0 m-0">
+          <InternalChat />
+        </TabsContent>
+
+        <TabsContent value="clients" className="flex-1 min-h-0 m-0">
+          <div className="h-full md:grid md:grid-cols-[360px_1fr]">
+            {/* Left: contacts list */}
+            <div className="h-full border-r border-border/40 overflow-hidden">
+              <ContactsList
+                onRecall={handleRecall}
+                onNewContact={() => setShowNew(true)}
+                selectedId={selectedContact?.id}
+              />
+            </div>
+            {/* Right: detail pane (desktop only) */}
+            <div className="hidden md:flex h-full overflow-y-auto">
+              {selectedContact ? (
+                <ContactDetails contact={selectedContact} onRecall={handleOpenRecallDialog} />
+              ) : (
+                <EmptyRightPane />
+              )}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* Recall from contact */}
       <RecallDialog
