@@ -213,6 +213,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   }, [followupTenantId, user?.id, toast]);
 
   // Auto-select conversation from initialConversationId (e.g. from Contacts recall)
+  // Format: "uuid" or "uuid:timestamp" (timestamp used to force re-trigger)
   const initialConvHandledRef = useRef<string | null>(null);
   const initialConvRetried = useRef(false);
   useEffect(() => {
@@ -221,7 +222,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       initialConversationId !== initialConvHandledRef.current &&
       allConversations.length > 0
     ) {
-      const target = allConversations.find((c) => c.id === initialConversationId);
+      const convId = initialConversationId.split(":")[0]; // strip timestamp suffix
+      const target = allConversations.find((c) => c.id === convId);
       if (target) {
         setSelectedConv(target);
         initialConvHandledRef.current = initialConversationId;

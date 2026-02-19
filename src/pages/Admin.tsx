@@ -123,7 +123,10 @@ const ProposalWizardPage = lazy(() =>
 /** Wrapper to read ?conversation= query param for admin inbox */
 function WaInboxWithParams() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [initialId] = React.useState(() => searchParams.get("conversation"));
+  const [initialId] = React.useState(() => {
+    const convId = searchParams.get("conversation");
+    return convId ? convId + ":" + Date.now() : null;
+  });
 
   React.useEffect(() => {
     if (searchParams.get("conversation")) {
