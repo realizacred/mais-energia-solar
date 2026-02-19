@@ -28,6 +28,10 @@ import {
   MessageSquarePlus,
   UserPlus,
   Phone,
+  FileText,
+  Image as ImageIcon,
+  Download,
+  ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -156,6 +160,7 @@ export function WaChatPanel({
   const [showAISidebar, setShowAISidebar] = useState(false);
   const [showNotesPanel, setShowNotesPanel] = useState(false);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [showFilesPanel, setShowFilesPanel] = useState(false);
   const [mediaPreview, setMediaPreview] = useState<{ url: string; type: "image" | "video" | "audio" | "document"; caption?: string } | null>(null);
   const [reactionPickerMsgId, setReactionPickerMsgId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ReplyingTo | null>(null);
@@ -349,78 +354,43 @@ export function WaChatPanel({
       <div className="flex-1 flex flex-col min-w-0 w-full max-w-full">
         {/* Chat Header */}
         <div className="border-b border-border/30 bg-card shadow-xs">
-          <div className="px-3 py-2 flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-primary overflow-hidden">
+          {/* Row 1: Avatar + Name + Action icons */}
+          <div className="px-3 pt-2 pb-1.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-[10px] font-bold text-primary overflow-hidden">
                 {conversation.profile_picture_url ? (
                   <img src={conversation.profile_picture_url} alt="" className="w-full h-full object-cover" />
                 ) : conversation.is_group ? (
-                  <Users className="h-4 w-4" />
+                  <Users className="h-3.5 w-3.5" />
                 ) : conversation.cliente_nome ? (
                   conversation.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
                 ) : (
-                  <User className="h-4 w-4" />
+                  <User className="h-3.5 w-3.5" />
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                {/* Row 1: Name + online dot */}
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1.5">
                   <span className="text-xs font-semibold text-foreground truncate">
                     {conversation.cliente_nome || formatPhone(conversation.cliente_telefone)}
                   </span>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${
-                          conversation.status === "resolved" ? "bg-destructive" : "bg-success"
-                        }`}
-                      />
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${conversation.status === "resolved" ? "bg-destructive" : "bg-success"} animate-[pulse_3s_ease-in-out_infinite]`} />
                     </TooltipTrigger>
                     <TooltipContent>{conversation.status === "resolved" ? "Offline" : "Online"}</TooltipContent>
                   </Tooltip>
                 </div>
-                {/* Row 2: Phone + call/wa icons + consultor */}
-                <div className="flex items-center gap-1 text-[10px] text-muted-foreground leading-none">
-                  {conversation.cliente_nome && conversation.cliente_telefone && (
-                    <span className="shrink-0">{formatPhone(conversation.cliente_telefone)}</span>
-                  )}
-                  {conversation.cliente_telefone && (
-                    <>
-                      <a
-                        href={`tel:+${conversation.cliente_telefone.replace(/\D/g, "")}`}
-                        className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Ligar"
-                      >
-                        <Phone className="h-3.5 w-3.5" />
-                      </a>
-                      <a
-                        href={`https://wa.me/${conversation.cliente_telefone.replace(/\D/g, "")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-success hover:bg-success/10 transition-colors"
-                        onClick={(e) => e.stopPropagation()}
-                        title="Abrir WhatsApp"
-                      >
-                        <MessageCircle className="h-3.5 w-3.5" />
-                      </a>
-                    </>
-                  )}
-                  {assignedConsultor && (
-                    <span className="truncate max-w-[80px]">· {assignedConsultor.nome}</span>
-                  )}
+                <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  {assignedConsultor && <span className="truncate max-w-[80px]">{assignedConsultor.nome}</span>}
                   {conversation.lead_id && (
-                    <button
-                      onClick={() => setShowLeadInfo(true)}
-                      className="text-primary/70 hover:text-primary transition-colors truncate max-w-[70px]"
-                    >
-                      · {conversation.lead_nome || "Lead"}
+                    <button onClick={() => setShowLeadInfo(true)} className="text-primary/70 hover:text-primary transition-colors truncate max-w-[70px]">
+                      {assignedConsultor ? " · " : ""}{conversation.lead_nome || "Lead"}
                     </button>
                   )}
                 </div>
               </div>
             </div>
-
+            {/* Top action icons */}
             <div className="flex items-center gap-0.5 shrink-0">
               {!conversation.assigned_to && onAccept && (
                 <Button
@@ -582,7 +552,105 @@ export function WaChatPanel({
               </DropdownMenu>
             </div>
           </div>
+          {/* Row 2: Phone + WhatsApp labeled buttons */}
+          {conversation.cliente_telefone && (
+            <div className="px-3 pb-2 flex items-center gap-2">
+              <a
+                href={`tel:+${conversation.cliente_telefone.replace(/\D/g, "")}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-info/10 text-info text-[11px] font-medium hover:bg-info/20 transition-colors hover-scale"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Phone className="h-3.5 w-3.5" />
+                Telefone
+              </a>
+              <div className="w-px h-4 bg-border/50" />
+              <a
+                href={`https://wa.me/${conversation.cliente_telefone.replace(/\D/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-success/10 text-success text-[11px] font-medium hover:bg-success/20 transition-colors hover-scale"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <MessageCircle className="h-3.5 w-3.5" />
+                WhatsApp
+              </a>
+              <div className="w-px h-4 bg-border/50" />
+              <button
+                onClick={() => setShowFilesPanel(!showFilesPanel)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors hover-scale ${showFilesPanel ? "bg-primary/15 text-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Arquivos
+              </button>
+            </div>
+          )}
         </div>
+
+        {/* Files Panel */}
+        {showFilesPanel && (
+          <div className="border-b border-border/30 bg-muted/5 animate-fade-in overflow-y-auto max-h-[40vh]">
+            <div className="p-3">
+              {(() => {
+                const mediaMessages = visibleMessages.filter(m => m.media_url);
+                const received = mediaMessages.filter(m => m.direction === "in");
+                const sent = mediaMessages.filter(m => m.direction === "out");
+                const renderFile = (msg: typeof mediaMessages[0]) => (
+                  <a
+                    key={msg.id}
+                    href={msg.media_url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 p-2 rounded-lg bg-card border border-border/40 hover:bg-accent/50 transition-colors group"
+                  >
+                    {msg.media_mime_type?.startsWith("image") ? (
+                      <div className="h-10 w-10 rounded bg-info/10 flex items-center justify-center shrink-0">
+                        <ImageIcon className="h-4 w-4 text-info" />
+                      </div>
+                    ) : (
+                      <div className="h-10 w-10 rounded bg-warning/10 flex items-center justify-center shrink-0">
+                        <FileText className="h-4 w-4 text-warning" />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[11px] font-medium text-foreground truncate">
+                        {msg.content?.slice(0, 30) || msg.media_mime_type || "Arquivo"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(msg.created_at).toLocaleDateString("pt-BR")}
+                      </p>
+                    </div>
+                    <Download className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </a>
+                );
+                return (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        <Download className="h-3 w-3" /> Recebidos ({received.length})
+                      </p>
+                      {received.length === 0 ? (
+                        <p className="text-[10px] text-muted-foreground/60 pl-1">Nenhum arquivo recebido</p>
+                      ) : (
+                        <div className="space-y-1">{received.map(renderFile)}</div>
+                      )}
+                    </div>
+                    <div className="h-px bg-border/40" />
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                        <Upload className="h-3 w-3" /> Enviados ({sent.length})
+                      </p>
+                      {sent.length === 0 ? (
+                        <p className="text-[10px] text-muted-foreground/60 pl-1">Nenhum arquivo enviado</p>
+                      ) : (
+                        <div className="space-y-1">{sent.map(renderFile)}</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        )}
 
         {/* Messages with virtualization */}
         <div
@@ -591,6 +659,24 @@ export function WaChatPanel({
           onDragLeave={handleDragLeave}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
+          onTouchStart={(e) => {
+            const t = e.currentTarget;
+            (t as any)._swLX = e.touches[0].clientX;
+            (t as any)._swLY = e.touches[0].clientY;
+          }}
+          onTouchEnd={(e) => {
+            const t = e.currentTarget;
+            const sx = (t as any)._swLX;
+            const sy = (t as any)._swLY;
+            if (sx == null) return;
+            const dx = e.changedTouches[0].clientX - sx;
+            const dy = Math.abs(e.changedTouches[0].clientY - sy);
+            if (dx < -80 && dy < 60) {
+              setShowFilesPanel(true);
+            }
+            (t as any)._swLX = null;
+            (t as any)._swLY = null;
+          }}
         >
           {/* Drag overlay */}
           {isDragging && (
