@@ -569,13 +569,18 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
       }}
     >
       {/* Row 1: Client name (prominent) + etiqueta badge */}
-      <div className="flex items-start justify-between gap-1.5 mb-1.5">
-        <p className={cn(
-          "text-[13px] font-bold leading-snug line-clamp-1 flex-1",
-          isInactive ? "text-muted-foreground" : "text-foreground"
-        )}>
-          {deal.customer_name || deal.deal_title || "Sem nome"}
-        </p>
+      <div className="flex items-start justify-between gap-1.5 mb-1">
+        <div className="flex-1 min-w-0">
+          <p className={cn(
+            "text-[13px] font-bold leading-snug line-clamp-1",
+            isInactive ? "text-muted-foreground" : "text-foreground"
+          )}>
+            {deal.customer_name || deal.deal_title || "Sem nome"}
+          </p>
+          {deal.cliente_code && (
+            <span className="text-[9px] font-mono font-semibold text-primary/70">{deal.cliente_code}</span>
+          )}
+        </div>
         <div className="flex items-center gap-1 shrink-0">
           {propostaInfo && (
             <Badge className={cn("text-[8px] h-4 px-1 font-semibold", propostaInfo.className)}>

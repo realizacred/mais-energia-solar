@@ -314,11 +314,14 @@ function OwnerDealCard({
 
       {/* Row 2: Customer name */}
       <h4 className={cn(
-        "text-[13px] font-bold leading-tight truncate mb-1.5",
+        "text-[13px] font-bold leading-tight truncate",
         deal.deal_status === "lost" ? "text-muted-foreground line-through" : "text-foreground"
       )}>
         {deal.customer_name || deal.deal_title}
       </h4>
+      {deal.cliente_code && (
+        <span className="text-[9px] font-mono font-semibold text-primary/70 mb-1.5">{deal.cliente_code}</span>
+      )}
 
       {/* Row 3: Phone + quick actions */}
       {deal.customer_phone && (

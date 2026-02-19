@@ -106,6 +106,9 @@ function ListRow({ projeto, etapa, onView }: ListRowProps) {
           <p className="font-semibold text-sm truncate text-foreground">
             {projeto.cliente?.nome || projeto.codigo || "Sem nome"}
           </p>
+          {projeto.codigo && (
+            <span className="text-[10px] font-mono font-semibold text-primary/70 shrink-0">{projeto.codigo}</span>
+          )}
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
           {projeto.codigo && <span>{projeto.codigo}</span>}

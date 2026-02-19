@@ -1234,6 +1234,7 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string | null
+          cliente_code: string | null
           complemento: string | null
           comprovante_beneficiaria_urls: string[] | null
           comprovante_endereco_url: string | null
@@ -1271,6 +1272,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cliente_code?: string | null
           complemento?: string | null
           comprovante_beneficiaria_urls?: string[] | null
           comprovante_endereco_url?: string | null
@@ -1308,6 +1310,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
+          cliente_code?: string | null
           complemento?: string | null
           comprovante_beneficiaria_urls?: string[] | null
           comprovante_endereco_url?: string | null
@@ -2249,6 +2252,7 @@ export type Database = {
       }
       deal_kanban_projection: {
         Row: {
+          cliente_code: string | null
           customer_name: string
           customer_phone: string | null
           deal_id: string
@@ -2269,6 +2273,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cliente_code?: string | null
           customer_name?: string
           customer_phone?: string | null
           deal_id: string
@@ -2289,6 +2294,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cliente_code?: string | null
           customer_name?: string
           customer_phone?: string | null
           deal_id?: string
