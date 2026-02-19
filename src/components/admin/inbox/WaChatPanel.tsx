@@ -389,10 +389,10 @@ export function WaChatPanel({
                         <TooltipTrigger asChild>
                           <a
                             href={`tel:+${conversation.cliente_telefone.replace(/\D/g, "")}`}
-                            className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                            className="inline-flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <Phone className="h-3 w-3" />
+                            <Phone className="h-4 w-4" />
                           </a>
                         </TooltipTrigger>
                         <TooltipContent>Ligar</TooltipContent>
@@ -403,10 +403,10 @@ export function WaChatPanel({
                             href={`https://wa.me/${conversation.cliente_telefone.replace(/\D/g, "")}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center h-5 w-5 rounded text-muted-foreground hover:text-success hover:bg-success/10 transition-colors"
+                            className="inline-flex items-center justify-center h-6 w-6 rounded text-muted-foreground hover:text-success hover:bg-success/10 transition-colors"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <MessageCircle className="h-3 w-3" />
+                            <MessageCircle className="h-4 w-4" />
                           </a>
                         </TooltipTrigger>
                         <TooltipContent>Abrir WhatsApp</TooltipContent>
