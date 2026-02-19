@@ -161,8 +161,8 @@ export function ProposalList() {
         />
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+        <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3">
+          <div className="relative flex-1 min-w-0 sm:min-w-[200px] sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar por título ou código..."
@@ -171,36 +171,38 @@ export function ProposalList() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px] h-10">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os status</SelectItem>
-              <SelectItem value="rascunho">Rascunho</SelectItem>
-              <SelectItem value="gerada">Gerada</SelectItem>
-              <SelectItem value="enviada">Enviada</SelectItem>
-              <SelectItem value="aceita">Aceita</SelectItem>
-              <SelectItem value="recusada">Recusada</SelectItem>
-              <SelectItem value="expirada">Expirada</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-[160px] h-10">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="rascunho">Rascunho</SelectItem>
+                <SelectItem value="gerada">Gerada</SelectItem>
+                <SelectItem value="enviada">Enviada</SelectItem>
+                <SelectItem value="aceita">Aceita</SelectItem>
+                <SelectItem value="recusada">Recusada</SelectItem>
+                <SelectItem value="expirada">Expirada</SelectItem>
+              </SelectContent>
+            </Select>
 
-          {/* Consultor filter */}
-          <Select value={consultorFilter} onValueChange={setConsultorFilter}>
-            <SelectTrigger className="w-[180px] h-10">
-              <div className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                <SelectValue placeholder="Consultor" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os consultores</SelectItem>
-              {consultores.map(c => (
-                <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            {/* Consultor filter */}
+            <Select value={consultorFilter} onValueChange={setConsultorFilter}>
+              <SelectTrigger className="w-full sm:w-[180px] h-10">
+                <div className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                  <SelectValue placeholder="Consultor" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os consultores</SelectItem>
+                {consultores.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Date range filter */}
           <Popover>

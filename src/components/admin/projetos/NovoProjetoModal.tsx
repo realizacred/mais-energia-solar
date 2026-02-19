@@ -215,7 +215,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[600px] lg:max-w-[1060px] max-h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl flex flex-col border-2 border-border/60 shadow-2xl bg-card">
+      <DialogContent className="max-w-[95vw] sm:max-w-[600px] lg:max-w-[1060px] max-h-[92vh] overflow-hidden p-0 gap-0 rounded-2xl flex flex-col border-2 border-border/60 shadow-2xl bg-card w-full">
         {/* Header */}
         <DialogHeader className="px-6 pt-5 pb-4 border-b-2 border-primary/20 bg-gradient-to-r from-primary/5 via-transparent to-secondary/5 shrink-0">
           <DialogTitle className="text-lg font-bold text-foreground tracking-tight flex items-center gap-2.5">
@@ -228,7 +228,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
 
         {/* Body */}
         <ScrollArea className="flex-1 overflow-auto">
-          <div className="p-5 lg:p-6 space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[1fr_1fr_220px] lg:gap-0">
+          <div className="p-4 sm:p-5 lg:p-6 space-y-5 lg:space-y-0 lg:grid lg:grid-cols-[1fr_1fr_220px] lg:gap-0">
 
             {/* ── Coluna 1: Projeto ── */}
             <div className="space-y-3.5 lg:pr-5">
@@ -266,7 +266,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
               </Field>
 
               {pipelines.length > 0 && (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <FloatingSelect
                     label="Funil"
                     icon={<Layers className="h-4 w-4" />}
@@ -371,7 +371,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                 />
               </Field>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Field label="Empresa">
                   <Input
                     placeholder="Nome da empresa"
@@ -416,7 +416,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                   <MapPin className="h-3 w-3 text-primary/60" /> Endereço
                 </h4>
 
-                <div className="grid grid-cols-[1fr_1fr] gap-2.5">
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr] gap-2.5">
                   <Field label="CEP">
                     <div className="relative">
                       <Input
