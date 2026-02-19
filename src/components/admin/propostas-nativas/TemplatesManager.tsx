@@ -69,56 +69,69 @@ export function TemplatesManager() {
     if (!hasNewDefaults) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("tenant_id")
-          .eq("user_id", user!.id)
-          .single();
-        
-        if (profile?.tenant_id) {
-          // Delete old HTML templates
-          if (htmlTemplates.length > 0) {
+        if (!user) { console.error("Auto-seed: user not authenticated"); }
+        else {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("tenant_id")
+            .eq("user_id", user.id)
+            .single();
+          
+          if (profile?.tenant_id) {
+            console.log("Auto-seed: deleting", htmlTemplates.length, "old HTML templates");
+            // Delete old HTML templates one by one
             for (const old of htmlTemplates) {
-              await supabase.from("proposta_templates").delete().eq("id", old.id);
+              const { error: delErr } = await supabase.from("proposta_templates").delete().eq("id", old.id);
+              if (delErr) console.error("Auto-seed delete error:", old.id, delErr.message);
+            }
+
+            const defaults = [
+              { nome: "Template Grid (On-Grid)", file: "template-grid.json", ordem: 1 },
+              { nome: "Template Híbrido", file: "template-hybrid.json", ordem: 2 },
+              { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", ordem: 3 },
+            ];
+
+            let insertedCount = 0;
+            for (const def of defaults) {
+              const res = await fetch(`/default-templates/${def.file}`);
+              console.log("Auto-seed fetch:", def.file, "status:", res.status);
+              if (!res.ok) continue;
+              const jsonContent = await res.text();
+              console.log("Auto-seed inserting:", def.nome, "content length:", jsonContent.length);
+              const { error: insErr } = await supabase.from("proposta_templates").insert({
+                nome: def.nome,
+                descricao: `Template padrão`,
+                grupo: "B",
+                categoria: "geral",
+                tipo: "html",
+                template_html: jsonContent,
+                ativo: true,
+                ordem: def.ordem,
+                tenant_id: profile.tenant_id,
+                variaveis_disponiveis: {},
+              } as any);
+              if (insErr) {
+                console.error("Auto-seed insert error:", def.nome, insErr.message);
+              } else {
+                insertedCount++;
+              }
+            }
+
+            if (insertedCount > 0) {
+              // Re-fetch after seeding
+              const { data: refreshed } = await supabase
+                .from("proposta_templates")
+                .select("id, nome, descricao, grupo, categoria, tipo, template_html, file_url, thumbnail_url, ativo, ordem")
+                .order("ordem", { ascending: true });
+              setTemplates((refreshed as PropostaTemplate[]) || []);
+              setLoading(false);
+              toast({ title: "Templates padrão importados!", description: `${insertedCount} templates WEB criados` });
+              return;
             }
           }
-
-          const defaults = [
-            { nome: "Template Grid (On-Grid)", file: "template-grid.json", ordem: 1 },
-            { nome: "Template Híbrido", file: "template-hybrid.json", ordem: 2 },
-            { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", ordem: 3 },
-          ];
-
-          for (const def of defaults) {
-            const res = await fetch(`/default-templates/${def.file}`);
-            if (!res.ok) continue;
-            const jsonContent = await res.text();
-            await supabase.from("proposta_templates").insert({
-              nome: def.nome,
-              descricao: `Template padrão`,
-              grupo: "B",
-              categoria: "geral",
-              tipo: "html",
-              template_html: jsonContent,
-              ativo: true,
-              ordem: def.ordem,
-              tenant_id: profile.tenant_id,
-              variaveis_disponiveis: {},
-            } as any);
-          }
-
-          // Re-fetch after seeding
-          const { data: refreshed } = await supabase
-            .from("proposta_templates")
-            .select("id, nome, descricao, grupo, categoria, tipo, template_html, file_url, thumbnail_url, ativo, ordem")
-            .order("ordem", { ascending: true });
-          setTemplates((refreshed as PropostaTemplate[]) || []);
-          setLoading(false);
-          toast({ title: "Templates padrão importados!", description: "3 templates WEB criados automaticamente" });
-          return;
         }
-      } catch {
-        // silently continue with existing data
+      } catch (err: any) {
+        console.error("Auto-seed failed:", err.message);
       }
     }
 
