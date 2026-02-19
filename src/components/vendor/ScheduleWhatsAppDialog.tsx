@@ -200,17 +200,29 @@ export function ScheduleWhatsAppDialog({
       const cleanPhone = lead.telefone.replace(/\D/g, "");
       const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
 
-      // Deterministic idempotency key: lead + scheduled timestamp
-      const idempKey = `schedule_${lead.id}_${scheduledDate.getTime()}`;
-      const { error } = await supabase.from("wa_outbox").insert({
-        instance_id: instances[0].id,
-        conversation_id: null,
-        remote_jid: formattedPhone + "@s.whatsapp.net",
-        message_type: "text",
-        content: message,
-        status: "scheduled",
-        scheduled_at: scheduledDate.toISOString(),
-        idempotency_key: idempKey,
+      // Resolve tenant_id from user profile
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("id", authUser?.id)
+        .single();
+      const tenantId = profile?.tenant_id;
+
+      if (!tenantId) throw new Error("Tenant não encontrado");
+
+      // Deterministic idempotency key: lead + date (not timestamp)
+      const dateKey = `${scheduledDate.getFullYear()}-${scheduledDate.getMonth()}-${scheduledDate.getDate()}-${scheduledDate.getHours()}-${scheduledDate.getMinutes()}`;
+      const idempKey = `schedule_${lead.id}_${dateKey}`;
+      const { error } = await (supabase.rpc as any)("enqueue_wa_outbox_item", {
+        p_tenant_id: tenantId,
+        p_instance_id: instances[0].id,
+        p_remote_jid: formattedPhone + "@s.whatsapp.net",
+        p_message_type: "text",
+        p_content: message,
+        p_scheduled_at: scheduledDate.toISOString(),
+        p_idempotency_key: idempKey,
+        p_status: "pending",
       });
 
       if (error) throw error;

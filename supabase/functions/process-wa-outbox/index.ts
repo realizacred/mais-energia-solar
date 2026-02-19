@@ -7,6 +7,7 @@ const corsHeaders = {
 };
 
 const ITEMS_PER_INSTANCE = 50;
+const MAX_INSTANCES_PER_RUN = 20;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -45,8 +46,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Shuffle for fairness (randomized round-robin)
-    const shuffled = instances.sort(() => Math.random() - 0.5);
+    // Shuffle for fairness and limit to MAX_INSTANCES_PER_RUN
+    const shuffled = instances
+      .sort(() => Math.random() - 0.5)
+      .slice(0, MAX_INSTANCES_PER_RUN);
 
     let totalSent = 0;
     let totalFailed = 0;

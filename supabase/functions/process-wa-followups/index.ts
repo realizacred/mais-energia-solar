@@ -134,8 +134,8 @@ Deno.serve(async (req) => {
         try {
           const { data: msg } = await sb.from("wa_messages").insert({ conversation_id: c.conversation_id, direction: "out", message_type: "text", content: final, is_internal_note: false, status: "pending", tenant_id: c.tenant_id, source: "followup" }).select("id").single();
           if (msg && c.remote_jid && c.instance_id) {
-            const idempKey = `followup_${c.tenant_id}_${c.conversation_id}_${c.rule_id}_${msg.id}`;
-            await sb.from("wa_outbox").insert({ instance_id: c.instance_id, conversation_id: c.conversation_id, message_id: msg.id, remote_jid: c.remote_jid, message_type: "text", content: final, status: "pending", tenant_id: c.tenant_id, idempotency_key: idempKey });
+            const idempKey = `followup:${c.tenant_id}:${c.conversation_id}:${c.rule_id}:${msg.id}`;
+            await sb.rpc("enqueue_wa_outbox_item", { p_tenant_id: c.tenant_id, p_instance_id: c.instance_id, p_remote_jid: c.remote_jid, p_message_type: "text", p_content: final, p_conversation_id: c.conversation_id, p_message_id: msg.id, p_idempotency_key: idempKey });
             await updFU(sb, c.conversation_id, c.rule_id, "enviado", final);
             isc.set(c.instance_id, ic + 1);
             m.sent_count++;
