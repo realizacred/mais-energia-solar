@@ -148,6 +148,7 @@ export default function GoogleMapView({
       fullscreenControl: true,
       zoomControl: true,
       gestureHandling: "greedy",
+      clickableIcons: false, // Prevent POI icons from stealing click events during drawing
       mapTypeId: mapType,
     });
 
@@ -202,9 +203,8 @@ export default function GoogleMapView({
 
       dm.addListener("overlaycomplete", (e: google.maps.drawing.OverlayCompleteEvent) => {
         overlaysRef.current.push(e.overlay!);
-        // After completing a shape, return to navigation mode and unlock map
+        // After completing a shape, return to navigation mode
         dm.setDrawingMode(null);
-        map.setOptions({ draggable: true, scrollwheel: true, disableDoubleClickZoom: false, gestureHandling: "greedy" });
         setActiveDrawing(null);
       });
 
@@ -220,16 +220,16 @@ export default function GoogleMapView({
     mapInstanceRef.current?.setMapTypeId(mapType);
   }, [mapType]);
 
-  // ─── Update drawing mode on DrawingManager + lock/unlock map drag ───
+  // ─── Update drawing mode on DrawingManager ──────
+  // NOTE: Do NOT change map options (draggable, gestureHandling, scrollwheel) here.
+  // The DrawingManager internally manages event capturing when a drawing mode is active.
+  // Changing map options interferes with the DrawingManager's event layer and prevents drawing.
   useEffect(() => {
     const dm = drawingManagerRef.current;
-    const map = mapInstanceRef.current;
-    if (!dm || !map || !window.google?.maps?.drawing) return;
+    if (!dm || !window.google?.maps?.drawing) return;
 
     if (!activeDrawing) {
       dm.setDrawingMode(null);
-      // Unlock map dragging
-      map.setOptions({ draggable: true, scrollwheel: true, disableDoubleClickZoom: false, gestureHandling: "greedy" });
       return;
     }
 
@@ -243,12 +243,6 @@ export default function GoogleMapView({
 
     const mode = modeMap[activeDrawing] ?? null;
     dm.setDrawingMode(mode);
-
-    // Lock map dragging while drawing tool is active, but keep gesture
-    // handling cooperative so DrawingManager can still receive mouse/touch events
-    if (mode) {
-      map.setOptions({ draggable: false, scrollwheel: false, disableDoubleClickZoom: true });
-    }
   }, [activeDrawing]);
 
   // ─── Update marker/center when coords change ────
