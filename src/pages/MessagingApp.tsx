@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, useCallback, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { WaInbox } from "@/components/admin/inbox/WaInbox";
@@ -25,21 +25,24 @@ export default function MessagingApp() {
   const [activeTab, setActiveTab] = useState<Tab>("messages");
   const [initialConversationId, setInitialConversationId] = useState<string | null>(null);
 
-  // Read URL params once on mount (e.g. /app?tab=messages&conversation=xxx)
+  // Read URL params once on mount (e.g. deep link /app?tab=messages&conversation=xxx)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
     const convId = params.get("conversation");
 
-    if (tab === "messages") setActiveTab("messages");
-    if (tab === "contacts") setActiveTab("contacts");
-    if (tab === "settings") setActiveTab("settings");
+    if (tab === "messages" || tab === "contacts" || tab === "settings") setActiveTab(tab);
     if (convId) setInitialConversationId(convId);
 
-    // Clean URL after consuming
     if (tab || convId) {
       window.history.replaceState({}, "", window.location.pathname);
     }
+  }, []);
+
+  // Callback for ContactsPage: switch to messages tab and open conversation
+  const handleOpenConversation = useCallback((conversationId: string) => {
+    setInitialConversationId(conversationId);
+    setActiveTab("messages");
   }, []);
 
   // Theme-color for messaging context
@@ -76,7 +79,7 @@ export default function MessagingApp() {
         )}
         {activeTab === "contacts" && (
           <Suspense fallback={<LoadingSpinner />}>
-            <ContactsPage />
+            <ContactsPage onOpenConversation={handleOpenConversation} />
           </Suspense>
         )}
         {activeTab === "settings" && (

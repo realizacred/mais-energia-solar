@@ -1,6 +1,5 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -408,12 +407,15 @@ function EmptyRightPane() {
 
 /* ====== Full Page Component ====== */
 
-export default function ContactsPage() {
+interface ContactsPageProps {
+  onOpenConversation?: (conversationId: string) => void;
+}
+
+export default function ContactsPage({ onOpenConversation }: ContactsPageProps) {
   const [showRecall, setShowRecall] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showNew, setShowNew] = useState(false);
   const queryClient = useQueryClient();
-  const navigate = useNavigate();
 
   const handleRecall = (contact: Contact) => {
     setSelectedContact(contact);
@@ -430,7 +432,8 @@ export default function ContactsPage() {
   const handleSuccess = async (conversationId: string) => {
     await queryClient.invalidateQueries({ queryKey: ["contacts"] });
     await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-    navigate(`/app?tab=messages&conversation=${conversationId}`);
+    // Use callback to switch tab + open conversation (no URL navigation needed)
+    onOpenConversation?.(conversationId);
   };
 
   return (
