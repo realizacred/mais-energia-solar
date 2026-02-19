@@ -18,6 +18,7 @@ import {
   Pin,
   MailOpen,
   StickyNote,
+  GitBranch,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -117,6 +118,7 @@ function ConversationItem({
   mutedIds,
   hiddenIds,
   followupConvIds,
+  crossInstanceCount,
 }: {
   conv: WaConversation;
   isSelected: boolean;
@@ -127,6 +129,7 @@ function ConversationItem({
   mutedIds?: Set<string>;
   hiddenIds?: Set<string>;
   followupConvIds?: Set<string>;
+  crossInstanceCount?: number;
 }) {
   const [hovered, setHovered] = useState(false);
   const st = statusConfig[conv.status] || statusConfig.open;
@@ -160,6 +163,16 @@ function ConversationItem({
         label: conv.instance_name,
         icon: Smartphone,
         className: "text-muted-foreground border-border bg-muted/30",
+      });
+    }
+
+    // Cross-instance merge indicator
+    if (crossInstanceCount && crossInstanceCount > 1) {
+      badges.push({
+        key: "cross-instance",
+        label: `${crossInstanceCount} instâncias`,
+        icon: GitBranch,
+        className: "text-info border-info/30 bg-info/5 font-medium",
       });
     }
 
@@ -339,6 +352,51 @@ function ConversationItem({
   );
 }
 
+// ── Cross-instance merge visual helper ─────────────────
+// Computes how many different instances have a conversation for the same phone number.
+// Uses normalize_br_phone logic: if telefone has 13 digits starting with 55, it's the canonical form.
+function normalizeBrPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("55") && digits.length === 12) {
+    // Missing 9th digit — add it
+    return digits.slice(0, 4) + "9" + digits.slice(4);
+  }
+  return digits;
+}
+
+function CrossInstanceWrapper({
+  conversations,
+  children,
+}: {
+  conversations: WaConversation[];
+  children: (crossInstanceMap: Map<string, number>) => React.ReactNode;
+}) {
+  const crossInstanceMap = useMemo(() => {
+    const phoneToInstances = new Map<string, Set<string>>();
+    for (const conv of conversations) {
+      if (conv.is_group) continue;
+      const normalized = normalizeBrPhone(conv.cliente_telefone);
+      if (!phoneToInstances.has(normalized)) {
+        phoneToInstances.set(normalized, new Set());
+      }
+      phoneToInstances.get(normalized)!.add(conv.instance_id);
+    }
+    // Build a map from original phone → instance count (only if > 1)
+    const result = new Map<string, number>();
+    for (const conv of conversations) {
+      if (conv.is_group) continue;
+      const normalized = normalizeBrPhone(conv.cliente_telefone);
+      const count = phoneToInstances.get(normalized)?.size || 1;
+      if (count > 1) {
+        result.set(conv.cliente_telefone, count);
+      }
+    }
+    return result;
+  }, [conversations]);
+
+  return <>{children(crossInstanceMap)}</>;
+}
+
 // ── Main list ──────────────────────────────────────────
 export function WaConversationList({
   conversations,
@@ -510,22 +568,27 @@ export function WaConversationList({
             <p className="text-xs text-muted-foreground/60 mt-1">Ajuste os filtros ou aguarde novas mensagens.</p>
           </div>
         ) : (
-          <div role="listbox">
-            {conversations.map((conv) => (
-              <ConversationItem
-                key={conv.id}
-                conv={conv}
-                isSelected={conv.id === selectedId}
-                hasUnread={conv.unread_count > 0}
-                onSelect={onSelect}
-                vendedores={vendedores}
-                instances={instances}
-                mutedIds={mutedIds}
-                hiddenIds={hiddenIds}
-                followupConvIds={followupConvIds}
-              />
-            ))}
-          </div>
+          <CrossInstanceWrapper conversations={conversations}>
+            {(crossInstanceMap) => (
+              <div role="listbox">
+                {conversations.map((conv) => (
+                  <ConversationItem
+                    key={conv.id}
+                    conv={conv}
+                    isSelected={conv.id === selectedId}
+                    hasUnread={conv.unread_count > 0}
+                    onSelect={onSelect}
+                    vendedores={vendedores}
+                    instances={instances}
+                    mutedIds={mutedIds}
+                    hiddenIds={hiddenIds}
+                    followupConvIds={followupConvIds}
+                    crossInstanceCount={crossInstanceMap.get(conv.cliente_telefone)}
+                  />
+                ))}
+              </div>
+            )}
+          </CrossInstanceWrapper>
         )}
       </ScrollArea>
 

@@ -282,37 +282,103 @@ export function useWaConversations(filters?: {
       conversationId,
       toUserId,
       reason,
+      generateSummary = true,
     }: {
       conversationId: string;
       toUserId: string;
       reason?: string;
+      generateSummary?: boolean;
     }) => {
+      // 1) Read current state WITH version for optimistic lock
       const { data: conv } = await supabase
         .from("wa_conversations")
-        .select("assigned_to")
+        .select("assigned_to, version, cliente_nome, cliente_telefone")
         .eq("id", conversationId)
         .single();
 
+      if (!conv) throw new Error("Conversa não encontrada");
+
+      const currentVersion = (conv as any).version ?? 1;
+
+      // 2) Audit: record transfer
       await supabase.from("wa_transfers").insert({
         conversation_id: conversationId,
-        from_user_id: conv?.assigned_to || user?.id,
+        from_user_id: conv.assigned_to || user?.id,
         to_user_id: toUserId,
         reason,
       });
 
-      // Update assignment AND set status to "open" so vendor sees it immediately
-      const { error } = await supabase
+      // 3) Update with optimistic lock (version guard)
+      const { data: updated, error } = await (supabase as any)
         .from("wa_conversations")
         .update({ assigned_to: toUserId, status: "open" })
-        .eq("id", conversationId);
+        .eq("id", conversationId)
+        .eq("version", currentVersion)
+        .select("id")
+        .maybeSingle();
+
       if (error) throw error;
+      if (!updated) {
+        throw new Error("Conversa foi modificada por outro usuário. Tente novamente.");
+      }
+
+      // 4) Generate handoff summary as internal note
+      if (generateSummary) {
+        try {
+          // Get last 10 messages for context
+          const { data: recentMsgs } = await supabase
+            .from("wa_messages")
+            .select("direction, content, message_type, created_at")
+            .eq("conversation_id", conversationId)
+            .eq("is_internal_note", false)
+            .order("created_at", { ascending: false })
+            .limit(10);
+
+          // Get from/to names
+          const fromName = conv.assigned_to
+            ? (await supabase.from("profiles").select("nome").eq("user_id", conv.assigned_to).single()).data?.nome
+            : null;
+          const toName = (await supabase.from("profiles").select("nome").eq("user_id", toUserId).single()).data?.nome;
+
+          // Build summary
+          const lastMsgsPreview = (recentMsgs || [])
+            .reverse()
+            .map(m => `${m.direction === "in" ? "👤" : "💬"} ${m.content?.substring(0, 60) || `[${m.message_type}]`}`)
+            .join("\n");
+
+          const summaryContent = [
+            `🔄 *Transferência de atendimento*`,
+            `De: ${fromName || "Não atribuído"} → Para: ${toName || "Desconhecido"}`,
+            reason ? `Motivo: ${reason}` : null,
+            `Cliente: ${conv.cliente_nome || conv.cliente_telefone}`,
+            ``,
+            `📋 *Últimas mensagens:*`,
+            lastMsgsPreview || "(sem mensagens recentes)",
+          ].filter(Boolean).join("\n");
+
+          // Insert as internal note
+          await supabase.from("wa_messages").insert({
+            conversation_id: conversationId,
+            direction: "out",
+            message_type: "text",
+            content: summaryContent,
+            sent_by_user_id: user?.id,
+            is_internal_note: true,
+            status: "sent",
+            source: "system",
+          });
+        } catch (summaryErr) {
+          console.warn("[transfer] Failed to generate handoff summary:", summaryErr);
+          // Don't fail the transfer if summary fails
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-      toast({ title: "Conversa transferida" });
+      toast({ title: "Conversa transferida", description: "Resumo de contexto gerado para o novo consultor." });
     },
     onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({ title: "Erro na transferência", description: err.message, variant: "destructive" });
     },
   });
 

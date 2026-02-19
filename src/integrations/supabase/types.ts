@@ -12511,9 +12511,11 @@ export type Database = {
           profile_picture_url: string | null
           remote_jid: string
           status: string
+          telefone_normalized: string | null
           tenant_id: string
           unread_count: number
           updated_at: string
+          version: number
         }
         Insert: {
           assigned_to?: string | null
@@ -12533,9 +12535,11 @@ export type Database = {
           profile_picture_url?: string | null
           remote_jid: string
           status?: string
+          telefone_normalized?: string | null
           tenant_id?: string
           unread_count?: number
           updated_at?: string
+          version?: number
         }
         Update: {
           assigned_to?: string | null
@@ -12555,9 +12559,11 @@ export type Database = {
           profile_picture_url?: string | null
           remote_jid?: string
           status?: string
+          telefone_normalized?: string | null
           tenant_id?: string
           unread_count?: number
           updated_at?: string
+          version?: number
         }
         Relationships: [
           {
@@ -14427,6 +14433,7 @@ export type Database = {
         Args: { _proposta_id: string }
         Returns: number
       }
+      normalize_br_phone: { Args: { phone: string }; Returns: string }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
