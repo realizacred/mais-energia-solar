@@ -445,13 +445,13 @@ export function TemplatesManager() {
                   <div className="flex items-center gap-1">
                     {t.tipo === "html" && (
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7 text-primary"
+                        variant="outline"
+                        size="sm"
+                        className="h-7 gap-1.5 text-[10px] font-semibold border-primary/30 text-primary hover:bg-primary/10"
                         onClick={() => setBuilderTemplate(t)}
-                        title="Editar Visual (Drag & Drop)"
                       >
                         <Paintbrush className="h-3 w-3" />
+                        Editar Visual
                       </Button>
                     )}
                     {((t.tipo === "html" && t.template_html) || (t.tipo === "docx" && t.file_url)) && (
