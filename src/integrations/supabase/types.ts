@@ -1911,6 +1911,57 @@ export type Database = {
           },
         ]
       }
+      contacts: {
+        Row: {
+          created_at: string
+          id: string
+          linked_cliente_id: string | null
+          name: string | null
+          phone_e164: string
+          source: string | null
+          tags: string[] | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          linked_cliente_id?: string | null
+          name?: string | null
+          phone_e164: string
+          source?: string | null
+          tags?: string[] | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          linked_cliente_id?: string | null
+          name?: string | null
+          phone_e164?: string
+          source?: string | null
+          tags?: string[] | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contacts_linked_cliente_id_fkey"
+            columns: ["linked_cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custo_faixas_kwp: {
         Row: {
           created_at: string
@@ -14198,6 +14249,7 @@ export type Database = {
         Args: { _conversation_id: string; _user_id?: string }
         Returns: boolean
       }
+      canonicalize_phone_br: { Args: { raw_phone: string }; Returns: string }
       check_phone_duplicate: { Args: { _telefone: string }; Returns: boolean }
       check_rate_limit: {
         Args: {
@@ -14755,6 +14807,15 @@ export type Database = {
           p_reason?: string
           p_summary_msg_count?: number
           p_to_user_id: string
+        }
+        Returns: Json
+      }
+      start_conversation_by_phone: {
+        Args: {
+          p_instance_preference?: string
+          p_message_optional?: string
+          p_name_optional?: string
+          p_phone_raw: string
         }
         Returns: Json
       }

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { MessageCircle, Settings } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { MessageCircle, MessageCirclePlus, Settings } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useWaConversations, useWaMessages, useWaTags, useWaReadTracking } from "@/hooks/useWaInbox";
 import { useWaInstances } from "@/hooks/useWaInstances";
@@ -18,6 +18,7 @@ import { WaResolveDialog } from "./WaResolveDialog";
 import { WaSlaAlertBanner } from "./WaSlaAlertBanner";
 import { WaFollowupWidget } from "@/components/admin/widgets/WaFollowupWidget";
 import { WaSettingsDialog } from "./WaSettingsDialog";
+import { WaStartConversationDialog } from "./WaStartConversationDialog";
 import { Button } from "@/components/ui/button";
 import type { WaConversation } from "@/hooks/useWaInbox";
 
@@ -74,6 +75,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const [showLinkLead, setShowLinkLead] = useState(false);
   const [showResolve, setShowResolve] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showStartChat, setShowStartChat] = useState(false);
   const [prefillMessage, setPrefillMessage] = useState<string | null>(null);
   const [preContactData, setPreContactData] = useState<LeadAutoOpenData | null>(null);
   const autoOpenProcessedRef = useRef(false);
@@ -86,6 +88,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
   const { instances } = useWaInstances();
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Determine the effective user for vendor mode
   const effectiveUserId = vendorUserId || (vendorMode ? user?.id : undefined);
@@ -554,14 +557,25 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => setShowSettings(true)}
-            title="Configurações WhatsApp"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setShowStartChat(true)}
+              title="Iniciar nova conversa"
+            >
+              <MessageCirclePlus className="h-4 w-4 mr-1" />
+              Nova conversa
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => setShowSettings(true)}
+              title="Configurações WhatsApp"
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       )}
 
@@ -815,6 +829,18 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       <WaLinkLeadSearch open={showLinkLead} onOpenChange={setShowLinkLead} conversation={selectedConv} onLink={handleLinkLead} />
       <WaResolveDialog open={showResolve} onOpenChange={setShowResolve} onConfirm={handleResolve} clienteName={selectedConv?.cliente_nome || undefined} />
       <WaSettingsDialog open={showSettings} onOpenChange={setShowSettings} />
+      <WaStartConversationDialog
+        open={showStartChat}
+        onOpenChange={setShowStartChat}
+        instances={instances}
+        onConversationStarted={async (convId) => {
+          await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+          setTimeout(() => {
+            const conv = allConversations.find((c) => c.id === convId);
+            if (conv) handleSelectConversation(conv);
+          }, 500);
+        }}
+      />
     </div>
   );
 }
