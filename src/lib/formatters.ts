@@ -81,5 +81,13 @@ export function parseBRNumber(value: string): number {
     str = str.replace(/,/g, "");
   }
   const parsed = parseFloat(str);
-  return isNaN(parsed) ? 0 : parsed;
+  return isNaN(parsed) ? 0 : roundCurrency(parsed);
+}
+
+/**
+ * Round a number to 2 decimal places using banker's rounding.
+ * Use this for ALL monetary calculations to avoid floating-point drift.
+ */
+export function roundCurrency(value: number): number {
+  return Math.round((value + Number.EPSILON) * 100) / 100;
 }

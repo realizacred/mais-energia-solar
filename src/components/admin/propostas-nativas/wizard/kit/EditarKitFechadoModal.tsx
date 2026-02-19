@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Minus, Plus, Trash2, Sun, Cpu, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,13 @@ export function EditarKitFechadoModal({ open, onOpenChange, kits, onSave }: Edit
   const [selected, setSelected] = useState<SelectedKit[]>(() =>
     kits.map(k => ({ kit: k, quantidade: 1 }))
   );
+
+  // Sync state when modal opens with new kits data
+  useEffect(() => {
+    if (open && kits.length > 0) {
+      setSelected(kits.map(k => ({ kit: k, quantidade: 1 })));
+    }
+  }, [open, kits]);
 
   const updateQtd = (id: string, delta: number) => {
     setSelected(prev =>

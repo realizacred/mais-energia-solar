@@ -78,9 +78,14 @@ export function StepPagamento({
   const [bancoGroups, setBancoGroups] = useState<BancoGroup[]>(() => buildBancoGroups(bancos, precoFinal));
   const [selectedBancoIdx, setSelectedBancoIdx] = useState(0);
   const [showNovoFinanciamento, setShowNovoFinanciamento] = useState(false);
+  // Novo financiamento form state
   const [novoNome, setNovoNome] = useState("");
   const [novoTaxa, setNovoTaxa] = useState("");
   const [novoMaxParcelas, setNovoMaxParcelas] = useState("60");
+  const [novoEntradaPercent, setNovoEntradaPercent] = useState(true);
+  const [novoEntrada, setNovoEntrada] = useState("");
+  const [novoPrazo, setNovoPrazo] = useState("");
+  const [novoCarencia, setNovoCarencia] = useState("0");
 
   // Sync bank groups when bancos load
   useMemo(() => {
@@ -434,53 +439,187 @@ export function StepPagamento({
             <DialogTitle className="text-base font-bold">Novo financiamento</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            {/* Tipo */}
             <div className="space-y-1">
-              <Label className="text-xs">Nome do banco *</Label>
-              <Input value={novoNome} onChange={e => setNovoNome(e.target.value)} className="h-8 text-xs" placeholder="Ex: Sicoob" />
+              <Label className="text-xs font-semibold">Tipo</Label>
+              <Select defaultValue="prestacao">
+                <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="prestacao" className="text-xs">Prestação</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* Entrada */}
             <div className="space-y-1">
-              <Label className="text-xs">Taxa mensal (%)</Label>
-              <Input type="number" step={0.01} value={novoTaxa} onChange={e => setNovoTaxa(e.target.value)} className="h-8 text-xs" placeholder="1.49" />
+              <Label className="text-xs font-semibold">Entrada</Label>
+              <div className="flex gap-2">
+                <Select value={novoEntradaPercent ? "percent" : "value"} onValueChange={v => setNovoEntradaPercent(v === "percent")}>
+                  <SelectTrigger className="h-9 text-xs w-20"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percent" className="text-xs">%</SelectItem>
+                    <SelectItem value="value" className="text-xs">R$</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={novoEntrada}
+                  onChange={e => setNovoEntrada(e.target.value)}
+                  placeholder="0,00"
+                  className="h-9 text-xs flex-1"
+                />
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Valor da entrada: {formatBRL(
+                  novoEntradaPercent
+                    ? precoFinal * (parseFloat(novoEntrada) || 0) / 100
+                    : parseFloat(novoEntrada) || 0
+                )}
+              </p>
             </div>
+
+            {/* Taxa Mensal */}
             <div className="space-y-1">
-              <Label className="text-xs">Máx. parcelas</Label>
-              <Input type="number" value={novoMaxParcelas} onChange={e => setNovoMaxParcelas(e.target.value)} className="h-8 text-xs" />
+              <Label className="text-xs font-semibold">Taxa Mensal</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  step={0.01}
+                  min={0}
+                  value={novoTaxa}
+                  onChange={e => setNovoTaxa(e.target.value)}
+                  placeholder="0,00"
+                  className="h-9 text-xs pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Taxa de juros mensal</p>
+            </div>
+
+            {/* Prazo */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Prazo</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min={1}
+                  value={novoPrazo}
+                  onChange={e => setNovoPrazo(e.target.value)}
+                  placeholder="0"
+                  className="h-9 text-xs pr-14"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">meses</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Prazo do financiamento</p>
+            </div>
+
+            {/* Carência */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Carência</Label>
+              <div className="relative">
+                <Input
+                  type="number"
+                  min={0}
+                  value={novoCarencia}
+                  onChange={e => setNovoCarencia(e.target.value)}
+                  placeholder="0"
+                  className="h-9 text-xs pr-14"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">meses</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground">Carência do financiamento</p>
+            </div>
+
+            {/* Prestação (calculated) */}
+            {(() => {
+              const entradaVal = novoEntradaPercent
+                ? precoFinal * (parseFloat(novoEntrada) || 0) / 100
+                : parseFloat(novoEntrada) || 0;
+              const parcelas = parseInt(novoPrazo) || 0;
+              const taxa = parseFloat(novoTaxa) || 0;
+              const principal = Math.max(0, precoFinal - entradaVal);
+              let prestacao = 0;
+              if (parcelas > 0 && principal > 0) {
+                if (taxa <= 0) {
+                  prestacao = principal / parcelas;
+                } else {
+                  const r = taxa / 100;
+                  const fator = Math.pow(1 + r, parcelas);
+                  prestacao = principal * (r * fator) / (fator - 1);
+                }
+              }
+              return (
+                <div className="space-y-1">
+                  <Label className="text-xs font-semibold">Prestação</Label>
+                  <div className="bg-muted/30 rounded-lg px-3 py-2">
+                    <span className="text-sm font-bold text-primary">{formatBRL(prestacao)}</span>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground">Prestação do financiamento</p>
+                </div>
+              );
+            })()}
+
+            {/* Nome do banco */}
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Nome do banco / financeira *</Label>
+              <Input value={novoNome} onChange={e => setNovoNome(e.target.value)} className="h-9 text-xs" placeholder="Ex: Sicoob" />
             </div>
           </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={() => setShowNovoFinanciamento(false)}>Cancelar</Button>
-            <Button size="sm" onClick={() => {
+
+          <Button
+            className="w-full mt-2"
+            disabled={!novoNome.trim() || !novoPrazo}
+            onClick={() => {
               if (!novoNome.trim()) return;
+              const entradaVal = novoEntradaPercent
+                ? precoFinal * (parseFloat(novoEntrada) || 0) / 100
+                : parseFloat(novoEntrada) || 0;
+              const parcelas = parseInt(novoPrazo) || parseInt(novoMaxParcelas) || 60;
+              const taxa = parseFloat(novoTaxa) || 0;
+              const carencia = parseInt(novoCarencia) || 0;
+              const principal = Math.max(0, precoFinal - entradaVal);
+
               const newBanco: BancoFinanciamento = {
                 id: crypto.randomUUID(),
                 nome: novoNome.trim(),
-                taxa_mensal: parseFloat(novoTaxa) || 0,
-                max_parcelas: parseInt(novoMaxParcelas) || 60,
+                taxa_mensal: taxa,
+                max_parcelas: parcelas,
               };
               const newGroup: BancoGroup = {
                 banco: newBanco,
-                opcoes: DEFAULT_PARCELAS
-                  .filter(p => p <= newBanco.max_parcelas)
-                  .map(parcelas => ({
-                    id: crypto.randomUUID(),
-                    banco_id: newBanco.id,
-                    banco_nome: newBanco.nome,
-                    entrada: 0,
-                    num_parcelas: parcelas,
-                    taxa_mensal: newBanco.taxa_mensal,
-                    carencia_meses: 2,
+                opcoes: [{
+                  id: crypto.randomUUID(),
+                  banco_id: newBanco.id,
+                  banco_nome: newBanco.nome,
+                  entrada: entradaVal,
+                  num_parcelas: parcelas,
+                  taxa_mensal: taxa,
+                  carencia_meses: carencia,
+                  valor_financiado: precoFinal,
+                  valor_parcela: calcParcela({
                     valor_financiado: precoFinal,
-                    valor_parcela: calcParcela({ valor_financiado: precoFinal, entrada: 0, num_parcelas: parcelas, taxa_mensal: newBanco.taxa_mensal, tipo: "financiamento", carencia_meses: 2 }),
-                  })),
+                    entrada: entradaVal,
+                    num_parcelas: parcelas,
+                    taxa_mensal: taxa,
+                    tipo: "financiamento",
+                    carencia_meses: carencia,
+                  }),
+                }],
               };
               setBancoGroups(prev => [...prev, newGroup]);
               setSelectedBancoIdx(bancoGroups.length);
               setShowNovoFinanciamento(false);
               setNovoNome("");
               setNovoTaxa("");
-              setNovoMaxParcelas("60");
-            }}>Adicionar</Button>
-          </div>
+              setNovoEntrada("");
+              setNovoPrazo("");
+              setNovoCarencia("0");
+            }}
+          >
+            Gerar Opção
+          </Button>
         </DialogContent>
       </Dialog>
     </div>

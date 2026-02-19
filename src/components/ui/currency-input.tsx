@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Input } from "@/components/ui/input";
-import { formatNumberBR, parseBRNumber } from "@/lib/formatters";
+import { formatNumberBR, parseBRNumber, roundCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 interface CurrencyInputProps {
@@ -22,7 +22,7 @@ export function CurrencyInput({ value, onChange, className, placeholder = "0,00"
 
   const handleBlur = useCallback(() => {
     setFocused(false);
-    const parsed = parseBRNumber(displayValue);
+    const parsed = roundCurrency(parseBRNumber(displayValue));
     onChange(parsed);
     setDisplayValue(parsed ? formatNumberBR(parsed) : "");
   }, [displayValue, onChange]);
