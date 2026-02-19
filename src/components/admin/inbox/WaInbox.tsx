@@ -445,7 +445,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           .single();
 
         if (msg) {
-          // Queue for sending
+          // Queue for sending with deterministic idempotency key
+          const idempKey = `satisfaction_${selectedConv.id}_${msg.id}`;
           await supabase.from("wa_outbox").insert({
             instance_id: conv.instance_id,
             conversation_id: selectedConv.id,
@@ -454,6 +455,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
             message_type: "text",
             content: surveyMessage,
             status: "pending",
+            idempotency_key: idempKey,
           });
 
           // Create satisfaction record

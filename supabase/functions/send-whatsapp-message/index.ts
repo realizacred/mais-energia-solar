@@ -439,7 +439,10 @@ Deno.serve(async (req) => {
               if (!outboxPhone.startsWith("55")) outboxPhone = `55${outboxPhone}`;
               const remoteJid = `${outboxPhone}@s.whatsapp.net`;
 
-              // Insert into wa_outbox with scheduled_at in the future
+              // Insert into wa_outbox with scheduled_at in the future + idempotency
+              const idempKey = lead_id
+                ? `scheduled_${tenantIdResolved}_${lead_id}_${scheduledAt.getTime()}`
+                : `scheduled_${tenantIdResolved}_${remoteJid}_${scheduledAt.getTime()}`;
               const { error: outboxErr } = await supabaseAdmin
                 .from("wa_outbox")
                 .insert({
@@ -450,6 +453,7 @@ Deno.serve(async (req) => {
                   content: mensagem,
                   status: "pending",
                   scheduled_at: scheduledAt.toISOString(),
+                  idempotency_key: idempKey,
                 });
 
               if (outboxErr) {

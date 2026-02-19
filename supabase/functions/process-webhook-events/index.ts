@@ -500,6 +500,7 @@ async function handleMessageUpsert(
           }).select("id").single();
 
           if (outMsg) {
+            const idempKey = `auto_reply_${tenantId}_${conversationId}_${outMsg.id}`;
             await supabase.from("wa_outbox").insert({
               instance_id: instanceId,
               conversation_id: conversationId,
@@ -509,6 +510,7 @@ async function handleMessageUpsert(
               content: replyMsg,
               status: "pending",
               tenant_id: tenantId,
+              idempotency_key: idempKey,
             });
 
             console.log(`[process-webhook-events] Auto-reply sent for new conversation ${conversationId}`);

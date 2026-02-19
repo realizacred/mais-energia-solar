@@ -6,7 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const BATCH_SIZE = 20;
+const ITEMS_PER_INSTANCE = 50;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -27,131 +27,157 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // ── P0: Advisory lock to prevent concurrent processing ──
-  let lockAcquired = false;
   try {
-    const { data: lockResult } = await supabase.rpc("try_outbox_lock");
-    lockAcquired = lockResult === true;
+    // ── Step 1: Find all connected instances with pending outbox items ──
+    const { data: instances, error: instErr } = await supabase
+      .from("wa_instances")
+      .select("id, tenant_id, evolution_instance_key, evolution_api_url, status, api_key")
+      .eq("status", "connected");
 
-    if (!lockAcquired) {
-      console.log("[METRIC] outbox_lock_skipped");
-      return new Response(
-        JSON.stringify({ sent: 0, skipped: "locked" }),
-        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    if (instErr) {
+      console.error("[process-wa-outbox] Failed to fetch instances:", instErr);
+      throw instErr;
     }
 
-    // Fetch pending outbox items
-    const { data: items, error: fetchError } = await supabase
-      .from("wa_outbox")
-      .select("*, wa_instances!inner(evolution_instance_key, evolution_api_url, status, api_key)")
-      .eq("status", "pending")
-      .lte("scheduled_at", new Date().toISOString())
-      .lt("retry_count", 3)
-      .order("created_at", { ascending: true })
-      .limit(BATCH_SIZE);
-
-    if (fetchError) {
-      console.error("[process-wa-outbox] Fetch error:", fetchError);
-      throw fetchError;
-    }
-
-    if (!items || items.length === 0) {
-      return new Response(JSON.stringify({ sent: 0 }), {
+    if (!instances || instances.length === 0) {
+      return new Response(JSON.stringify({ sent: 0, message: "no_connected_instances" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    console.log(`[process-wa-outbox] Processing ${items.length} messages`);
+    // Shuffle for fairness (randomized round-robin)
+    const shuffled = instances.sort(() => Math.random() - 0.5);
 
-    let sent = 0;
-    let failed = 0;
+    let totalSent = 0;
+    let totalFailed = 0;
+    let totalSkipped = 0;
 
-    for (const item of items) {
+    // ── Step 2: Process each instance with scoped lock ──
+    for (const inst of shuffled) {
+      let lockAcquired = false;
       try {
-        // Mark as sending (atomic claim)
-        const { data: claimed, error: claimErr } = await supabase
-          .from("wa_outbox")
-          .update({ status: "sending" })
-          .eq("id", item.id)
-          .eq("status", "pending")
-          .select("id")
-          .maybeSingle();
+        // Acquire per-instance advisory lock
+        const { data: lockResult } = await supabase.rpc("try_outbox_lock", {
+          p_tenant_id: inst.tenant_id,
+          p_instance_id: inst.id,
+        });
+        lockAcquired = lockResult === true;
 
-        // Skip if already claimed by another worker (race condition guard)
-        if (!claimed || claimErr) {
-          console.log(`[process-wa-outbox] Item ${item.id} already claimed, skipping`);
+        if (!lockAcquired) {
+          console.log(`[process-wa-outbox] Lock busy for instance=${inst.evolution_instance_key}, skipping`);
+          totalSkipped++;
           continue;
         }
 
-        const instance = item.wa_instances;
-        
-        if (instance.status !== "connected") {
-          throw new Error(`Instance ${instance.evolution_instance_key} is not connected (${instance.status})`);
+        // Fetch pending items for THIS instance only
+        const { data: items, error: fetchError } = await supabase
+          .from("wa_outbox")
+          .select("*")
+          .eq("instance_id", inst.id)
+          .eq("status", "pending")
+          .lte("scheduled_at", new Date().toISOString())
+          .lt("retry_count", 3)
+          .order("created_at", { ascending: true })
+          .limit(ITEMS_PER_INSTANCE);
+
+        if (fetchError) {
+          console.error(`[process-wa-outbox] Fetch error for instance=${inst.id}:`, fetchError);
+          continue;
         }
 
-        // Send via Evolution API — use instance-specific key with global fallback
-        const effectiveApiKey = instance.api_key || EVOLUTION_API_KEY;
-        const sendResult = await sendEvolutionMessage(
-          instance.evolution_api_url,
-          instance.evolution_instance_key,
-          effectiveApiKey,
-          item
-        );
+        if (!items || items.length === 0) continue;
 
-        // Extract the Evolution message ID from the response
-        const evolutionMessageId = sendResult?.key?.id || sendResult?.id || null;
+        console.log(`[process-wa-outbox] Processing ${items.length} items for instance=${inst.evolution_instance_key}`);
 
-        // Mark outbox item as sent
-        await supabase
-          .from("wa_outbox")
-          .update({ status: "sent", sent_at: new Date().toISOString() })
-          .eq("id", item.id);
+        for (const item of items) {
+          try {
+            // Atomic claim
+            const { data: claimed, error: claimErr } = await supabase
+              .from("wa_outbox")
+              .update({ status: "sending" })
+              .eq("id", item.id)
+              .eq("status", "pending")
+              .select("id")
+              .maybeSingle();
 
-        // Update message status AND save evolution_message_id for delivery tracking
-        if (item.message_id) {
-          const msgUpdate: Record<string, unknown> = { status: "sent" };
-          if (evolutionMessageId) {
-            msgUpdate.evolution_message_id = evolutionMessageId;
+            if (!claimed || claimErr) {
+              console.log(`[process-wa-outbox] Item ${item.id} already claimed, skipping`);
+              continue;
+            }
+
+            // Use remote_jid_canonical for sending, fallback to remote_jid
+            const canonicalJid = item.remote_jid_canonical || item.remote_jid;
+
+            const effectiveApiKey = inst.api_key || EVOLUTION_API_KEY;
+            const sendResult = await sendEvolutionMessage(
+              inst.evolution_api_url,
+              inst.evolution_instance_key,
+              effectiveApiKey,
+              { ...item, remote_jid: canonicalJid }
+            );
+
+            const evolutionMessageId = sendResult?.key?.id || sendResult?.id || null;
+
+            await supabase
+              .from("wa_outbox")
+              .update({ status: "sent", sent_at: new Date().toISOString() })
+              .eq("id", item.id);
+
+            if (item.message_id) {
+              const msgUpdate: Record<string, unknown> = { status: "sent" };
+              if (evolutionMessageId) {
+                msgUpdate.evolution_message_id = evolutionMessageId;
+              }
+              await supabase
+                .from("wa_messages")
+                .update(msgUpdate)
+                .eq("id", item.message_id);
+            }
+
+            totalSent++;
+          } catch (err) {
+            console.error(`[process-wa-outbox] Failed item ${item.id}:`, err);
+            const retryCount = (item.retry_count || 0) + 1;
+            const newStatus = retryCount >= item.max_retries ? "failed" : "pending";
+
+            await supabase
+              .from("wa_outbox")
+              .update({
+                status: newStatus,
+                retry_count: retryCount,
+                error_message: String(err),
+              })
+              .eq("id", item.id);
+
+            if (newStatus === "failed" && item.message_id) {
+              await supabase
+                .from("wa_messages")
+                .update({ status: "failed", error_message: String(err) })
+                .eq("id", item.message_id);
+            }
+
+            totalFailed++;
           }
-          await supabase
-            .from("wa_messages")
-            .update(msgUpdate)
-            .eq("id", item.message_id);
         }
-
-        sent++;
-      } catch (err) {
-        console.error(`[process-wa-outbox] Failed to send item ${item.id}:`, err);
-
-        const retryCount = (item.retry_count || 0) + 1;
-        const newStatus = retryCount >= item.max_retries ? "failed" : "pending";
-
-        await supabase
-          .from("wa_outbox")
-          .update({
-            status: newStatus,
-            retry_count: retryCount,
-            error_message: String(err),
-          })
-          .eq("id", item.id);
-
-        // Update message status if failed permanently
-        if (newStatus === "failed" && item.message_id) {
-          await supabase
-            .from("wa_messages")
-            .update({ status: "failed", error_message: String(err) })
-            .eq("id", item.message_id);
+      } finally {
+        // Always release per-instance lock
+        if (lockAcquired) {
+          try {
+            await supabase.rpc("release_outbox_lock", {
+              p_tenant_id: inst.tenant_id,
+              p_instance_id: inst.id,
+            });
+          } catch (e) {
+            console.warn(`[process-wa-outbox] Failed to release lock for instance=${inst.id}:`, e);
+          }
         }
-
-        failed++;
       }
     }
 
-    console.log(`[process-wa-outbox] Done: ${sent} sent, ${failed} failed`);
+    console.log(`[process-wa-outbox] Done: ${totalSent} sent, ${totalFailed} failed, ${totalSkipped} instances skipped (locked)`);
 
     return new Response(
-      JSON.stringify({ sent, failed, total: items.length }),
+      JSON.stringify({ sent: totalSent, failed: totalFailed, skipped: totalSkipped, instances: shuffled.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
@@ -160,15 +186,6 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } finally {
-    // P0: Always release lock
-    if (lockAcquired) {
-      try {
-        await supabase.rpc("release_outbox_lock");
-      } catch (e) {
-        console.warn("[process-wa-outbox] Failed to release lock:", e);
-      }
-    }
   }
 });
 
@@ -184,67 +201,38 @@ async function sendEvolutionMessage(
   let endpoint: string;
   let body: any;
 
+  // Extract number from canonical JID
+  const number = item.remote_jid.replace("@s.whatsapp.net", "").replace("@c.us", "");
+
   switch (item.message_type) {
     case "text":
       endpoint = `/message/sendText/${instanceKey}`;
-      body = {
-        number: item.remote_jid.replace("@s.whatsapp.net", ""),
-        text: item.content,
-      };
+      body = { number, text: item.content };
       break;
-
     case "image":
       endpoint = `/message/sendMedia/${instanceKey}`;
-      body = {
-        number: item.remote_jid.replace("@s.whatsapp.net", ""),
-        mediatype: "image",
-        media: item.media_url,
-        caption: item.content || "",
-      };
+      body = { number, mediatype: "image", media: item.media_url, caption: item.content || "" };
       break;
-
     case "document":
       endpoint = `/message/sendMedia/${instanceKey}`;
-      body = {
-        number: item.remote_jid.replace("@s.whatsapp.net", ""),
-        mediatype: "document",
-        media: item.media_url,
-        caption: item.content || "",
-      };
+      body = { number, mediatype: "document", media: item.media_url, caption: item.content || "" };
       break;
-
     case "audio":
       endpoint = `/message/sendWhatsAppAudio/${instanceKey}`;
-      body = {
-        number: item.remote_jid.replace("@s.whatsapp.net", ""),
-        audio: item.media_url,
-      };
+      body = { number, audio: item.media_url };
       break;
-
     case "video":
       endpoint = `/message/sendMedia/${instanceKey}`;
-      body = {
-        number: item.remote_jid.replace("@s.whatsapp.net", ""),
-        mediatype: "video",
-        media: item.media_url,
-        caption: item.content || "",
-      };
+      body = { number, mediatype: "video", media: item.media_url, caption: item.content || "" };
       break;
-
     default:
       endpoint = `/message/sendText/${instanceKey}`;
-      body = {
-        number: item.remote_jid.replace("@s.whatsapp.net", ""),
-        text: item.content || "",
-      };
+      body = { number, text: item.content || "" };
   }
 
   const response = await fetch(`${baseUrl}${endpoint}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: apiKey,
-    },
+    headers: { "Content-Type": "application/json", apikey: apiKey },
     body: JSON.stringify(body),
   });
 

@@ -67,7 +67,8 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
         .single();
 
       if (msg) {
-        // Queue to outbox
+        // Queue to outbox with deterministic idempotency key
+        const idempKey = `forward_${message.id}_${targetConv.id}_${msg.id}`;
         await supabase.from("wa_outbox").insert({
           instance_id: targetConv.instance_id,
           conversation_id: targetConv.id,
@@ -77,6 +78,7 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
           content: forwardedContent,
           media_url: message.media_url || null,
           status: "pending",
+          idempotency_key: idempKey,
         });
 
         // Update conversation preview
