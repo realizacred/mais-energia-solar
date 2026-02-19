@@ -41,7 +41,8 @@ export default function MessagingApp() {
 
   // Callback for ContactsPage: switch to messages tab and open conversation
   const handleOpenConversation = useCallback((conversationId: string) => {
-    setInitialConversationId(conversationId);
+    // Append timestamp to force re-trigger even if same conversation ID
+    setInitialConversationId(conversationId + ":" + Date.now());
     setActiveTab("messages");
   }, []);
 
