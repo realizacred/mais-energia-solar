@@ -204,7 +204,7 @@ export default function GoogleMapView({
         overlaysRef.current.push(e.overlay!);
         // After completing a shape, return to navigation mode and unlock map
         dm.setDrawingMode(null);
-        map.setOptions({ draggable: true, gestureHandling: "greedy" });
+        map.setOptions({ draggable: true, scrollwheel: true, disableDoubleClickZoom: false, gestureHandling: "greedy" });
         setActiveDrawing(null);
       });
 
@@ -229,7 +229,7 @@ export default function GoogleMapView({
     if (!activeDrawing) {
       dm.setDrawingMode(null);
       // Unlock map dragging
-      map.setOptions({ draggable: true, gestureHandling: "greedy" });
+      map.setOptions({ draggable: true, scrollwheel: true, disableDoubleClickZoom: false, gestureHandling: "greedy" });
       return;
     }
 
@@ -244,9 +244,10 @@ export default function GoogleMapView({
     const mode = modeMap[activeDrawing] ?? null;
     dm.setDrawingMode(mode);
 
-    // Lock map dragging while drawing tool is active
+    // Lock map dragging while drawing tool is active, but keep gesture
+    // handling cooperative so DrawingManager can still receive mouse/touch events
     if (mode) {
-      map.setOptions({ draggable: false, gestureHandling: "none" });
+      map.setOptions({ draggable: false, scrollwheel: false, disableDoubleClickZoom: true });
     }
   }, [activeDrawing]);
 
