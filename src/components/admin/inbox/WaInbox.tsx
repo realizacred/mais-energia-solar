@@ -251,28 +251,36 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
     }
   }, [allConversations]);
 
-  // 🔔 Notification sound on new unread messages
+  // 🔔 Notification sound + vibration on new unread messages (even when on inbox)
   useEffect(() => {
     const totalUnread = allConversations
       .filter((c) => !mutedIds.has(c.id))
       .reduce((sum, c) => sum + c.unread_count, 0);
     if (totalUnread > prevUnreadRef.current && prevUnreadRef.current > 0) {
+      // Play sound
       try {
-        if (!audioRef.current) {
-          const ctx = new AudioContext();
-          const oscillator = ctx.createOscillator();
-          const gain = ctx.createGain();
-          oscillator.connect(gain);
-          gain.connect(ctx.destination);
-          oscillator.type = "sine";
-          oscillator.frequency.setValueAtTime(880, ctx.currentTime);
-          gain.gain.setValueAtTime(0.7, ctx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-          oscillator.start(ctx.currentTime);
-          oscillator.stop(ctx.currentTime + 0.5);
-        }
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        if (ctx.state === "suspended") ctx.resume();
+        const t = ctx.currentTime;
+        // Quick double-chime
+        [784, 1047].forEach((freq, i) => {
+          const g = ctx.createGain();
+          g.connect(ctx.destination);
+          g.gain.setValueAtTime(0.5, t + i * 0.15);
+          g.gain.exponentialRampToValueAtTime(0.01, t + i * 0.15 + 0.4);
+          const o = ctx.createOscillator();
+          o.type = "sine";
+          o.frequency.setValueAtTime(freq, t + i * 0.15);
+          o.connect(g);
+          o.start(t + i * 0.15);
+          o.stop(t + i * 0.15 + 0.3);
+        });
       } catch {
         // Audio not available
+      }
+      // Vibrate on mobile
+      if ("vibrate" in navigator) {
+        navigator.vibrate([200, 100, 200]);
       }
     }
     prevUnreadRef.current = totalUnread;
