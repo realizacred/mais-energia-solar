@@ -230,12 +230,30 @@ async function handleMessageUpsert(
     // P0-5: Parse event timestamp defensively
     const eventDate = parseMessageTimestamp(msg);
 
+    // ── P0-NORM: Build alternate JID formats for BR phone normalization ──
+    // Evolution API sometimes strips/adds the 9th digit for Brazilian mobile numbers
+    const altJids: string[] = [remoteJid];
+    if (!isGroup) {
+      const digits = phone; // already stripped of @s.whatsapp.net
+      if (digits.startsWith("55") && digits.length === 13) {
+        // Has 9th digit → try without
+        const without9 = `55${digits.slice(2, 4)}${digits.slice(5)}`;
+        altJids.push(`${without9}@s.whatsapp.net`);
+      } else if (digits.startsWith("55") && digits.length === 12) {
+        // Missing 9th digit → try with
+        const with9 = `55${digits.slice(2, 4)}9${digits.slice(4)}`;
+        altJids.push(`${with9}@s.whatsapp.net`);
+      }
+    }
+
     // Upsert conversation — include last_message_at for P0-5 timestamp comparison
+    // Use altJids to find existing conversation regardless of 9th digit format
     const { data: existingConv } = await supabase
       .from("wa_conversations")
       .select("id, unread_count, status, is_group, cliente_nome, profile_picture_url, updated_at, last_message_at")
       .eq("instance_id", instanceId)
-      .eq("remote_jid", remoteJid)
+      .in("remote_jid", altJids)
+      .limit(1)
       .maybeSingle();
 
     let conversationId: string;
