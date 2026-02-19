@@ -556,7 +556,15 @@ export function WaChatPanel({
           {conversation.cliente_telefone && (
             <div className="px-3 pb-2 flex items-center gap-2">
               <a
-                href={`tel:+${conversation.cliente_telefone.replace(/\D/g, "")}`}
+                href={(() => {
+                  const digits = conversation.cliente_telefone.replace(/\D/g, "");
+                  // Remove country code 55 to get local number
+                  const local = digits.startsWith("55") ? digits.substring(2) : digits;
+                  // Add carrier prefix 015 (Vivo) for long-distance calls
+                  const ddd = local.substring(0, 2);
+                  const numero = local.substring(2);
+                  return `tel:015${ddd}${numero}`;
+                })()}
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-info/10 text-info text-[11px] font-medium hover:bg-info/20 transition-colors hover-scale"
                 onClick={(e) => e.stopPropagation()}
               >
