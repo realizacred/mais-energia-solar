@@ -13138,6 +13138,7 @@ export type Database = {
           message_id: string | null
           message_type: string
           remote_jid: string
+          remote_jid_canonical: string | null
           retry_count: number
           scheduled_at: string | null
           sent_at: string | null
@@ -13158,6 +13159,7 @@ export type Database = {
           message_id?: string | null
           message_type?: string
           remote_jid: string
+          remote_jid_canonical?: string | null
           retry_count?: number
           scheduled_at?: string | null
           sent_at?: string | null
@@ -13178,6 +13180,7 @@ export type Database = {
           message_id?: string | null
           message_type?: string
           remote_jid?: string
+          remote_jid_canonical?: string | null
           retry_count?: number
           scheduled_at?: string | null
           sent_at?: string | null
@@ -14440,11 +14443,17 @@ export type Database = {
         Returns: number
       }
       normalize_br_phone: { Args: { phone: string }; Returns: string }
+      normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
       release_followup_lock: { Args: never; Returns: undefined }
-      release_outbox_lock: { Args: never; Returns: undefined }
+      release_outbox_lock:
+        | { Args: never; Returns: undefined }
+        | {
+            Args: { p_instance_id?: string; p_tenant_id?: string }
+            Returns: undefined
+          }
       release_webhook_lock: { Args: never; Returns: undefined }
       reorder_pipeline_stages: {
         Args: { _ordered_ids: string[]; _pipeline_id: string }
@@ -14493,7 +14502,12 @@ export type Database = {
       tenant_and_user_active: { Args: never; Returns: boolean }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
       try_followup_lock: { Args: never; Returns: boolean }
-      try_outbox_lock: { Args: never; Returns: boolean }
+      try_outbox_lock:
+        | { Args: never; Returns: boolean }
+        | {
+            Args: { p_instance_id?: string; p_tenant_id?: string }
+            Returns: boolean
+          }
       try_webhook_lock: { Args: never; Returns: boolean }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }

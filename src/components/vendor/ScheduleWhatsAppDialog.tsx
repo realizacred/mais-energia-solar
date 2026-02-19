@@ -200,6 +200,8 @@ export function ScheduleWhatsAppDialog({
       const cleanPhone = lead.telefone.replace(/\D/g, "");
       const formattedPhone = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
 
+      // Deterministic idempotency key: lead + scheduled timestamp
+      const idempKey = `schedule_${lead.id}_${scheduledDate.getTime()}`;
       const { error } = await supabase.from("wa_outbox").insert({
         instance_id: instances[0].id,
         conversation_id: null,
@@ -208,6 +210,7 @@ export function ScheduleWhatsAppDialog({
         content: message,
         status: "scheduled",
         scheduled_at: scheduledDate.toISOString(),
+        idempotency_key: idempKey,
       });
 
       if (error) throw error;
