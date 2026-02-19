@@ -147,7 +147,7 @@ export function TemplatesManager() {
   useEffect(() => { loadTemplates(); }, []);
 
   const seedDefaultTemplates = async () => {
-    if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 3 novos (Grid, Hybrid, Dual) com os templates padrão. Continuar?")) return;
+    if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 3 novos (Grid, Híbrido, Dual). Continuar?")) return;
     
     setLoading(true);
     try {
@@ -160,36 +160,75 @@ export function TemplatesManager() {
         .single();
       if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
 
-      // Delete all existing HTML templates
-      await supabase.from("proposta_templates").delete().eq("tipo", "html");
-
-      // Load and insert the 3 default templates
-      const defaults = [
-        { nome: "Template Grid (On-Grid)", file: "template-grid.json", tipo: "grid", ordem: 1 },
-        { nome: "Template Híbrido", file: "template-hybrid.json", tipo: "hybrid", ordem: 2 },
-        { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", tipo: "dual", ordem: 3 },
-      ];
-
-      for (const def of defaults) {
-        const res = await fetch(`/default-templates/${def.file}`);
-        if (!res.ok) continue;
-        const jsonContent = await res.text();
-        
-        await supabase.from("proposta_templates").insert({
-          nome: def.nome,
-          descricao: `Template padrão ${def.tipo}`,
-          grupo: "B",
-          categoria: "geral",
-          tipo: "html",
-          template_html: jsonContent,
-          ativo: true,
-          ordem: def.ordem,
-          tenant_id: profile.tenant_id,
-          variaveis_disponiveis: {},
-        } as any);
+      // 1. Delete ALL existing HTML templates for this tenant
+      const { error: delErr } = await supabase
+        .from("proposta_templates")
+        .delete()
+        .eq("tipo", "html")
+        .eq("tenant_id", profile.tenant_id);
+      
+      if (delErr) {
+        console.error("Seed: delete error", delErr);
+        throw new Error("Erro ao deletar templates: " + delErr.message);
       }
 
-      toast({ title: "Templates padrão importados!", description: "3 templates criados com sucesso" });
+      // 2. Insert 3 new templates one by one
+      const defaults = [
+        { nome: "Template Grid (On-Grid)", file: "template-grid.json", ordem: 1 },
+        { nome: "Template Híbrido", file: "template-hybrid.json", ordem: 2 },
+        { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", ordem: 3 },
+      ];
+
+      const errors: string[] = [];
+      let successCount = 0;
+
+      for (const def of defaults) {
+        try {
+          const res = await fetch(`/default-templates/${def.file}`);
+          if (!res.ok) {
+            errors.push(`${def.nome}: fetch falhou (${res.status})`);
+            continue;
+          }
+          const jsonContent = await res.text();
+          if (!jsonContent || jsonContent.length < 100) {
+            errors.push(`${def.nome}: conteúdo vazio ou inválido`);
+            continue;
+          }
+
+          const { error: insErr } = await supabase.from("proposta_templates").insert({
+            nome: def.nome,
+            descricao: "Template padrão",
+            grupo: "B",
+            categoria: "geral",
+            tipo: "html",
+            template_html: jsonContent,
+            ativo: true,
+            ordem: def.ordem,
+            tenant_id: profile.tenant_id,
+            variaveis_disponiveis: {},
+          } as any);
+
+          if (insErr) {
+            errors.push(`${def.nome}: ${insErr.message}`);
+          } else {
+            successCount++;
+          }
+        } catch (fetchErr: any) {
+          errors.push(`${def.nome}: ${fetchErr.message}`);
+        }
+      }
+
+      if (errors.length > 0) {
+        console.error("Seed errors:", errors);
+        toast({ 
+          title: `${successCount}/3 templates criados`, 
+          description: errors.join("; "), 
+          variant: successCount === 0 ? "destructive" : "default" 
+        });
+      } else {
+        toast({ title: "3 templates importados com sucesso!" });
+      }
+
       loadTemplates();
     } catch (err: any) {
       toast({ title: "Erro ao importar", description: err.message, variant: "destructive" });
