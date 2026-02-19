@@ -222,23 +222,24 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       initialConversationId !== initialConvHandledRef.current &&
       allConversations.length > 0
     ) {
+      // Set filter to "all" so the target conversation is never hidden by status filter
+      if (filterStatus !== "all") {
+        setFilterStatus("all");
+      }
+
       const convId = initialConversationId.split(":")[0]; // strip timestamp suffix
       const target = allConversations.find((c) => c.id === convId);
       if (target) {
         setSelectedConv(target);
         initialConvHandledRef.current = initialConversationId;
         initialConvRetried.current = false;
-        // Switch filter to show the conversation regardless of current status filter
-        if (target.status !== filterStatus && filterStatus !== "all") {
-          setFilterStatus(target.status || "open");
-        }
       } else if (!initialConvRetried.current) {
         // Conversation not in list yet (just created) — retry once after refetch
         initialConvRetried.current = true;
         queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
       }
     }
-  }, [initialConversationId, allConversations, queryClient]);
+  }, [initialConversationId, allConversations, filterStatus, queryClient]);
 
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   useEffect(() => {
