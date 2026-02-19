@@ -328,257 +328,169 @@ export function WaChatPanel({
   return (
     <div className="flex-1 flex min-w-0 w-full max-w-full overflow-x-hidden">
       <div className="flex-1 flex flex-col min-w-0 w-full max-w-full">
-        {/* Chat Header */}
-        <div className="px-4 py-2.5 border-b border-border/30 bg-card flex items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-primary overflow-hidden shadow-sm">
-              {conversation.profile_picture_url ? (
-                <img src={conversation.profile_picture_url} alt="" className="w-full h-full object-cover" />
-              ) : conversation.is_group ? (
-                <Users className="h-4 w-4" />
-              ) : conversation.cliente_nome ? (
-                conversation.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
-              ) : (
-                <User className="h-4 w-4" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-foreground truncate">
-                {conversation.cliente_nome || conversation.cliente_telefone}
-              </h3>
-              {(() => {
-                const ds = deriveConversationStatus(conversation);
-                const cfg = ds ? DERIVED_STATUS_CONFIG[ds] : null;
-                if (!cfg || ds === "resolvida") return null;
-                return (
-                  <Badge variant="outline" className={`text-[9px] px-1.5 py-0 gap-1 shrink-0 ${cfg.badgeClass}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${cfg.dotClass}`} />
-                    {cfg.label}
-                  </Badge>
-                );
-              })()}
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground flex-wrap">
-                <span className="truncate max-w-[120px]">{conversation.cliente_telefone}</span>
-                {conversation.instance_name && (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 border-border/50 shrink-0">
-                    <Smartphone className="h-2.5 w-2.5" />
-                    {conversation.instance_name}
-                  </Badge>
-                )}
-                {assignedConsultor ? (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 bg-accent/30 border-accent/20 text-accent-foreground/80 shrink-0">
-                    <User className="h-2.5 w-2.5" />
-                    {assignedConsultor.nome}
-                  </Badge>
+        {/* Chat Header — Clean layout */}
+        <div className="border-b border-border/30 bg-card shadow-xs">
+          <div className="px-3 py-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/15 to-primary/5 border border-primary/10 flex items-center justify-center shrink-0 text-xs font-bold text-primary overflow-hidden">
+                {conversation.profile_picture_url ? (
+                  <img src={conversation.profile_picture_url} alt="" className="w-full h-full object-cover" />
+                ) : conversation.is_group ? (
+                  <Users className="h-4 w-4" />
+                ) : conversation.cliente_nome ? (
+                  conversation.cliente_nome.split(" ").slice(0, 2).map((n) => n[0]).join("").toUpperCase()
                 ) : (
-                  <Badge variant="outline" className="text-[9px] px-1.5 py-0 gap-0.5 border-border/50 text-muted-foreground shrink-0">
-                    <Users className="h-2.5 w-2.5" />
-                    Equipe
-                  </Badge>
-                )}
-                {conversation.lead_id && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge
-                        variant="outline"
-                        className="text-[9px] px-1.5 py-0 cursor-pointer hover:bg-primary/10 transition-colors gap-0.5 shrink-0"
-                        onClick={() => setShowLeadInfo(true)}
-                      >
-                        <Link2 className="h-2.5 w-2.5" />
-                        {conversation.lead_nome || "Lead"}
-                      </Badge>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="text-xs">
-                      <p>Clique para ver detalhes do lead</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <User className="h-4 w-4" />
                 )}
               </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-sm font-semibold text-foreground truncate">
+                    {conversation.cliente_nome || conversation.cliente_telefone}
+                  </h3>
+                  {(() => {
+                    const ds = deriveConversationStatus(conversation);
+                    const cfg = ds ? DERIVED_STATUS_CONFIG[ds] : null;
+                    if (!cfg || ds === "resolvida") return null;
+                    return (
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${cfg.dotClass}`} title={cfg.label} />
+                    );
+                  })()}
+                </div>
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <span className="truncate max-w-[100px]">{conversation.cliente_telefone}</span>
+                  {assignedConsultor && (
+                    <span className="text-muted-foreground/60">· {assignedConsultor.nome}</span>
+                  )}
+                  {conversation.lead_id && (
+                    <button
+                      onClick={() => setShowLeadInfo(true)}
+                      className="text-primary/70 hover:text-primary transition-colors truncate max-w-[80px]"
+                    >
+                      · {conversation.lead_nome || "Lead"}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1 shrink-0">
-            {/* Accept button for unassigned conversations */}
-            {!conversation.assigned_to && onAccept && (
-              <Button
-                size="sm"
-                variant="default"
-                className="h-8 gap-1.5 bg-success hover:bg-success/90 text-white text-xs"
-                onClick={onAccept}
-                disabled={isAccepting}
-              >
-                {isAccepting ? (
-                  <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" /> Aceitando...</>
-                ) : (
-                  <><CheckCircle2 className="h-3.5 w-3.5" /> Aceitar</>
-                )}
-              </Button>
-            )}
-            {/* Release button for conversations assigned to current user */}
-            {conversation.assigned_to && conversation.assigned_to === currentUserId && onRelease && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-8 gap-1.5 text-xs border-warning/40 text-warning hover:bg-warning/10 hover:text-warning"
-                    onClick={onRelease}
-                    disabled={isReleasing}
-                  >
-                    {isReleasing ? (
-                      <><span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-warning border-t-transparent" /> Liberando...</>
-                    ) : (
-                      <><UserMinus className="h-3.5 w-3.5" /> Liberar</>
-                    )}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Devolver à fila da equipe</TooltipContent>
-              </Tooltip>
-            )}
-            {/* Notes button */}
-            {(() => {
-              const noteCount = messages.filter(m => m.is_internal_note).length;
-              return (
+            <div className="flex items-center gap-0.5 shrink-0">
+              {!conversation.assigned_to && onAccept && (
+                <Button
+                  size="sm"
+                  className="h-7 gap-1 bg-success hover:bg-success/90 text-white text-xs px-2.5"
+                  onClick={onAccept}
+                  disabled={isAccepting}
+                >
+                  {isAccepting ? (
+                    <span className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  ) : (
+                    <><CheckCircle2 className="h-3.5 w-3.5" /> Aceitar</>
+                  )}
+                </Button>
+              )}
+              {conversation.assigned_to === currentUserId && onRelease && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1 text-xs border-warning/40 text-warning hover:bg-warning/10 px-2"
+                  onClick={onRelease}
+                  disabled={isReleasing}
+                >
+                  <UserMinus className="h-3.5 w-3.5" />
+                </Button>
+              )}
+
+              {conversation.status !== "resolved" ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      size="icon"
-                      variant={showNotesPanel ? "default" : "ghost"}
-                      className={`h-8 w-8 relative ${showNotesPanel ? "bg-warning/15 text-warning" : ""}`}
-                      onClick={() => setShowNotesPanel(!showNotesPanel)}
-                    >
-                      <StickyNote className="h-4 w-4" />
-                      {noteCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-0.5 flex items-center justify-center rounded-full bg-warning text-warning-foreground text-[9px] font-bold">
-                          {noteCount > 99 ? "99+" : noteCount}
-                        </span>
-                      )}
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onResolve}>
+                      <CheckCircle2 className="h-4 w-4 text-success" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Notas Internas ({noteCount})</TooltipContent>
+                  <TooltipContent>Resolver</TooltipContent>
                 </Tooltip>
-              );
-            })()}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant={showAISidebar ? "default" : "ghost"}
-                  className={`h-8 w-8 ${showAISidebar ? "bg-accent/20 text-accent-foreground" : ""}`}
-                  onClick={() => { setShowAISidebar(!showAISidebar); if (!showAISidebar) setShowCRMSidebar(false); }}
-                >
-                  <Sparkles className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Assistente IA</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant={showCRMSidebar ? "default" : "ghost"}
-                  className={`h-8 w-8 ${showCRMSidebar ? "bg-primary/10 text-primary" : ""}`}
-                  onClick={() => { setShowCRMSidebar(!showCRMSidebar); if (!showCRMSidebar) setShowAISidebar(false); }}
-                >
-                  {showCRMSidebar ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Dados Comerciais</TooltipContent>
-            </Tooltip>
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onReopen}>
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Reabrir</TooltipContent>
+                </Tooltip>
+              )}
 
-            {conversation.status !== "resolved" ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onResolve}>
-                    <CheckCircle2 className="h-4 w-4 text-success" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-7 w-7">
+                    <MoreVertical className="h-4 w-4" />
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent>Resolver</TooltipContent>
-              </Tooltip>
-            ) : (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onReopen}>
-                    <RefreshCw className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Reabrir</TooltipContent>
-              </Tooltip>
-            )}
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onOpenTransfer}>
-                  <ArrowRightLeft className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Transferir</TooltipContent>
-            </Tooltip>
-
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onOpenTags}>
-                  <Tag className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Tags</TooltipContent>
-            </Tooltip>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8">
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={onOpenAssign}>
-                  <User className="h-4 w-4 mr-2" />
-                  Atribuir
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={onLinkLead}>
-                  <Link2 className="h-4 w-4 mr-2" />
-                  {conversation.lead_id ? "Alterar Lead" : "Vincular Lead"}
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowAppointmentModal(true)}>
-                  <CalendarPlus className="h-4 w-4 mr-2" />
-                  Agendar Compromisso
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowInternalThread(!showInternalThread)}>
-                  <MessageSquarePlus className="h-4 w-4 mr-2" />
-                  Discussão Interna
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setShowParticipants(!showParticipants)}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Participantes
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                {conversation.status === "resolved" ? (
-                  <DropdownMenuItem onClick={onReopen}>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Reabrir Conversa
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuItem onClick={onOpenTransfer}>
+                    <ArrowRightLeft className="h-4 w-4 mr-2" />
+                    Transferir
                   </DropdownMenuItem>
-                ) : (
-                  <DropdownMenuItem onClick={onResolve}>
-                    <CheckCircle2 className="h-4 w-4 mr-2" />
-                    Resolver Conversa
+                  <DropdownMenuItem onClick={onOpenAssign}>
+                    <User className="h-4 w-4 mr-2" />
+                    Atribuir
                   </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                {onToggleMute && (
-                  <DropdownMenuItem onClick={onToggleMute}>
-                    {isMuted ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
-                    {isMuted ? "Ativar notificações" : "Silenciar conversa"}
+                  <DropdownMenuItem onClick={onOpenTags}>
+                    <Tag className="h-4 w-4 mr-2" />
+                    Tags
                   </DropdownMenuItem>
-                )}
-                {onToggleHide && (
-                  <DropdownMenuItem onClick={onToggleHide}>
-                    {isHidden ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
-                    {isHidden ? "Mostrar conversa" : "Ocultar conversa"}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowNotesPanel(!showNotesPanel)}>
+                    <StickyNote className="h-4 w-4 mr-2" />
+                    Notas Internas
+                    {messages.filter(m => m.is_internal_note).length > 0 && (
+                      <Badge variant="secondary" className="ml-auto text-[9px] px-1.5 py-0">
+                        {messages.filter(m => m.is_internal_note).length}
+                      </Badge>
+                    )}
                   </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <DropdownMenuItem onClick={() => { setShowAISidebar(!showAISidebar); if (!showAISidebar) setShowCRMSidebar(false); }}>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Assistente IA
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setShowCRMSidebar(!showCRMSidebar); if (!showCRMSidebar) setShowAISidebar(false); }}>
+                    {showCRMSidebar ? <PanelRightClose className="h-4 w-4 mr-2" /> : <PanelRightOpen className="h-4 w-4 mr-2" />}
+                    Dados Comerciais
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={onLinkLead}>
+                    <Link2 className="h-4 w-4 mr-2" />
+                    {conversation.lead_id ? "Alterar Lead" : "Vincular Lead"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowAppointmentModal(true)}>
+                    <CalendarPlus className="h-4 w-4 mr-2" />
+                    Agendar Compromisso
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowInternalThread(!showInternalThread)}>
+                    <MessageSquarePlus className="h-4 w-4 mr-2" />
+                    Discussão Interna
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowParticipants(!showParticipants)}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Participantes
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {onToggleMute && (
+                    <DropdownMenuItem onClick={onToggleMute}>
+                      {isMuted ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
+                      {isMuted ? "Ativar notificações" : "Silenciar conversa"}
+                    </DropdownMenuItem>
+                  )}
+                  {onToggleHide && (
+                    <DropdownMenuItem onClick={onToggleHide}>
+                      {isHidden ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
+                      {isHidden ? "Mostrar conversa" : "Ocultar conversa"}
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
 
