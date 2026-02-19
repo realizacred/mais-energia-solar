@@ -144,6 +144,7 @@ export function useDealPipeline() {
       const q = f.search.toLowerCase();
       results = results.filter(d =>
         d.customer_name.toLowerCase().includes(q) ||
+        d.customer_phone.toLowerCase().includes(q) ||
         d.deal_title.toLowerCase().includes(q) ||
         d.owner_name.toLowerCase().includes(q) ||
         (d.cliente_code || "").toLowerCase().includes(q)

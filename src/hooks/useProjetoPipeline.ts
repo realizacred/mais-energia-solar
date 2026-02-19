@@ -185,6 +185,7 @@ export function useProjetoPipeline() {
       const q = f.search.toLowerCase();
       enriched = enriched.filter(p =>
         (p.cliente?.nome || "").toLowerCase().includes(q) ||
+        (p.cliente?.telefone || "").toLowerCase().includes(q) ||
         (p.codigo || "").toLowerCase().includes(q) ||
         (p.consultor?.nome || "").toLowerCase().includes(q)
       );

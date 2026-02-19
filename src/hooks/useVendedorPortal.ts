@@ -253,13 +253,15 @@ const ADMIN_PROFILE: VendedorProfile = {
     }, [gamification.goals, vendedor?.id, advancedMetrics.checkAndCreateProgressNotifications]);
  
    // Filtered orcamentos
-   const filteredOrcamentos = useMemo(() => {
-     let filtered = orcamentosData.orcamentos.filter(orc =>
-       orc.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       orc.telefone.includes(searchTerm) ||
-       orc.cidade.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       (orc.orc_code && orc.orc_code.toLowerCase().includes(searchTerm.toLowerCase()))
-     );
+    const filteredOrcamentos = useMemo(() => {
+      let filtered = orcamentosData.orcamentos.filter(orc => {
+        const q = searchTerm.toLowerCase();
+        return orc.nome.toLowerCase().includes(q) ||
+          orc.telefone.includes(searchTerm) ||
+          orc.cidade.toLowerCase().includes(q) ||
+          (orc.orc_code && orc.orc_code.toLowerCase().includes(q)) ||
+          (orc.lead_code && orc.lead_code.toLowerCase().includes(q));
+      });
  
      if (filterVisto === "visto") {
        filtered = filtered.filter(orc => orc.visto);
