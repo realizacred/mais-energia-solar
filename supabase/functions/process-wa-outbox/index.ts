@@ -55,6 +55,18 @@ Deno.serve(async (req) => {
     let totalFailed = 0;
     let totalSkipped = 0;
 
+    // Helper: log ops event (fire-and-forget)
+    const logOps = (tenantId: string, instanceId: string | null, eventType: string, payload: Record<string, unknown> = {}) => {
+      supabase.from("wa_ops_events").insert({
+        tenant_id: tenantId,
+        instance_id: instanceId,
+        event_type: eventType,
+        payload,
+      }).then(({ error }) => {
+        if (error) console.warn(`[ops] Failed to log ${eventType}:`, error.message);
+      });
+    };
+
     // ── Step 2: Process each instance with scoped lock ──
     for (const inst of shuffled) {
       let lockAcquired = false;
@@ -68,6 +80,7 @@ Deno.serve(async (req) => {
 
         if (!lockAcquired) {
           console.log(`[process-wa-outbox] Lock busy for instance=${inst.evolution_instance_key}, skipping`);
+          logOps(inst.tenant_id, inst.id, "lock_busy", { instance_key: inst.evolution_instance_key });
           totalSkipped++;
           continue;
         }
@@ -137,6 +150,7 @@ Deno.serve(async (req) => {
                 .eq("id", item.message_id);
             }
 
+            logOps(inst.tenant_id, inst.id, "outbox_sent_ack", { outbox_id: item.id, evolution_msg_id: evolutionMessageId });
             totalSent++;
           } catch (err) {
             console.error(`[process-wa-outbox] Failed item ${item.id}:`, err);
@@ -159,6 +173,7 @@ Deno.serve(async (req) => {
                 .eq("id", item.message_id);
             }
 
+            logOps(inst.tenant_id, inst.id, "outbox_failed", { outbox_id: item.id, error: String(err), retry_count: retryCount, final: newStatus === "failed" });
             totalFailed++;
           }
         }

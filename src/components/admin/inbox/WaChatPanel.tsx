@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { WaAISidebar } from "./WaAISidebar";
@@ -25,6 +25,8 @@ import {
   PanelRightClose,
   CalendarPlus,
   UserMinus,
+  MessageSquarePlus,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +55,9 @@ import { WaMessageContextMenu, type ContextMenuState } from "./WaMessageContextM
 import { WaMessageBubble } from "./WaMessageBubble";
 import { WaAppointmentModal } from "./WaAppointmentModal";
 import { useIsMobile } from "@/hooks/use-mobile";
+
+const WaInternalThread = lazy(() => import("./WaInternalThread").then(m => ({ default: m.WaInternalThread })));
+const WaParticipants = lazy(() => import("./WaParticipants").then(m => ({ default: m.WaParticipants })));
 
 interface ReplyingTo {
   id: string;
@@ -139,6 +144,8 @@ export function WaChatPanel({
   const [isDragging, setIsDragging] = useState(false);
   const [deletedMsgIds, setDeletedMsgIds] = useState<Set<string>>(new Set());
   const [forwardingMsg, setForwardingMsg] = useState<WaMessage | null>(null);
+  const [showInternalThread, setShowInternalThread] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
   const [newMsgCount, setNewMsgCount] = useState(0);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -537,6 +544,14 @@ export function WaChatPanel({
                   <CalendarPlus className="h-4 w-4 mr-2" />
                   Agendar Compromisso
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowInternalThread(!showInternalThread)}>
+                  <MessageSquarePlus className="h-4 w-4 mr-2" />
+                  Discussão Interna
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setShowParticipants(!showParticipants)}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Participantes
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {conversation.status === "resolved" ? (
                   <DropdownMenuItem onClick={onReopen}>
@@ -786,6 +801,30 @@ export function WaChatPanel({
           }
         }}
       />
+
+      {/* Internal Thread Sidebar */}
+      {showInternalThread && (
+        <Sheet open={showInternalThread} onOpenChange={setShowInternalThread}>
+          <SheetContent side="right" className="w-[85vw] max-w-md p-0">
+            <SheetTitle className="sr-only">Discussão Interna</SheetTitle>
+            <Suspense fallback={<div className="p-4 flex justify-center"><span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}>
+              <WaInternalThread conversationId={conversation.id} tenantId={conversation.tenant_id} />
+            </Suspense>
+          </SheetContent>
+        </Sheet>
+      )}
+
+      {/* Participants Sidebar */}
+      {showParticipants && (
+        <Sheet open={showParticipants} onOpenChange={setShowParticipants}>
+          <SheetContent side="right" className="w-[85vw] max-w-sm p-4">
+            <SheetTitle className="text-base mb-4">Participantes da conversa</SheetTitle>
+            <Suspense fallback={<div className="p-4 flex justify-center"><span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}>
+              <WaParticipants conversationId={conversation.id} tenantId={conversation.tenant_id} assignedTo={conversation.assigned_to} />
+            </Suspense>
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }

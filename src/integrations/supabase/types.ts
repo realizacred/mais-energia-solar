@@ -12350,6 +12350,57 @@ export type Database = {
           },
         ]
       }
+      wa_conversation_participants: {
+        Row: {
+          added_by: string | null
+          conversation_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          removed_at: string | null
+          role: Database["public"]["Enums"]["wa_participant_role"]
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          removed_at?: string | null
+          role?: Database["public"]["Enums"]["wa_participant_role"]
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          removed_at?: string | null
+          role?: Database["public"]["Enums"]["wa_participant_role"]
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_conversation_participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_conversation_participants_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_conversation_preferences: {
         Row: {
           conversation_id: string
@@ -13004,6 +13055,96 @@ export type Database = {
           },
         ]
       }
+      wa_internal_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+          tenant_id: string
+          thread_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          tenant_id: string
+          thread_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          tenant_id?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_internal_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_internal_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "wa_internal_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_internal_threads: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          created_by: string
+          id: string
+          status: string
+          tenant_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          status?: string
+          tenant_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          status?: string
+          tenant_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_internal_threads_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_internal_threads_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_message_hidden: {
         Row: {
           created_at: string
@@ -13124,6 +13265,48 @@ export type Database = {
           },
         ]
       }
+      wa_ops_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          instance_id: string | null
+          payload: Json | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          instance_id?: string | null
+          payload?: Json | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          instance_id?: string | null
+          payload?: Json | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_ops_events_instance_id_fkey"
+            columns: ["instance_id"]
+            isOneToOne: false
+            referencedRelation: "wa_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_ops_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       wa_outbox: {
         Row: {
           content: string | null
@@ -13221,6 +13404,57 @@ export type Database = {
           },
           {
             foreignKeyName: "wa_outbox_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_participant_events: {
+        Row: {
+          conversation_id: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          performed_by: string
+          role: Database["public"]["Enums"]["wa_participant_role"] | null
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          conversation_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          performed_by: string
+          role?: Database["public"]["Enums"]["wa_participant_role"] | null
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          performed_by?: string
+          role?: Database["public"]["Enums"]["wa_participant_role"] | null
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_participant_events_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_participant_events_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -14666,6 +14900,7 @@ export type Database = {
         | "expired"
       tenant_status: "active" | "suspended" | "disabled" | "pending"
       tipo_sistema_inversor: "ON_GRID" | "HIBRIDO" | "OFF_GRID"
+      wa_participant_role: "owner" | "collaborator" | "viewer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -14927,6 +15162,7 @@ export const Constants = {
       ],
       tenant_status: ["active", "suspended", "disabled", "pending"],
       tipo_sistema_inversor: ["ON_GRID", "HIBRIDO", "OFF_GRID"],
+      wa_participant_role: ["owner", "collaborator", "viewer"],
     },
   },
 } as const
