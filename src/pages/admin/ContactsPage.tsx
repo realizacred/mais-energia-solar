@@ -1,21 +1,12 @@
-import { useState, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useMemo, lazy, Suspense } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -25,6 +16,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Search,
   Plus,
@@ -33,7 +25,11 @@ import {
   Phone,
   Loader2,
   Contact as ContactIcon,
+  Clock,
+  ChevronRight,
 } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface Contact {
   id: string;
@@ -42,26 +38,45 @@ interface Contact {
   tags: string[];
   source: string | null;
   linked_cliente_id: string | null;
+  last_interaction_at: string | null;
   created_at: string;
 }
 
-export default function ContactsPage() {
+function formatPhone(e164: string) {
+  if (!e164 || e164.length < 12) return e164;
+  const ddd = e164.substring(2, 4);
+  const num = e164.substring(4);
+  if (num.length === 9) return `(${ddd}) ${num.substring(0, 5)}-${num.substring(5)}`;
+  return `(${ddd}) ${num.substring(0, 4)}-${num.substring(4)}`;
+}
+
+function canonicalizePreview(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  let phone = digits.startsWith("55") ? digits : "55" + digits;
+  if (phone.length === 12) {
+    phone = phone.substring(0, 4) + "9" + phone.substring(4);
+  }
+  if (phone.length !== 13) return null;
+  return phone;
+}
+
+interface ContactsListProps {
+  onRecall: (contact: Contact) => void;
+  onNewContact: () => void;
+  selectedId?: string | null;
+}
+
+export function ContactsList({ onRecall, onNewContact, selectedId }: ContactsListProps) {
   const [search, setSearch] = useState("");
-  const [showAdd, setShowAdd] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newPhone, setNewPhone] = useState("");
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
 
   const { data: contacts = [], isLoading } = useQuery({
     queryKey: ["contacts"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("contacts")
-        .select("id, name, phone_e164, tags, source, linked_cliente_id, created_at")
-        .order("updated_at", { ascending: false })
+        .select("id, name, phone_e164, tags, source, linked_cliente_id, last_interaction_at, created_at")
+        .order("last_interaction_at", { ascending: false, nullsFirst: false })
         .limit(500);
       if (error) throw error;
       return (data || []) as Contact[];
@@ -74,196 +89,307 @@ export default function ContactsPage() {
     return contacts.filter(
       (c) =>
         (c.name && c.name.toLowerCase().includes(q)) ||
-        c.phone_e164.includes(q)
+        c.phone_e164.includes(q.replace(/\D/g, ""))
     );
   }, [contacts, search]);
 
-  const addMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await (supabase.rpc as any)("start_conversation_by_phone", {
-        p_phone_raw: newPhone.trim(),
-        p_name_optional: newName.trim() || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "Contato adicionado" });
-      setShowAdd(false);
-      setNewName("");
-      setNewPhone("");
-      queryClient.invalidateQueries({ queryKey: ["contacts"] });
-    },
-    onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    },
-  });
+  return (
+    <div className="flex flex-col h-full">
+      {/* Search + New */}
+      <div className="p-3 border-b border-border/40 space-y-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar nome ou telefone..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9"
+              autoComplete="off"
+              name="contact-search"
+            />
+          </div>
+          <Button size="icon" variant="default" onClick={onNewContact} title="Novo contato">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">{contacts.length} contatos</p>
+      </div>
 
-  const handleOpenConversation = async (contact: Contact) => {
-    setActionLoading(contact.id);
+      {/* List */}
+      <ScrollArea className="flex-1">
+        {isLoading ? (
+          <div className="p-3 space-y-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-3 p-3">
+                <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+            <div className="p-4 rounded-full bg-muted/50 mb-4">
+              <ContactIcon className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">
+              {search ? "Nenhum contato encontrado" : "Nenhum contato"}
+            </p>
+            <p className="text-xs text-muted-foreground mb-4">
+              {search
+                ? "Tente outra busca"
+                : "Adicione contatos para iniciar conversas"}
+            </p>
+            {!search && (
+              <Button size="sm" variant="outline" onClick={onNewContact}>
+                <UserPlus className="h-4 w-4 mr-1" />
+                Adicionar contato
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="divide-y divide-border/30">
+            {filtered.map((contact) => (
+              <button
+                key={contact.id}
+                onClick={() => onRecall(contact)}
+                className={`w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-accent/50 active:bg-accent/70 ${
+                  selectedId === contact.id ? "bg-accent/60" : ""
+                }`}
+              >
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-semibold text-primary">
+                    {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {contact.name || formatPhone(contact.phone_e164)}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{formatPhone(contact.phone_e164)}</span>
+                    {contact.last_interaction_at && (
+                      <>
+                        <span className="text-border">·</span>
+                        <Clock className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {formatDistanceToNow(new Date(contact.last_interaction_at), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                  {contact.tags?.length > 0 && (
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {contact.tags.slice(0, 3).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
+}
+
+/* ====== New/Recall Dialog ====== */
+
+interface RecallDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  prefillPhone?: string;
+  prefillName?: string;
+  onSuccess: (conversationId: string) => void;
+}
+
+export function RecallDialog({
+  open,
+  onOpenChange,
+  prefillPhone = "",
+  prefillName = "",
+  onSuccess,
+}: RecallDialogProps) {
+  const [phone, setPhone] = useState(prefillPhone);
+  const [name, setName] = useState(prefillName);
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Reset on open
+  const handleOpenChange = (v: boolean) => {
+    if (v) {
+      setPhone(prefillPhone);
+      setName(prefillName);
+      setMessage("");
+    }
+    onOpenChange(v);
+  };
+
+  const phonePreview = canonicalizePreview(phone);
+  const isValid = !!phonePreview;
+
+  const handleSubmit = async () => {
+    if (!isValid) return;
+    setLoading(true);
     try {
-      const { data, error } = await (supabase.rpc as any)("start_conversation_by_phone", {
-        p_phone_raw: contact.phone_e164,
-        p_name_optional: contact.name,
-      });
+      const params: Record<string, unknown> = { p_phone_raw: phone.trim() };
+      if (name.trim()) params.p_name_optional = name.trim();
+      if (message.trim()) params.p_message_optional = message.trim();
+
+      const { data, error } = await (supabase.rpc as any)(
+        "rpc_recall_or_start_conversation",
+        params
+      );
       if (error) throw error;
-      navigate("/admin/inbox");
+
+      const result = data as { conversation_id: string; reused: boolean };
+      toast({
+        title: result.reused ? "Conversa reaberta" : "Nova conversa criada",
+      });
+      onSuccess(result.conversation_id);
+      handleOpenChange(false);
     } catch (err: any) {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
+      toast({
+        title: "Erro",
+        description: err.message || "Tente novamente",
+        variant: "destructive",
+      });
     } finally {
-      setActionLoading(null);
+      setLoading(false);
     }
   };
 
-  const formatPhone = (e164: string) => {
-    if (!e164 || e164.length < 12) return e164;
-    const ddd = e164.substring(2, 4);
-    const num = e164.substring(4);
-    return `(${ddd}) ${num.substring(0, 5)}-${num.substring(5)}`;
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-success" />
+            {prefillPhone ? "Chamar cliente" : "Nova conversa"}
+          </DialogTitle>
+          <DialogDescription>
+            Abra ou reabra uma conversa. Se já existir, será reutilizada.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="recall-phone">Telefone *</Label>
+            <Input
+              id="recall-phone"
+              placeholder="(11) 99999-9999"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              disabled={loading || !!prefillPhone}
+              autoComplete="off"
+              name="recall-phone-input"
+            />
+            {phone.length >= 10 && (
+              <p className={`text-xs ${isValid ? "text-success" : "text-destructive"}`}>
+                {isValid
+                  ? `✓ Normalizado: +${phonePreview}`
+                  : "✗ Formato inválido — use DDD + número"}
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="recall-name">Nome (opcional)</Label>
+            <Input
+              id="recall-name"
+              placeholder="Nome do contato"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={loading}
+              autoComplete="off"
+              name="recall-name-input"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="recall-msg">Mensagem inicial (opcional)</Label>
+            <Textarea
+              id="recall-msg"
+              placeholder="Olá! Gostaria de..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              disabled={loading}
+              className="min-h-[80px]"
+              autoComplete="off"
+              name="recall-message-input"
+            />
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSubmit} disabled={loading || !isValid}>
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            {prefillPhone ? "Chamar" : "Iniciar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ====== Full Page Component ====== */
+
+export default function ContactsPage() {
+  const [showRecall, setShowRecall] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [showNew, setShowNew] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleRecall = (contact: Contact) => {
+    setSelectedContact(contact);
+    setShowRecall(true);
   };
 
-  if (isLoading) return <LoadingSpinner />;
+  const handleSuccess = async (conversationId: string) => {
+    await queryClient.invalidateQueries({ queryKey: ["contacts"] });
+    await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+    // Navigate to inbox is handled by the parent/caller if needed
+  };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <CardTitle className="flex items-center gap-2">
-              <ContactIcon className="h-5 w-5 text-primary" />
-              Contatos ({contacts.length})
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1 sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar nome ou telefone..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Button size="sm" onClick={() => setShowAdd(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                Novo
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {filtered.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">
-              {search ? "Nenhum contato encontrado" : "Nenhum contato cadastrado"}
-            </p>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Telefone</TableHead>
-                    <TableHead>Origem</TableHead>
-                    <TableHead>Tags</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((contact) => (
-                    <TableRow key={contact.id}>
-                      <TableCell className="font-medium">
-                        {contact.name || (
-                          <span className="text-muted-foreground italic">Sem nome</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <span className="flex items-center gap-1.5">
-                          <Phone className="h-3.5 w-3.5 text-muted-foreground" />
-                          {formatPhone(contact.phone_e164)}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs">
-                          {contact.source || "manual"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {contact.tags?.map((tag) => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              {tag}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenConversation(contact)}
-                            disabled={actionLoading === contact.id}
-                            title="Abrir conversa"
-                          >
-                            {actionLoading === contact.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <MessageCircle className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <div className="h-full flex flex-col">
+      <ContactsList
+        onRecall={handleRecall}
+        onNewContact={() => setShowNew(true)}
+        selectedId={selectedContact?.id}
+      />
 
-      {/* Add Contact Dialog */}
-      <Dialog open={showAdd} onOpenChange={setShowAdd}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="h-5 w-5" />
-              Novo Contato
-            </DialogTitle>
-            <DialogDescription>
-              O contato será salvo e uma conversa será aberta automaticamente.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Telefone *</Label>
-              <Input
-                placeholder="(11) 99999-9999"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nome</Label>
-              <Input
-                placeholder="Nome do contato"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAdd(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={() => addMutation.mutate()}
-              disabled={addMutation.isPending || !newPhone.trim()}
-            >
-              {addMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              Salvar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Recall from contact */}
+      <RecallDialog
+        open={showRecall}
+        onOpenChange={setShowRecall}
+        prefillPhone={selectedContact?.phone_e164 || ""}
+        prefillName={selectedContact?.name || ""}
+        onSuccess={handleSuccess}
+      />
+
+      {/* New contact (blank) */}
+      <RecallDialog
+        open={showNew}
+        onOpenChange={setShowNew}
+        onSuccess={handleSuccess}
+      />
     </div>
   );
 }

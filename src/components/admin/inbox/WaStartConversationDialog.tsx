@@ -4,22 +4,24 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, MessageCirclePlus } from "lucide-react";
 
-interface WaInstance {
-  id: string;
-  nome: string;
-  status: string;
-}
-
 interface WaStartConversationDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  instances: WaInstance[];
+  instances: Array<{ id: string; nome: string; status: string }>;
   onConversationStarted: (conversationId: string) => void;
+}
+
+function canonicalizePreview(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 10) return null;
+  let phone = digits.startsWith("55") ? digits : "55" + digits;
+  if (phone.length === 12) phone = phone.substring(0, 4) + "9" + phone.substring(4);
+  if (phone.length !== 13) return null;
+  return phone;
 }
 
 export function WaStartConversationDialog({
@@ -31,41 +33,40 @@ export function WaStartConversationDialog({
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
-  const [instanceId, setInstanceId] = useState<string>("auto");
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const connectedInstances = instances.filter((i) => i.status === "connected");
+  const phonePreview = canonicalizePreview(phone);
+  const isValid = !!phonePreview;
+
+  const handleOpenChange = (v: boolean) => {
+    if (v) {
+      setPhone("");
+      setName("");
+      setMessage("");
+    }
+    onOpenChange(v);
+  };
 
   const handleSubmit = async () => {
-    if (!phone.trim()) {
-      toast({ title: "Telefone obrigatório", variant: "destructive" });
-      return;
-    }
-
+    if (!isValid) return;
     setLoading(true);
     try {
-      const params: Record<string, unknown> = {
-        p_phone_raw: phone.trim(),
-      };
+      const params: Record<string, unknown> = { p_phone_raw: phone.trim() };
       if (name.trim()) params.p_name_optional = name.trim();
       if (message.trim()) params.p_message_optional = message.trim();
-      if (instanceId !== "auto") params.p_instance_preference = instanceId;
 
       const { data, error } = await (supabase.rpc as any)(
-        "start_conversation_by_phone",
+        "rpc_recall_or_start_conversation",
         params
       );
-
       if (error) throw error;
 
-      const result = data as { conversation_id: string };
-      toast({ title: "Conversa iniciada" });
+      const result = data as { conversation_id: string; reused: boolean };
+      toast({ title: result.reused ? "Conversa reaberta" : "Nova conversa criada" });
       onConversationStarted(result.conversation_id);
-      onOpenChange(false);
-      resetForm();
+      handleOpenChange(false);
     } catch (err: any) {
-      console.error("[StartConversation] Error:", err);
       toast({
         title: "Erro ao iniciar conversa",
         description: err.message || "Tente novamente",
@@ -76,20 +77,13 @@ export function WaStartConversationDialog({
     }
   };
 
-  const resetForm = () => {
-    setPhone("");
-    setName("");
-    setMessage("");
-    setInstanceId("auto");
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <MessageCirclePlus className="h-5 w-5 text-success" />
-            Iniciar Conversa
+            Nova conversa
           </DialogTitle>
           <DialogDescription>
             Envie uma mensagem para um número novo ou reabra uma conversa existente.
@@ -105,10 +99,16 @@ export function WaStartConversationDialog({
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               disabled={loading}
+              autoComplete="off"
+              name="sc-phone-field"
             />
-            <p className="text-xs text-muted-foreground">
-              DDD + número. O sistema normaliza automaticamente para E.164.
-            </p>
+            {phone.length >= 10 && (
+              <p className={`text-xs ${isValid ? "text-success" : "text-destructive"}`}>
+                {isValid
+                  ? `✓ Normalizado: +${phonePreview}`
+                  : "✗ Formato inválido — use DDD + número"}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -119,6 +119,8 @@ export function WaStartConversationDialog({
               value={name}
               onChange={(e) => setName(e.target.value)}
               disabled={loading}
+              autoComplete="off"
+              name="sc-name-field"
             />
           </div>
 
@@ -126,40 +128,23 @@ export function WaStartConversationDialog({
             <Label htmlFor="sc-message">Mensagem inicial (opcional)</Label>
             <Textarea
               id="sc-message"
-              placeholder="Digite uma mensagem..."
+              placeholder="Olá! Gostaria de..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               disabled={loading}
               className="min-h-[80px]"
+              autoComplete="off"
+              name="sc-message-field"
             />
           </div>
-
-          {connectedInstances.length > 1 && (
-            <div className="space-y-2">
-              <Label>Instância</Label>
-              <Select value={instanceId} onValueChange={setInstanceId} disabled={loading}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Automático" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="auto">Automático</SelectItem>
-                  {connectedInstances.map((inst) => (
-                    <SelectItem key={inst.id} value={inst.id}>
-                      {inst.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={loading || !phone.trim()}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+          <Button onClick={handleSubmit} disabled={loading || !isValid}>
+            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
             Iniciar
           </Button>
         </DialogFooter>
