@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
+import { roundCurrency } from "@/lib/formatters";
 
 // ── Types ──
 
@@ -66,7 +67,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
   // ── Calculations ──
 
-  const custoKit = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${potenciaKwp.toFixed(2)} kWp` : "Kit fotovoltaico";
 
   const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
@@ -115,11 +116,11 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
     return rows;
   }, [custoKit, kitLabel, instalacaoServico, comissaoServico, custosExtras]);
 
-  const custoTotal = allRows.reduce((s, r) => s + r.quantidade * r.custoUnitario, 0);
+  const custoTotal = roundCurrency(allRows.reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
   const margemPercent = venda.margem_percentual;
-  const margemValor = custoTotal * (margemPercent / 100);
-  const precoVenda = custoTotal + margemValor;
-  const precoWp = potenciaKwp > 0 ? precoVenda / (potenciaKwp * 1000) : 0;
+  const margemValor = roundCurrency(custoTotal * (margemPercent / 100));
+  const precoVenda = roundCurrency(custoTotal + margemValor);
+  const precoWp = potenciaKwp > 0 ? roundCurrency(precoVenda / (potenciaKwp * 1000)) : 0;
 
   // Slider range
   const sliderMin = custoTotal;
@@ -274,9 +275,9 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         {/* Rows */}
         <div className="divide-y divide-border/20">
           {allRows.map((row) => {
-            const rowTotal = row.quantidade * row.custoUnitario;
-            const rowMargem = getRowMargem(row);
-            const rowVenda = getRowVenda(row);
+            const rowTotal = roundCurrency(row.quantidade * row.custoUnitario);
+            const rowMargem = roundCurrency(getRowMargem(row));
+            const rowVenda = roundCurrency(getRowVenda(row));
             const rowPercent = getRowPercent(row);
             const isKit = row.id === "kit";
             const isExtra = !row.fixo;
@@ -535,10 +536,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
 /** Helper to calculate precoFinal from outside */
 export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
-  const custoKit = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-  const custoServicos = servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
-  const custoBase = custoKit + custoServicos + venda.custo_comissao + venda.custo_outros;
-  const margemValor = custoBase * (venda.margem_percentual / 100);
-  const precoComMargem = custoBase + margemValor;
-  return precoComMargem - precoComMargem * (venda.desconto_percentual / 100);
+  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
+  const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
+  const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
+  const margemValor = roundCurrency(custoBase * (venda.margem_percentual / 100));
+  const precoComMargem = roundCurrency(custoBase + margemValor);
+  return roundCurrency(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
 }

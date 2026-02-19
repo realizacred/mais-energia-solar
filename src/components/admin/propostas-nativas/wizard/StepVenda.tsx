@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
+import { roundCurrency } from "@/lib/formatters";
 
 interface StepVendaProps {
   venda: VendaData;
@@ -47,13 +48,13 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
     onVendaChange({ ...venda, [field]: value });
   };
 
-  const custoKit = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-  const custoServicos = servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
-  const custoBase = custoKit + custoServicos + venda.custo_comissao + venda.custo_outros;
-  const margemValor = custoBase * (venda.margem_percentual / 100);
-  const precoComMargem = custoBase + margemValor;
-  const descontoValor = precoComMargem * (venda.desconto_percentual / 100);
-  const precoFinal = precoComMargem - descontoValor;
+  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
+  const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
+  const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
+  const margemValor = roundCurrency(custoBase * (venda.margem_percentual / 100));
+  const precoComMargem = roundCurrency(custoBase + margemValor);
+  const descontoValor = roundCurrency(precoComMargem * (venda.desconto_percentual / 100));
+  const precoFinal = roundCurrency(precoComMargem - descontoValor);
   const margemLiquida = custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
 
   return (
@@ -156,10 +157,10 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
 
 /** Helper to calculate precoFinal from outside */
 export function calcPrecoFinal(itens: KitItemRow[], servicos: ServicoItem[], venda: VendaData): number {
-  const custoKit = itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-  const custoServicos = servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0);
-  const custoBase = custoKit + custoServicos + venda.custo_comissao + venda.custo_outros;
-  const margemValor = custoBase * (venda.margem_percentual / 100);
-  const precoComMargem = custoBase + margemValor;
-  return precoComMargem - precoComMargem * (venda.desconto_percentual / 100);
+  const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
+  const custoServicos = roundCurrency(servicos.filter(s => s.incluso_no_preco).reduce((s, i) => s + i.valor, 0));
+  const custoBase = roundCurrency(custoKit + custoServicos + venda.custo_comissao + venda.custo_outros);
+  const margemValor = roundCurrency(custoBase * (venda.margem_percentual / 100));
+  const precoComMargem = roundCurrency(custoBase + margemValor);
+  return roundCurrency(precoComMargem - precoComMargem * (venda.desconto_percentual / 100));
 }
