@@ -178,10 +178,14 @@ export function IntegrationsPage() {
                     <Label htmlFor="gcal-client-id" className="text-xs">Client ID</Label>
                     <Input
                       id="gcal-client-id"
+                      name="gc-client-id-field"
                       placeholder="123456789.apps.googleusercontent.com"
                       value={clientId}
                       onChange={(e) => setClientId(e.target.value)}
                       autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -189,11 +193,15 @@ export function IntegrationsPage() {
                     <div className="relative">
                       <Input
                         id="gcal-client-secret"
+                        name="gc-client-secret-field"
                         type={showSecret ? "text" : "password"}
                         placeholder="GOCSPX-..."
                         value={clientSecret}
                         onChange={(e) => setClientSecret(e.target.value)}
-                        autoComplete="off"
+                        autoComplete="new-password"
+                        autoCorrect="off"
+                        autoCapitalize="none"
+                        spellCheck={false}
                       />
                       <Button
                         type="button"
