@@ -3618,6 +3618,131 @@ export type Database = {
           },
         ]
       }
+      internal_chat_members: {
+        Row: {
+          chat_id: string
+          id: string
+          joined_at: string
+          last_read_at: string | null
+          role: string
+          tenant_id: string
+          user_id: string
+        }
+        Insert: {
+          chat_id: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          role?: string
+          tenant_id: string
+          user_id: string
+        }
+        Update: {
+          chat_id?: string
+          id?: string
+          joined_at?: string
+          last_read_at?: string | null
+          role?: string
+          tenant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_chat_members_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "internal_chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_chat_members_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_chat_messages: {
+        Row: {
+          chat_id: string
+          content: string
+          created_at: string
+          id: string
+          sender_id: string
+          tenant_id: string
+        }
+        Insert: {
+          chat_id: string
+          content: string
+          created_at?: string
+          id?: string
+          sender_id: string
+          tenant_id: string
+        }
+        Update: {
+          chat_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          sender_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_chat_messages_chat_id_fkey"
+            columns: ["chat_id"]
+            isOneToOne: false
+            referencedRelation: "internal_chats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internal_chat_messages_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      internal_chats: {
+        Row: {
+          chat_type: string
+          created_at: string
+          created_by: string
+          id: string
+          name: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          chat_type?: string
+          created_at?: string
+          created_by: string
+          id?: string
+          name?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          chat_type?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internal_chats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inversores: {
         Row: {
           ativo: boolean

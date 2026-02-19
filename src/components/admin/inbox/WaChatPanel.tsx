@@ -74,7 +74,7 @@ function formatPhone(phone: string | null | undefined): string {
   }
   return phone;
 }
-const WaInternalThread = lazy(() => import("./WaInternalThread").then(m => ({ default: m.WaInternalThread })));
+// WaInternalThread removed — replaced by dedicated internal chat system
 const WaParticipants = lazy(() => import("./WaParticipants").then(m => ({ default: m.WaParticipants })));
 
 interface ReplyingTo {
@@ -162,7 +162,7 @@ export function WaChatPanel({
   const [isDragging, setIsDragging] = useState(false);
   const [deletedMsgIds, setDeletedMsgIds] = useState<Set<string>>(new Set());
   const [forwardingMsg, setForwardingMsg] = useState<WaMessage | null>(null);
-  const [showInternalThread, setShowInternalThread] = useState(false);
+  
   const [showParticipants, setShowParticipants] = useState(false);
   const [atBottom, setAtBottom] = useState(true);
   const [newMsgCount, setNewMsgCount] = useState(0);
@@ -512,10 +512,6 @@ export function WaChatPanel({
                     <CalendarPlus className="h-4 w-4 mr-2" />
                     Agendar Compromisso
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowInternalThread(!showInternalThread)}>
-                    <MessageSquarePlus className="h-4 w-4 mr-2" />
-                    Discussão Interna
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowParticipants(!showParticipants)}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Participantes
@@ -742,17 +738,6 @@ export function WaChatPanel({
         }}
       />
 
-      {/* Internal Thread Sidebar */}
-      {showInternalThread && (
-        <Sheet open={showInternalThread} onOpenChange={setShowInternalThread}>
-          <SheetContent side="right" className="w-[85vw] max-w-md p-0">
-            <SheetTitle className="sr-only">Discussão Interna</SheetTitle>
-            <Suspense fallback={<div className="p-4 flex justify-center"><span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div>}>
-              <WaInternalThread conversationId={conversation.id} tenantId={conversation.tenant_id} />
-            </Suspense>
-          </SheetContent>
-        </Sheet>
-      )}
 
       {/* Participants Sidebar */}
       {showParticipants && (
