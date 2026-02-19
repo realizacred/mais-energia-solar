@@ -64,6 +64,58 @@ export function TemplatesManager() {
 
   useEffect(() => { loadTemplates(); }, []);
 
+  const seedDefaultTemplates = async () => {
+    if (!confirm("Isso vai EXCLUIR todos os templates WEB existentes e criar 3 novos (Grid, Hybrid, Dual) com os templates padrão. Continuar?")) return;
+    
+    setLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id")
+        .eq("user_id", user.id)
+        .single();
+      if (!profile?.tenant_id) throw new Error("Tenant não encontrado");
+
+      // Delete all existing HTML templates
+      await supabase.from("proposta_templates").delete().eq("tipo", "html");
+
+      // Load and insert the 3 default templates
+      const defaults = [
+        { nome: "Template Grid (On-Grid)", file: "template-grid.json", tipo: "grid", ordem: 1 },
+        { nome: "Template Híbrido", file: "template-hybrid.json", tipo: "hybrid", ordem: 2 },
+        { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", tipo: "dual", ordem: 3 },
+      ];
+
+      for (const def of defaults) {
+        const res = await fetch(`/default-templates/${def.file}`);
+        if (!res.ok) continue;
+        const jsonContent = await res.text();
+        
+        await supabase.from("proposta_templates").insert({
+          nome: def.nome,
+          descricao: `Template padrão ${def.tipo}`,
+          grupo: "B",
+          categoria: "geral",
+          tipo: "html",
+          template_html: jsonContent,
+          ativo: true,
+          ordem: def.ordem,
+          tenant_id: profile.tenant_id,
+          variaveis_disponiveis: {},
+        } as any);
+      }
+
+      toast({ title: "Templates padrão importados!", description: "3 templates criados com sucesso" });
+      loadTemplates();
+    } catch (err: any) {
+      toast({ title: "Erro ao importar", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const startNew = () => {
     setEditingId("new");
     setForm({ nome: "", descricao: "", grupo: "B", categoria: "geral", tipo: tipoTab, template_html: "", file_url: null, ativo: true, ordem: templates.length });
@@ -219,9 +271,14 @@ export function TemplatesManager() {
             Gerencie modelos WEB e DOCX usados na geração de propostas
           </p>
         </div>
-        <Button onClick={startNew} className="gap-1.5" disabled={dialogOpen}>
-          <Plus className="h-4 w-4" /> Novo template
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={seedDefaultTemplates} className="gap-1.5 text-xs" disabled={loading}>
+            <Download className="h-3 w-3" /> Importar Padrões
+          </Button>
+          <Button onClick={startNew} className="gap-1.5" disabled={dialogOpen}>
+            <Plus className="h-4 w-4" /> Novo template
+          </Button>
+        </div>
       </div>
 
       {/* Tipo Tabs */}
