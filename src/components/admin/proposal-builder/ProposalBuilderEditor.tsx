@@ -39,7 +39,7 @@ export function ProposalBuilderEditor({
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load initial data
+  // Load initial data or fetch default template
   useEffect(() => {
     if (initialData && initialData.length > 0) {
       dispatch({ type: "SET_BLOCKS", blocks: initialData });
@@ -48,6 +48,23 @@ export function ProposalBuilderEditor({
       if (types.size === 1) {
         dispatch({ type: "SET_PROPOSAL_TYPE", proposalType: [...types][0] });
       }
+    } else {
+      // Auto-load default template when editor opens empty
+      const loadDefault = async () => {
+        try {
+          const res = await fetch(`/default-templates/template-${state.proposalType}.json`);
+          if (res.ok) {
+            const blocks = await res.json();
+            if (Array.isArray(blocks) && blocks.length > 0) {
+              dispatch({ type: "SET_BLOCKS", blocks });
+              toast({ title: "Template padrão carregado!", description: `${blocks.length} blocos` });
+            }
+          }
+        } catch {
+          // silently ignore — user can build from scratch
+        }
+      };
+      loadDefault();
     }
   }, [initialData]);
 
