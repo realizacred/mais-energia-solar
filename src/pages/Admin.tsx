@@ -99,6 +99,7 @@ const BaseMeteorologicaPage = lazy(() => import("@/pages/admin/BaseMeteorologica
 const PropostaComercialPage = lazy(() => import("@/components/admin/proposta-comercial").then(m => ({ default: m.PropostaComercialPage })));
 const PricingPolicyPage = lazy(() => import("@/components/admin/pricing-policy/PricingPolicyPage").then(m => ({ default: m.PricingPolicyPage })));
 const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
+const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 // SolarZap removed — functionality consolidated into WaInbox (Atendimento)
 const ProposalWizardPage = lazy(() =>
@@ -458,6 +459,7 @@ export default function Admin() {
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
                 <Route path="followup-queue" element={<WaFollowupQueuePage />} />
                 <Route path="metricas-atendimento" element={<WaAtendimentoMetrics />} />
+                <Route path="wa-health" element={<WaHealthDashboard />} />
                 <Route path="wa-etiquetas" element={<WaTagsManager />} />
                 <Route path="validacao" element={<ValidacaoVendasManager />} />
                 <Route path="tarefas" element={<TasksSlaDashboard />} />
