@@ -434,7 +434,7 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="h-full md:grid md:grid-cols-[360px_1fr]">
+    <div className="h-[calc(100dvh-56px)] md:grid md:grid-cols-[360px_1fr]">
       {/* Left: contacts list (always visible) */}
       <div className="h-full border-r border-border/40 overflow-hidden">
         <ContactsList
