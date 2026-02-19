@@ -4,91 +4,57 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { Activity, AlertTriangle, CheckCircle2, Clock, Send, XCircle, Lock } from "lucide-react";
-import { format, subHours } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
+interface HealthData {
+  instances: Array<{ id: string; evolution_instance_key: string; status: string; tenant_id: string }>;
+  backlog: Record<string, { pending: number; sending: number }>;
+  opsStats24h: Record<string, number>;
+  failures24h: Array<{ id: string; error_message: string; instance_id: string; created_at: string; retry_count: number }>;
+}
+
 export default function WaHealthDashboard() {
-  const now24h = subHours(new Date(), 24).toISOString();
-
-  // Backlog by instance
-  const { data: backlog, isLoading: loadingBacklog } = useQuery({
-    queryKey: ["wa-health-backlog"],
+  const { data, isLoading, error } = useQuery<HealthData>({
+    queryKey: ["wa-health-admin"],
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_outbox")
-        .select("instance_id, status")
-        .in("status", ["pending", "sending"]);
+      const { data, error } = await supabase.functions.invoke("wa-health-admin");
       if (error) throw error;
-
-      const byInstance: Record<string, { pending: number; sending: number }> = {};
-      (data || []).forEach((row) => {
-        if (!byInstance[row.instance_id]) byInstance[row.instance_id] = { pending: 0, sending: 0 };
-        byInstance[row.instance_id][row.status as "pending" | "sending"]++;
-      });
-      return byInstance;
+      return data as HealthData;
     },
   });
 
-  // Instance status
-  const { data: instances } = useQuery({
-    queryKey: ["wa-health-instances"],
-    refetchInterval: 30_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_instances")
-        .select("id, evolution_instance_key, status, tenant_id");
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const instances = data?.instances || [];
+  const backlog = data?.backlog || {};
+  const opsStats = data?.opsStats24h || {};
+  const failures = data?.failures24h || [];
 
-  // Ops events summary (last 24h)
-  const { data: opsStats, isLoading: loadingOps } = useQuery({
-    queryKey: ["wa-health-ops"],
-    refetchInterval: 30_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_ops_events")
-        .select("event_type, created_at")
-        .gte("created_at", now24h);
-      if (error) throw error;
-
-      const counts: Record<string, number> = {};
-      (data || []).forEach((e) => {
-        counts[e.event_type] = (counts[e.event_type] || 0) + 1;
-      });
-      return counts;
-    },
-  });
-
-  // Failed outbox items (last 24h)
-  const { data: failures } = useQuery({
-    queryKey: ["wa-health-failures"],
-    refetchInterval: 30_000,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_outbox")
-        .select("id, error_message, instance_id, created_at, retry_count")
-        .eq("status", "failed")
-        .gte("created_at", now24h)
-        .order("created_at", { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const totalPending = Object.values(backlog || {}).reduce((acc, v) => acc + v.pending, 0);
-  const totalSending = Object.values(backlog || {}).reduce((acc, v) => acc + v.sending, 0);
-  const sentCount = opsStats?.["outbox_sent_ack"] || 0;
-  const failedCount = opsStats?.["outbox_failed"] || 0;
-  const lockBusyCount = opsStats?.["lock_busy"] || 0;
+  const totalPending = Object.values(backlog).reduce((acc, v) => acc + v.pending, 0);
+  const totalSending = Object.values(backlog).reduce((acc, v) => acc + v.sending, 0);
+  const sentCount = opsStats["outbox_sent_ack"] || 0;
+  const failedCount = opsStats["outbox_failed"] || 0;
+  const lockBusyCount = opsStats["lock_busy"] || 0;
   const failRate = sentCount + failedCount > 0 ? (failedCount / (sentCount + failedCount)) * 100 : 0;
 
   const isHighBacklog = totalPending > 100;
   const isHighFailRate = failRate > 10;
-  const hasDisconnected = instances?.some((i) => i.status !== "connected");
+  const hasDisconnected = instances.some((i) => i.status !== "connected");
+
+  if (error) {
+    const msg = (error as any)?.message || String(error);
+    const isForbidden = msg.includes("403") || msg.includes("Forbidden");
+    return (
+      <div className="p-6">
+        <div className="flex items-center gap-2 p-4 rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
+          <XCircle className="h-5 w-5" />
+          <span className="text-sm font-medium">
+            {isForbidden ? "Acesso negado. Apenas administradores podem visualizar esta página." : `Erro ao carregar dados: ${msg}`}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -128,7 +94,7 @@ export default function WaHealthDashboard() {
             <CardDescription className="flex items-center gap-1"><Send className="h-3.5 w-3.5" /> Enviadas (24h)</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{loadingOps ? <Spinner size="sm" /> : sentCount}</div>
+            <div className="text-2xl font-bold">{isLoading ? <Spinner size="sm" /> : sentCount}</div>
           </CardContent>
         </Card>
         <Card>
@@ -145,7 +111,7 @@ export default function WaHealthDashboard() {
             <CardDescription className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Backlog</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{loadingBacklog ? <Spinner size="sm" /> : totalPending}</div>
+            <div className="text-2xl font-bold">{isLoading ? <Spinner size="sm" /> : totalPending}</div>
             {totalSending > 0 && <p className="text-xs text-muted-foreground">{totalSending} em envio</p>}
           </CardContent>
         </Card>
@@ -166,8 +132,8 @@ export default function WaHealthDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {instances?.map((inst) => {
-              const instBacklog = backlog?.[inst.id];
+            {instances.map((inst) => {
+              const instBacklog = backlog[inst.id];
               return (
                 <div key={inst.id} className="flex items-center justify-between py-2 px-3 rounded border">
                   <div className="flex items-center gap-2">
@@ -183,7 +149,7 @@ export default function WaHealthDashboard() {
                 </div>
               );
             })}
-            {!instances?.length && <p className="text-sm text-muted-foreground">Nenhuma instância configurada.</p>}
+            {!instances.length && <p className="text-sm text-muted-foreground">Nenhuma instância configurada.</p>}
           </div>
         </CardContent>
       </Card>
@@ -194,7 +160,7 @@ export default function WaHealthDashboard() {
           <CardTitle className="text-base flex items-center gap-2"><XCircle className="h-4 w-4" /> Falhas recentes</CardTitle>
         </CardHeader>
         <CardContent>
-          {!failures?.length ? (
+          {!failures.length ? (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <CheckCircle2 className="h-4 w-4 text-success" /> Sem falhas nas últimas 24h
             </div>
