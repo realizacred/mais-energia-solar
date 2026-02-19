@@ -428,14 +428,32 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
     
     // If truly offline, save locally
     if (!currentlyOnline) {
+      // Double-check with a lightweight network probe
+      let confirmedOffline = true;
       try {
-        console.log("[saveLead] Device is offline, saving locally...");
-        saveLocally({ ...lead, synced: false });
-        return { success: true, offline: true };
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
-        console.error("[saveLead] Offline save failed:", errorMessage);
-        return { success: false, offline: true, error: errorMessage };
+        const probe = await fetch(`${window.location.origin}/favicon.ico`, {
+          method: "HEAD",
+          cache: "no-store",
+          signal: AbortSignal.timeout(3000),
+        });
+        if (probe.ok || probe.status === 304) {
+          confirmedOffline = false;
+          console.log("[saveLead] navigator.onLine=false but probe succeeded, trying online sync");
+        }
+      } catch {
+        // Probe failed — truly offline
+      }
+
+      if (confirmedOffline) {
+        try {
+          console.log("[saveLead] Device is confirmed offline, saving locally...");
+          saveLocally({ ...lead, synced: false });
+          return { success: true, offline: true };
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          console.error("[saveLead] Offline save failed:", errorMessage);
+          return { success: false, offline: true, error: errorMessage };
+        }
       }
     }
 
@@ -446,10 +464,15 @@ export function useOfflineLeadSync({ vendedorNome }: UseOfflineLeadSyncOptions =
       return { success: true, offline: false };
     }
     
-    // Online save failed - this is a real error, don't silently fall back to offline
-    // The caller should handle this error appropriately
-    console.error("[saveLead] Online save failed:", syncResult.error);
-    return { success: false, offline: false, error: syncResult.error };
+    // Online save failed — save locally as fallback so data is never lost
+    console.error("[saveLead] Online save failed:", syncResult.error, "— saving locally as safety net");
+    try {
+      saveLocally({ ...lead, synced: false });
+      return { success: true, offline: true, error: syncResult.error };
+    } catch (localErr) {
+      console.error("[saveLead] Local fallback also failed:", localErr);
+      return { success: false, offline: false, error: syncResult.error };
+    }
   };
 
   // Auto sync when connection is restored

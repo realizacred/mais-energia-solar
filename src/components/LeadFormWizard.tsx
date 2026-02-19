@@ -875,19 +875,36 @@ export default function LeadFormWizard({ vendorCode }: LeadFormWizardProps = {})
     };
 
     try {
-      // If truly offline, use local save
-      const trulyOffline = !navigator.onLine;
-      if (trulyOffline) {
-        const success = await saveOfflineFallback();
-        if (!success) {
-          toast({
-            title: "Erro ao salvar cadastro",
-            description: "Não foi possível salvar o cadastro localmente.",
-            variant: "destructive",
+      // Only use offline save if we're TRULY offline (double-check with a real probe)
+      if (!navigator.onLine) {
+        // Verify with a lightweight network probe before falling back to offline
+        let confirmedOffline = true;
+        try {
+          const probe = await fetch(`${import.meta.env.VITE_SUPABASE_URL || "https://bguhckqkpnziykpbwbeu.supabase.co"}/rest/v1/`, {
+            method: "HEAD",
+            signal: AbortSignal.timeout(5000),
           });
-          setIsSubmitting(false);
+          if (probe.ok || probe.status === 401 || probe.status === 403) {
+            confirmedOffline = false; // Network is actually working
+            console.log("[LeadFormWizard] navigator.onLine=false but network probe succeeded, continuing online");
+          }
+        } catch {
+          // Probe failed — truly offline
+          console.log("[LeadFormWizard] Network probe failed, confirmed offline");
         }
-        return;
+
+        if (confirmedOffline) {
+          const success = await saveOfflineFallback();
+          if (!success) {
+            toast({
+              title: "Erro ao salvar cadastro",
+              description: "Não foi possível salvar o cadastro localmente.",
+              variant: "destructive",
+            });
+            setIsSubmitting(false);
+          }
+          return;
+        }
       }
 
       // ── PUBLIC FORM (no auth or vendor landing page): use unified server-side Edge Function ──

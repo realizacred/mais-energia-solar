@@ -108,22 +108,10 @@ export default defineConfig(({ mode }) => {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2,webmanifest}"],
         navigateFallback: "/index.html",
         navigateFallbackDenylist: [/^\/api/, /^\/~oauth/],
+        // IMPORTANT: Do NOT cache Supabase REST API or Edge Function responses.
+        // Caching API responses causes stale data issues (leads not appearing after creation).
+        // Only cache static assets (images, storage files).
         runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-api-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24, // 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              networkTimeoutSeconds: 10,
-            },
-          },
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
             handler: "CacheFirst",
