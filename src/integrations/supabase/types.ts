@@ -14822,17 +14822,30 @@ export type Database = {
         }
         Returns: Json
       }
-      start_conversation_by_phone: {
-        Args: {
-          p_instance_preference?: string
-          p_message_optional?: string
-          p_name_optional?: string
-          p_phone_raw: string
-        }
-        Returns: Json
-      }
+      start_conversation_by_phone:
+        | {
+            Args: {
+              p_message_optional?: string
+              p_name_optional?: string
+              p_phone_raw: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_instance_preference?: string
+              p_message_optional?: string
+              p_name_optional?: string
+              p_phone_raw: string
+            }
+            Returns: Json
+          }
       tenant_and_user_active: { Args: never; Returns: boolean }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
+      touch_contact_last_interaction: {
+        Args: { p_at: string; p_phone_e164: string; p_tenant_id: string }
+        Returns: undefined
+      }
       try_followup_lock: { Args: never; Returns: boolean }
       try_outbox_lock:
         | { Args: never; Returns: boolean }
