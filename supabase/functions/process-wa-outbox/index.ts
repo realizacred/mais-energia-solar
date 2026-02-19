@@ -28,6 +28,18 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // ── Ops buffer (best-effort flush at the end) ──
+  const opsBuffer: Array<{
+    tenant_id: string;
+    instance_id: string | null;
+    event_type: string;
+    payload: Record<string, unknown>;
+  }> = [];
+
+  const logOps = (tenantId: string, instanceId: string | null, eventType: string, payload: Record<string, unknown> = {}) => {
+    opsBuffer.push({ tenant_id: tenantId, instance_id: instanceId, event_type: eventType, payload });
+  };
+
   try {
     // ── Step 1: Find all connected instances with pending outbox items ──
     const { data: instances, error: instErr } = await supabase
@@ -54,18 +66,6 @@ Deno.serve(async (req) => {
     let totalSent = 0;
     let totalFailed = 0;
     let totalSkipped = 0;
-
-    // Helper: log ops event (fire-and-forget)
-    const logOps = (tenantId: string, instanceId: string | null, eventType: string, payload: Record<string, unknown> = {}) => {
-      supabase.from("wa_ops_events").insert({
-        tenant_id: tenantId,
-        instance_id: instanceId,
-        event_type: eventType,
-        payload,
-      }).then(({ error }) => {
-        if (error) console.warn(`[ops] Failed to log ${eventType}:`, error.message);
-      });
-    };
 
     // ── Step 2: Process each instance with scoped lock ──
     for (const inst of shuffled) {
@@ -194,11 +194,32 @@ Deno.serve(async (req) => {
 
     console.log(`[process-wa-outbox] Done: ${totalSent} sent, ${totalFailed} failed, ${totalSkipped} instances skipped (locked)`);
 
+    // ── Best-effort flush ops buffer ──
+    if (opsBuffer.length > 0) {
+      try {
+        const { error: flushErr } = await supabase.from("wa_ops_events").insert(opsBuffer);
+        if (flushErr) {
+          console.warn(`[process-wa-outbox] Ops flush partial failure: ${flushErr.message}`);
+        } else {
+          console.log(`[process-wa-outbox] Ops flush OK: ${opsBuffer.length} events`);
+        }
+      } catch (flushEx) {
+        console.warn(`[process-wa-outbox] Ops flush exception: ${flushEx}`);
+      }
+    }
+
     return new Response(
       JSON.stringify({ sent: totalSent, failed: totalFailed, skipped: totalSkipped, instances: shuffled.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    // Even on unhandled error, try to flush whatever ops we collected
+    if (opsBuffer.length > 0) {
+      try {
+        await supabase.from("wa_ops_events").insert(opsBuffer);
+      } catch (_) { /* best-effort */ }
+    }
+
     console.error("[process-wa-outbox] Unhandled error:", err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
