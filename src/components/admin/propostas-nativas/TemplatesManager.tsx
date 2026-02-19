@@ -58,7 +58,71 @@ export function TemplatesManager() {
       .from("proposta_templates")
       .select("id, nome, descricao, grupo, categoria, tipo, template_html, file_url, thumbnail_url, ativo, ordem")
       .order("ordem", { ascending: true });
-    setTemplates((data as PropostaTemplate[]) || []);
+    
+    const all = (data as PropostaTemplate[]) || [];
+    const htmlTemplates = all.filter(t => t.tipo === "html");
+    const hasNewDefaults = htmlTemplates.some(t => 
+      t.nome.includes("Grid") || t.nome.includes("Híbrido") || t.nome.includes("Dual")
+    );
+
+    // Auto-seed: if no new default templates exist, import them
+    if (!hasNewDefaults) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .eq("user_id", user!.id)
+          .single();
+        
+        if (profile?.tenant_id) {
+          // Delete old HTML templates
+          if (htmlTemplates.length > 0) {
+            for (const old of htmlTemplates) {
+              await supabase.from("proposta_templates").delete().eq("id", old.id);
+            }
+          }
+
+          const defaults = [
+            { nome: "Template Grid (On-Grid)", file: "template-grid.json", ordem: 1 },
+            { nome: "Template Híbrido", file: "template-hybrid.json", ordem: 2 },
+            { nome: "Template Dual (Grid + Híbrido)", file: "template-dual.json", ordem: 3 },
+          ];
+
+          for (const def of defaults) {
+            const res = await fetch(`/default-templates/${def.file}`);
+            if (!res.ok) continue;
+            const jsonContent = await res.text();
+            await supabase.from("proposta_templates").insert({
+              nome: def.nome,
+              descricao: `Template padrão`,
+              grupo: "B",
+              categoria: "geral",
+              tipo: "html",
+              template_html: jsonContent,
+              ativo: true,
+              ordem: def.ordem,
+              tenant_id: profile.tenant_id,
+              variaveis_disponiveis: {},
+            } as any);
+          }
+
+          // Re-fetch after seeding
+          const { data: refreshed } = await supabase
+            .from("proposta_templates")
+            .select("id, nome, descricao, grupo, categoria, tipo, template_html, file_url, thumbnail_url, ativo, ordem")
+            .order("ordem", { ascending: true });
+          setTemplates((refreshed as PropostaTemplate[]) || []);
+          setLoading(false);
+          toast({ title: "Templates padrão importados!", description: "3 templates WEB criados automaticamente" });
+          return;
+        }
+      } catch {
+        // silently continue with existing data
+      }
+    }
+
+    setTemplates(all);
     setLoading(false);
   };
 
