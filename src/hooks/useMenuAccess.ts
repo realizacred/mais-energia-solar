@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
+import { useRolePermissions } from "@/hooks/useRolePermissions";
 import { NAV_REGISTRY, type NavPermission } from "@/config/navRegistry";
 import type { SidebarSection, MenuItem } from "@/components/admin/sidebar/sidebarConfig";
 
@@ -11,21 +12,23 @@ const PERMISSION_MAP = new Map<string, NavPermission>(
   NAV_REGISTRY.map((r) => [r.nav_key, r.permission])
 );
 
-function canAccess(itemId: string, isAdmin: boolean): boolean {
+function canAccessByRegistry(itemId: string, isAdmin: boolean): boolean {
   const rule = PERMISSION_MAP.get(itemId) ?? "all";
   if (rule === "all") return true;
   return isAdmin;
 }
 
 /**
- * Filters sidebar sections based on user role.
+ * Filters sidebar sections based on user role + role_permissions table.
  * Returns only sections that have at least one accessible item.
  */
 export function useMenuAccess(sections: SidebarSection[]): SidebarSection[] {
   const { isAdmin, loading } = useUserPermissions();
+  const { canViewModule, hasRolePermissions, loading: rpLoading } = useRolePermissions();
 
   return useMemo(() => {
-    if (loading) {
+    if (loading || rpLoading) {
+      // While loading, show only items with permission "all"
       return sections.map((s) => ({
         ...s,
         items: s.items.filter((item) => (PERMISSION_MAP.get(item.id) ?? "all") === "all"),
@@ -35,10 +38,20 @@ export function useMenuAccess(sections: SidebarSection[]): SidebarSection[] {
     return sections
       .map((section) => ({
         ...section,
-        items: section.items.filter((item) => canAccess(item.id, isAdmin)),
+        items: section.items.filter((item) => {
+          // First check: navRegistry permission (admin_only vs all)
+          if (!canAccessByRegistry(item.id, isAdmin)) return false;
+
+          // Second check: if role_permissions are configured, enforce them
+          if (!isAdmin && hasRolePermissions) {
+            return canViewModule(item.id);
+          }
+
+          return true;
+        }),
       }))
       .filter((section) => section.items.length > 0);
-  }, [sections, isAdmin, loading]);
+  }, [sections, isAdmin, loading, rpLoading, canViewModule, hasRolePermissions]);
 }
 
 /**
@@ -47,5 +60,11 @@ export function useMenuAccess(sections: SidebarSection[]): SidebarSection[] {
  */
 export function useCanAccessItem() {
   const { isAdmin } = useUserPermissions();
-  return (itemId: string) => canAccess(itemId, isAdmin);
+  const { canViewModule, hasRolePermissions } = useRolePermissions();
+
+  return (itemId: string) => {
+    if (!canAccessByRegistry(itemId, isAdmin)) return false;
+    if (!isAdmin && hasRolePermissions) return canViewModule(itemId);
+    return true;
+  };
 }
