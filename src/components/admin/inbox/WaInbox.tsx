@@ -214,6 +214,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
   // Auto-select conversation from initialConversationId (e.g. from Contacts recall)
   const initialConvHandledRef = useRef<string | null>(null);
+  const initialConvRetried = useRef(false);
   useEffect(() => {
     if (
       initialConversationId &&
@@ -224,13 +225,18 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       if (target) {
         setSelectedConv(target);
         initialConvHandledRef.current = initialConversationId;
+        initialConvRetried.current = false;
         // Switch filter to show the conversation regardless of current status filter
         if (target.status !== filterStatus && filterStatus !== "all") {
           setFilterStatus(target.status || "open");
         }
+      } else if (!initialConvRetried.current) {
+        // Conversation not in list yet (just created) — retry once after refetch
+        initialConvRetried.current = true;
+        queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
       }
     }
-  }, [initialConversationId, allConversations]);
+  }, [initialConversationId, allConversations, queryClient]);
 
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   useEffect(() => {

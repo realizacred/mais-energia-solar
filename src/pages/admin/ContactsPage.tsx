@@ -1,5 +1,6 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -438,11 +439,18 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
     setShowRecall(true);
   };
 
+  const navigate = useNavigate();
+
   const handleSuccess = async (conversationId: string) => {
     await queryClient.invalidateQueries({ queryKey: ["contacts"] });
     await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-    // Use callback to switch tab + open conversation (no URL navigation needed)
-    onOpenConversation?.(conversationId);
+    if (onOpenConversation) {
+      // Inside /app PWA — use callback
+      onOpenConversation(conversationId);
+    } else {
+      // Inside admin — navigate to admin inbox with query param
+      navigate(`/admin/inbox?conversation=${conversationId}`);
+    }
   };
 
   return (
