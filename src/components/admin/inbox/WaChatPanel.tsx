@@ -744,7 +744,7 @@ export function WaChatPanel({
       )}
       {isMobileDevice && (
         <Sheet open={showCRMSidebar} onOpenChange={setShowCRMSidebar}>
-          <SheetContent side="right" className="w-[85vw] max-w-sm p-0">
+            <SheetContent side="right" className="w-[85vw] max-w-sm p-0 [&>button.absolute]:hidden">
             <SheetTitle className="sr-only">Dados Comerciais</SheetTitle>
             {showCRMSidebar && (
               <WaCRMSidebar
