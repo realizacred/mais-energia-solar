@@ -582,14 +582,6 @@ export function WaChatPanel({
                 <MessageCircle className="h-3.5 w-3.5" />
                 WhatsApp
               </a>
-              <div className="w-px h-4 bg-border/50" />
-              <button
-                onClick={() => setShowFilesPanel(!showFilesPanel)}
-                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors hover-scale ${showFilesPanel ? "bg-primary/15 text-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
-              >
-                <FileText className="h-3.5 w-3.5" />
-                Arquivos
-              </button>
             </div>
           )}
         </div>
