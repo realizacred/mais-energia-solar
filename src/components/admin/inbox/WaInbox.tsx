@@ -697,15 +697,29 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           </div>
 
           {/* Mobile */}
-          <div className="flex-1 flex flex-col md:hidden min-w-0 max-w-full overflow-x-hidden">
+          <div
+            className="flex-1 flex flex-col md:hidden min-w-0 max-w-full overflow-x-hidden"
+            onTouchStart={(e) => {
+              const t = e.currentTarget;
+              (t as any)._swipeStartX = e.touches[0].clientX;
+              (t as any)._swipeStartY = e.touches[0].clientY;
+            }}
+            onTouchEnd={(e) => {
+              const t = e.currentTarget;
+              const startX = (t as any)._swipeStartX;
+              const startY = (t as any)._swipeStartY;
+              if (startX == null) return;
+              const dx = e.changedTouches[0].clientX - startX;
+              const dy = Math.abs(e.changedTouches[0].clientY - startY);
+              if (dx > 80 && dy < 60 && selectedConv) {
+                setSelectedConv(null);
+              }
+              (t as any)._swipeStartX = null;
+              (t as any)._swipeStartY = null;
+            }}
+          >
             {selectedConv ? (
               <>
-                <button
-                  onClick={() => setSelectedConv(null)}
-                  className="px-3 py-2 text-xs text-primary font-medium text-left border-b border-border/40 hover:bg-muted/30"
-                >
-                  ← Voltar às conversas
-                </button>
                 <WaChatPanel
                   conversation={selectedConv}
                   messages={messages}
