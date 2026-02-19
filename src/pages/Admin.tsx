@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
-import { useNavigate, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useNavigate, Routes, Route, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import { Menu } from "lucide-react";
 import { AdminBreadcrumb } from "@/components/admin/AdminBreadcrumb";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
@@ -119,6 +119,20 @@ const ProposalWizardPage = lazy(() =>
       };
     })
 );
+
+/** Wrapper to read ?conversation= query param for admin inbox */
+function WaInboxWithParams() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [initialId] = React.useState(() => searchParams.get("conversation"));
+
+  React.useEffect(() => {
+    if (searchParams.get("conversation")) {
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
+
+  return <WaInbox initialConversationId={initialId} />;
+}
 
 // Error Boundary to catch runtime crashes in ProposalWizard
 class ProposalWizardErrorBoundary extends React.Component<
@@ -454,7 +468,7 @@ export default function Admin() {
                 <Route path="motivos-perda" element={<MotivoPerdaManager />} />
                 
                 {/* Atendimento */}
-                <Route path="inbox" element={<WaInbox />} />
+                <Route path="inbox" element={<WaInboxWithParams />} />
                 {/* SolarZap routes removed — consolidated into inbox */}
                 <Route path="respostas-rapidas" element={<WaQuickRepliesManager />} />
                 <Route path="followup-wa" element={<WaFollowupRulesManager />} />
