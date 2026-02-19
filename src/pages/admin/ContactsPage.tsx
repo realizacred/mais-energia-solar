@@ -1,5 +1,6 @@
 import { useState, useMemo, lazy, Suspense } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -355,6 +356,7 @@ export default function ContactsPage() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showNew, setShowNew] = useState(false);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const handleRecall = (contact: Contact) => {
     setSelectedContact(contact);
@@ -364,7 +366,7 @@ export default function ContactsPage() {
   const handleSuccess = async (conversationId: string) => {
     await queryClient.invalidateQueries({ queryKey: ["contacts"] });
     await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
-    // Navigate to inbox is handled by the parent/caller if needed
+    navigate(`/app?tab=messages&conversation=${conversationId}`);
   };
 
   return (

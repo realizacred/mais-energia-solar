@@ -40,9 +40,10 @@ interface WaInboxProps {
   vendorMode?: boolean;
   vendorUserId?: string | null;
   showCompactStats?: boolean;
+  initialConversationId?: string | null;
 }
 
-export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = false }: WaInboxProps) {
+export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = false, initialConversationId }: WaInboxProps) {
   // Filters
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("open");
@@ -210,6 +211,26 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
 
     return () => { supabase.removeChannel(channel); };
   }, [followupTenantId, user?.id, toast]);
+
+  // Auto-select conversation from initialConversationId (e.g. from Contacts recall)
+  const initialConvHandledRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (
+      initialConversationId &&
+      initialConversationId !== initialConvHandledRef.current &&
+      allConversations.length > 0
+    ) {
+      const target = allConversations.find((c) => c.id === initialConversationId);
+      if (target) {
+        setSelectedConv(target);
+        initialConvHandledRef.current = initialConversationId;
+        // Switch filter to show the conversation regardless of current status filter
+        if (target.status !== filterStatus && filterStatus !== "all") {
+          setFilterStatus(target.status || "open");
+        }
+      }
+    }
+  }, [initialConversationId, allConversations]);
 
   // Keep selectedConv in sync with query data (e.g. after tag toggle, status change)
   useEffect(() => {

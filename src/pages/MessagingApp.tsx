@@ -1,5 +1,5 @@
-import { useEffect, useState, lazy, Suspense } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState, lazy, Suspense, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { WaInbox } from "@/components/admin/inbox/WaInbox";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
@@ -22,7 +22,26 @@ type Tab = "messages" | "contacts" | "settings";
 export default function MessagingApp() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<Tab>("messages");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    const tab = searchParams.get("tab");
+    return tab === "contacts" || tab === "settings" ? tab : "messages";
+  });
+  const [pendingConversationId, setPendingConversationId] = useState<string | null>(
+    () => searchParams.get("conversation")
+  );
+
+  // When URL params change (e.g. from Contacts navigation), apply them
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    const convId = searchParams.get("conversation");
+    if (tab === "messages" && convId) {
+      setActiveTab("messages");
+      setPendingConversationId(convId);
+      // Clean URL params after consuming
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   // Theme-color for messaging context
   useEffect(() => {
@@ -54,7 +73,7 @@ export default function MessagingApp() {
       {/* Main content */}
       <div className="flex-1 min-h-0">
         {activeTab === "messages" && (
-          <WaInbox vendorMode vendorUserId={user.id} showCompactStats />
+          <WaInbox vendorMode vendorUserId={user.id} showCompactStats initialConversationId={pendingConversationId} />
         )}
         {activeTab === "contacts" && (
           <Suspense fallback={<LoadingSpinner />}>
