@@ -583,7 +583,7 @@ export function WaChatPanel({
           prefillMessage={prefillMessage}
         />
 
-        {/* Accept / Release buttons below composer */}
+        {/* Accept button below composer — only for unassigned conversations */}
         {!conversation.assigned_to && onAccept && (
           <div className="px-3 pb-3 pt-1 border-t border-border/20 bg-card">
             <Button
@@ -596,23 +596,6 @@ export function WaChatPanel({
                 <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" /> Aceitando...</>
               ) : (
                 <><CheckCircle2 className="h-4 w-4" /> Aceitar atendimento</>
-              )}
-            </Button>
-          </div>
-        )}
-        {conversation.assigned_to && conversation.assigned_to === currentUserId && onRelease && (
-          <div className="px-3 pb-3 pt-1 border-t border-border/20 bg-card">
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-full gap-2 border-warning/40 text-warning hover:bg-warning/10 font-medium py-2.5"
-              onClick={onRelease}
-              disabled={isReleasing}
-            >
-              {isReleasing ? (
-                <><span className="h-4 w-4 animate-spin rounded-full border-2 border-warning border-t-transparent" /> Liberando...</>
-              ) : (
-                <><UserMinus className="h-4 w-4" /> Liberar atendimento</>
               )}
             </Button>
           </div>
