@@ -56,6 +56,24 @@ import { WaMessageBubble } from "./WaMessageBubble";
 import { WaAppointmentModal } from "./WaAppointmentModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+function formatPhone(phone: string | null | undefined): string {
+  if (!phone) return "";
+  const digits = phone.replace(/\D/g, "");
+  if (digits.length === 13 && digits.startsWith("55")) {
+    // 55 + DD + 9XXXX-XXXX
+    return `(${digits.slice(2, 4)}) ${digits.slice(4, 9)}-${digits.slice(9)}`;
+  }
+  if (digits.length === 12 && digits.startsWith("55")) {
+    return `(${digits.slice(2, 4)}) ${digits.slice(4, 8)}-${digits.slice(8)}`;
+  }
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+  }
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return phone;
+}
 const WaInternalThread = lazy(() => import("./WaInternalThread").then(m => ({ default: m.WaInternalThread })));
 const WaParticipants = lazy(() => import("./WaParticipants").then(m => ({ default: m.WaParticipants })));
 
@@ -328,7 +346,7 @@ export function WaChatPanel({
   return (
     <div className="flex-1 flex min-w-0 w-full max-w-full overflow-x-hidden">
       <div className="flex-1 flex flex-col min-w-0 w-full max-w-full">
-        {/* Chat Header — Clean layout */}
+        {/* Chat Header */}
         <div className="border-b border-border/30 bg-card shadow-xs">
           <div className="px-3 py-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -346,8 +364,13 @@ export function WaChatPanel({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <h3 className="text-sm font-semibold text-foreground truncate">
-                    {conversation.cliente_nome || conversation.cliente_telefone}
+                    {conversation.cliente_nome || formatPhone(conversation.cliente_telefone)}
                   </h3>
+                  {conversation.cliente_nome && (
+                    <span className="text-[11px] text-muted-foreground shrink-0">
+                      {formatPhone(conversation.cliente_telefone)}
+                    </span>
+                  )}
                   {(() => {
                     const ds = deriveConversationStatus(conversation);
                     const cfg = ds ? DERIVED_STATUS_CONFIG[ds] : null;
@@ -358,16 +381,15 @@ export function WaChatPanel({
                   })()}
                 </div>
                 <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
-                  <span className="truncate max-w-[100px]">{conversation.cliente_telefone}</span>
                   {assignedConsultor && (
-                    <span className="text-muted-foreground/60">· {assignedConsultor.nome}</span>
+                    <span className="truncate max-w-[100px]">{assignedConsultor.nome}</span>
                   )}
                   {conversation.lead_id && (
                     <button
                       onClick={() => setShowLeadInfo(true)}
                       className="text-primary/70 hover:text-primary transition-colors truncate max-w-[80px]"
                     >
-                      · {conversation.lead_nome || "Lead"}
+                      {assignedConsultor ? "· " : ""}{conversation.lead_nome || "Lead"}
                     </button>
                   )}
                 </div>
@@ -389,23 +411,58 @@ export function WaChatPanel({
                   )}
                 </Button>
               )}
-              {conversation.assigned_to === currentUserId && onRelease && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-7 gap-1 text-xs border-warning/40 text-warning hover:bg-warning/10 px-2"
-                  onClick={onRelease}
-                  disabled={isReleasing}
-                >
-                  <UserMinus className="h-3.5 w-3.5" />
-                </Button>
-              )}
+
+              {/* Quick access icons — most used actions outside dropdown */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant={showNotesPanel ? "default" : "ghost"}
+                    className={`h-7 w-7 relative ${showNotesPanel ? "bg-warning/15 text-warning" : ""}`}
+                    onClick={() => setShowNotesPanel(!showNotesPanel)}
+                  >
+                    <StickyNote className="h-3.5 w-3.5" />
+                    {messages.filter(m => m.is_internal_note).length > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 h-3.5 min-w-3.5 flex items-center justify-center rounded-full bg-warning text-warning-foreground text-[8px] font-bold">
+                        {messages.filter(m => m.is_internal_note).length}
+                      </span>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Notas</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant={showAISidebar ? "default" : "ghost"}
+                    className={`h-7 w-7 ${showAISidebar ? "bg-accent/20 text-accent-foreground" : ""}`}
+                    onClick={() => { setShowAISidebar(!showAISidebar); if (!showAISidebar) setShowCRMSidebar(false); }}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>IA</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant={showCRMSidebar ? "default" : "ghost"}
+                    className={`h-7 w-7 ${showCRMSidebar ? "bg-primary/10 text-primary" : ""}`}
+                    onClick={() => { setShowCRMSidebar(!showCRMSidebar); if (!showCRMSidebar) setShowAISidebar(false); }}
+                  >
+                    {showCRMSidebar ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>CRM</TooltipContent>
+              </Tooltip>
 
               {conversation.status !== "resolved" ? (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onResolve}>
-                      <CheckCircle2 className="h-4 w-4 text-success" />
+                      <CheckCircle2 className="h-3.5 w-3.5 text-success" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Resolver</TooltipContent>
@@ -414,7 +471,7 @@ export function WaChatPanel({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={onReopen}>
-                      <RefreshCw className="h-4 w-4" />
+                      <RefreshCw className="h-3.5 w-3.5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Reabrir</TooltipContent>
@@ -436,27 +493,15 @@ export function WaChatPanel({
                     <User className="h-4 w-4 mr-2" />
                     Atribuir
                   </DropdownMenuItem>
+                  {conversation.assigned_to === currentUserId && onRelease && (
+                    <DropdownMenuItem onClick={onRelease} disabled={isReleasing}>
+                      <UserMinus className="h-4 w-4 mr-2" />
+                      Liberar atendimento
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={onOpenTags}>
                     <Tag className="h-4 w-4 mr-2" />
                     Tags
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowNotesPanel(!showNotesPanel)}>
-                    <StickyNote className="h-4 w-4 mr-2" />
-                    Notas Internas
-                    {messages.filter(m => m.is_internal_note).length > 0 && (
-                      <Badge variant="secondary" className="ml-auto text-[9px] px-1.5 py-0">
-                        {messages.filter(m => m.is_internal_note).length}
-                      </Badge>
-                    )}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setShowAISidebar(!showAISidebar); if (!showAISidebar) setShowCRMSidebar(false); }}>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Assistente IA
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { setShowCRMSidebar(!showCRMSidebar); if (!showCRMSidebar) setShowAISidebar(false); }}>
-                    {showCRMSidebar ? <PanelRightClose className="h-4 w-4 mr-2" /> : <PanelRightOpen className="h-4 w-4 mr-2" />}
-                    Dados Comerciais
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={onLinkLead}>
