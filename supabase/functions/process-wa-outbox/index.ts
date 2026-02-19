@@ -27,7 +27,20 @@ Deno.serve(async (req) => {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
+  // ── P0: Advisory lock to prevent concurrent processing ──
+  let lockAcquired = false;
   try {
+    const { data: lockResult } = await supabase.rpc("try_outbox_lock");
+    lockAcquired = lockResult === true;
+
+    if (!lockAcquired) {
+      console.log("[METRIC] outbox_lock_skipped");
+      return new Response(
+        JSON.stringify({ sent: 0, skipped: "locked" }),
+        { status: 202, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Fetch pending outbox items
     const { data: items, error: fetchError } = await supabase
       .from("wa_outbox")
@@ -56,11 +69,20 @@ Deno.serve(async (req) => {
 
     for (const item of items) {
       try {
-        // Mark as sending
-        await supabase
+        // Mark as sending (atomic claim)
+        const { data: claimed, error: claimErr } = await supabase
           .from("wa_outbox")
           .update({ status: "sending" })
-          .eq("id", item.id);
+          .eq("id", item.id)
+          .eq("status", "pending")
+          .select("id")
+          .maybeSingle();
+
+        // Skip if already claimed by another worker (race condition guard)
+        if (!claimed || claimErr) {
+          console.log(`[process-wa-outbox] Item ${item.id} already claimed, skipping`);
+          continue;
+        }
 
         const instance = item.wa_instances;
         
@@ -138,6 +160,15 @@ Deno.serve(async (req) => {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
+  } finally {
+    // P0: Always release lock
+    if (lockAcquired) {
+      try {
+        await supabase.rpc("release_outbox_lock");
+      } catch (e) {
+        console.warn("[process-wa-outbox] Failed to release lock:", e);
+      }
+    }
   }
 });
 

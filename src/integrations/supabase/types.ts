@@ -13131,6 +13131,7 @@ export type Database = {
           created_at: string
           error_message: string | null
           id: string
+          idempotency_key: string | null
           instance_id: string
           max_retries: number
           media_url: string | null
@@ -13150,6 +13151,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          idempotency_key?: string | null
           instance_id: string
           max_retries?: number
           media_url?: string | null
@@ -13169,6 +13171,7 @@ export type Database = {
           created_at?: string
           error_message?: string | null
           id?: string
+          idempotency_key?: string | null
           instance_id?: string
           max_retries?: number
           media_url?: string | null
@@ -13579,6 +13582,7 @@ export type Database = {
         Row: {
           conversation_id: string
           created_at: string
+          created_by: string | null
           from_user_id: string | null
           id: string
           reason: string | null
@@ -13588,6 +13592,7 @@ export type Database = {
         Insert: {
           conversation_id: string
           created_at?: string
+          created_by?: string | null
           from_user_id?: string | null
           id?: string
           reason?: string | null
@@ -13597,6 +13602,7 @@ export type Database = {
         Update: {
           conversation_id?: string
           created_at?: string
+          created_by?: string | null
           from_user_id?: string | null
           id?: string
           reason?: string | null
@@ -14438,6 +14444,7 @@ export type Database = {
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
       release_followup_lock: { Args: never; Returns: undefined }
+      release_outbox_lock: { Args: never; Returns: undefined }
       release_webhook_lock: { Args: never; Returns: undefined }
       reorder_pipeline_stages: {
         Args: { _ordered_ids: string[]; _pipeline_id: string }
@@ -14473,9 +14480,20 @@ export type Database = {
           status: string
         }[]
       }
+      rpc_transfer_conversation: {
+        Args: {
+          p_conversation_id: string
+          p_generate_summary?: boolean
+          p_reason?: string
+          p_summary_msg_count?: number
+          p_to_user_id: string
+        }
+        Returns: Json
+      }
       tenant_and_user_active: { Args: never; Returns: boolean }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
       try_followup_lock: { Args: never; Returns: boolean }
+      try_outbox_lock: { Args: never; Returns: boolean }
       try_webhook_lock: { Args: never; Returns: boolean }
       update_parcelas_atrasadas: { Args: never; Returns: undefined }
       user_belongs_to_tenant: { Args: { _tenant_id: string }; Returns: boolean }
