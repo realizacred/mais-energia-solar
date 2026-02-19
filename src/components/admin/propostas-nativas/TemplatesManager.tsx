@@ -3,7 +3,6 @@ import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2,
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +39,6 @@ export function TemplatesManager() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<PropostaTemplate>>({});
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [tipoTab, setTipoTab] = useState<"html" | "docx">("html");
   const [previewTemplate, setPreviewTemplate] = useState<PropostaTemplate | null>(null);
@@ -292,7 +290,7 @@ export function TemplatesManager() {
                 <div>
                   <Label className="text-xs font-medium">Tipo</Label>
                   <div className="h-9 flex items-center px-3 rounded-md border border-border/40 bg-muted/30 text-sm font-medium text-muted-foreground">
-                    {form.tipo === "docx" ? "📄 DOCX (Word)" : "🌐 HTML (Web)"}
+                    {form.tipo === "docx" ? "📄 DOCX (Word)" : "🎨 WEB (Editor Visual)"}
                   </div>
                 </div>
                 <div>
@@ -303,14 +301,13 @@ export function TemplatesManager() {
               </div>
             </div>
 
-            {/* Conteúdo */}
-            <div className="rounded-xl border-2 border-secondary/30 bg-secondary/5 p-4 space-y-3">
-              <p className="text-sm font-semibold flex items-center gap-2">
-                {isDocx ? <Upload className="h-4 w-4 text-secondary" /> : <Globe className="h-4 w-4 text-secondary" />}
-                {isDocx ? "Arquivo DOCX" : "Conteúdo HTML"}
-              </p>
-
-              {isDocx ? (
+            {/* Conteúdo — only for DOCX */}
+            {isDocx && (
+              <div className="rounded-xl border-2 border-secondary/30 bg-secondary/5 p-4 space-y-3">
+                <p className="text-sm font-semibold flex items-center gap-2">
+                  <Upload className="h-4 w-4 text-secondary" />
+                  Arquivo DOCX
+                </p>
                 <div className="space-y-2">
                   <div className="flex items-center gap-3">
                     <input
@@ -357,16 +354,19 @@ export function TemplatesManager() {
                     <code className="text-secondary bg-secondary/10 px-1 rounded">{"{{grupo.campo}}"}</code> dentro do DOCX
                   </p>
                 </div>
-              ) : (
-                <div>
-                  <Textarea value={form.template_html || ""} onChange={e => setForm(f => ({ ...f, template_html: e.target.value }))}
-                    placeholder="<html>...</html>" className="min-h-[180px] text-xs font-mono bg-background" />
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    Use placeholders como {"{{cliente.nome}}"}, {"{{financeiro.valor_total}}"} etc.
-                  </p>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* For WEB templates: hint to use Visual Builder */}
+            {!isDocx && (
+              <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 text-center space-y-2">
+                <Paintbrush className="h-6 w-6 text-primary mx-auto" />
+                <p className="text-sm font-medium text-foreground">Conteúdo editado via Editor Visual</p>
+                <p className="text-xs text-muted-foreground">
+                  Após salvar os dados básicos, use o botão <strong>"Editar Visual"</strong> na lista para abrir o editor drag & drop.
+                </p>
+              </div>
+            )}
 
             {/* Opções */}
             <div className="flex items-center gap-4">
@@ -374,11 +374,6 @@ export function TemplatesManager() {
                 <Switch checked={form.ativo ?? true} onCheckedChange={v => setForm(f => ({ ...f, ativo: v }))} />
                 <Label className="text-xs font-medium">Ativo</Label>
               </div>
-              {!isDocx && form.template_html && (
-                <Button variant="outline" size="sm" className="gap-1 text-xs" onClick={() => setPreviewHtml(form.template_html || null)}>
-                  <Eye className="h-3 w-3" /> Preview
-                </Button>
-              )}
             </div>
           </div>
 
@@ -389,20 +384,6 @@ export function TemplatesManager() {
         </DialogContent>
       </Dialog>
 
-      {/* Preview */}
-      {previewHtml && (
-        <Card>
-          <CardContent className="pt-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm font-medium">Preview</p>
-              <Button variant="ghost" size="sm" onClick={() => setPreviewHtml(null)}><X className="h-3 w-3" /></Button>
-            </div>
-            <div className="border rounded-xl overflow-hidden bg-white" style={{ maxHeight: 400, overflow: "auto" }}>
-              <iframe srcDoc={previewHtml} title="Template Preview" className="w-full border-0" style={{ height: 500, pointerEvents: "none" }} />
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* List */}
       {loading ? (
