@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2, Globe, FileDown } from "lucide-react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { Plus, Trash2, Edit2, Save, X, FileText, Eye, Upload, Download, Loader2, Globe, FileDown, Paintbrush } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TemplatePreviewDialog } from "./TemplatePreviewDialog";
+import { ProposalBuilderEditor } from "@/components/admin/proposal-builder";
+import type { TemplateBlock } from "@/components/admin/proposal-builder";
 
 interface PropostaTemplate {
   id: string;
@@ -42,6 +44,7 @@ export function TemplatesManager() {
   const [uploading, setUploading] = useState(false);
   const [tipoTab, setTipoTab] = useState<"html" | "docx">("html");
   const [previewTemplate, setPreviewTemplate] = useState<PropostaTemplate | null>(null);
+  const [builderTemplate, setBuilderTemplate] = useState<PropostaTemplate | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredTemplates = useMemo(
@@ -193,6 +196,16 @@ export function TemplatesManager() {
     toast({ title: "Template excluído" });
     loadTemplates();
   };
+
+  const handleBuilderSave = useCallback(async (jsonData: string) => {
+    if (!builderTemplate) return;
+    const { error } = await supabase
+      .from("proposta_templates")
+      .update({ template_html: jsonData } as any)
+      .eq("id", builderTemplate.id);
+    if (error) throw error;
+    loadTemplates();
+  }, [builderTemplate]);
 
   const isDocx = form.tipo === "docx";
   const dialogOpen = editingId !== null;
@@ -430,6 +443,17 @@ export function TemplatesManager() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1">
+                    {t.tipo === "html" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-primary"
+                        onClick={() => setBuilderTemplate(t)}
+                        title="Editar Visual (Drag & Drop)"
+                      >
+                        <Paintbrush className="h-3 w-3" />
+                      </Button>
+                    )}
                     {((t.tipo === "html" && t.template_html) || (t.tipo === "docx" && t.file_url)) && (
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-secondary" onClick={() => setPreviewTemplate(t)} title="Preview com dados reais">
                         <Eye className="h-3 w-3" />
@@ -466,6 +490,23 @@ export function TemplatesManager() {
           templateId={previewTemplate.id}
           templateTipo={previewTemplate.tipo as "html" | "docx"}
           fileUrl={previewTemplate.file_url}
+        />
+      )}
+
+      {/* Visual Builder Overlay */}
+      {builderTemplate && (
+        <ProposalBuilderEditor
+          initialData={(() => {
+            try {
+              const parsed = JSON.parse(builderTemplate.template_html || "[]");
+              return Array.isArray(parsed) ? parsed as TemplateBlock[] : [];
+            } catch {
+              return [];
+            }
+          })()}
+          templateName={builderTemplate.nome}
+          onSave={handleBuilderSave}
+          onClose={() => setBuilderTemplate(null)}
         />
       )}
     </div>
