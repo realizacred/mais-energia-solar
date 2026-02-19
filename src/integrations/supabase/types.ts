@@ -1915,6 +1915,7 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          last_interaction_at: string | null
           linked_cliente_id: string | null
           name: string | null
           phone_e164: string
@@ -1926,6 +1927,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_interaction_at?: string | null
           linked_cliente_id?: string | null
           name?: string | null
           phone_e164: string
@@ -1937,6 +1939,7 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_interaction_at?: string | null
           linked_cliente_id?: string | null
           name?: string | null
           phone_e164?: string
@@ -14799,6 +14802,15 @@ export type Database = {
           slug: string
           status: string
         }[]
+      }
+      rpc_recall_or_start_conversation: {
+        Args: {
+          p_instance_preference?: string
+          p_message_optional?: string
+          p_name_optional?: string
+          p_phone_raw: string
+        }
+        Returns: Json
       }
       rpc_transfer_conversation: {
         Args: {
