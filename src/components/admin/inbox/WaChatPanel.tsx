@@ -437,6 +437,36 @@ export function WaChatPanel({
                 </Button>
               )}
 
+              {/* Bell: unanswered incoming messages */}
+              {(() => {
+                const unanswered = (() => {
+                  let count = 0;
+                  for (let i = visibleMessages.length - 1; i >= 0; i--) {
+                    if (visibleMessages[i].direction === "out" && !visibleMessages[i].is_internal_note) break;
+                    if (visibleMessages[i].direction === "in") count++;
+                  }
+                  return count;
+                })();
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className={`h-7 w-7 relative ${unanswered > 0 ? "text-destructive" : ""}`}
+                      >
+                        <Bell className="h-3.5 w-3.5" />
+                        {unanswered > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5 h-3.5 min-w-3.5 flex items-center justify-center rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold">
+                            {unanswered}
+                          </span>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>{unanswered > 0 ? `${unanswered} sem resposta` : "Tudo respondido"}</TooltipContent>
+                  </Tooltip>
+                );
+              })()}
               {/* Quick access icons — most used actions outside dropdown */}
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -542,12 +572,6 @@ export function WaChatPanel({
                     Participantes
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  {onToggleMute && (
-                    <DropdownMenuItem onClick={onToggleMute}>
-                      {isMuted ? <Bell className="h-4 w-4 mr-2" /> : <BellOff className="h-4 w-4 mr-2" />}
-                      {isMuted ? "Ativar notificações" : "Silenciar conversa"}
-                    </DropdownMenuItem>
-                  )}
                   {onToggleHide && (
                     <DropdownMenuItem onClick={onToggleHide}>
                       {isHidden ? <Eye className="h-4 w-4 mr-2" /> : <EyeOff className="h-4 w-4 mr-2" />}
