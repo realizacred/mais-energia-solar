@@ -13129,6 +13129,8 @@ export type Database = {
           content: string | null
           conversation_id: string | null
           created_at: string
+          delivered_at: string | null
+          delivery_status: string | null
           error_message: string | null
           id: string
           idempotency_key: string | null
@@ -13137,6 +13139,7 @@ export type Database = {
           media_url: string | null
           message_id: string | null
           message_type: string
+          read_at: string | null
           remote_jid: string
           remote_jid_canonical: string | null
           retry_count: number
@@ -13150,6 +13153,8 @@ export type Database = {
           content?: string | null
           conversation_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
           error_message?: string | null
           id?: string
           idempotency_key?: string | null
@@ -13158,6 +13163,7 @@ export type Database = {
           media_url?: string | null
           message_id?: string | null
           message_type?: string
+          read_at?: string | null
           remote_jid: string
           remote_jid_canonical?: string | null
           retry_count?: number
@@ -13171,6 +13177,8 @@ export type Database = {
           content?: string | null
           conversation_id?: string | null
           created_at?: string
+          delivered_at?: string | null
+          delivery_status?: string | null
           error_message?: string | null
           id?: string
           idempotency_key?: string | null
@@ -13179,6 +13187,7 @@ export type Database = {
           media_url?: string | null
           message_id?: string | null
           message_type?: string
+          read_at?: string | null
           remote_jid?: string
           remote_jid_canonical?: string | null
           retry_count?: number
@@ -14031,6 +14040,22 @@ export type Database = {
       enforce_limit_or_throw: {
         Args: { _delta?: number; _metric_key: string }
         Returns: undefined
+      }
+      enqueue_wa_outbox_item: {
+        Args: {
+          p_content?: string
+          p_conversation_id?: string
+          p_idempotency_key?: string
+          p_instance_id: string
+          p_media_url?: string
+          p_message_id?: string
+          p_message_type?: string
+          p_remote_jid: string
+          p_scheduled_at?: string
+          p_status?: string
+          p_tenant_id: string
+        }
+        Returns: string
       }
       expire_proposals: { Args: never; Returns: undefined }
       find_leads_by_phone: {

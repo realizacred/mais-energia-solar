@@ -439,22 +439,20 @@ Deno.serve(async (req) => {
               if (!outboxPhone.startsWith("55")) outboxPhone = `55${outboxPhone}`;
               const remoteJid = `${outboxPhone}@s.whatsapp.net`;
 
-              // Insert into wa_outbox with scheduled_at in the future + idempotency
+              // Insert via canonical RPC with stable idempotency key
               const idempKey = lead_id
-                ? `scheduled_${tenantIdResolved}_${lead_id}_${scheduledAt.getTime()}`
-                : `scheduled_${tenantIdResolved}_${remoteJid}_${scheduledAt.getTime()}`;
-              const { error: outboxErr } = await supabaseAdmin
-                .from("wa_outbox")
-                .insert({
-                  tenant_id: tenantIdResolved,
-                  instance_id: resolvedInstance.id,
-                  remote_jid: remoteJid,
-                  message_type: "text",
-                  content: mensagem,
-                  status: "pending",
-                  scheduled_at: scheduledAt.toISOString(),
-                  idempotency_key: idempKey,
-                });
+                ? `lead_auto_schedule:${tenantIdResolved}:${lead_id}`
+                : `auto_schedule:${tenantIdResolved}:${remoteJid}`;
+              const { error: outboxErr } = await supabaseAdmin.rpc("enqueue_wa_outbox_item", {
+                p_tenant_id: tenantIdResolved,
+                p_instance_id: resolvedInstance.id,
+                p_remote_jid: remoteJid,
+                p_message_type: "text",
+                p_content: mensagem,
+                p_scheduled_at: scheduledAt.toISOString(),
+                p_idempotency_key: idempKey,
+                p_status: "pending",
+              });
 
               if (outboxErr) {
                 console.error("[send-wa] Failed to queue scheduled message:", outboxErr);

@@ -500,20 +500,19 @@ async function handleMessageUpsert(
           }).select("id").single();
 
           if (outMsg) {
-            const idempKey = `auto_reply_${tenantId}_${conversationId}_${outMsg.id}`;
-            await supabase.from("wa_outbox").insert({
-              instance_id: instanceId,
-              conversation_id: conversationId,
-              message_id: outMsg.id,
-              remote_jid: remoteJid,
-              message_type: "text",
-              content: replyMsg,
-              status: "pending",
-              tenant_id: tenantId,
-              idempotency_key: idempKey,
+            const idempKey = `auto_reply:${tenantId}:${conversationId}:${outMsg.id}`;
+            await supabase.rpc("enqueue_wa_outbox_item", {
+              p_tenant_id: tenantId,
+              p_instance_id: instanceId,
+              p_remote_jid: remoteJid,
+              p_message_type: "text",
+              p_content: replyMsg,
+              p_conversation_id: conversationId,
+              p_message_id: outMsg.id,
+              p_idempotency_key: idempKey,
             });
 
-            console.log(`[process-webhook-events] Auto-reply sent for new conversation ${conversationId}`);
+            console.log(`[process-webhook-events] Auto-reply queued for conversation ${conversationId}`);
 
             // Fire-and-forget outbox processing
             try {

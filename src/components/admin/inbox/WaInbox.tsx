@@ -445,17 +445,17 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           .single();
 
         if (msg) {
-          // Queue for sending with deterministic idempotency key
+          // Queue via canonical RPC
           const idempKey = `satisfaction_${selectedConv.id}_${msg.id}`;
-          await supabase.from("wa_outbox").insert({
-            instance_id: conv.instance_id,
-            conversation_id: selectedConv.id,
-            message_id: msg.id,
-            remote_jid: conv.remote_jid,
-            message_type: "text",
-            content: surveyMessage,
-            status: "pending",
-            idempotency_key: idempKey,
+          await supabase.rpc("enqueue_wa_outbox_item", {
+            p_tenant_id: conv.tenant_id,
+            p_instance_id: conv.instance_id,
+            p_remote_jid: conv.remote_jid,
+            p_message_type: "text",
+            p_content: surveyMessage,
+            p_conversation_id: selectedConv.id,
+            p_message_id: msg.id,
+            p_idempotency_key: idempKey,
           });
 
           // Create satisfaction record

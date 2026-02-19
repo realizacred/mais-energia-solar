@@ -67,19 +67,29 @@ export function WaForwardDialog({ open, onOpenChange, message, currentConversati
         .single();
 
       if (msg) {
-        // Queue to outbox with deterministic idempotency key
+        // Resolve tenant_id from user profile
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .eq("id", user?.id)
+          .single();
+        const tenantId = profile?.tenant_id;
+
+        // Queue via canonical RPC
         const idempKey = `forward_${message.id}_${targetConv.id}_${msg.id}`;
-        await supabase.from("wa_outbox").insert({
-          instance_id: targetConv.instance_id,
-          conversation_id: targetConv.id,
-          message_id: msg.id,
-          remote_jid: targetConv.remote_jid,
-          message_type: message.message_type,
-          content: forwardedContent,
-          media_url: message.media_url || null,
-          status: "pending",
-          idempotency_key: idempKey,
-        });
+        if (tenantId) {
+          await supabase.rpc("enqueue_wa_outbox_item", {
+            p_tenant_id: tenantId,
+            p_instance_id: targetConv.instance_id,
+            p_remote_jid: targetConv.remote_jid,
+            p_message_type: message.message_type,
+            p_content: forwardedContent,
+            p_media_url: message.media_url || null,
+            p_conversation_id: targetConv.id,
+            p_message_id: msg.id,
+            p_idempotency_key: idempKey,
+          });
+        }
 
         // Update conversation preview
         await supabase
