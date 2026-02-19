@@ -458,11 +458,11 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
   return (
     <div className="h-[calc(100dvh-56px)] flex flex-col">
       {/* Segment tabs */}
-      <Tabs defaultValue="team" className="flex flex-col h-full">
+      <Tabs defaultValue="clients" className="flex flex-col h-full">
         <div className="shrink-0 border-b border-border/40 px-3 pt-2">
           <TabsList className="w-full grid grid-cols-2 h-9">
-            <TabsTrigger value="team" className="text-xs">🏢 Equipe</TabsTrigger>
             <TabsTrigger value="clients" className="text-xs">👤 Clientes</TabsTrigger>
+            <TabsTrigger value="team" className="text-xs">🏢 Equipe</TabsTrigger>
           </TabsList>
         </div>
 
