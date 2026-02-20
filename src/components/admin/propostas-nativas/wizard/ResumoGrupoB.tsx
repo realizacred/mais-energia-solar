@@ -1,8 +1,9 @@
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Info, Zap, ShieldCheck, ShieldAlert } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, HelpCircle, Info, Zap, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { calcGrupoB, type CalcGrupoBInput, type RegraGD, type TipoFase, type TariffComponentes, type CustoDisponibilidade, type NivelPrecisao } from "@/lib/calcGrupoB";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface ResumoGrupoBProps {
@@ -15,6 +16,36 @@ interface ResumoGrupoBProps {
   ano?: number;
   className?: string;
 }
+
+// ── Tooltip helpers ──────────────────────────────────────────────────────────
+
+function AuditTooltip({ children, content }: { children: React.ReactNode; content: React.ReactNode }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <span className="inline-flex items-center gap-0.5 cursor-help">{children}<Info className="w-3 h-3 text-muted-foreground/60" /></span>
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">{content}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function HelpTooltip({ text }: { text: string }) {
+  return (
+    <TooltipProvider delayDuration={200}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <HelpCircle className="w-3 h-3 text-muted-foreground/50 cursor-help inline ml-0.5" />
+        </TooltipTrigger>
+        <TooltipContent side="top" className="max-w-xs text-xs">{text}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+// ── Sub-components ───────────────────────────────────────────────────────────
 
 function OrigemBadge({ origem }: { origem?: string }) {
   if (!origem) return null;
@@ -30,24 +61,31 @@ function OrigemBadge({ origem }: { origem?: string }) {
 function PrecisaoBadge({ precisao, motivo }: { precisao: NivelPrecisao; motivo: string }) {
   if (precisao === 'exato') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success" title={motivo}>
-        <ShieldCheck className="w-3 h-3" />
-        EXATO
-      </span>
+      <AuditTooltip content={motivo}>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">
+          <ShieldCheck className="w-3 h-3" />
+          EXATO
+        </span>
+      </AuditTooltip>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning" title={motivo}>
-      <ShieldAlert className="w-3 h-3" />
-      ESTIMADO
-    </span>
+    <AuditTooltip content={motivo}>
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">
+        <ShieldAlert className="w-3 h-3" />
+        ESTIMADO
+      </span>
+    </AuditTooltip>
   );
 }
 
-function CalcRow({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
+function CalcRow({ label, value, sub, highlight, help }: { label: string; value: string; sub?: string; highlight?: boolean; help?: string }) {
   return (
     <div className={cn("flex items-start justify-between py-2 border-b border-border/40 last:border-0 gap-2", highlight && "font-semibold")}>
-      <span className={cn("text-xs text-muted-foreground", highlight && "text-foreground")}>{label}</span>
+      <span className={cn("text-xs text-muted-foreground flex items-center", highlight && "text-foreground")}>
+        {label}
+        {help && <HelpTooltip text={help} />}
+      </span>
       <div className="text-right">
         <span className={cn("text-xs tabular-nums", highlight && "text-primary")}>{value}</span>
         {sub && <div className="text-[10px] text-muted-foreground">{sub}</div>}
@@ -61,6 +99,8 @@ const REGRA_LABEL: Record<RegraGD, string> = {
   GD_II: "GD II — Lei 14.300",
   GD_III: "GD III — Alta tensão",
 };
+
+// ── Main component ───────────────────────────────────────────────────────────
 
 export function ResumoGrupoB({
   geracaoMensalKwh,
@@ -87,6 +127,9 @@ export function ResumoGrupoB({
   const hasAlertas = result.alertas.length > 0;
   const fmtKwh = (v: number) => `${v.toFixed(1)} kWh/mês`;
   const fmtRS = (v: number) => `R$ ${v.toFixed(2)}/mês`;
+  const fioBPctLabel = result.fio_b_percent_cobrado != null
+    ? `${Math.round((1 - result.fio_b_percent_cobrado) * 100)}%`
+    : "N/A";
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className={cn("rounded-lg border border-border/50 bg-card", className)}>
@@ -97,6 +140,12 @@ export function ResumoGrupoB({
             <span className="text-sm font-medium">Resumo do Cálculo GD</span>
             <Badge variant="secondary" className="text-xs">{REGRA_LABEL[regra]}</Badge>
             <PrecisaoBadge precisao={result.precisao} motivo={result.precisao_motivo} />
+            {result.regra_nao_modelada && (
+              <Badge variant="outline" className="text-xs text-destructive border-destructive/40 bg-destructive/10">
+                <AlertTriangle className="w-3 h-3 mr-1" />
+                Regra 2029+ não modelada
+              </Badge>
+            )}
             {result.incompleto_gd3 && (
               <Badge variant="outline" className="text-xs text-warning border-warning/40 bg-warning/10">
                 <AlertTriangle className="w-3 h-3 mr-1" />
@@ -113,6 +162,17 @@ export function ResumoGrupoB({
 
       <CollapsibleContent>
         <div className="px-3 pb-3 space-y-3">
+          {/* Regra não modelada warning */}
+          {result.regra_nao_modelada && (
+            <div className="p-2.5 rounded-md bg-destructive/5 border border-destructive/20 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-destructive">Ano {ano} — regra GD II pós-2028 não modelada.</strong>{" "}
+                O cálculo usa fallback conservador (90% cobrado). Confirme os valores antes de gerar proposta.
+              </p>
+            </div>
+          )}
+
           {/* Precision microcopy */}
           {result.precisao === 'estimado' && (
             <div className="p-2.5 rounded-md bg-warning/5 border border-warning/20 flex items-start gap-2">
@@ -131,15 +191,22 @@ export function ResumoGrupoB({
             </div>
           )}
 
-          {/* Tariff origin */}
+          {/* Tariff origin with audit tooltip */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground pb-1 border-b border-border/40">
-            <Info className="w-3.5 h-3.5" />
-            <span>Tarifa:</span>
+            <AuditTooltip content={
+              <div className="space-y-1">
+                <div><strong>Fonte:</strong> {result.origem_tariff}</div>
+                {result.vigencia_tariff && <div><strong>Vigência:</strong> {result.vigencia_tariff}</div>}
+                <div><strong>Precisão:</strong> {result.precisao === 'exato' ? 'EXATO (Fio B real)' : 'ESTIMADO (TUSD proxy)'}</div>
+              </div>
+            }>
+              <span>Tarifa:</span>
+            </AuditTooltip>
             <OrigemBadge origem={result.origem_tariff} />
             {result.vigencia_tariff && (
               <span>· vigência {result.vigencia_tariff}</span>
             )}
-            <span className="ml-auto font-mono">2026 · {regra.replace("_", " ")}</span>
+            <span className="ml-auto font-mono">{ano} · {regra.replace("_", " ")}</span>
           </div>
 
           {/* Cálculo passo a passo */}
@@ -152,10 +219,12 @@ export function ResumoGrupoB({
               label={`Custo de disponibilidade (${fase})`}
               value={`− ${result.custo_disponibilidade_kwh} kWh`}
               sub="mínimo cobrado pela distribuidora"
+              help="Custo de disponibilidade: mínimo cobrado pela distribuidora mesmo com sistema solar instalado."
             />
             <CalcRow
               label="Consumo compensável"
               value={fmtKwh(result.consumo_compensavel_kwh)}
+              help="Energia compensável = consumo − custo de disponibilidade."
             />
             <CalcRow
               label="Geração mensal"
@@ -165,25 +234,49 @@ export function ResumoGrupoB({
               label="Energia compensada"
               value={fmtKwh(result.energia_compensada_kwh)}
               sub={result.energia_compensada_kwh < result.geracao_kwh ? "limitada ao consumo compensável" : "geração totalmente compensada"}
+              help="Energia compensada = menor entre geração e consumo compensável."
             />
           </div>
 
           {/* Composição do crédito */}
           <div className="rounded-md bg-muted/40 p-2.5 space-y-1">
-            <div className="text-xs font-medium text-foreground mb-2">Composição do crédito (R$/kWh)</div>
+            <div className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
+              Composição do crédito (R$/kWh)
+              <HelpTooltip text={
+                regra === "GD_II"
+                  ? `GD II ${ano}: ${result.fio_b_percent_cobrado != null ? Math.round(result.fio_b_percent_cobrado * 100) : '?'}% do Fio B é cobrado → ${fioBPctLabel} vira crédito.`
+                  : regra === "GD_III"
+                  ? "GD III: TE + 100% Fio B + 40% Fio A + TFSEE + P&D."
+                  : "GD I: compensação integral de TE + Fio B."
+              } />
+            </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">TE (Tarifa de Energia)</span>
+              <AuditTooltip content={
+                <div className="space-y-1">
+                  <div><strong>Tarifa de Energia (TE)</strong></div>
+                  <div>Fonte: {result.origem_tariff}</div>
+                  {result.vigencia_tariff && <div>Vigência: {result.vigencia_tariff}</div>}
+                </div>
+              }>
+                <span className="text-muted-foreground">TE (Tarifa de Energia)</span>
+              </AuditTooltip>
               <span className="font-mono">{result.valor_credito_breakdown.te.toFixed(6)}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-muted-foreground">
-                Fio B compensado
-                {result.valor_credito_breakdown.fio_b_fonte === 'tusd_proxy' && (
-                  <span className="text-warning"> (TUSD proxy)</span>
-                )}
-                {regra === "GD_II" && <span className="text-info"> ({Math.round((1 - result.fio_b_percent_cobrado) * 100)}% em {ano})</span>}
-                {regra === "GD_III" && <span className="text-info"> (100% em GD III)</span>}
-              </span>
+              <AuditTooltip content={
+                result.valor_credito_breakdown.fio_b_fonte === 'tusd_proxy'
+                  ? "ESTIMADO: Fio B real indisponível; usamos TUSD total como aproximação. Economia pode variar."
+                  : "EXATO: Fio B real configurado manualmente na distribuidora."
+              }>
+                <span className="text-muted-foreground">
+                  Fio B compensado
+                  {result.valor_credito_breakdown.fio_b_fonte === 'tusd_proxy' && (
+                    <span className="text-warning"> (TUSD proxy)</span>
+                  )}
+                  {regra === "GD_II" && <span className="text-info"> ({fioBPctLabel} em {ano})</span>}
+                  {regra === "GD_III" && <span className="text-info"> (100% em GD III)</span>}
+                </span>
+              </AuditTooltip>
               <span className="font-mono">{result.valor_credito_breakdown.fio_b_compensado.toFixed(6)}</span>
             </div>
             {regra === "GD_III" && result.valor_credito_breakdown.fio_a !== undefined && (
