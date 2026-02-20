@@ -5176,9 +5176,14 @@ export type Database = {
       }
       modulos_solares: {
         Row: {
+          area_m2: number | null
           ativo: boolean
+          bifacial: boolean
           comprimento_mm: number | null
           created_at: string
+          datasheet_found_at: string | null
+          datasheet_source_url: string | null
+          datasheet_url: string | null
           eficiencia_percent: number | null
           fabricante: string
           garantia_performance_anos: number | null
@@ -5188,18 +5193,30 @@ export type Database = {
           isc_a: number | null
           largura_mm: number | null
           modelo: string
+          num_celulas: number | null
           peso_kg: number | null
           potencia_wp: number
+          profundidade_mm: number | null
+          status: string
+          temp_coeff_isc: number | null
+          temp_coeff_pmax: number | null
+          temp_coeff_voc: number | null
           tenant_id: string | null
+          tensao_sistema: string | null
           tipo_celula: string
           updated_at: string
           vmp_v: number | null
           voc_v: number | null
         }
         Insert: {
+          area_m2?: number | null
           ativo?: boolean
+          bifacial?: boolean
           comprimento_mm?: number | null
           created_at?: string
+          datasheet_found_at?: string | null
+          datasheet_source_url?: string | null
+          datasheet_url?: string | null
           eficiencia_percent?: number | null
           fabricante: string
           garantia_performance_anos?: number | null
@@ -5209,18 +5226,30 @@ export type Database = {
           isc_a?: number | null
           largura_mm?: number | null
           modelo: string
+          num_celulas?: number | null
           peso_kg?: number | null
           potencia_wp: number
+          profundidade_mm?: number | null
+          status?: string
+          temp_coeff_isc?: number | null
+          temp_coeff_pmax?: number | null
+          temp_coeff_voc?: number | null
           tenant_id?: string | null
+          tensao_sistema?: string | null
           tipo_celula?: string
           updated_at?: string
           vmp_v?: number | null
           voc_v?: number | null
         }
         Update: {
+          area_m2?: number | null
           ativo?: boolean
+          bifacial?: boolean
           comprimento_mm?: number | null
           created_at?: string
+          datasheet_found_at?: string | null
+          datasheet_source_url?: string | null
+          datasheet_url?: string | null
           eficiencia_percent?: number | null
           fabricante?: string
           garantia_performance_anos?: number | null
@@ -5230,9 +5259,16 @@ export type Database = {
           isc_a?: number | null
           largura_mm?: number | null
           modelo?: string
+          num_celulas?: number | null
           peso_kg?: number | null
           potencia_wp?: number
+          profundidade_mm?: number | null
+          status?: string
+          temp_coeff_isc?: number | null
+          temp_coeff_pmax?: number | null
+          temp_coeff_voc?: number | null
           tenant_id?: string | null
+          tensao_sistema?: string | null
           tipo_celula?: string
           updated_at?: string
           vmp_v?: number | null
