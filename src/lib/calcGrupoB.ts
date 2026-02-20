@@ -8,20 +8,29 @@ export type RegraGD = "GD_I" | "GD_II" | "GD_III";
 export type TipoFase = "monofasico" | "bifasico" | "trifasico";
 export type NivelPrecisao = "exato" | "estimado";
 
-/** Percentual do Fio B compensável por ano (Lei 14.300) */
+/** Percentual do Fio B COBRADO por ano (Lei 14.300 — escalonamento ANEEL)
+ *  Compensado = 1 - cobrado. Ex: 2026 = 60% cobrado → 40% compensado.
+ *  A partir de 2029 entra nova regra (não modelada aqui). */
 export const GD_FIO_B_PERCENT_BY_YEAR: Record<number, number> = {
-  2023: 0.90, // 90% pago pelo prosumidor
-  2024: 0.80,
-  2025: 0.70,
-  2026: 0.60, // 2026 = 60% Fio B cobrado (ou 40% compensável)
-  2027: 0.50,
-  2028: 0.40,
-  2029: 0.30,
+  2023: 0.15,
+  2024: 0.30,
+  2025: 0.45,
+  2026: 0.60,
+  2027: 0.75,
+  2028: 0.90,
+  // 2029+: nova regra — tratado em getFioBCobranca()
 };
 
-/** Percentual do Fio B que NÃO é compensado (é cobrado) */
-export function getFioBCobranca(ano = 2026): number {
+/** Percentual do Fio B que é COBRADO (não compensado).
+ *  2029+ retorna null → regra nova não modelada. */
+export function getFioBCobranca(ano = 2026): number | null {
+  if (ano >= 2029) return null; // regra nova — não modelada
   return GD_FIO_B_PERCENT_BY_YEAR[ano] ?? 0.60;
+}
+
+/** Verifica se o ano tem regra GD II modelada */
+export function isRegraModelada(ano: number): boolean {
+  return ano < 2029;
 }
 
 export interface TariffComponentes {
@@ -64,7 +73,7 @@ export interface CalcGrupoBResult {
   energia_compensada_kwh: number;
   // Tarifação
   regra_aplicada: RegraGD;
-  fio_b_percent_cobrado: number;    // ex: 0.60 para 2026
+  fio_b_percent_cobrado: number | null; // null = regra 2029+ não modelada
   valor_credito_kwh: number;        // R$/kWh do crédito
   valor_credito_breakdown: {
     te: number;
@@ -83,6 +92,7 @@ export interface CalcGrupoBResult {
   vigencia_tariff?: string;
   origem_tariff: string;
   incompleto_gd3: boolean;
+  regra_nao_modelada: boolean;  // true se ano >= 2029
   alertas: string[];
 }
 
@@ -149,7 +159,13 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
   // 4. Resolver Fio B e nível de precisão
   const fioBResolvido = resolveFioB(tariff);
   const fioBCobranca = getFioBCobranca(ano);
-  const fioBCompensado = 1 - fioBCobranca; // porção do Fio B que é COMPENSADA
+  const regraNaoModelada = fioBCobranca === null;
+  const fioBCobrancaEfetivo = fioBCobranca ?? 0.90; // fallback conservador para 2029+
+  const fioBCompensado = 1 - fioBCobrancaEfetivo;
+
+  if (regraNaoModelada) {
+    alertas.push(`⚠️ Ano ${ano}: regra GD II pós-2028 não modelada — usando 90% cobrado como fallback conservador. Confirme antes de gerar proposta.`);
+  }
 
   let valor_credito_kwh = 0;
   const breakdown = {
@@ -169,8 +185,7 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
     alertas.push("GD I — regime de compensação integral (sem escalonamento Fio B)");
 
   } else if (regra === "GD_II") {
-    // GD II 2026: TE + (1 - cobrança%) × FioB
-    // Em 2026: 60% cobrado → 40% compensado
+    // GD II: TE + (1 - cobrança%) × FioB
     const fioB_compensado_kwh = fioBResolvido.fio_b_kwh * fioBCompensado;
     valor_credito_kwh = tariff.te_kwh + fioB_compensado_kwh;
     breakdown.te = tariff.te_kwh;
@@ -226,6 +241,7 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
     vigencia_tariff: tariff.vigencia_inicio,
     origem_tariff: tariff.origem || 'desconhecida',
     incompleto_gd3,
+    regra_nao_modelada: regraNaoModelada,
     alertas,
   };
 }
