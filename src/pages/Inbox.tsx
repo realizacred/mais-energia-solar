@@ -51,15 +51,23 @@ function UnansweredSheet({ userId }: { userId: string }) {
   const { data: unanswered = [] } = useQuery({
     queryKey: ["unanswered-conversations", userId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("wa_conversations")
-        .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, last_message_direction, unread_count")
-        .eq("last_message_direction", "in")
-        .in("status", ["open", "pending"])
-        .order("last_message_at", { ascending: false })
-        .limit(50);
-      if (error) throw error;
-      return data || [];
+      try {
+        const { data, error } = await supabase
+          .from("wa_conversations")
+          .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, last_message_direction, unread_count")
+          .eq("last_message_direction", "in")
+          .in("status", ["open", "pending"])
+          .order("last_message_at", { ascending: false })
+          .limit(50);
+        if (error) {
+          console.error("[UnansweredSheet] query error:", error);
+          return [];
+        }
+        return data || [];
+      } catch (err) {
+        console.error("[UnansweredSheet] unexpected error:", err);
+        return [];
+      }
     },
     refetchInterval: 30_000,
   });
