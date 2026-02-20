@@ -17,22 +17,29 @@ interface RawModule {
   tensao_sistema: string;
 }
 
-function parseNumber(val: string): number | null {
+function parseEfficiency(val: string): number | null {
   if (!val || val.trim() === "" || val === "-" || val === "%" || val === "N/A") return null;
   const cleaned = val.replace(",", ".").replace("%", "").trim();
   const n = parseFloat(cleaned);
-  return isNaN(n) ? null : n;
+  if (isNaN(n) || n <= 0 || n > 50) return null; // efficiency sanity check (0-50%)
+  return n;
 }
 
 function parseInt2(val: string): number | null {
-  const n = parseNumber(val);
-  return n !== null ? Math.round(n) : null;
+  if (!val || val.trim() === "") return null;
+  const cleaned = val.replace(",", ".").trim();
+  const n = parseFloat(cleaned);
+  if (isNaN(n)) return null;
+  return Math.round(n);
 }
 
-function detectCellType(modelo: string, numCelulas: number | null): string {
+function detectCellType(modelo: string): string {
   const lower = modelo.toLowerCase();
   if (lower.includes("topcon") || lower.includes("-nt") || lower.includes("n5") || lower.includes("n7") ||
-      /ntype|n-type|topbihiku|vertex tsm-ne|vertex tsm-neg|ntype/.test(lower)) return "N-Type TOPCon";
+      /ntype|n-type|topbihiku|vertex tsm-ne|vertex tsm-neg|ntype|hjt/.test(lower)) {
+    if (lower.includes("hjt")) return "N-Type HJT";
+    return "N-Type TOPCon";
+  }
   if (lower.includes("hjt") || lower.includes("heterojunction")) return "N-Type HJT";
   if (lower.includes("hpbc")) return "N-Type HPBC";
   if (lower.includes("poli") || lower.includes("poly") || /\bp\d/.test(lower) || /-p-/i.test(lower) ||
@@ -42,7 +49,7 @@ function detectCellType(modelo: string, numCelulas: number | null): string {
 }
 
 function detectBifacial(modelo: string): boolean {
-  return /bifacial|bi[-\s]?facial|\bbf\b|bdv|bdvp|bmdg|bhdg|bihiku|bipro|bistar|biku|mb-ag|dg[/-]/i.test(modelo);
+  return /bifacial|bi[-\s]?facial|\bbf\b|bdv|bdvp|bmdg|bhdg|bihiku|bipro|bistar|biku|mb-ag|dg[/-]|\bdg\b/i.test(modelo);
 }
 
 function detectTensao(modelo: string): string {
@@ -50,9 +57,108 @@ function detectTensao(modelo: string): string {
   return "1500V";
 }
 
-// 🔧 FIX: aumentado limite de 900 para 1000W (módulos modernos chegam a 700W+)
-const MIN_POTENCIA = 50;
-const MAX_POTENCIA = 1000;
+// Known fabricante names (longest first for greedy matching)
+const KNOWN_FABS = [
+  "AE SOLAR", "AMSO SOLAR", "BEDIN SOLAR", "BOLD ENERGY", "CANADIAN SOLAR",
+  "CONSORT SOLAR", "DAS SOLAR", "DMEGC SOLAR", "ERA SOLAR", "GOKIN SOLAR",
+  "GREENSUN SOLAR", "HONOR SOLAR", "HT-SAAE", "HUANSHENG SOLAR", "HY SOLAR",
+  "JA SOLAR", "JETION SOLAR", "JH SOLAR", "LEAPTON SOLAR", "PHONO SOLAR",
+  "PULLING ENERGY", "Q CELLS", "QN-SOLAR", "QUALITY SOLAR", "RENEPV",
+  "RESUN SOLAR", "RONMA SOLAR", "RUNDA AURORA", "RUNERGY", "SCHUTTEN SOLAR",
+  "SENGI SOLAR", "SHINEFAR SOLAR", "SINE ENERGY", "SKY SOLLARIS",
+  "SOLAR N PLUS", "SOLARGIGA ENERGY", "SUNPRO POWER", "TAOISTIC SOLAR",
+  "TCL SOLAR", "TONGWEI SOLAR", "TRINA SOLAR", "ULICA SOLAR",
+  "YINGLI SOLAR", "BELENERGY", "BEYONDSUN", "ASTRONERGY", "AMERISOLAR",
+  "AUSTA", "BALFAR", "BYD", "DAH", "ELGIN", "EMPALUX", "EGING",
+  "HANERSUN", "HELIA", "HELIUS", "HERSHEY-POWER", "HULTER", "HUASUN",
+  "INIMEX", "INTELBRAS", "JAYU", "JINERGY", "JINKO", "KOMECO", "KOPP",
+  "KRIPT", "LEDVANCE", "LONGI", "LUXEN", "MAXEON", "MINASOL", "NEXEN",
+  "OSDA", "PEIMAR", "PERLIGHT", "RISEN", "RENESOLA", "RENOVIGI",
+  "SERAPHIM", "SHANHONG", "SICES", "SINOSOLA", "SIRIUS", "SPOLARPV",
+  "SUNERGY", "SUNKET", "SUNOVA", "SUNTECH", "SUNX", "TALESUN",
+  "TOPSOLA", "TOPTEC", "TSUN", "VSUN", "WATTSUP", "WDC", "WEG",
+  "XPOWER", "ZNSHINE", "GCL", "SolarSpace"
+].sort((a, b) => b.length - a.length);
+
+/**
+ * Parse the space-separated format:
+ * FABRICANTE MODELO POTENCIA CELULAS EFICIENCIA%
+ * 
+ * Strategy: from the right side, extract numbers (potencia, celulas, eficiencia)
+ * then split remaining text into fabricante + modelo
+ */
+function parseSpaceLine(line: string): RawModule | null {
+  const trimmed = line.trim();
+  
+  // Skip header lines and empty/short lines
+  if (trimmed.length < 10) return null;
+  if (/^fabricante\s/i.test(trimmed)) return null;
+  if (/potência.*células.*eficiência/i.test(trimmed)) return null;
+  if (/^Fabricante\s+Modelo/i.test(trimmed)) return null;
+
+  // Try to match from right: ...POTENCIA CELULAS EFICIENCIA[%] [VISUALIZAR|link]
+  // Potencia: 2-4 digit number (100-999W or 1000W)
+  // Celulas: 1-4 digit number
+  // Eficiencia: number with comma or dot, possibly followed by %
+  
+  // Pattern: captures trailing numbers
+  // "AE SOLAR AE340M6-72 340 72 17,52%"
+  // "TRINA SOLAR VERTEX TSM-NEG21C.20 720 720 23,30%"
+  
+  const rightMatch = trimmed.match(
+    /^(.+?)\s+(\d{2,4})\s+(\d{1,4})\s+([\d,.]+%?)\s*(?:Visualizar)?\s*$/i
+  );
+  
+  if (!rightMatch) return null;
+
+  const fullName = rightMatch[1].trim();
+  const potencia = parseInt(rightMatch[2]);
+  const celulas = parseInt(rightMatch[3]);
+  const eficiencia = parseEfficiency(rightMatch[4]);
+
+  // Validate potencia range
+  if (potencia < 50 || potencia > 1000) return null;
+  
+  // celulas sanity check (1-500)
+  const numCelulas = celulas > 0 && celulas <= 500 ? celulas : null;
+
+  // Split fullName into fabricante + modelo
+  let fabricante = "";
+  let modelo = "";
+  const upper = fullName.toUpperCase();
+
+  for (const fab of KNOWN_FABS) {
+    if (upper.startsWith(fab.toUpperCase())) {
+      fabricante = fab;
+      modelo = fullName.substring(fab.length).trim();
+      break;
+    }
+  }
+
+  if (!fabricante || !modelo) {
+    // Fallback: first word is fabricante
+    const parts = fullName.split(/\s+/);
+    if (parts.length >= 2) {
+      fabricante = parts[0];
+      modelo = parts.slice(1).join(" ");
+    } else {
+      return null;
+    }
+  }
+
+  if (!fabricante || !modelo) return null;
+
+  return {
+    fabricante: fabricante.trim(),
+    modelo: modelo.trim(),
+    potencia_wp: potencia,
+    num_celulas: numCelulas,
+    eficiencia_percent: eficiencia,
+    tipo_celula: detectCellType(modelo),
+    bifacial: detectBifacial(modelo),
+    tensao_sistema: detectTensao(modelo),
+  };
+}
 
 function parseModulesFromText(text: string): RawModule[] {
   const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
@@ -60,29 +166,28 @@ function parseModulesFromText(text: string): RawModule[] {
   const seen = new Set<string>();
 
   for (const line of lines) {
-    // Skip header lines
-    if (/^fabricante\s/i.test(line) || /potência.*células.*eficiência/i.test(line)) continue;
-    // Skip empty-ish lines
-    if (line.length < 5) continue;
+    // Skip obvious header lines
+    if (/^fabricante\s/i.test(line)) continue;
+    if (/^Fabricante\s+Modelo/i.test(line)) continue;
+    if (line.length < 10) continue;
 
-    // Try tab split first
+    // Try tab-separated first
     let parts = line.split("\t");
-    if (parts.length < 2) {
+    if (parts.length < 3) {
       // Try semicolon
       parts = line.split(";");
     }
 
-    if (parts.length >= 3) {
-      // Structured format: fabricante;modelo;potencia;celulas;eficiencia...
+    if (parts.length >= 3 && !parts[0].includes(" ")) {
+      // Pure structured format: no spaces in fabricante field
       const fabricante = parts[0]?.trim() || "";
       const modelo = parts[1]?.trim() || "";
       const potencia = parseInt2(parts[2] || "") || 0;
       const celulas = parts.length > 3 ? parseInt2(parts[3] || "") : null;
-      const eficiencia = parts.length > 4 ? parseNumber(parts[4] || "") : null;
+      const eficiencia = parts.length > 4 ? parseEfficiency(parts[4] || "") : null;
 
-      // 🔧 FIX: filtro correto 50-1000W
-      if (!fabricante || !modelo || potencia < MIN_POTENCIA || potencia > MAX_POTENCIA) continue;
-      if (/^fabricante$/i.test(fabricante)) continue; // header row
+      if (!fabricante || !modelo || potencia < 50 || potencia > 1000) continue;
+      if (/^fabricante$/i.test(fabricante)) continue;
 
       const key = `${fabricante}|${modelo}|${potencia}`.toLowerCase();
       if (seen.has(key)) continue;
@@ -92,86 +197,22 @@ function parseModulesFromText(text: string): RawModule[] {
         fabricante,
         modelo,
         potencia_wp: potencia,
-        num_celulas: celulas != null && celulas > 0 && celulas < 1000 ? celulas : null,
-        eficiencia_percent: eficiencia != null && eficiencia <= 100 ? eficiencia : null,
-        tipo_celula: detectCellType(modelo, celulas),
+        num_celulas: celulas != null && celulas > 0 && celulas <= 500 ? celulas : null,
+        eficiencia_percent: eficiencia,
+        tipo_celula: detectCellType(modelo),
         bifacial: detectBifacial(modelo),
         tensao_sistema: detectTensao(modelo),
       });
     } else {
-      // Space-separated heuristic format
-      // Pattern: FABRICANTE MODELO POTENCIA CELULAS EFICIENCIA [VISUALIZAR]
-      const match = line.match(/^(.+?)\s+(\d{3,4})\s+(\d{1,4})\s+([\d,]+%?)\s*.*$/);
-      if (match) {
-        const fullName = match[1].trim();
-        const potencia = parseInt(match[2]);
-        const celulas = parseInt(match[3]);
-        const eficiencia = parseNumber(match[4]);
+      // Space-separated format — use our right-anchored parser
+      const parsed = parseSpaceLine(line);
+      if (!parsed) continue;
 
-        // 🔧 FIX: filtro correto 50-1000W
-        if (potencia < MIN_POTENCIA || potencia > MAX_POTENCIA) continue;
+      const key = `${parsed.fabricante}|${parsed.modelo}|${parsed.potencia_wp}`.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
 
-        const knownFabs = [
-          "AE SOLAR", "AMSO SOLAR", "BEDIN SOLAR", "BOLD ENERGY", "CANADIAN SOLAR",
-          "CONSORT SOLAR", "DAS SOLAR", "DMEGC SOLAR", "ERA SOLAR", "GCL", "GOKIN SOLAR",
-          "GREENSUN SOLAR", "HONOR SOLAR", "HT-SAAE", "HUANSHENG SOLAR", "HY SOLAR",
-          "JA SOLAR", "JETION SOLAR", "JH SOLAR", "LEAPTON SOLAR", "PHONO SOLAR",
-          "PULLING ENERGY", "Q CELLS", "QN-SOLAR", "QUALITY SOLAR", "RENEPV",
-          "RESUN SOLAR", "RONMA SOLAR", "RUNDA AURORA", "RUNERGY", "SCHUTTEN SOLAR",
-          "SENGI SOLAR", "SHINEFAR SOLAR", "SINE ENERGY", "SKY SOLLARIS",
-          "SOLAR N PLUS", "SOLARGIGA ENERGY", "SUNPRO POWER", "TAOISTIC SOLAR",
-          "TCL SOLAR", "TONGWEI SOLAR", "TRINA SOLAR", "ULICA SOLAR",
-          "YINGLI SOLAR", "BELENERGY", "BEYONDSUN", "ASTRONERGY", "AMERISOLAR",
-          "AUSTA", "BALFAR", "BYD", "DAH", "ELGIN", "EMPALUX", "EGING",
-          "HANERSUN", "HELIA", "HELIUS", "HERSHEY-POWER", "HULTER", "HUASUN",
-          "INIMEX", "INTELBRAS", "JAYU", "JINERGY", "JINKO", "KOMECO", "KOPP",
-          "KRIPT", "LEDVANCE", "LONGI", "LUXEN", "MAXEON", "MINASOL", "NEXEN",
-          "OSDA", "PEIMAR", "PERLIGHT", "RISEN", "RENESOLA", "RENOVIGI",
-          "SERAPHIM", "SHANHONG", "SICES", "SINOSOLA", "SIRIUS", "SPOLARPV",
-          "SUNERGY", "SUNKET", "SUNOVA", "SUNTECH", "SUNX", "TALESUN",
-          "TOPSOLA", "TOPTEC", "TSUN", "VSUN", "WATTSUP", "WDC", "WEG",
-          "XPOWER", "ZNSHINE"
-        ];
-
-        let fabricante = "";
-        let modelo = "";
-        const upper = fullName.toUpperCase();
-
-        for (const fab of knownFabs.sort((a, b) => b.length - a.length)) {
-          if (upper.startsWith(fab.toUpperCase())) {
-            fabricante = fab;
-            modelo = fullName.substring(fab.length).trim();
-            break;
-          }
-        }
-
-        if (!fabricante) {
-          const spaceIdx = fullName.indexOf(" ");
-          if (spaceIdx > 0) {
-            fabricante = fullName.substring(0, spaceIdx);
-            modelo = fullName.substring(spaceIdx + 1);
-          } else {
-            continue;
-          }
-        }
-
-        if (!modelo) continue;
-
-        const key = `${fabricante}|${modelo}|${potencia}`.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        modules.push({
-          fabricante,
-          modelo,
-          potencia_wp: potencia,
-          num_celulas: celulas > 0 && celulas < 1000 ? celulas : null,
-          eficiencia_percent: eficiencia != null && eficiencia <= 100 ? eficiencia : null,
-          tipo_celula: detectCellType(modelo, celulas),
-          bifacial: detectBifacial(modelo),
-          tensao_sistema: detectTensao(modelo),
-        });
-      }
+      modules.push(parsed);
     }
   }
 
@@ -227,20 +268,21 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log(`Parsing modules from text (${raw_text.length} chars)...`);
+    console.log(`Parsing modules (${raw_text.length} chars, ${raw_text.split("\n").length} lines)...`);
     const modules = parseModulesFromText(raw_text);
     console.log(`Parsed ${modules.length} unique modules`);
 
     if (modules.length === 0) {
-      return new Response(JSON.stringify({ success: true, imported: 0, skipped_duplicates: 0, errors: 0, message: "Nenhum módulo válido encontrado. Verifique o formato." }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(JSON.stringify({
+        success: true, imported: 0, skipped_duplicates: 0, errors: 0,
+        message: "Nenhum módulo válido encontrado. Verifique o formato (FABRICANTE MODELO POTENCIA CELULAS EFICIENCIA)."
+      }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
-    // Use service role for insert (bypasses RLS for admin operations)
+    // Use service role for insert (bypasses RLS)
     const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    // Check existing modules to skip duplicates - fetch ALL via pagination
+    // Fetch ALL existing modules via pagination to detect duplicates
     let existing: any[] = [];
     let offset = 0;
     const batchSize = 1000;
@@ -265,12 +307,12 @@ Deno.serve(async (req) => {
       return !existingKeys.has(key);
     });
 
-    console.log(`${toInsert.length} new modules to insert (${modules.length - toInsert.length} duplicates skipped)`);
+    console.log(`${toInsert.length} to insert, ${modules.length - toInsert.length} duplicates skipped`);
 
     let inserted = 0;
     let errors = 0;
 
-    // Insert in batches of 200 using service role (tenant_id is set explicitly)
+    // Insert in batches of 200
     for (let i = 0; i < toInsert.length; i += 200) {
       const chunk = toInsert.slice(i, i + 200).map(m => ({
         ...m,
@@ -284,15 +326,13 @@ Deno.serve(async (req) => {
         .insert(chunk);
 
       if (insertErr) {
-        console.error(`Batch ${i} error:`, insertErr.message);
+        console.error(`Batch ${i}: ${insertErr.message}`);
         errors += chunk.length;
       } else {
         inserted += chunk.length;
-        console.log(`Batch ${i}: inserted ${chunk.length}`);
+        console.log(`Batch ${i}: +${chunk.length} (total: ${inserted})`);
       }
     }
-
-    console.log(`Import complete: ${inserted} inserted, ${errors} errors`);
 
     return new Response(
       JSON.stringify({
