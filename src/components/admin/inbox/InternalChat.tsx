@@ -427,7 +427,7 @@ export function InternalChat() {
   const showChat = activeChatId && activeMember;
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-full overflow-hidden">
       {/* Member list (hidden on mobile when chat is open) */}
       <div className={`w-full md:w-80 md:border-r border-border/40 flex flex-col ${showChat ? "hidden md:flex" : "flex"}`}>
         <div className="p-3 border-b border-border/40 shrink-0">
