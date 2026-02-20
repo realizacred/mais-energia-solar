@@ -69,7 +69,7 @@ function validate(f: FormData): ValidationError[] {
 
   const pot = parseInt(f.potencia_wp);
   if (!f.potencia_wp || isNaN(pot)) errs.push({ field: "potencia_wp", message: "Obrigatório", type: "error" });
-  else if (pot < 100 || pot > 900) errs.push({ field: "potencia_wp", message: "Faixa: 100–900 Wp", type: "error" });
+  else if (pot < 100 || pot > 1000) errs.push({ field: "potencia_wp", message: "Faixa: 100–1000 Wp", type: "error" });
 
   const eff = parseFloat(f.eficiencia_percent);
   if (f.eficiencia_percent && !isNaN(eff)) {
@@ -172,6 +172,9 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
       comprimento_mm: int(form.comprimento_mm),
       largura_mm: int(form.largura_mm),
       profundidade_mm: int(form.profundidade_mm),
+      area_m2: int(form.comprimento_mm) && int(form.largura_mm)
+        ? parseFloat(((int(form.comprimento_mm)! * int(form.largura_mm)!) / 1_000_000).toFixed(4))
+        : null,
       peso_kg: num(form.peso_kg),
       bifacial: form.bifacial,
       garantia_produto_anos: int(form.garantia_produto_anos),

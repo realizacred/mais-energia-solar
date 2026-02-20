@@ -1,28 +1,24 @@
 import { useState, useMemo } from "react";
-import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload, Globe, Building2, Trash2 } from "lucide-react";
+import { Plus, Search, SunMedium, LayoutGrid, Table as TableIcon, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { LoadingState } from "@/components/ui-kit/LoadingState";
 import type { Modulo } from "./modulos/types";
-import { STATUS_LABELS, CELL_TYPES } from "./modulos/types";
+import { CELL_TYPES } from "./modulos/types";
 import { useModulos, useModuloMutations } from "./modulos/useModulos";
 import { ModuloCard } from "./modulos/ModuloCard";
 import { ModuloViewModal } from "./modulos/ModuloViewModal";
 import { ModuloFormDialog } from "./modulos/ModuloFormDialog";
 import { ModuloImportDialog } from "./modulos/ModuloImportDialog";
+import { ModuloTableView } from "./modulos/ModuloTableView";
 
 type ViewMode = "cards" | "table";
 
@@ -50,7 +46,7 @@ export function ModulosManager() {
     return Array.from(set).sort();
   }, [modulos]);
 
-  const filtered = modulos.filter((m) => {
+  const filtered = useMemo(() => modulos.filter((m) => {
     const q = search.toLowerCase();
     const matchSearch = !search || `${m.fabricante} ${m.modelo} ${m.tipo_celula}`.toLowerCase().includes(q);
     const matchAtivo = filterAtivo === "all" || (filterAtivo === "ativo" ? m.ativo : !m.ativo);
@@ -60,7 +56,7 @@ export function ModulosManager() {
     const matchBifacial = filterBifacial === "all" || (filterBifacial === "sim" ? m.bifacial : !m.bifacial);
     const matchTensao = filterTensao === "all" || m.tensao_sistema === filterTensao;
     return matchSearch && matchAtivo && matchFab && matchStatus && matchTipo && matchBifacial && matchTensao;
-  });
+  }), [modulos, search, filterAtivo, filterFabricante, filterStatus, filterTipo, filterBifacial, filterTensao]);
 
   const isGlobal = (m: Modulo) => m.tenant_id === null;
 
@@ -184,75 +180,13 @@ export function ModulosManager() {
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Fabricante</TableHead>
-                  <TableHead>Modelo</TableHead>
-                  <TableHead>W</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Cells</TableHead>
-                  <TableHead>Eff%</TableHead>
-                  <TableHead>Tensão</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Origem</TableHead>
-                  <TableHead>Ativo</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(m => {
-                  const statusInfo = STATUS_LABELS[m.status] || STATUS_LABELS.rascunho;
-                  return (
-                    <TableRow key={m.id}>
-                      <TableCell className="font-medium">{m.fabricante}</TableCell>
-                      <TableCell className="max-w-[200px] truncate">{m.modelo}</TableCell>
-                      <TableCell><Badge variant="outline">{m.potencia_wp}W</Badge></TableCell>
-                      <TableCell className="text-xs">{m.tipo_celula}</TableCell>
-                      <TableCell className="text-xs">{m.num_celulas || "—"}</TableCell>
-                      <TableCell>{m.eficiencia_percent ? `${m.eficiencia_percent}%` : "—"}</TableCell>
-                      <TableCell className="text-xs">{m.tensao_sistema || "—"}</TableCell>
-                      <TableCell><Badge className={`text-xs ${statusInfo.color}`}>{statusInfo.label}</Badge></TableCell>
-                      <TableCell>
-                        {isGlobal(m) ? (
-                          <Badge variant="secondary" className="gap-1 text-xs">
-                            <Globe className="w-3 h-3" /> Global
-                          </Badge>
-                        ) : (
-                          <Badge variant="default" className="gap-1 text-xs">
-                            <Building2 className="w-3 h-3" /> Custom
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <Switch checked={m.ativo} disabled={isGlobal(m)}
-                          onCheckedChange={(v) => toggleMutation.mutate({ id: m.id, ativo: v })} />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isGlobal(m) ? (
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewModulo(m)}>
-                            <Search className="w-4 h-4" />
-                          </Button>
-                        ) : (
-                          <div className="flex justify-end gap-1">
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setViewModulo(m)}>
-                              <Search className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(m)}>
-                              <TableIcon className="w-4 h-4" />
-                            </Button>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"
-                              onClick={() => setDeleting(m)}><Trash2 className="w-4 h-4" /></Button>
-                          </div>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <ModuloTableView
+            modulos={filtered}
+            onView={(m) => setViewModulo(m)}
+            onEdit={(m) => openEdit(m)}
+            onDelete={(m) => setDeleting(m)}
+            onToggle={(id, v) => toggleMutation.mutate({ id, ativo: v })}
+          />
         )}
 
         {/* Results count */}

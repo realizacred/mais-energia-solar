@@ -1,8 +1,8 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { FileText, ExternalLink } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import { FileText, ExternalLink, Globe, Building2 } from "lucide-react";
 import type { Modulo } from "./types";
 import { STATUS_LABELS } from "./types";
 
@@ -31,6 +31,19 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
+function calcCompletude(m: Modulo): number {
+  const fields = [
+    m.fabricante, m.modelo, m.potencia_wp, m.tipo_celula,
+    m.num_celulas, m.eficiencia_percent,
+    m.vmp_v, m.imp_a, m.voc_v, m.isc_a,
+    m.comprimento_mm, m.largura_mm, m.profundidade_mm, m.peso_kg,
+    m.temp_coeff_pmax, m.temp_coeff_voc, m.temp_coeff_isc,
+    m.garantia_produto_anos, m.garantia_performance_anos,
+  ];
+  const filled = fields.filter(v => v != null && v !== "").length;
+  return Math.round((filled / fields.length) * 100);
+}
+
 export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
   if (!m) return null;
 
@@ -38,9 +51,8 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
   const dims = m.comprimento_mm && m.largura_mm
     ? `${m.comprimento_mm} × ${m.largura_mm}${m.profundidade_mm ? ` × ${m.profundidade_mm}` : ""} mm`
     : null;
-  const tempCoeffs = [m.temp_coeff_pmax, m.temp_coeff_voc, m.temp_coeff_isc].some(v => v != null)
-    ? `${m.temp_coeff_pmax ?? "—"} / ${m.temp_coeff_voc ?? "—"} / ${m.temp_coeff_isc ?? "—"}`
-    : null;
+  const isGlobal = m.tenant_id === null;
+  const completude = calcCompletude(m);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -50,11 +62,27 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
             <DialogTitle className="text-lg">{m.fabricante} {m.modelo}</DialogTitle>
             <Badge className={statusInfo.color}>{statusInfo.label}</Badge>
             {m.bifacial && <Badge variant="outline">Bifacial</Badge>}
+            {isGlobal ? (
+              <Badge variant="secondary" className="gap-1 text-xs"><Globe className="w-3 h-3" /> Global</Badge>
+            ) : (
+              <Badge variant="default" className="gap-1 text-xs"><Building2 className="w-3 h-3" /> Custom</Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground mt-1">{m.potencia_wp}Wp · {m.tipo_celula}</p>
         </DialogHeader>
 
         <div className="space-y-4 mt-2">
+          {/* Completude */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-muted-foreground">Completude do cadastro</span>
+              <span className={`text-xs font-bold ${completude === 100 ? "text-green-600" : completude >= 70 ? "text-yellow-600" : "text-destructive"}`}>
+                {completude}%
+              </span>
+            </div>
+            <Progress value={completude} className="h-2" />
+          </div>
+
           {/* Identificação */}
           <Section title="Identificação">
             <Field label="Fabricante" value={m.fabricante} />
@@ -82,7 +110,6 @@ export function ModuloViewModal({ modulo: m, open, onOpenChange }: Props) {
 
           {/* Temperatura */}
           <Section title="Coeficientes de Temperatura">
-            <Field label="Pmax / Voc / Isc" value={tempCoeffs} />
             <Field label="Pmax" value={m.temp_coeff_pmax} unit=" %/°C" />
             <Field label="Voc" value={m.temp_coeff_voc} unit=" %/°C" />
             <Field label="Isc" value={m.temp_coeff_isc} unit=" %/°C" />
