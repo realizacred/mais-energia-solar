@@ -734,12 +734,15 @@ export function WaChatPanel({
           ) : (
             <>
               <Virtuoso
+                key={conversation?.id}
                 ref={virtuosoRef}
                 totalCount={visibleMessages.length}
                 itemContent={renderMessage}
                 initialTopMostItemIndex={visibleMessages.length - 1}
-                followOutput="smooth"
+                followOutput={(isAtBottom) => isAtBottom ? "smooth" : false}
                 atBottomStateChange={setAtBottom}
+                atBottomThreshold={150}
+                alignToBottom
                 startReached={() => {
                   if (hasOlderMessages && !isLoadingMore) onLoadOlder();
                 }}
@@ -780,8 +783,19 @@ export function WaChatPanel({
 
         {/* Composer */}
         <WaChatComposer
-          onSendMessage={onSendMessage}
-          onSendMedia={onSendMedia}
+          onSendMessage={(content, isNote, quotedId) => {
+            onSendMessage(content, isNote, quotedId);
+            // Scroll to bottom after sending
+            setTimeout(() => {
+              virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
+            }, 100);
+          }}
+          onSendMedia={(file, caption) => {
+            onSendMedia(file, caption);
+            setTimeout(() => {
+              virtuosoRef.current?.scrollToIndex({ index: visibleMessages.length, behavior: "smooth" });
+            }, 100);
+          }}
           isSending={isSending}
           isNoteMode={isNoteMode}
           onNoteModeChange={setIsNoteMode}
