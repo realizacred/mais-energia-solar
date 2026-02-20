@@ -10,16 +10,23 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+
+interface UnansweredConversation {
+  conversation_id: string;
+  cliente_nome: string | null;
+  cliente_telefone: string;
+  last_message_preview: string | null;
+  last_message_at: string | null;
+  unread_for_user: number;
+}
 
 interface DraggableBellProps {
   enabled: boolean;
   soundEnabled: boolean;
   totalUnread: number;
+  unansweredConversations: UnansweredConversation[];
   onSetEnabled: (val: boolean) => void;
   onSetSoundEnabled: (val: boolean) => void;
   onOpenConversation?: (conversationId: string) => void;
@@ -39,11 +46,11 @@ export function DraggableBell({
   enabled,
   soundEnabled,
   totalUnread,
+  unansweredConversations,
   onSetEnabled,
   onSetSoundEnabled,
   onOpenConversation,
 }: DraggableBellProps) {
-  const { user } = useAuth();
   const [position, setPosition] = useState(getInitialPosition);
   const [isDragging, setIsDragging] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -51,33 +58,7 @@ export function DraggableBell({
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const bellRef = useRef<HTMLDivElement>(null);
 
-  // Fetch unanswered conversations for current user
-  const { data: unanswered = [] } = useQuery({
-    queryKey: ["unanswered-conversations-bell", user?.id],
-    enabled: !!user?.id,
-    queryFn: async () => {
-      try {
-        const { data, error } = await supabase
-          .from("wa_conversations")
-          .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, last_message_direction, unread_count")
-          .eq("last_message_direction", "in")
-          .in("status", ["open", "pending"])
-          .order("last_message_at", { ascending: false })
-          .limit(50);
-        if (error) {
-          console.error("[DraggableBell] query error:", error);
-          return [];
-        }
-        return data || [];
-      } catch (err) {
-        console.error("[DraggableBell] unexpected error:", err);
-        return [];
-      }
-    },
-    refetchInterval: 30_000,
-  });
-
-  const unansweredCount = unanswered.length;
+  const unansweredCount = unansweredConversations.length;
 
   const clamp = useCallback((pos: { x: number; y: number }) => {
     const size = 44;
@@ -202,10 +183,10 @@ export function DraggableBell({
                 <p className="text-xs text-muted-foreground mt-1">Nenhuma conversa aguardando resposta.</p>
               </div>
             ) : (
-              unanswered.map((conv) => (
+              unansweredConversations.map((conv) => (
                 <button
-                  key={conv.id}
-                  onClick={() => onOpenConversation?.(conv.id)}
+                  key={conv.conversation_id}
+                  onClick={() => onOpenConversation?.(conv.conversation_id)}
                   className="w-full flex items-center gap-3 p-3 hover:bg-accent/50 transition-colors text-left"
                 >
                   <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
@@ -224,8 +205,8 @@ export function DraggableBell({
                       </p>
                     )}
                   </div>
-                  {conv.unread_count > 0 && (
-                    <Badge variant="destructive" className="text-[10px] shrink-0">{conv.unread_count}</Badge>
+                  {conv.unread_for_user > 0 && (
+                    <Badge variant="destructive" className="text-[10px] shrink-0">{conv.unread_for_user}</Badge>
                   )}
                 </button>
               ))

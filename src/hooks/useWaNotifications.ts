@@ -149,6 +149,7 @@ export function useWaNotifications() {
     dismissNotification,
     dismissAll,
     totalUnread,
+    unansweredConversations: snapshot || [],
     setIsOnInbox,
   };
 }
