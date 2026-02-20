@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { WaInbox } from "@/components/admin/inbox/WaInbox";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { MessageCircle, Settings, Contact as ContactIcon } from "lucide-react";
+import { MessageCircle, Settings, Contact as ContactIcon, MessageCirclePlus } from "lucide-react";
 
 const PushNotificationSettings = lazy(() =>
   import("@/components/admin/PushNotificationSettings").then((m) => ({
@@ -14,6 +14,7 @@ const PushNotificationSettings = lazy(() =>
 const ContactsPage = lazy(() => import("@/pages/admin/ContactsPage"));
 
 type Tab = "messages" | "contacts" | "settings";
+import { WaStartConversationDialog } from "@/components/admin/inbox/WaStartConversationDialog";
 
 /**
  * Dedicated standalone messaging PWA at /app.
@@ -24,6 +25,7 @@ export default function MessagingApp() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("messages");
   const [initialConversationId, setInitialConversationId] = useState<string | null>(null);
+  const [showNewChat, setShowNewChat] = useState(false);
 
   // Read URL params once on mount (e.g. deep link /app?tab=messages&conversation=xxx)
   useEffect(() => {
@@ -98,26 +100,62 @@ export default function MessagingApp() {
       {/* Bottom navigation */}
       <nav className="shrink-0 border-t border-border/40 bg-card safe-area-bottom" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex">
-          {([
-            { key: "messages" as Tab, icon: MessageCircle, label: "Mensagens" },
-            { key: "contacts" as Tab, icon: ContactIcon, label: "Contatos" },
-            { key: "settings" as Tab, icon: Settings, label: "Ajustes" },
-          ]).map(({ key, icon: Icon, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveTab(key)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors active:bg-muted/30 ${
-                activeTab === key
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className={`h-5 w-5 ${activeTab === key ? "fill-primary/20" : ""}`} />
-              {label}
-            </button>
-          ))}
+          {/* Mensagens */}
+          <button
+            onClick={() => setActiveTab("messages")}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors active:bg-muted/30 ${
+              activeTab === "messages" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <MessageCircle className={`h-5 w-5 ${activeTab === "messages" ? "fill-primary/20" : ""}`} />
+            Mensagens
+          </button>
+
+          {/* Nova conversa — center action */}
+          <button
+            onClick={() => setShowNewChat(true)}
+            className="flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium text-success hover:text-success/80 transition-colors active:bg-muted/30"
+          >
+            <div className="h-5 w-5 rounded-full bg-success/10 flex items-center justify-center">
+              <MessageCirclePlus className="h-4 w-4" />
+            </div>
+            Nova
+          </button>
+
+          {/* Contatos */}
+          <button
+            onClick={() => setActiveTab("contacts")}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors active:bg-muted/30 ${
+              activeTab === "contacts" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ContactIcon className={`h-5 w-5 ${activeTab === "contacts" ? "fill-primary/20" : ""}`} />
+            Contatos
+          </button>
+
+          {/* Ajustes */}
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors active:bg-muted/30 ${
+              activeTab === "settings" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <Settings className={`h-5 w-5 ${activeTab === "settings" ? "fill-primary/20" : ""}`} />
+            Ajustes
+          </button>
         </div>
       </nav>
+
+      {/* New conversation dialog */}
+      <WaStartConversationDialog
+        open={showNewChat}
+        onOpenChange={setShowNewChat}
+        instances={[]}
+        onConversationStarted={(convId) => {
+          setShowNewChat(false);
+          handleOpenConversation(convId);
+        }}
+      />
     </div>
   );
 }

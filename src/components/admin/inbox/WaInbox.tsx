@@ -620,22 +620,8 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
       {/* Stats - only in admin mode */}
       {!vendorMode && <WaInboxStats conversations={allConversations} />}
 
-      {/* Vendor mode: compact stats + new conversation button */}
-      {vendorMode && (
-        <div className="flex items-center justify-between gap-2">
-          {showCompactStats && <WaInboxStats conversations={allConversations} compact />}
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => setShowStartChat(true)}
-            title="Iniciar nova conversa"
-            className="shrink-0 ml-auto"
-          >
-            <MessageCirclePlus className="h-4 w-4 mr-1" />
-            Nova conversa
-          </Button>
-        </div>
-      )}
+      {/* Compact stats for vendor/mobile mode */}
+      {vendorMode && showCompactStats && <WaInboxStats conversations={allConversations} compact />}
 
       {/* SLA Alerts Banner */}
       {slaEnabled && (
