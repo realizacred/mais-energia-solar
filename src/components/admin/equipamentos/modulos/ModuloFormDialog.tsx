@@ -10,6 +10,7 @@ import { ChevronDown, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Modulo } from "./types";
 import { CELL_TYPES, TENSAO_SISTEMAS } from "./types";
+import { DatasheetSection } from "./DatasheetSection";
 
 interface Props {
   modulo: Modulo | null;
@@ -42,6 +43,9 @@ interface FormData {
   temp_coeff_voc: string;
   temp_coeff_isc: string;
   status: string;
+  datasheet_url: string;
+  datasheet_source_url: string;
+  datasheet_found_at: string;
 }
 
 const EMPTY: FormData = {
@@ -53,6 +57,7 @@ const EMPTY: FormData = {
   vmp_v: "", imp_a: "", voc_v: "", isc_a: "",
   temp_coeff_pmax: "", temp_coeff_voc: "", temp_coeff_isc: "",
   status: "rascunho",
+  datasheet_url: "", datasheet_source_url: "", datasheet_found_at: "",
 };
 
 interface ValidationError { field: string; message: string; type: "error" | "warning" }
@@ -109,6 +114,9 @@ function fromModulo(m: Modulo): FormData {
     temp_coeff_voc: m.temp_coeff_voc ? String(m.temp_coeff_voc) : "",
     temp_coeff_isc: m.temp_coeff_isc ? String(m.temp_coeff_isc) : "",
     status: m.status || "rascunho",
+    datasheet_url: m.datasheet_url || "",
+    datasheet_source_url: m.datasheet_source_url || "",
+    datasheet_found_at: m.datasheet_found_at || "",
   };
 }
 
@@ -176,6 +184,9 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
       temp_coeff_voc: num(form.temp_coeff_voc),
       temp_coeff_isc: num(form.temp_coeff_isc),
       status: form.status,
+      datasheet_url: form.datasheet_url || null,
+      datasheet_source_url: form.datasheet_source_url || null,
+      datasheet_found_at: form.datasheet_found_at || null,
     });
   };
 
@@ -287,6 +298,52 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
               <FieldInput label="Garantia Produto" field="garantia_produto_anos" type="number" unit="anos" />
               <FieldInput label="Garantia Performance" field="garantia_performance_anos" type="number" unit="anos" />
             </div>
+          </SectionCollapsible>
+
+          <SectionCollapsible title="📄 Datasheet">
+            <DatasheetSection
+              moduloId={modulo?.id}
+              datasheetUrl={form.datasheet_url || null}
+              datasheetSourceUrl={form.datasheet_source_url || null}
+              datasheetFoundAt={form.datasheet_found_at || null}
+              fabricante={form.fabricante}
+              modelo={form.modelo}
+              onDatasheetUploaded={(url) => {
+                set("datasheet_url", url);
+                set("datasheet_found_at", new Date().toISOString());
+              }}
+              onExtracted={(data) => {
+                // Auto-fill form fields from extracted data
+                const mapping: Record<string, keyof FormData> = {
+                  fabricante: "fabricante", modelo: "modelo",
+                  potencia_wp: "potencia_wp", tipo_celula: "tipo_celula",
+                  num_celulas: "num_celulas", tensao_sistema: "tensao_sistema",
+                  eficiencia_percent: "eficiencia_percent",
+                  comprimento_mm: "comprimento_mm", largura_mm: "largura_mm",
+                  profundidade_mm: "profundidade_mm", peso_kg: "peso_kg",
+                  vmp_v: "vmp_v", imp_a: "imp_a", voc_v: "voc_v", isc_a: "isc_a",
+                  temp_coeff_pmax: "temp_coeff_pmax", temp_coeff_voc: "temp_coeff_voc",
+                  temp_coeff_isc: "temp_coeff_isc",
+                  garantia_produto_anos: "garantia_produto_anos",
+                  garantia_performance_anos: "garantia_performance_anos",
+                };
+                setForm(prev => {
+                  const next = { ...prev };
+                  for (const [key, formKey] of Object.entries(mapping)) {
+                    const val = data[key];
+                    if (val != null && val !== "") {
+                      if (formKey === "bifacial") {
+                        (next as any)[formKey] = Boolean(val);
+                      } else {
+                        (next as any)[formKey] = String(val);
+                      }
+                    }
+                  }
+                  if (data.bifacial != null) next.bifacial = Boolean(data.bifacial);
+                  return next;
+                });
+              }}
+            />
           </SectionCollapsible>
         </div>
 
