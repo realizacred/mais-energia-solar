@@ -1918,6 +1918,7 @@ export type Database = {
           last_interaction_at: string | null
           linked_cliente_id: string | null
           name: string | null
+          owner_user_id: string | null
           phone_e164: string
           source: string | null
           tags: string[] | null
@@ -1930,6 +1931,7 @@ export type Database = {
           last_interaction_at?: string | null
           linked_cliente_id?: string | null
           name?: string | null
+          owner_user_id?: string | null
           phone_e164: string
           source?: string | null
           tags?: string[] | null
@@ -1942,6 +1944,7 @@ export type Database = {
           last_interaction_at?: string | null
           linked_cliente_id?: string | null
           name?: string | null
+          owner_user_id?: string | null
           phone_e164?: string
           source?: string | null
           tags?: string[] | null
