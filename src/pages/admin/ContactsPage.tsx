@@ -1,5 +1,5 @@
 import { useState, useMemo, lazy, Suspense } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +17,12 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -29,6 +35,9 @@ import {
   Contact as ContactIcon,
   Clock,
   ChevronRight,
+  Pencil,
+  Save,
+  X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -65,12 +74,13 @@ function canonicalizePreview(raw: string): string | null {
 }
 
 interface ContactsListProps {
-  onRecall: (contact: Contact) => void;
+  onSelectContact: (contact: Contact) => void;
+  onQuickChat: (contact: Contact) => void;
   onNewContact: () => void;
   selectedId?: string | null;
 }
 
-export function ContactsList({ onRecall, onNewContact, selectedId }: ContactsListProps) {
+export function ContactsList({ onSelectContact, onQuickChat, onNewContact, selectedId }: ContactsListProps) {
   const [search, setSearch] = useState("");
 
   const { data: contacts = [], isLoading } = useQuery({
@@ -156,50 +166,63 @@ export function ContactsList({ onRecall, onNewContact, selectedId }: ContactsLis
         ) : (
           <div className="divide-y divide-border/30">
             {filtered.map((contact) => (
-              <button
+              <div
                 key={contact.id}
-                onClick={() => onRecall(contact)}
-                className={`w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-accent/50 active:bg-accent/70 ${
+                className={`flex items-center gap-3 p-3 transition-colors hover:bg-accent/50 ${
                   selectedId === contact.id ? "bg-accent/60" : ""
                 }`}
               >
-                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <span className="text-sm font-semibold text-primary">
-                    {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {contact.name || formatPhone(contact.phone_e164)}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Phone className="h-3 w-3 shrink-0" />
-                    <span className="truncate">{formatPhone(contact.phone_e164)}</span>
-                    {contact.last_interaction_at && (
-                      <>
-                        <span className="text-border">·</span>
-                        <Clock className="h-3 w-3 shrink-0" />
-                        <span className="truncate">
-                          {formatDistanceToNow(new Date(contact.last_interaction_at), {
-                            addSuffix: true,
-                            locale: ptBR,
-                          })}
-                        </span>
-                      </>
+                {/* Clickable area → open detail/edit */}
+                <button
+                  onClick={() => onSelectContact(contact)}
+                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                >
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-sm font-semibold text-primary">
+                      {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {contact.name || formatPhone(contact.phone_e164)}
+                    </p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Phone className="h-3 w-3 shrink-0" />
+                      <span className="truncate">{formatPhone(contact.phone_e164)}</span>
+                      {contact.last_interaction_at && (
+                        <>
+                          <span className="text-border">·</span>
+                          <Clock className="h-3 w-3 shrink-0" />
+                          <span className="truncate">
+                            {formatDistanceToNow(new Date(contact.last_interaction_at), {
+                              addSuffix: true,
+                              locale: ptBR,
+                            })}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    {contact.tags?.length > 0 && (
+                      <div className="flex gap-1 mt-1 flex-wrap">
+                        {contact.tags.slice(0, 3).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
+                            {tag}
+                          </Badge>
+                        ))}
+                      </div>
                     )}
                   </div>
-                  {contact.tags?.length > 0 && (
-                    <div className="flex gap-1 mt-1 flex-wrap">
-                      {contact.tags.slice(0, 3).map((tag) => (
-                        <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground/50 shrink-0" />
-              </button>
+                </button>
+
+                {/* Quick WhatsApp chat button */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onQuickChat(contact); }}
+                  className="shrink-0 h-9 w-9 rounded-full bg-success/10 hover:bg-success/20 flex items-center justify-center transition-colors"
+                  title="Abrir conversa"
+                >
+                  <MessageCircle className="h-4 w-4 text-success" />
+                </button>
+              </div>
             ))}
           </div>
         )}
@@ -362,7 +385,33 @@ export function RecallDialog({
 
 /* ====== Contact Details (right pane on desktop) ====== */
 
-function ContactDetails({ contact, onRecall }: { contact: Contact; onRecall: () => void }) {
+function ContactDetails({ contact, onRecall, onUpdated }: { contact: Contact; onRecall: () => void; onUpdated?: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(contact.name || "");
+  const { toast } = useToast();
+
+  // Reset edit state when contact changes
+  const contactId = contact.id;
+  useState(() => { setEditName(contact.name || ""); setEditing(false); });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("contacts")
+        .update({ name: editName.trim() || null })
+        .eq("id", contact.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Contato atualizado" });
+      setEditing(false);
+      onUpdated?.();
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    },
+  });
+
   return (
     <div className="flex flex-col items-center justify-center h-full p-6 text-center">
       <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -370,9 +419,35 @@ function ContactDetails({ contact, onRecall }: { contact: Contact; onRecall: () 
           {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
         </span>
       </div>
-      <h2 className="text-lg font-semibold text-foreground mb-1">
-        {contact.name || formatPhone(contact.phone_e164)}
-      </h2>
+
+      {editing ? (
+        <div className="flex items-center gap-2 mb-2">
+          <Input
+            value={editName}
+            onChange={(e) => setEditName(e.target.value)}
+            className="text-center h-9 w-48"
+            placeholder="Nome do contato"
+            autoFocus
+            name="edit-contact-name"
+          />
+          <Button size="icon" variant="ghost" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            <Save className="h-4 w-4 text-success" />
+          </Button>
+          <Button size="icon" variant="ghost" onClick={() => { setEditing(false); setEditName(contact.name || ""); }}>
+            <X className="h-4 w-4 text-muted-foreground" />
+          </Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-lg font-semibold text-foreground">
+            {contact.name || formatPhone(contact.phone_e164)}
+          </h2>
+          <button onClick={() => { setEditName(contact.name || ""); setEditing(true); }} className="p-1 hover:bg-muted rounded-md">
+            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+        </div>
+      )}
+
       <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1.5">
         <Phone className="h-3.5 w-3.5" />
         {formatPhone(contact.phone_e164)}
@@ -396,11 +471,138 @@ function ContactDetails({ contact, onRecall }: { contact: Contact; onRecall: () 
           ))}
         </div>
       )}
-      <Button onClick={onRecall} className="mt-2">
+      <Button onClick={onRecall} className="mt-2 bg-success hover:bg-success/90 text-success-foreground">
         <MessageCircle className="h-4 w-4 mr-2" />
-        Chamar / Abrir conversa
+        Abrir conversa
       </Button>
     </div>
+  );
+}
+
+/* ====== Mobile Contact Detail Sheet ====== */
+
+function ContactDetailSheet({
+  contact,
+  open,
+  onOpenChange,
+  onChat,
+  onUpdated,
+}: {
+  contact: Contact | null;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onChat: () => void;
+  onUpdated?: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const { toast } = useToast();
+
+  // Reset when contact changes or sheet opens
+  const handleOpenChange = (v: boolean) => {
+    if (v && contact) {
+      setEditName(contact.name || "");
+      setEditing(false);
+    }
+    onOpenChange(v);
+  };
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!contact) return;
+      const { error } = await supabase
+        .from("contacts")
+        .update({ name: editName.trim() || null })
+        .eq("id", contact.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Contato atualizado" });
+      setEditing(false);
+      onUpdated?.();
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    },
+  });
+
+  if (!contact) return null;
+
+  return (
+    <Sheet open={open} onOpenChange={handleOpenChange}>
+      <SheetContent side="bottom" className="rounded-t-2xl max-h-[70dvh]">
+        <SheetHeader className="pb-4">
+          <SheetTitle className="sr-only">Detalhes do contato</SheetTitle>
+        </SheetHeader>
+
+        <div className="flex flex-col items-center text-center pb-6">
+          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+            <span className="text-2xl font-bold text-primary">
+              {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
+            </span>
+          </div>
+
+          {editing ? (
+            <div className="flex items-center gap-2 mb-2">
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="text-center h-9 w-48"
+                placeholder="Nome do contato"
+                autoFocus
+                name="edit-contact-name-mobile"
+              />
+              <Button size="icon" variant="ghost" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                <Save className="h-4 w-4 text-success" />
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => { setEditing(false); setEditName(contact.name || ""); }}>
+                <X className="h-4 w-4 text-muted-foreground" />
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-lg font-semibold text-foreground">
+                {contact.name || formatPhone(contact.phone_e164)}
+              </h2>
+              <button onClick={() => { setEditName(contact.name || ""); setEditing(true); }} className="p-1 hover:bg-muted rounded-md">
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </div>
+          )}
+
+          <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1.5">
+            <Phone className="h-3.5 w-3.5" />
+            {formatPhone(contact.phone_e164)}
+          </p>
+
+          {contact.last_interaction_at && (
+            <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
+              <Clock className="h-3 w-3" />
+              Última interação{" "}
+              {formatDistanceToNow(new Date(contact.last_interaction_at), {
+                addSuffix: true,
+                locale: ptBR,
+              })}
+            </p>
+          )}
+
+          {contact.tags?.length > 0 && (
+            <div className="flex gap-1.5 flex-wrap justify-center mb-4">
+              {contact.tags.map((tag) => (
+                <Badge key={tag} variant="secondary" className="text-xs">
+                  {tag}
+                </Badge>
+              ))}
+            </div>
+          )}
+
+          <Button onClick={onChat} className="w-full mt-2 bg-success hover:bg-success/90 text-success-foreground">
+            <MessageCircle className="h-4 w-4 mr-2" />
+            Abrir conversa
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -417,7 +619,6 @@ function EmptyRightPane() {
   );
 }
 
-/* ====== Full Page Component ====== */
 
 interface ContactsPageProps {
   onOpenConversation?: (conversationId: string) => void;
@@ -427,14 +628,21 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
   const [showRecall, setShowRecall] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showNew, setShowNew] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  const handleRecall = (contact: Contact) => {
+  const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
-    // On mobile: open dialog immediately. On desktop: just select (user clicks button in detail pane)
+    // On mobile: open detail sheet
     if (window.innerWidth < 768) {
-      setShowRecall(true);
+      setShowDetail(true);
     }
+  };
+
+  const handleQuickChat = (contact: Contact) => {
+    setSelectedContact(contact);
+    setShowRecall(true);
   };
 
   const handleOpenRecallDialog = () => {
@@ -446,18 +654,16 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
   const handleSuccess = async (conversationId: string) => {
     await queryClient.invalidateQueries({ queryKey: ["contacts"] });
     await queryClient.invalidateQueries({ queryKey: ["wa-conversations"] });
+    setShowDetail(false);
     if (onOpenConversation) {
-      // Inside /app PWA — use callback
       onOpenConversation(conversationId);
     } else {
-      // Inside admin — navigate to admin inbox with query param
       navigate(`/admin/inbox?conversation=${conversationId}`);
     }
   };
 
   return (
     <div className="h-full flex flex-col">
-      {/* Segment tabs */}
       <Tabs defaultValue="clients" className="flex flex-col h-full">
         <div className="shrink-0 border-b border-border/40 px-3 pt-2">
           <TabsList className="w-full grid grid-cols-2 h-9">
@@ -472,18 +678,21 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
 
         <TabsContent value="clients" className="flex-1 min-h-0 m-0">
           <div className="h-full md:grid md:grid-cols-[360px_1fr]">
-            {/* Left: contacts list */}
             <div className="h-full border-r border-border/40 overflow-hidden">
               <ContactsList
-                onRecall={handleRecall}
+                onSelectContact={handleSelectContact}
+                onQuickChat={handleQuickChat}
                 onNewContact={() => setShowNew(true)}
                 selectedId={selectedContact?.id}
               />
             </div>
-            {/* Right: detail pane (desktop only) */}
             <div className="hidden md:flex h-full overflow-y-auto">
               {selectedContact ? (
-                <ContactDetails contact={selectedContact} onRecall={handleOpenRecallDialog} />
+                <ContactDetails
+                  contact={selectedContact}
+                  onRecall={handleOpenRecallDialog}
+                  onUpdated={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
+                />
               ) : (
                 <EmptyRightPane />
               )}
@@ -492,7 +701,15 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
         </TabsContent>
       </Tabs>
 
-      {/* Recall from contact */}
+      {/* Mobile detail/edit sheet */}
+      <ContactDetailSheet
+        contact={selectedContact}
+        open={showDetail}
+        onOpenChange={setShowDetail}
+        onChat={() => { setShowDetail(false); handleOpenRecallDialog(); }}
+        onUpdated={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
+      />
+
       <RecallDialog
         open={showRecall}
         onOpenChange={setShowRecall}
@@ -501,7 +718,6 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
         onSuccess={handleSuccess}
       />
 
-      {/* New contact (blank) */}
       <RecallDialog
         open={showNew}
         onOpenChange={setShowNew}
