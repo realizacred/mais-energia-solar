@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,8 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, ArrowLeft, Loader2 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Send, ArrowLeft, Loader2, Smile, Paperclip, Bold, Italic, Strikethrough,
+  Image as ImageIcon, FileText, Download,
+} from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
@@ -27,7 +33,16 @@ interface ChatMessage {
   content: string;
   created_at: string;
   sender_name?: string;
+  media_url?: string | null;
+  media_type?: string | null;
+  media_filename?: string | null;
 }
+
+const EMOJI_GRID = [
+  "😀","😁","😂","🤣","😊","😇","🥰","😍","😘","😎","🤩","🥳",
+  "😏","😔","😢","😭","😤","🤯","😱","🥺","😴","🙏","👍","👎",
+  "👏","🙌","💪","✌️","🤝","❤️","🔥","⭐","💯","✅","❌","⚠️",
+];
 
 /**
  * Hook: fetch team members (profiles in same tenant) with existing chat status
@@ -136,7 +151,7 @@ function useChatMessages(chatId: string | null) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("internal_chat_messages")
-        .select("id, sender_id, content, created_at")
+        .select("id, sender_id, content, created_at, media_url, media_type, media_filename")
         .eq("chat_id", chatId!)
         .order("created_at", { ascending: true })
         .limit(200);
@@ -224,6 +239,9 @@ function ChatView({
   const { data: messages = [], isLoading } = useChatMessages(chatId);
   const [text, setText] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Realtime subscription
   useEffect(() => {
@@ -253,21 +271,33 @@ function ChatView({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages.length]);
 
-  const sendMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const { data: myProfile } = await supabase
+  // Get tenant_id once
+  const { data: tenantId } = useQuery({
+    queryKey: ["my-tenant-id", user?.id],
+    enabled: !!user?.id,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const { data } = await supabase
         .from("profiles")
         .select("tenant_id")
         .eq("user_id", user!.id)
         .single();
+      return data?.tenant_id || null;
+    },
+  });
+
+  const sendMutation = useMutation({
+    mutationFn: async (payload: { content: string; media_url?: string; media_type?: string; media_filename?: string }) => {
       const { error } = await supabase.from("internal_chat_messages").insert({
         chat_id: chatId,
         sender_id: user!.id,
-        content,
-        tenant_id: myProfile!.tenant_id,
+        content: payload.content,
+        tenant_id: tenantId!,
+        media_url: payload.media_url || null,
+        media_type: payload.media_type || null,
+        media_filename: payload.media_filename || null,
       });
       if (error) throw error;
-      // Update chat's updated_at
       await supabase.from("internal_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
     },
     onSuccess: () => {
@@ -275,13 +305,101 @@ function ChatView({
       queryClient.invalidateQueries({ queryKey: ["internal-chat-messages", chatId] });
       queryClient.invalidateQueries({ queryKey: ["internal-chat-team-members"] });
     },
+    onError: (err: any) => {
+      toast.error("Erro ao enviar: " + (err?.message || "tente novamente"));
+    },
   });
 
   const handleSend = () => {
     const trimmed = text.trim();
     if (!trimmed || sendMutation.isPending) return;
-    sendMutation.mutate(trimmed);
+    sendMutation.mutate({ content: trimmed });
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  // Formatting helpers
+  const wrapSelection = useCallback(
+    (prefix: string, suffix?: string) => {
+      const ta = textareaRef.current;
+      if (!ta) return;
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const selected = text.substring(start, end);
+      const s = suffix || prefix;
+      const newText = text.substring(0, start) + prefix + selected + s + text.substring(end);
+      setText(newText);
+      setTimeout(() => {
+        ta.focus();
+        const cursor = selected ? start + prefix.length + selected.length + s.length : start + prefix.length;
+        ta.setSelectionRange(selected ? start : start + prefix.length, selected ? cursor : start + prefix.length);
+      }, 0);
+    },
+    [text]
+  );
+
+  const insertEmoji = useCallback(
+    (emoji: string) => {
+      const ta = textareaRef.current;
+      if (!ta) { setText((v) => v + emoji); return; }
+      const start = ta.selectionStart;
+      const newText = text.substring(0, start) + emoji + text.substring(start);
+      setText(newText);
+      setTimeout(() => {
+        ta.focus();
+        ta.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
+    },
+    [text]
+  );
+
+  // File upload
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !tenantId) return;
+
+    if (file.size > 16 * 1024 * 1024) {
+      toast.error("Arquivo muito grande. Máximo 16MB.");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${tenantId}/internal-chat/${chatId}/${crypto.randomUUID()}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("checklist-assets")
+        .upload(path, file, { upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("checklist-assets")
+        .getPublicUrl(path);
+
+      const mediaType = file.type.startsWith("image/") ? "image" : "document";
+
+      sendMutation.mutate({
+        content: file.name,
+        media_url: urlData.publicUrl,
+        media_type: mediaType,
+        media_filename: file.name,
+      });
+    } catch (err: any) {
+      toast.error("Erro ao enviar arquivo: " + (err?.message || "tente novamente"));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const busy = sendMutation.isPending || isUploading;
 
   return (
     <div className="flex flex-col h-full">
@@ -324,7 +442,32 @@ function ChatView({
                         : "bg-muted text-foreground rounded-bl-md"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                    {/* Media content */}
+                    {msg.media_url && msg.media_type === "image" && (
+                      <img
+                        src={msg.media_url}
+                        alt={msg.media_filename || "Imagem"}
+                        className="rounded-lg mb-1 max-w-full max-h-48 object-cover cursor-pointer"
+                        onClick={() => window.open(msg.media_url!, "_blank")}
+                      />
+                    )}
+                    {msg.media_url && msg.media_type === "document" && (
+                      <a
+                        href={msg.media_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`flex items-center gap-2 mb-1 text-xs ${
+                          isMe ? "text-primary-foreground/80 hover:text-primary-foreground" : "text-primary hover:text-primary/80"
+                        }`}
+                      >
+                        <FileText className="h-4 w-4 shrink-0" />
+                        <span className="truncate">{msg.media_filename || "Documento"}</span>
+                        <Download className="h-3 w-3 shrink-0" />
+                      </a>
+                    )}
+                    {msg.content && !(msg.media_url && msg.content === msg.media_filename) && (
+                      <p className="whitespace-pre-wrap break-words">{msg.content}</p>
+                    )}
                     <p
                       className={`text-[10px] mt-0.5 ${
                         isMe ? "text-primary-foreground/60" : "text-muted-foreground"
@@ -344,27 +487,105 @@ function ChatView({
         )}
       </ScrollArea>
 
-      {/* Composer */}
-      <div className="p-3 border-t border-border/40 shrink-0">
-        <form
-          className="flex items-center gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSend();
-          }}
-        >
-          <Input
+      {/* Rich Composer */}
+      <div className="border-t border-border/40 shrink-0 bg-card">
+        {/* Formatting toolbar */}
+        <div className="flex items-center gap-0.5 px-3 pt-2 pb-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={() => wrapSelection("*")} className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
+                <Bold className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Negrito</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={() => wrapSelection("_")} className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
+                <Italic className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Itálico</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button onClick={() => wrapSelection("~")} className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
+                <Strikethrough className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Tachado</TooltipContent>
+          </Tooltip>
+
+          <div className="w-px h-4 bg-border/40 mx-1" />
+
+          {/* Emoji picker */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors" type="button">
+                <Smile className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="start" className="w-72 p-2">
+              <div className="grid grid-cols-9 gap-0.5">
+                {EMOJI_GRID.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => insertEmoji(emoji)}
+                    className="text-lg hover:scale-125 transition-transform p-1 rounded hover:bg-muted/60"
+                    type="button"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          {/* File upload */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 rounded hover:bg-muted/60 text-muted-foreground hover:text-foreground transition-colors"
+                type="button"
+                disabled={isUploading}
+              >
+                {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Paperclip className="h-3.5 w-3.5" />}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-[10px]">Enviar arquivo</TooltipContent>
+          </Tooltip>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+            onChange={handleFileSelect}
+          />
+        </div>
+
+        {/* Text input + send */}
+        <div className="flex items-end gap-2 px-3 pb-3">
+          <Textarea
+            ref={textareaRef}
             value={text}
             onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder="Digite uma mensagem..."
-            className="flex-1"
+            className="flex-1 min-h-[40px] max-h-[120px] resize-none text-sm"
             autoComplete="off"
+            rows={1}
             name="internal-chat-input"
           />
-          <Button type="submit" size="icon" disabled={!text.trim() || sendMutation.isPending}>
-            <Send className="h-4 w-4" />
+          <Button
+            size="icon"
+            onClick={handleSend}
+            disabled={!text.trim() || busy}
+            className="shrink-0 h-10 w-10"
+          >
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
-        </form>
+        </div>
       </div>
     </div>
   );
