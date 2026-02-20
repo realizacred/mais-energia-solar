@@ -14796,6 +14796,7 @@ export type Database = {
           trial_ends_at: string
         }[]
       }
+      get_user_chat_ids: { Args: { _user_id: string }; Returns: string[] }
       get_user_tenant_id: { Args: { _user_id?: string }; Returns: string }
       get_user_unread_conversations:
         | {
