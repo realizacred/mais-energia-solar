@@ -134,7 +134,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Switch checked={m.ativo} disabled={global}
+                      <Switch checked={m.ativo}
                         onCheckedChange={(v) => onToggle(m.id, v)} />
                       <span className={`text-xs font-medium ${m.ativo ? "text-green-600" : "text-muted-foreground"}`}>
                         {m.ativo ? "Ativo" : "Inativo"}
@@ -146,16 +146,14 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onView(m)}>
                         <Eye className="w-4 h-4" />
                       </Button>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(m)}>
+                        <Pencil className="w-4 h-4" />
+                      </Button>
                       {!global && (
-                        <>
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEdit(m)}>
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"
-                            onClick={() => onDelete(m)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"
+                          onClick={() => onDelete(m)}>
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       )}
                     </div>
                   </TableCell>

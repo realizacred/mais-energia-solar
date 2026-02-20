@@ -39,11 +39,9 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onView} title="Visualizar">
           <Eye className="w-4 h-4" />
         </Button>
-        {!isGlobal && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} title="Editar">
-            <Pencil className="w-4 h-4" />
-          </Button>
-        )}
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit} title="Editar">
+          <Pencil className="w-4 h-4" />
+        </Button>
       </div>
 
       <CardContent className="pt-4 pb-3 px-4 space-y-3">
@@ -102,7 +100,6 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
           <span className="text-xs text-muted-foreground">{m.ativo ? "Ativo" : "Inativo"}</span>
           <Switch
             checked={m.ativo}
-            disabled={isGlobal}
             onCheckedChange={onToggle}
             className="scale-90"
           />
