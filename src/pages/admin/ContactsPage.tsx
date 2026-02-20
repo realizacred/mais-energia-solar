@@ -481,7 +481,6 @@ interface ContactsPageProps {
 }
 
 export default function ContactsPage({ onOpenConversation }: ContactsPageProps) {
-  const [showRecall, setShowRecall] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
@@ -493,13 +492,36 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
     setShowDetail(true);
   };
 
-  const handleQuickChat = (contact: Contact) => {
-    setSelectedContact(contact);
-    setShowRecall(true);
+  const [quickLoading, setQuickLoading] = useState(false);
+
+  const handleQuickChat = async (contact: Contact) => {
+    if (quickLoading) return;
+    setQuickLoading(true);
+    try {
+      const params: Record<string, unknown> = { p_phone_raw: contact.phone_e164 };
+      if (contact.name) params.p_name_optional = contact.name;
+
+      const { data, error } = await (supabase.rpc as any)(
+        "rpc_recall_or_start_conversation",
+        params
+      );
+      if (error) throw error;
+
+      const result = data as { conversation_id: string; reused: boolean };
+      await handleSuccess(result.conversation_id);
+    } catch (err: any) {
+      toast({
+        title: "Erro",
+        description: err.message || "Não foi possível abrir a conversa",
+        variant: "destructive",
+      });
+    } finally {
+      setQuickLoading(false);
+    }
   };
 
   const handleOpenRecallDialog = () => {
-    setShowRecall(true);
+    setShowNew(true);
   };
 
   const navigate = useNavigate();
@@ -549,14 +571,6 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
         open={showDetail}
         onOpenChange={setShowDetail}
         onUpdated={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
-      />
-
-      <RecallDialog
-        open={showRecall}
-        onOpenChange={setShowRecall}
-        prefillPhone={selectedContact?.phone_e164 || ""}
-        prefillName={selectedContact?.name || ""}
-        onSuccess={handleSuccess}
       />
 
       <RecallDialog
