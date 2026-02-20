@@ -672,8 +672,10 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
           </TabsList>
         </div>
 
-        <TabsContent value="team" className="flex-1 min-h-0 m-0 h-full">
-          <InternalChat />
+        <TabsContent value="team" className="flex-1 min-h-0 m-0" style={{ height: "calc(100% - 52px)" }}>
+          <div className="h-full">
+            <InternalChat />
+          </div>
         </TabsContent>
 
         <TabsContent value="clients" className="flex-1 min-h-0 m-0">
