@@ -78,7 +78,7 @@ export default function MessagingApp() {
   return (
     <div className="h-[100dvh] flex flex-col bg-background w-full max-w-full overflow-x-hidden">
       {/* Main content */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 overflow-hidden relative">
         {activeTab === "messages" && (
           <WaInbox key={inboxKey} vendorMode vendorUserId={user.id} showCompactStats initialConversationId={initialConversationId} />
         )}
@@ -110,7 +110,7 @@ export default function MessagingApp() {
       </div>
 
       {/* Bottom navigation */}
-      <nav className="shrink-0 border-t border-border/40 bg-card safe-area-bottom" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <nav className="shrink-0 border-t border-border/40 bg-card safe-area-bottom relative z-50" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex">
           {/* Mensagens */}
           <button
