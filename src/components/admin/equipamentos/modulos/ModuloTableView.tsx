@@ -133,8 +133,13 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                     )}
                   </TableCell>
                   <TableCell>
-                    <Switch checked={m.ativo} disabled={global}
-                      onCheckedChange={(v) => onToggle(m.id, v)} />
+                    <div className="flex items-center gap-2">
+                      <Switch checked={m.ativo} disabled={global}
+                        onCheckedChange={(v) => onToggle(m.id, v)} />
+                      <span className={`text-xs font-medium ${m.ativo ? "text-green-600" : "text-muted-foreground"}`}>
+                        {m.ativo ? "Ativo" : "Inativo"}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
