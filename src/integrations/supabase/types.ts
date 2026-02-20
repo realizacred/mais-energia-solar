@@ -50,6 +50,68 @@ export type Database = {
         }
         Relationships: []
       }
+      aneel_sync_runs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          logs: Json
+          snapshot_hash: string | null
+          started_at: string
+          status: string
+          tenant_id: string
+          total_errors: number | null
+          total_fetched: number | null
+          total_matched: number | null
+          total_updated: number | null
+          trigger_type: string
+          triggered_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          snapshot_hash?: string | null
+          started_at?: string
+          status?: string
+          tenant_id: string
+          total_errors?: number | null
+          total_fetched?: number | null
+          total_matched?: number | null
+          total_updated?: number | null
+          trigger_type?: string
+          triggered_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          logs?: Json
+          snapshot_hash?: string | null
+          started_at?: string
+          status?: string
+          tenant_id?: string
+          total_errors?: number | null
+          total_fetched?: number | null
+          total_matched?: number | null
+          total_updated?: number | null
+          trigger_type?: string
+          triggered_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aneel_sync_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       appointments: {
         Row: {
           all_day: boolean | null
@@ -11260,6 +11322,124 @@ export type Database = {
           },
         ]
       }
+      tariff_versions: {
+        Row: {
+          aliquota_icms: number | null
+          concessionaria_id: string
+          created_at: string
+          custo_disp_bi: number | null
+          custo_disp_mono: number | null
+          custo_disp_tri: number | null
+          id: string
+          is_active: boolean
+          origem: string
+          percentual_isencao: number | null
+          pnd_kwh: number | null
+          possui_isencao: boolean | null
+          published_at: string | null
+          published_by: string | null
+          run_id: string | null
+          snapshot_hash: string | null
+          snapshot_raw: Json | null
+          tarifa_total_kwh: number | null
+          te_kwh: number | null
+          tenant_id: string
+          tfsee_kwh: number | null
+          tusd_fio_a_kwh: number | null
+          tusd_fio_b_kwh: number | null
+          tusd_total_kwh: number | null
+          updated_at: string
+          validation_notes: Json | null
+          validation_status: string
+          vigencia_fim: string | null
+          vigencia_inicio: string
+        }
+        Insert: {
+          aliquota_icms?: number | null
+          concessionaria_id: string
+          created_at?: string
+          custo_disp_bi?: number | null
+          custo_disp_mono?: number | null
+          custo_disp_tri?: number | null
+          id?: string
+          is_active?: boolean
+          origem?: string
+          percentual_isencao?: number | null
+          pnd_kwh?: number | null
+          possui_isencao?: boolean | null
+          published_at?: string | null
+          published_by?: string | null
+          run_id?: string | null
+          snapshot_hash?: string | null
+          snapshot_raw?: Json | null
+          tarifa_total_kwh?: number | null
+          te_kwh?: number | null
+          tenant_id: string
+          tfsee_kwh?: number | null
+          tusd_fio_a_kwh?: number | null
+          tusd_fio_b_kwh?: number | null
+          tusd_total_kwh?: number | null
+          updated_at?: string
+          validation_notes?: Json | null
+          validation_status?: string
+          vigencia_fim?: string | null
+          vigencia_inicio: string
+        }
+        Update: {
+          aliquota_icms?: number | null
+          concessionaria_id?: string
+          created_at?: string
+          custo_disp_bi?: number | null
+          custo_disp_mono?: number | null
+          custo_disp_tri?: number | null
+          id?: string
+          is_active?: boolean
+          origem?: string
+          percentual_isencao?: number | null
+          pnd_kwh?: number | null
+          possui_isencao?: boolean | null
+          published_at?: string | null
+          published_by?: string | null
+          run_id?: string | null
+          snapshot_hash?: string | null
+          snapshot_raw?: Json | null
+          tarifa_total_kwh?: number | null
+          te_kwh?: number | null
+          tenant_id?: string
+          tfsee_kwh?: number | null
+          tusd_fio_a_kwh?: number | null
+          tusd_fio_b_kwh?: number | null
+          tusd_total_kwh?: number | null
+          updated_at?: string
+          validation_notes?: Json | null
+          validation_status?: string
+          vigencia_fim?: string | null
+          vigencia_inicio?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tariff_versions_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tariff_versions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "aneel_sync_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tariff_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       task_events: {
         Row: {
           action: string
@@ -14580,6 +14760,25 @@ export type Database = {
           max_parcelas: number
           nome: string
           taxa_mensal: number
+        }[]
+      }
+      get_active_tariff_version: {
+        Args: { p_concessionaria_id: string; p_tenant_id: string }
+        Returns: {
+          custo_disp_bi: number
+          custo_disp_mono: number
+          custo_disp_tri: number
+          id: string
+          origem: string
+          pnd_kwh: number
+          tarifa_total_kwh: number
+          te_kwh: number
+          tfsee_kwh: number
+          tusd_fio_a_kwh: number
+          tusd_fio_b_kwh: number
+          validation_status: string
+          vigencia_fim: string
+          vigencia_inicio: string
         }[]
       }
       get_calculator_config: {
