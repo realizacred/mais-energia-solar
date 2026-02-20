@@ -81,6 +81,7 @@ const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalaca
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
+const AneelIntegrationPage = lazy(() => import("@/components/admin/integrations/AneelIntegrationPage").then(m => ({ default: m.AneelIntegrationPage })));
 const AiConfigPage = lazy(() => import("@/pages/admin/AiConfigPage"));
 const OpenAIConfigPage = lazy(() => import("@/pages/admin/OpenAIConfigPage"));
 const GeminiConfigPage = lazy(() => import("@/pages/admin/GeminiConfigPage"));
@@ -272,6 +273,7 @@ const TAB_TITLES: Record<string, string> = {
   documentos: "Documentos & assinatura",
   "data-reset": "Manutenção de dados",
   "integracoes": "Integrações",
+  "aneel": "Integração ANEEL",
 
   "payment-gateway": "Pagamentos (Asaas)",
   "ai-config": "Configuração de IA",
@@ -536,6 +538,7 @@ export default function Admin() {
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
                 <Route path="integracoes" element={<IntegrationsPage />} />
+                <Route path="aneel" element={<AneelIntegrationPage />} />
                 <Route path="saude-integracoes" element={<IntegrationHealthPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
