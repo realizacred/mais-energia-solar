@@ -60,6 +60,7 @@ import { WaMessageContextMenu, type ContextMenuState } from "./WaMessageContextM
 import { WaMessageBubble } from "./WaMessageBubble";
 import { WaAppointmentModal } from "./WaAppointmentModal";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useQuery } from "@tanstack/react-query";
 
 function formatPhone(phone: string | null | undefined): string {
   if (!phone) return "";
@@ -170,6 +171,20 @@ export function WaChatPanel({
   const [forwardingMsg, setForwardingMsg] = useState<WaMessage | null>(null);
   
   const [showParticipants, setShowParticipants] = useState(false);
+
+  // Fetch participant count for badge indicator
+  const { data: participantCount = 0 } = useQuery({
+    queryKey: ["wa-participants-count", conversation.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("wa_conversation_participants")
+        .select("id", { count: "exact", head: true })
+        .eq("conversation_id", conversation.id)
+        .eq("is_active", true);
+      if (error) return 0;
+      return count || 0;
+    },
+  });
   const [atBottom, setAtBottom] = useState(true);
   const [newMsgCount, setNewMsgCount] = useState(0);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -379,6 +394,20 @@ export function WaChatPanel({
                     </TooltipTrigger>
                     <TooltipContent>{conversation.status === "resolved" ? "Offline" : "Online"}</TooltipContent>
                   </Tooltip>
+                  {participantCount > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={() => setShowParticipants(true)}
+                          className="flex items-center gap-0.5 shrink-0 text-info hover:text-info/80 transition-colors"
+                        >
+                          <Users className="h-3 w-3" />
+                          <span className="text-[10px] font-medium">+{participantCount}</span>
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>{participantCount} participante{participantCount > 1 ? "s" : ""} no co-atendimento</TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                   {assignedConsultor && <span className="truncate max-w-[80px]">{assignedConsultor.nome}</span>}
