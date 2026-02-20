@@ -38,6 +38,52 @@ interface ChatMessage {
   media_filename?: string | null;
 }
 
+/**
+ * Hook: track online presence via Supabase Realtime
+ */
+function usePresence() {
+  const { user } = useAuth();
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase.channel("internal-presence", {
+      config: { presence: { key: user.id } },
+    });
+
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        const ids = new Set<string>(Object.keys(state));
+        setOnlineUsers(ids);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ user_id: user.id, online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  return onlineUsers;
+}
+
+/** Online status dot */
+function StatusDot({ online, size = "sm" }: { online: boolean; size?: "sm" | "md" }) {
+  const s = size === "md" ? "h-3 w-3" : "h-2.5 w-2.5";
+  return (
+    <span
+      className={`${s} rounded-full border-2 border-background block ${
+        online ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground/40"
+      }`}
+    />
+  );
+}
+
 const EMOJI_GRID = [
   "😀","😁","😂","🤣","😊","😇","🥰","😍","😘","😎","🤩","🥳",
   "😏","😔","😢","😭","😤","🤯","😱","🥺","😴","🙏","👍","👎",
@@ -167,11 +213,13 @@ function TeamMemberList({
   search,
   onSelect,
   selectedUserId,
+  onlineUsers,
 }: {
   members: TeamMember[];
   search: string;
   onSelect: (member: TeamMember) => void;
   selectedUserId: string | null;
+  onlineUsers: Set<string>;
 }) {
   const filtered = useMemo(() => {
     if (!search.trim()) return members;
@@ -199,11 +247,16 @@ function TeamMemberList({
             selectedUserId === member.user_id ? "bg-accent/60" : ""
           }`}
         >
-          <Avatar className="h-10 w-10 shrink-0">
-            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
-              {member.nome.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <div className="relative shrink-0">
+            <Avatar className="h-10 w-10">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                {member.nome.charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+            <span className="absolute -bottom-0.5 -right-0.5">
+              <StatusDot online={onlineUsers.has(member.user_id)} />
+            </span>
+          </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{member.nome}</p>
             {member.email && (
@@ -228,10 +281,12 @@ function TeamMemberList({
 function ChatView({
   chatId,
   otherName,
+  otherOnline,
   onBack,
 }: {
   chatId: string;
   otherName: string;
+  otherOnline: boolean;
   onBack: () => void;
 }) {
   const { user } = useAuth();
@@ -408,12 +463,22 @@ function ChatView({
         <Button variant="ghost" size="icon" onClick={onBack} className="md:hidden">
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <Avatar className="h-8 w-8">
-          <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-            {otherName.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <h3 className="text-sm font-semibold truncate">{otherName}</h3>
+        <div className="relative shrink-0">
+          <Avatar className="h-8 w-8">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
+              {otherName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <span className="absolute -bottom-0.5 -right-0.5">
+            <StatusDot online={otherOnline} size="sm" />
+          </span>
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold truncate">{otherName}</h3>
+          <p className="text-[10px] text-muted-foreground">
+            {otherOnline ? "Online" : "Offline"}
+          </p>
+        </div>
       </div>
 
       {/* Messages */}
@@ -601,6 +666,7 @@ export function InternalChat() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const { data: members = [], isLoading } = useTeamMembers();
+  const onlineUsers = usePresence();
   const [search, setSearch] = useState("");
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [activeMember, setActiveMember] = useState<TeamMember | null>(null);
@@ -679,6 +745,7 @@ export function InternalChat() {
               search={search}
               onSelect={handleSelectMember}
               selectedUserId={activeMember?.user_id || null}
+              onlineUsers={onlineUsers}
             />
           )}
         </ScrollArea>
@@ -695,6 +762,7 @@ export function InternalChat() {
             <ChatView
               chatId={activeChatId}
               otherName={activeMember.nome}
+              otherOnline={onlineUsers.has(activeMember.user_id)}
               onBack={() => {
                 setActiveChatId(null);
                 setActiveMember(null);
