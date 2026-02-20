@@ -27,6 +27,7 @@ export default function MessagingApp() {
   const [activeTab, setActiveTab] = useState<Tab>("messages");
   const [initialConversationId, setInitialConversationId] = useState<string | null>(null);
   const [showNewChat, setShowNewChat] = useState(false);
+  const [inboxKey, setInboxKey] = useState(0);
 
   // Read URL params once on mount (e.g. deep link /app?tab=messages&conversation=xxx)
   useEffect(() => {
@@ -79,7 +80,7 @@ export default function MessagingApp() {
       {/* Main content */}
       <div className="flex-1 min-h-0">
         {activeTab === "messages" && (
-          <WaInbox vendorMode vendorUserId={user.id} showCompactStats initialConversationId={initialConversationId} />
+          <WaInbox key={inboxKey} vendorMode vendorUserId={user.id} showCompactStats initialConversationId={initialConversationId} />
         )}
         {activeTab === "contacts" && (
           <Suspense fallback={<LoadingSpinner />}>
@@ -113,7 +114,15 @@ export default function MessagingApp() {
         <div className="flex">
           {/* Mensagens */}
           <button
-            onClick={() => setActiveTab("messages")}
+            onClick={() => {
+              if (activeTab === "messages") {
+                // Already on messages — reset to conversation list
+                setInitialConversationId(null);
+                setInboxKey((k) => k + 1);
+              } else {
+                setActiveTab("messages");
+              }
+            }}
             className={`flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium transition-colors active:bg-muted/30 ${
               activeTab === "messages" ? "text-primary" : "text-muted-foreground hover:text-foreground"
             }`}
