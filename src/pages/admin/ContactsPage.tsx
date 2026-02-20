@@ -29,6 +29,7 @@ import {
   Contact as ContactIcon,
   Clock,
   Save,
+  Pencil,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -159,59 +160,54 @@ export function ContactsList({ onSelectContact, onQuickChat, onNewContact, selec
             {filtered.map((contact) => (
               <div
                 key={contact.id}
-                className={`flex items-center gap-3 p-3 transition-colors hover:bg-accent/50 ${
+                className={`flex items-center gap-3 p-3 transition-colors hover:bg-accent/50 active:bg-accent/70 cursor-pointer ${
                   selectedId === contact.id ? "bg-accent/60" : ""
                 }`}
+                onClick={() => onQuickChat(contact)}
               >
-                {/* Clickable area → open detail/edit */}
-                <button
-                  onClick={() => onSelectContact(contact)}
-                  className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                >
-                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-sm font-semibold text-primary">
-                      {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {contact.name || formatPhone(contact.phone_e164)}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <Phone className="h-3 w-3 shrink-0" />
-                      <span className="truncate">{formatPhone(contact.phone_e164)}</span>
-                      {contact.last_interaction_at && (
-                        <>
-                          <span className="text-border">·</span>
-                          <Clock className="h-3 w-3 shrink-0" />
-                          <span className="truncate">
-                            {formatDistanceToNow(new Date(contact.last_interaction_at), {
-                              addSuffix: true,
-                              locale: ptBR,
-                            })}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                    {contact.tags?.length > 0 && (
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {contact.tags.slice(0, 3).map((tag) => (
-                          <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
-                            {tag}
-                          </Badge>
-                        ))}
-                      </div>
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                  <span className="text-sm font-semibold text-primary">
+                    {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {contact.name || formatPhone(contact.phone_e164)}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Phone className="h-3 w-3 shrink-0" />
+                    <span className="truncate">{formatPhone(contact.phone_e164)}</span>
+                    {contact.last_interaction_at && (
+                      <>
+                        <span className="text-border">·</span>
+                        <Clock className="h-3 w-3 shrink-0" />
+                        <span className="truncate">
+                          {formatDistanceToNow(new Date(contact.last_interaction_at), {
+                            addSuffix: true,
+                            locale: ptBR,
+                          })}
+                        </span>
+                      </>
                     )}
                   </div>
-                </button>
+                  {contact.tags?.length > 0 && (
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {contact.tags.slice(0, 3).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                {/* Quick WhatsApp chat button */}
+                {/* Edit icon */}
                 <button
-                  onClick={(e) => { e.stopPropagation(); onQuickChat(contact); }}
-                  className="shrink-0 h-9 w-9 rounded-full bg-success/10 hover:bg-success/20 flex items-center justify-center transition-colors"
-                  title="Abrir conversa"
+                  onClick={(e) => { e.stopPropagation(); onSelectContact(contact); }}
+                  className="shrink-0 h-8 w-8 rounded-full bg-muted/60 hover:bg-muted flex items-center justify-center transition-colors"
+                  title="Editar contato"
                 >
-                  <MessageCircle className="h-4 w-4 text-success" />
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
               </div>
             ))}
@@ -380,23 +376,20 @@ function ContactEditDialog({
   contact,
   open,
   onOpenChange,
-  onChat,
   onUpdated,
 }: {
   contact: Contact | null;
   open: boolean;
   onOpenChange: (v: boolean) => void;
-  onChat: () => void;
+  onChat?: () => void;
   onUpdated?: () => void;
 }) {
   const [editName, setEditName] = useState("");
-  const [editTags, setEditTags] = useState("");
   const { toast } = useToast();
 
   const handleOpenChange = (v: boolean) => {
     if (v && contact) {
       setEditName(contact.name || "");
-      setEditTags((contact.tags || []).join(", "));
     }
     onOpenChange(v);
   };
@@ -404,18 +397,23 @@ function ContactEditDialog({
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!contact) return;
-      const tags = editTags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+      const newName = editName.trim() || null;
+      // Update contacts table
       const { error } = await supabase
         .from("contacts")
-        .update({ name: editName.trim() || null, tags })
+        .update({ name: newName })
         .eq("id", contact.id);
       if (error) throw error;
+      // Also update wa_conversations cliente_nome if linked
+      if (contact.phone_e164) {
+        await supabase
+          .from("wa_conversations")
+          .update({ cliente_nome: newName })
+          .eq("cliente_telefone", contact.phone_e164);
+      }
     },
     onSuccess: () => {
-      toast({ title: "Contato atualizado" });
+      toast({ title: "Nome atualizado" });
       onUpdated?.();
       onOpenChange(false);
     },
@@ -428,34 +426,24 @@ function ContactEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.stopPropagation()}>
+      <DialogContent className="sm:max-w-sm" onPointerDownOutside={(e) => e.stopPropagation()}>
         <DialogHeader>
-          <DialogTitle>Editar contato</DialogTitle>
-          <DialogDescription>Atualize as informações do contato.</DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-4 w-4 text-muted-foreground" />
+            Renomear contato
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <span className="text-lg font-bold text-primary">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-primary">
                 {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
               </span>
             </div>
-            <div>
-              <p className="text-sm font-medium text-foreground">
-                {formatPhone(contact.phone_e164)}
-              </p>
-              {contact.last_interaction_at && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Última interação{" "}
-                  {formatDistanceToNow(new Date(contact.last_interaction_at), {
-                    addSuffix: true,
-                    locale: ptBR,
-                  })}
-                </p>
-              )}
-            </div>
+            <p className="text-sm text-muted-foreground">
+              {formatPhone(contact.phone_e164)}
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -466,30 +454,15 @@ function ContactEditDialog({
               onChange={(e) => setEditName(e.target.value)}
               placeholder="Nome do contato"
               name="contact-edit-name"
+              autoFocus
+              onKeyDown={(e) => { if (e.key === "Enter") saveMutation.mutate(); }}
             />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="contact-tags">Tags</Label>
-            <Input
-              id="contact-tags"
-              value={editTags}
-              onChange={(e) => setEditTags(e.target.value)}
-              placeholder="cliente, vip, indicação (separadas por vírgula)"
-              name="contact-edit-tags"
-            />
-            <p className="text-xs text-muted-foreground">Separe as tags por vírgula</p>
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2 sm:flex-row">
-          <Button
-            variant="outline"
-            onClick={onChat}
-            className="gap-2 text-success border-success/30 hover:bg-success/10"
-          >
-            <MessageCircle className="h-4 w-4" />
-            Conversar
+        <DialogFooter>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={saveMutation.isPending}>
+            Cancelar
           </Button>
           <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
             {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
@@ -575,7 +548,6 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
         contact={selectedContact}
         open={showDetail}
         onOpenChange={setShowDetail}
-        onChat={() => { setShowDetail(false); handleOpenRecallDialog(); }}
         onUpdated={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
       />
 
