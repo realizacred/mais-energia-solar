@@ -23,6 +23,7 @@ export function WaNotificationProvider() {
     dismissNotification,
     dismissAll,
     totalUnread,
+    unansweredConversations,
     setIsOnInbox,
   } = useWaNotifications();
 
@@ -67,6 +68,7 @@ export function WaNotificationProvider() {
     <WaNotificationPopup
       notifications={pendingNotifications}
       totalUnread={totalUnread}
+      unansweredConversations={unansweredConversations}
       enabled={enabled}
       soundEnabled={soundEnabled}
       onSetEnabled={setEnabled}

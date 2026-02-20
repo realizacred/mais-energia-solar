@@ -4,9 +4,19 @@ import { MessageCircle, X, ExternalLink } from "lucide-react";
 import { DraggableBell } from "./DraggableBell";
 import type { WaNewMessage } from "@/hooks/useWaNotifications";
 
+interface UnansweredConversation {
+  conversation_id: string;
+  cliente_nome: string | null;
+  cliente_telefone: string;
+  last_message_preview: string | null;
+  last_message_at: string | null;
+  unread_for_user: number;
+}
+
 interface WaNotificationPopupProps {
   notifications: WaNewMessage[];
   totalUnread: number;
+  unansweredConversations: UnansweredConversation[];
   enabled: boolean;
   soundEnabled: boolean;
   onSetEnabled: (val: boolean) => void;
@@ -19,6 +29,7 @@ interface WaNotificationPopupProps {
 export function WaNotificationPopup({
   notifications,
   totalUnread,
+  unansweredConversations,
   enabled,
   soundEnabled,
   onSetEnabled,
@@ -106,6 +117,7 @@ export function WaNotificationPopup({
         enabled={enabled}
         soundEnabled={soundEnabled}
         totalUnread={totalUnread}
+        unansweredConversations={unansweredConversations}
         onSetEnabled={onSetEnabled}
         onSetSoundEnabled={onSetSoundEnabled}
         onOpenConversation={onOpenConversation}
