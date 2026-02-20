@@ -8,7 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Calendar, CheckCircle2, XCircle, AlertTriangle, Clock, Plug, Unplug,
-  RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2, Save, KeyRound, Eye, EyeOff, Copy, Info, MapPin
+  RefreshCcw, TestTube, Shield, Mail, ExternalLink, Loader2, Save, KeyRound, Eye, EyeOff, Copy, Info, MapPin,
+  Sparkles, FileText, Bot
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -402,6 +403,59 @@ export function IntegrationsPage() {
             <KeyRound className="mr-2 h-4 w-4" />
             Configurar API Key
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* ── IA / Extração de Datasheets Card ──────────────── */}
+      <Card>
+        <CardHeader className="pb-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-lg">IA — Extração de Datasheets</CardTitle>
+                <CardDescription>Extrai dados técnicos de PDFs de módulos fotovoltaicos automaticamente via Gemini</CardDescription>
+              </div>
+            </div>
+            <Badge variant="outline" className="gap-1.5 bg-primary/15 text-primary border-primary/30">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Ativo
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+            <h4 className="text-sm font-semibold flex items-center gap-2">
+              <Bot className="h-4 w-4 text-muted-foreground" />
+              Como funciona
+            </h4>
+            <ul className="text-xs text-muted-foreground space-y-1.5 list-disc list-inside">
+              <li>Ao cadastrar ou editar um módulo, anexe o <strong>datasheet PDF</strong></li>
+              <li>A IA (Google Gemini 2.5 Flash) analisa o documento automaticamente</li>
+              <li>Campos preenchidos: <strong>Potência, Vmp, Imp, Voc, Isc, dimensões, tipo de célula, eficiência, coeficientes térmicos, garantias</strong></li>
+              <li>Funciona com PDFs textuais e escaneados (OCR)</li>
+            </ul>
+          </div>
+
+          <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+            <h4 className="text-sm font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              Importação em Massa
+            </h4>
+            <p className="text-xs text-muted-foreground">
+              Use a tela <strong>Equipamentos → Módulos → Importar</strong> para importar módulos em lote via texto colado ou CSV.
+              Os módulos entram como rascunho e podem ser enriquecidos individualmente com datasheets.
+            </p>
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => navigate("/admin/equipamentos")}>
+              <FileText className="mr-2 h-4 w-4" />
+              Ir para Módulos
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
