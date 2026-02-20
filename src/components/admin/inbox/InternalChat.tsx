@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, ArrowLeft, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
 
 interface TeamMember {
   user_id: string;
@@ -416,8 +417,9 @@ export function InternalChat() {
       setActiveChatId(chat.id);
       member.chat_id = chat.id;
       queryClient.invalidateQueries({ queryKey: ["internal-chat-team-members"] });
-    } catch (err) {
+    } catch (err: any) {
       console.error("[InternalChat] Error creating chat:", err);
+      toast.error("Erro ao abrir conversa: " + (err?.message || "tente novamente"));
     } finally {
       setCreating(false);
     }
