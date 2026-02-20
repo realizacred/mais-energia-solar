@@ -132,7 +132,7 @@ function parseRows(text: string, existing: Modulo[]): ParsedRow[] {
     const warnings: string[] = [];
     if (!fabricante) errors.push("Fabricante vazio");
     if (!modelo) errors.push("Modelo vazio");
-    if (!potencia_wp || potencia_wp < 100 || potencia_wp > 900) errors.push("Potência inválida");
+    if (!potencia_wp || potencia_wp < 100 || potencia_wp > 1000) errors.push("Potência inválida");
 
     const hasElectrical = vmp_v != null && imp_a != null && voc_v != null && isc_a != null;
     const hasDimensions = comprimento_mm != null && largura_mm != null;
