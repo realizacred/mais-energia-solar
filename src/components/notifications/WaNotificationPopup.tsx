@@ -108,6 +108,7 @@ export function WaNotificationPopup({
         totalUnread={totalUnread}
         onSetEnabled={onSetEnabled}
         onSetSoundEnabled={onSetSoundEnabled}
+        onOpenConversation={onOpenConversation}
       />
     </>
   );

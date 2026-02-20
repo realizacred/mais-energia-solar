@@ -1,8 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Bell, BellOff, Volume2, VolumeX } from "lucide-react";
+import { Bell, BellOff, Volume2, VolumeX, Clock, MessageCircle, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface DraggableBellProps {
   enabled: boolean;
@@ -10,6 +22,7 @@ interface DraggableBellProps {
   totalUnread: number;
   onSetEnabled: (val: boolean) => void;
   onSetSoundEnabled: (val: boolean) => void;
+  onOpenConversation?: (conversationId: string) => void;
 }
 
 const STORAGE_KEY = "wa_bell_position";
@@ -28,12 +41,43 @@ export function DraggableBell({
   totalUnread,
   onSetEnabled,
   onSetSoundEnabled,
+  onOpenConversation,
 }: DraggableBellProps) {
+  const { user } = useAuth();
   const [position, setPosition] = useState(getInitialPosition);
   const [isDragging, setIsDragging] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const wasDragged = useRef(false);
   const dragStart = useRef({ x: 0, y: 0, posX: 0, posY: 0 });
   const bellRef = useRef<HTMLDivElement>(null);
+
+  // Fetch unanswered conversations for current user
+  const { data: unanswered = [] } = useQuery({
+    queryKey: ["unanswered-conversations-bell", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from("wa_conversations")
+          .select("id, cliente_nome, cliente_telefone, last_message_preview, last_message_at, last_message_direction, unread_count")
+          .eq("last_message_direction", "in")
+          .in("status", ["open", "pending"])
+          .order("last_message_at", { ascending: false })
+          .limit(50);
+        if (error) {
+          console.error("[DraggableBell] query error:", error);
+          return [];
+        }
+        return data || [];
+      } catch (err) {
+        console.error("[DraggableBell] unexpected error:", err);
+        return [];
+      }
+    },
+    refetchInterval: 30_000,
+  });
+
+  const unansweredCount = unanswered.length;
 
   const clamp = useCallback((pos: { x: number; y: number }) => {
     const size = 44;
@@ -66,7 +110,6 @@ export function DraggableBell({
     if (!isDragging) return;
     setIsDragging(false);
     (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    // Snap to nearest edge
     const midX = window.innerWidth / 2;
     const snapped = clamp({
       x: position.x < midX ? 16 : window.innerWidth - 60,
@@ -76,7 +119,6 @@ export function DraggableBell({
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapped)); } catch {}
   }, [isDragging, position, clamp]);
 
-  // Recalculate on resize
   useEffect(() => {
     const onResize = () => setPosition((p) => clamp(p));
     window.addEventListener("resize", onResize);
@@ -92,8 +134,8 @@ export function DraggableBell({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
     >
-      <Popover>
-        <PopoverTrigger asChild>
+      <Sheet>
+        <SheetTrigger asChild>
           <Button
             size="icon"
             variant="outline"
@@ -105,17 +147,35 @@ export function DraggableBell({
             ) : (
               <BellOff className="h-5 w-5 text-muted-foreground" />
             )}
-            {totalUnread > 0 && enabled && (
+            {unansweredCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
-                {totalUnread > 99 ? "99+" : totalUnread}
+                {unansweredCount > 99 ? "99+" : unansweredCount}
               </span>
             )}
           </Button>
-        </PopoverTrigger>
-        <PopoverContent side="top" align="start" className="w-64 p-3">
-          <div className="space-y-3">
-            <p className="text-sm font-semibold text-foreground">Notificações WhatsApp</p>
-            <div className="space-y-2.5">
+        </SheetTrigger>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto p-0">
+          <SheetHeader className="px-4 pt-4 pb-3 border-b border-border/40">
+            <SheetTitle className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4 text-warning" />
+              Conversas sem resposta
+              {unansweredCount > 0 && (
+                <Badge variant="destructive" className="text-[10px]">{unansweredCount}</Badge>
+              )}
+              {/* Settings toggle */}
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowSettings((v) => !v); }}
+                className="ml-auto p-1.5 rounded-md hover:bg-muted transition-colors"
+                title="Configurações de notificações"
+              >
+                <Settings className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </SheetTitle>
+          </SheetHeader>
+
+          {/* Notification settings (collapsible) */}
+          {showSettings && (
+            <div className="px-4 py-3 border-b border-border/40 bg-muted/30 space-y-2.5">
               <div className="flex items-center justify-between">
                 <label className="text-sm text-foreground flex items-center gap-2 cursor-pointer">
                   <Bell className="h-4 w-4 text-muted-foreground" />
@@ -131,14 +191,48 @@ export function DraggableBell({
                 <Switch checked={soundEnabled} onCheckedChange={onSetSoundEnabled} disabled={!enabled} />
               </div>
             </div>
-            {totalUnread > 0 && (
-              <p className="text-xs text-muted-foreground pt-1 border-t border-border/40">
-                {totalUnread} mensage{totalUnread === 1 ? "m" : "ns"} não lida{totalUnread === 1 ? "" : "s"}
-              </p>
+          )}
+
+          {/* Unanswered conversations list */}
+          <div className="divide-y divide-border/30">
+            {unansweredCount === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                <MessageCircle className="h-8 w-8 text-success mb-3" />
+                <p className="text-sm font-medium">Tudo respondido! 🎉</p>
+                <p className="text-xs text-muted-foreground mt-1">Nenhuma conversa aguardando resposta.</p>
+              </div>
+            ) : (
+              unanswered.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => onOpenConversation?.(conv.id)}
+                  className="w-full flex items-center gap-3 p-3 hover:bg-accent/50 transition-colors text-left"
+                >
+                  <div className="h-10 w-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                    <MessageCircle className="h-4 w-4 text-destructive" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {conv.cliente_nome || conv.cliente_telefone}
+                    </p>
+                    {conv.last_message_preview && (
+                      <p className="text-xs text-muted-foreground truncate">{conv.last_message_preview}</p>
+                    )}
+                    {conv.last_message_at && (
+                      <p className="text-[10px] text-warning mt-0.5">
+                        {formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: true, locale: ptBR })}
+                      </p>
+                    )}
+                  </div>
+                  {conv.unread_count > 0 && (
+                    <Badge variant="destructive" className="text-[10px] shrink-0">{conv.unread_count}</Badge>
+                  )}
+                </button>
+              ))
             )}
           </div>
-        </PopoverContent>
-      </Popover>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
