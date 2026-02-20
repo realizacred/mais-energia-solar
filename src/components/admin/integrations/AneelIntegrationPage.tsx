@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   RefreshCw, Play, CheckCircle2, AlertTriangle, XCircle, Clock,
   ChevronDown, ChevronRight, Building2, Zap, Eye, BarChart3,
-  Activity, Shield, Info,
+  Activity, Shield, Info, ShieldCheck, ShieldAlert, FlaskConical,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -44,10 +44,12 @@ interface TariffVersion {
   origem: string;
   te_kwh: number | null;
   tusd_fio_b_kwh: number | null;
+  tusd_total_kwh: number | null;
   tarifa_total_kwh: number | null;
   validation_status: string;
   validation_notes: string[];
   published_at: string | null;
+  precisao: string;
   concessionarias?: { nome: string; sigla: string | null; estado: string | null };
 }
 
@@ -62,10 +64,11 @@ interface Concessionaria {
 }
 
 const statusConfig = {
-  running:  { label: "Executando", icon: RefreshCw,    color: "text-info",    bg: "bg-info/10",    badge: "secondary" },
-  success:  { label: "Sucesso",    icon: CheckCircle2,  color: "text-success", bg: "bg-success/10", badge: "default" },
-  partial:  { label: "Parcial",    icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10", badge: "secondary" },
-  error:    { label: "Erro",       icon: XCircle,       color: "text-destructive", bg: "bg-destructive/10", badge: "destructive" },
+  running:   { label: "Executando", icon: RefreshCw,    color: "text-info",        bg: "bg-info/10",        badge: "secondary" },
+  success:   { label: "Sucesso",    icon: CheckCircle2,  color: "text-success",     bg: "bg-success/10",     badge: "default" },
+  partial:   { label: "Parcial",    icon: AlertTriangle, color: "text-warning",     bg: "bg-warning/10",     badge: "secondary" },
+  error:     { label: "Erro",       icon: XCircle,       color: "text-destructive", bg: "bg-destructive/10", badge: "destructive" },
+  test_run:  { label: "Test Run",   icon: FlaskConical,  color: "text-info",        bg: "bg-info/10",        badge: "secondary" },
 } as const;
 
 const validationConfig = {
@@ -96,9 +99,25 @@ function ValidationBadge({ status }: { status: string }) {
   );
 }
 
+function PrecisaoBadgeSmall({ precisao }: { precisao?: string }) {
+  if (precisao === 'exato') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success">
+        <ShieldCheck className="w-3 h-3" />
+        EXATO
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning">
+      <ShieldAlert className="w-3 h-3" />
+      ESTIMADO
+    </span>
+  );
+}
+
 function RunRow({ run }: { run: AneelSyncRun }) {
   const [open, setOpen] = useState(false);
-  const cfg = statusConfig[run.status as keyof typeof statusConfig] ?? statusConfig.error;
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -147,7 +166,7 @@ function RunRow({ run }: { run: AneelSyncRun }) {
               <ScrollArea className="h-48 rounded border bg-background">
                 <div className="p-3 font-mono text-xs space-y-0.5">
                   {(run.logs || []).map((line, i) => (
-                    <div key={i} className={`${line.includes("✅") ? "text-success" : line.includes("⚠️") ? "text-warning" : line.includes("ERRO") ? "text-destructive" : "text-muted-foreground"}`}>
+                    <div key={i} className={`${line.includes("✅") ? "text-success" : line.includes("⚠️") ? "text-warning" : line.includes("ERRO") ? "text-destructive" : line.includes("🧪") ? "text-info" : "text-muted-foreground"}`}>
                       {line}
                     </div>
                   ))}
@@ -207,19 +226,21 @@ export function AneelIntegrationPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleSync = async () => {
+  const handleSync = async (testRun = false) => {
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke("sync-tarifas-aneel", {
-        body: { trigger_type: "manual" },
+        body: { trigger_type: "manual", test_run: testRun },
       });
       if (error) throw error;
       if (data?.success) {
         const updated = data.resultados?.length || 0;
         const errors = data.erros?.length || 0;
         toast({
-          title: `Sync concluído — ${updated} atualizadas`,
-          description: errors > 0 ? `${errors} distribuidora(s) não encontradas na ANEEL` : "Todas atualizadas com sucesso",
+          title: testRun
+            ? `Test Run concluído — ${updated} simuladas`
+            : `Sync concluído — ${updated} atualizadas`,
+          description: errors > 0 ? `${errors} distribuidora(s) não encontradas na ANEEL` : (testRun ? "Nenhuma alteração foi publicada" : "Todas atualizadas com sucesso"),
         });
         fetchData();
       } else {
@@ -236,13 +257,15 @@ export function AneelIntegrationPage() {
   const totalActive = versions.length;
   const totalAtencao = versions.filter(v => v.validation_status === 'atencao').length;
   const totalIncompleto = versions.filter(v => v.validation_status === 'incompleto_gd3').length;
+  const totalExato = versions.filter(v => v.precisao === 'exato').length;
+  const totalEstimado = versions.filter(v => v.precisao === 'estimado' || !v.precisao).length;
 
-  const getConcessionariaStatus = (conc: Concessionaria): { label: string; color: string; bg: string } => {
+  const getConcessionariaStatus = (conc: Concessionaria) => {
     const version = versions.find(v => v.concessionaria_id === conc.id);
-    if (!version) return { label: "Sem versão ANEEL", color: "text-muted-foreground", bg: "bg-muted/40" };
-    if (version.validation_status === 'atencao') return { label: "Atenção", color: "text-warning", bg: "bg-warning/10" };
-    if (version.validation_status === 'incompleto_gd3') return { label: "Incompleto GD III", color: "text-info", bg: "bg-info/10" };
-    return { label: "OK", color: "text-success", bg: "bg-success/10" };
+    if (!version) return { label: "Sem versão ANEEL", color: "text-muted-foreground", bg: "bg-muted/40", precisao: null };
+    if (version.validation_status === 'atencao') return { label: "Atenção", color: "text-warning", bg: "bg-warning/10", precisao: version.precisao };
+    if (version.validation_status === 'incompleto_gd3') return { label: "Incompleto GD III", color: "text-info", bg: "bg-info/10", precisao: version.precisao };
+    return { label: "OK", color: "text-success", bg: "bg-success/10", precisao: version.precisao };
   };
 
   const tabs = [
@@ -264,15 +287,21 @@ export function AneelIntegrationPage() {
             Sincronização semanal de tarifas homologadas · Versionamento auditável · Motor GD II/III 2026
           </p>
         </div>
-        <Button onClick={handleSync} disabled={syncing} className="gap-2">
-          <Play className={`w-4 h-4 ${syncing ? "hidden" : ""}`} />
-          <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : "hidden"}`} />
-          {syncing ? "Sincronizando..." : "Executar Agora"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => handleSync(true)} disabled={syncing} className="gap-2">
+            <FlaskConical className="w-4 h-4" />
+            Test Run
+          </Button>
+          <Button onClick={() => handleSync(false)} disabled={syncing} className="gap-2">
+            <Play className={`w-4 h-4 ${syncing ? "hidden" : ""}`} />
+            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : "hidden"}`} />
+            {syncing ? "Sincronizando..." : "Executar Agora"}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="border-border/50">
           <CardContent className="pt-5">
             <div className="text-xs text-muted-foreground mb-1">Último Sync</div>
@@ -289,6 +318,17 @@ export function AneelIntegrationPage() {
             <div className="text-xs text-muted-foreground mb-1">Versões Ativas</div>
             <div className="text-2xl font-bold">{totalActive}</div>
             <div className="text-xs text-muted-foreground">distribuidoras</div>
+          </CardContent>
+        </Card>
+        <Card className="border-border/50">
+          <CardContent className="pt-5">
+            <div className="text-xs text-muted-foreground mb-1">Precisão</div>
+            <div className="flex items-center gap-2">
+              <span className="text-success font-bold">{totalExato}</span>
+              <span className="text-xs text-muted-foreground">exato</span>
+              <span className="text-warning font-bold">{totalEstimado}</span>
+              <span className="text-xs text-muted-foreground">estimado</span>
+            </div>
           </CardContent>
         </Card>
         <Card className="border-border/50">
@@ -311,9 +351,10 @@ export function AneelIntegrationPage() {
       <div className="p-3 rounded-lg bg-info/5 border border-info/20 flex items-start gap-2">
         <Info className="w-4 h-4 text-info mt-0.5 shrink-0" />
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">Motor GD 2026:</strong> GD II aplica 60% do Fio B como custo não compensável (Lei 14.300).
-          GD III inclui Fio A (40%), TFSEE e P&D — quando disponíveis pela ANEEL.
-          Cada sync gera uma versão imutável auditável com hash do snapshot ANEEL.
+          <strong className="text-foreground">Precisão do Fio B:</strong>{" "}
+          <span className="text-success font-medium">EXATO</span> quando Fio B é configurado manualmente na distribuidora (valor real). {" "}
+          <span className="text-warning font-medium">ESTIMADO</span> quando o TUSD total da ANEEL é usado como proxy (B1 convencional não discrimina Fio B).
+          Use "Test Run" para simular o sync sem publicar alterações.
         </p>
       </div>
 
@@ -350,7 +391,7 @@ export function AneelIntegrationPage() {
                 <Activity className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm font-medium">Nenhuma execução registrada</p>
                 <p className="text-xs text-muted-foreground mt-1">Execute o sync para começar o histórico de auditoria.</p>
-                <Button onClick={handleSync} disabled={syncing} className="mt-4 gap-2">
+                <Button onClick={() => handleSync(false)} disabled={syncing} className="mt-4 gap-2">
                   <Play className="w-4 h-4" />
                   Executar Primeiro Sync
                 </Button>
@@ -398,8 +439,9 @@ export function AneelIntegrationPage() {
                     <TableHead>UF</TableHead>
                     <TableHead>TE (R$/kWh)</TableHead>
                     <TableHead>Fio B (R$/kWh)</TableHead>
-                    <TableHead>Total</TableHead>
+                    <TableHead>TUSD Total</TableHead>
                     <TableHead>Vigência</TableHead>
+                    <TableHead>Precisão</TableHead>
                     <TableHead>Origem</TableHead>
                     <TableHead>Validação</TableHead>
                   </TableRow>
@@ -419,14 +461,23 @@ export function AneelIntegrationPage() {
                         {v.te_kwh != null ? v.te_kwh.toFixed(6) : "—"}
                       </TableCell>
                       <TableCell className="font-mono text-xs">
-                        {v.tusd_fio_b_kwh != null ? v.tusd_fio_b_kwh.toFixed(6) : "—"}
+                        {v.tusd_fio_b_kwh != null ? (
+                          <span className="text-success">{v.tusd_fio_b_kwh.toFixed(6)}</span>
+                        ) : (
+                          <span className="text-muted-foreground italic">N/A</span>
+                        )}
                       </TableCell>
-                      <TableCell className="font-mono text-xs font-semibold">
-                        {v.tarifa_total_kwh != null ? `R$ ${v.tarifa_total_kwh.toFixed(4)}` : "—"}
+                      <TableCell className="font-mono text-xs">
+                        {v.tusd_total_kwh != null ? v.tusd_total_kwh.toFixed(6) : (
+                          v.tarifa_total_kwh != null ? <span className="text-muted-foreground">{v.tarifa_total_kwh.toFixed(6)}</span> : "—"
+                        )}
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
                         {v.vigencia_inicio}
                         {v.vigencia_fim ? ` → ${v.vigencia_fim}` : " → atual"}
+                      </TableCell>
+                      <TableCell>
+                        <PrecisaoBadgeSmall precisao={v.precisao} />
                       </TableCell>
                       <TableCell>
                         <Badge variant={v.origem === 'ANEEL' ? 'default' : 'secondary'} className="text-xs">
@@ -467,7 +518,8 @@ export function AneelIntegrationPage() {
                   <TableHead>Tarifa atual</TableHead>
                   <TableHead>Fio B</TableHead>
                   <TableHead>Último sync</TableHead>
-                  <TableHead>Status ANEEL</TableHead>
+                  <TableHead>Precisão</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -491,6 +543,9 @@ export function AneelIntegrationPage() {
                         {conc.ultima_sync_tarifas
                           ? formatDistanceToNow(new Date(conc.ultima_sync_tarifas), { addSuffix: true, locale: ptBR })
                           : <span className="text-destructive">Nunca</span>}
+                      </TableCell>
+                      <TableCell>
+                        {status.precisao ? <PrecisaoBadgeSmall precisao={status.precisao} /> : <span className="text-xs text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${status.bg} ${status.color}`}>

@@ -1,6 +1,6 @@
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Info, Zap } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Info, Zap, ShieldCheck, ShieldAlert } from "lucide-react";
 import { useState } from "react";
-import { calcGrupoB, type CalcGrupoBInput, type RegraGD, type TipoFase, type TariffComponentes, type CustoDisponibilidade } from "@/lib/calcGrupoB";
+import { calcGrupoB, type CalcGrupoBInput, type RegraGD, type TipoFase, type TariffComponentes, type CustoDisponibilidade, type NivelPrecisao } from "@/lib/calcGrupoB";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,23 @@ function OrigemBadge({ origem }: { origem?: string }) {
   };
   const cfg = config[origem as keyof typeof config] ?? { label: origem, variant: "outline" as const };
   return <Badge variant={cfg.variant} className="text-xs px-1.5 py-0">{cfg.label}</Badge>;
+}
+
+function PrecisaoBadge({ precisao, motivo }: { precisao: NivelPrecisao; motivo: string }) {
+  if (precisao === 'exato') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-success/10 text-success" title={motivo}>
+        <ShieldCheck className="w-3 h-3" />
+        EXATO
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-warning/10 text-warning" title={motivo}>
+      <ShieldAlert className="w-3 h-3" />
+      ESTIMADO
+    </span>
+  );
 }
 
 function CalcRow({ label, value, sub, highlight }: { label: string; value: string; sub?: string; highlight?: boolean }) {
@@ -75,10 +92,11 @@ export function ResumoGrupoB({
     <Collapsible open={open} onOpenChange={setOpen} className={cn("rounded-lg border border-border/50 bg-card", className)}>
       <CollapsibleTrigger className="w-full">
         <div className="flex items-center justify-between p-3 hover:bg-muted/30 rounded-lg transition-colors">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Zap className="w-4 h-4 text-primary" />
             <span className="text-sm font-medium">Resumo do Cálculo GD</span>
             <Badge variant="secondary" className="text-xs">{REGRA_LABEL[regra]}</Badge>
+            <PrecisaoBadge precisao={result.precisao} motivo={result.precisao_motivo} />
             {result.incompleto_gd3 && (
               <Badge variant="outline" className="text-xs text-warning border-warning/40 bg-warning/10">
                 <AlertTriangle className="w-3 h-3 mr-1" />
@@ -95,6 +113,24 @@ export function ResumoGrupoB({
 
       <CollapsibleContent>
         <div className="px-3 pb-3 space-y-3">
+          {/* Precision microcopy */}
+          {result.precisao === 'estimado' && (
+            <div className="p-2.5 rounded-md bg-warning/5 border border-warning/20 flex items-start gap-2">
+              <ShieldAlert className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-warning">Precisão estimada:</strong> {result.precisao_motivo}
+              </p>
+            </div>
+          )}
+          {result.precisao === 'exato' && (
+            <div className="p-2.5 rounded-md bg-success/5 border border-success/20 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 text-success mt-0.5 shrink-0" />
+              <p className="text-xs text-muted-foreground">
+                <strong className="text-success">Precisão exata:</strong> {result.precisao_motivo}
+              </p>
+            </div>
+          )}
+
           {/* Tariff origin */}
           <div className="flex items-center gap-2 text-xs text-muted-foreground pb-1 border-b border-border/40">
             <Info className="w-3.5 h-3.5" />
@@ -142,6 +178,9 @@ export function ResumoGrupoB({
             <div className="flex justify-between text-xs">
               <span className="text-muted-foreground">
                 Fio B compensado
+                {result.valor_credito_breakdown.fio_b_fonte === 'tusd_proxy' && (
+                  <span className="text-warning"> (TUSD proxy)</span>
+                )}
                 {regra === "GD_II" && <span className="text-info"> ({Math.round((1 - result.fio_b_percent_cobrado) * 100)}% em {ano})</span>}
                 {regra === "GD_III" && <span className="text-info"> (100% em GD III)</span>}
               </span>

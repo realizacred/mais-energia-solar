@@ -6,6 +6,7 @@
 
 export type RegraGD = "GD_I" | "GD_II" | "GD_III";
 export type TipoFase = "monofasico" | "bifasico" | "trifasico";
+export type NivelPrecisao = "exato" | "estimado";
 
 /** Percentual do Fio B compensável por ano (Lei 14.300) */
 export const GD_FIO_B_PERCENT_BY_YEAR: Record<number, number> = {
@@ -25,13 +26,15 @@ export function getFioBCobranca(ano = 2026): number {
 
 export interface TariffComponentes {
   te_kwh: number;               // Tarifa de Energia (R$/kWh)
-  tusd_fio_b_kwh: number;       // Fio B (R$/kWh)
+  tusd_fio_b_kwh: number;       // Fio B real (R$/kWh) — quando disponível
+  tusd_total_kwh?: number;      // TUSD total — usado como proxy se Fio B não existir
   tusd_fio_a_kwh?: number;      // Fio A — apenas GD III
   tfsee_kwh?: number;           // TFSEE — apenas GD III
   pnd_kwh?: number;             // P&D — apenas GD III
   vigencia_inicio?: string;     // Data de vigência
   origem?: string;              // "ANEEL" | "manual" | "premissa"
   validation_status?: string;
+  precisao?: NivelPrecisao;     // Nível de precisão do Fio B
 }
 
 export interface CustoDisponibilidade {
@@ -66,10 +69,14 @@ export interface CalcGrupoBResult {
   valor_credito_breakdown: {
     te: number;
     fio_b_compensado: number;
+    fio_b_fonte: 'real' | 'tusd_proxy';  // origem do Fio B usado
     fio_a?: number;
     tfsee?: number;
     pnd?: number;
   };
+  // Precisão
+  precisao: NivelPrecisao;
+  precisao_motivo: string;
   // Resultado
   economia_mensal_rs: number;
   // Auditoria
@@ -77,6 +84,45 @@ export interface CalcGrupoBResult {
   origem_tariff: string;
   incompleto_gd3: boolean;
   alertas: string[];
+}
+
+/**
+ * Determina o Fio B a usar e o nível de precisão.
+ * - Se tusd_fio_b_kwh > 0: EXATO (Fio B real da ANEEL)
+ * - Se não: usa tusd_total_kwh como proxy → ESTIMADO
+ */
+function resolveFioB(tariff: TariffComponentes): {
+  fio_b_kwh: number;
+  precisao: NivelPrecisao;
+  fonte: 'real' | 'tusd_proxy';
+  motivo: string;
+} {
+  // Verificar se já vem com precisão explícita do tariff_versions
+  if (tariff.tusd_fio_b_kwh > 0) {
+    return {
+      fio_b_kwh: tariff.tusd_fio_b_kwh,
+      precisao: tariff.precisao ?? 'exato',
+      fonte: 'real',
+      motivo: 'Fio B disponível. Regra GD aplicada com componente correto.',
+    };
+  }
+
+  // Fallback: usar TUSD total como proxy
+  if (tariff.tusd_total_kwh && tariff.tusd_total_kwh > 0) {
+    return {
+      fio_b_kwh: tariff.tusd_total_kwh,
+      precisao: 'estimado',
+      fonte: 'tusd_proxy',
+      motivo: 'Fio B não disponível na fonte atual; usamos TUSD total como aproximação. Economia pode variar.',
+    };
+  }
+
+  return {
+    fio_b_kwh: 0,
+    precisao: 'estimado',
+    fonte: 'tusd_proxy',
+    motivo: 'Fio B e TUSD total não disponíveis — economia calculada apenas com TE.',
+  };
 }
 
 /**
@@ -100,13 +146,16 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
   // 3. Energia efetivamente compensada (limitada ao que foi gerado)
   const energia_compensada_kwh = Math.min(geracao_mensal_kwh, consumo_compensavel_kwh);
 
-  // 4. Valor do crédito por kWh (depende da regra GD)
+  // 4. Resolver Fio B e nível de precisão
+  const fioBResolvido = resolveFioB(tariff);
   const fioBCobranca = getFioBCobranca(ano);
   const fioBCompensado = 1 - fioBCobranca; // porção do Fio B que é COMPENSADA
+
   let valor_credito_kwh = 0;
   const breakdown = {
     te: 0,
     fio_b_compensado: 0,
+    fio_b_fonte: fioBResolvido.fonte,
     fio_a: undefined as number | undefined,
     tfsee: undefined as number | undefined,
     pnd: undefined as number | undefined,
@@ -114,15 +163,15 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
 
   if (regra === "GD_I") {
     // GD I: 100% compensável (TUSD + TE) — regime antigo ainda em transição
-    valor_credito_kwh = tariff.te_kwh + tariff.tusd_fio_b_kwh;
+    valor_credito_kwh = tariff.te_kwh + fioBResolvido.fio_b_kwh;
     breakdown.te = tariff.te_kwh;
-    breakdown.fio_b_compensado = tariff.tusd_fio_b_kwh;
+    breakdown.fio_b_compensado = fioBResolvido.fio_b_kwh;
     alertas.push("GD I — regime de compensação integral (sem escalonamento Fio B)");
 
   } else if (regra === "GD_II") {
     // GD II 2026: TE + (1 - cobrança%) × FioB
     // Em 2026: 60% cobrado → 40% compensado
-    const fioB_compensado_kwh = tariff.tusd_fio_b_kwh * fioBCompensado;
+    const fioB_compensado_kwh = fioBResolvido.fio_b_kwh * fioBCompensado;
     valor_credito_kwh = tariff.te_kwh + fioB_compensado_kwh;
     breakdown.te = tariff.te_kwh;
     breakdown.fio_b_compensado = fioB_compensado_kwh;
@@ -130,7 +179,6 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
 
   } else if (regra === "GD_III") {
     // GD III: TE + 1.0×FioB + 0.40×FioA + TFSEE + P&D
-    // GD III tem compensação MAIOR (inclui componentes de alta tensão)
     const fioA = tariff.tusd_fio_a_kwh ?? 0;
     const tfsee = tariff.tfsee_kwh ?? 0;
     const pnd = tariff.pnd_kwh ?? 0;
@@ -142,7 +190,7 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
     if (!tariff.tfsee_kwh) alertas.push("TFSEE não disponível — usando zero");
     if (!tariff.pnd_kwh) alertas.push("P&D não disponível — usando zero");
 
-    const fioB_compensado_kwh = tariff.tusd_fio_b_kwh; // GD III: 100% Fio B compensado
+    const fioB_compensado_kwh = fioBResolvido.fio_b_kwh; // GD III: 100% Fio B compensado
     const fioA_parcial = fioA * 0.40; // 40% do Fio A
     valor_credito_kwh = tariff.te_kwh + fioB_compensado_kwh + fioA_parcial + tfsee + pnd;
     breakdown.te = tariff.te_kwh;
@@ -158,6 +206,9 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
   // Alertas adicionais
   if (tariff.validation_status === 'atencao') alertas.push("Tarifa com dados suspeitos — revisar com distribuidora");
   if (!tariff.te_kwh || tariff.te_kwh <= 0) alertas.push("TE não configurada — resultado pode estar incorreto");
+  if (fioBResolvido.fonte === 'tusd_proxy') {
+    alertas.push(fioBResolvido.motivo);
+  }
 
   return {
     geracao_kwh: geracao_mensal_kwh,
@@ -169,6 +220,8 @@ export function calcGrupoB(input: CalcGrupoBInput): CalcGrupoBResult {
     fio_b_percent_cobrado: fioBCobranca,
     valor_credito_kwh: Math.round(valor_credito_kwh * 1000000) / 1000000,
     valor_credito_breakdown: breakdown,
+    precisao: fioBResolvido.precisao,
+    precisao_motivo: fioBResolvido.motivo,
     economia_mensal_rs,
     vigencia_tariff: tariff.vigencia_inicio,
     origem_tariff: tariff.origem || 'desconhecida',

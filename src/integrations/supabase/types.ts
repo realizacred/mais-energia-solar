@@ -11336,6 +11336,7 @@ export type Database = {
           percentual_isencao: number | null
           pnd_kwh: number | null
           possui_isencao: boolean | null
+          precisao: string
           published_at: string | null
           published_by: string | null
           run_id: string | null
@@ -11367,6 +11368,7 @@ export type Database = {
           percentual_isencao?: number | null
           pnd_kwh?: number | null
           possui_isencao?: boolean | null
+          precisao?: string
           published_at?: string | null
           published_by?: string | null
           run_id?: string | null
@@ -11398,6 +11400,7 @@ export type Database = {
           percentual_isencao?: number | null
           pnd_kwh?: number | null
           possui_isencao?: boolean | null
+          precisao?: string
           published_at?: string | null
           published_by?: string | null
           run_id?: string | null
