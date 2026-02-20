@@ -21,7 +21,7 @@ function parseNumber(val: string): number | null {
   if (!val || val.trim() === "" || val === "-" || val === "%" || val === "N/A") return null;
   const cleaned = val.replace(",", ".").replace("%", "").trim();
   const n = parseFloat(cleaned);
-  return isNaN(n) || n > 100 ? null : n; // efficiency > 100% is data error
+  return isNaN(n) ? null : n;
 }
 
 function parseInt2(val: string): number | null {
@@ -50,6 +50,10 @@ function detectTensao(modelo: string): string {
   return "1500V";
 }
 
+// 🔧 FIX: aumentado limite de 900 para 1000W (módulos modernos chegam a 700W+)
+const MIN_POTENCIA = 50;
+const MAX_POTENCIA = 1000;
+
 function parseModulesFromText(text: string): RawModule[] {
   const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
   const modules: RawModule[] = [];
@@ -59,14 +63,44 @@ function parseModulesFromText(text: string): RawModule[] {
     // Skip header lines
     if (/^fabricante\s/i.test(line) || /potência.*células.*eficiência/i.test(line)) continue;
     // Skip empty-ish lines
-    if (line.length < 10) continue;
+    if (line.length < 5) continue;
 
     // Try tab split first
     let parts = line.split("\t");
-    if (parts.length < 4) {
-      // Try to parse space-separated: the challenge is fabricante and modelo have spaces
+    if (parts.length < 2) {
+      // Try semicolon
+      parts = line.split(";");
+    }
+
+    if (parts.length >= 3) {
+      // Structured format: fabricante;modelo;potencia;celulas;eficiencia...
+      const fabricante = parts[0]?.trim() || "";
+      const modelo = parts[1]?.trim() || "";
+      const potencia = parseInt2(parts[2] || "") || 0;
+      const celulas = parts.length > 3 ? parseInt2(parts[3] || "") : null;
+      const eficiencia = parts.length > 4 ? parseNumber(parts[4] || "") : null;
+
+      // 🔧 FIX: filtro correto 50-1000W
+      if (!fabricante || !modelo || potencia < MIN_POTENCIA || potencia > MAX_POTENCIA) continue;
+      if (/^fabricante$/i.test(fabricante)) continue; // header row
+
+      const key = `${fabricante}|${modelo}|${potencia}`.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      modules.push({
+        fabricante,
+        modelo,
+        potencia_wp: potencia,
+        num_celulas: celulas != null && celulas > 0 && celulas < 1000 ? celulas : null,
+        eficiencia_percent: eficiencia != null && eficiencia <= 100 ? eficiencia : null,
+        tipo_celula: detectCellType(modelo, celulas),
+        bifacial: detectBifacial(modelo),
+        tensao_sistema: detectTensao(modelo),
+      });
+    } else {
+      // Space-separated heuristic format
       // Pattern: FABRICANTE MODELO POTENCIA CELULAS EFICIENCIA [VISUALIZAR]
-      // We match from the end: eficiência is last meaningful value, then células, then potência
       const match = line.match(/^(.+?)\s+(\d{3,4})\s+(\d{1,4})\s+([\d,]+%?)\s*.*$/);
       if (match) {
         const fullName = match[1].trim();
@@ -74,8 +108,9 @@ function parseModulesFromText(text: string): RawModule[] {
         const celulas = parseInt(match[3]);
         const eficiencia = parseNumber(match[4]);
 
-        // Split fullName into fabricante and modelo
-        // Known fabricantes with multi-word names
+        // 🔧 FIX: filtro correto 50-1000W
+        if (potencia < MIN_POTENCIA || potencia > MAX_POTENCIA) continue;
+
         const knownFabs = [
           "AE SOLAR", "AMSO SOLAR", "BEDIN SOLAR", "BOLD ENERGY", "CANADIAN SOLAR",
           "CONSORT SOLAR", "DAS SOLAR", "DMEGC SOLAR", "ERA SOLAR", "GCL", "GOKIN SOLAR",
@@ -101,7 +136,7 @@ function parseModulesFromText(text: string): RawModule[] {
         let fabricante = "";
         let modelo = "";
         const upper = fullName.toUpperCase();
-        
+
         for (const fab of knownFabs.sort((a, b) => b.length - a.length)) {
           if (upper.startsWith(fab.toUpperCase())) {
             fabricante = fab;
@@ -111,17 +146,16 @@ function parseModulesFromText(text: string): RawModule[] {
         }
 
         if (!fabricante) {
-          // Fallback: first word is fabricante
           const spaceIdx = fullName.indexOf(" ");
           if (spaceIdx > 0) {
             fabricante = fullName.substring(0, spaceIdx);
             modelo = fullName.substring(spaceIdx + 1);
           } else {
-            continue; // can't parse
+            continue;
           }
         }
 
-        if (!modelo || potencia < 100 || potencia > 900) continue;
+        if (!modelo) continue;
 
         const key = `${fabricante}|${modelo}|${potencia}`.toLowerCase();
         if (seen.has(key)) continue;
@@ -132,37 +166,12 @@ function parseModulesFromText(text: string): RawModule[] {
           modelo,
           potencia_wp: potencia,
           num_celulas: celulas > 0 && celulas < 1000 ? celulas : null,
-          eficiencia_percent: eficiencia,
+          eficiencia_percent: eficiencia != null && eficiencia <= 100 ? eficiencia : null,
           tipo_celula: detectCellType(modelo, celulas),
           bifacial: detectBifacial(modelo),
           tensao_sistema: detectTensao(modelo),
         });
       }
-    } else {
-      // Tab-separated
-      const fabricante = parts[0]?.trim() || "";
-      const modelo = parts[1]?.trim() || "";
-      const potencia = parseInt2(parts[2]) || 0;
-      const celulas = parseInt2(parts[3]);
-      const eficiencia = parseNumber(parts[4] || "");
-
-      if (!fabricante || !modelo || potencia < 100 || potencia > 900) continue;
-      if (/^fabricante$/i.test(fabricante)) continue; // header row
-
-      const key = `${fabricante}|${modelo}|${potencia}`.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-
-      modules.push({
-        fabricante,
-        modelo,
-        potencia_wp: potencia,
-        num_celulas: celulas != null && celulas > 0 && celulas < 1000 ? celulas : null,
-        eficiencia_percent: eficiencia,
-        tipo_celula: detectCellType(modelo, celulas),
-        bifacial: detectBifacial(modelo),
-        tensao_sistema: detectTensao(modelo),
-      });
     }
   }
 
@@ -183,14 +192,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Create client with user's token
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const userClient = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get user's tenant
     const { data: userData, error: userErr } = await userClient.auth.getUser();
     if (userErr || !userData.user) {
       return new Response(JSON.stringify({ error: "Usuário não encontrado" }), {
@@ -220,23 +227,37 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log("Parsing modules from text...");
+    console.log(`Parsing modules from text (${raw_text.length} chars)...`);
     const modules = parseModulesFromText(raw_text);
     console.log(`Parsed ${modules.length} unique modules`);
 
     if (modules.length === 0) {
-      return new Response(JSON.stringify({ success: true, imported: 0, skipped: 0, message: "Nenhum módulo válido encontrado" }), {
+      return new Response(JSON.stringify({ success: true, imported: 0, skipped_duplicates: 0, errors: 0, message: "Nenhum módulo válido encontrado. Verifique o formato." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Check existing modules to skip duplicates
-    const { data: existing } = await userClient
-      .from("modulos_solares")
-      .select("fabricante, modelo, potencia_wp");
+    // Use service role for insert (bypasses RLS for admin operations)
+    const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Check existing modules to skip duplicates - fetch ALL via pagination
+    let existing: any[] = [];
+    let offset = 0;
+    const batchSize = 1000;
+    while (true) {
+      const { data: batch } = await adminClient
+        .from("modulos_solares")
+        .select("fabricante, modelo, potencia_wp")
+        .or(`tenant_id.eq.${profile.tenant_id},tenant_id.is.null`)
+        .range(offset, offset + batchSize - 1);
+      if (!batch || batch.length === 0) break;
+      existing.push(...batch);
+      if (batch.length < batchSize) break;
+      offset += batchSize;
+    }
 
     const existingKeys = new Set(
-      (existing || []).map((m: any) => `${m.fabricante}|${m.modelo}|${m.potencia_wp}`.toLowerCase())
+      existing.map((m: any) => `${m.fabricante}|${m.modelo}|${m.potencia_wp}`.toLowerCase())
     );
 
     const toInsert = modules.filter(m => {
@@ -249,18 +270,16 @@ Deno.serve(async (req) => {
     let inserted = 0;
     let errors = 0;
 
-    // Insert in batches of 200
-    const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
+    // Insert in batches of 200 using service role (tenant_id is set explicitly)
     for (let i = 0; i < toInsert.length; i += 200) {
       const chunk = toInsert.slice(i, i + 200).map(m => ({
         ...m,
         tenant_id: profile.tenant_id,
-        status: "rascunho", // All imported as draft since missing electrical data
+        status: "rascunho",
         ativo: true,
       }));
 
-      const { error: insertErr, data: insertData } = await adminClient
+      const { error: insertErr } = await adminClient
         .from("modulos_solares")
         .insert(chunk);
 
@@ -269,6 +288,7 @@ Deno.serve(async (req) => {
         errors += chunk.length;
       } else {
         inserted += chunk.length;
+        console.log(`Batch ${i}: inserted ${chunk.length}`);
       }
     }
 
