@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Send, ArrowLeft, Loader2, Smile, Paperclip, Bold, Italic, Strikethrough,
-  Image as ImageIcon, FileText, Download,
+  Image as ImageIcon, FileText, Download, Check, CheckCheck,
 } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -468,16 +468,21 @@ function ChatView({
                     {msg.content && !(msg.media_url && msg.content === msg.media_filename) && (
                       <p className="whitespace-pre-wrap break-words">{msg.content}</p>
                     )}
-                    <p
-                      className={`text-[10px] mt-0.5 ${
+                    <div
+                      className={`flex items-center justify-end gap-1 mt-0.5 ${
                         isMe ? "text-primary-foreground/60" : "text-muted-foreground"
                       }`}
                     >
-                      {new Date(msg.created_at).toLocaleTimeString("pt-BR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </p>
+                      <span className="text-[10px]">
+                        {new Date(msg.created_at).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                      {isMe && (
+                        <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                      )}
+                    </div>
                   </div>
                 </div>
               );
