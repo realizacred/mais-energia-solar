@@ -174,8 +174,9 @@ export function WaChatPanel({
 
   // Fetch participant count for badge indicator
   const { data: participantCount = 0 } = useQuery({
-    queryKey: ["wa-participants-count", conversation.id],
+    queryKey: ["wa-participants-count", conversation?.id],
     queryFn: async () => {
+      if (!conversation) return 0;
       const { count, error } = await supabase
         .from("wa_conversation_participants")
         .select("id", { count: "exact", head: true })
@@ -184,6 +185,7 @@ export function WaChatPanel({
       if (error) return 0;
       return count || 0;
     },
+    enabled: !!conversation?.id,
   });
   const [atBottom, setAtBottom] = useState(true);
   const [newMsgCount, setNewMsgCount] = useState(0);
