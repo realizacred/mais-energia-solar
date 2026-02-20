@@ -17,12 +17,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -34,10 +28,7 @@ import {
   Loader2,
   Contact as ContactIcon,
   Clock,
-  ChevronRight,
-  Pencil,
   Save,
-  X,
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -383,105 +374,9 @@ export function RecallDialog({
   );
 }
 
-/* ====== Contact Details (right pane on desktop) ====== */
+/* ====== Contact Edit Dialog ====== */
 
-function ContactDetails({ contact, onRecall, onUpdated }: { contact: Contact; onRecall: () => void; onUpdated?: () => void }) {
-  const [editing, setEditing] = useState(false);
-  const [editName, setEditName] = useState(contact.name || "");
-  const { toast } = useToast();
-
-  // Reset edit state when contact changes
-  const contactId = contact.id;
-  useState(() => { setEditName(contact.name || ""); setEditing(false); });
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("contacts")
-        .update({ name: editName.trim() || null })
-        .eq("id", contact.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast({ title: "Contato atualizado" });
-      setEditing(false);
-      onUpdated?.();
-    },
-    onError: (err: any) => {
-      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
-    },
-  });
-
-  return (
-    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-      <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-        <span className="text-2xl font-bold text-primary">
-          {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
-        </span>
-      </div>
-
-      {editing ? (
-        <div className="flex items-center gap-2 mb-2">
-          <Input
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            className="text-center h-9 w-48"
-            placeholder="Nome do contato"
-            autoFocus
-            name="edit-contact-name"
-          />
-          <Button size="icon" variant="ghost" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-            <Save className="h-4 w-4 text-success" />
-          </Button>
-          <Button size="icon" variant="ghost" onClick={() => { setEditing(false); setEditName(contact.name || ""); }}>
-            <X className="h-4 w-4 text-muted-foreground" />
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-lg font-semibold text-foreground">
-            {contact.name || formatPhone(contact.phone_e164)}
-          </h2>
-          <button onClick={() => { setEditName(contact.name || ""); setEditing(true); }} className="p-1 hover:bg-muted rounded-md">
-            <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-        </div>
-      )}
-
-      <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1.5">
-        <Phone className="h-3.5 w-3.5" />
-        {formatPhone(contact.phone_e164)}
-      </p>
-      {contact.last_interaction_at && (
-        <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
-          <Clock className="h-3 w-3" />
-          Última interação{" "}
-          {formatDistanceToNow(new Date(contact.last_interaction_at), {
-            addSuffix: true,
-            locale: ptBR,
-          })}
-        </p>
-      )}
-      {contact.tags?.length > 0 && (
-        <div className="flex gap-1.5 flex-wrap justify-center mb-4">
-          {contact.tags.map((tag) => (
-            <Badge key={tag} variant="secondary" className="text-xs">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      )}
-      <Button onClick={onRecall} className="mt-2 bg-success hover:bg-success/90 text-success-foreground">
-        <MessageCircle className="h-4 w-4 mr-2" />
-        Abrir conversa
-      </Button>
-    </div>
-  );
-}
-
-/* ====== Mobile Contact Detail Sheet ====== */
-
-function ContactDetailSheet({
+function ContactEditDialog({
   contact,
   open,
   onOpenChange,
@@ -494,15 +389,14 @@ function ContactDetailSheet({
   onChat: () => void;
   onUpdated?: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
+  const [editTags, setEditTags] = useState("");
   const { toast } = useToast();
 
-  // Reset when contact changes or sheet opens
   const handleOpenChange = (v: boolean) => {
     if (v && contact) {
       setEditName(contact.name || "");
-      setEditing(false);
+      setEditTags((contact.tags || []).join(", "));
     }
     onOpenChange(v);
   };
@@ -510,16 +404,20 @@ function ContactDetailSheet({
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!contact) return;
+      const tags = editTags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean);
       const { error } = await supabase
         .from("contacts")
-        .update({ name: editName.trim() || null })
+        .update({ name: editName.trim() || null, tags })
         .eq("id", contact.id);
       if (error) throw error;
     },
     onSuccess: () => {
       toast({ title: "Contato atualizado" });
-      setEditing(false);
       onUpdated?.();
+      onOpenChange(false);
     },
     onError: (err: any) => {
       toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
@@ -529,93 +427,78 @@ function ContactDetailSheet({
   if (!contact) return null;
 
   return (
-    <Sheet open={open} onOpenChange={handleOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-2xl max-h-[70dvh]">
-        <SheetHeader className="pb-4">
-          <SheetTitle className="sr-only">Detalhes do contato</SheetTitle>
-        </SheetHeader>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.stopPropagation()}>
+        <DialogHeader>
+          <DialogTitle>Editar contato</DialogTitle>
+          <DialogDescription>Atualize as informações do contato.</DialogDescription>
+        </DialogHeader>
 
-        <div className="flex flex-col items-center text-center pb-6">
-          <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-            <span className="text-2xl font-bold text-primary">
-              {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
-            </span>
+        <div className="space-y-4 py-2">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <span className="text-lg font-bold text-primary">
+                {(contact.name || contact.phone_e164).charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-foreground">
+                {formatPhone(contact.phone_e164)}
+              </p>
+              {contact.last_interaction_at && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  Última interação{" "}
+                  {formatDistanceToNow(new Date(contact.last_interaction_at), {
+                    addSuffix: true,
+                    locale: ptBR,
+                  })}
+                </p>
+              )}
+            </div>
           </div>
 
-          {editing ? (
-            <div className="flex items-center gap-2 mb-2">
-              <Input
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="text-center h-9 w-48"
-                placeholder="Nome do contato"
-                autoFocus
-                name="edit-contact-name-mobile"
-              />
-              <Button size="icon" variant="ghost" onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-                <Save className="h-4 w-4 text-success" />
-              </Button>
-              <Button size="icon" variant="ghost" onClick={() => { setEditing(false); setEditName(contact.name || ""); }}>
-                <X className="h-4 w-4 text-muted-foreground" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-lg font-semibold text-foreground">
-                {contact.name || formatPhone(contact.phone_e164)}
-              </h2>
-              <button onClick={() => { setEditName(contact.name || ""); setEditing(true); }} className="p-1 hover:bg-muted rounded-md">
-                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-              </button>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label htmlFor="contact-name">Nome</Label>
+            <Input
+              id="contact-name"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Nome do contato"
+              name="contact-edit-name"
+            />
+          </div>
 
-          <p className="text-sm text-muted-foreground mb-1 flex items-center gap-1.5">
-            <Phone className="h-3.5 w-3.5" />
-            {formatPhone(contact.phone_e164)}
-          </p>
-
-          {contact.last_interaction_at && (
-            <p className="text-xs text-muted-foreground mb-4 flex items-center gap-1.5">
-              <Clock className="h-3 w-3" />
-              Última interação{" "}
-              {formatDistanceToNow(new Date(contact.last_interaction_at), {
-                addSuffix: true,
-                locale: ptBR,
-              })}
-            </p>
-          )}
-
-          {contact.tags?.length > 0 && (
-            <div className="flex gap-1.5 flex-wrap justify-center mb-4">
-              {contact.tags.map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
-                  {tag}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          <Button onClick={onChat} className="w-full mt-2 bg-success hover:bg-success/90 text-success-foreground">
-            <MessageCircle className="h-4 w-4 mr-2" />
-            Abrir conversa
-          </Button>
+          <div className="space-y-2">
+            <Label htmlFor="contact-tags">Tags</Label>
+            <Input
+              id="contact-tags"
+              value={editTags}
+              onChange={(e) => setEditTags(e.target.value)}
+              placeholder="cliente, vip, indicação (separadas por vírgula)"
+              name="contact-edit-tags"
+            />
+            <p className="text-xs text-muted-foreground">Separe as tags por vírgula</p>
+          </div>
         </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
 
-function EmptyRightPane() {
-  return (
-    <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-      <div className="p-4 rounded-full bg-muted/50 mb-4">
-        <ContactIcon className="h-10 w-10 text-muted-foreground/50" />
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Selecione um contato para ver detalhes
-      </p>
-    </div>
+        <DialogFooter className="flex-col gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            onClick={onChat}
+            className="gap-2 text-success border-success/30 hover:bg-success/10"
+          >
+            <MessageCircle className="h-4 w-4" />
+            Conversar
+          </Button>
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            <Save className="h-4 w-4 mr-2" />
+            Salvar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -634,10 +517,7 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
 
   const handleSelectContact = (contact: Contact) => {
     setSelectedContact(contact);
-    // On mobile: open detail sheet
-    if (window.innerWidth < 768) {
-      setShowDetail(true);
-    }
+    setShowDetail(true);
   };
 
   const handleQuickChat = (contact: Contact) => {
@@ -679,32 +559,19 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
         </TabsContent>
 
         <TabsContent value="clients" className="flex-1 min-h-0 m-0">
-          <div className="h-full md:grid md:grid-cols-[360px_1fr]">
-            <div className="h-full border-r border-border/40 overflow-hidden">
-              <ContactsList
-                onSelectContact={handleSelectContact}
-                onQuickChat={handleQuickChat}
-                onNewContact={() => setShowNew(true)}
-                selectedId={selectedContact?.id}
-              />
-            </div>
-            <div className="hidden md:flex h-full overflow-y-auto">
-              {selectedContact ? (
-                <ContactDetails
-                  contact={selectedContact}
-                  onRecall={handleOpenRecallDialog}
-                  onUpdated={() => queryClient.invalidateQueries({ queryKey: ["contacts"] })}
-                />
-              ) : (
-                <EmptyRightPane />
-              )}
-            </div>
+          <div className="h-full">
+            <ContactsList
+              onSelectContact={handleSelectContact}
+              onQuickChat={handleQuickChat}
+              onNewContact={() => setShowNew(true)}
+              selectedId={selectedContact?.id}
+            />
           </div>
         </TabsContent>
       </Tabs>
 
-      {/* Mobile detail/edit sheet */}
-      <ContactDetailSheet
+      {/* Edit contact dialog */}
+      <ContactEditDialog
         contact={selectedContact}
         open={showDetail}
         onOpenChange={setShowDetail}
