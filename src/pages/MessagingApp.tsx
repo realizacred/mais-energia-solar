@@ -113,7 +113,7 @@ export default function MessagingApp() {
 
           {/* Nova conversa — center action */}
           <button
-            onClick={() => setShowNewChat(true)}
+            onClick={(e) => { e.stopPropagation(); setShowNewChat(true); }}
             className="flex-1 flex flex-col items-center gap-0.5 py-3 text-xs font-medium text-success hover:text-success/80 transition-colors active:bg-muted/30"
           >
             <div className="h-5 w-5 rounded-full bg-success/10 flex items-center justify-center">
