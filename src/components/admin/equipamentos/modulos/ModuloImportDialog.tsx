@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, CheckCircle2, Upload } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Upload, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -169,6 +169,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
   const [rawText, setRawText] = useState("");
   const [parsed, setParsed] = useState<ParsedRow[] | null>(null);
   const [importing, setImporting] = useState(false);
+  const [bulkImporting, setBulkImporting] = useState(false);
 
   const handleParse = () => {
     const rows = parseRows(rawText, existingModulos);
@@ -217,6 +218,33 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
     reader.readAsText(file);
   };
 
+  const handleBulkImport = async () => {
+    if (!rawText.trim()) {
+      toast({ title: "Cole os dados primeiro", variant: "destructive" });
+      return;
+    }
+    setBulkImporting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("bulk-import-modules", {
+        body: { raw_text: rawText },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Erro na importação");
+      qc.invalidateQueries({ queryKey: [...MODULO_QUERY_KEY] });
+      toast({
+        title: `${data.imported} módulos importados`,
+        description: `${data.skipped_duplicates} duplicados ignorados. ${data.errors} erros.`,
+      });
+      onOpenChange(false);
+      setParsed(null);
+      setRawText("");
+    } catch (err: any) {
+      toast({ title: "Erro na importação em massa", description: err.message, variant: "destructive" });
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={v => { if (!v) { setParsed(null); setRawText(""); } onOpenChange(v); }}>
       <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
@@ -245,8 +273,12 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
               onChange={e => setRawText(e.target.value)}
               className="font-mono text-xs"
             />
-            <DialogFooter>
+            <DialogFooter className="gap-2">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button variant="secondary" onClick={handleBulkImport} disabled={!rawText.trim() || bulkImporting} className="gap-2">
+                {bulkImporting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {bulkImporting ? "Importando..." : "Importação Rápida (servidor)"}
+              </Button>
               <Button onClick={handleParse} disabled={!rawText.trim()}>Analisar Dados</Button>
             </DialogFooter>
           </div>

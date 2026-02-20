@@ -175,3 +175,6 @@ verify_jwt = false
 
 [functions.extract-module-pdf]
 verify_jwt = false
+
+[functions.bulk-import-modules]
+verify_jwt = false
