@@ -456,7 +456,7 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
   };
 
   return (
-    <div className="h-[calc(100dvh-56px)] flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Segment tabs */}
       <Tabs defaultValue="clients" className="flex flex-col h-full">
         <div className="shrink-0 border-b border-border/40 px-3 pt-2">
@@ -466,7 +466,7 @@ export default function ContactsPage({ onOpenConversation }: ContactsPageProps) 
           </TabsList>
         </div>
 
-        <TabsContent value="team" className="flex-1 min-h-0 m-0">
+        <TabsContent value="team" className="flex-1 min-h-0 m-0 h-full">
           <InternalChat />
         </TabsContent>
 

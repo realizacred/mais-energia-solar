@@ -57,6 +57,7 @@ export function useWaNotifications() {
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_user_unread_conversations", {
         _limit: 50,
+        _only_assigned: true,
       });
       if (error) throw error;
       return (data || []) as Array<{
