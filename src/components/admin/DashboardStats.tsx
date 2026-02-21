@@ -35,7 +35,7 @@ function KpiCard({
   icon: Icon, 
   label, 
   value, 
-  accentColor = "primary",
+  accentColor = "secondary",
 }: { 
   icon: React.ElementType; 
   label: string; 
@@ -58,13 +58,13 @@ function KpiCard({
   };
 
   return (
-    <Card className={`rounded-xl border-l-4 ${accentMap[accentColor]} bg-card shadow-sm`}>
+    <Card className={`border-l-[3px] ${accentMap[accentColor]} bg-card`}>
       <CardContent className="flex items-center gap-4 p-5">
-        <div className={`w-11 h-11 rounded-lg flex items-center justify-center shrink-0 ${iconBgMap[accentColor]}`}>
+        <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${iconBgMap[accentColor]}`}>
           <Icon className="w-5 h-5" />
         </div>
         <div className="min-w-0">
-          <p className="text-3xl font-bold tracking-tight text-foreground leading-none">{value}</p>
+          <p className="text-2xl font-bold tracking-tight text-foreground leading-none">{value}</p>
           <p className="text-sm text-muted-foreground mt-1">{label}</p>
         </div>
       </CardContent>
@@ -135,19 +135,19 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
   return (
     <div className="space-y-6">
       {/* KPI Cards — Command Center */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard icon={Users} label="Total de leads" value={leads.length} accentColor="primary" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <KpiCard icon={Users} label="Total de leads" value={leads.length} accentColor="secondary" />
         <KpiCard icon={Zap} label="kWh total" value={totalKwh.toLocaleString()} accentColor="success" />
         <KpiCard icon={MapPin} label="Estados" value={uniqueStates} accentColor="secondary" />
         <KpiCard icon={TrendingUp} label="Crescimento" value={`${growthRate > 0 ? "+" : ""}${growthRate}%`} accentColor={growthRate >= 0 ? "success" : "destructive"} />
       </div>
 
       {/* Charts */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <Card className="rounded-xl border border-border bg-card shadow-sm">
+      <div className="grid md:grid-cols-2 gap-5">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
+              <Calendar className="w-4 h-4 text-muted-foreground" />
               Leads por mês
             </CardTitle>
           </CardHeader>
@@ -158,16 +158,16 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="leads" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Leads" />
+                <Bar dataKey="leads" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} name="Leads" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border border-border bg-card shadow-sm">
+        <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <MapPin className="w-4 h-4 text-secondary" />
+              <MapPin className="w-4 h-4 text-muted-foreground" />
               Leads por estado
             </CardTitle>
           </CardHeader>
@@ -188,10 +188,10 @@ export default function DashboardStats({ leads }: DashboardStatsProps) {
       </div>
 
       {/* Consumption Distribution */}
-      <Card className="rounded-xl border border-border bg-card shadow-sm">
+      <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
-            <Zap className="w-4 h-4 text-primary" />
+            <Zap className="w-4 h-4 text-muted-foreground" />
             Distribuição de consumo
             <span className="text-xs font-normal text-muted-foreground ml-2">(Média: {avgConsumption} kWh)</span>
           </CardTitle>

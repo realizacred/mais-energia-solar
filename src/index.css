@@ -328,24 +328,24 @@
 
   /* Card variants — Soft Depth system */
   .card-interactive {
-    @apply rounded-xl border border-border/60 bg-card transition-all duration-200 ease-out;
+    @apply rounded-xl border border-border/50 bg-card transition-all duration-200 ease-out;
     box-shadow: var(--shadow-sm);
   }
 
   .card-interactive:hover {
-    @apply border-border/80;
+    @apply border-border;
     box-shadow: var(--shadow-md);
     transform: translateY(-1px);
   }
 
   .card-highlight {
-    @apply rounded-xl border border-primary/25 bg-card;
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.06) inset, var(--shadow-sm);
+    @apply rounded-xl border border-secondary/20 bg-card;
+    box-shadow: var(--shadow-sm);
   }
 
   .card-highlight:hover {
-    @apply border-primary/35;
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.1) inset, var(--shadow-md);
+    @apply border-secondary/30;
+    box-shadow: var(--shadow-md);
   }
 
   /* NOTE: badge-glow REMOVED — violates Soft Depth spec. Use shadow-sm on hover instead. */

@@ -29,7 +29,7 @@ export function SectionCard({
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div className="space-y-1">
             <CardTitle className="text-base font-semibold flex items-center gap-2">
-              {Icon && <Icon className="h-4 w-4 text-primary" />}
+              {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
               {title}
             </CardTitle>
             {description && (
