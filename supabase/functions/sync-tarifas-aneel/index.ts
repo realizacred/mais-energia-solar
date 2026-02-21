@@ -31,6 +31,15 @@ interface TarifaAneel {
   NumCNPJDistribuidora: string;
 }
 
+/**
+ * Returns true if this ANEEL record is a Social/Low-Income tariff
+ * that should NOT be used for standard residential pricing.
+ */
+function isTarifaSocial(record: TarifaAneel): boolean {
+  const sub = (record.DscSubClasse || '').toLowerCase();
+  return sub.includes('social') || sub.includes('baixa renda');
+}
+
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
 async function resolveUserId(req: Request, anonKey: string): Promise<string | null> {
@@ -526,19 +535,32 @@ async function processSync(
     log(`BT total: ${allBtRecords.length} registros`);
     await flushProgress(true);
 
-    // Build lookup indexes per subgrupo
+    // Build lookup indexes per subgrupo — EXCLUDE Tarifa Social records
+    // When two records share the same vigência, prefer non-Social over Social.
     const btIndexBySubgrupo: Record<string, { porAgente: Record<string, TarifaAneel>; porNome: Record<string, TarifaAneel> }> = {};
     for (const sub of BT_SUBGRUPOS) {
       const porAgente: Record<string, TarifaAneel> = {};
       const porNome: Record<string, TarifaAneel> = {};
       for (const t of (btRecordsBySubgrupo[sub] || [])) {
+        const isSocial = isTarifaSocial(t);
+        // Always prefer non-Social; if both are same type, prefer latest vigência
+        const shouldReplace = (existing: TarifaAneel | undefined): boolean => {
+          if (!existing) return true;
+          const existingIsSocial = isTarifaSocial(existing);
+          // Non-social always beats social
+          if (existingIsSocial && !isSocial) return true;
+          // Social never beats non-social
+          if (!existingIsSocial && isSocial) return false;
+          // Same type: prefer latest vigência
+          return t.DatInicioVigencia > existing.DatInicioVigencia;
+        };
         if (t.SigAgente) {
           const k = normalizeStr(t.SigAgente);
-          if (!porAgente[k] || t.DatInicioVigencia > porAgente[k].DatInicioVigencia) porAgente[k] = t;
+          if (shouldReplace(porAgente[k])) porAgente[k] = t;
         }
         if (t.NomAgente) {
           const k = normalizeStr(t.NomAgente);
-          if (!porNome[k] || t.DatInicioVigencia > porNome[k].DatInicioVigencia) porNome[k] = t;
+          if (shouldReplace(porNome[k])) porNome[k] = t;
         }
       }
       btIndexBySubgrupo[sub] = { porAgente, porNome };
@@ -614,9 +636,11 @@ async function processSync(
         });
 
         // Collect concessionaria update
+        // FIX: tarifa_energia = TE only (not combined total) to avoid double-counting
+        // when UI computes integral = (tarifa_energia + tarifa_fio_b) / (1 - tributos)
         concUpdates.push({
           id: conc.id,
-          tarifa_energia: tarifaTotal,
+          tarifa_energia: te,
           tarifa_fio_b: tusd_fio_b_real ?? tusdTotal,
         });
 
@@ -638,7 +662,7 @@ async function processSync(
             tenant_id: tenantId,
             subgrupo: sub,
             modalidade_tarifaria: 'Convencional',
-            tarifa_energia: subTotal,
+            tarifa_energia: subTe,  // FIX: TE only, not combined total
             tarifa_fio_b: subFioB ?? subTusd,
             origem: subTarifa ? 'ANEEL' : 'ANEEL (fallback B1)',
             is_active: true,
@@ -649,9 +673,9 @@ async function processSync(
         }
 
         totalUpdated++;
-        log(`✅ BT ${conc.nome} → ${tarifaTotal.toFixed(4)} R$/kWh (${tarifa.SigAgente})`);
+        log(`✅ BT ${conc.nome} → TE=${te.toFixed(4)} TUSD=${tusdTotal.toFixed(4)} Total=${tarifaTotal.toFixed(4)} R$/kWh (${tarifa.SigAgente}) [${tarifa.DscSubClasse || 'N/A'}]`);
       } else {
-        log(`🧪 BT ${conc.nome} → ${tarifaTotal.toFixed(4)} (${tarifa.SigAgente})`);
+        log(`🧪 BT ${conc.nome} → TE=${te.toFixed(4)} TUSD=${tusdTotal.toFixed(4)} Total=${tarifaTotal.toFixed(4)} (${tarifa.SigAgente}) [${tarifa.DscSubClasse || 'N/A'}]`);
         totalUpdated++;
       }
       await flushProgress();
