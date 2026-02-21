@@ -152,14 +152,10 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
 
           {/* MT-only: TE/TUSD Ponta e Fora Ponta */}
           {!isBT && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <NumField label="Tarifa TE - Ponta" suffix="R$/kWh" value={premises.tarifa_te_ponta} step="0.00001" tooltip="Tarifa de Energia no horário de ponta." highlight={h(syncedFields, "tarifa_te_ponta")} onChange={(v) => set("tarifa_te_ponta", v)} />
-              <NumField label="Tarifa TUSD - Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_ponta} step="0.00001" highlight={h(syncedFields, "tarifa_tusd_ponta")} onChange={(v) => set("tarifa_tusd_ponta", v)} />
               <NumField label="Tarifa TE - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_te_fora_ponta} step="0.00001" highlight={h(syncedFields, "tarifa_te_fora_ponta")} onChange={(v) => set("tarifa_te_fora_ponta", v)} />
-            </div>
-          )}
-          {!isBT && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <NumField label="Tarifa TUSD - Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_ponta} step="0.00001" highlight={h(syncedFields, "tarifa_tusd_ponta")} onChange={(v) => set("tarifa_tusd_ponta", v)} />
               <NumField label="Tarifa TUSD - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_fora_ponta} step="0.00001" highlight={h(syncedFields, "tarifa_tusd_fora_ponta")} onChange={(v) => set("tarifa_tusd_fora_ponta", v)} />
             </div>
           )}

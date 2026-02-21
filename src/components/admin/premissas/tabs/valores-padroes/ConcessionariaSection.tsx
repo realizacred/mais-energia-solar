@@ -32,6 +32,27 @@ interface Props {
   onAutoSave?: () => Promise<void>;
 }
 
+/**
+ * Pick the best MT subgrupo record for solar GD:
+ * Priority: A4 Verde > A4 Azul > A3 Verde > A3 Azul
+ */
+function pickBestMT(subgrupos: any[]): any {
+  const mtCandidates = subgrupos.filter((s: any) =>
+    s.subgrupo?.startsWith("A4") || s.subgrupo?.startsWith("A3")
+  );
+  if (mtCandidates.length === 0) return null;
+
+  // Prefer A4 over A3, Verde over Azul
+  const priority = (s: any) => {
+    let score = 0;
+    if (s.subgrupo?.startsWith("A4")) score += 10;
+    if (s.modalidade_tarifaria === "Verde") score += 5;
+    return score;
+  };
+  mtCandidates.sort((a: any, b: any) => priority(b) - priority(a));
+  return mtCandidates[0];
+}
+
 export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAutoSave }: Props) {
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
   const [loadingConc, setLoadingConc] = useState(true);
@@ -63,7 +84,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
       .eq("is_active", true)
       .then(({ data }) => {
         const bt = data?.find((s: any) => s.subgrupo?.startsWith("B1")) || null;
-        const mt = data?.find((s: any) => s.subgrupo?.startsWith("A4") || s.subgrupo?.startsWith("A3")) || null;
+        const mt = pickBestMT(data || []);
         setSubgrupoData({ bt, mt });
       });
   }, [selectedConc?.id]);
@@ -81,27 +102,35 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
       .order("subgrupo");
 
     const bt = subgrupos?.find((s: any) => s.subgrupo?.startsWith("B1")) as any;
-    const mt = subgrupos?.find((s: any) => s.subgrupo?.startsWith("A4") || s.subgrupo?.startsWith("A3")) as any;
+    const mt = pickBestMT(subgrupos || []);
 
+    // Use 0 as fallback instead of keeping stale premise values
     onChange((p) => ({
       ...p,
       concessionaria_id: concId,
-      tarifa: bt ? ((bt.tarifa_energia ?? 0) + (bt.tarifa_fio_b ?? 0)) : ((conc.tarifa_energia ?? 0) + (conc.tarifa_fio_b ?? 0)) || p.tarifa,
-      tusd_fio_b_bt: bt?.tarifa_fio_b ?? conc.tarifa_fio_b ?? p.tusd_fio_b_bt,
-      imposto_energia: conc.aliquota_icms ?? p.imposto_energia,
-      tarifacao_compensada_bt: bt?.tarifacao_bt ?? p.tarifacao_compensada_bt,
-      tusd_fio_b_fora_ponta: bt?.fio_b_fora_ponta ?? p.tusd_fio_b_fora_ponta,
-      tusd_fio_b_ponta: bt?.fio_b_ponta ?? p.tusd_fio_b_ponta,
-      tarifa_te_ponta: mt?.te_ponta ?? p.tarifa_te_ponta,
-      tarifa_tusd_ponta: mt?.tusd_ponta ?? p.tarifa_tusd_ponta,
-      tarifa_te_fora_ponta: mt?.te_fora_ponta ?? p.tarifa_te_fora_ponta,
-      tarifa_tusd_fora_ponta: mt?.tusd_fora_ponta ?? p.tarifa_tusd_fora_ponta,
-      tarifacao_compensada_fora_ponta: mt?.tarifacao_fora_ponta ?? p.tarifacao_compensada_fora_ponta,
-      tarifacao_compensada_ponta: mt?.tarifacao_ponta ?? p.tarifacao_compensada_ponta,
-      preco_demanda: mt?.demanda_consumo_rs ?? p.preco_demanda,
-      preco_demanda_geracao: mt?.demanda_geracao_rs ?? p.preco_demanda_geracao,
+      // BT tariffs
+      tarifa: bt
+        ? ((bt.tarifa_energia ?? 0) + (bt.tarifa_fio_b ?? 0))
+        : ((conc.tarifa_energia ?? 0) + (conc.tarifa_fio_b ?? 0)),
+      tusd_fio_b_bt: bt?.tarifa_fio_b ?? conc.tarifa_fio_b ?? 0,
+      imposto_energia: conc.aliquota_icms ?? 0,
+      tarifacao_compensada_bt: bt?.tarifacao_bt ?? 0,
+      // MT tariffs — reset to 0 if no MT data
+      tarifa_te_ponta: mt?.te_ponta ?? 0,
+      tarifa_tusd_ponta: mt?.tusd_ponta ?? 0,
+      tarifa_te_fora_ponta: mt?.te_fora_ponta ?? 0,
+      tarifa_tusd_fora_ponta: mt?.tusd_fora_ponta ?? 0,
+      tarifacao_compensada_fora_ponta: mt?.tarifacao_fora_ponta ?? 0,
+      tarifacao_compensada_ponta: mt?.tarifacao_ponta ?? 0,
+      preco_demanda: mt?.demanda_consumo_rs ?? 0,
+      preco_demanda_geracao: mt?.demanda_geracao_rs ?? 0,
+      // Fio B ponta/fora ponta — use MT data if available, otherwise 0
+      tusd_fio_b_fora_ponta: mt?.fio_b_fora_ponta ?? 0,
+      tusd_fio_b_ponta: mt?.fio_b_ponta ?? 0,
     }));
   }, [concessionarias, onChange]);
+
+
 
   // Map divergencia campo names to TenantPremises keys for highlight
   const FIELD_MAP: Record<string, keyof TenantPremises> = {
@@ -135,8 +164,11 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
     check("ICMS", premises.imposto_energia, selectedConc.aliquota_icms, 0.01);
     if (subgrupoData.bt) {
       check("Tarifação Compensada BT", premises.tarifacao_compensada_bt, subgrupoData.bt.tarifacao_bt);
-      check("Fio B Fora Ponta", premises.tusd_fio_b_fora_ponta, subgrupoData.bt.fio_b_fora_ponta);
-      check("Fio B Ponta", premises.tusd_fio_b_ponta, subgrupoData.bt.fio_b_ponta);
+    }
+    // Fio B ponta/fora ponta comes from MT data, not BT
+    if (subgrupoData.mt) {
+      check("Fio B Fora Ponta", premises.tusd_fio_b_fora_ponta, subgrupoData.mt.fio_b_fora_ponta);
+      check("Fio B Ponta", premises.tusd_fio_b_ponta, subgrupoData.mt.fio_b_ponta);
     }
     if (subgrupoData.mt) {
       check("TE Ponta", premises.tarifa_te_ponta, subgrupoData.mt.te_ponta);
@@ -163,20 +195,25 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
     onChange((p) => ({
       ...p,
       concessionaria_id: selectedConc.id,
-      tarifa: bt ? ((bt.tarifa_energia ?? 0) + (bt.tarifa_fio_b ?? 0)) : ((selectedConc.tarifa_energia ?? 0) + (selectedConc.tarifa_fio_b ?? 0)) || p.tarifa,
-      tusd_fio_b_bt: bt?.tarifa_fio_b ?? selectedConc.tarifa_fio_b ?? p.tusd_fio_b_bt,
-      imposto_energia: selectedConc.aliquota_icms ?? p.imposto_energia,
-      tarifacao_compensada_bt: bt?.tarifacao_bt ?? p.tarifacao_compensada_bt,
-      tusd_fio_b_fora_ponta: bt?.fio_b_fora_ponta ?? p.tusd_fio_b_fora_ponta,
-      tusd_fio_b_ponta: bt?.fio_b_ponta ?? p.tusd_fio_b_ponta,
-      tarifa_te_ponta: mt?.te_ponta ?? p.tarifa_te_ponta,
-      tarifa_tusd_ponta: mt?.tusd_ponta ?? p.tarifa_tusd_ponta,
-      tarifa_te_fora_ponta: mt?.te_fora_ponta ?? p.tarifa_te_fora_ponta,
-      tarifa_tusd_fora_ponta: mt?.tusd_fora_ponta ?? p.tarifa_tusd_fora_ponta,
-      tarifacao_compensada_fora_ponta: mt?.tarifacao_fora_ponta ?? p.tarifacao_compensada_fora_ponta,
-      tarifacao_compensada_ponta: mt?.tarifacao_ponta ?? p.tarifacao_compensada_ponta,
-      preco_demanda: mt?.demanda_consumo_rs ?? p.preco_demanda,
-      preco_demanda_geracao: mt?.demanda_geracao_rs ?? p.preco_demanda_geracao,
+      // BT tariffs
+      tarifa: bt
+        ? ((bt.tarifa_energia ?? 0) + (bt.tarifa_fio_b ?? 0))
+        : ((selectedConc.tarifa_energia ?? 0) + (selectedConc.tarifa_fio_b ?? 0)),
+      tusd_fio_b_bt: bt?.tarifa_fio_b ?? selectedConc.tarifa_fio_b ?? 0,
+      imposto_energia: selectedConc.aliquota_icms ?? 0,
+      tarifacao_compensada_bt: bt?.tarifacao_bt ?? 0,
+      // MT tariffs — reset to 0 if no MT data
+      tarifa_te_ponta: mt?.te_ponta ?? 0,
+      tarifa_tusd_ponta: mt?.tusd_ponta ?? 0,
+      tarifa_te_fora_ponta: mt?.te_fora_ponta ?? 0,
+      tarifa_tusd_fora_ponta: mt?.tusd_fora_ponta ?? 0,
+      tarifacao_compensada_fora_ponta: mt?.tarifacao_fora_ponta ?? 0,
+      tarifacao_compensada_ponta: mt?.tarifacao_ponta ?? 0,
+      preco_demanda: mt?.demanda_consumo_rs ?? 0,
+      preco_demanda_geracao: mt?.demanda_geracao_rs ?? 0,
+      // Fio B ponta/fora ponta — from MT, not BT
+      tusd_fio_b_fora_ponta: mt?.fio_b_fora_ponta ?? 0,
+      tusd_fio_b_ponta: mt?.fio_b_ponta ?? 0,
     }));
 
     // Notify parent about synced fields for visual highlight
