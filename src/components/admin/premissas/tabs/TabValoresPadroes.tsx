@@ -140,16 +140,45 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
       });
   }, []);
 
-  const handleConcessionariaChange = useCallback((concId: string) => {
+  const handleConcessionariaChange = useCallback(async (concId: string) => {
     const conc = concessionarias.find((c) => c.id === concId);
     if (!conc) return;
+
+    // Fetch detailed subgrupo tariffs (B1 for BT, A4 for MT)
+    const { data: subgrupos } = await supabase
+      .from("concessionaria_tarifas_subgrupo")
+      .select("*")
+      .eq("concessionaria_id", concId)
+      .eq("is_active", true)
+      .order("subgrupo");
+
+    const bt = subgrupos?.find((s: any) => s.subgrupo?.startsWith("B1")) as any;
+    const mt = subgrupos?.find((s: any) => s.subgrupo?.startsWith("A4") || s.subgrupo?.startsWith("A3")) as any;
 
     onChange((p) => ({
       ...p,
       concessionaria_id: concId,
-      tarifa: conc.tarifa_energia ?? p.tarifa,
-      tusd_fio_b_bt: conc.tarifa_fio_b ?? p.tusd_fio_b_bt,
+      // Campos básicos da concessionária
+      tarifa: bt?.tarifa_energia ?? conc.tarifa_energia ?? p.tarifa,
+      tusd_fio_b_bt: bt?.tarifa_fio_b ?? conc.tarifa_fio_b ?? p.tusd_fio_b_bt,
       imposto_energia: conc.aliquota_icms ?? p.imposto_energia,
+      // Grupo B - Tarifação compensada (GD III)
+      tarifacao_compensada_bt: bt?.tarifacao_bt ?? p.tarifacao_compensada_bt,
+      // Grupo B - Fio B detalhado (GD II)
+      tusd_fio_b_fora_ponta: bt?.fio_b_fora_ponta ?? p.tusd_fio_b_fora_ponta,
+      tusd_fio_b_ponta: bt?.fio_b_ponta ?? p.tusd_fio_b_ponta,
+      // Grupo A - Ponta
+      tarifa_te_ponta: mt?.te_ponta ?? p.tarifa_te_ponta,
+      tarifa_tusd_ponta: mt?.tusd_ponta ?? p.tarifa_tusd_ponta,
+      // Grupo A - Fora Ponta
+      tarifa_te_fora_ponta: mt?.te_fora_ponta ?? p.tarifa_te_fora_ponta,
+      tarifa_tusd_fora_ponta: mt?.tusd_fora_ponta ?? p.tarifa_tusd_fora_ponta,
+      // Grupo A - Tarifação compensada
+      tarifacao_compensada_fora_ponta: mt?.tarifacao_fora_ponta ?? p.tarifacao_compensada_fora_ponta,
+      tarifacao_compensada_ponta: mt?.tarifacao_ponta ?? p.tarifacao_compensada_ponta,
+      // Demanda
+      preco_demanda: mt?.demanda_consumo_rs ?? p.preco_demanda,
+      preco_demanda_geracao: mt?.demanda_geracao_rs ?? p.preco_demanda_geracao,
     }));
   }, [concessionarias, onChange]);
 
@@ -157,17 +186,50 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
   const selectedConc = concessionarias.find((c) => c.id === (premises as any).concessionaria_id);
 
   // Detect divergence between premises and linked concessionária
+  // Fetch subgrupo data for divergence check
+  const [subgrupoData, setSubgrupoData] = useState<{ bt: any; mt: any }>({ bt: null, mt: null });
+
+  useEffect(() => {
+    if (!selectedConc) { setSubgrupoData({ bt: null, mt: null }); return; }
+    supabase
+      .from("concessionaria_tarifas_subgrupo")
+      .select("*")
+      .eq("concessionaria_id", selectedConc.id)
+      .eq("is_active", true)
+      .then(({ data }) => {
+        const bt = data?.find((s: any) => s.subgrupo?.startsWith("B1")) || null;
+        const mt = data?.find((s: any) => s.subgrupo?.startsWith("A4") || s.subgrupo?.startsWith("A3")) || null;
+        setSubgrupoData({ bt, mt });
+      });
+  }, [selectedConc?.id]);
+
   const divergencias = useMemo(() => {
     if (!selectedConc) return [];
     const diffs: { campo: string; premissa: number; conc: number }[] = [];
-    if (selectedConc.tarifa_energia != null && Math.abs(premises.tarifa - selectedConc.tarifa_energia) > 0.0001)
-      diffs.push({ campo: "Tarifa", premissa: premises.tarifa, conc: selectedConc.tarifa_energia });
-    if (selectedConc.tarifa_fio_b != null && Math.abs(premises.tusd_fio_b_bt - selectedConc.tarifa_fio_b) > 0.0001)
-      diffs.push({ campo: "TUSD Fio B", premissa: premises.tusd_fio_b_bt, conc: selectedConc.tarifa_fio_b });
-    if (selectedConc.aliquota_icms != null && Math.abs(premises.imposto_energia - selectedConc.aliquota_icms) > 0.01)
-      diffs.push({ campo: "ICMS", premissa: premises.imposto_energia, conc: selectedConc.aliquota_icms });
+    const check = (campo: string, pVal: number, cVal: number | null | undefined, tol = 0.0001) => {
+      if (cVal != null && Math.abs(pVal - cVal) > tol) diffs.push({ campo, premissa: pVal, conc: cVal });
+    };
+    // Basic
+    check("Tarifa", premises.tarifa, subgrupoData.bt?.tarifa_energia ?? selectedConc.tarifa_energia);
+    check("TUSD Fio B BT", premises.tusd_fio_b_bt, subgrupoData.bt?.tarifa_fio_b ?? selectedConc.tarifa_fio_b);
+    check("ICMS", premises.imposto_energia, selectedConc.aliquota_icms, 0.01);
+    // Subgrupo BT
+    if (subgrupoData.bt) {
+      check("Tarifação Compensada BT", premises.tarifacao_compensada_bt, subgrupoData.bt.tarifacao_bt);
+      check("Fio B Fora Ponta", premises.tusd_fio_b_fora_ponta, subgrupoData.bt.fio_b_fora_ponta);
+      check("Fio B Ponta", premises.tusd_fio_b_ponta, subgrupoData.bt.fio_b_ponta);
+    }
+    // Subgrupo MT
+    if (subgrupoData.mt) {
+      check("TE Ponta", premises.tarifa_te_ponta, subgrupoData.mt.te_ponta);
+      check("TUSD Ponta", premises.tarifa_tusd_ponta, subgrupoData.mt.tusd_ponta);
+      check("TE Fora Ponta", premises.tarifa_te_fora_ponta, subgrupoData.mt.te_fora_ponta);
+      check("TUSD Fora Ponta", premises.tarifa_tusd_fora_ponta, subgrupoData.mt.tusd_fora_ponta);
+      check("Demanda", premises.preco_demanda, subgrupoData.mt.demanda_consumo_rs);
+      check("Demanda Geração", premises.preco_demanda_geracao, subgrupoData.mt.demanda_geracao_rs);
+    }
     return diffs;
-  }, [selectedConc, premises.tarifa, premises.tusd_fio_b_bt, premises.imposto_energia]);
+  }, [selectedConc, subgrupoData, premises]);
 
   return (
     <div className="space-y-6">
