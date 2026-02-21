@@ -435,14 +435,14 @@ function PremissasContent({
       </div>
 
       {/* ─── 3-column topology grid ─── */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {allTopos.map(topo => {
           const cfg = getTopoConfig(topo);
           const potIdeal = potenciaIdealByTopo[topo] || 0;
           const isActive = pd.topologias.includes(topo);
 
           return (
-            <div key={topo} className={`space-y-3 ${!isActive ? "opacity-40 pointer-events-none" : ""}`}>
+            <div key={topo} className={`rounded-lg border border-border bg-card p-3 space-y-3 ${!isActive ? "opacity-40 pointer-events-none" : ""}`}>
               {/* Topology header + badge */}
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-bold">{TOPOLOGIA_LABELS[topo]}</p>
