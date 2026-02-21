@@ -27,14 +27,16 @@ export interface ValidationReport {
   detectedColumns: Record<string, number>;
 }
 
-/** Required columns for a valid import */
-const REQUIRED_COLUMNS = ["sigAgente", "vigencia", "subgrupo", "vlrTUSD"] as const;
+/** Required columns for a valid import — varies by file type */
+const REQUIRED_COLUMNS_HOMOLOGADAS = ["sigAgente", "vigencia", "subgrupo", "vlrTUSD"] as const;
+const REQUIRED_COLUMNS_COMPONENTES = ["sigAgente", "vigencia", "subgrupo"] as const;
 
 const REQUIRED_LABELS: Record<string, string> = {
   sigAgente: "sigla (Sigla do Agente)",
   vigencia: "inicio_vigencia (Início Vigência)",
   subgrupo: "subgrupo",
   vlrTUSD: "tusd (Valor TUSD)",
+  vlrComponente: "valor componente",
 };
 
 /** Parse Brazilian date dd/mm/yyyy → ISO yyyy-mm-dd */
@@ -121,17 +123,26 @@ export interface DiscardedRow {
 export function validateRows(
   headers: string[],
   rows: string[][],
+  fileType: "homologadas" | "componentes" = "homologadas",
 ): ValidationReport & { discardedFooterRows: DiscardedRow[] } {
   const colMap = detectColumns(headers);
   
-  // Check required columns
+  // Check required columns based on file type
+  const requiredCols = fileType === "componentes" ? REQUIRED_COLUMNS_COMPONENTES : REQUIRED_COLUMNS_HOMOLOGADAS;
   const missingRequiredColumns: string[] = [];
-  for (const reqCol of REQUIRED_COLUMNS) {
+  for (const reqCol of requiredCols) {
     if (colMap[reqCol] === undefined) {
       missingRequiredColumns.push(
         `Campo obrigatório '${REQUIRED_LABELS[reqCol] || reqCol}' não encontrado no cabeçalho.`
       );
     }
+  }
+  
+  // For componentes, require at least vlrComponente OR vlrTUSD
+  if (fileType === "componentes" && colMap.vlrComponente === undefined && colMap.vlrTUSD === undefined) {
+    missingRequiredColumns.push(
+      `Campo obrigatório 'valor componente' ou 'tusd' não encontrado no cabeçalho.`
+    );
   }
   
   // Check for modalidade (required for proper import but not blocking)
@@ -204,12 +215,23 @@ export function validateRows(
       }
     }
     
-    // Validate TUSD (numeric)
-    const tusdResult = parseNumericField(raw.vlrTUSD || "");
-    if (tusdResult.error) {
-      errors.push(`TUSD: ${tusdResult.error}`);
+    // Validate TUSD (numeric) — only required for homologadas
+    if (colMap.vlrTUSD !== undefined) {
+      const tusdResult = parseNumericField(raw.vlrTUSD || "");
+      if (tusdResult.error && fileType !== "componentes") {
+        errors.push(`TUSD: ${tusdResult.error}`);
+      }
+      normalized.vlrTUSD = tusdResult.value;
+    } else if (fileType === "componentes") {
+      // For componentes, use vlrComponente as the value
+      if (colMap.vlrComponente !== undefined) {
+        const compResult = parseNumericField(raw.vlrComponente || "");
+        if (compResult.error) {
+          warnings.push(`Valor componente: ${compResult.error}`);
+        }
+        normalized.vlrComponente = compResult.value;
+      }
     }
-    normalized.vlrTUSD = tusdResult.value;
     
     // Validate TE (numeric, optional)
     if (raw.vlrTE !== undefined) {
