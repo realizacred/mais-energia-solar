@@ -393,23 +393,25 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
   const fileTypeLabel = fileType === "componentes" ? "Componentes das Tarifas" : "Tarifas Homologadas";
   const fileTypeBadge = fileType === "componentes" ? "secondary" : "default";
 
-  // Validation display helpers
-  const validationDisplayRows = useMemo(() => {
+  // Validation display: only show invalid/warning rows (not 68k valid ones)
+  const validationIssueRows = useMemo(() => {
     if (!validation) return [];
-    if (showAllRows) return validation.rows;
-    // Show first 10 rows, prioritizing invalid ones
-    const invalid = validation.rows.filter(r => r.status === "invalid");
-    const warnings = validation.rows.filter(r => r.status === "warning");
-    const valid = validation.rows.filter(r => r.status === "valid");
-    return [...invalid, ...warnings, ...valid].slice(0, 15);
+    const issues = validation.rows.filter(r => r.status === "invalid" || r.status === "warning");
+    if (showAllRows) return issues;
+    return issues.slice(0, 20);
   }, [validation, showAllRows]);
+
+  const totalIssueRows = useMemo(() => {
+    if (!validation) return 0;
+    return validation.rows.filter(r => r.status !== "valid").length;
+  }, [validation]);
 
   const hasBlockingErrors = (validation?.missingRequiredColumns.length ?? 0) > 0;
   const canProceed = !hasBlockingErrors && (validation?.validRows ?? 0) > 0;
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2.5 text-base">
             <ShieldCheck className="w-5 h-5 text-secondary" />
@@ -460,8 +462,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
         {/* ─── Step 2: Validation ─── */}
         {step === "validate" && validation && (
-          <div className="space-y-4">
-            {/* File info */}
+          <ScrollArea className="flex-1 max-h-[55vh]">
+          <div className="space-y-4 pr-3">
             <div className="flex items-center gap-2 flex-wrap">
               <Badge variant={fileTypeBadge as any} className="text-[10px]">{fileTypeLabel}</Badge>
               <span className="text-[11px] text-muted-foreground font-mono truncate">{file?.name}</span>
@@ -512,111 +514,84 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               </div>
             </div>
 
-            {/* Row-by-row validation table */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 text-secondary" />
-                Validação Linha a Linha
-              </h4>
-              <ScrollArea className="h-52 rounded-lg border">
-                <div className="min-w-[500px]">
-                  <table className="w-full text-[11px]">
-                    <thead>
-                      <tr className="border-b bg-muted/40 sticky top-0">
-                        <th className="text-left px-3 py-2 font-semibold text-secondary w-16">Linha</th>
-                        <th className="text-left px-3 py-2 font-semibold text-secondary w-20">Status</th>
-                        <th className="text-left px-3 py-2 font-semibold text-secondary">Detalhes</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {validationDisplayRows.map((row) => (
-                        <tr key={row.rowIndex} className="border-b border-border/30 hover:bg-muted/20">
-                          <td className="px-3 py-1.5 font-mono text-muted-foreground">{row.rowIndex}</td>
-                          <td className="px-3 py-1.5">
-                            {row.status === "valid" && (
-                              <span className="flex items-center gap-1 text-success">
-                                <CheckCircle2 className="w-3 h-3" /> Válida
-                              </span>
-                            )}
-                            {row.status === "warning" && (
-                              <span className="flex items-center gap-1 text-warning">
-                                <AlertTriangle className="w-3 h-3" /> Aviso
-                              </span>
-                            )}
-                            {row.status === "invalid" && (
-                              <span className="flex items-center gap-1 text-destructive">
-                                <XCircle className="w-3 h-3" /> Inválida
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-3 py-1.5">
-                            {row.errors.length > 0 && (
-                              <div className="space-y-0.5">
-                                {row.errors.map((e, i) => (
-                                  <p key={i} className="text-destructive">{e}</p>
-                                ))}
-                              </div>
-                            )}
-                            {row.warnings.length > 0 && (
-                              <div className="space-y-0.5">
-                                {row.warnings.map((w, i) => (
-                                  <p key={i} className="text-warning">{w}</p>
-                                ))}
-                              </div>
-                            )}
-                            {row.errors.length === 0 && row.warnings.length === 0 && (
-                              <span className="text-muted-foreground">—</span>
-                            )}
-                          </td>
+            {/* Row-by-row issues (only invalid/warning — not 68k valid rows) */}
+            {totalIssueRows > 0 ? (
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <AlertCircle className="w-3.5 h-3.5 text-warning" />
+                  Problemas Encontrados ({totalIssueRows} linha{totalIssueRows > 1 ? "s" : ""})
+                </h4>
+                <ScrollArea className="h-40 rounded-lg border">
+                  <div className="min-w-[400px]">
+                    <table className="w-full text-[11px]">
+                      <thead>
+                        <tr className="border-b bg-muted/40 sticky top-0">
+                          <th className="text-left px-3 py-2 font-semibold w-16">Linha</th>
+                          <th className="text-left px-3 py-2 font-semibold w-20">Status</th>
+                          <th className="text-left px-3 py-2 font-semibold">Detalhes</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </ScrollArea>
-              {!showAllRows && validation.rows.length > 15 && (
-                <button
-                  onClick={() => setShowAllRows(true)}
-                  className="text-[10px] text-secondary hover:underline flex items-center gap-1"
-                >
-                  <ChevronDown className="w-3 h-3" />
-                  Mostrar todas as {validation.rows.length} linhas
-                </button>
-              )}
+                      </thead>
+                      <tbody>
+                        {validationIssueRows.map((row) => (
+                          <tr key={row.rowIndex} className="border-b border-border/30 hover:bg-muted/20">
+                            <td className="px-3 py-1.5 font-mono text-muted-foreground">{row.rowIndex}</td>
+                            <td className="px-3 py-1.5">
+                              {row.status === "warning" && (
+                                <span className="flex items-center gap-1 text-warning">
+                                  <AlertTriangle className="w-3 h-3" /> Aviso
+                                </span>
+                              )}
+                              {row.status === "invalid" && (
+                                <span className="flex items-center gap-1 text-destructive">
+                                  <XCircle className="w-3 h-3" /> Inválida
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-3 py-1.5">
+                              {row.errors.map((e, i) => (
+                                <p key={`e${i}`} className="text-destructive">{e}</p>
+                              ))}
+                              {row.warnings.map((w, i) => (
+                                <p key={`w${i}`} className="text-warning">{w}</p>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </ScrollArea>
+                {!showAllRows && totalIssueRows > 20 && (
+                  <button
+                    onClick={() => setShowAllRows(true)}
+                    className="text-[10px] text-secondary hover:underline flex items-center gap-1"
+                  >
+                    <ChevronDown className="w-3 h-3" />
+                    Mostrar todos os {totalIssueRows} problemas
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 p-3 rounded-lg bg-success/10 border border-success/20 text-[11px] text-success">
+                <CheckCircle2 className="w-4 h-4" />
+                <span className="font-medium">Nenhum problema encontrado — todas as {validation.validRows} linhas são válidas.</span>
+              </div>
+            )}
+
+            {/* Pipeline explanation */}
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border text-[11px] text-muted-foreground">
+              <Info className="w-4 h-4 mt-0.5 shrink-0 text-secondary" />
+              <div className="space-y-1">
+                <p><strong>Como funciona:</strong> Os {validation.totalRows.toLocaleString("pt-BR")} registros serão agrupados por distribuidora + subgrupo + modalidade.</p>
+                <p>• Linhas <strong>inválidas</strong> são descartadas automaticamente.</p>
+                <p>• Para cada combinação, o sistema mantém apenas o registro mais recente.</p>
+                <p>• Apenas distribuidoras já cadastradas no sistema serão atualizadas.</p>
+                <p>O resultado final será bem menor que {validation.totalRows.toLocaleString("pt-BR")} linhas — tipicamente ~100-200 registros únicos.</p>
+              </div>
             </div>
 
-            {/* Preview first 5 raw rows */}
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5 text-secondary" />
-                Preview (primeiras 5 linhas)
-              </h4>
-              <ScrollArea className="h-28 rounded-lg border">
-                <div className="min-w-[500px]">
-                  <table className="w-full text-[10px] font-mono">
-                    <thead>
-                      <tr className="border-b bg-muted/40 sticky top-0">
-                        {headers.slice(0, 8).map((h, i) => (
-                          <th key={i} className="text-left px-2 py-1.5 font-semibold text-secondary truncate max-w-[100px]">{h}</th>
-                        ))}
-                        {headers.length > 8 && <th className="text-left px-2 py-1.5 text-muted-foreground">…</th>}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rawRows.slice(0, 5).map((row, i) => (
-                        <tr key={i} className="border-b border-border/30 hover:bg-muted/20">
-                          {row.slice(0, 8).map((cell, j) => (
-                            <td key={j} className="px-2 py-1 text-muted-foreground truncate max-w-[100px]">{cell || "—"}</td>
-                          ))}
-                          {headers.length > 8 && <td className="px-2 py-1 text-muted-foreground">…</td>}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </ScrollArea>
-            </div>
           </div>
+          </ScrollArea>
         )}
 
         {/* ─── Step 3: Preview (import-ready) ─── */}
