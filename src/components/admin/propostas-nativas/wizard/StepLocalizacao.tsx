@@ -358,17 +358,12 @@ export function StepLocalizacao({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h3 className="text-sm sm:text-base font-bold flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-primary" /> Localização & Endereço
-        </h3>
-        <div className="flex items-center gap-2">
-          {geoStatusBadge()}
-          <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
-            Localização
-          </Badge>
-        </div>
+      {/* Geo status inline — no redundant headers */}
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-medium flex items-center gap-1.5">
+          <MapPin className="h-3.5 w-3.5 text-primary" /> Endereço de instalação
+        </Label>
+        {geoStatusBadge()}
       </div>
 
       {/* Side-by-side: Fields LEFT, Map RIGHT — responsive */}
