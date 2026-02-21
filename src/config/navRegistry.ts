@@ -80,7 +80,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "inadimplencia", label_default: "Inadimplência", group_default: "Financeiro", order_default: 1, icon: "AlertTriangle", description: "Parcelas vencidas e cobranças", keywords: ["atraso", "devedor", "cobrança", "inadimplente"], criticality: "normal", permission: "admin_only" },
   { nav_key: "comissoes", label_default: "Comissões", group_default: "Financeiro", order_default: 2, icon: "Wallet", description: "Cálculo e controle de comissões", keywords: ["comissão", "consultor", "bonificação", "percentual"], criticality: "normal", permission: "admin_only" },
   { nav_key: "fiscal", label_default: "Fiscal", group_default: "Financeiro", order_default: 3, icon: "ReceiptText", description: "Emissão de notas de serviço e importação de XMLs", keywords: ["nota", "fiscal", "NF", "NFS-e", "XML", "emissão", "serviço"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "engenharia", label_default: "Análise Tributária", group_default: "Financeiro", order_default: 4, icon: "Calculator", description: "ICMS, Fio B e cálculo de payback", keywords: ["ICMS", "fio B", "payback", "retorno", "tributo"], criticality: "normal", permission: "admin_only", separator: true },
+  // engenharia (Análise Tributária) foi movida para Premissas > aba Tributação
   { nav_key: "financiamento", label_default: "Financiamentos", group_default: "Financeiro", order_default: 5, icon: "Building2", description: "Bancos, taxas e simulações de crédito", keywords: ["banco", "taxa", "parcela", "crédito", "financiar"], criticality: "normal", permission: "admin_only" },
 
   // ── Equipe ──

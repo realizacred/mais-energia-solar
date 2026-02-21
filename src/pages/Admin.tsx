@@ -237,7 +237,7 @@ const TAB_TITLES: Record<string, string> = {
   recebimentos: "Contas a receber",
   inadimplencia: "Inadimplência",
   comissoes: "Comissões",
-  engenharia: "Análise tributária",
+  engenharia: "Premissas", // redirecionado para premissas > tributação
   financiamento: "Financiamentos",
   "site-config": "Conteúdo & visual",
   brand: "Conteúdo & visual",
@@ -507,7 +507,7 @@ export default function Admin() {
                 <Route path="recebimentos" element={<RecebimentosManager />} />
                 <Route path="inadimplencia" element={<InadimplenciaDashboard />} />
                 <Route path="comissoes" element={<ComissoesManager />} />
-                <Route path="engenharia" element={<EngenhariaFinanceiraConfig />} />
+                <Route path="engenharia" element={<Navigate to="/admin/premissas" replace />} />
                 <Route path="financiamento" element={<FinanciamentoConfig />} />
                 <Route path="fiscal" element={<FiscalPage />} />
                 
