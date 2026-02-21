@@ -270,8 +270,8 @@ export function ProjectAddressFields({
       {/* Address grid */}
       <div className="rounded-lg border border-border/40 bg-card p-3 space-y-2.5">
         {/* Row 1: CEP + Número */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="col-span-2 space-y-1">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="col-span-1 sm:col-span-2 space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">CEP</Label>
             <div className="relative">
               <Input
@@ -312,8 +312,8 @@ export function ProjectAddressFields({
         </div>
 
         {/* Row 3: Bairro + Cidade + UF */}
-        <div className="grid grid-cols-5 gap-2">
-          <div className="col-span-2 space-y-1">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="col-span-1 sm:col-span-2 space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Bairro</Label>
             <Input
               className="h-9 text-xs bg-background"
@@ -322,7 +322,7 @@ export function ProjectAddressFields({
               onChange={(e) => updateField("bairro", e.target.value)}
             />
           </div>
-          <div className="col-span-2 space-y-1">
+          <div className="col-span-1 sm:col-span-2 space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Cidade</Label>
             {cidades.length > 0 ? (
               <Select value={address.cidade} onValueChange={handleCidadeChange}>
