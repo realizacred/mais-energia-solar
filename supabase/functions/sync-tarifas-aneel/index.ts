@@ -799,10 +799,10 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (activeRun) {
-      // If running for more than 10 min, mark as stale and allow new run
+      // If running for more than 3 min, mark as stale and allow new run
       const startedAt = new Date(activeRun.started_at).getTime();
       const now = Date.now();
-      if (now - startedAt < 10 * 60 * 1000) {
+      if (now - startedAt < 3 * 60 * 1000) {
         return new Response(JSON.stringify({
           success: true,
           run_id: activeRun.id,
@@ -814,7 +814,7 @@ Deno.serve(async (req) => {
       await supabase.from('aneel_sync_runs').update({
         status: 'timed_out',
         finished_at: new Date().toISOString(),
-        error_message: 'Execução expirou (timeout > 10min)',
+        error_message: 'Execução expirou (timeout > 3min)',
       }).eq('id', activeRun.id);
     }
 
@@ -844,16 +844,40 @@ Deno.serve(async (req) => {
     if (runError) throw runError;
     const runId = runData.id;
 
-    // 🚀 Fire processing in background — DO NOT await
-    // The EdgeRuntime keeps the function alive for the duration of pending promises
-    processSync(supabase, runId, tenantId, userId, concessionariaId, triggerType, testRun)
-      .catch(err => console.error("[sync-tarifas-aneel] Background error:", err));
+    // 🚀 Process synchronously — the frontend uses a long timeout
+    // This ensures the function completes before the runtime kills it
+    try {
+      await processSync(supabase, runId, tenantId, userId, concessionariaId, triggerType, testRun);
+    } catch (err) {
+      console.error("[sync-tarifas-aneel] Processing error:", err);
+      const errorMsg = err instanceof Error ? err.message : "Erro desconhecido";
+      await supabase.from('aneel_sync_runs').update({
+        status: 'error',
+        finished_at: new Date().toISOString(),
+        error_message: errorMsg,
+        logs: [`Erro fatal: ${errorMsg}`],
+      }).eq('id', runId);
+    }
 
-    // Return immediately with run_id for polling
+    // Fetch final status to return
+    const { data: finalRun } = await supabase
+      .from('aneel_sync_runs')
+      .select('status, total_fetched, total_matched, total_updated, total_errors, error_message')
+      .eq('id', runId)
+      .single();
+
     return new Response(JSON.stringify({
       success: true,
       run_id: runId,
-      message: 'Sincronização iniciada. Acompanhe o progresso na tela.',
+      status: finalRun?.status || 'unknown',
+      total_updated: finalRun?.total_updated || 0,
+      total_matched: finalRun?.total_matched || 0,
+      total_errors: finalRun?.total_errors || 0,
+      message: finalRun?.status === 'success' 
+        ? `Sincronização concluída: ${finalRun.total_updated} atualizadas`
+        : finalRun?.status === 'error'
+        ? `Erro: ${finalRun.error_message}`
+        : 'Sincronização processada',
       test_run: testRun,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
 
