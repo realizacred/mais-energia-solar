@@ -85,7 +85,12 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       }
 
       if (records.length === 0) {
-        toast({ title: "Nenhum registro válido encontrado", variant: "destructive" });
+        const cols = headers.slice(0, 8).join(", ");
+        toast({ 
+          title: "Nenhum registro válido encontrado", 
+          description: `Tipo detectado: ${detected}. Colunas: ${cols}...`,
+          variant: "destructive" 
+        });
         return;
       }
 

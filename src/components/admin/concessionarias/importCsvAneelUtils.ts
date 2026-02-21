@@ -72,8 +72,7 @@ export function parseNumber(s: string): number {
  */
 export function detectFileType(headers: string[]): FileType {
   const joined = headers.map(h => norm(h)).join("|");
-  // Componentes file indicators - match truncated headers too
-  if (joined.includes("componente") || joined.includes("componer") || joined.includes("fio b") || joined.includes("fio_b") || joined.includes("dsctipcomponente")) {
+  if (joined.includes("componente") || joined.includes("componer") || joined.includes("fio b") || joined.includes("fio_b") || joined.includes("dsctipcomponente") || joined.includes("tipo componente")) {
     return "componentes";
   }
   return "homologadas";
@@ -83,32 +82,70 @@ interface ColumnMap {
   [key: string]: number;
 }
 
+/**
+ * Flexible column detection with accent-normalized matching.
+ * Uses a three-tier strategy: exact → starts-with → contains.
+ */
+function findColumnIndex(normalizedHeaders: string[], aliases: string[]): number {
+  const normAliases = aliases.map(a => norm(a));
+
+  // Priority 1: exact match
+  for (const alias of normAliases) {
+    const idx = normalizedHeaders.indexOf(alias);
+    if (idx !== -1) return idx;
+  }
+
+  // Priority 2: starts-with
+  for (const alias of normAliases) {
+    const idx = normalizedHeaders.findIndex(h => h.startsWith(alias));
+    if (idx !== -1) return idx;
+  }
+
+  // Priority 3: contains
+  for (const alias of normAliases) {
+    if (alias.length < 3) continue; // skip very short aliases for contains
+    const idx = normalizedHeaders.findIndex(h => h.includes(alias));
+    if (idx !== -1) return idx;
+  }
+
+  return -1;
+}
+
 export function detectColumns(headers: string[]): ColumnMap {
   const map: ColumnMap = {};
-  const patterns: Record<string, RegExp> = {
-    sigAgente: /^sigla$|sig\s*agente/i,
-    nomAgente: /nom\s*agente|distribuidora/i,
-    subgrupo: /sub\s*grupo/i,
-    modalidade: /modalidade/i,
-    posto: /^posto$/i,
-    vlrTUSD: /^tusd$|vlr.*tusd/i,
-    vlrTE: /^te$|vlr.*te/i,
-    unidade: /^unidade$/i,
-    baseTarifaria: /base\s*tarif/i,
-    detalhe: /^detalhe$/i,
-    vigencia: /inicio\s*vig|dat.*inicio/i,
-    classe: /^classe$/i,
-    subclasse: /sub\s*classe/i,
-    resolucao: /resolu[cç]|^reh$/i,
-    // Componentes-specific — handle truncated XLSX headers
-    componente: /compone[nrt]|dsc.*tipo.*componente/i,
-    vlrComponente: /^valor$|vlr.*componente/i,
+  const normalizedHeaders = headers.map(h => norm(h));
+
+  const columnAliases: Record<string, string[]> = {
+    sigAgente:     ["sigla", "sigla agente", "sigagente", "sig agente"],
+    nomAgente:     ["nom agente", "nomagente", "distribuidora", "nome agente"],
+    subgrupo:      ["subgrupo", "sub grupo"],
+    modalidade:    ["modalidade"],
+    posto:         ["posto", "posto tarifario"],
+    vlrTUSD:       ["tusd", "vlr tusd", "vlrtusd"],
+    vlrTE:         ["te", "vlr te", "vlrte"],
+    unidade:       ["unidade"],
+    baseTarifaria: ["base tarifaria", "basetarifaria", "base tarif"],
+    detalhe:       ["detalhe"],
+    vigencia:      ["inicio vigencia", "iniciovigencia", "dat inicio", "data inicio vigencia"],
+    classe:        ["classe"],
+    subclasse:     ["subclasse", "sub classe"],
+    resolucao:     ["resolucao", "resolucao aneel", "reh"],
+    // Componentes-specific
+    componente:    ["componente", "tipo componente", "dsctipcomponente", "dsc tipo componente"],
+    vlrComponente: ["valor", "vlr componente", "vlrcomponente"],
   };
 
-  for (const [key, re] of Object.entries(patterns)) {
-    const idx = headers.findIndex(h => re.test(h.trim()));
+  for (const [key, aliases] of Object.entries(columnAliases)) {
+    const idx = findColumnIndex(normalizedHeaders, aliases);
     if (idx >= 0) map[key] = idx;
   }
+
+  // Fallback: for vlrTE, avoid matching columns that contain "tusd" or "componente"
+  // If vlrTE accidentally matched a wrong column, try stricter match
+  if (map.vlrTE !== undefined && map.vlrTUSD !== undefined && map.vlrTE === map.vlrTUSD) {
+    delete map.vlrTE;
+  }
+
   return map;
 }
 
