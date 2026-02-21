@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ import {
 } from "./types";
 import { UCCard } from "./uc/UCCard";
 import { UCConfigModal, RateioCreditsModal, MesAMesDialog } from "./uc/UCModals";
+import { useTiposTelhado } from "@/hooks/useTiposTelhado";
+import { getRoofLabel, type RoofAreaFactor } from "@/hooks/useTenantPremises";
 
 interface Props {
   ucs: UCData[];
@@ -41,6 +43,26 @@ export function StepConsumptionIntelligence({
   const [rateioOpen, setRateioOpen] = useState(false);
   const [mesAMes, setMesAMes] = useState<{ open: boolean; ucIndex: number; field: "consumo" | "hp" | "hfp" }>({ open: false, ucIndex: 0, field: "consumo" });
   const [preDimModal, setPreDimModal] = useState(false);
+  const { roofFactors } = useTiposTelhado();
+
+  // Sync inclinação/desvio azimutal from first UC's tipo_telhado into preDimensionamento
+  const uc1TipoTelhado = ucs[0]?.tipo_telhado;
+  useEffect(() => {
+    if (!uc1TipoTelhado || roofFactors.length === 0) return;
+    const match = roofFactors.find(rf => getRoofLabel(rf) === uc1TipoTelhado);
+    if (match) {
+      const updates: Partial<PreDimensionamentoData> = {};
+      if (match.inclinacao_padrao != null && pd.inclinacao !== match.inclinacao_padrao) {
+        updates.inclinacao = match.inclinacao_padrao;
+      }
+      if (match.desvio_azimutal_padrao != null && pd.desvio_azimutal !== match.desvio_azimutal_padrao) {
+        updates.desvio_azimutal = match.desvio_azimutal_padrao;
+      }
+      if (Object.keys(updates).length > 0) {
+        setPd({ ...pd, ...updates });
+      }
+    }
+  }, [uc1TipoTelhado, roofFactors]);
 
   // ─── Derived metrics
   const consumoTotal = useMemo(() => {
