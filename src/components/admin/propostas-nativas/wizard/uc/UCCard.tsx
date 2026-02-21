@@ -155,7 +155,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card min-w-[280px] max-w-[420px] flex-shrink-0 flex flex-col">
+    <div className="rounded-xl border border-border bg-card w-full flex flex-col">
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div className="flex items-center gap-2">
