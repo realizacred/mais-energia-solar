@@ -15542,6 +15542,7 @@ export type Database = {
             }
             Returns: Json
           }
+      sync_concessionarias_from_subgrupos: { Args: never; Returns: Json }
       tenant_and_user_active: { Args: never; Returns: boolean }
       tenant_is_active: { Args: { _tenant_id?: string }; Returns: boolean }
       touch_contact_last_interaction: {
