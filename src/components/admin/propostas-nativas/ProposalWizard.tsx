@@ -840,7 +840,7 @@ export function ProposalWizard() {
 
   // ─── Render
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden -m-4 sm:-m-6 lg:-m-8">
+    <div className="proposal-wizard-root flex flex-col h-[calc(100dvh-3.5rem)] overflow-hidden">
       {/* ── Sticky Header */}
       <div className="flex items-center justify-between px-4 lg:px-6 py-2.5 border-b border-border/60 bg-card shrink-0">
         <div className="flex items-center gap-3 min-w-0">

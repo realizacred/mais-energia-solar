@@ -693,6 +693,12 @@
     max-width: 100%;
     background: hsl(var(--surface-2));
   }
+
+  /* Remove padding when wizard is inside admin-content */
+  .admin-content:has(.proposal-wizard-root) {
+    @apply p-0;
+    gap: 0;
+  }
 }
 
 /* ===== ANIMATIONS ===== */
