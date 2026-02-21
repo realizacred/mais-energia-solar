@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Settings2, Zap, Sun, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,6 +12,7 @@ import {
   UF_LIST, GRUPO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT,
 } from "./types";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
+import { getRoofLabel, type RoofAreaFactor } from "@/hooks/useTenantPremises";
 
 interface Props {
   ucs: UCData[];
@@ -26,7 +27,7 @@ export function StepTechnicalConfig({ ucs, onUcsChange, grupo, onGrupoChange, po
   const [loadingConc, setLoadingConc] = useState(false);
 
   const uc = ucs[0];
-  const { tiposTelhado } = useTiposTelhado();
+  const { tiposTelhado, roofFactors } = useTiposTelhado();
   const ucEstado = uc?.estado || "";
   const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(ucEstado);
   const isMT = uc?.tipo_dimensionamento === "MT";
@@ -194,7 +195,18 @@ export function StepTechnicalConfig({ ucs, onUcsChange, grupo, onGrupoChange, po
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <div className="space-y-1">
             <Label className="text-[10px]">Tipo de Telhado</Label>
-            <Select value={uc.tipo_telhado} onValueChange={v => updateUC("tipo_telhado", v)}>
+            <Select value={uc.tipo_telhado} onValueChange={v => {
+              // Find the matching roof factor and auto-fill defaults
+              const match = roofFactors.find(rf => getRoofLabel(rf) === v);
+              const updates: Partial<UCData> = { tipo_telhado: v };
+              if (match) {
+                if (match.inclinacao_padrao != null) updates.inclinacao = match.inclinacao_padrao;
+                if (match.desvio_azimutal_padrao != null) updates.desvio_azimutal = match.desvio_azimutal_padrao;
+              }
+              const updated = [...ucs];
+              updated[0] = { ...updated[0], ...updates };
+              onUcsChange(updated);
+            }}>
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>{tiposTelhado.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
             </Select>

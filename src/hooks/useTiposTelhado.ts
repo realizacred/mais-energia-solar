@@ -15,13 +15,14 @@ const FALLBACK_LABELS = Object.values(ROOF_LABELS);
  */
 export function useTiposTelhado(consultorCode?: string | null) {
   const [labels, setLabels] = useState<string[]>(FALLBACK_LABELS);
+  const [roofFactors, setRoofFactors] = useState<RoofAreaFactor[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        let rows: { tipo_telhado: string; label: string | null }[] | null = null;
+        let rows: RoofAreaFactor[] | null = null;
 
         if (consultorCode) {
           // Public context: use SECURITY DEFINER RPC
@@ -33,7 +34,7 @@ export function useTiposTelhado(consultorCode?: string | null) {
           // Authenticated context: direct query (RLS enforced)
           const { data } = await supabase
             .from("tenant_roof_area_factors")
-            .select("tipo_telhado, label, enabled")
+            .select("tipo_telhado, label, enabled, fator_area, inclinacao_padrao, desvio_azimutal_padrao, topologias_permitidas, tipos_sistema_permitidos")
             .eq("enabled", true)
             .order("tipo_telhado");
           rows = data as any;
@@ -41,7 +42,8 @@ export function useTiposTelhado(consultorCode?: string | null) {
 
         if (cancelled) return;
         if (rows && rows.length > 0) {
-          setLabels(rows.map((d: any) => getRoofLabel(d as RoofAreaFactor)));
+          setLabels(rows.map((d) => getRoofLabel(d as RoofAreaFactor)));
+          setRoofFactors(rows as RoofAreaFactor[]);
         }
         // else keep fallback
       } catch {
@@ -53,5 +55,5 @@ export function useTiposTelhado(consultorCode?: string | null) {
     return () => { cancelled = true; };
   }, [consultorCode]);
 
-  return { tiposTelhado: labels, loading };
+  return { tiposTelhado: labels, roofFactors, loading };
 }

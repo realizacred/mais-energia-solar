@@ -12146,6 +12146,7 @@ export type Database = {
           enabled: boolean
           fator_area: number
           id: string
+          inclinacao_padrao: number | null
           label: string | null
           tenant_id: string
           tipo_telhado: string
@@ -12159,6 +12160,7 @@ export type Database = {
           enabled?: boolean
           fator_area?: number
           id?: string
+          inclinacao_padrao?: number | null
           label?: string | null
           tenant_id: string
           tipo_telhado: string
@@ -12172,6 +12174,7 @@ export type Database = {
           enabled?: boolean
           fator_area?: number
           id?: string
+          inclinacao_padrao?: number | null
           label?: string | null
           tenant_id?: string
           tipo_telhado?: string
