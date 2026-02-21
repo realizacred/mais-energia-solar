@@ -397,11 +397,29 @@ export function ProposalWizard() {
       perda_eficiencia_anual: solarBrain.perda_eficiencia ?? prev.perda_eficiencia_anual,
       sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
     }));
-    // Sync preDimensionamento with tenant sobredimensionamento
-    setPreDimensionamento(prev => ({
-      ...prev,
-      sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
-    }));
+    // Sync preDimensionamento with tenant premises
+    setPreDimensionamento(prev => {
+      const configs = { ...prev.topologia_configs };
+      if (solarBrain.taxa_desempenho_tradicional != null) {
+        configs.tradicional = { ...configs.tradicional, desempenho: solarBrain.taxa_desempenho_tradicional };
+      }
+      if (solarBrain.taxa_desempenho_microinversor != null) {
+        configs.microinversor = { ...configs.microinversor, desempenho: solarBrain.taxa_desempenho_microinversor };
+      }
+      if (solarBrain.taxa_desempenho_otimizador != null) {
+        configs.otimizador = { ...configs.otimizador, desempenho: solarBrain.taxa_desempenho_otimizador };
+      }
+      return {
+        ...prev,
+        sobredimensionamento: solarBrain.sobredimensionamento ?? prev.sobredimensionamento,
+        topologia_configs: configs,
+        topologias: solarBrain.topologias ?? prev.topologias,
+        tipos_kit: solarBrain.tipo_kits ?? prev.tipos_kit,
+        considerar_transformador: solarBrain.considerar_kits_transformador ?? prev.considerar_transformador,
+        desempenho: configs.tradicional?.desempenho ?? prev.desempenho,
+        margem_pot_ideal: solarBrain.margem_potencia_ideal ?? prev.margem_pot_ideal,
+      };
+    });
   }, [solarBrain]);
 
   // Apply tenant tariff defaults to UCs that still have zero values
