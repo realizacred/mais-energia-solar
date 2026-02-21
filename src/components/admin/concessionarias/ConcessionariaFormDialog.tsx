@@ -64,14 +64,14 @@ interface SectionCardProps {
 
 function SectionCard({ icon, title, subtitle, children, className }: SectionCardProps) {
   return (
-    <div className={`rounded-xl border border-border/60 bg-card p-4 space-y-3 ${className ?? ""}`}>
-      <div className="flex items-start gap-2.5 pb-2 border-b border-border/40">
-        <div className="p-1.5 rounded-md bg-muted text-muted-foreground shrink-0 mt-0.5">
+    <div className={`rounded-xl border border-border/60 bg-card p-3.5 space-y-2.5 ${className ?? ""}`}>
+      <div className="flex items-center gap-2 pb-1.5 border-b border-border/40">
+        <div className="p-1 rounded-md bg-muted text-muted-foreground shrink-0">
           {icon}
         </div>
-        <div>
-          <h4 className="text-sm font-semibold text-foreground">{title}</h4>
-          {subtitle && <p className="text-[11px] text-muted-foreground mt-0.5">{subtitle}</p>}
+        <div className="min-w-0">
+          <h4 className="text-[13px] font-semibold text-foreground leading-tight">{title}</h4>
+          {subtitle && <p className="text-[10px] text-muted-foreground leading-tight">{subtitle}</p>}
         </div>
       </div>
       {children}
@@ -121,7 +121,7 @@ export function ConcessionariaFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] lg:max-w-3xl xl:max-w-4xl max-h-[90vh] overflow-y-auto p-0">
+      <DialogContent className="max-w-[95vw] lg:max-w-3xl xl:max-w-4xl max-h-[92vh] overflow-y-auto p-0">
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="flex items-center gap-2 text-base">
             <Building className="w-5 h-5 text-primary" />
@@ -129,7 +129,7 @@ export function ConcessionariaFormDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="px-6 py-4 space-y-4">
+        <div className="px-5 py-3 space-y-3">
           {/* ── Identificação ── */}
           <SectionCard icon={<Building className="w-4 h-4" />} title="Identificação">
             <div className="space-y-2">

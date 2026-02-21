@@ -59,10 +59,20 @@ function VendorSidebarItem({
   const [searchParams] = useSearchParams();
   const asParam = searchParams.get("as");
 
+  const itemPath = `/consultor/${item.id}${asParam ? `?as=${asParam}` : ""}`;
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      window.open(itemPath, '_blank');
+      return;
+    }
+    navigate(itemPath);
+  };
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
-        onClick={() => navigate(`/consultor/${item.id}${asParam ? `?as=${asParam}` : ""}`)}
+        onClick={handleClick}
         isActive={isActive}
         tooltip={
           item.description
