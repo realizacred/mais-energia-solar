@@ -79,6 +79,18 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
     });
   };
 
+  const toggleTelhado = (item: string) => {
+    onChange((p) => {
+      const current = (p.tipo_telhado_padrao || "").split(",").map(s => s.trim()).filter(Boolean);
+      const next = current.includes(item) ? current.filter(x => x !== item) : [...current, item];
+      return { ...p, tipo_telhado_padrao: next.join(",") };
+    });
+  };
+
+  const telhadoValues = useMemo(() => {
+    return (premises.tipo_telhado_padrao || "").split(",").map(s => s.trim()).filter(Boolean);
+  }, [premises.tipo_telhado_padrao]);
+
   const toggleSistema = (item: string) => {
     // tipo_sistema is a string field — we'll treat it as a comma-separated multi-select
     onChange((p) => {
@@ -224,14 +236,18 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">Tipo de Telhado</Label>
-              <Select value={premises.tipo_telhado_padrao} onValueChange={(v) => set("tipo_telhado_padrao", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {TELHADO_OPTIONS.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {TELHADO_OPTIONS.map((t) => (
+                  <Badge
+                    key={t.value}
+                    variant={telhadoValues.includes(t.value) ? "default" : "outline"}
+                    className="cursor-pointer select-none"
+                    onClick={() => toggleTelhado(t.value)}
+                  >
+                    {t.label}
+                  </Badge>
+                ))}
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium text-muted-foreground">
