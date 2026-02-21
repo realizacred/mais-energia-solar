@@ -82,8 +82,30 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, onSave }: RateioPr
   const [manual, setManual] = useState(false);
   const [values, setValues] = useState<number[]>([]);
 
+  const calcProportional = (units: UCData[]): number[] => {
+    const consumos = units.map(u => u.consumo_mensal || 0);
+    const totalConsumo = consumos.reduce((a, b) => a + b, 0);
+    if (totalConsumo === 0) {
+      // Fallback equal if no consumption data
+      const equal = Math.round(100 / units.length);
+      return units.map((_, i) => i === 0 ? 100 - equal * (units.length - 1) : equal);
+    }
+    const raw = consumos.map(c => (c / totalConsumo) * 100);
+    const rounded = raw.map(v => Math.round(v));
+    const diff = 100 - rounded.reduce((a, b) => a + b, 0);
+    rounded[0] += diff; // adjust first to ensure sum = 100
+    return rounded;
+  };
+
   useEffect(() => {
-    setValues(ucs.map(u => u.rateio_creditos || 0));
+    const existing = ucs.map(u => u.rateio_creditos || 0);
+    const existingTotal = existing.reduce((a, b) => a + b, 0);
+    // Auto-calculate proportional if no rateio defined yet
+    if (existingTotal === 0 || existing.every(v => v === 0)) {
+      setValues(calcProportional(ucs));
+    } else {
+      setValues(existing);
+    }
   }, [ucs]);
 
   const total = values.reduce((a, b) => a + b, 0);
@@ -95,9 +117,7 @@ export function RateioCreditsModal({ open, onOpenChange, ucs, onSave }: RateioPr
   };
 
   const handleAutoRateio = () => {
-    const equal = Math.round(100 / ucs.length);
-    const newValues = ucs.map((_, i) => i === 0 ? 100 - equal * (ucs.length - 1) : equal);
-    setValues(newValues);
+    setValues(calcProportional(ucs));
   };
 
   return (
