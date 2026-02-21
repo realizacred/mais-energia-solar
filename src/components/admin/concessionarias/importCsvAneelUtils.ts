@@ -165,7 +165,7 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     return [];
   }
 
-  const debugSkipReasons = { noBase: 0, noSub: 0, shortRow: 0, total: 0 };
+  const debugSkipReasons = { noSub: 0, shortRow: 0, total: 0 };
   const records: ParsedTarifa[] = [];
   const startIdx = isPreParsed ? 0 : 1;
 
@@ -174,20 +174,8 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     if (cells.length < 3) { debugSkipReasons.shortRow++; continue; }
     debugSkipReasons.total++;
 
+    // baseTarifaria is informational only — NO filtering on it
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
-    // Accept: "Tarifa de Aplicação", "Base Econômica", or empty (no filter)
-    // Only REJECT if baseTarifaria is present AND is something truly irrelevant
-    if (baseTarifaria) {
-      const baseNorm = norm(baseTarifaria);
-      const isAplicacao = baseNorm.includes("aplica") || baseNorm.includes("aplicacao");
-      const isEconomica = baseNorm.includes("econom");
-      const isBase = baseNorm.includes("base") || baseNorm.includes("tarifa");
-      // Accept aplicação, econômica, or anything that looks tariff-related
-      if (!isAplicacao && !isEconomica && !isBase) {
-        debugSkipReasons.noBase++;
-        continue;
-      }
-    }
 
     const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
     if (!subgrupo) { debugSkipReasons.noSub++; continue; }
@@ -207,50 +195,11 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     });
   }
 
-  console.log("[ANEEL Homol] Debug skip reasons:", debugSkipReasons, "Records found:", records.length);
-  console.log("[ANEEL Homol] Column map:", cols);
-
-  // Fallback: if zero records but rows existed, retry without ANY filter
-  if (records.length === 0 && (debugSkipReasons.noBase > 0 || debugSkipReasons.noSub > 0)) {
-    console.warn("[ANEEL Homol] All rows filtered. Retrying without baseTarifaria filter...");
-    return parseTarifasNoFilter(data, cols, isPreParsed, startIdx);
-  }
+  console.log("[ANEEL Homol] Debug:", debugSkipReasons, "Records found:", records.length, "Column map:", cols);
 
   return records;
 }
 
-/** Fallback parser that skips the baseTarifaria filter */
-function parseTarifasNoFilter(
-  data: string[] | string[][],
-  cols: Record<string, number>,
-  isPreParsed: boolean,
-  startIdx: number,
-): ParsedTarifa[] {
-  const records: ParsedTarifa[] = [];
-  for (let i = startIdx; i < data.length; i++) {
-    const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);
-    if (cells.length < 3) continue;
-
-    const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
-    if (!subgrupo) continue;
-
-    records.push({
-      sigAgente: cols.sigAgente !== undefined ? cells[cols.sigAgente] || "" : "",
-      nomAgente: cols.nomAgente !== undefined ? cells[cols.nomAgente] || "" : "",
-      subgrupo,
-      modalidade: cols.modalidade !== undefined ? cells[cols.modalidade] || "" : "",
-      posto: cols.posto !== undefined ? cells[cols.posto] || "" : "",
-      vlrTUSD: cols.vlrTUSD !== undefined ? parseNumber(cells[cols.vlrTUSD]) : 0,
-      vlrTE: cols.vlrTE !== undefined ? parseNumber(cells[cols.vlrTE]) : 0,
-      unidade: cols.unidade !== undefined ? cells[cols.unidade] || "" : "",
-      baseTarifaria: cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "",
-      detalhe: cols.detalhe !== undefined ? cells[cols.detalhe] || "" : "",
-      vigencia: cols.vigencia !== undefined ? cells[cols.vigencia] || "" : "",
-    });
-  }
-  console.log("[ANEEL Homol] Fallback (no filter) records:", records.length);
-  return records;
-}
 
 export function parseComponentesTarifas(data: string[] | string[][], headers: string[]): ParsedTarifa[] {
   const cols = detectColumns(headers);
@@ -263,25 +212,15 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
 
   const records: ParsedTarifa[] = [];
   const startIdx = isPreParsed ? 0 : 1;
-  let debugSkipReasons = { noBase: 0, noSub: 0, noComp: 0, noFioB: 0, total: 0, accepted: 0 };
+  let debugSkipReasons = { noSub: 0, total: 0, accepted: 0 };
   
   for (let i = startIdx; i < data.length; i++) {
     const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);
     if (cells.length < 3) continue;
     debugSkipReasons.total++;
 
+    // NO baseTarifaria filtering — accept all rows
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
-    // Accept: aplicação, econômica, or empty — same logic as homologadas
-    if (baseTarifaria) {
-      const baseNorm = norm(baseTarifaria);
-      const isAplicacao = baseNorm.includes("aplica") || baseNorm.includes("aplicacao");
-      const isEconomica = baseNorm.includes("econom");
-      const isBase = baseNorm.includes("base") || baseNorm.includes("tarifa");
-      if (!isAplicacao && !isEconomica && !isBase) {
-        debugSkipReasons.noBase++;
-        continue;
-      }
-    }
 
     const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
     if (!subgrupo) {
@@ -289,9 +228,6 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
       continue;
     }
 
-    // For componentes: accept ALL component types, not just "fio b"
-    // The user may want to import CVA, CDE, Proinfa, etc.
-    // We'll tag what component it is so downstream can decide
     let componenteLabel = "";
     if (cols.componente !== undefined) {
       componenteLabel = cells[cols.componente] || "";
@@ -318,13 +254,7 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
     });
   }
   
-  console.log("[ANEEL Comp] Debug skip reasons:", debugSkipReasons, "Records found:", records.length);
-  
-  // Fallback: if still zero, retry without any filter
-  if (records.length === 0 && debugSkipReasons.total > 0) {
-    console.warn("[ANEEL Comp] All rows filtered. Retrying without filters...");
-    return parseTarifasNoFilter(data, cols, isPreParsed, startIdx);
-  }
+  console.log("[ANEEL Comp] Debug:", debugSkipReasons, "Records found:", records.length);
   
   return records;
 }
