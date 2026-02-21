@@ -90,6 +90,16 @@ async function verifyAdminRole(req: Request): Promise<{
   return { authorized: true, userId, tenantId };
 }
 
+// ── Number parsing (ANEEL uses Brazilian locale: "462,35") ───────────────────
+
+function parseBRNumber(s: string | null | undefined): number {
+  if (!s) return 0;
+  // Remove thousand separators (dots) and replace decimal comma with dot
+  const cleaned = s.toString().replace(/\./g, '').replace(',', '.');
+  const val = parseFloat(cleaned);
+  return isNaN(val) ? 0 : val;
+}
+
 // ── String normalization ──────────────────────────────────────────────────────
 
 function normalizeStr(s: string | null | undefined): string {
@@ -337,8 +347,8 @@ function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] 
 
     for (const r of recs) {
       const posto = normalizeStr(r.NomPostoTarifario);
-      const tusd = parseFloat(r.VlrTUSD) || 0;
-      const te = parseFloat(r.VlrTE) || 0;
+      const tusd = parseBRNumber(r.VlrTUSD);
+      const te = parseBRNumber(r.VlrTE);
       const tusdKwh = Math.round(tusd / 1000 * 1000000) / 1000000;
       const teKwh = Math.round(te / 1000 * 1000000) / 1000000;
 
@@ -595,8 +605,8 @@ async function processSync(
       matchedConcs.push(`${conc.nome} ← ${tarifa.SigAgente}`);
       totalMatched++;
 
-      const tusdMwh = parseFloat(tarifa.VlrTUSD) || 0;
-      const teMwh = parseFloat(tarifa.VlrTE) || 0;
+      const tusdMwh = parseBRNumber(tarifa.VlrTUSD);
+      const teMwh = parseBRNumber(tarifa.VlrTE);
       const tusdTotal = Math.round(tusdMwh / 1000 * 1000000) / 1000000;
       const te = Math.round(teMwh / 1000 * 1000000) / 1000000;
       const tarifaTotal = Math.round((tusdTotal + te) * 1000000) / 1000000;
@@ -650,8 +660,8 @@ async function processSync(
           if (!subIndex) continue;
           const subTarifa = findTarifaForConc(conc, subIndex.porAgente, subIndex.porNome);
           const srcTarifa = subTarifa || tarifa;
-          const subTusdMwh = parseFloat(srcTarifa.VlrTUSD) || 0;
-          const subTeMwh = parseFloat(srcTarifa.VlrTE) || 0;
+          const subTusdMwh = parseBRNumber(srcTarifa.VlrTUSD);
+          const subTeMwh = parseBRNumber(srcTarifa.VlrTE);
           const subTusd = Math.round(subTusdMwh / 1000 * 1000000) / 1000000;
           const subTe = Math.round(subTeMwh / 1000 * 1000000) / 1000000;
           const subTotal = Math.round((subTusd + subTe) * 1000000) / 1000000;
@@ -726,12 +736,13 @@ async function processSync(
           ultima_sync_tarifas: new Date().toISOString(),
         };
 
-        // Auto-fill PIS/COFINS if missing
-        if (conc.pis_percentual == null || conc.pis_percentual === 0) {
+        // Auto-fill PIS/COFINS — always ensure defaults if clearly wrong (< 1.0 for both = likely bad data)
+        const currentPis = conc.pis_percentual ?? 0;
+        const currentCofins = conc.cofins_percentual ?? 0;
+        if (currentPis === 0 || currentCofins === 0 || (currentPis + currentCofins < 3.0)) {
           updatePayload.pis_percentual = PIS_DEFAULT;
-        }
-        if (conc.cofins_percentual == null || conc.cofins_percentual === 0) {
           updatePayload.cofins_percentual = COFINS_DEFAULT;
+          log(`📝 ${conc.nome}: PIS/COFINS corrigido (${currentPis}/${currentCofins} → ${PIS_DEFAULT}/${COFINS_DEFAULT})`);
         }
 
         // Auto-fill ICMS from state config if missing
