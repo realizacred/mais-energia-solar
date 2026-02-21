@@ -5,7 +5,19 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
+import { getFioBCobranca } from "@/lib/calcGrupoB";
 import type { UCData, PremissasData, PreDimensionamentoData, BancoFinanciamento } from "./types";
+
+/**
+ * Aplica o percentual da Lei 14.300 ao Fio B bruto.
+ * O banco armazena 100% do Fio B; aqui aplicamos o % cobrado conforme o ano.
+ * Para GD II: Fio B exibido = Fio B 100% × percentual cobrado (ex: 60% em 2026)
+ */
+function applyLei14300FioB(fioBBruto: number, ano = new Date().getFullYear()): number {
+  const pct = getFioBCobranca(ano);
+  if (pct === null) return fioBBruto * 0.90; // fallback conservador 2029+
+  return Math.round(fioBBruto * pct * 100000) / 100000;
+}
 
 // ─── Apply tenant tariff defaults to a UC ──────────
 export function applyTenantTarifasToUC(
@@ -17,14 +29,14 @@ export function applyTenantTarifasToUC(
     distribuidora: uc.distribuidora || t.concessionaria_nome || "",
     distribuidora_id: uc.distribuidora_id || t.concessionaria_id || "",
     tarifa_distribuidora: uc.tarifa_distribuidora || t.tarifa || 0,
-    tarifa_fio_b: uc.tarifa_fio_b || t.tusd_fio_b_bt || 0,
+    tarifa_fio_b: uc.tarifa_fio_b || applyLei14300FioB(t.tusd_fio_b_bt || 0),
     tarifa_te_p: uc.tarifa_te_p || t.tarifa_te_ponta || 0,
     tarifa_tusd_p: uc.tarifa_tusd_p || t.tarifa_tusd_ponta || 0,
-    tarifa_fio_b_p: uc.tarifa_fio_b_p || t.tusd_fio_b_ponta || 0,
+    tarifa_fio_b_p: uc.tarifa_fio_b_p || applyLei14300FioB(t.tusd_fio_b_ponta || 0),
     tarifa_tarifacao_p: uc.tarifa_tarifacao_p || t.tarifacao_compensada_ponta || 0,
     tarifa_te_fp: uc.tarifa_te_fp || t.tarifa_te_fora_ponta || 0,
     tarifa_tusd_fp: uc.tarifa_tusd_fp || t.tarifa_tusd_fora_ponta || 0,
-    tarifa_fio_b_fp: uc.tarifa_fio_b_fp || t.tusd_fio_b_fora_ponta || 0,
+    tarifa_fio_b_fp: uc.tarifa_fio_b_fp || applyLei14300FioB(t.tusd_fio_b_fora_ponta || 0),
     tarifa_tarifacao_fp: uc.tarifa_tarifacao_fp || t.tarifacao_compensada_fora_ponta || 0,
     demanda_consumo_rs: uc.demanda_consumo_rs || t.preco_demanda || 0,
     demanda_geracao_rs: uc.demanda_geracao_rs || t.preco_demanda_geracao || 0,
