@@ -226,6 +226,46 @@ export function AneelIntegrationPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Polling for active run status
+  useEffect(() => {
+    if (!syncing) return;
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("aneel_sync_runs" as any)
+        .select("id, status, total_fetched, total_matched, total_updated, total_errors, finished_at, logs")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const run = data as any;
+      if (run && run.status !== 'running') {
+        setSyncing(false);
+        clearInterval(interval);
+        const status = run.status as string;
+        if (status === 'success' || status === 'partial') {
+          toast({
+            title: `Sincronização concluída`,
+            description: `${run.total_updated} atualizadas, ${run.total_errors || 0} erros`,
+          });
+        } else if (status === 'test_run') {
+          toast({ title: "Test Run concluído", description: `${run.total_updated} simuladas` });
+        } else {
+          toast({ title: "Sincronização com erro", description: `Status: ${status}`, variant: "destructive" });
+        }
+        fetchData();
+      } else if (run) {
+        // Update runs list with latest logs
+        setRuns(prev => {
+          const updated = [...prev];
+          const idx = updated.findIndex(r => r.id === run.id);
+          if (idx >= 0) updated[idx] = { ...updated[idx], ...(run as any) };
+          return updated;
+        });
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [syncing, fetchData, toast]);
+
   const handleSync = async (testRun = false) => {
     setSyncing(true);
     try {
@@ -234,22 +274,18 @@ export function AneelIntegrationPage() {
       });
       if (error) throw error;
       if (data?.success) {
-        const updated = data.resultados?.length || 0;
-        const errors = data.erros?.length || 0;
-        toast({
-          title: testRun
-            ? `Test Run concluído — ${updated} simuladas`
-            : `Sync concluído — ${updated} atualizadas`,
-          description: errors > 0 ? `${errors} distribuidora(s) não encontradas na ANEEL` : (testRun ? "Nenhuma alteração foi publicada" : "Todas atualizadas com sucesso"),
-        });
+        if (data.already_running) {
+          toast({ title: "Sincronização já em andamento", description: "Acompanhe o progresso abaixo." });
+        } else {
+          toast({ title: "Sincronização iniciada", description: "Acompanhe o progresso em tempo real abaixo." });
+        }
         fetchData();
       } else {
         throw new Error(data?.error || "Erro desconhecido");
       }
     } catch (err: any) {
-      toast({ title: "Erro ao sincronizar", description: err.message, variant: "destructive" });
-    } finally {
       setSyncing(false);
+      toast({ title: "Erro ao sincronizar", description: err.message, variant: "destructive" });
     }
   };
 
@@ -564,12 +600,11 @@ export function AneelIntegrationPage() {
                                 body: { concessionaria_id: conc.id, trigger_type: "manual" },
                               });
                               if (error) throw error;
-                              toast({ title: data?.success ? "Sync concluído" : "Sem correspondência ANEEL", description: `${conc.nome}` });
-                              fetchData();
+                              toast({ title: "Sincronização iniciada", description: `${conc.nome} — acompanhe o progresso.` });
+                              // Polling will handle the rest
                             } catch (err: any) {
-                              toast({ title: "Erro", description: err.message, variant: "destructive" });
-                            } finally {
                               setSyncing(false);
+                              toast({ title: "Erro", description: err.message, variant: "destructive" });
                             }
                           }}
                           disabled={syncing}
