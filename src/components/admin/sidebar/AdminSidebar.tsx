@@ -115,7 +115,7 @@ function SidebarItemButton({
           <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover/item:opacity-30 cursor-grab active:cursor-grabbing transition-opacity -ml-1 mr-px" />
         )}
         <item.icon
-          className={`h-4 w-4 shrink-0 transition-all duration-200 sidebar-submenu-icon ${
+          className={`h-4 w-4 shrink-0 sidebar-icon ${
             isActive ? 'text-sidebar-primary' : section.iconColor || 'text-sidebar-foreground-muted'
           }`}
           data-active={isActive}
@@ -266,7 +266,7 @@ function SidebarSectionGroup({
             `}
           >
             <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${section.indicatorClass || ''}`}>
-              <LabelIcon className="h-3.5 w-3.5" />
+              <LabelIcon className="h-3.5 w-3.5 sidebar-label-icon" />
             </div>
             {!collapsed && (
               <>

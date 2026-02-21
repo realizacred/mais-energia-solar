@@ -88,7 +88,7 @@ function VendorSidebarItem({
           }
         `}
       >
-        <item.icon className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${isActive ? 'text-sidebar-primary' : section.iconColor || 'text-sidebar-foreground-muted'}`} />
+        <item.icon className={`h-[18px] w-[18px] shrink-0 sidebar-icon ${isActive ? 'text-sidebar-primary' : section.iconColor || 'text-sidebar-foreground-muted'}`} data-active={isActive} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
             <span className="text-[13px] truncate leading-tight">
@@ -149,7 +149,7 @@ function VendorSidebarSectionGroup({
             `}
           >
             <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${section.indicatorClass || 'bg-sidebar-accent'}`}>
-              <LabelIcon className="h-3.5 w-3.5" />
+              <LabelIcon className="h-3.5 w-3.5 sidebar-label-icon" />
             </div>
             {!collapsed && (
               <>
