@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp } from "lucide-react";
+import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp, Calculator } from "lucide-react";
+import { getFioBCobranca } from "@/lib/calcGrupoB";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
 import { ConcessionariaFormDialog, ESTADOS_BRASIL, type ConcessionariaFormData } from "./concessionarias/ConcessionariaFormDialog";
 import { Progress } from "@/components/ui/progress";
@@ -636,6 +637,7 @@ export function ConcessionariasManager() {
                 <TableHead>Subgrupos</TableHead>
                 <TableHead>Tarifa</TableHead>
                 <TableHead>Fio B</TableHead>
+                <TableHead>Fio B Vigente</TableHead>
                 <TableHead>Integral c/ Imp.</TableHead>
                 <TableHead>ICMS</TableHead>
                 <TableHead>Isenção</TableHead>
@@ -647,7 +649,7 @@ export function ConcessionariasManager() {
             <TableBody>
               {filteredConcessionarias.length === 0 ? (
                <TableRow>
-                  <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
                     Nenhuma concessionária encontrada
                   </TableCell>
                 </TableRow>
@@ -703,6 +705,41 @@ export function ConcessionariasManager() {
                         {c.tarifa_fio_b != null && Number(c.tarifa_fio_b) > 0 ? `R$ ${Number(c.tarifa_fio_b).toFixed(2)}` : (
                           <span className="text-muted-foreground">padrão</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-xs font-mono">
+                        {(() => {
+                          const fioB = c.tarifa_fio_b != null ? Number(c.tarifa_fio_b) : 0;
+                          const override = c.tarifa_fio_b_gd != null ? Number(c.tarifa_fio_b_gd) : 0;
+                          const currentYear = new Date().getFullYear();
+                          const pct = getFioBCobranca(currentYear);
+                          if (override > 0) {
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-warning font-semibold cursor-help">R$ {override.toFixed(4)}</span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs">Override manual (Fio B GD)</TooltipContent>
+                              </Tooltip>
+                            );
+                          }
+                          if (fioB > 0 && pct !== null) {
+                            const vigente = fioB * pct;
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-foreground cursor-help flex items-center gap-1">
+                                    <Calculator className="w-3 h-3 text-muted-foreground" />
+                                    R$ {vigente.toFixed(4)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="text-xs">
+                                  Lei 14.300 — {(pct * 100).toFixed(0)}% de R$ {fioB.toFixed(6)}
+                                </TooltipContent>
+                              </Tooltip>
+                            );
+                          }
+                          return <span className="text-muted-foreground">—</span>;
+                        })()}
                       </TableCell>
                       <TableCell className="text-xs font-mono">
                         {(() => {
@@ -812,7 +849,7 @@ export function ConcessionariasManager() {
                     </TableRow>
                     {expandedId === c.id && (
                       <TableRow>
-                        <TableCell colSpan={12} className="p-0 bg-muted/20">
+                        <TableCell colSpan={13} className="p-0 bg-muted/20">
                           <ConcessionariaSubgruposPanel
                             concessionariaId={c.id}
                             concessionariaNome={c.nome}
