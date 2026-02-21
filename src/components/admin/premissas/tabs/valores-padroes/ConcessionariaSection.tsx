@@ -8,6 +8,7 @@ import { Zap, AlertTriangle, CheckCircle2, RefreshCw, Loader2 } from "lucide-rea
 import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { FieldTooltip } from "./shared";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 
 interface Concessionaria {
   id: string;
@@ -230,120 +231,111 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
   }, [premises]);
 
   return (
-    <div className="space-y-4">
-      {/* Bulk sync ALL concessionárias — TOP */}
-      <div className="rounded-xl border border-info/30 bg-info/5 p-4 space-y-3">
-        <p className="text-xs font-semibold uppercase tracking-wider text-info flex items-center gap-1.5">
-          <RefreshCw className="h-3.5 w-3.5" />
-          Atualização em Lote
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Atualiza TODAS as concessionárias ativas com os dados de suas próprias tarifas de subgrupo (B1 ativo).
-          Cada concessionária será atualizada com sua própria tarifa TE e Fio B.
-        </p>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="w-full gap-2 border-info/40 hover:bg-info/10"
-          onClick={bulkSyncAll}
-          disabled={bulkSyncing}
-        >
-          {bulkSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 text-info" />}
-          Atualizar TODAS as concessionárias de uma vez
-        </Button>
-        {bulkResult && (
-          <div className="rounded-lg border border-success/30 bg-success/10 p-3 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-success" />
-            <span className="text-xs font-medium text-success">
-              {bulkResult.updated} atualizada(s), {bulkResult.skipped} sem dados de subgrupo, {bulkResult.total} total.
-            </span>
-          </div>
-        )}
-      </div>
+    <div className="space-y-5">
+      {/* Card 1: Concessionária Padrão selector */}
+      <SectionCard icon={Zap} title="Concessionária Padrão" description="Selecione a concessionária para preencher automaticamente os campos de tarifa, Fio B e ICMS." variant="orange">
+        <div className="space-y-3">
+          <Select
+            value={(premises as any).concessionaria_id || ""}
+            onValueChange={(v) => {
+              setJustSynced(false);
+              handleConcessionariaChange(v);
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder={loadingConc ? "Carregando..." : "Selecione a concessionária"} />
+            </SelectTrigger>
+            <SelectContent>
+              {concessionarias.map((c) => (
+                <SelectItem key={c.id} value={c.id}>
+                  {c.nome} {c.sigla ? `(${c.sigla})` : ""} — {c.estado || ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {selectedConc && (
+            <div className="flex flex-wrap gap-2 text-[10px]">
+              <Badge variant="outline" className="text-[10px] font-mono">TE: R$ {selectedConc.tarifa_energia?.toFixed(6) ?? "—"}/kWh</Badge>
+              <Badge variant="outline" className="text-[10px] font-mono">TUSD (Fio B): R$ {selectedConc.tarifa_fio_b?.toFixed(6) ?? "—"}/kWh</Badge>
+              <Badge variant="secondary" className="text-[10px] font-mono">Total (TE+TUSD): R$ {((selectedConc.tarifa_energia ?? 0) + (selectedConc.tarifa_fio_b ?? 0)).toFixed(6)}/kWh</Badge>
+              <Badge variant="outline" className="text-[10px]">ICMS: {selectedConc.aliquota_icms ?? "—"}%</Badge>
+              {selectedConc.possui_isencao_scee && (
+                <Badge variant="secondary" className="text-[10px]">Isenção SCEE: {selectedConc.percentual_isencao}%</Badge>
+              )}
+            </div>
+          )}
 
-      {/* Concessionária Padrão selector */}
-      <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-3">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
-          <Zap className="h-3.5 w-3.5" />
-          Concessionária Padrão
-          <FieldTooltip text="Selecione a concessionária para preencher automaticamente os campos de tarifa, Fio B e ICMS." />
-        </Label>
-        <Select
-          value={(premises as any).concessionaria_id || ""}
-          onValueChange={(v) => {
-            setJustSynced(false);
-            handleConcessionariaChange(v);
-          }}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={loadingConc ? "Carregando..." : "Selecione a concessionária"} />
-          </SelectTrigger>
-          <SelectContent>
-            {concessionarias.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.nome} {c.sigla ? `(${c.sigla})` : ""} — {c.estado || ""}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {selectedConc && (
-          <div className="flex flex-wrap gap-2 text-[10px]">
-            <Badge variant="outline" className="text-[10px] font-mono">TE: R$ {selectedConc.tarifa_energia?.toFixed(6) ?? "—"}/kWh</Badge>
-            <Badge variant="outline" className="text-[10px] font-mono">TUSD (Fio B): R$ {selectedConc.tarifa_fio_b?.toFixed(6) ?? "—"}/kWh</Badge>
-            <Badge variant="secondary" className="text-[10px] font-mono">Total (TE+TUSD): R$ {((selectedConc.tarifa_energia ?? 0) + (selectedConc.tarifa_fio_b ?? 0)).toFixed(6)}/kWh</Badge>
-            <Badge variant="outline" className="text-[10px]">ICMS: {selectedConc.aliquota_icms ?? "—"}%</Badge>
-            {selectedConc.possui_isencao_scee && (
-              <Badge variant="secondary" className="text-[10px]">Isenção SCEE: {selectedConc.percentual_isencao}%</Badge>
-            )}
-          </div>
-        )}
+          {/* Sync button */}
+          {selectedConc && !justSynced && (
+            <Button
+              type="button"
+              variant="default"
+              size="sm"
+              className="w-full gap-2"
+              onClick={syncAllFromConc}
+              disabled={syncing}
+            >
+              {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Sincronizar TODAS as premissas com valores da concessionária
+              {divergencias.length > 0 && (
+                <Badge variant="secondary" className="ml-1 text-[10px]">{divergencias.length} divergências</Badge>
+              )}
+            </Button>
+          )}
 
-        {/* Always-visible sync button */}
-        {selectedConc && !justSynced && (
+          {/* Divergence detail */}
+          {divergencias.length > 0 && !justSynced && (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 space-y-2">
+              <div className="flex items-center gap-1.5 text-xs font-medium text-warning">
+                <AlertTriangle className="h-3.5 w-3.5" />
+                Valores divergentes da concessionária
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {divergencias.map((d) => (
+                  <Badge key={d.campo} variant="outline" className="text-[10px] border-warning/40">
+                    {d.campo}: premissa {d.premissa.toFixed(5)} ≠ conc. {d.conc.toFixed(5)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Success message */}
+          {justSynced && (
+            <div className="rounded-lg border border-success/30 bg-success/10 p-3 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              <span className="text-xs font-medium text-success">
+                Todos os campos foram sincronizados e salvos com a concessionária.
+              </span>
+            </div>
+          )}
+        </div>
+      </SectionCard>
+
+      {/* Card 2: Atualização em Lote */}
+      <SectionCard icon={RefreshCw} title="Atualização em Lote" description="Atualiza TODAS as concessionárias ativas com os dados de suas próprias tarifas de subgrupo (B1 ativo)." variant="blue">
+        <div className="space-y-3">
           <Button
             type="button"
-            variant="default"
+            variant="outline"
             size="sm"
-            className="w-full gap-2"
-            onClick={syncAllFromConc}
-            disabled={syncing}
+            className="w-full gap-2 border-info/40 hover:bg-info/10"
+            onClick={bulkSyncAll}
+            disabled={bulkSyncing}
           >
-            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sincronizar TODAS as premissas com valores da concessionária
-            {divergencias.length > 0 && (
-              <Badge variant="secondary" className="ml-1 text-[10px]">{divergencias.length} divergências</Badge>
-            )}
+            {bulkSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 text-info" />}
+            Atualizar TODAS as concessionárias de uma vez
           </Button>
-        )}
-
-        {/* Divergence detail panel */}
-        {divergencias.length > 0 && !justSynced && (
-          <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 space-y-2">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-warning">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              Valores divergentes da concessionária
+          {bulkResult && (
+            <div className="rounded-lg border border-success/30 bg-success/10 p-3 flex items-center gap-2">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              <span className="text-xs font-medium text-success">
+                {bulkResult.updated} atualizada(s), {bulkResult.skipped} sem dados de subgrupo, {bulkResult.total} total.
+              </span>
             </div>
-            <div className="flex flex-wrap gap-2">
-              {divergencias.map((d) => (
-                <Badge key={d.campo} variant="outline" className="text-[10px] border-warning/40">
-                  {d.campo}: premissa {d.premissa.toFixed(5)} ≠ conc. {d.conc.toFixed(5)}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Success message after sync */}
-        {justSynced && (
-          <div className="rounded-lg border border-success/30 bg-success/10 p-3 flex items-center gap-2">
-            <CheckCircle2 className="h-4 w-4 text-success" />
-            <span className="text-xs font-medium text-success">
-              Todos os campos foram sincronizados e salvos com a concessionária.
-            </span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      </SectionCard>
     </div>
   );
 }
