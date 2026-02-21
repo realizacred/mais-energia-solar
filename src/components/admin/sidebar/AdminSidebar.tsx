@@ -265,7 +265,7 @@ function SidebarSectionGroup({
                 bg-[hsl(var(${section.indicatorBg.replace('bg-sidebar-', '--sidebar-section-')})_/_0.12)]
               `}
             >
-              <LabelIcon className={`h-3.5 w-3.5`} style={{ color: `hsl(var(${section.indicatorBg.replace('bg-sidebar-', '--sidebar-section-')}))` }} />
+              <LabelIcon className="h-3.5 w-3.5 text-sidebar-foreground-muted" />
             </div>
             {!collapsed && (
               <>

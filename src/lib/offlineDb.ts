@@ -1,4 +1,7 @@
-import Dexie, { type Table } from 'dexie';
+// Native IndexedDB wrapper — replaces Dexie to avoid TS1540 typing bug
+
+const DB_NAME = 'MaisEnergiaOfflineDB';
+const DB_VERSION = 1;
 
 // Types for offline data
 export interface OfflineLead {
@@ -72,211 +75,210 @@ export interface OfflineMedia {
   serverUrl?: string;
 }
 
-// Dexie database class
-class OfflineDatabase extends Dexie {
-  leads!: Table<OfflineLead, number>;
-  checklists!: Table<OfflineChecklist, number>;
-  media!: Table<OfflineMedia, number>;
-
-  constructor() {
-    super('MaisEnergiaOfflineDB');
-    
-    this.version(1).stores({
-      leads: '++id, tempId, vendedorNome, syncStatus, createdAt',
-      checklists: '++id, tempId, instaladorId, syncStatus, createdAt',
-      media: '++id, tempId, parentType, parentTempId, syncStatus'
-    });
-  }
+/* ─── Thin IndexedDB helper ─── */
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains('leads')) {
+        const s = db.createObjectStore('leads', { keyPath: 'id', autoIncrement: true });
+        s.createIndex('tempId', 'tempId');
+        s.createIndex('vendedorNome', 'vendedorNome');
+        s.createIndex('syncStatus', 'syncStatus');
+      }
+      if (!db.objectStoreNames.contains('checklists')) {
+        const s = db.createObjectStore('checklists', { keyPath: 'id', autoIncrement: true });
+        s.createIndex('tempId', 'tempId');
+        s.createIndex('instaladorId', 'instaladorId');
+        s.createIndex('syncStatus', 'syncStatus');
+      }
+      if (!db.objectStoreNames.contains('media')) {
+        const s = db.createObjectStore('media', { keyPath: 'id', autoIncrement: true });
+        s.createIndex('tempId', 'tempId');
+        s.createIndex('parentType', 'parentType');
+        s.createIndex('parentTempId', 'parentTempId');
+        s.createIndex('syncStatus', 'syncStatus');
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
-// Singleton instance
-export const offlineDb = new OfflineDatabase();
+async function addRecord<T>(store: string, record: T): Promise<number> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).add(record);
+    req.onsuccess = () => resolve(req.result as number);
+    req.onerror = () => reject(req.error);
+  });
+}
 
-// Helper functions for leads
+async function getAll<T>(store: string): Promise<T[]> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).getAll();
+    req.onsuccess = () => resolve(req.result as T[]);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function getById<T>(store: string, id: number): Promise<T | undefined> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readonly');
+    const req = tx.objectStore(store).get(id);
+    req.onsuccess = () => resolve(req.result as T | undefined);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function updateRecord(store: string, id: number, data: Record<string, any>): Promise<void> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    const os = tx.objectStore(store);
+    const getReq = os.get(id);
+    getReq.onsuccess = () => {
+      if (!getReq.result) { reject(new Error('Record not found')); return; }
+      os.put({ ...getReq.result, ...data });
+      tx.oncomplete = () => resolve();
+    };
+    getReq.onerror = () => reject(getReq.error);
+  });
+}
+
+async function deleteRecord(store: string, id: number): Promise<void> {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(store, 'readwrite');
+    const req = tx.objectStore(store).delete(id);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function deleteByFilter<T extends { id?: number }>(store: string, filter: (r: T) => boolean): Promise<void> {
+  const all = await getAll<T>(store);
+  const toDelete = all.filter(filter);
+  const db = await openDb();
+  const tx = db.transaction(store, 'readwrite');
+  const os = tx.objectStore(store);
+  for (const r of toDelete) {
+    if (r.id != null) os.delete(r.id);
+  }
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ─── Service APIs (same interface as before) ─── */
+
 export const offlineLeadService = {
   async add(lead: Omit<OfflineLead, 'id'>): Promise<number> {
-    return await offlineDb.leads.add(lead);
+    return addRecord('leads', lead);
   },
-
   async getByVendedor(vendedorNome: string): Promise<OfflineLead[]> {
-    return await offlineDb.leads
-      .where('vendedorNome')
-      .equals(vendedorNome)
-      .toArray();
+    const all = await getAll<OfflineLead>('leads');
+    return all.filter(l => l.vendedorNome === vendedorNome);
   },
-
   async getPending(vendedorNome?: string): Promise<OfflineLead[]> {
-    let query = offlineDb.leads.where('syncStatus').anyOf(['pending', 'error']);
-    
-    if (vendedorNome) {
-      const all = await query.toArray();
-      return all.filter(lead => lead.vendedorNome === vendedorNome);
-    }
-    
-    return await query.toArray();
+    const all = await getAll<OfflineLead>('leads');
+    return all.filter(l =>
+      (l.syncStatus === 'pending' || l.syncStatus === 'error') &&
+      (!vendedorNome || l.vendedorNome === vendedorNome)
+    );
   },
-
-  async updateStatus(
-    id: number, 
-    syncStatus: OfflineLead['syncStatus'], 
-    serverLeadId?: string,
-    lastError?: string
-  ): Promise<void> {
-    const updateData: Partial<OfflineLead> = { 
-      syncStatus, 
-      serverLeadId,
-      lastError,
-    };
-    
+  async updateStatus(id: number, syncStatus: OfflineLead['syncStatus'], serverLeadId?: string, lastError?: string): Promise<void> {
+    const data: Partial<OfflineLead> = { syncStatus, serverLeadId, lastError };
     if (syncStatus === 'error') {
-      const current = await offlineDb.leads.get(id);
-      updateData.retryCount = (current?.retryCount ?? 0) + 1;
+      const current = await getById<OfflineLead>('leads', id);
+      data.retryCount = (current?.retryCount ?? 0) + 1;
     }
-    
-    await offlineDb.leads.update(id, updateData);
+    await updateRecord('leads', id, data);
   },
-
   async delete(id: number): Promise<void> {
-    await offlineDb.leads.delete(id);
+    await deleteRecord('leads', id);
   },
-
   async clearSynced(vendedorNome?: string): Promise<void> {
-    if (vendedorNome) {
-      await offlineDb.leads
-        .where('syncStatus')
-        .equals('synced')
-        .filter(lead => lead.vendedorNome === vendedorNome)
-        .delete();
-    } else {
-      await offlineDb.leads.where('syncStatus').equals('synced').delete();
-    }
+    await deleteByFilter<OfflineLead>('leads', l =>
+      l.syncStatus === 'synced' && (!vendedorNome || l.vendedorNome === vendedorNome)
+    );
   },
-
   async count(vendedorNome?: string, status?: OfflineLead['syncStatus']): Promise<number> {
-    let leads = await offlineDb.leads.toArray();
-    
-    if (vendedorNome) {
-      leads = leads.filter(l => l.vendedorNome === vendedorNome);
-    }
-    
-    if (status) {
-      leads = leads.filter(l => l.syncStatus === status);
-    }
-    
-    return leads.length;
-  }
+    const all = await getAll<OfflineLead>('leads');
+    return all.filter(l =>
+      (!vendedorNome || l.vendedorNome === vendedorNome) &&
+      (!status || l.syncStatus === status)
+    ).length;
+  },
 };
 
-// Helper functions for checklists
 export const offlineChecklistService = {
   async add(checklist: Omit<OfflineChecklist, 'id'>): Promise<number> {
-    return await offlineDb.checklists.add(checklist);
+    return addRecord('checklists', checklist);
   },
-
   async getByInstalador(instaladorId: string): Promise<OfflineChecklist[]> {
-    return await offlineDb.checklists
-      .where('instaladorId')
-      .equals(instaladorId)
-      .toArray();
+    const all = await getAll<OfflineChecklist>('checklists');
+    return all.filter(c => c.instaladorId === instaladorId);
   },
-
   async getPending(instaladorId?: string): Promise<OfflineChecklist[]> {
-    let query = offlineDb.checklists.where('syncStatus').anyOf(['pending', 'error']);
-    
-    if (instaladorId) {
-      const all = await query.toArray();
-      return all.filter(checklist => checklist.instaladorId === instaladorId);
-    }
-    
-    return await query.toArray();
+    const all = await getAll<OfflineChecklist>('checklists');
+    return all.filter(c =>
+      (c.syncStatus === 'pending' || c.syncStatus === 'error') &&
+      (!instaladorId || c.instaladorId === instaladorId)
+    );
   },
-
-  async updateStatus(
-    id: number, 
-    syncStatus: OfflineChecklist['syncStatus'], 
-    serverChecklistId?: string,
-    lastError?: string
-  ): Promise<void> {
-    const updateData: Partial<OfflineChecklist> = { 
-      syncStatus, 
-      serverChecklistId,
-      lastError,
-    };
-    
+  async updateStatus(id: number, syncStatus: OfflineChecklist['syncStatus'], serverChecklistId?: string, lastError?: string): Promise<void> {
+    const data: Partial<OfflineChecklist> = { syncStatus, serverChecklistId, lastError };
     if (syncStatus === 'error') {
-      const current = await offlineDb.checklists.get(id);
-      updateData.retryCount = (current?.retryCount ?? 0) + 1;
+      const current = await getById<OfflineChecklist>('checklists', id);
+      data.retryCount = (current?.retryCount ?? 0) + 1;
     }
-    
-    await offlineDb.checklists.update(id, updateData);
+    await updateRecord('checklists', id, data);
   },
-
   async delete(id: number): Promise<void> {
-    await offlineDb.checklists.delete(id);
+    await deleteRecord('checklists', id);
   },
-
   async clearSynced(instaladorId?: string): Promise<void> {
-    if (instaladorId) {
-      await offlineDb.checklists
-        .where('syncStatus')
-        .equals('synced')
-        .filter(c => c.instaladorId === instaladorId)
-        .delete();
-    } else {
-      await offlineDb.checklists.where('syncStatus').equals('synced').delete();
-    }
+    await deleteByFilter<OfflineChecklist>('checklists', c =>
+      c.syncStatus === 'synced' && (!instaladorId || c.instaladorId === instaladorId)
+    );
   },
-
   async count(instaladorId?: string, status?: OfflineChecklist['syncStatus']): Promise<number> {
-    let checklists = await offlineDb.checklists.toArray();
-    
-    if (instaladorId) {
-      checklists = checklists.filter(c => c.instaladorId === instaladorId);
-    }
-    
-    if (status) {
-      checklists = checklists.filter(c => c.syncStatus === status);
-    }
-    
-    return checklists.length;
-  }
+    const all = await getAll<OfflineChecklist>('checklists');
+    return all.filter(c =>
+      (!instaladorId || c.instaladorId === instaladorId) &&
+      (!status || c.syncStatus === status)
+    ).length;
+  },
 };
 
-// Helper functions for media (photos, signatures)
 export const offlineMediaService = {
   async add(media: Omit<OfflineMedia, 'id'>): Promise<number> {
-    return await offlineDb.media.add(media);
+    return addRecord('media', media);
   },
-
   async getByParent(parentType: 'lead' | 'checklist', parentTempId: string): Promise<OfflineMedia[]> {
-    return await offlineDb.media
-      .where(['parentType', 'parentTempId'])
-      .equals([parentType, parentTempId])
-      .toArray();
+    const all = await getAll<OfflineMedia>('media');
+    return all.filter(m => m.parentType === parentType && m.parentTempId === parentTempId);
   },
-
   async getPending(): Promise<OfflineMedia[]> {
-    return await offlineDb.media
-      .where('syncStatus')
-      .anyOf(['pending', 'error'])
-      .toArray();
+    const all = await getAll<OfflineMedia>('media');
+    return all.filter(m => m.syncStatus === 'pending' || m.syncStatus === 'error');
   },
-
-  async updateStatus(
-    id: number, 
-    syncStatus: OfflineMedia['syncStatus'], 
-    serverUrl?: string
-  ): Promise<void> {
-    await offlineDb.media.update(id, { syncStatus, serverUrl });
+  async updateStatus(id: number, syncStatus: OfflineMedia['syncStatus'], serverUrl?: string): Promise<void> {
+    await updateRecord('media', id, { syncStatus, serverUrl });
   },
-
   async delete(id: number): Promise<void> {
-    await offlineDb.media.delete(id);
+    await deleteRecord('media', id);
   },
-
   async clearSynced(): Promise<void> {
-    await offlineDb.media.where('syncStatus').equals('synced').delete();
-  }
+    await deleteByFilter<OfflineMedia>('media', m => m.syncStatus === 'synced');
+  },
 };
 
 // Generate unique temp ID
