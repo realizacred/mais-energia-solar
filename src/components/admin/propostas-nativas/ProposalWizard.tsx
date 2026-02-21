@@ -688,25 +688,36 @@ export function ProposalWizard() {
       </StepContent>
     );
 
-    // Client/lead card for header
-    const clientHeaderCard = projectContext && cliente.nome ? (
-      <div className="flex items-center gap-3 text-xs">
-        <div className="flex items-center gap-4 px-3 py-1.5 rounded-lg border border-border/50 bg-muted/30">
-          <span className="flex items-center gap-1.5 font-semibold text-foreground">
-            <User className="h-3.5 w-3.5 text-primary shrink-0" />
-            {cliente.nome}
-          </span>
-          {cliente.celular && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <Phone className="h-3 w-3 shrink-0" /> {cliente.celular}
+    // Client + Lead cards for header
+    const clientHeaderCard = (cliente.nome || selectedLead) ? (
+      <div className="flex items-center gap-2 text-xs">
+        {/* Cliente card — always left */}
+        {cliente.nome && (
+          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-border/50 bg-muted/30">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-primary/30 text-primary font-semibold">Cliente</Badge>
+            <span className="font-semibold text-foreground flex items-center gap-1">
+              <User className="h-3 w-3 text-primary shrink-0" />
+              {cliente.nome}
             </span>
-          )}
-          {cliente.cidade && (
-            <span className="flex items-center gap-1 text-muted-foreground">
-              <MapPin className="h-3 w-3 shrink-0" /> {cliente.cidade}{cliente.estado ? `/${cliente.estado}` : ""}
-            </span>
-          )}
-        </div>
+            {cliente.celular && (
+              <span className="text-muted-foreground flex items-center gap-1 hidden sm:flex">
+                <Phone className="h-3 w-3 shrink-0" /> {cliente.celular}
+              </span>
+            )}
+          </div>
+        )}
+        {/* Lead card — always right */}
+        {selectedLead && (
+          <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg border border-secondary/30 bg-secondary/5">
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 border-secondary/40 text-secondary font-semibold">Lead</Badge>
+            <span className="font-semibold text-foreground">{selectedLead.nome}</span>
+            {selectedLead.telefone && (
+              <span className="text-muted-foreground flex items-center gap-1 hidden sm:flex">
+                <Phone className="h-3 w-3 shrink-0" /> {selectedLead.telefone}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     ) : null;
 
