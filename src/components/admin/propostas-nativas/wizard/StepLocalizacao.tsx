@@ -500,7 +500,7 @@ export function StepLocalizacao({
 
       {/* ═══ RIGHT COLUMN — Map (sticky) ═══ */}
       <div className="order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start">
-        <Card className="border-border/40 overflow-hidden">
+        <Card className="border-border/40">
           <CardHeader className="pb-2 pt-3 px-4">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xs font-semibold flex items-center gap-2 text-foreground">
@@ -514,22 +514,20 @@ export function StepLocalizacao({
               )}
             </div>
           </CardHeader>
-          <CardContent className="p-0">
+          <CardContent className="px-0 pb-3">
             <Suspense fallback={
               <div className="h-[260px] sm:h-[320px] lg:h-[420px] xl:h-[480px] flex items-center justify-center bg-muted/20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             }>
-              <div className="h-[260px] sm:h-[320px] lg:h-[420px] xl:h-[480px]">
-                <GoogleMapView
-                  lat={geoLat}
-                  lon={geoLon}
-                  cidade={cidade}
-                  estado={estado}
-                  onMapClick={handleMapClick}
-                  onSnapshotsChange={onMapSnapshotsChange}
-                />
-              </div>
+              <GoogleMapView
+                lat={geoLat}
+                lon={geoLon}
+                cidade={cidade}
+                estado={estado}
+                onMapClick={handleMapClick}
+                onSnapshotsChange={onMapSnapshotsChange}
+              />
             </Suspense>
           </CardContent>
         </Card>
