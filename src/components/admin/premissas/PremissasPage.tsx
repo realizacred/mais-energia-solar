@@ -67,7 +67,7 @@ export function PremissasPage() {
           />
         </TabsContent>
         <TabsContent value="valores-padroes" className="mt-4">
-          <TabValoresPadroes premises={ctx.premises} onChange={ctx.setPremises} />
+          <TabValoresPadroes premises={ctx.premises} onChange={ctx.setPremises} onAutoSave={ctx.save} />
         </TabsContent>
       </Tabs>
 
