@@ -1,34 +1,25 @@
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
-import { useState, useEffect, useMemo } from "react";
-import { ScheduleWhatsAppDialog } from "@/components/vendor/ScheduleWhatsAppDialog";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, FileText, MessageSquare, TrendingDown, Settings2, Clock, Phone, Palette, Eye, Workflow, Lock, User, ChevronDown, DollarSign, StickyNote } from "lucide-react";
+import { Zap, Plus, Settings2, Clock, Eye, Workflow, Lock, Palette, ChevronDown, DollarSign, Filter, Search } from "lucide-react";
 import type { DealKanbanCard, PipelineStage } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
-  DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ProjetoAutomacaoConfig } from "./ProjetoAutomacaoConfig";
-import { differenceInDays, differenceInHours } from "date-fns";
+import { StageDealCard } from "./StageDealCard";
+import { differenceInHours } from "date-fns";
 
 interface AutomationRule {
   id: string;
@@ -72,44 +63,42 @@ const formatKwp = (v: number) => {
   return `${v.toFixed(1).replace(".", ",")} kWp`;
 };
 
-// Etiqueta config resolved from dynamic DB etiquetas
+// ─── Resizable column hook ─────────────────────
+function useResizableColumn(initialWidth: number, minWidth = 260, maxWidth = 500) {
+  const [width, setWidth] = useState(initialWidth);
+  const isResizing = useRef(false);
+  const startX = useRef(0);
+  const startWidth = useRef(0);
 
-const PROPOSTA_STATUS_MAP: Record<string, { label: string; className: string }> = {
-  rascunho: { label: "Rascunho", className: "bg-muted text-muted-foreground" },
-  gerada: { label: "Gerada", className: "bg-warning/10 text-warning" },
-  generated: { label: "Gerada", className: "bg-warning/10 text-warning" },
-  enviada: { label: "Enviada", className: "bg-info/10 text-info" },
-  sent: { label: "Enviada", className: "bg-info/10 text-info" },
-  aceita: { label: "Aceita", className: "bg-success/10 text-success" },
-  accepted: { label: "Aceita", className: "bg-success/10 text-success" },
-  recusada: { label: "Recusada", className: "bg-destructive/10 text-destructive" },
-  rejected: { label: "Recusada", className: "bg-destructive/10 text-destructive" },
-  expirada: { label: "Expirada", className: "bg-muted text-muted-foreground" },
-  expired: { label: "Expirada", className: "bg-muted text-muted-foreground" },
-};
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isResizing.current = true;
+    startX.current = e.clientX;
+    startWidth.current = width;
 
-function getTimeInStage(lastChange: string) {
-  const hours = differenceInHours(new Date(), new Date(lastChange));
-  if (hours < 1) return "agora";
-  if (hours < 24) return `${hours}h`;
-  const days = differenceInDays(new Date(), new Date(lastChange));
-  return `${days}d`;
-}
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      if (!isResizing.current) return;
+      const delta = moveEvent.clientX - startX.current;
+      const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta));
+      setWidth(newWidth);
+    };
 
-function getStagnationLevel(lastChange: string) {
-  const hours = differenceInHours(new Date(), new Date(lastChange));
-  if (hours >= 168) return "critical"; // 7d
-  if (hours >= 72) return "warning";   // 3d
-  return null;
-}
+    const onMouseUp = () => {
+      isResizing.current = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
 
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map(w => w[0]?.toUpperCase())
-    .join("");
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [width, minWidth, maxWidth]);
+
+  return { width, onMouseDown };
 }
 
 export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto, onNewProject, dynamicEtiquetas = [], pipelineName }: Props) {
@@ -119,6 +108,9 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
   const [automations, setAutomations] = useState<AutomationRule[]>([]);
   const [automationDialogStageId, setAutomationDialogStageId] = useState<string | null>(null);
   const [stagePermissions, setStagePermissions] = useState<Map<string, string>>(new Map());
+  // Mobile filters
+  const [mobileSearch, setMobileSearch] = useState("");
+  const [mobileFilterStatus, setMobileFilterStatus] = useState<string>("all");
 
   // Fetch automations
   useEffect(() => {
@@ -205,17 +197,71 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
     );
   }
 
-  // ── Mobile Accordion View ──
+  // ── Mobile List View with Filters ──
   if (isMobile) {
+    const filteredDeals = deals.filter(d => {
+      if (mobileSearch) {
+        const q = mobileSearch.toLowerCase();
+        const matchesName = (d.customer_name || "").toLowerCase().includes(q);
+        const matchesTitle = (d.deal_title || "").toLowerCase().includes(q);
+        if (!matchesName && !matchesTitle) return false;
+      }
+      if (mobileFilterStatus !== "all") {
+        if (mobileFilterStatus === "overdue") {
+          const hours = differenceInHours(new Date(), new Date(d.last_stage_change));
+          if (hours < 72) return false;
+        } else if (mobileFilterStatus === "proposta") {
+          if (!d.proposta_status) return false;
+        }
+      }
+      return true;
+    });
+
     return (
       <>
+        {/* Mobile Filters */}
+        <div className="px-2 pb-3 space-y-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Buscar cliente..."
+              value={mobileSearch}
+              onChange={(e) => setMobileSearch(e.target.value)}
+              className="h-9 pl-9 text-xs"
+            />
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1">
+            {[
+              { key: "all", label: "Todos" },
+              { key: "overdue", label: "⚠ Atrasados" },
+              { key: "proposta", label: "📄 C/ Proposta" },
+            ].map(f => (
+              <button
+                key={f.key}
+                onClick={() => setMobileFilterStatus(f.key)}
+                className={cn(
+                  "shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium border transition-colors",
+                  mobileFilterStatus === f.key
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-card text-muted-foreground border-border/60 hover:border-border"
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="space-y-2 px-1">
           {sortedStages.map(stage => {
-            const stageDeals = deals.filter(d => d.stage_id === stage.id);
+            const stageDeals = filteredDeals.filter(d => d.stage_id === stage.id);
             const totalValue = stageDeals.reduce((s, d) => s + (d.deal_value || 0), 0);
             const totalKwp = stageDeals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
             const stageAutomations = automationsByStage.get(stage.id) || [];
             const hasActiveAutomation = stageAutomations.length > 0;
+            const overdueCount = stageDeals.filter(d => differenceInHours(new Date(), new Date(d.last_stage_change)) >= 72).length;
+
+            if (mobileSearch && stageDeals.length === 0) return null;
 
             return (
               <Collapsible key={stage.id} defaultOpen={stageDeals.length > 0}>
@@ -226,6 +272,11 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                       <Badge variant="outline" className="text-[10px] h-5 font-semibold rounded-lg">
                         {stageDeals.length}
                       </Badge>
+                      {overdueCount > 0 && (
+                        <Badge variant="destructive" className="text-[9px] h-4 px-1.5 font-bold rounded-full">
+                          {overdueCount} ⚠
+                        </Badge>
+                      )}
                       {hasActiveAutomation && <Zap className="h-3 w-3 text-primary animate-pulse shrink-0" />}
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
@@ -277,450 +328,291 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
         </div>
 
         {/* Automation Config Dialog */}
-        {automationDialogStageId && pipelineId && (
-          <Dialog open={true} onOpenChange={(open) => { if (!open) setAutomationDialogStageId(null); }}>
-            <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
-              <DialogHeader className="pb-2 border-b border-border/40">
-                <DialogTitle className="flex items-center gap-2 text-base">
-                  <Zap className="h-4 w-4 text-primary" />
-                  Automações — {getStageNameById(automationDialogStageId)}
-                </DialogTitle>
-              </DialogHeader>
-              <div className="flex-1 overflow-y-auto py-4">
-                <ProjetoAutomacaoConfig
-                  pipelineId={pipelineId}
-                  stages={sortedStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
-                />
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
+        <AutomationDialog
+          stageId={automationDialogStageId}
+          pipelineId={pipelineId}
+          sortedStages={sortedStages}
+          getStageNameById={getStageNameById}
+          onClose={() => setAutomationDialogStageId(null)}
+        />
       </>
     );
   }
 
-  // ── Desktop Kanban View ──
+  // ── Desktop Kanban View with Resizable Columns ──
   return (
     <>
       <ScrollArea className="w-full">
         <div className="flex gap-4 pb-4 px-1" style={{ minWidth: "max-content" }}>
-          {sortedStages.map(stage => {
-            const stageDeals = deals.filter(d => d.stage_id === stage.id);
-            const totalValue = dealValueByStage.get(stage.id) || 0;
-            const totalKwp = dealKwpByStage.get(stage.id) || 0;
-            const count = dealCountsByStage.get(stage.id) || 0;
-            const isOver = dragOverCol === stage.id;
-            const stageAutomations = automationsByStage.get(stage.id) || [];
-            const hasActiveAutomation = stageAutomations.length > 0;
-            const permission = stagePermissions.get(stage.id);
-            const hasRestriction = permission && permission !== "todos";
-
-            return (
-              <div
-                key={stage.id}
-                className={cn(
-                  "w-[300px] xl:w-[320px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
-                  "bg-card/60",
-                  isOver && "ring-2 ring-primary/30 bg-primary/5"
-                )}
-                onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(stage.id); }}
-                onDragLeave={() => setDragOverCol(null)}
-                onDrop={e => handleDrop(e, stage.id)}
-              >
-                {/* ── Column Header ── */}
-                <div className="px-3 pt-3 pb-2 border-b-2 border-primary/20">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <h3 className="text-[11px] font-bold text-secondary leading-tight truncate uppercase tracking-wider">
-                        {stage.name}
-                      </h3>
-                      {hasActiveAutomation && (
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Zap className="h-3 w-3 text-primary animate-pulse shrink-0" />
-                          </TooltipTrigger>
-                          <TooltipContent className="text-xs">
-                            {stageAutomations.length} automação(ões) ativa(s)
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                      {hasRestriction && (
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Lock className="h-3 w-3 text-warning shrink-0" />
-                          </TooltipTrigger>
-                          <TooltipContent className="text-xs">
-                            {permission === "apenas_responsavel" ? "Apenas o consultor pode mover" : "Restrito por papel"}
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-
-                    {/* Gear DropdownMenu */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0">
-                          <Settings2 className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-52 bg-popover">
-                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Visual</DropdownMenuLabel>
-                        <DropdownMenuItem disabled className="text-xs gap-2">
-                          <Palette className="h-3.5 w-3.5" />
-                          Personalizar cor da etapa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled className="text-xs gap-2">
-                          <Eye className="h-3.5 w-3.5" />
-                          Campos visíveis no card
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Inteligência</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          className="text-xs gap-2"
-                          onClick={() => setAutomationDialogStageId(stage.id)}
-                        >
-                          <Zap className="h-3.5 w-3.5" />
-                          Configurar Automação
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled className="text-xs gap-2">
-                          <Lock className="h-3.5 w-3.5" />
-                          Permissões da etapa
-                        </DropdownMenuItem>
-                        <DropdownMenuItem disabled className="text-xs gap-2">
-                          <Workflow className="h-3.5 w-3.5" />
-                          Construtor de Fluxos
-                          <Badge variant="outline" className="text-[8px] h-4 px-1 ml-auto">BETA</Badge>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-
-                  {/* ── Metrics row: Value + kWp + Count ── */}
-                  <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-0.5 font-bold text-[11px] font-mono text-success">
-                      <DollarSign className="h-3 w-3" />
-                      {formatBRL(totalValue)}
-                    </span>
-                    {totalKwp > 0 && (
-                      <span className="flex items-center gap-0.5 font-mono font-bold text-info text-[11px]">
-                        <Zap className="h-3 w-3" />
-                        {formatKwp(totalKwp)}
-                      </span>
-                    )}
-                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full bg-primary/10 text-primary border-0">
-                      {count}
-                    </Badge>
-                    {/* Overdue count */}
-                    {(() => {
-                      const overdueCount = stageDeals.filter(d => {
-                        const hours = differenceInHours(new Date(), new Date(d.last_stage_change));
-                        return hours >= 72;
-                      }).length;
-                      return overdueCount > 0 ? (
-                        <Badge variant="destructive" className="text-[9px] h-4 px-1.5 font-bold rounded-full">
-                          {overdueCount} ⚠
-                        </Badge>
-                      ) : null;
-                    })()}
-                  </div>
-                </div>
-
-                {/* ── New Project Button ── */}
-                <div className="px-2.5 py-1.5">
-                  <button
-                    onClick={() => onNewProject?.({
-                      pipelineId: stage.pipeline_id,
-                      stageId: stage.id,
-                      stageName: stage.name,
-                    })}
-                    className={cn(
-                      "w-full h-7 rounded-lg border border-primary/40",
-                      "flex items-center justify-center gap-1.5",
-                      "text-[10px] font-semibold text-primary",
-                      "hover:bg-primary hover:text-primary-foreground hover:border-primary",
-                      "transition-all duration-200"
-                    )}
-                  >
-                    <Plus className="h-3 w-3" />
-                    Novo projeto
-                  </button>
-                </div>
-
-                {/* ── Cards ── */}
-                <div className="px-2.5 pb-2.5 min-h-[80px] space-y-2.5 flex-1">
-                  {stageDeals.length === 0 && (
-                    <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
-                      Arraste projetos aqui
-                    </div>
-                  )}
-                  {stageDeals.map(deal => (
-                    <StageDealCard
-                      key={deal.deal_id}
-                      deal={deal}
-                      isDragging={draggedId === deal.deal_id}
-                      onDragStart={handleDragStart}
-                      onClick={() => onViewProjeto?.(deal)}
-                      hasAutomation={hasActiveAutomation}
-                      dynamicEtiquetas={dynamicEtiquetas}
-                    />
-                  ))}
-                </div>
-
-                {/* Automation Alert at Column Base */}
-                {stageAutomations.length > 0 && (
-                  <div className="px-3 pb-3">
-                    {stageAutomations.slice(0, 1).map(auto => (
-                      <Alert key={auto.id} className="bg-muted/40 border-border/30 py-2 px-3">
-                        <Zap className="h-3 w-3 text-primary" />
-                        <AlertDescription className="text-[10px] text-muted-foreground leading-tight">
-                          {auto.tipo_gatilho === "tempo_parado"
-                            ? `Se parado por ${auto.tempo_horas}h → ${auto.tipo_acao === "mover_etapa" ? `Mover para "${getStageNameById(auto.destino_stage_id)}"` : "Notificar"}`
-                            : `Ao entrar → ${auto.tipo_acao === "mover_etapa" ? `Mover para "${getStageNameById(auto.destino_stage_id)}"` : "Notificar"}`
-                          }
-                        </AlertDescription>
-                      </Alert>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          {sortedStages.map(stage => (
+            <ResizableKanbanColumn
+              key={stage.id}
+              stage={stage}
+              deals={deals.filter(d => d.stage_id === stage.id)}
+              totalValue={dealValueByStage.get(stage.id) || 0}
+              totalKwp={dealKwpByStage.get(stage.id) || 0}
+              count={dealCountsByStage.get(stage.id) || 0}
+              isOver={dragOverCol === stage.id}
+              stageAutomations={automationsByStage.get(stage.id) || []}
+              permission={stagePermissions.get(stage.id)}
+              draggedId={draggedId}
+              onDragOver={(stageId) => setDragOverCol(stageId)}
+              onDragLeave={() => setDragOverCol(null)}
+              onDrop={(e, stageId) => handleDrop(e, stageId)}
+              onDragStart={handleDragStart}
+              onViewProjeto={onViewProjeto}
+              onNewProject={onNewProject}
+              onAutomationConfig={(stageId) => setAutomationDialogStageId(stageId)}
+              getStageNameById={getStageNameById}
+              dynamicEtiquetas={dynamicEtiquetas}
+            />
+          ))}
         </div>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
-      {/* Automation Config Dialog */}
-      {automationDialogStageId && pipelineId && (
-        <Dialog open={true} onOpenChange={(open) => { if (!open) setAutomationDialogStageId(null); }}>
-          <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
-            <DialogHeader className="pb-2 border-b border-border/40">
-              <DialogTitle className="flex items-center gap-2 text-base">
-                <Zap className="h-4 w-4 text-primary" />
-                Automações — {getStageNameById(automationDialogStageId)}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="flex-1 overflow-y-auto py-4">
-              <ProjetoAutomacaoConfig
-                pipelineId={pipelineId}
-                stages={sortedStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
+      <AutomationDialog
+        stageId={automationDialogStageId}
+        pipelineId={pipelineId}
+        sortedStages={sortedStages}
+        getStageNameById={getStageNameById}
+        onClose={() => setAutomationDialogStageId(null)}
+      />
     </>
   );
 }
 
-// ── Deal Card ──────────────────────────────────────────
-
-interface StageDealCardProps {
-  deal: DealKanbanCard;
-  isDragging: boolean;
-  onDragStart: (e: React.DragEvent, id: string) => void;
-  onClick: () => void;
-  hasAutomation?: boolean;
-  dynamicEtiquetas?: DynamicEtiqueta[];
+// ── Resizable Kanban Column ───────────────────────────
+interface ResizableKanbanColumnProps {
+  stage: PipelineStage;
+  deals: DealKanbanCard[];
+  totalValue: number;
+  totalKwp: number;
+  count: number;
+  isOver: boolean;
+  stageAutomations: AutomationRule[];
+  permission?: string;
+  draggedId: string | null;
+  onDragOver: (stageId: string) => void;
+  onDragLeave: () => void;
+  onDrop: (e: React.DragEvent, stageId: string) => void;
+  onDragStart: (e: React.DragEvent, dealId: string) => void;
+  onViewProjeto?: (deal: DealKanbanCard) => void;
+  onNewProject?: (ctx?: NewProjectContext) => void;
+  onAutomationConfig: (stageId: string) => void;
+  getStageNameById: (id: string | null) => string;
+  dynamicEtiquetas: DynamicEtiqueta[];
 }
 
-function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, dynamicEtiquetas = [] }: StageDealCardProps) {
-  const etiquetaCfg = useMemo(() => {
-    if (!deal.etiqueta) return null;
-    const found = dynamicEtiquetas.find(e =>
-      e.nome.toLowerCase() === deal.etiqueta?.toLowerCase() || e.id === deal.etiqueta
-    );
-    if (found) return { label: found.nome, short: found.short || found.nome.substring(0, 3).toUpperCase(), cor: found.cor, icon: found.icon };
-    return null;
-  }, [deal.etiqueta, dynamicEtiquetas]);
+function ResizableKanbanColumn({
+  stage, deals, totalValue, totalKwp, count, isOver,
+  stageAutomations, permission, draggedId,
+  onDragOver, onDragLeave, onDrop, onDragStart,
+  onViewProjeto, onNewProject, onAutomationConfig,
+  getStageNameById, dynamicEtiquetas,
+}: ResizableKanbanColumnProps) {
+  const { width, onMouseDown } = useResizableColumn(310);
+  const hasActiveAutomation = stageAutomations.length > 0;
+  const hasRestriction = permission && permission !== "todos";
 
-  const isInactive = deal.deal_status === "perdido" || deal.deal_status === "cancelado";
-  const propostaInfo = deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
-  const timeInStage = getTimeInStage(deal.last_stage_change);
-  const stagnation = getStagnationLevel(deal.last_stage_change);
-  const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
-
-  // Doc checklist progress
-  const docChecklist = deal.doc_checklist as Record<string, boolean> | null;
-  const docTotal = docChecklist ? Object.keys(docChecklist).length : 0;
-  const docDone = docChecklist ? Object.values(docChecklist).filter(Boolean).length : 0;
-
-  // Expected close date
-  const isOverdue = deal.expected_close_date && new Date(deal.expected_close_date) < new Date();
+  const overdueCount = useMemo(() => {
+    return deals.filter(d => differenceInHours(new Date(), new Date(d.last_stage_change)) >= 72).length;
+  }, [deals]);
 
   return (
-    <>
     <div
-      draggable
-      onDragStart={e => onDragStart(e, deal.deal_id)}
-      onClick={onClick}
       className={cn(
-        "bg-card rounded-xl cursor-grab active:cursor-grabbing",
-        "border border-border/40 shadow-sm",
-        "hover:shadow-md hover:border-border/80 transition-all duration-200 ease-out relative group",
-        deal.deal_status === "won" && "bg-success/5 border-success/20",
-        deal.deal_status === "lost" && "opacity-50",
-        isDragging && "opacity-30 scale-95 shadow-lg",
+        "flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col relative",
+        "bg-card/60",
+        isOver && "ring-2 ring-primary/30 bg-primary/5"
       )}
+      style={{ width }}
+      onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; onDragOver(stage.id); }}
+      onDragLeave={() => onDragLeave()}
+      onDrop={e => onDrop(e, stage.id)}
     >
-      {/* Stagnation left accent */}
-      {stagnation && (
-        <div className={cn(
-          "absolute left-0 top-2 bottom-2 w-[3px] rounded-full",
-          stagnation === "critical" ? "bg-destructive" : "bg-warning"
-        )} />
-      )}
+      {/* Resize Handle */}
+      <div
+        className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize z-10 hover:bg-primary/20 active:bg-primary/30 transition-colors rounded-r-xl"
+        onMouseDown={onMouseDown}
+      />
 
-      <div className="p-3 space-y-2">
-        {/* Row 1: Header — Name + City + Value */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className={cn(
-              "text-sm font-semibold leading-tight line-clamp-1",
-              isInactive ? "text-muted-foreground" : "text-foreground"
-            )}>
-              {deal.customer_name || deal.deal_title || "Sem nome"}
-            </p>
-            {(deal.customer_city || deal.customer_state) && (
-              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
-              </p>
+      {/* ── Column Header ── */}
+      <div className="px-3 pt-3 pb-2 border-b-2 border-primary/20">
+        <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <h3 className="text-[11px] font-bold text-secondary leading-tight truncate uppercase tracking-wider">
+              {stage.name}
+            </h3>
+            {hasActiveAutomation && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Zap className="h-3 w-3 text-primary animate-pulse shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">
+                  {stageAutomations.length} automação(ões) ativa(s)
+                </TooltipContent>
+              </Tooltip>
+            )}
+            {hasRestriction && (
+              <Tooltip>
+                <TooltipTrigger>
+                  <Lock className="h-3 w-3 text-warning shrink-0" />
+                </TooltipTrigger>
+                <TooltipContent className="text-xs">
+                  {permission === "apenas_responsavel" ? "Apenas o consultor pode mover" : "Restrito por papel"}
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
-          {deal.deal_value > 0 && (
-            <span className="text-sm font-bold text-foreground whitespace-nowrap tabular-nums">
-              {formatBRL(deal.deal_value)}
-            </span>
-          )}
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground shrink-0">
+                <Settings2 className="h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52 bg-popover">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Visual</DropdownMenuLabel>
+              <DropdownMenuItem disabled className="text-xs gap-2">
+                <Palette className="h-3.5 w-3.5" />
+                Personalizar cor da etapa
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled className="text-xs gap-2">
+                <Eye className="h-3.5 w-3.5" />
+                Campos visíveis no card
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">Inteligência</DropdownMenuLabel>
+              <DropdownMenuItem
+                className="text-xs gap-2"
+                onClick={() => onAutomationConfig(stage.id)}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                Configurar Automação
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled className="text-xs gap-2">
+                <Lock className="h-3.5 w-3.5" />
+                Permissões da etapa
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled className="text-xs gap-2">
+                <Workflow className="h-3.5 w-3.5" />
+                Construtor de Fluxos
+                <Badge variant="outline" className="text-[8px] h-4 px-1 ml-auto">BETA</Badge>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
 
-        {/* Row 2: Status chips */}
-        <div className="flex flex-wrap items-center gap-1">
-          {propostaInfo && (
-            <Badge variant="secondary" className={cn("text-[9px] h-[18px] px-1.5 font-medium border-0", propostaInfo.className)}>
-              {propostaInfo.label}
-            </Badge>
-          )}
-          {etiquetaCfg && (
-            <span
-              className="text-[9px] font-semibold rounded-full px-1.5 py-0.5 text-white"
-              style={{ backgroundColor: etiquetaCfg.cor }}
-            >
-              {etiquetaCfg.icon ? `${etiquetaCfg.icon} ` : ""}{etiquetaCfg.short || etiquetaCfg.label}
+        {/* ── Metrics row ── */}
+        <div className="flex items-center gap-2.5 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-0.5 font-bold text-[11px] font-mono text-success">
+            <DollarSign className="h-3 w-3" />
+            {formatBRL(totalValue)}
+          </span>
+          {totalKwp > 0 && (
+            <span className="flex items-center gap-0.5 font-mono font-bold text-info text-[11px]">
+              <Zap className="h-3 w-3" />
+              {formatKwp(totalKwp)}
             </span>
           )}
-          {deal.deal_kwp > 0 && (
-            <Badge variant="outline" className="text-[9px] h-[18px] px-1.5 font-mono font-medium border-border/50">
-              <Zap className="h-2.5 w-2.5 mr-0.5 text-info" />
-              {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
+          <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full bg-primary/10 text-primary border-0">
+            {count}
+          </Badge>
+          {overdueCount > 0 && (
+            <Badge variant="destructive" className="text-[9px] h-4 px-1.5 font-bold rounded-full">
+              {overdueCount} ⚠
             </Badge>
           )}
-        </div>
-
-        {/* Row 3: Next action / expected close */}
-        {deal.expected_close_date && (
-          <div className={cn(
-            "flex items-center gap-1.5 text-[10px] rounded-md px-2 py-1",
-            isOverdue ? "bg-destructive/10 text-destructive font-medium" : "bg-muted/50 text-muted-foreground"
-          )}>
-            <Clock className="h-3 w-3 shrink-0" />
-            <span>Fechamento: {new Date(deal.expected_close_date).toLocaleDateString("pt-BR")}</span>
-            {isOverdue && <span className="font-bold ml-auto">ATRASADO</span>}
-          </div>
-        )}
-
-        {/* Row 4: Progress indicators */}
-        {(docTotal > 0 || deal.proposta_economia_mensal) && (
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-            {docTotal > 0 && (
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
-                {docDone}/{docTotal} docs
-              </span>
-            )}
-            {deal.proposta_economia_mensal && (
-              <span className="flex items-center gap-1 text-success">
-                <TrendingDown className="h-3 w-3" />
-                {formatBRL(deal.proposta_economia_mensal)}/mês
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Row 5: Quick action icons — always visible, compact */}
-        <div className="flex items-center gap-0.5 pt-0.5 border-t border-border/30">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-success hover:bg-success/10 transition-colors duration-150"
-                onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
-                disabled={!deal.customer_phone}
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">WhatsApp</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-info hover:bg-info/10 transition-colors duration-150"
-                onClick={(e) => { e.stopPropagation(); onClick(); }}
-              >
-                <FileText className="h-3.5 w-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Propostas</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors duration-150"
-                onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
-                disabled={!deal.customer_phone}
-              >
-                <Phone className="h-3.5 w-3.5" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Ligar</TooltipContent>
-          </Tooltip>
-          {deal.notas?.trim() && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <span className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground">
-                  <StickyNote className="h-3.5 w-3.5" />
-                </span>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs max-w-[250px]">
-                <p className="whitespace-pre-wrap">{deal.notas}</p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {/* Spacer + Owner */}
-          <div className="ml-auto flex items-center gap-1.5">
-            <Avatar className="h-5 w-5 border border-border/50">
-              <AvatarFallback className="text-[8px] font-bold bg-muted text-muted-foreground">
-                {getInitials(deal.owner_name)}
-              </AvatarFallback>
-            </Avatar>
-            <span className={cn(
-              "text-[10px] tabular-nums",
-              stagnation === "critical" ? "text-destructive font-semibold" :
-              stagnation === "warning" ? "text-warning font-semibold" :
-              "text-muted-foreground"
-            )}>
-              {timeInStage}
-            </span>
-          </div>
         </div>
       </div>
-    </div>
 
-    <ScheduleWhatsAppDialog
-      lead={deal.customer_phone ? { nome: deal.customer_name, telefone: deal.customer_phone } : null}
-      open={whatsappDialogOpen}
-      onOpenChange={setWhatsappDialogOpen}
-    />
-    </>
+      {/* ── New Project Button ── */}
+      <div className="px-2.5 py-1.5">
+        <button
+          onClick={() => onNewProject?.({
+            pipelineId: stage.pipeline_id,
+            stageId: stage.id,
+            stageName: stage.name,
+          })}
+          className={cn(
+            "w-full h-7 rounded-lg border border-primary/40",
+            "flex items-center justify-center gap-1.5",
+            "text-[10px] font-semibold text-primary",
+            "hover:bg-primary hover:text-primary-foreground hover:border-primary",
+            "transition-all duration-200"
+          )}
+        >
+          <Plus className="h-3 w-3" />
+          Novo projeto
+        </button>
+      </div>
+
+      {/* ── Cards ── */}
+      <div className="px-2.5 pb-2.5 min-h-[80px] space-y-2.5 flex-1 overflow-y-auto">
+        {deals.length === 0 && (
+          <div className="flex items-center justify-center h-16 text-xs text-muted-foreground/40 italic">
+            Arraste projetos aqui
+          </div>
+        )}
+        {deals.map(deal => (
+          <StageDealCard
+            key={deal.deal_id}
+            deal={deal}
+            isDragging={draggedId === deal.deal_id}
+            onDragStart={onDragStart}
+            onClick={() => onViewProjeto?.(deal)}
+            hasAutomation={hasActiveAutomation}
+            dynamicEtiquetas={dynamicEtiquetas}
+          />
+        ))}
+      </div>
+
+      {/* Automation Alert at Column Base */}
+      {stageAutomations.length > 0 && (
+        <div className="px-3 pb-3">
+          {stageAutomations.slice(0, 1).map(auto => (
+            <Alert key={auto.id} className="bg-muted/40 border-border/30 py-2 px-3">
+              <Zap className="h-3 w-3 text-primary" />
+              <AlertDescription className="text-[10px] text-muted-foreground leading-tight">
+                {auto.tipo_gatilho === "tempo_parado"
+                  ? `Se parado por ${auto.tempo_horas}h → ${auto.tipo_acao === "mover_etapa" ? `Mover para "${getStageNameById(auto.destino_stage_id)}"` : "Notificar"}`
+                  : `Ao entrar → ${auto.tipo_acao === "mover_etapa" ? `Mover para "${getStageNameById(auto.destino_stage_id)}"` : "Notificar"}`
+                }
+              </AlertDescription>
+            </Alert>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Automation Dialog (shared) ──────────────────────────
+function AutomationDialog({ stageId, pipelineId, sortedStages, getStageNameById, onClose }: {
+  stageId: string | null;
+  pipelineId?: string;
+  sortedStages: PipelineStage[];
+  getStageNameById: (id: string | null) => string;
+  onClose: () => void;
+}) {
+  if (!stageId || !pipelineId) return null;
+  return (
+    <Dialog open={true} onOpenChange={(open) => { if (!open) onClose(); }}>
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] flex flex-col">
+        <DialogHeader className="pb-2 border-b border-border/40">
+          <DialogTitle className="flex items-center gap-2 text-base">
+            <Zap className="h-4 w-4 text-primary" />
+            Automações — {getStageNameById(stageId)}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex-1 overflow-y-auto py-4">
+          <ProjetoAutomacaoConfig
+            pipelineId={pipelineId}
+            stages={sortedStages.map(s => ({ id: s.id, name: s.name, position: s.position }))}
+          />
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
