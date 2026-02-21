@@ -350,13 +350,50 @@
   .sidebar-section-expanded-integrations { background: hsl(var(--sidebar-section-integrations) / 0.04); }
   .sidebar-section-expanded-settings { background: hsl(var(--sidebar-section-settings) / 0.04); }
 
-  /* Submenu item — softer icon */
+  /* ─── Modern Duotone Icon System ─── */
+  
+  /* Base sidebar icon — clean outline, muted when inactive */
+  .sidebar-icon {
+    opacity: 0.55;
+    stroke-width: 1.75;
+    transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    filter: saturate(0.7);
+  }
+  
+  /* Active sidebar icon — saturated with subtle duotone fill */
+  .sidebar-icon[data-active="true"] {
+    opacity: 1;
+    stroke-width: 2;
+    filter: saturate(1.1) drop-shadow(0 1px 2px currentColor / 0.15);
+  }
+  
+  /* Hover state for inactive icons */
+  .group\/btn:hover .sidebar-icon:not([data-active="true"]) {
+    opacity: 0.8;
+    filter: saturate(0.9);
+  }
+
+  /* Section label icon — slightly bolder */
+  .sidebar-label-icon {
+    stroke-width: 2;
+    opacity: 0.9;
+  }
+
+  /* Legacy alias — kept for compat */
   .sidebar-submenu-icon {
-    opacity: 0.7;
-    transition: opacity 200ms ease-in-out;
+    opacity: 0.55;
+    stroke-width: 1.75;
+    transition: all 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    filter: saturate(0.7);
   }
   .sidebar-submenu-icon[data-active="true"] {
     opacity: 1;
+    stroke-width: 2;
+    filter: saturate(1.1) drop-shadow(0 1px 2px currentColor / 0.15);
+  }
+  .group\/btn:hover .sidebar-submenu-icon:not([data-active="true"]) {
+    opacity: 0.8;
+    filter: saturate(0.9);
   }
 
   /* Collapsible content animation override for sidebar */
