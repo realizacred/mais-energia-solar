@@ -82,7 +82,8 @@ export const ANEEL_AGENT_ALIASES: Record<string, string[]> = {
   "coelce": ["enel ceara coelce", "enel ce"],
   "enel rj": ["enel distribuicao rio", "enel rj"],
   "enel rio": ["enel distribuicao rio", "enel rj"],
-  "enel go": ["enel goias", "enel go"],
+  "enel go": ["enel goias", "enel go", "enel distribuicao goias"],
+  "enel distribuicao goias": ["enel goias", "enel go"],
   "enel sp": ["enel sao paulo eletropaulo", "enel sp"],
   "eletropaulo": ["enel sao paulo eletropaulo", "enel sp"],
   "light": ["enel rio light", "light"],
@@ -97,7 +98,9 @@ export const ANEEL_AGENT_ALIASES: Record<string, string[]> = {
 
   // Energisa group — ANEEL uses state abbreviations
   "energisa ac": ["energisa acre", "eac"],
-  "energisa mg": ["energisa minas gerais", "emg"],
+  "energisa mg": ["energisa minas gerais", "emg", "energisa nova friburgo", "enf"],
+  "energisa minas gerais": ["energisa minas gerais", "emg", "energisa nova friburgo"],
+  "energisa nova friburgo": ["energisa minas gerais", "emg"],
   "energisa ms": ["energisa ms", "ems"],
   "energisa mt": ["energisa mt", "emt"],
   "energisa pb": ["energisa paraiba", "epb"],

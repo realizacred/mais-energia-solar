@@ -120,7 +120,7 @@ const SIGLA_ALIASES: Record<string, string[]> = {
   // ENEL
   "ENEL-CE":  ["ENELCE", "ENEL CE", "ENEL-CE", "COELCE", "ENEL CEARA"],
   "ENEL-RJ":  ["ENELRJ", "ENEL RJ", "ENEL-RJ", "ENEL DISTRIBUICAO RIO"],
-  "ENEL-GO":  ["ENELGO", "ENEL GO", "ENEL-GO", "ENEL GOIAS", "CELG", "CELG-D", "CELGD"],
+  "ENEL-GO":  ["ENELGO", "ENEL GO", "ENEL-GO", "ENEL GOIAS", "ENEL DISTRIBUICAO GOIAS"],
   "ENEL-SP":  ["ENELSP", "ENEL SP", "ENEL-SP", "ELETROPAULO", "ENEL SAO PAULO"],
   "LIGHT":    ["LIGHT", "LIGHTSESA", "LIGHT SESA", "LIGHT-SESA", "LIGHT SA", "LIGHT SERVICOS"],
   // CELESC
@@ -137,7 +137,7 @@ const SIGLA_ALIASES: Record<string, string[]> = {
   "CEB":      ["CEB", "CEBD", "CEB-D", "CEB DISTRIBUICAO", "NEOENERGIA BRASILIA", "NEOENERGIA CEB"],
   // Energisa
   "EAC":      ["EAC", "EACRE", "ENERGISA AC", "ENERGISA ACRE"],
-  "EMG":      ["EMG", "ENERGISA MG", "ENERGISA MINAS GERAIS", "ENERGISA MINAS"],
+  "EMG":      ["EMG", "ENERGISA MG", "ENERGISA MINAS GERAIS", "ENERGISA MINAS", "ENERGISA NOVA FRIBURGO", "ENF"],
   "EMS":      ["EMS", "ENERGISA MS", "ENERGISA MATO GROSSO DO SUL"],
   "EMT":      ["EMT", "ENERGISA MT", "ENERGISA MATO GROSSO"],
   "EPB":      ["EPB", "ENERGISA PB", "ENERGISA PARAIBA"],
@@ -737,7 +737,7 @@ async function processSync(
       );
       if (manualKeys.size > 0) log(`🔒 ${manualKeys.size} registros manuais protegidos`);
 
-      const mtUpserts: any[] = [];
+      const mtUpsertsMap = new Map<string, any>();
 
       for (const conc of concessionarias) {
         const concMtTarifas = aggregated.filter(a =>
@@ -748,10 +748,14 @@ async function processSync(
         totalMtMatched++;
 
         for (const mt of concMtTarifas) {
-          const manualKey = `${conc.id}|${mt.subgrupo}|${mt.modalidade}`;
-          if (manualKeys.has(manualKey)) continue;
+          const upsertKey = `${conc.id}|${mt.subgrupo}|${mt.modalidade}`;
+          if (manualKeys.has(upsertKey)) continue;
 
-          mtUpserts.push({
+          // Deduplicate: keep most recent vigência per unique constraint key
+          const existing = mtUpsertsMap.get(upsertKey);
+          if (existing && existing.vigencia_inicio >= mt.vigencia_inicio) continue;
+
+          mtUpsertsMap.set(upsertKey, {
             concessionaria_id: conc.id,
             tenant_id: tenantId,
             subgrupo: mt.subgrupo,
@@ -767,6 +771,9 @@ async function processSync(
           });
         }
       }
+
+      const mtUpserts = Array.from(mtUpsertsMap.values());
+      log(`MT deduplicado: ${mtUpserts.length} registros únicos (de ${mtUpsertsMap.size} chaves)`);
 
       // Batch upsert MT in chunks of 50
       if (!testRun && mtUpserts.length > 0) {
