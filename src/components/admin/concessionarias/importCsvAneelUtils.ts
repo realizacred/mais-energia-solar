@@ -112,14 +112,16 @@ export function detectColumns(headers: string[]): ColumnMap {
   return map;
 }
 
-export function parseTarifasHomologadas(lines: string[], headers: string[]): ParsedTarifa[] {
+export function parseTarifasHomologadas(data: string[] | string[][], headers: string[]): ParsedTarifa[] {
   const cols = detectColumns(headers);
+  const isPreParsed = Array.isArray(data[0]);
 
   if (!cols.sigAgente && !cols.nomAgente) return [];
 
   const records: ParsedTarifa[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cells = parseCSVLine(lines[i]);
+  const startIdx = isPreParsed ? 0 : 1;
+  for (let i = startIdx; i < data.length; i++) {
+    const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);
     if (cells.length < 3) continue;
 
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
@@ -145,14 +147,16 @@ export function parseTarifasHomologadas(lines: string[], headers: string[]): Par
   return records;
 }
 
-export function parseComponentesTarifas(lines: string[], headers: string[]): ParsedTarifa[] {
+export function parseComponentesTarifas(data: string[] | string[][], headers: string[]): ParsedTarifa[] {
   const cols = detectColumns(headers);
+  const isPreParsed = Array.isArray(data[0]);
 
   if (!cols.sigAgente && !cols.nomAgente) return [];
 
   const records: ParsedTarifa[] = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cells = parseCSVLine(lines[i]);
+  const startIdx = isPreParsed ? 0 : 1;
+  for (let i = startIdx; i < data.length; i++) {
+    const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);
     if (cells.length < 3) continue;
 
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
@@ -187,19 +191,23 @@ export function parseComponentesTarifas(lines: string[], headers: string[]): Par
 }
 
 /**
- * Parse an XLSX file (ArrayBuffer) and return lines + headers like CSV.
+ * Parse an XLSX file (ArrayBuffer) and return headers + pre-parsed rows.
+ * Uses sheet_to_json to avoid CSV intermediary issues (commas in values).
  */
-export function parseXlsxFile(buffer: ArrayBuffer): { headers: string[]; lines: string[] } {
+export function parseXlsxFile(buffer: ArrayBuffer): { headers: string[]; rows: string[][] } {
   const workbook = XLSX.read(buffer, { type: "array" });
   const sheetName = workbook.SheetNames[0];
   const sheet = workbook.Sheets[sheetName];
   
-  const csv = XLSX.utils.sheet_to_csv(sheet, { FS: ";" });
-  const lines = csv.split(/\r?\n/).filter(l => l.trim());
+  // Get raw arrays — header:1 means first row is data, not keys
+  const raw = XLSX.utils.sheet_to_json<any[]>(sheet, { header: 1, defval: "" });
   
-  if (lines.length < 2) return { headers: [], lines: [] };
+  if (raw.length < 2) return { headers: [], rows: [] };
   
-  const headers = parseCSVLine(lines[0]);
+  const headers = (raw[0] as any[]).map(c => String(c ?? "").trim());
+  const rows = raw.slice(1)
+    .filter(row => (row as any[]).some(c => String(c ?? "").trim() !== ""))
+    .map(row => (row as any[]).map(c => String(c ?? "").trim()));
   
-  return { headers, lines };
+  return { headers, rows };
 }

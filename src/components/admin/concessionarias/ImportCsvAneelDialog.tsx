@@ -55,20 +55,21 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       const isXlsx = f.name.toLowerCase().endsWith(".xlsx") || f.name.toLowerCase().endsWith(".xls");
       
       let headers: string[];
-      let lines: string[];
+      let data: string[] | string[][];
       
       if (isXlsx) {
         const buffer = await f.arrayBuffer();
         const result = parseXlsxFile(buffer);
         headers = result.headers;
-        lines = result.lines;
+        data = result.rows; // pre-parsed string[][]
       } else {
         const text = await f.text();
-        lines = text.split(/\r?\n/).filter(l => l.trim());
+        const lines = text.split(/\r?\n/).filter(l => l.trim());
         headers = parseCSVLine(lines[0]);
+        data = lines; // raw CSV strings
       }
       
-      if (lines.length < 2) {
+      if ((isXlsx && (data as string[][]).length < 1) || (!isXlsx && (data as string[]).length < 2)) {
         toast({ title: "Arquivo vazio ou inválido", variant: "destructive" });
         return;
       }
@@ -78,9 +79,9 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
       let records: ParsedTarifa[];
       if (detected === "componentes") {
-        records = parseComponentesTarifas(lines, headers);
+        records = parseComponentesTarifas(data, headers);
       } else {
-        records = parseTarifasHomologadas(lines, headers);
+        records = parseTarifasHomologadas(data, headers);
       }
 
       if (records.length === 0) {
