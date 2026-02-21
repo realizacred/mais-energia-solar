@@ -91,7 +91,7 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
   const precoWp = potenciaKwp > 0 ? totalResumo / (potenciaKwp * 1000) : 0;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
       {/* ── Left: Serviços ── */}
       <div className="space-y-5 min-w-0">
         <div className="flex items-center justify-between">
