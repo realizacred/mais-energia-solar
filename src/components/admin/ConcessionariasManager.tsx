@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp, Calculator } from "lucide-react";
 import { getFioBCobranca } from "@/lib/calcGrupoB";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { ConcessionariaFormDialog, ESTADOS_BRASIL, type ConcessionariaFormData } from "./concessionarias/ConcessionariaFormDialog";
 import { Progress } from "@/components/ui/progress";
 import { ImportCsvAneelDialog } from "./concessionarias/ImportCsvAneelDialog";
@@ -471,17 +472,12 @@ export function ConcessionariasManager() {
   }
 
   return (
-    <Card className="rounded-xl border-2 border-border/60">
-      <CardHeader className="flex flex-row items-start justify-between gap-4">
-        <div>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="w-5 h-5" />
-            Concessionárias de Energia
-          </CardTitle>
-          <CardDescription className="mt-1">
-            Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos.
-          </CardDescription>
-        </div>
+    <SectionCard
+      icon={Building}
+      title="Concessionárias de Energia"
+      description="Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos."
+      variant="blue"
+      actions={
         <div className="flex items-center gap-2 shrink-0">
           <Button
             variant="outline"
@@ -516,8 +512,8 @@ export function ConcessionariasManager() {
             Nova Concessionária
           </Button>
         </div>
-      </CardHeader>
-      <CardContent>
+      }
+    >
         {/* Sync progress bar */}
         {syncProgress && (
           <div className="mb-4 p-3 rounded-lg border border-border/60 bg-muted/30 space-y-2">
@@ -905,7 +901,6 @@ export function ConcessionariasManager() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </CardContent>
 
       <ImportCsvAneelDialog
         open={csvImportOpen}
@@ -920,6 +915,6 @@ export function ConcessionariasManager() {
           fetchData();
         }}
       />
-    </Card>
+    </SectionCard>
   );
 }

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -483,7 +484,7 @@ export function RecebimentosManager() {
           description={clientes.length === 0 ? "Cadastre um cliente primeiro" : undefined}
         />
       ) : (
-        <Card className="rounded-xl border-2 border-border/60 overflow-hidden">
+        <SectionCard icon={Receipt} title="Lista de Recebimentos" variant="green" noPadding>
           <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -582,7 +583,7 @@ export function RecebimentosManager() {
             </TableBody>
           </Table>
           </div>
-        </Card>
+        </SectionCard>
       )}
         </TabsContent>
 

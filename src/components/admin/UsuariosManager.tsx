@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { usePlanGuard } from "@/components/plan";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -472,18 +473,18 @@ export function UsuariosManager() {
 
   return (
     <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary" />
-            Gestão de Usuários e Perfis
-          </CardTitle>
+      <SectionCard
+        icon={Shield}
+        title={`Gestão de Usuários e Perfis`}
+        variant="blue"
+        actions={
           <Button onClick={() => setIsCreateDialogOpen(true)} className="gap-2">
             <Plus className="w-4 h-4" />
             Novo Usuário
           </Button>
-        </CardHeader>
-        <CardContent>
+        }
+      >
+        
           {users.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
@@ -592,8 +593,7 @@ export function UsuariosManager() {
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {/* Add Role Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

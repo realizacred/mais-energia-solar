@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import {
   Dialog,
   DialogContent,
@@ -436,14 +437,8 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               </div>
 
               {/* Dados Pessoais */}
-              <Card className="rounded-xl border-2 border-primary/30 bg-primary/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Users className="h-4 w-4 text-primary" />
-                    Dados pessoais
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <SectionCard icon={Users} title="Dados pessoais" variant="blue">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="nome">Nome *</Label>
                     <Input
@@ -488,15 +483,12 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                       onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </SectionCard>
 
               {/* Endereço */}
-              <Card className="rounded-xl border-2 border-secondary/30 bg-secondary/5">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2 text-secondary">Endereço</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <SectionCard icon={Users} title="Endereço" variant="green">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="cep">CEP</Label>
                     <Input
@@ -556,8 +548,8 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                       onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </SectionCard>
 
               {/* Seção "Dados do projeto solar" removida — esses dados pertencem ao domínio Projetos */}
 
@@ -574,14 +566,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
 
               {/* Documentos (somente no modo edição) */}
               {editingCliente && (
-                <Card className="rounded-xl border-2 border-info/30 bg-info/5">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-info" />
-                      Documentos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
+                <SectionCard icon={FileText} title="Documentos" variant="blue">
                     <ClienteDocumentUpload
                       clienteId={editingCliente.id}
                       documents={editDocuments}
@@ -590,8 +575,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                         fetchClientes();
                       }}
                     />
-                  </CardContent>
-                </Card>
+                </SectionCard>
               )}
 
               <div className="flex justify-end gap-3">
@@ -618,7 +602,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
           action={{ label: "Novo Cliente", onClick: () => setDialogOpen(true), icon: Plus }}
         />
       ) : (
-        <Card className="rounded-xl border-2 border-border/60">
+        <SectionCard icon={Users} title="Clientes" variant="neutral" noPadding>
           <Table>
             <TableHeader>
               <TableRow>
@@ -758,7 +742,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               ))}
             </TableBody>
           </Table>
-        </Card>
+        </SectionCard>
       )}
 
       {/* WhatsApp Dialog */}

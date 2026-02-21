@@ -4,6 +4,7 @@ import { handleSupabaseError } from "@/lib/errorHandler";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -472,15 +473,13 @@ export function ServicosManager() {
       <ServicoStatsCards servicos={servicos} />
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <ServicoFilters
-            filters={filters}
-            onFiltersChange={setFilters}
-            instaladores={instaladores}
-          />
-        </CardContent>
-      </Card>
+      <SectionCard icon={Wrench} title="Filtros" variant="neutral">
+        <ServicoFilters
+          filters={filters}
+          onFiltersChange={setFilters}
+          instaladores={instaladores}
+        />
+      </SectionCard>
 
       {/* Content */}
       {viewMode === "calendar" ? (
@@ -490,8 +489,8 @@ export function ServicosManager() {
           onSelectServico={(s) => setSelectedServicoId(s.id)}
         />
       ) : (
-        <Card>
-          <CardHeader className="pb-3">
+        <SectionCard icon={Wrench} title="Serviços" variant="blue" noPadding>
+          <div className="px-4 pb-2">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList>
                 <TabsTrigger value="todos">
@@ -508,21 +507,19 @@ export function ServicosManager() {
                 </TabsTrigger>
               </TabsList>
             </Tabs>
-          </CardHeader>
-          <CardContent className="p-0">
-            <ServicosTable
-              servicos={filteredServicos}
-              instaladores={instaladores}
-              onViewDetails={setSelectedServicoId}
-              onOpenLayoutEditor={(s) => {
-                setSelectedServiceForLayout(s);
-                setLayoutEditorOpen(true);
-              }}
-              onValidar={setValidacaoServico}
-              onReagendar={setReagendarServico}
-            />
-          </CardContent>
-        </Card>
+          </div>
+          <ServicosTable
+            servicos={filteredServicos}
+            instaladores={instaladores}
+            onViewDetails={setSelectedServicoId}
+            onOpenLayoutEditor={(s) => {
+              setSelectedServiceForLayout(s);
+              setLayoutEditorOpen(true);
+            }}
+            onValidar={setValidacaoServico}
+            onReagendar={setReagendarServico}
+          />
+        </SectionCard>
       )}
 
       {/* Dialogs */}

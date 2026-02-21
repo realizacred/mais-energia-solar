@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -256,8 +257,7 @@ export function EquipamentosManager() {
         title="Equipamentos"
         description="Gerencie disjuntores e transformadores cadastrados"
       />
-      <Card className="rounded-xl border-2 border-border/60">
-        <CardContent className="pt-6">
+      <SectionCard icon={CircuitBoard} title="Equipamentos Cadastrados" description="Disjuntores e transformadores disponíveis no sistema" variant="blue">
         <Tabs defaultValue="disjuntores">
           <TabsList className="mb-4">
             <TabsTrigger value="disjuntores" className="gap-2">
@@ -536,8 +536,7 @@ export function EquipamentosManager() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </CardContent>
-    </Card>
+      </SectionCard>
     </div>
   );
 }

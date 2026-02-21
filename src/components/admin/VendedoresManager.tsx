@@ -7,6 +7,7 @@ import { formatPhone, formatName } from "@/lib/validations";
 import { getPublicUrl } from "@/lib/getPublicUrl";
 import { isEmailAlreadyRegisteredError, parseInvokeError } from "@/lib/supabaseFunctionError";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -550,20 +551,17 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
 
   return (
     <>
-      <Card className="rounded-xl border-2 border-border/60">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <Users className="w-5 h-5" />
-              Consultores ({vendedores.length})
-            </CardTitle>
-            <Button onClick={openNewDialog} className="gap-2">
-              <Plus className="w-4 h-4" />
-              Novo Consultor
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <SectionCard
+        icon={Users}
+        title={`Consultores (${vendedores.length})`}
+        variant="blue"
+        actions={
+          <Button onClick={openNewDialog} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Novo Consultor
+          </Button>
+        }
+      >
           {vendedores.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Users className="w-12 h-12 mx-auto mb-4 opacity-30" />
@@ -695,8 +693,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
               </Table>
             </div>
           )}
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {/* Add/Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
