@@ -15,6 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { generateProposal, renderProposal, type GenerateProposalPayload } from "@/services/proposalApi";
 import { cn } from "@/lib/utils";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
+import { useProposalEnforcement } from "@/hooks/useProposalEnforcement";
+import type { ProposalResolverContext } from "@/lib/resolveProposalVariables";
 
 // ── Step Components
 import { StepLocalizacao } from "./wizard/StepLocalizacao";
@@ -29,6 +31,8 @@ import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
 import { WizardSidebar, type WizardStep } from "./wizard/WizardSidebar";
+import { EstimativaCheckbox } from "./wizard/EstimativaCheckbox";
+import { MissingVariablesModal } from "./wizard/MissingVariablesModal";
 
 // ── Types
 import {
@@ -241,11 +245,43 @@ export function ProposalWizard() {
   // Pos-dimensionamento dialog
   const [showPosDialog, setShowPosDialog] = useState(false);
   const [nomeProposta, setNomeProposta] = useState("");
+
+  // ─── Enforcement: block modal state
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [blockReason, setBlockReason] = useState<"missing_required" | "estimativa_not_accepted">("missing_required");
+  const [blockMissing, setBlockMissing] = useState<string[]>([]);
   const [descricaoProposta, setDescricaoProposta] = useState("");
 
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
+
+  // ─── Enforcement: resolver context
+  const resolverContext = useMemo<ProposalResolverContext>(() => ({
+    cliente: {
+      nome: cliente.nome || selectedLead?.nome,
+      empresa: cliente.empresa,
+      cnpj_cpf: cliente.cnpj_cpf,
+      email: cliente.email,
+      celular: cliente.celular,
+      cep: cliente.cep,
+      endereco: cliente.endereco,
+      numero: cliente.numero,
+      complemento: cliente.complemento,
+      bairro: cliente.bairro,
+      cidade: cliente.cidade || locCidade,
+      estado: cliente.estado || locEstado,
+    },
+    ucs,
+    premissas,
+    potenciaKwp,
+    geracaoMensal: potenciaKwp > 0 && locIrradiacao > 0
+      ? Math.round(potenciaKwp * locIrradiacao * 30 * 0.80) : undefined,
+    precoTotal: precoFinal,
+    consultorNome: undefined, // filled by backend
+  }), [cliente, selectedLead, ucs, premissas, potenciaKwp, locIrradiacao, precoFinal, locCidade, locEstado]);
+
+  const enforcement = useProposalEnforcement(resolverContext);
 
   // Estimated generation (kWh/month) = potência * irradiação * 30 * PR(0.80)
   const geracaoMensalEstimada = useMemo(() => {
@@ -620,9 +656,21 @@ export function ProposalWizard() {
 
   const canCurrentStep = canAdvance[currentStepKey] ?? true;
 
-  // ─── Generate
+  // ─── Generate (with enforcement gate)
   const handleGenerate = async () => {
     if (!selectedLead) return;
+
+    // ── Enforcement gate: block if missing variables or estimativa not accepted
+    const gate = enforcement.checkGate();
+    if (!gate.allowed) {
+      setBlockReason(gate.reason!);
+      setBlockMissing(gate.missingVariables || []);
+      setShowBlockModal(true);
+      // Log the block
+      enforcement.logBlock(null, gate.reason!, gate.missingVariables || []);
+      return;
+    }
+
     setGenerating(true);
     setHtmlPreview(null);
     setResult(null);
@@ -653,6 +701,13 @@ export function ProposalWizard() {
 
       const genResult = await generateProposal(payload);
       setResult(genResult);
+
+      // ── Persist audit data after successful generation
+      if (genResult.proposta_id) {
+        enforcement.persistAudit(genResult.proposta_id).catch(err =>
+          console.error("[ProposalWizard] Audit persist failed:", err)
+        );
+      }
 
       setRendering(true);
       try {
@@ -813,6 +868,13 @@ export function ProposalWizard() {
       case STEP_KEYS.PROPOSTA:
         return (
           <StepContent key="proposta">
+            {/* Enforcement: EstimativaCheckbox before generation */}
+            <EstimativaCheckbox
+              precisao={enforcement.precisao}
+              checked={enforcement.aceiteEstimativa}
+              onCheckedChange={enforcement.setAceiteEstimativa}
+              className="mb-4"
+            />
             <StepDocumento
               clienteNome={cliente.nome || selectedLead?.nome || ""}
               empresaNome={cliente.empresa || cliente.nome || selectedLead?.nome || ""}
@@ -1010,6 +1072,14 @@ export function ProposalWizard() {
         customFieldValues={customFieldValues}
         onCustomFieldValuesChange={setCustomFieldValues}
         onConfirm={handlePosDialogConfirm}
+      />
+
+      {/* Enforcement: block modal */}
+      <MissingVariablesModal
+        open={showBlockModal}
+        onClose={() => setShowBlockModal(false)}
+        missingVariables={blockMissing}
+        reason={blockReason}
       />
     </div>
   );
