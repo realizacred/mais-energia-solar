@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2, Package,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
-  Zap,
+  Zap, AlertTriangle,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import { generateProposal, renderProposal, type GenerateProposalPayload } from "
 import { cn } from "@/lib/utils";
 import { useSolarPremises } from "@/hooks/useSolarPremises";
 import { useProposalEnforcement } from "@/hooks/useProposalEnforcement";
+import { validateGrupoConsistency } from "@/lib/validateGrupoConsistency";
 import type { ProposalResolverContext } from "@/lib/resolveProposalVariables";
 
 // ── Step Components
@@ -255,6 +256,11 @@ export function ProposalWizard() {
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
+
+  // ─── Grupo consistency validation
+  const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
+  const isGrupoMixed = !grupoValidation.valid && grupoValidation.error === "mixed_grupos";
+  const isGrupoUndefined = !grupoValidation.valid && grupoValidation.error === "grupo_indefinido";
 
   // ─── Enforcement: resolver context
   const resolverContext = useMemo<ProposalResolverContext>(() => ({
@@ -644,14 +650,14 @@ export function ProposalWizard() {
   // ─── Validations per step key
   const canAdvance: Record<string, boolean> = {
     [STEP_KEYS.LOCALIZACAO]: !!locEstado && !!locCidade && !!locTipoTelhado && !!locDistribuidoraId,
-    [STEP_KEYS.UCS]: consumoTotal > 0,
+    [STEP_KEYS.UCS]: consumoTotal > 0 && grupoValidation.valid,
     [STEP_KEYS.CAMPOS_PRE]: true,
     [STEP_KEYS.KIT]: itens.length > 0 && itens.some(i => i.descricao),
     [STEP_KEYS.ADICIONAIS]: true,
     [STEP_KEYS.SERVICOS]: true,
     [STEP_KEYS.VENDA]: venda.margem_percentual >= 0,
     [STEP_KEYS.PAGAMENTO]: true,
-    [STEP_KEYS.PROPOSTA]: true,
+    [STEP_KEYS.PROPOSTA]: grupoValidation.valid,
   };
 
   const canCurrentStep = canAdvance[currentStepKey] ?? true;
@@ -660,13 +666,24 @@ export function ProposalWizard() {
   const handleGenerate = async () => {
     if (!selectedLead) return;
 
+    // ── Grupo consistency gate
+    if (!grupoValidation.valid) {
+      toast({
+        title: "Erro de grupo tarifário",
+        description: grupoValidation.error === "mixed_grupos"
+          ? "Não é permitido misturar UCs de Grupo A e Grupo B na mesma proposta."
+          : "Há UCs sem grupo tarifário definido. Defina o subgrupo de todas as UCs.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // ── Enforcement gate: block if missing variables or estimativa not accepted
     const gate = enforcement.checkGate();
     if (!gate.allowed) {
       setBlockReason(gate.reason!);
       setBlockMissing(gate.missingVariables || []);
       setShowBlockModal(true);
-      // Log the block
       enforcement.logBlock(null, gate.reason!, gate.missingVariables || []);
       return;
     }
@@ -680,7 +697,7 @@ export function ProposalWizard() {
       const payload: GenerateProposalPayload = {
         lead_id: selectedLead.id,
         projeto_id: projectContext?.dealId || dealIdFromUrl || undefined,
-        grupo: grupo.startsWith("B") ? "B" : "A",
+        grupo: grupoValidation.grupo || (grupo.startsWith("B") ? "B" : "A"),
         idempotency_key: idempotencyKey,
         template_id: templateSelecionado || undefined,
         potencia_kwp: potenciaKwp,
@@ -727,6 +744,14 @@ export function ProposalWizard() {
         setBlockReason("estimativa_not_accepted");
         setBlockMissing([]);
         setShowBlockModal(true);
+        return;
+      }
+      if (errorCode === "mixed_grupos" || errorCode === "grupo_indefinido") {
+        toast({
+          title: "Erro de grupo tarifário",
+          description: e.message || "Não é permitido misturar Grupo A e Grupo B na mesma proposta.",
+          variant: "destructive",
+        });
         return;
       }
       toast({ title: "Erro ao gerar proposta", description: e.message, variant: "destructive" });
@@ -815,6 +840,33 @@ export function ProposalWizard() {
       case STEP_KEYS.UCS:
         return (
           <StepContent key="ucs">
+            {/* Grupo consistency alert */}
+            {(isGrupoMixed || isGrupoUndefined) && (
+              <div className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/5 p-4">
+                <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-destructive">
+                    {isGrupoMixed
+                      ? "Mistura de Grupo A e Grupo B detectada"
+                      : "Grupo tarifário indefinido"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isGrupoMixed
+                      ? "Não é permitido misturar Unidades Consumidoras de Grupo A e Grupo B na mesma proposta. As estruturas tarifárias são diferentes."
+                      : "Uma ou mais UCs não possuem subgrupo tarifário definido. Defina o subgrupo para continuar."}
+                  </p>
+                  {grupoValidation.divergentIndices && grupoValidation.divergentIndices.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {grupoValidation.divergentIndices.map(idx => (
+                        <Badge key={idx} variant="destructive" className="text-[10px]">
+                          UC {idx + 1} — {grupoValidation.grupos[idx] ?? "indefinido"}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             <StepConsumptionIntelligence
               ucs={ucs} onUcsChange={handleUcsChange}
               potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp}

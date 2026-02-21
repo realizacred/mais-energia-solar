@@ -13,6 +13,19 @@ const corsHeaders = {
 
 // ─── Types ──────────────────────────────────────────────────
 
+const SUBGRUPOS_A = ["A1", "A2", "A3", "A3a", "A4", "AS"];
+const SUBGRUPOS_B = ["B1", "B2", "B3"];
+
+function resolveGrupoFromSubgrupo(subgrupo: string | undefined | null): "A" | "B" | null {
+  if (!subgrupo) return null;
+  const upper = subgrupo.toUpperCase();
+  if (SUBGRUPOS_A.some(s => s.toUpperCase() === upper)) return "A";
+  if (SUBGRUPOS_B.some(s => s.toUpperCase() === upper)) return "B";
+  if (upper.startsWith("A")) return "A";
+  if (upper.startsWith("B")) return "B";
+  return null;
+}
+
 interface UCPayload {
   nome: string;
   tipo_dimensionamento: "BT" | "MT";
@@ -267,8 +280,9 @@ Deno.serve(async (req) => {
       backendPrecisaoMotivo = "Fio B real disponível na tariff_version ativa";
     }
 
-    // ── ENFORCEMENT: GD rule recalculation (NEVER trust frontend values) ──
-    const backendRegraGd = body.grupo === "B" ? "GD_II" : "GD_I";
+    // ── ENFORCEMENT: GD rule recalculation — uses body.grupo initially, overridden by backendGrupo later ──
+    // Note: backendGrupo is set after grupo validation below; this initial value is only for the missing_required check
+    let backendRegraGd = body.grupo === "B" ? "GD_II" : "GD_I";
     const backendAnoGd = anoAtual;
     const GD_FIO_B_BY_YEAR: Record<number, number> = {
       2023: 0.15, 2024: 0.30, 2025: 0.45, 2026: 0.60, 2027: 0.75, 2028: 0.90,
@@ -330,6 +344,41 @@ Deno.serve(async (req) => {
       }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // ── ENFORCEMENT: Grupo consistency validation (NEVER trust frontend) ──
+    const ucGrupos = body.ucs.map(uc => resolveGrupoFromSubgrupo(uc.subgrupo));
+    const undefinedGrupos = ucGrupos.filter(g => g === null);
+    if (undefinedGrupos.length > 0) {
+      await adminClient.from("audit_logs").insert({
+        tenant_id: tenantId, tabela: "propostas_nativas",
+        acao: "bloqueio_grupo_indefinido", user_id: userId,
+        registro_id: body.lead_id,
+        dados_novos: { motivo: "grupo_indefinido", ucs_sem_grupo: ucGrupos.map((g, i) => g === null ? i : -1).filter(i => i >= 0) },
+      }).then(() => {}).catch(() => {});
+      return new Response(JSON.stringify({
+        success: false, error: "grupo_indefinido",
+        message: "Uma ou mais UCs não possuem grupo tarifário definido.",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const uniqueGrupos = new Set(ucGrupos);
+    if (uniqueGrupos.size > 1) {
+      await adminClient.from("audit_logs").insert({
+        tenant_id: tenantId, tabela: "propostas_nativas",
+        acao: "bloqueio_grupo_misto", user_id: userId,
+        registro_id: body.lead_id,
+        dados_novos: { motivo: "mixed_grupos", grupos_detectados: ucGrupos },
+      }).then(() => {}).catch(() => {});
+      return new Response(JSON.stringify({
+        success: false, error: "mixed_grupos",
+        message: "Não é permitido misturar Grupo A e Grupo B na mesma proposta.",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // Use backend-resolved grupo (NEVER trust body.grupo)
+    const backendGrupo = ucGrupos[0] as "A" | "B";
+    // Override GD rule with backend-resolved grupo
+    backendRegraGd = backendGrupo === "B" ? "GD_II" : "GD_I";
+
     // Resolve premissas (payload > tenant defaults > hardcoded)
     let premissas = body.premissas;
     if (!premissas || Object.keys(premissas).length === 0) {
@@ -361,7 +410,7 @@ Deno.serve(async (req) => {
     const geracaoEstimada = potenciaKwp * geracaoMediaKwpMes;
     const tarifaMedia = uc1.tarifa_distribuidora || 0.85;
     const energiaCompensavel = Math.min(geracaoEstimada, consumoTotal);
-    const fioBAplicavel = body.grupo === "B" ? percentualFioB / 100 : 0;
+    const fioBAplicavel = backendGrupo === "B" ? percentualFioB / 100 : 0;
     const custoFioBMensal = energiaCompensavel * (tarifaMedia * 0.28) * fioBAplicavel;
     const custoDispTotal = body.ucs.reduce((s, uc) => s + uc.custo_disponibilidade_valor, 0);
     const economiaBruta = energiaCompensavel * tarifaMedia;
@@ -400,7 +449,7 @@ Deno.serve(async (req) => {
 
     // Calc hash for deterministic auditing
     const hashInput = {
-      grupo: body.grupo, potencia_kwp: potenciaKwp, ucs: body.ucs,
+      grupo: backendGrupo, potencia_kwp: potenciaKwp, ucs: body.ucs,
       premissas, itens: body.itens, servicos: body.servicos, venda,
       pagamento_opcoes: body.pagamento_opcoes, fioB: fioBSteps,
       irradiacao: geracaoMediaKwpMes,
@@ -466,7 +515,7 @@ Deno.serve(async (req) => {
       engine_version: ENGINE_VERSION,
       calc_hash: hash,
       gerado_em: new Date().toISOString(),
-      grupo: body.grupo,
+      grupo: backendGrupo,
       regra_lei_14300: {
         versao: `${anoAtual}-01`,
         fio_b_ano: anoAtual,
@@ -571,7 +620,7 @@ Deno.serve(async (req) => {
       .insert({
         tenant_id: tenantId, proposta_id: propostaId,
         versao_numero: versaoNumero, status: "generated",
-        grupo: body.grupo, potencia_kwp: potenciaKwp,
+        grupo: backendGrupo, potencia_kwp: potenciaKwp,
         valor_total: valorTotal,
         economia_mensal: round2(economiaMensal),
         payback_meses: calcResult.paybackMeses,
