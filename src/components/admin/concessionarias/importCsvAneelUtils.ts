@@ -116,20 +116,22 @@ export function detectColumns(headers: string[]): ColumnMap {
   const normalizedHeaders = headers.map(h => norm(h));
 
   const columnAliases: Record<string, string[]> = {
-    sigAgente:     ["sigla", "sigla agente", "sigagente", "sig agente"],
-    nomAgente:     ["nom agente", "nomagente", "distribuidora", "nome agente"],
-    subgrupo:      ["subgrupo", "sub grupo"],
-    modalidade:    ["modalidade"],
-    posto:         ["posto", "posto tarifario"],
-    vlrTUSD:       ["tusd", "vlr tusd", "vlrtusd"],
-    vlrTE:         ["te", "vlr te", "vlrte"],
-    unidade:       ["unidade"],
+    sigAgente:     ["sigla", "sigla agente", "sigagente", "sig agente", "sig"],
+    nomAgente:     ["nom agente", "nomagente", "distribuidora", "nome agente", "nome da distribuidora"],
+    subgrupo:      ["subgrupo", "sub grupo", "sub_grupo"],
+    modalidade:    ["modalidade", "modalidade tarifaria"],
+    posto:         ["posto", "posto tarifario", "posto tarifário"],
+    vlrTUSD:       ["tusd", "vlr tusd", "vlrtusd", "valor tusd"],
+    vlrTE:         ["vlr te", "vlrte", "valor te"],
+    unidade:       ["unidade", "und"],
     baseTarifaria: ["base tarifaria", "basetarifaria", "base tarif"],
-    detalhe:       ["detalhe"],
-    vigencia:      ["inicio vigencia", "iniciovigencia", "dat inicio", "data inicio vigencia"],
+    detalhe:       ["detalhe", "detalhe tarifa"],
+    vigencia:      ["inicio vigencia", "iniciovigencia", "dat inicio", "data inicio vigencia", "inicio da vigencia"],
+    fimVigencia:   ["fim vigencia", "fimvigencia", "fim da vigencia", "data fim vigencia"],
     classe:        ["classe"],
     subclasse:     ["subclasse", "sub classe"],
     resolucao:     ["resolucao", "resolucao aneel", "reh"],
+    acessante:     ["acessante"],
     // Componentes-specific
     componente:    ["componente", "tipo componente", "dsctipcomponente", "dsc tipo componente"],
     vlrComponente: ["valor", "vlr componente", "vlrcomponente"],
@@ -140,8 +142,13 @@ export function detectColumns(headers: string[]): ColumnMap {
     if (idx >= 0) map[key] = idx;
   }
 
-  // Fallback: for vlrTE, avoid matching columns that contain "tusd" or "componente"
-  // If vlrTE accidentally matched a wrong column, try stricter match
+  // If vlrTE wasn't found via specific aliases, try exact "te" header match
+  if (map.vlrTE === undefined) {
+    const teIdx = normalizedHeaders.indexOf("te");
+    if (teIdx !== -1) map.vlrTE = teIdx;
+  }
+
+  // Safety: if vlrTE accidentally matched the same column as vlrTUSD, remove it
   if (map.vlrTE !== undefined && map.vlrTUSD !== undefined && map.vlrTE === map.vlrTUSD) {
     delete map.vlrTE;
   }
@@ -153,19 +160,33 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
   const cols = detectColumns(headers);
   const isPreParsed = Array.isArray(data[0]);
 
-  if (!cols.sigAgente && !cols.nomAgente) return [];
+  if (!cols.sigAgente && !cols.nomAgente) {
+    console.warn("[ANEEL Homol] No sigAgente/nomAgente column found. Headers:", headers);
+    return [];
+  }
 
+  const debugSkipReasons = { noBase: 0, noSub: 0, shortRow: 0, total: 0 };
   const records: ParsedTarifa[] = [];
   const startIdx = isPreParsed ? 0 : 1;
+
   for (let i = startIdx; i < data.length; i++) {
     const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);
-    if (cells.length < 3) continue;
+    if (cells.length < 3) { debugSkipReasons.shortRow++; continue; }
+    debugSkipReasons.total++;
 
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
-    if (baseTarifaria && !baseTarifaria.toLowerCase().includes("aplica")) continue;
+    // Use norm() for accent-safe comparison
+    if (baseTarifaria) {
+      const baseNorm = norm(baseTarifaria);
+      // Accept "tarifa de aplicação/aplicacao" and reject others like "base econômica"
+      if (!baseNorm.includes("aplica") && !baseNorm.includes("aplicacao")) {
+        debugSkipReasons.noBase++;
+        continue;
+      }
+    }
 
     const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
-    if (!subgrupo) continue;
+    if (!subgrupo) { debugSkipReasons.noSub++; continue; }
 
     records.push({
       sigAgente: cols.sigAgente !== undefined ? cells[cols.sigAgente] || "" : "",
@@ -181,6 +202,50 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
       vigencia: cols.vigencia !== undefined ? cells[cols.vigencia] || "" : "",
     });
   }
+
+  console.log("[ANEEL Homol] Debug skip reasons:", debugSkipReasons, "Records found:", records.length);
+  console.log("[ANEEL Homol] Column map:", cols);
+
+  // Fallback: if zero records but rows existed, retry without baseTarifaria filter
+  if (records.length === 0 && debugSkipReasons.noBase > 0) {
+    console.warn("[ANEEL Homol] All rows filtered by baseTarifaria. Retrying without filter...");
+    return parseTarifasHomologadasNoBaseFilter(data, headers, cols, isPreParsed, startIdx);
+  }
+
+  return records;
+}
+
+/** Fallback parser that skips the baseTarifaria filter */
+function parseTarifasHomologadasNoBaseFilter(
+  data: string[] | string[][],
+  headers: string[],
+  cols: Record<string, number>,
+  isPreParsed: boolean,
+  startIdx: number,
+): ParsedTarifa[] {
+  const records: ParsedTarifa[] = [];
+  for (let i = startIdx; i < data.length; i++) {
+    const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);
+    if (cells.length < 3) continue;
+
+    const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
+    if (!subgrupo) continue;
+
+    records.push({
+      sigAgente: cols.sigAgente !== undefined ? cells[cols.sigAgente] || "" : "",
+      nomAgente: cols.nomAgente !== undefined ? cells[cols.nomAgente] || "" : "",
+      subgrupo,
+      modalidade: cols.modalidade !== undefined ? cells[cols.modalidade] || "" : "",
+      posto: cols.posto !== undefined ? cells[cols.posto] || "" : "",
+      vlrTUSD: cols.vlrTUSD !== undefined ? parseNumber(cells[cols.vlrTUSD]) : 0,
+      vlrTE: cols.vlrTE !== undefined ? parseNumber(cells[cols.vlrTE]) : 0,
+      unidade: cols.unidade !== undefined ? cells[cols.unidade] || "" : "",
+      baseTarifaria: cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "",
+      detalhe: cols.detalhe !== undefined ? cells[cols.detalhe] || "" : "",
+      vigencia: cols.vigencia !== undefined ? cells[cols.vigencia] || "" : "",
+    });
+  }
+  console.log("[ANEEL Homol] Fallback (no base filter) records:", records.length);
   return records;
 }
 
