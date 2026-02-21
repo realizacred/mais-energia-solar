@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3 } from "lucide-react";
+import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, User, Phone } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -481,8 +481,33 @@ export function StepLocalizacao({
           </div>
         </div>
 
-        {/* Right column: Map — sticky on desktop, full-width on mobile */}
-        <div className="order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start">
+        {/* Right column: Map + Client overlay — sticky on desktop */}
+        <div className="order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start space-y-3">
+          {/* Client card overlay when linked */}
+          {clienteData && clienteData.nome && (
+            <div className="rounded-lg border border-border/50 bg-card p-3 space-y-1">
+              <div className="flex items-center gap-2">
+                <User className="h-3.5 w-3.5 text-primary shrink-0" />
+                <span className="text-xs font-semibold truncate">{clienteData.nome}</span>
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
+                {clienteData.celular && (
+                  <span className="flex items-center gap-1">
+                    <Phone className="h-3 w-3" /> {clienteData.celular}
+                  </span>
+                )}
+                {(clienteData.endereco || clienteData.cidade) && (
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-3 w-3 shrink-0" />
+                    {[clienteData.endereco, clienteData.numero, clienteData.bairro].filter(Boolean).join(", ")}
+                    {clienteData.cidade && ` — ${clienteData.cidade}`}
+                    {clienteData.estado && `/${clienteData.estado}`}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           <Suspense fallback={
             <div className="rounded-xl border border-border/50 h-[220px] sm:h-[280px] lg:h-[360px] flex items-center justify-center bg-muted/20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
