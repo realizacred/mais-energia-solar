@@ -515,13 +515,6 @@ function UCConfigModal({ uc, onUpdate, onClose }: {
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="text-xs">Fator de Simultaneidade *</Label>
-            <div className="relative">
-              <Input type="number" step={0.1} value={uc.fator_simultaneidade || ""} onChange={e => onUpdate("fator_simultaneidade", Number(e.target.value))} className="h-9 pr-6" />
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-            </div>
-          </div>
-          <div className="space-y-1.5">
             <Label className="text-xs">Imposto Energia Compensada</Label>
             <div className="relative">
               <Input type="number" step={0.01} value={uc.imposto_energia || ""} onChange={e => onUpdate("imposto_energia", Number(e.target.value))} className="h-9 pr-6" />
