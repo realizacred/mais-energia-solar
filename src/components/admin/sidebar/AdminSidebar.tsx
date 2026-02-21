@@ -72,8 +72,15 @@ function SidebarItemButton({
 }) {
   const navigate = useNavigate();
 
-  const handleClick = () => {
-    navigate(`/admin/${item.id}`);
+  const itemPath = `/admin/${item.id}`;
+
+  const handleClick = (e: React.MouseEvent) => {
+    // Ctrl+Click or Cmd+Click opens in new tab
+    if (e.ctrlKey || e.metaKey) {
+      window.open(itemPath, '_blank');
+      return;
+    }
+    navigate(itemPath);
   };
 
   return (
