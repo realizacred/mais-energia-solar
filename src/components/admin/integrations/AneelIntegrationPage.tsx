@@ -226,48 +226,11 @@ export function AneelIntegrationPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Polling for active run status
-  useEffect(() => {
-    if (!syncing) return;
-    const interval = setInterval(async () => {
-      const { data } = await supabase
-        .from("aneel_sync_runs" as any)
-        .select("id, status, total_fetched, total_matched, total_updated, total_errors, finished_at, logs")
-        .order("started_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const run = data as any;
-      if (run && run.status !== 'running') {
-        setSyncing(false);
-        clearInterval(interval);
-        const status = run.status as string;
-        if (status === 'success' || status === 'partial') {
-          toast({
-            title: `Sincronização concluída`,
-            description: `${run.total_updated} atualizadas, ${run.total_errors || 0} erros`,
-          });
-        } else if (status === 'test_run') {
-          toast({ title: "Test Run concluído", description: `${run.total_updated} simuladas` });
-        } else {
-          toast({ title: "Sincronização com erro", description: `Status: ${status}`, variant: "destructive" });
-        }
-        fetchData();
-      } else if (run) {
-        // Update runs list with latest logs
-        setRuns(prev => {
-          const updated = [...prev];
-          const idx = updated.findIndex(r => r.id === run.id);
-          if (idx >= 0) updated[idx] = { ...updated[idx], ...(run as any) };
-          return updated;
-        });
-      }
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [syncing, fetchData, toast]);
+  // No more polling needed — sync is now synchronous
 
   const handleSync = async (testRun = false) => {
     setSyncing(true);
+    toast({ title: testRun ? "Test Run iniciado..." : "Sincronização iniciada...", description: "Isso pode levar até 2 minutos. Aguarde." });
     try {
       const { data, error } = await supabase.functions.invoke("sync-tarifas-aneel", {
         body: { trigger_type: "manual", test_run: testRun },
@@ -275,17 +238,30 @@ export function AneelIntegrationPage() {
       if (error) throw error;
       if (data?.success) {
         if (data.already_running) {
-          toast({ title: "Sincronização já em andamento", description: "Acompanhe o progresso abaixo." });
+          toast({ title: "Sincronização já em andamento", description: "Aguarde a conclusão da execução atual." });
         } else {
-          toast({ title: "Sincronização iniciada", description: "Acompanhe o progresso em tempo real abaixo." });
+          const status = data.status as string;
+          if (status === 'success' || status === 'partial') {
+            toast({
+              title: "Sincronização concluída ✅",
+              description: `${data.total_updated || 0} atualizadas, ${data.total_errors || 0} erros`,
+            });
+          } else if (status === 'test_run') {
+            toast({ title: "Test Run concluído 🧪", description: `${data.total_updated || 0} simuladas` });
+          } else if (status === 'error') {
+            toast({ title: "Sincronização com erro", description: data.message || "Erro desconhecido", variant: "destructive" });
+          } else {
+            toast({ title: "Sincronização processada", description: data.message || `Status: ${status}` });
+          }
         }
         fetchData();
       } else {
         throw new Error(data?.error || "Erro desconhecido");
       }
     } catch (err: any) {
-      setSyncing(false);
       toast({ title: "Erro ao sincronizar", description: err.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
     }
   };
 
