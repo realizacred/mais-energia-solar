@@ -48,16 +48,17 @@ export function StepConsumptionIntelligence({
   const { roofFactors } = useTiposTelhado();
 
   // Sync inclinação/desvio azimutal from first UC's tipo_telhado into preDimensionamento
+  // The roof profile is the SSOT for these values — always override when tipo_telhado changes
   const uc1TipoTelhado = ucs[0]?.tipo_telhado;
   useEffect(() => {
     if (!uc1TipoTelhado || roofFactors.length === 0) return;
     const match = roofFactors.find(rf => getRoofLabel(rf) === uc1TipoTelhado);
     if (match) {
       const updates: Partial<PreDimensionamentoData> = {};
-      if (match.inclinacao_padrao != null && pd.inclinacao !== match.inclinacao_padrao) {
+      if (match.inclinacao_padrao != null) {
         updates.inclinacao = match.inclinacao_padrao;
       }
-      if (match.desvio_azimutal_padrao != null && pd.desvio_azimutal !== match.desvio_azimutal_padrao) {
+      if (match.desvio_azimutal_padrao != null) {
         updates.desvio_azimutal = match.desvio_azimutal_padrao;
       }
       if (Object.keys(updates).length > 0) {
