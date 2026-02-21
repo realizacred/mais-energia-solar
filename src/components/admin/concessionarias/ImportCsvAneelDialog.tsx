@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Upload, FileText, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Upload, FileText, AlertTriangle, CheckCircle2, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,19 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  type ParsedTarifa,
+  type ImportResult,
+  type FileType,
+  parseCSVLine,
+  detectFileType,
+  detectColumns,
+  parseNumber,
+  norm,
+  stripSuffixes,
+  parseTarifasHomologadas,
+  parseComponentesTarifas,
+} from "./importCsvAneelUtils";
 
 interface Props {
   open: boolean;
@@ -15,97 +28,12 @@ interface Props {
   onImportComplete: () => void;
 }
 
-interface ParsedTarifa {
-  sigAgente: string;
-  nomAgente: string;
-  subgrupo: string;
-  modalidade: string;
-  posto: string;
-  vlrTUSD: number;
-  vlrTE: number;
-  unidade: string;
-  baseTarifaria: string;
-  detalhe: string;
-  vigencia: string;
-}
-
-interface ImportResult {
-  matched: number;
-  updated: number;
-  skipped: number;
-  errors: string[];
-}
-
-// Normalise string for fuzzy matching
-function norm(s: string): string {
-  return s.trim().toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ");
-}
-
-function stripSuffixes(s: string): string {
-  return s.replace(/\b(s\.?a\.?|s\/a|ltda|cia|distribui[cç][aã]o|energia|el[eé]trica|distribuidora|de)\b/gi, "").trim().replace(/\s+/g, " ");
-}
-
-function parseCSVLine(line: string): string[] {
-  const result: string[] = [];
-  let current = "";
-  let inQuotes = false;
-  
-  for (let i = 0; i < line.length; i++) {
-    const char = line[i];
-    if (char === '"') {
-      if (inQuotes && i + 1 < line.length && line[i + 1] === '"') {
-        current += '"';
-        i++;
-      } else {
-        inQuotes = !inQuotes;
-      }
-    } else if ((char === ";" || char === ",") && !inQuotes) {
-      result.push(current.trim());
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  result.push(current.trim());
-  return result;
-}
-
-function detectColumns(headers: string[]): Record<string, number> {
-  const map: Record<string, number> = {};
-  const patterns: Record<string, RegExp> = {
-    sigAgente: /sig\s*agente/i,
-    nomAgente: /nom\s*agente/i,
-    subgrupo: /sub\s*grupo/i,
-    modalidade: /modalidade/i,
-    posto: /posto/i,
-    vlrTUSD: /tusd/i,
-    vlrTE: /\bte\b/i,
-    unidade: /unidade/i,
-    baseTarifaria: /base\s*tarif/i,
-    detalhe: /detalhe/i,
-    vigencia: /inicio\s*vig|dat.*inicio/i,
-  };
-  
-  for (const [key, re] of Object.entries(patterns)) {
-    const idx = headers.findIndex(h => re.test(h));
-    if (idx >= 0) map[key] = idx;
-  }
-  return map;
-}
-
-function parseNumber(s: string): number {
-  if (!s) return 0;
-  // Handle Brazilian number format: 10,36 -> 10.36
-  return parseFloat(s.replace(",", ".")) || 0;
-}
-
 export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: Props) {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [parsed, setParsed] = useState<ParsedTarifa[]>([]);
+  const [fileType, setFileType] = useState<FileType | null>(null);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<"upload" | "preview" | "done">("upload");
@@ -114,6 +42,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setFile(null);
     setParsed([]);
     setResult(null);
+    setFileType(null);
     setStep("upload");
   };
 
@@ -131,43 +60,24 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       }
 
       const headers = parseCSVLine(lines[0]);
-      const cols = detectColumns(headers);
+      const detected = detectFileType(headers);
+      setFileType(detected);
 
-      if (!cols.sigAgente && !cols.nomAgente) {
-        toast({ title: "Colunas não reconhecidas", description: "O CSV precisa ter colunas SigAgente ou NomAgente", variant: "destructive" });
-        return;
+      let records: ParsedTarifa[];
+      if (detected === "componentes") {
+        records = parseComponentesTarifas(lines, headers);
+      } else {
+        records = parseTarifasHomologadas(lines, headers);
       }
 
-      const records: ParsedTarifa[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const cells = parseCSVLine(lines[i]);
-        if (cells.length < 3) continue;
-
-        const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
-        // Only import "Tarifa de Aplicação" records
-        if (baseTarifaria && !baseTarifaria.toLowerCase().includes("aplica")) continue;
-
-        const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
-        if (!subgrupo) continue;
-
-        records.push({
-          sigAgente: cols.sigAgente !== undefined ? cells[cols.sigAgente] || "" : "",
-          nomAgente: cols.nomAgente !== undefined ? cells[cols.nomAgente] || "" : "",
-          subgrupo,
-          modalidade: cols.modalidade !== undefined ? cells[cols.modalidade] || "" : "",
-          posto: cols.posto !== undefined ? cells[cols.posto] || "" : "",
-          vlrTUSD: cols.vlrTUSD !== undefined ? parseNumber(cells[cols.vlrTUSD]) : 0,
-          vlrTE: cols.vlrTE !== undefined ? parseNumber(cells[cols.vlrTE]) : 0,
-          unidade: cols.unidade !== undefined ? cells[cols.unidade] || "" : "",
-          baseTarifaria,
-          detalhe: cols.detalhe !== undefined ? cells[cols.detalhe] || "" : "",
-          vigencia: cols.vigencia !== undefined ? cells[cols.vigencia] || "" : "",
-        });
+      if (records.length === 0) {
+        toast({ title: "Nenhum registro válido encontrado", variant: "destructive" });
+        return;
       }
 
       setParsed(records);
       setStep("preview");
-      toast({ title: `${records.length} registros encontrados no CSV` });
+      toast({ title: `${records.length} registros encontrados (${detected === "componentes" ? "Componentes" : "Tarifas Homologadas"})` });
     } catch (err) {
       toast({ title: "Erro ao ler arquivo", description: String(err), variant: "destructive" });
     }
@@ -178,7 +88,6 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setImporting(true);
 
     try {
-      // Fetch concessionárias do tenant
       const { data: concessionarias, error: concError } = await supabase
         .from("concessionarias")
         .select("id, nome, sigla");
@@ -200,7 +109,6 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       const findConc = (sig: string, nome: string) => {
         if (sig && concBySigla[norm(sig)]) return concBySigla[norm(sig)];
         if (nome && concByNome[norm(nome)]) return concByNome[norm(nome)];
-        // Fuzzy match
         const normSig = stripSuffixes(norm(sig));
         const normNome = stripSuffixes(norm(nome));
         for (const c of concessionarias) {
@@ -212,90 +120,145 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         return null;
       };
 
-      // Group records by concessionária + subgrupo to aggregate ponta/fora ponta
-      const grouped = new Map<string, { conc: typeof concessionarias[0]; records: ParsedTarifa[] }>();
+      if (fileType === "componentes") {
+        // Componentes: update fio_b fields
+        const grouped = new Map<string, { conc: typeof concessionarias[0]; records: ParsedTarifa[] }>();
+        for (const r of parsed) {
+          const conc = findConc(r.sigAgente, r.nomAgente);
+          if (!conc) continue;
+          const key = `${conc.id}|${r.subgrupo}|${r.modalidade}`;
+          if (!grouped.has(key)) grouped.set(key, { conc, records: [] });
+          grouped.get(key)!.records.push(r);
+        }
 
-      for (const r of parsed) {
-        const conc = findConc(r.sigAgente, r.nomAgente);
-        if (!conc) continue;
+        let updated = 0;
+        const errors: string[] = [];
 
-        const key = `${conc.id}|${r.subgrupo}|${r.modalidade}`;
-        if (!grouped.has(key)) grouped.set(key, { conc, records: [] });
-        grouped.get(key)!.records.push(r);
-      }
+        for (const [, { conc, records }] of grouped) {
+          const first = records[0];
+          const sub = first.subgrupo;
+          const isGrupoA = sub.startsWith("A");
 
-      let updated = 0;
-      let skipped = 0;
-      const errors: string[] = [];
-      const isGrupoA = (s: string) => s.startsWith("A");
-
-      for (const [, { conc, records }] of grouped) {
-        const first = records[0];
-        const sub = first.subgrupo;
-
-        if (isGrupoA(sub)) {
-          // Grupo A: aggregate ponta / fora ponta
-          let te_ponta = 0, te_fora_ponta = 0, tusd_ponta = 0, tusd_fora_ponta = 0;
-          for (const r of records) {
-            const isPonta = r.posto.toLowerCase().includes("ponta") && !r.posto.toLowerCase().includes("fora");
-            if (isPonta) {
-              te_ponta = r.vlrTE;
-              tusd_ponta = r.vlrTUSD;
-            } else {
-              te_fora_ponta = r.vlrTE;
-              tusd_fora_ponta = r.vlrTUSD;
+          if (isGrupoA) {
+            let fio_b_ponta = 0, fio_b_fora_ponta = 0;
+            for (const r of records) {
+              const isPonta = r.posto.toLowerCase().includes("ponta") && !r.posto.toLowerCase().includes("fora");
+              if (isPonta) {
+                fio_b_ponta = r.vlrFioB || 0;
+              } else {
+                fio_b_fora_ponta = r.vlrFioB || 0;
+              }
             }
-          }
 
-          const { error } = await supabase
-            .from("concessionaria_tarifas_subgrupo")
-            .upsert({
-              concessionaria_id: conc.id,
-              subgrupo: sub,
-              modalidade_tarifaria: first.modalidade || null,
-              te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta,
-              origem: "CSV_ANEEL",
-              is_active: true,
-              updated_at: new Date().toISOString(),
-            } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+            // Use upsert - update fio_b fields on existing rows
+            const { error } = await supabase
+              .from("concessionaria_tarifas_subgrupo")
+              .upsert({
+                concessionaria_id: conc.id,
+                subgrupo: sub,
+                modalidade_tarifaria: first.modalidade || null,
+                fio_b_ponta, fio_b_fora_ponta,
+                origem: "CSV_ANEEL_COMP",
+                is_active: true,
+                updated_at: new Date().toISOString(),
+              } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
 
-          if (error) {
-            errors.push(`${conc.nome} ${sub}: ${error.message}`);
+            if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
+            else updated++;
           } else {
-            updated++;
-          }
-        } else {
-          // Grupo B: use TUSD as tarifa_fio_b, TE as tarifa_energia
-          const r = records[0]; // BT has one record per subgrupo
-          const { error } = await supabase
-            .from("concessionaria_tarifas_subgrupo")
-            .upsert({
-              concessionaria_id: conc.id,
-              subgrupo: sub,
-              modalidade_tarifaria: first.modalidade || "Convencional",
-              tarifa_energia: r.vlrTE,
-              tarifa_fio_b: r.vlrTUSD,
-              origem: "CSV_ANEEL",
-              is_active: true,
-              updated_at: new Date().toISOString(),
-            } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+            const r = records[0];
+            const { error } = await supabase
+              .from("concessionaria_tarifas_subgrupo")
+              .upsert({
+                concessionaria_id: conc.id,
+                subgrupo: sub,
+                modalidade_tarifaria: first.modalidade || "Convencional",
+                tarifa_fio_b: r.vlrFioB || 0,
+                origem: "CSV_ANEEL_COMP",
+                is_active: true,
+                updated_at: new Date().toISOString(),
+              } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
 
-          if (error) {
-            errors.push(`${conc.nome} ${sub}: ${error.message}`);
-          } else {
-            updated++;
+            if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
+            else updated++;
           }
         }
+
+        const matched = grouped.size;
+        const skipped = parsed.length - [...grouped.values()].reduce((sum, g) => sum + g.records.length, 0);
+        setResult({ matched, updated, skipped, errors });
+      } else {
+        // Tarifas homologadas (existing logic)
+        const grouped = new Map<string, { conc: typeof concessionarias[0]; records: ParsedTarifa[] }>();
+        for (const r of parsed) {
+          const conc = findConc(r.sigAgente, r.nomAgente);
+          if (!conc) continue;
+          const key = `${conc.id}|${r.subgrupo}|${r.modalidade}`;
+          if (!grouped.has(key)) grouped.set(key, { conc, records: [] });
+          grouped.get(key)!.records.push(r);
+        }
+
+        let updated = 0;
+        const errors: string[] = [];
+
+        for (const [, { conc, records }] of grouped) {
+          const first = records[0];
+          const sub = first.subgrupo;
+
+          if (sub.startsWith("A")) {
+            let te_ponta = 0, te_fora_ponta = 0, tusd_ponta = 0, tusd_fora_ponta = 0;
+            for (const r of records) {
+              const isPonta = r.posto.toLowerCase().includes("ponta") && !r.posto.toLowerCase().includes("fora");
+              if (isPonta) {
+                te_ponta = r.vlrTE;
+                tusd_ponta = r.vlrTUSD;
+              } else {
+                te_fora_ponta = r.vlrTE;
+                tusd_fora_ponta = r.vlrTUSD;
+              }
+            }
+
+            const { error } = await supabase
+              .from("concessionaria_tarifas_subgrupo")
+              .upsert({
+                concessionaria_id: conc.id,
+                subgrupo: sub,
+                modalidade_tarifaria: first.modalidade || null,
+                te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta,
+                origem: "CSV_ANEEL",
+                is_active: true,
+                updated_at: new Date().toISOString(),
+              } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+
+            if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
+            else updated++;
+          } else {
+            const r = records[0];
+            const { error } = await supabase
+              .from("concessionaria_tarifas_subgrupo")
+              .upsert({
+                concessionaria_id: conc.id,
+                subgrupo: sub,
+                modalidade_tarifaria: first.modalidade || "Convencional",
+                tarifa_energia: r.vlrTE,
+                tarifa_fio_b: r.vlrTUSD,
+                origem: "CSV_ANEEL",
+                is_active: true,
+                updated_at: new Date().toISOString(),
+              } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+
+            if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
+            else updated++;
+          }
+        }
+
+        const matched = grouped.size;
+        const skipped = parsed.length - [...grouped.values()].reduce((sum, g) => sum + g.records.length, 0);
+        setResult({ matched, updated, skipped, errors });
       }
 
-      const matched = grouped.size;
-      skipped = parsed.length - [...grouped.values()].reduce((sum, g) => sum + g.records.length, 0);
-
-      setResult({ matched, updated, skipped, errors });
       setStep("done");
-
-      if (updated > 0) {
-        toast({ title: `${updated} subgrupo(s) atualizado(s) com sucesso!` });
+      if (result?.updated || true) {
         onImportComplete();
       }
     } catch (err: any) {
@@ -305,9 +268,11 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     }
   };
 
-  // Stats for preview
   const uniqueAgents = new Set(parsed.map(r => r.sigAgente || r.nomAgente)).size;
   const uniqueSubgrupos = new Set(parsed.map(r => r.subgrupo)).size;
+
+  const fileTypeLabel = fileType === "componentes" ? "Componentes das Tarifas" : "Tarifas Homologadas";
+  const fileTypeBadge = fileType === "componentes" ? "secondary" : "default";
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) reset(); onOpenChange(v); }}>
@@ -318,7 +283,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
             Importar CSV da ANEEL
           </DialogTitle>
           <DialogDescription className="text-xs">
-            Baixe o CSV do site da ANEEL e faça upload aqui para atualizar as tarifas.
+            Suporta <strong>Tarifas Homologadas</strong> (TE + TUSD) e <strong>Componentes das Tarifas</strong> (Fio B). O tipo é detectado automaticamente.
           </DialogDescription>
         </DialogHeader>
 
@@ -328,18 +293,29 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               onClick={() => fileRef.current?.click()}>
               <FileText className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                Clique para selecionar o arquivo <strong>.csv</strong> ou <strong>.xlsx</strong>
+                Clique para selecionar o arquivo <strong>.csv</strong>
               </p>
               <p className="text-[10px] text-muted-foreground mt-1">
                 Exportado do site dadosabertos.aneel.gov.br
               </p>
             </div>
-            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
+            <div className="flex items-start gap-2 p-2 rounded bg-muted/50 border text-[11px] text-muted-foreground">
+              <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <span>Importe primeiro as <strong>Tarifas Homologadas</strong> (TE/TUSD), depois as <strong>Componentes</strong> (Fio B) para complementar os dados.</span>
+            </div>
+            <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
           </div>
         )}
 
         {step === "preview" && (
           <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Badge variant={fileTypeBadge as any} className="text-[10px]">
+                {fileTypeLabel}
+              </Badge>
+              <span className="text-[10px] text-muted-foreground">{file?.name}</span>
+            </div>
+
             <div className="grid grid-cols-3 gap-2">
               <div className="rounded-lg bg-muted/50 p-3 text-center">
                 <div className="text-lg font-bold">{parsed.length}</div>
@@ -361,11 +337,17 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                   <div key={i} className="flex items-center justify-between text-[11px] py-1 px-2 rounded hover:bg-muted/30">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-[9px] font-mono">{r.subgrupo}</Badge>
-                      <span className="text-muted-foreground truncate max-w-[180px]">{r.sigAgente || r.nomAgente}</span>
+                      <span className="text-muted-foreground truncate max-w-[140px]">{r.sigAgente || r.nomAgente}</span>
                     </div>
                     <div className="flex gap-3 font-mono text-[10px]">
-                      <span>TE: {r.vlrTE.toFixed(4)}</span>
-                      <span>TUSD: {r.vlrTUSD.toFixed(4)}</span>
+                      {fileType === "componentes" ? (
+                        <span>FioB: {(r.vlrFioB || 0).toFixed(4)}</span>
+                      ) : (
+                        <>
+                          <span>TE: {r.vlrTE.toFixed(4)}</span>
+                          <span>TUSD: {r.vlrTUSD.toFixed(4)}</span>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
