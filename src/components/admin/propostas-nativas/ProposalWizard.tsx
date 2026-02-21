@@ -1061,14 +1061,14 @@ export function ProposalWizard() {
                   onClick={() => { if (isDone) goToStep(i); }}
                   className={cn(
                     "relative flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold transition-colors whitespace-nowrap border",
-                    isActive && "bg-primary text-primary-foreground shadow-lg shadow-primary/30 border-primary",
-                    isDone && "bg-secondary/10 text-secondary border-secondary/20 cursor-pointer hover:bg-secondary/20 hover:border-secondary/40",
+                    isActive && "bg-primary text-primary-foreground shadow-sm border-primary",
+                    isDone && "bg-secondary/10 text-secondary border-secondary/20 cursor-pointer hover:bg-secondary/15",
                     !isActive && !isDone && "text-muted-foreground border-transparent cursor-default",
                   )}
                   initial={false}
-                  animate={{ scale: isActive ? 1.05 : 1 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                  whileHover={isDone ? { scale: 1.05 } : undefined}
+                  animate={{ scale: 1 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                  whileHover={isDone ? { scale: 1.02 } : undefined}
                 >
                   <span className={cn(
                     "flex items-center justify-center h-6 w-6 rounded-full text-[10px] shrink-0 transition-colors",
@@ -1078,9 +1078,9 @@ export function ProposalWizard() {
                   )}>
                     {isDone ? (
                       <motion.span
-                        initial={{ scale: 0, rotate: -90 }}
-                        animate={{ scale: 1, rotate: 0 }}
-                        transition={{ type: "spring", stiffness: 500, damping: 20 }}
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ duration: 0.2, ease: "easeOut" }}
                       >
                         <Check className="h-3 w-3" />
                       </motion.span>
@@ -1090,14 +1090,7 @@ export function ProposalWizard() {
                   </span>
                   <span className="hidden sm:block">{s.label}</span>
                   {/* Active pulse — orange */}
-                  {isActive && (
-                    <motion.span
-                      className="absolute inset-0 rounded-xl border-2 border-primary/50"
-                      initial={{ opacity: 1, scale: 1 }}
-                      animate={{ opacity: 0, scale: 1.12 }}
-                      transition={{ duration: 1.8, repeat: Infinity, ease: "easeOut" }}
-                    />
-                  )}
+                  {/* No pulse ring — clean active state */}
                 </motion.button>
                 {/* Arrow connector */}
                 {i < activeSteps.length - 1 && (
