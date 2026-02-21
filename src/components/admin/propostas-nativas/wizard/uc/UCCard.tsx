@@ -74,9 +74,9 @@ function EditableValue({ label, value, decimals = 5, onChange }: {
 /* ── Section wrapper for visual grouping ── */
 function Section({ title, children, className = "" }: { title?: string; children: React.ReactNode; className?: string }) {
   return (
-    <div className={`space-y-2 ${className}`}>
+    <div className={`space-y-1.5 ${className}`}>
       {title && (
-        <p className="text-[11px] font-semibold text-foreground uppercase tracking-wide">{title}</p>
+        <p className="text-[10px] font-semibold text-foreground uppercase tracking-wide">{title}</p>
       )}
       {children}
     </div>
@@ -155,16 +155,16 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
   };
 
   return (
-    <div className="rounded-xl border border-border bg-card w-full flex flex-col">
+    <div className="rounded-lg border border-border bg-card w-full flex flex-col">
       {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-bold text-foreground">
+      <div className="flex items-center justify-between px-3 pt-2 pb-1.5">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-xs font-bold text-foreground whitespace-nowrap">
             {index + 1}. {isFirst ? "(Geradora)" : "Unidade"}
           </p>
           <Badge
             variant="outline"
-            className={`text-[9px] font-bold ${
+            className={`text-[8px] px-1 py-0 font-bold ${
               resolvedGrupo === "A"
                 ? "border-blue-400/50 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
                 : resolvedGrupo === "B"
@@ -172,19 +172,19 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
                 : "border-destructive/50 bg-destructive/5 text-destructive"
             }`}
           >
-            {resolvedGrupo ? `Grupo ${resolvedGrupo}` : "Indefinido"}
+            {resolvedGrupo ? `Grupo ${resolvedGrupo}` : "?"}
           </Badge>
           {uc.subgrupo && (
-            <Badge variant="secondary" className="text-[9px]">
+            <Badge variant="secondary" className="text-[8px] px-1 py-0">
               {uc.subgrupo}
             </Badge>
           )}
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button className="text-secondary hover:text-secondary/80 p-0.5"><AlertCircle className="h-4 w-4" /></button>
+                <button className="text-secondary hover:text-secondary/80 p-0.5"><AlertCircle className="h-3.5 w-3.5" /></button>
               </TooltipTrigger>
               <TooltipContent><p className="text-xs">Informações da UC</p></TooltipContent>
             </Tooltip>
@@ -192,7 +192,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
           {totalUcs > 1 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground p-0.5"><MoreVertical className="h-4 w-4" /></button>
+                <button className="text-muted-foreground hover:text-foreground p-0.5"><MoreVertical className="h-3.5 w-3.5" /></button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem onClick={onRemove} className="text-destructive">Remover UC</DropdownMenuItem>
@@ -203,7 +203,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
       </div>
 
       {/* ── Body ── */}
-      <div className="flex-1 px-4 pb-3 space-y-0">
+      <div className="flex-1 px-3 pb-2.5 space-y-0">
         {/* ── SEÇÃO 1: Classificação ── */}
         <Section>
           {/* Regra */}
@@ -257,7 +257,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
           </div>
         </Section>
 
-        <div className="border-t border-border/40 my-3" />
+        <div className="border-t border-border/40 my-1.5" />
 
         {/* ── SEÇÃO 2: Consumo ── */}
         <Section>
@@ -317,7 +317,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
           </div>
         </Section>
 
-        <div className="border-t border-border/40 my-3" />
+        <div className="border-t border-border/40 my-1.5" />
 
         {/* ── SEÇÃO 3: Tarifas ── */}
         {/* Indicador de dados auto-carregados */}
@@ -355,7 +355,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
               </div>
             </Section>
 
-            <div className="border-t border-border/40 my-3" />
+            <div className="border-t border-border/40 my-1.5" />
 
             {/* Tarifas Ponta / Fora Ponta */}
             <Section>
@@ -391,7 +391,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
               </div>
             </Section>
 
-            <div className="border-t border-border/40 my-3" />
+            <div className="border-t border-border/40 my-1.5" />
 
             {/* Demanda R$ */}
             <Section title="Demanda (R$)">
@@ -419,9 +419,9 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
       </div>
 
       {/* ── Footer ── */}
-      <div className="border-t border-border/50 px-4 py-2.5 mt-auto">
-        <button onClick={onOpenConfig} className="text-xs text-secondary hover:underline flex items-center gap-1.5">
-          <Settings2 className="h-3.5 w-3.5" /> Configurações adicionais
+      <div className="border-t border-border/50 px-3 py-1.5 mt-auto">
+        <button onClick={onOpenConfig} className="text-[10px] text-secondary hover:underline flex items-center gap-1">
+          <Settings2 className="h-3 w-3" /> Configurações adicionais
         </button>
       </div>
     </div>
