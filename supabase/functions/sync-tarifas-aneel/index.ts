@@ -1,5 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// sync-tarifas-aneel v6.0 — Parallel MT calls + comprehensive matching
+// sync-tarifas-aneel v7.0 — Versioning + Chunking + Governance
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
@@ -10,6 +10,8 @@ const corsHeaders = {
 
 const ANEEL_API_URL = "https://dadosabertos.aneel.gov.br/api/3/action/datastore_search";
 const ANEEL_RESOURCE_ID = "fcf2906c-7c32-4b9b-a637-054e7a5234f4";
+const DB_BATCH_SIZE = 50;
+const MIN_VIGENCIA_YEAR = 2024;
 
 interface TarifaAneel {
   SigAgente: string;
@@ -56,7 +58,6 @@ async function verifyAdminRole(req: Request): Promise<{
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-
   const userId = await resolveUserId(req, anonKey);
   if (!userId) {
     return {
@@ -65,22 +66,10 @@ async function verifyAdminRole(req: Request): Promise<{
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     };
   }
-
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
-
-  const { data: profile } = await adminClient
-    .from('profiles')
-    .select('tenant_id')
-    .eq('user_id', userId)
-    .single();
-
+  const { data: profile } = await adminClient.from('profiles').select('tenant_id').eq('user_id', userId).single();
   const tenantId = profile?.tenant_id || null;
-
-  const { data: roles } = await adminClient
-    .from('user_roles')
-    .select('role')
-    .eq('user_id', userId);
-
+  const { data: roles } = await adminClient.from('user_roles').select('role').eq('user_id', userId);
   const isAdmin = roles?.some(r => ['admin', 'gerente', 'financeiro'].includes(r.role));
   if (!isAdmin) {
     return {
@@ -89,7 +78,6 @@ async function verifyAdminRole(req: Request): Promise<{
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     };
   }
-
   return { authorized: true, userId, tenantId };
 }
 
@@ -105,37 +93,26 @@ function stripSuffixes(s: string): string {
 }
 
 // ── Comprehensive matching aliases ───────────────────────────────────────────
-// Maps DB sigla → list of possible ANEEL SigAgente/NomAgente values
 const SIGLA_ALIASES: Record<string, string[]> = {
-  // CEMIG
   "CEMIG":    ["CEMIG", "CEMIGD", "CEMIG-D", "CEMIG DISTRIBUICAO", "CEMIG DISTRIBUICAO SA"],
-  // COPEL  
   "COPEL":    ["COPEL", "COPELDIS", "COPEL-DIS", "COPEL DISTRIBUICAO"],
-  // CPFL
   "CPFL":     ["CPFL", "CPFLPAULISTA", "CPFL PAULISTA", "CPFL-PAULISTA"],
   "CPFL-PIR": ["CPFLPIRATININGA", "CPFL PIRATININGA", "CPFL-PIRATININGA", "PIRATININGA"],
-  // EDP
   "EDP-ES":   ["EDPES", "EDP ES", "EDP-ES", "ESCELSA", "EDP ESPIRITO SANTO"],
   "EDP-SP":   ["EDPSP", "EDP SP", "EDP-SP", "BANDEIRANTE", "EDP SAO PAULO"],
-  // ENEL
   "ENEL-CE":  ["ENELCE", "ENEL CE", "ENEL-CE", "COELCE", "ENEL CEARA"],
   "ENEL-RJ":  ["ENELRJ", "ENEL RJ", "ENEL-RJ", "ENEL DISTRIBUICAO RIO"],
   "ENEL-GO":  ["ENELGO", "ENEL GO", "ENEL-GO", "ENEL GOIAS", "ENEL DISTRIBUICAO GOIAS"],
   "ENEL-SP":  ["ENELSP", "ENEL SP", "ENEL-SP", "ELETROPAULO", "ENEL SAO PAULO"],
   "LIGHT":    ["LIGHT", "LIGHTSESA", "LIGHT SESA", "LIGHT-SESA", "LIGHT SA", "LIGHT SERVICOS"],
-  // CELESC
   "CELESC":   ["CELESC", "CELESCDIS", "CELESC-DIS", "CELESC DISTRIBUICAO"],
-  // CEEE
   "CEEE":     ["CEEE", "CEEED", "CEEE-D", "CEEE EQUATORIAL", "EQUATORIAL RS"],
-  // Elektro/Neoenergia Elektro (two DB entries share this)
   "ELEKTRO":  ["ELEKTRO", "ELEKTRO REDES", "NEOENERGIA ELEKTRO"],
   "NEO-ELK":  ["ELEKTRO", "ELEKTRO REDES", "NEOENERGIA ELEKTRO"],
-  // Neoenergia
   "CELPE":    ["CELPE", "NEOENERGIA PE", "NEOENERGIA PERNAMBUCO", "NEOENERGIA CELPE"],
   "COELBA":   ["COELBA", "NEOENERGIA BA", "NEOENERGIA BAHIA", "NEOENERGIA COELBA"],
   "COSERN":   ["COSERN", "NEOENERGIA RN", "NEOENERGIA COSERN"],
   "CEB":      ["CEB", "CEBD", "CEB-D", "CEB DISTRIBUICAO", "NEOENERGIA BRASILIA", "NEOENERGIA CEB"],
-  // Energisa
   "EAC":      ["EAC", "EACRE", "ENERGISA AC", "ENERGISA ACRE"],
   "EMG":      ["EMG", "ENERGISA MG", "ENERGISA MINAS GERAIS", "ENERGISA MINAS", "ENERGISA NOVA FRIBURGO", "ENF"],
   "EMS":      ["EMS", "ENERGISA MS", "ENERGISA MATO GROSSO DO SUL"],
@@ -145,19 +122,14 @@ const SIGLA_ALIASES: Record<string, string[]> = {
   "ERO":      ["ERO", "ENERGISA RO", "ENERGISA RONDONIA"],
   "ESE":      ["ESE", "ENERGISA SE", "ENERGISA SERGIPE"],
   "ETO":      ["ETO", "ENERGISA TO", "ENERGISA TOCANTINS"],
-  // Equatorial
   "CEAL":     ["CEAL", "EQUATORIAL AL", "EQUATORIAL ALAGOAS"],
   "CELG":     ["CELG", "CELGD", "CELG-D", "EQUATORIAL GO", "EQUATORIAL GOIAS"],
   "CEMAR":    ["CEMAR", "EQUATORIAL MA", "EQUATORIAL MARANHAO"],
   "CELPA":    ["CELPA", "EQUATORIAL PA", "EQUATORIAL PARA"],
   "CEPISA":   ["CEPISA", "EQUATORIAL PI", "EQUATORIAL PIAUI"],
-  // Amazonas
   "AME":      ["AME", "AMAZONAS ENERGIA", "AMAZONAS DISTRIBUIDORA"],
-  // CEA
   "CEA":      ["CEA", "CEA EQUATORIAL", "EQUATORIAL AP", "EQUATORIAL AMAPA"],
-  // RGE
   "RGE":      ["RGE", "RGESUL", "RGE SUL", "RGE-SUL"],
-  // Roraima
   "RRE":      ["RRE", "BOA VISTA", "RORAIMA ENERGIA", "BOA VISTA ENERGIA"],
 };
 
@@ -181,10 +153,7 @@ function validateTariffRecord(te: number, tusdTotal: number): {
   if (te > 2.0) notes.push(`TE muito alta (${te.toFixed(4)} R$/kWh) — verificar unidade`);
   if (tusdTotal > 2.0) notes.push(`TUSD muito alto (${tusdTotal.toFixed(4)} R$/kWh) — verificar unidade`);
   if (te + tusdTotal > 3.0) notes.push("Tarifa total > R$ 3,00/kWh — possível erro de unidade");
-
-  const status =
-    notes.some(n => n.includes("suspeito") || n.includes("erro")) ? 'atencao' : 'incompleto_gd3';
-
+  const status = notes.some(n => n.includes("suspeito") || n.includes("erro")) ? 'atencao' : 'incompleto_gd3';
   return { status, notes };
 }
 
@@ -210,25 +179,20 @@ function matchAgentToConc(
   const agSigNorm = normalizeStr(agenteSig);
   const agNomNorm = normalizeStr(agenteNom);
 
-  // 1. Direct sigla match
   if (concSiglaNorm && agSigNorm && agSigNorm === concSiglaNorm) return true;
 
-  // 2. Alias match
   if (conc.sigla) {
     const aliases = SIGLA_ALIASES[conc.sigla.toUpperCase()] || [];
     for (const alias of aliases) {
       const aliasNorm = normalizeStr(alias);
       if (aliasNorm && (agSigNorm === aliasNorm || agNomNorm === aliasNorm)) return true;
-      // Partial: ANEEL sig contains alias or vice versa
       if (aliasNorm.length >= 3 && (agSigNorm.includes(aliasNorm) || aliasNorm.includes(agSigNorm))) return true;
       if (aliasNorm.length >= 3 && (agNomNorm.includes(aliasNorm) || aliasNorm.includes(agNomNorm))) return true;
     }
   }
 
-  // 3. Name match
   if (agNomNorm && concNomeNorm && agNomNorm === concNomeNorm) return true;
 
-  // 4. Stripped match (remove common suffixes)
   const strippedConc = stripSuffixes(concNomeNorm);
   const strippedAgSig = stripSuffixes(agSigNorm);
   const strippedAgNom = stripSuffixes(agNomNorm);
@@ -238,7 +202,6 @@ function matchAgentToConc(
     if (strippedAgNom.length >= 3 && (strippedConc.includes(strippedAgNom) || strippedAgNom.includes(strippedConc))) return true;
   }
 
-  // 5. Sigla substring match
   if (concSiglaNorm && concSiglaNorm.length >= 2) {
     if (agSigNorm.includes(concSiglaNorm) || concSiglaNorm.includes(agSigNorm)) return true;
   }
@@ -246,19 +209,15 @@ function matchAgentToConc(
   return false;
 }
 
-// Build a lookup for a concessionária against a set of ANEEL records indexed by sig/nom
 function findTarifaForConc(
   conc: { nome: string; sigla: string | null },
   porAgente: Record<string, TarifaAneel>,
   porNome: Record<string, TarifaAneel>,
 ): TarifaAneel | undefined {
-  // 1. Direct sigla
   if (conc.sigla) {
     const t = porAgente[normalizeStr(conc.sigla)];
     if (t) return t;
   }
-
-  // 2. Aliases
   if (conc.sigla) {
     for (const alias of (SIGLA_ALIASES[conc.sigla.toUpperCase()] || [])) {
       const norm = normalizeStr(alias);
@@ -266,12 +225,9 @@ function findTarifaForConc(
       if (t) return t;
     }
   }
-
-  // 3. Name
   const t3 = porNome[normalizeStr(conc.nome)];
   if (t3) return t3;
 
-  // 4. Stripped contains
   const stripped = stripSuffixes(normalizeStr(conc.nome));
   if (stripped.length >= 3) {
     for (const [k, v] of Object.entries(porAgente)) {
@@ -283,8 +239,6 @@ function findTarifaForConc(
       if (sk.length >= 3 && (stripped.includes(sk) || sk.includes(stripped))) return v;
     }
   }
-
-  // 5. Sigla substring
   if (conc.sigla) {
     const siglaNorm = normalizeStr(conc.sigla);
     if (siglaNorm.length >= 2) {
@@ -293,11 +247,8 @@ function findTarifaForConc(
       }
     }
   }
-
   return undefined;
 }
-
-const MIN_VIGENCIA_YEAR = 2024;
 
 // ── Fetch ANEEL API with pagination ──────────────────────────────────────────
 
@@ -305,11 +256,10 @@ async function fetchWithRetry(url: string, log: (msg: string) => void, maxRetrie
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout per request
+      const timeout = setTimeout(() => controller.abort(), 30000);
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeout);
       if (response.ok) return response;
-      const errText = await response.text();
       log(`⚠️ ANEEL API tentativa ${attempt}/${maxRetries}: HTTP ${response.status}`);
       if (attempt === maxRetries) throw new Error(`Erro na API ANEEL: HTTP ${response.status}`);
       await new Promise(r => setTimeout(r, 2000 * attempt));
@@ -404,7 +354,6 @@ function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] 
     }
   }
 
-  // Deduplicate: keep most recent vigência per agent+subgrupo+modalidade
   const deduped = new Map<string, GrupoATarifaAgregada>();
   for (const item of result) {
     const dedupKey = `${normalizeStr(item.sigAgente)}|${normalizeStr(item.nomAgente)}|${item.subgrupo}|${item.modalidade}`;
@@ -415,6 +364,35 @@ function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] 
   }
 
   return Array.from(deduped.values());
+}
+
+// ── Chunked upsert helper ────────────────────────────────────────────────────
+
+async function chunkedUpsert(
+  supabase: ReturnType<typeof createClient>,
+  table: string,
+  records: any[],
+  onConflict: string,
+  log: (msg: string) => void,
+): Promise<{ ok: number; errors: number }> {
+  let ok = 0;
+  let errors = 0;
+
+  for (let i = 0; i < records.length; i += DB_BATCH_SIZE) {
+    const batch = records.slice(i, i + DB_BATCH_SIZE);
+    const { error } = await supabase.from(table).upsert(batch, {
+      onConflict,
+      ignoreDuplicates: false,
+    });
+    if (error) {
+      log(`⚠️ Erro batch ${table} [${i}-${i + batch.length}]: ${error.message}`);
+      errors += batch.length;
+    } else {
+      ok += batch.length;
+    }
+  }
+
+  return { ok, errors };
 }
 
 // ── Background processor ─────────────────────────────────────────────────────
@@ -455,11 +433,16 @@ async function processSync(
     } catch {}
   };
 
+  // ── GUARANTEED FINALIZATION wrapper ────────────────────────────────────
+  // No matter what happens, the run will always get a final status.
+  let finalStatus = 'error';
+  let errorMsg: string | null = null;
+
   try {
-    log(`Sync v6.0 iniciado — tenant=${tenantId.substring(0, 8)}…, trigger=${testRun ? 'test_run' : triggerType}`);
+    log(`Sync v7.0 iniciado — tenant=${tenantId.substring(0, 8)}…, trigger=${testRun ? 'test_run' : triggerType}`);
     if (testRun) log("🧪 MODO TEST RUN — nenhuma alteração será publicada");
 
-    // ── Fetch concessionárias ─────────────────────────────────────────────
+    // ── Step 1: Fetch concessionárias ─────────────────────────────────────
     let query = supabase.from('concessionarias')
       .select('id, nome, sigla, estado, tarifa_energia, tarifa_fio_b, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, aliquota_icms, possui_isencao_scee, percentual_isencao')
       .eq('tenant_id', tenantId)
@@ -472,15 +455,36 @@ async function processSync(
     log(`📋 ${concessionarias?.length || 0} concessionária(s) ativas`);
 
     if (!concessionarias || concessionarias.length === 0) {
-      await supabase.from('aneel_sync_runs').update({
-        status: 'success', finished_at: new Date().toISOString(),
-        logs: runLogs, total_fetched: 0, total_matched: 0, total_updated: 0,
-      }).eq('id', runId);
+      finalStatus = 'success';
       return;
     }
 
+    // ── Step 2: Create tarifa_versoes (draft) ─────────────────────────────
+    let versaoId: string | null = null;
+    if (!testRun) {
+      const { data: versao, error: versaoError } = await supabase
+        .from('tarifa_versoes')
+        .insert({
+          tenant_id: tenantId,
+          created_by: userId,
+          origem: 'sync_aneel',
+          status: 'rascunho',
+          notas: `Sync ANEEL automático — run ${runId.substring(0, 8)}`,
+          sync_run_id: runId,
+        })
+        .select('id')
+        .single();
+
+      if (versaoError) {
+        log(`⚠️ Erro ao criar tarifa_versoes: ${versaoError.message}`);
+        throw versaoError;
+      }
+      versaoId = versao.id;
+      log(`📦 Versão rascunho criada: ${versaoId!.substring(0, 8)}…`);
+    }
+
     // ══════════════════════════════════════════════════════════════════════
-    // PHASE 1: BT (B1, B2, B3) — Sequential (3 calls)
+    // PHASE 1: BT (B1, B2, B3)
     // ══════════════════════════════════════════════════════════════════════
 
     log("═══ FASE 1: Tarifas BT ═══");
@@ -529,20 +533,20 @@ async function processSync(
       btIndexBySubgrupo[sub] = { porAgente, porNome };
     }
 
-    // Log all unique agents from ANEEL for debugging
     const uniqueAgents = new Set<string>();
-    for (const t of allBtRecords) {
-      uniqueAgents.add(`${t.SigAgente} | ${t.NomAgente}`);
-    }
+    for (const t of allBtRecords) uniqueAgents.add(`${t.SigAgente} | ${t.NomAgente}`);
     log(`📊 ${uniqueAgents.size} agentes distintos na API ANEEL`);
 
     const tarifasPorAgente = btIndexBySubgrupo['B1']?.porAgente || {};
     const tarifasPorNome = btIndexBySubgrupo['B1']?.porNome || {};
 
-    // Process BT for each concessionária
+    // Process BT for each concessionária — collect all upserts first, then batch write
     const erros: { concessionaria: string; erro: string }[] = [];
     const matchedConcs: string[] = [];
     const unmatchedConcs: string[] = [];
+    const allBtUpserts: any[] = [];
+    const allTvInserts: any[] = [];
+    const concUpdates: Array<{ id: string; tarifa_energia: number; tarifa_fio_b: number }> = [];
 
     for (const conc of concessionarias) {
       const tarifa = findTarifaForConc(conc, tarifasPorAgente, tarifasPorNome);
@@ -571,14 +575,8 @@ async function processSync(
       const vigenciaFim = tarifa.DatFimVigencia && tarifa.DatFimVigencia !== '0001-01-01' ? tarifa.DatFimVigencia.substring(0, 10) : null;
 
       if (!testRun) {
-        // Deactivate old versions
-        await supabase.from('tariff_versions')
-          .update({ is_active: false })
-          .eq('concessionaria_id', conc.id)
-          .eq('tenant_id', tenantId)
-          .eq('is_active', true);
-
-        const { error: tvError } = await supabase.from('tariff_versions').insert({
+        // Collect tariff_versions insert
+        allTvInserts.push({
           tenant_id: tenantId,
           concessionaria_id: conc.id,
           run_id: runId,
@@ -604,22 +602,14 @@ async function processSync(
           precisao,
         });
 
-        if (tvError) {
-          log(`⚠️ Erro tariff_version ${conc.nome}: ${tvError.message}`);
-          erros.push({ concessionaria: conc.nome, erro: tvError.message });
-          totalErrors++;
-          continue;
-        }
-
-        // Update concessionaria main record
-        await supabase.from('concessionarias').update({
+        // Collect concessionaria update
+        concUpdates.push({
+          id: conc.id,
           tarifa_energia: tarifaTotal,
           tarifa_fio_b: tusd_fio_b_real ?? tusdTotal,
-          ultima_sync_tarifas: new Date().toISOString(),
-        }).eq('id', conc.id);
+        });
 
-        // Batch upsert BT subgrupos
-        const btUpserts: any[] = [];
+        // Collect BT subgrupo upserts — ALL with versao_id
         for (const sub of BT_SUBGRUPOS) {
           const subIndex = btIndexBySubgrupo[sub];
           if (!subIndex) continue;
@@ -632,7 +622,7 @@ async function processSync(
           const subTotal = Math.round((subTusd + subTe) * 1000000) / 1000000;
           const { tusd_fio_b_real: subFioB } = detectPrecisao(conc.tarifa_fio_b, subTusd);
 
-          btUpserts.push({
+          allBtUpserts.push({
             concessionaria_id: conc.id,
             tenant_id: tenantId,
             subgrupo: sub,
@@ -641,16 +631,10 @@ async function processSync(
             tarifa_fio_b: subFioB ?? subTusd,
             origem: subTarifa ? 'ANEEL' : 'ANEEL (fallback B1)',
             is_active: true,
+            versao_id: versaoId,
+            vigencia_inicio: vigenciaInicio,
             updated_at: new Date().toISOString(),
           });
-        }
-
-        if (btUpserts.length > 0) {
-          await supabase.from('concessionaria_tarifas_subgrupo')
-            .upsert(btUpserts, {
-              onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
-              ignoreDuplicates: false,
-            });
         }
 
         totalUpdated++;
@@ -663,9 +647,46 @@ async function processSync(
     }
 
     log(`📊 BT Resumo: ${matchedConcs.length} matched, ${unmatchedConcs.length} não encontradas`);
-    if (unmatchedConcs.length > 0) {
-      log(`❌ Sem correspondência: ${unmatchedConcs.join(', ')}`);
+    if (unmatchedConcs.length > 0) log(`❌ Sem correspondência: ${unmatchedConcs.join(', ')}`);
+
+    // ── Chunked writes for BT ──────────────────────────────────────────────
+    if (!testRun) {
+      // 1) Deactivate old tariff_versions for matched concs
+      const matchedConcIds = concUpdates.map(c => c.id);
+      if (matchedConcIds.length > 0) {
+        await supabase.from('tariff_versions')
+          .update({ is_active: false })
+          .eq('tenant_id', tenantId)
+          .eq('is_active', true)
+          .in('concessionaria_id', matchedConcIds);
+      }
+
+      // 2) Insert tariff_versions in chunks
+      if (allTvInserts.length > 0) {
+        const tvResult = await chunkedUpsert(supabase, 'tariff_versions', allTvInserts, 'id', log);
+        log(`📝 tariff_versions: ${tvResult.ok} inseridos, ${tvResult.errors} erros`);
+        totalErrors += tvResult.errors;
+      }
+
+      // 3) Upsert BT subgrupos in chunks
+      if (allBtUpserts.length > 0) {
+        const btResult = await chunkedUpsert(supabase, 'concessionaria_tarifas_subgrupo', allBtUpserts,
+          'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria', log);
+        log(`📝 BT subgrupos: ${btResult.ok} ok, ${btResult.errors} erros`);
+        totalErrors += btResult.errors;
+      }
+
+      // 4) Update concessionaria main records
+      for (const upd of concUpdates) {
+        await supabase.from('concessionarias').update({
+          tarifa_energia: upd.tarifa_energia,
+          tarifa_fio_b: upd.tarifa_fio_b,
+          ultima_sync_tarifas: new Date().toISOString(),
+        }).eq('id', upd.id);
+      }
     }
+
+    await flushProgress(true);
 
     // ══════════════════════════════════════════════════════════════════════
     // PHASE 2: Grupo A (MT) — PARALLEL API calls
@@ -677,7 +698,6 @@ async function processSync(
     const MT_MODALIDADES = ['Azul', 'Verde'];
     const allMtRecords: TarifaAneel[] = [];
 
-    // Parallel fetch: 2 calls at a time to avoid overwhelming API
     const mtCalls: Array<{ subgrupo: string; modalidade: string }> = [];
     for (const subgrupo of MT_SUBGRUPOS) {
       for (const modalidade of MT_MODALIDADES) {
@@ -685,7 +705,6 @@ async function processSync(
       }
     }
 
-    // Execute in parallel batches of 3
     const MT_PARALLEL = 3;
     for (let i = 0; i < mtCalls.length; i += MT_PARALLEL) {
       const batch = mtCalls.slice(i, i + MT_PARALLEL);
@@ -723,7 +742,7 @@ async function processSync(
       const aggregated = aggregateGrupoARecords(allMtRecords);
       log(`MT agregado: ${aggregated.length} combinações únicas`);
 
-      // Pre-fetch manual records
+      // Pre-fetch manual records to protect them
       const concIds = concessionarias.map(c => c.id);
       const { data: existingManual } = await supabase
         .from('concessionaria_tarifas_subgrupo')
@@ -751,7 +770,6 @@ async function processSync(
           const upsertKey = `${conc.id}|${mt.subgrupo}|${mt.modalidade}`;
           if (manualKeys.has(upsertKey)) continue;
 
-          // Deduplicate: keep most recent vigência per unique constraint key
           const existing = mtUpsertsMap.get(upsertKey);
           if (existing && existing.vigencia_inicio >= mt.vigencia_inicio) continue;
 
@@ -767,35 +785,23 @@ async function processSync(
             vigencia_inicio: mt.vigencia_inicio,
             origem: 'ANEEL',
             is_active: true,
+            versao_id: versaoId,
             updated_at: new Date().toISOString(),
           });
         }
       }
 
       const mtUpserts = Array.from(mtUpsertsMap.values());
-      log(`MT deduplicado: ${mtUpserts.length} registros únicos (de ${mtUpsertsMap.size} chaves)`);
+      log(`MT deduplicado: ${mtUpserts.length} registros únicos`);
 
-      // Batch upsert MT in chunks of 50
       if (!testRun && mtUpserts.length > 0) {
-        const BATCH_SIZE = 50;
-        for (let i = 0; i < mtUpserts.length; i += BATCH_SIZE) {
-          const batch = mtUpserts.slice(i, i + BATCH_SIZE);
-          const { error: batchError } = await supabase
-            .from('concessionaria_tarifas_subgrupo')
-            .upsert(batch, {
-              onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
-              ignoreDuplicates: false,
-            });
-
-          if (batchError) {
-            log(`⚠️ Erro batch MT: ${batchError.message}`);
-            totalErrors += batch.length;
-          } else {
-            totalMtUpdated += batch.length;
-          }
-          await flushProgress();
-        }
-        log(`✅ MT: ${totalMtUpdated} subgrupos atualizados`);
+        const mtResult = await chunkedUpsert(
+          supabase, 'concessionaria_tarifas_subgrupo', mtUpserts,
+          'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria', log
+        );
+        totalMtUpdated = mtResult.ok;
+        totalErrors += mtResult.errors;
+        log(`✅ MT: ${totalMtUpdated} subgrupos atualizados, ${mtResult.errors} erros`);
       } else if (testRun) {
         totalMtUpdated = mtUpserts.length;
         log(`🧪 MT: ${mtUpserts.length} subgrupos simulados`);
@@ -805,40 +811,85 @@ async function processSync(
     totalMatched += totalMtMatched;
     totalUpdated += totalMtUpdated;
 
-    // ── Finalize run ──────────────────────────────────────────────────────
-    const finalStatus = testRun ? 'test_run' :
-      erros.length === 0 ? 'success' : totalUpdated > 0 ? 'partial' : 'error';
+    // ══════════════════════════════════════════════════════════════════════
+    // PHASE 3: Activate version (governance)
+    // ══════════════════════════════════════════════════════════════════════
 
+    if (!testRun && versaoId) {
+      // Check for TE/TUSD = 0 in the records we just wrote
+      const { data: zeroCheck } = await supabase
+        .from('concessionaria_tarifas_subgrupo')
+        .select('id')
+        .eq('versao_id', versaoId)
+        .or('tarifa_energia.eq.0,tarifa_fio_b.eq.0')
+        .limit(1);
+
+      const hasZeros = (zeroCheck?.length || 0) > 0;
+
+      if (hasZeros) {
+        log(`⚠️ GOVERNANÇA: Versão NÃO ativada — detectados valores TE/TUSD = 0`);
+        // Keep as rascunho but update counts
+        await supabase.from('tarifa_versoes').update({
+          total_registros: totalUpdated + totalMtUpdated,
+          total_concessionarias: totalMatched,
+          notas: `Sync ANEEL — NÃO ATIVADA (valores zero detectados). Run: ${runId.substring(0, 8)}`,
+        }).eq('id', versaoId);
+        finalStatus = 'partial';
+      } else if (totalUpdated === 0 && totalMtUpdated === 0) {
+        log(`⚠️ Nenhum registro atualizado — versão mantida como rascunho`);
+        finalStatus = totalErrors > 0 ? 'error' : 'success';
+      } else {
+        // Deactivate previous active version
+        await supabase.from('tarifa_versoes')
+          .update({ status: 'arquivada' })
+          .eq('tenant_id', tenantId)
+          .eq('status', 'ativa')
+          .neq('id', versaoId);
+
+        // Activate this version
+        await supabase.from('tarifa_versoes').update({
+          status: 'ativa',
+          activated_at: new Date().toISOString(),
+          activated_by: userId,
+          total_registros: totalUpdated + totalMtUpdated,
+          total_concessionarias: totalMatched,
+          notas: `Sync ANEEL ativada automaticamente. Run: ${runId.substring(0, 8)}`,
+        }).eq('id', versaoId);
+
+        log(`✅ GOVERNANÇA: Versão ${versaoId.substring(0, 8)}… ATIVADA com ${totalUpdated + totalMtUpdated} registros`);
+        finalStatus = erros.length === 0 ? 'success' : 'partial';
+      }
+    } else if (testRun) {
+      finalStatus = 'test_run';
+    }
+
+    // ── Finalize ──────────────────────────────────────────────────────────
     log(`════════════════════════════════`);
     log(`✅ CONCLUÍDO — BT: ${totalUpdated - totalMtUpdated} concs, MT: ${totalMtUpdated} subgrupos, Erros: ${totalErrors}`);
     log(`Status: ${finalStatus}`);
 
-    await supabase.from('aneel_sync_runs').update({
-      status: finalStatus,
-      finished_at: new Date().toISOString(),
-      total_fetched: totalFetched,
-      total_matched: totalMatched,
-      total_updated: totalUpdated,
-      total_errors: totalErrors,
-      snapshot_hash: snapshotHash,
-      logs: runLogs,
-    }).eq('id', runId);
-
   } catch (error) {
     console.error("[sync-tarifas-aneel] Erro:", error);
-    const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
+    errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
+    finalStatus = 'error';
+    log(`💥 ERRO FATAL: ${errorMsg}`);
+  } finally {
+    // ── GUARANTEED status update ────────────────────────────────────────
     try {
       await supabase.from('aneel_sync_runs').update({
-        status: 'error',
+        status: finalStatus,
         finished_at: new Date().toISOString(),
         error_message: errorMsg,
-        logs: runLogs,
         total_fetched: totalFetched,
         total_matched: totalMatched,
         total_updated: totalUpdated,
         total_errors: totalErrors,
+        snapshot_hash: '',
+        logs: runLogs,
       }).eq('id', runId);
-    } catch {}
+    } catch (finalErr) {
+      console.error("[sync-tarifas-aneel] CRITICAL: Failed to finalize run status:", finalErr);
+    }
   }
 }
 
@@ -915,8 +966,6 @@ Deno.serve(async (req) => {
     const runId = runData.id;
 
     // 🚀 FIRE AND FORGET — return immediately, process in background
-    // The Edge Runtime keeps the isolate alive for the wall_clock_limit (300s)
-    // even after the response is sent.
     const syncPromise = processSync(supabase, runId, tenantId, userId, concessionariaId, triggerType, testRun);
     syncPromise.catch((err) => {
       console.error("[sync-tarifas-aneel] Background error:", err);

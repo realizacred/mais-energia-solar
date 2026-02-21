@@ -11534,6 +11534,7 @@ export type Database = {
           notas: string | null
           origem: string
           status: string
+          sync_run_id: string | null
           tenant_id: string
           total_concessionarias: number | null
           total_registros: number | null
@@ -11548,6 +11549,7 @@ export type Database = {
           notas?: string | null
           origem?: string
           status?: string
+          sync_run_id?: string | null
           tenant_id: string
           total_concessionarias?: number | null
           total_registros?: number | null
@@ -11562,11 +11564,19 @@ export type Database = {
           notas?: string | null
           origem?: string
           status?: string
+          sync_run_id?: string | null
           tenant_id?: string
           total_concessionarias?: number | null
           total_registros?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tarifa_versoes_sync_run_id_fkey"
+            columns: ["sync_run_id"]
+            isOneToOne: false
+            referencedRelation: "aneel_sync_runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tarifa_versoes_tenant_id_fkey"
             columns: ["tenant_id"]
