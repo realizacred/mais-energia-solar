@@ -243,18 +243,6 @@ export function ProjectAddressFields({
 
   return (
     <div className="space-y-3">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <Label className="text-xs font-semibold flex items-center gap-1.5">
-          <MapPin className="h-3.5 w-3.5 text-primary" />
-          Endereço de instalação
-        </Label>
-        {geocoding && (
-          <Badge variant="outline" className="text-[9px] gap-1 text-primary border-primary/30 animate-pulse">
-            <Loader2 className="h-2.5 w-2.5 animate-spin" /> Geocodificando...
-          </Badge>
-        )}
-      </div>
 
       {/* Same as client checkbox */}
       {clientHasAddress(clienteData) && (
