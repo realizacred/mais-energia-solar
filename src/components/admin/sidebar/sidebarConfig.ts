@@ -300,6 +300,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "dicionario-aneel", title: "Dicionário ANEEL", icon: FileSearch, description: "Mapeamento ANEEL ↔ Concessionárias", keywords: ["aneel", "dicionário", "match", "alias", "mapeamento"] },
       { id: "tarifa-versoes", title: "Versões de Tarifa", icon: HistoryIcon, description: "Versionamento, diff e rollback de tarifas", keywords: ["versão", "tarifa", "rollback", "diff", "histórico", "ativar"] },
       { id: "saude-tarifaria", title: "Saúde Tarifária", icon: Activity, description: "Alertas, cobertura e governança de tarifas", keywords: ["saúde", "alerta", "vigência", "zero", "governança", "diagnóstico"] },
+      { id: "aneel-sync-status", title: "Status Sync ANEEL", icon: Zap, description: "Monitoramento em tempo real do sync ANEEL", keywords: ["sync", "aneel", "status", "log", "run", "versão"] },
       { id: "loading-config", title: "Loading & Mensagens", icon: Sun, description: "Animação e mensagens de carregamento", keywords: ["loading", "carregamento", "mensagem", "animação", "sol", "loader"], separator: true },
     ],
   },
