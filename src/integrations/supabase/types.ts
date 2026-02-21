@@ -1570,6 +1570,48 @@ export type Database = {
           },
         ]
       }
+      concessionaria_aneel_aliases: {
+        Row: {
+          alias_aneel: string
+          concessionaria_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          tenant_id: string
+        }
+        Insert: {
+          alias_aneel: string
+          concessionaria_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          tenant_id: string
+        }
+        Update: {
+          alias_aneel?: string
+          concessionaria_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concessionaria_aneel_aliases_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concessionaria_aneel_aliases_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concessionaria_tarifas_subgrupo: {
         Row: {
           concessionaria_id: string
@@ -1674,6 +1716,7 @@ export type Database = {
           estado: string | null
           id: string
           nome: string
+          nome_aneel_oficial: string | null
           percentual_isencao: number | null
           possui_isencao_scee: boolean | null
           sigla: string | null
@@ -1693,6 +1736,7 @@ export type Database = {
           estado?: string | null
           id?: string
           nome: string
+          nome_aneel_oficial?: string | null
           percentual_isencao?: number | null
           possui_isencao_scee?: boolean | null
           sigla?: string | null
@@ -1712,6 +1756,7 @@ export type Database = {
           estado?: string | null
           id?: string
           nome?: string
+          nome_aneel_oficial?: string | null
           percentual_isencao?: number | null
           possui_isencao_scee?: boolean | null
           sigla?: string | null

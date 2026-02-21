@@ -171,14 +171,26 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
     // Pre-compute matching preview against DB concessionárias
     try {
-      const { data: concessionarias } = await supabase
-        .from("concessionarias")
-        .select("id, nome, sigla");
+      const [concRes, aliasRes] = await Promise.all([
+        supabase
+          .from("concessionarias")
+          .select("id, nome, sigla, nome_aneel_oficial"),
+        supabase
+          .from("concessionaria_aneel_aliases")
+          .select("concessionaria_id, alias_aneel"),
+      ]);
+      const concessionarias = concRes.data;
       
       if (concessionarias?.length) {
+        const concById = new Map(concessionarias.map(c => [c.id, c]));
         const concByNormMatch: Record<string, typeof concessionarias[0]> = {};
         const concBySigla: Record<string, typeof concessionarias[0]> = {};
+        
+        // Index by nome_aneel_oficial (highest priority)
         for (const c of concessionarias) {
+          if (c.nome_aneel_oficial) {
+            concByNormMatch[normMatch(c.nome_aneel_oficial)] = c;
+          }
           if (c.sigla) {
             concBySigla[norm(c.sigla)] = c;
             concBySigla[normMatch(c.sigla)] = c;
@@ -187,13 +199,23 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
           const stripped = stripSuffixes(normMatch(c.nome));
           if (stripped) concByNormMatch[stripped] = c;
         }
+        
+        // Index DB aliases
+        if (aliasRes.data) {
+          for (const a of aliasRes.data) {
+            const c = concById.get(a.concessionaria_id);
+            if (c) concByNormMatch[normMatch(a.alias_aneel)] = c;
+          }
+        }
 
         const quickFind = (agent: string) => {
           const nm = normMatch(agent);
           const nms = stripSuffixes(nm);
+          // 1. DB aliases + nome_aneel_oficial (already indexed above)
           if (concByNormMatch[nm]) return concByNormMatch[nm];
           if (concByNormMatch[nms]) return concByNormMatch[nms];
           if (concBySigla[nm]) return concBySigla[nm];
+          // 2. Hardcoded aliases (fallback)
           const aliases = ANEEL_AGENT_ALIASES[nm] || ANEEL_AGENT_ALIASES[nms];
           if (aliases) {
             for (const a of aliases) {
@@ -202,6 +224,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               if (concBySigla[norm(a)]) return concBySigla[norm(a)];
             }
           }
+          // 3. Fuzzy substring
           for (const c of concessionarias) {
             const nn = normMatch(c.nome);
             const nns = stripSuffixes(nn);
@@ -237,31 +260,47 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setProgress({ current: 0, total: 0, percent: 0 });
 
     try {
-      const { data: concessionarias, error: concError } = await supabase
-        .from("concessionarias")
-        .select("id, nome, sigla");
-      if (concError) throw concError;
+      const [concRes, aliasRes] = await Promise.all([
+        supabase
+          .from("concessionarias")
+          .select("id, nome, sigla, nome_aneel_oficial"),
+        supabase
+          .from("concessionaria_aneel_aliases")
+          .select("concessionaria_id, alias_aneel"),
+      ]);
+      if (concRes.error) throw concRes.error;
+      const concessionarias = concRes.data;
       if (!concessionarias?.length) {
         toast({ title: "Nenhuma concessionária cadastrada", variant: "destructive" });
         setImporting(false);
         return;
       }
 
-      // Build lookup
-      // Build lookup with normMatch (strips hyphens, dots, parens)
+      // Build lookup with DB aliases as highest priority
+      const concById = new Map(concessionarias.map(c => [c.id, c]));
       const concBySigla: Record<string, typeof concessionarias[0]> = {};
       const concByNome: Record<string, typeof concessionarias[0]> = {};
       const concByNormMatch: Record<string, typeof concessionarias[0]> = {};
       for (const c of concessionarias) {
+        // nome_aneel_oficial has highest priority
+        if (c.nome_aneel_oficial) {
+          concByNormMatch[normMatch(c.nome_aneel_oficial)] = c;
+        }
         if (c.sigla) {
           concBySigla[norm(c.sigla)] = c;
           concBySigla[normMatch(c.sigla)] = c;
         }
         concByNome[norm(c.nome)] = c;
         concByNormMatch[normMatch(c.nome)] = c;
-        // Also index by normMatch'd stripped name
         const stripped = stripSuffixes(normMatch(c.nome));
         if (stripped) concByNormMatch[stripped] = c;
+      }
+      // Index DB aliases
+      if (aliasRes.data) {
+        for (const a of aliasRes.data) {
+          const c = concById.get(a.concessionaria_id);
+          if (c) concByNormMatch[normMatch(a.alias_aneel)] = c;
+        }
       }
 
       const findConc = (sig: string, nome: string) => {
