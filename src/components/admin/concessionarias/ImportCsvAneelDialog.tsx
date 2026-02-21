@@ -104,6 +104,10 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       setHeaders(hdrs);
       setRawRows(rows);
       
+      console.log("[ANEEL Import] Headers:", hdrs);
+      const colMap = detectColumns(hdrs);
+      console.log("[ANEEL Import] Detected columns:", colMap);
+      
       const detected = detectFileType(hdrs);
       setFileType(detected);
 
@@ -113,6 +117,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
       // If missing required columns, show that immediately
       if (report.missingRequiredColumns.length > 0) {
+        console.warn("[ANEEL Import] Missing required columns:", report.missingRequiredColumns);
         setStep("validate");
         return;
       }
@@ -124,6 +129,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       } else {
         records = parseTarifasHomologadas(rows, hdrs);
       }
+      console.log("[ANEEL Import] Parsed records:", records.length);
       setParsed(records);
 
       setStep("validate");

@@ -116,21 +116,21 @@ export function detectColumns(headers: string[]): ColumnMap {
   const normalizedHeaders = headers.map(h => norm(h));
 
   const columnAliases: Record<string, string[]> = {
-    sigAgente:     ["sigla", "sigla agente", "sigagente", "sig agente", "sig"],
-    nomAgente:     ["nom agente", "nomagente", "distribuidora", "nome agente", "nome da distribuidora"],
-    subgrupo:      ["subgrupo", "sub grupo", "sub_grupo"],
-    modalidade:    ["modalidade", "modalidade tarifaria"],
-    posto:         ["posto", "posto tarifario", "posto tarifário"],
+    sigAgente:     ["sigla", "sigla agente", "sigagente", "sig agente", "sig", "sigla do agente"],
+    nomAgente:     ["nom agente", "nomagente", "distribuidora", "nome agente", "nome da distribuidora", "nome do agente", "agente"],
+    subgrupo:      ["subgrupo", "sub grupo", "sub_grupo", "dscsubgrupo", "dsc sub grupo"],
+    modalidade:    ["modalidade", "modalidade tarifaria", "dscmodalidadetarifaria", "modalidade tarifária"],
+    posto:         ["posto", "posto tarifario", "posto tarifário", "nompostotarifario", "nom posto tarifario"],
     vlrTUSD:       ["tusd", "vlr tusd", "vlrtusd", "valor tusd"],
     vlrTE:         ["vlr te", "vlrte", "valor te"],
-    unidade:       ["unidade", "und"],
-    baseTarifaria: ["base tarifaria", "basetarifaria", "base tarif"],
-    detalhe:       ["detalhe", "detalhe tarifa"],
-    vigencia:      ["inicio vigencia", "iniciovigencia", "dat inicio", "data inicio vigencia", "inicio da vigencia"],
-    fimVigencia:   ["fim vigencia", "fimvigencia", "fim da vigencia", "data fim vigencia"],
-    classe:        ["classe"],
-    subclasse:     ["subclasse", "sub classe"],
-    resolucao:     ["resolucao", "resolucao aneel", "reh"],
+    unidade:       ["unidade", "und", "dscunidade"],
+    baseTarifaria: ["base tarifaria", "basetarifaria", "base tarif", "dscbasetarifaria", "dsc base tarifaria"],
+    detalhe:       ["detalhe", "detalhe tarifa", "dscdetalhe", "dsc detalhe"],
+    vigencia:      ["inicio vigencia", "iniciovigencia", "dat inicio", "data inicio vigencia", "inicio da vigencia", "datiniciovigencia", "dat inicio vigencia"],
+    fimVigencia:   ["fim vigencia", "fimvigencia", "fim da vigencia", "data fim vigencia", "datfimvigencia", "dat fim vigencia"],
+    classe:        ["classe", "dscclasse"],
+    subclasse:     ["subclasse", "sub classe", "dscsubclasse"],
+    resolucao:     ["resolucao", "resolucao aneel", "reh", "dscreh"],
     acessante:     ["acessante"],
     // Componentes-specific
     componente:    ["componente", "tipo componente", "dsctipcomponente", "dsc tipo componente"],
@@ -291,10 +291,28 @@ export function parseXlsxFile(buffer: ArrayBuffer): { headers: string[]; rows: s
   
   if (raw.length < 2) return { headers: [], rows: [] };
   
-  const headers = (raw[0] as any[]).map(c => String(c ?? "").trim());
-  const rows = raw.slice(1)
+  // Smart header detection: scan first 10 rows to find the actual header row
+  // A header row should contain known column keywords
+  const HEADER_KEYWORDS = ["sigla", "agente", "subgrupo", "tusd", "vigencia", "modalidade", "distribuidora", "tarifa"];
+  let headerRowIndex = 0;
+  
+  for (let i = 0; i < Math.min(10, raw.length); i++) {
+    const rowCells = (raw[i] as any[]).map(c => norm(String(c ?? "")));
+    const matchCount = HEADER_KEYWORDS.filter(kw => rowCells.some(cell => cell.includes(kw))).length;
+    if (matchCount >= 3) {
+      headerRowIndex = i;
+      console.log(`[ANEEL XLSX] Header found at row ${i + 1} (matched ${matchCount} keywords)`);
+      break;
+    }
+  }
+  
+  const headers = (raw[headerRowIndex] as any[]).map(c => String(c ?? "").trim());
+  const rows = raw.slice(headerRowIndex + 1)
     .filter(row => (row as any[]).some(c => String(c ?? "").trim() !== ""))
     .map(row => (row as any[]).map(c => String(c ?? "").trim()));
+  
+  console.log(`[ANEEL XLSX] Headers detected (row ${headerRowIndex + 1}):`, headers);
+  console.log(`[ANEEL XLSX] Data rows: ${rows.length}`);
   
   return { headers, rows };
 }
