@@ -94,10 +94,34 @@ function parseNumericField(raw: string): { value: number | null; error: string |
 /**
  * Validate all rows with per-line error reporting.
  */
+/** Patterns that indicate a footer/summary line from the ANEEL export */
+const FOOTER_PATTERNS = [
+  /filtros?\s*aplicados/i,
+  /^ano\s+.?\s*\d{4}/i,
+  /^flag\b/i,
+  /tipo\s+de\s+outorga/i,
+  /\(em\s+branco\)/i,
+  /^total\b/i,
+  /^fonte:/i,
+  /^legenda:/i,
+];
+
+function isFooterRow(cells: string[]): boolean {
+  const joined = cells.map(c => (c || "").trim()).join(" ").trim();
+  if (!joined) return true; // blank row
+  return FOOTER_PATTERNS.some(p => p.test(joined));
+}
+
+export interface DiscardedRow {
+  rowIndex: number;
+  reason: string;
+  preview: string;
+}
+
 export function validateRows(
   headers: string[],
   rows: string[][],
-): ValidationReport {
+): ValidationReport & { discardedFooterRows: DiscardedRow[] } {
   const colMap = detectColumns(headers);
   
   // Check required columns
@@ -116,6 +140,7 @@ export function validateRows(
   const hasBaseTarifaria = colMap.baseTarifaria !== undefined;
   
   const validationRows: RowValidation[] = [];
+  const discardedFooterRows: DiscardedRow[] = [];
   
   for (let i = 0; i < rows.length; i++) {
     const cells = rows[i];
@@ -130,8 +155,15 @@ export function validateRows(
       raw[key] = cells[idx] ?? "";
     }
     
-    // Skip completely empty rows
-    if (cells.every(c => !c || !c.trim())) continue;
+    // Detect and skip footer/summary/blank rows
+    if (isFooterRow(cells)) {
+      const joined = cells.map(c => (c || "").trim()).filter(Boolean).join(" | ");
+      const reason = cells.every(c => !c || !c.trim())
+        ? "Linha em branco"
+        : "Linha de rodapé/resumo do site ANEEL";
+      discardedFooterRows.push({ rowIndex: rowNum, reason, preview: joined.substring(0, 120) });
+      continue;
+    }
     
     // Validate sigAgente
     const sigAgente = raw.sigAgente || raw.nomAgente || "";
@@ -218,5 +250,6 @@ export function validateRows(
     rows: validationRows,
     missingRequiredColumns,
     detectedColumns: colMap,
+    discardedFooterRows,
   };
 }
