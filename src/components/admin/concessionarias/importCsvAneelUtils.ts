@@ -31,9 +31,120 @@ export function norm(s: string): string {
     .replace(/\s+/g, " ");
 }
 
+/** Normalize for matching: also strips hyphens, slashes, dots, parentheses */
+export function normMatch(s: string): string {
+  return norm(s).replace(/[-\/\.\(\)]/g, " ").replace(/\s+/g, " ").trim();
+}
+
 export function stripSuffixes(s: string): string {
   return s.replace(/\b(s\.?a\.?|s\/a|ltda|cia|distribui[cç][aã]o|energia|el[eé]trica|distribuidora|de)\b/gi, "").trim().replace(/\s+/g, " ");
 }
+
+/**
+ * Comprehensive ANEEL agent name → DB concessionária alias map.
+ * Keys are normMatch'd ANEEL names, values are normMatch'd DB names or siglas.
+ * This handles cases where ANEEL uses completely different names than the DB.
+ */
+export const ANEEL_AGENT_ALIASES: Record<string, string[]> = {
+  // Neoenergia group — ANEEL uses state names, DB uses brand names
+  "neoenergia pernambuco": ["neoenergia celpe", "celpe"],
+  "neoenergia bahia": ["neoenergia coelba", "coelba"],
+  "neoenergia rio grande do norte": ["neoenergia cosern", "cosern"],
+  "neoenergia rn": ["neoenergia cosern", "cosern"],
+  "neoenergia brasilia": ["neoenergia brasilia ceb", "ceb"],
+  "neoenergia distrito federal": ["neoenergia brasilia ceb", "ceb"],
+  "neoenergia df": ["neoenergia brasilia ceb", "ceb"],
+  "ceb dis": ["neoenergia brasilia ceb", "ceb"],
+  "ceb d": ["neoenergia brasilia ceb", "ceb"],
+  "celpe": ["neoenergia celpe", "celpe"],
+  "coelba": ["neoenergia coelba", "coelba"],
+  "cosern": ["neoenergia cosern", "cosern"],
+
+  // Equatorial group
+  "equatorial al": ["equatorial alagoas ceal", "ceal"],
+  "equatorial alagoas": ["equatorial alagoas ceal", "ceal"],
+  "equatorial go": ["equatorial goias celg", "celg"],
+  "equatorial goias": ["equatorial goias celg", "celg"],
+  "equatorial ma": ["equatorial maranhao cemar", "cemar"],
+  "equatorial maranhao": ["equatorial maranhao cemar", "cemar"],
+  "equatorial pa": ["equatorial para celpa", "celpa"],
+  "equatorial para": ["equatorial para celpa", "celpa"],
+  "equatorial pi": ["equatorial piaui cepisa", "cepisa"],
+  "equatorial piaui": ["equatorial piaui cepisa", "cepisa"],
+  "equatorial amapa": ["cea equatorial", "cea"],
+  "cea equatorial": ["cea equatorial", "cea"],
+  "ceee d": ["ceee equatorial", "ceee"],
+  "ceee dis": ["ceee equatorial", "ceee"],
+
+  // Enel group
+  "enel ce": ["enel ceara coelce", "enel ce"],
+  "enel ceara": ["enel ceara coelce", "enel ce"],
+  "coelce": ["enel ceara coelce", "enel ce"],
+  "enel rj": ["enel distribuicao rio", "enel rj"],
+  "enel rio": ["enel distribuicao rio", "enel rj"],
+  "enel go": ["enel goias", "enel go"],
+  "enel sp": ["enel sao paulo eletropaulo", "enel sp"],
+  "eletropaulo": ["enel sao paulo eletropaulo", "enel sp"],
+  "light": ["enel rio light", "light"],
+  "light s a": ["enel rio light", "light"],
+  "light ses": ["enel rio light", "light"],
+
+  // EDP group — ANEEL uses "EDP ES", DB has "EDP-ES" sigla
+  "edp es": ["edp espirito santo escelsa", "edp es"],
+  "escelsa": ["edp espirito santo escelsa", "edp es"],
+  "edp sp": ["edp sao paulo bandeirante", "edp sp"],
+  "bandeirante": ["edp sao paulo bandeirante", "edp sp"],
+
+  // Energisa group — ANEEL uses state abbreviations
+  "energisa ac": ["energisa acre", "eac"],
+  "energisa mg": ["energisa minas gerais", "emg"],
+  "energisa ms": ["energisa ms", "ems"],
+  "energisa mt": ["energisa mt", "emt"],
+  "energisa pb": ["energisa paraiba", "epb"],
+  "energisa paraiba": ["energisa paraiba", "epb"],
+  "energisa pr": ["energisa parana", "epr"],
+  "energisa parana": ["energisa parana", "epr"],
+  "energisa ro": ["energisa rondonia", "ero"],
+  "energisa rondonia": ["energisa rondonia", "ero"],
+  "energisa se": ["energisa sergipe", "ese"],
+  "energisa sergipe": ["energisa sergipe", "ese"],
+  "energisa to": ["energisa tocantins", "eto"],
+  "energisa tocantins": ["energisa tocantins", "eto"],
+
+  // CPFL group
+  "cpfl paulista": ["cpfl paulista", "cpfl"],
+  "cpfl piratininga": ["cpfl piratininga", "cpfl pir"],
+
+  // CEMIG
+  "cemig d": ["cemig distribuicao", "cemig"],
+  "cemig dis": ["cemig distribuicao", "cemig"],
+  "cemig distribuicao": ["cemig distribuicao", "cemig"],
+
+  // Copel
+  "copel dis": ["copel distribuicao", "copel"],
+  "copel distribuicao": ["copel distribuicao", "copel"],
+  "copel d": ["copel distribuicao", "copel"],
+
+  // Celesc
+  "celesc dis": ["celesc distribuicao", "celesc"],
+  "celesc d": ["celesc distribuicao", "celesc"],
+
+  // Elektro
+  "elektro": ["elektro", "elektro"],
+  "neoenergia elektro": ["neoenergia elektro", "neo elk"],
+  "elektro redes": ["neoenergia elektro", "neo elk"],
+
+  // RGE
+  "rge sul": ["rge sul", "rge"],
+  "rge": ["rge sul", "rge"],
+
+  // Roraima
+  "roraima energia": ["roraima energia", "rre"],
+
+  // Amazonas
+  "amazonas energia": ["amazonas energia", "ame"],
+  "ame": ["amazonas energia", "ame"],
+};
 
 export function parseCSVLine(line: string): string[] {
   const result: string[] = [];
