@@ -43,6 +43,7 @@ export function StepConsumptionIntelligence({
   const [rateioOpen, setRateioOpen] = useState(false);
   const [mesAMes, setMesAMes] = useState<{ open: boolean; ucIndex: number; field: "consumo" | "hp" | "hfp" }>({ open: false, ucIndex: 0, field: "consumo" });
   const [preDimModal, setPreDimModal] = useState(false);
+  const [topoMesAMes, setTopoMesAMes] = useState<{ open: boolean; topo: string }>({ open: false, topo: "" });
   const { roofFactors } = useTiposTelhado();
 
   // Sync inclinação/desvio azimutal from first UC's tipo_telhado into preDimensionamento
@@ -265,6 +266,7 @@ export function StepConsumptionIntelligence({
           potenciaIdealByTopo={potenciaIdealByTopo}
           consumoTotal={consumoTotal}
           showDoD={showDoD}
+          onOpenTopoMesAMes={(topo) => setTopoMesAMes({ open: true, topo })}
         />
       ) : (
         <EquipamentosPreFilter pd={pd} consumoTotal={consumoTotal} potenciaIdealByTopo={potenciaIdealByTopo} />
@@ -395,6 +397,20 @@ export function StepConsumptionIntelligence({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Topology mês-a-mês dialog for fator de geração */}
+      <MesAMesDialog
+        open={topoMesAMes.open}
+        onOpenChange={o => setTopoMesAMes({ ...topoMesAMes, open: o })}
+        title={`Fator de Geração — ${TOPOLOGIA_LABELS[topoMesAMes.topo] || topoMesAMes.topo}`}
+        values={getTopoConfig(topoMesAMes.topo).fator_geracao_meses || {}}
+        onSave={(values) => {
+          const vals = Object.values(values).filter(v => v > 0);
+          const media = vals.length > 0 ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100 : getTopoConfig(topoMesAMes.topo).fator_geracao;
+          updateTopoConfig(topoMesAMes.topo, "fator_geracao_meses", values);
+          updateTopoConfig(topoMesAMes.topo, "fator_geracao", media);
+        }}
+      />
     </div>
   );
 }
@@ -402,7 +418,7 @@ export function StepConsumptionIntelligence({
 /* ─── Premissas Content (3-column layout by topology) ─── */
 
 function PremissasContent({
-  pd, pdUpdate, updateTopoConfig, getTopoConfig, potenciaIdealByTopo, consumoTotal, showDoD,
+  pd, pdUpdate, updateTopoConfig, getTopoConfig, potenciaIdealByTopo, consumoTotal, showDoD, onOpenTopoMesAMes,
 }: {
   pd: PreDimensionamentoData;
   pdUpdate: <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => void;
@@ -411,6 +427,7 @@ function PremissasContent({
   potenciaIdealByTopo: Record<string, number>;
   consumoTotal: number;
   showDoD: boolean;
+  onOpenTopoMesAMes: (topo: string) => void;
 }) {
   const allTopos = ["tradicional", "microinversor", "otimizador"];
 
@@ -494,7 +511,7 @@ function PremissasContent({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
-                  <button className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">
+                  <button onClick={() => onOpenTopoMesAMes(topo)} className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">
                     mês a mês <Pencil className="h-2.5 w-2.5" />
                   </button>
                 </div>
