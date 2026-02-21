@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload } from "lucide-react";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
+import { Progress } from "@/components/ui/progress";
 import { ImportCsvAneelDialog } from "./concessionarias/ImportCsvAneelDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -114,8 +115,12 @@ export function ConcessionariasManager() {
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [syncing, setSyncing] = useState(false);
+  const [syncRunId, setSyncRunId] = useState<string | null>(null);
+  const [syncProgress, setSyncProgress] = useState<{ status: string; totalUpdated: number; totalErrors: number; totalFetched: number; message: string } | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+
   // Check if any concessionária needs tariff update (>12 months)
   const syncAlert = useMemo(() => {
     const now = new Date();
@@ -127,60 +132,159 @@ export function ConcessionariasManager() {
     return outdated.length > 0 ? outdated.length : 0;
   }, [concessionarias]);
 
-  const handleSyncTarifas = async () => {
-    setSyncing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("sync-tarifas-aneel");
-      
-      if (error) {
-        // Parse the edge function error for a user-friendly message
-        const { parseEdgeFunctionError } = await import("@/lib/parseEdgeFunctionError");
-        const friendlyMsg = await parseEdgeFunctionError(error, "Erro ao sincronizar tarifas");
-        throw new Error(friendlyMsg);
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  const stopPolling = useCallback(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }, []);
+
+  const pollSyncStatus = useCallback((runId: string) => {
+    let elapsed = 0;
+    const POLL_INTERVAL = 2000;
+    const MAX_POLL_TIME = 180000; // 3 min
+
+    pollRef.current = setInterval(async () => {
+      elapsed += POLL_INTERVAL;
+
+      try {
+        const { data, error } = await supabase
+          .from("aneel_sync_runs")
+          .select("status, total_fetched, total_matched, total_updated, total_errors, error_message, finished_at")
+          .eq("id", runId)
+          .single();
+
+        if (error || !data) return;
+
+        const isFinished = data.status !== "running";
+        const totalUpdated = data.total_updated || 0;
+        const totalErrors = data.total_errors || 0;
+        const totalFetched = data.total_fetched || 0;
+
+        let message = "Buscando tarifas na API ANEEL...";
+        if (totalFetched > 0 && !isFinished) {
+          message = `Processando ${totalFetched} registros ANEEL... ${totalUpdated} atualizados`;
+        }
+
+        if (isFinished) {
+          if (data.status === "success") {
+            message = `✅ Concluído: ${totalUpdated} tarifa(s) atualizada(s)`;
+          } else if (data.status === "partial") {
+            message = `⚠️ Parcial: ${totalUpdated} atualizada(s), ${totalErrors} erro(s)`;
+          } else if (data.status === "error") {
+            message = `❌ Erro: ${data.error_message || "Falha na sincronização"}`;
+          } else if (data.status === "test_run") {
+            message = `🧪 Test run: ${totalUpdated} registro(s) seriam atualizados`;
+          }
+
+          setSyncProgress({ status: data.status, totalUpdated, totalErrors, totalFetched, message });
+          stopPolling();
+          setSyncing(false);
+          fetchData();
+
+          toast({
+            title: data.status === "error" ? "Erro na sincronização" : "Sincronização concluída",
+            description: message.replace(/[✅⚠️❌🧪]\s?/, ""),
+            variant: data.status === "error" ? "destructive" : "default",
+          });
+
+          // Clear progress after 10s
+          setTimeout(() => setSyncProgress(null), 10000);
+          return;
+        }
+
+        setSyncProgress({ status: "running", totalUpdated, totalErrors, totalFetched, message });
+      } catch {
+        // ignore poll errors
       }
 
-      if (data?.success) {
-        const updated = data.resultados?.length || 0;
-        const errors = data.erros?.length || 0;
-        
-        let description = `${updated} concessionária(s) atualizada(s)`;
-        if (errors > 0) description += `, ${errors} não encontrada(s)`;
-        
+      if (elapsed >= MAX_POLL_TIME) {
+        stopPolling();
+        setSyncing(false);
+        setSyncProgress({ status: "timeout", totalUpdated: 0, totalErrors: 0, totalFetched: 0, message: "Timeout: a sincronização pode ainda estar rodando em background." });
         toast({
-          title: "Sincronização concluída",
-          description,
-        });
-
-        if (data.erros?.length > 0) {
-          const errorNames = data.erros.map((e: any) => e.concessionaria).join(", ");
-          toast({
-            title: "Não encontradas na ANEEL",
-            description: `Verifique a sigla: ${errorNames}`,
-            variant: "destructive",
-          });
-        }
-      } else {
-        // The edge function returned success: false with a friendly error message
-        const errorMsg = data?.error || "Erro desconhecido";
-        const isRetryable = data?.retryable;
-        toast({
-          title: isRetryable ? "API ANEEL indisponível" : "Erro ao sincronizar",
-          description: errorMsg,
+          title: "Tempo limite excedido",
+          description: "A sincronização pode ainda estar rodando. Recarregue a página em alguns minutos.",
           variant: "destructive",
         });
-        fetchData();
-        return;
+        setTimeout(() => setSyncProgress(null), 15000);
       }
+    }, POLL_INTERVAL);
+  }, [stopPolling, toast]);
 
-      fetchData();
+  const handleSyncTarifas = async () => {
+    setSyncing(true);
+    setSyncProgress({ status: "running", totalUpdated: 0, totalErrors: 0, totalFetched: 0, message: "Iniciando sincronização..." });
+
+    try {
+      // Fire the edge function - don't await for completion (it may timeout)
+      const responsePromise = supabase.functions.invoke("sync-tarifas-aneel");
+
+      // Wait briefly to get the run_id from the initial response
+      const raceResult = await Promise.race([
+        responsePromise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+      ]);
+
+      if (raceResult && 'data' in raceResult && raceResult.data?.run_id) {
+        // Got run_id - poll for progress
+        setSyncRunId(raceResult.data.run_id);
+        pollSyncStatus(raceResult.data.run_id);
+
+        // If the response already has final results
+        if (raceResult.data.success !== undefined && raceResult.data.status !== "running") {
+          stopPolling();
+          const d = raceResult.data;
+          const totalUpdated = (d.resultados?.length || 0);
+          const totalErrors = (d.erros?.length || 0);
+          const message = d.message || `${totalUpdated} atualizada(s), ${totalErrors} erro(s)`;
+          setSyncProgress({ status: d.status || "success", totalUpdated, totalErrors, totalFetched: (d.total_aneel_bt || 0) + (d.total_aneel_mt || 0), message: `✅ ${message}` });
+          setSyncing(false);
+          fetchData();
+          toast({ title: "Sincronização concluída", description: message });
+          setTimeout(() => setSyncProgress(null), 10000);
+          return;
+        }
+      } else {
+        // Didn't get run_id quickly - find most recent running sync
+        const { data: latestRun } = await supabase
+          .from("aneel_sync_runs")
+          .select("id")
+          .eq("status", "running")
+          .order("started_at", { ascending: false })
+          .limit(1)
+          .single();
+
+        if (latestRun?.id) {
+          setSyncRunId(latestRun.id);
+          pollSyncStatus(latestRun.id);
+        } else {
+          // No run found - just wait for the response
+          const result = await responsePromise;
+          if (result.error) {
+            throw new Error(result.error.message || "Erro ao sincronizar");
+          }
+          setSyncing(false);
+          setSyncProgress(null);
+          fetchData();
+        }
+      }
     } catch (error: any) {
+      setSyncing(false);
+      setSyncProgress({ status: "error", totalUpdated: 0, totalErrors: 0, totalFetched: 0, message: `❌ ${error.message || "Erro ao sincronizar"}` });
       toast({
         title: "Erro ao sincronizar tarifas",
         description: error.message || "Tente novamente em alguns minutos",
         variant: "destructive",
       });
-    } finally {
-      setSyncing(false);
+      setTimeout(() => setSyncProgress(null), 10000);
     }
   };
 
@@ -372,6 +476,31 @@ export function ConcessionariasManager() {
         </div>
       </CardHeader>
       <CardContent>
+        {/* Sync progress bar */}
+        {syncProgress && (
+          <div className="mb-4 p-3 rounded-lg border border-border/60 bg-muted/30 space-y-2">
+            <div className="flex items-center gap-2">
+              {syncProgress.status === "running" && <RefreshCw className="w-4 h-4 animate-spin text-primary" />}
+              {syncProgress.status === "success" && <CheckCircle2 className="w-4 h-4 text-success" />}
+              {syncProgress.status === "partial" && <AlertTriangle className="w-4 h-4 text-warning" />}
+              {syncProgress.status === "error" && <XCircle className="w-4 h-4 text-destructive" />}
+              {syncProgress.status === "test_run" && <FlaskConical className="w-4 h-4 text-info" />}
+              {syncProgress.status === "timeout" && <Clock className="w-4 h-4 text-warning" />}
+              <span className="text-sm font-medium">{syncProgress.message}</span>
+            </div>
+            {syncProgress.status === "running" && (
+              <Progress value={undefined} className="h-2" />
+            )}
+            {syncProgress.totalFetched > 0 && syncProgress.status !== "running" && (
+              <div className="flex gap-4 text-xs text-muted-foreground">
+                <span>{syncProgress.totalFetched} registros ANEEL</span>
+                <span>{syncProgress.totalUpdated} atualizados</span>
+                {syncProgress.totalErrors > 0 && <span className="text-destructive">{syncProgress.totalErrors} erros</span>}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Sync alert */}
         {syncAlert > 0 && (
           <div className="p-3 rounded-lg bg-warning/10 border border-warning/30 flex items-start gap-2 mb-4">
