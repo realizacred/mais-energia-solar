@@ -352,7 +352,7 @@ export function StepLocalizacao({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4">
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_420px] lg:grid-cols-[1fr_360px] gap-4">
       {/* ═══ LEFT COLUMN — Form cards ═══ */}
       <div className="space-y-4 min-w-0 order-2 lg:order-1">
 
@@ -383,23 +383,20 @@ export function StepLocalizacao({
           </CardContent>
         </Card>
 
-        {/* Card 2 — Estrutura & Distribuidora (side by side) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Card 2 — Telhado + Distribuidora + Irradiação — 3 cols on md+, 1 col on mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
           {/* Tipo de Telhado */}
           <Card className="border-border/40">
-            <CardHeader className="pb-2 pt-3 px-4">
-              <CardTitle className="text-xs font-semibold flex items-center gap-2 text-foreground">
-                <Home className="h-3.5 w-3.5 text-secondary" />
+            <CardHeader className="pb-1.5 pt-2.5 px-3">
+              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
+                <Home className="h-3 w-3 text-secondary shrink-0" />
                 Tipo de Telhado *
               </CardTitle>
-              <CardDescription className="text-[11px]">
-                Estrutura onde os painéis serão instalados
-              </CardDescription>
             </CardHeader>
-            <CardContent className="px-4 pb-3">
+            <CardContent className="px-3 pb-2.5">
               <Select value={tipoTelhado} onValueChange={onTipoTelhadoChange}>
                 <SelectTrigger className={cn(
-                  "h-9 text-xs",
+                  "h-8 text-xs",
                   !tipoTelhado && "border-destructive ring-1 ring-destructive/30"
                 )}>
                   <SelectValue placeholder="Selecione o tipo" />
@@ -426,28 +423,25 @@ export function StepLocalizacao({
 
           {/* Distribuidora */}
           <Card className="border-border/40">
-            <CardHeader className="pb-2 pt-3 px-4">
-              <CardTitle className="text-xs font-semibold flex items-center gap-2 text-foreground">
-                <Zap className="h-3.5 w-3.5 text-warning" />
+            <CardHeader className="pb-1.5 pt-2.5 px-3">
+              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
+                <Zap className="h-3 w-3 text-warning shrink-0" />
                 Distribuidora *
               </CardTitle>
-              <CardDescription className="text-[11px]">
-                Concessionária de energia da instalação
-              </CardDescription>
             </CardHeader>
-            <CardContent className="px-4 pb-3">
+            <CardContent className="px-3 pb-2.5">
               {loadingConc ? (
-                <div className="flex items-center gap-1.5 px-3 h-9 border rounded-md bg-muted/30">
+                <div className="flex items-center gap-1.5 px-3 h-8 border rounded-md bg-muted/30">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   <span className="text-xs text-muted-foreground">Carregando...</span>
                 </div>
               ) : (
                 <Select value={distribuidoraId} onValueChange={handleConcChange}>
                   <SelectTrigger className={cn(
-                    "h-9 text-xs",
+                    "h-8 text-xs",
                     !distribuidoraId && estado && "border-destructive/50"
                   )}>
-                    <SelectValue placeholder="Selecione a distribuidora" />
+                    <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
                     {concessionarias.map(c => (
@@ -463,48 +457,45 @@ export function StepLocalizacao({
               )}
             </CardContent>
           </Card>
-        </div>
 
-        {/* Card 3 — Irradiação Solar */}
-        <Card className="border-border/40">
-          <CardHeader className="pb-2 pt-3 px-4">
-            <CardTitle className="text-xs font-semibold flex items-center gap-2 text-foreground">
-              <Sun className="h-3.5 w-3.5 text-warning" />
-              Irradiação Solar
-              {loadingIrrad && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
-            </CardTitle>
-            <CardDescription className="text-[11px]">
-              Dados automáticos de irradiação baseados na localização
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-4 pb-3">
-            <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-muted/10">
-              {irradiacao !== null ? (
-                <>
-                  <Sun className="h-4 w-4 text-warning shrink-0" />
-                  <span className="text-sm font-bold text-foreground">{irradiacao.toFixed(2)}</span>
-                  <span className="text-[10px] text-muted-foreground">kWh/m²/dia</span>
-                  {distKm !== null && (
-                    <span className="text-[9px] text-muted-foreground">~{distKm.toFixed(0)}km</span>
-                  )}
-                  <Badge variant="secondary" className="text-[9px] ml-auto">
-                    {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "Atlas INPE" : irradSource || "Atlas"}
-                  </Badge>
-                </>
-              ) : loadingIrrad ? (
-                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Buscando dados de irradiação...
-                </span>
-              ) : geoStatus === "manual" ? (
-                <span className="text-xs text-muted-foreground">Informe o endereço para buscar</span>
-              ) : cidade ? (
-                <span className="text-xs text-muted-foreground">Geocodificando endereço...</span>
-              ) : (
-                <span className="text-xs text-muted-foreground">Preencha o endereço para buscar</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          {/* Irradiação Solar */}
+          <Card className="border-border/40 sm:col-span-2 md:col-span-1">
+            <CardHeader className="pb-1.5 pt-2.5 px-3">
+              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
+                <Sun className="h-3 w-3 text-warning shrink-0" />
+                Irradiação Solar
+                {loadingIrrad && <Loader2 className="h-2.5 w-2.5 animate-spin text-primary ml-1" />}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 pb-2.5">
+              <div className="flex items-center gap-1.5 h-8 px-2.5 border rounded-md bg-muted/10">
+                {irradiacao !== null ? (
+                  <>
+                    <Sun className="h-3.5 w-3.5 text-warning shrink-0" />
+                    <span className="text-xs font-bold text-foreground">{irradiacao.toFixed(2)}</span>
+                    <span className="text-[9px] text-muted-foreground">kWh/m²/dia</span>
+                    {distKm !== null && (
+                      <span className="text-[9px] text-muted-foreground">~{distKm.toFixed(0)}km</span>
+                    )}
+                    <Badge variant="secondary" className="text-[8px] ml-auto px-1.5 py-0">
+                      {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "Atlas INPE" : irradSource || "Atlas"}
+                    </Badge>
+                  </>
+                ) : loadingIrrad ? (
+                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                    <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando...
+                  </span>
+                ) : geoStatus === "manual" ? (
+                  <span className="text-[10px] text-muted-foreground">Informe endereço</span>
+                ) : cidade ? (
+                  <span className="text-[10px] text-muted-foreground">Geocodificando...</span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground">Preencha endereço</span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* ═══ RIGHT COLUMN — Map (sticky) ═══ */}
@@ -525,11 +516,11 @@ export function StepLocalizacao({
           </CardHeader>
           <CardContent className="p-0">
             <Suspense fallback={
-              <div className="h-[280px] sm:h-[360px] lg:h-[460px] flex items-center justify-center bg-muted/20">
+              <div className="h-[260px] sm:h-[320px] lg:h-[420px] xl:h-[480px] flex items-center justify-center bg-muted/20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             }>
-              <div className="h-[280px] sm:h-[360px] lg:h-[460px]">
+              <div className="h-[260px] sm:h-[320px] lg:h-[420px] xl:h-[480px]">
                 <GoogleMapView
                   lat={geoLat}
                   lon={geoLon}
