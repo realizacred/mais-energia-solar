@@ -369,7 +369,7 @@
   }
 
   /* Admin content container */
-  .admin-content { @apply p-4 sm:p-6 space-y-6; }
+  .admin-content { @apply p-4 sm:p-6 space-y-6 max-w-[1600px]; }
 
   /* Page transition wrapper */
   .page-transition { animation: fade-in 0.25s ease-out; }

@@ -442,7 +442,7 @@ export default function Admin() {
 
           <TrialBanner />
           <FeatureDiscoveryLayer />
-          <main className="flex-1 p-4 md:p-6 space-y-5 overflow-x-hidden animate-fade-in">
+          <main className="flex-1 admin-content overflow-x-hidden animate-fade-in">
             <Suspense fallback={<LoadingSpinner />}>
               <Routes>
                 {/* Default redirect */}

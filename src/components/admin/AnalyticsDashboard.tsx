@@ -87,54 +87,54 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
 
   return (
     <div className="space-y-6">
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="rounded-xl border-2 border-primary/40 bg-primary/5">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+      {/* KPI Cards — Command Center with left accent borders */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="rounded-xl border-l-4 border-l-primary bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Target className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{summaryStats.total}</p>
-              <p className="text-xs text-muted-foreground">Total de leads</p>
+              <p className="text-3xl font-bold tracking-tight leading-none">{summaryStats.total}</p>
+              <p className="text-sm text-muted-foreground mt-1">Total de leads</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border border-border bg-card">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+        <Card className="rounded-xl border-l-4 border-l-success bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-11 h-11 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
               <TrendingUp className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-2xl font-bold">
+              <p className="text-3xl font-bold tracking-tight leading-none">
                 {summaryStats.growth > 0 ? "+" : ""}{summaryStats.growth}%
               </p>
-              <p className="text-xs text-muted-foreground">Crescimento</p>
+              <p className="text-sm text-muted-foreground mt-1">Crescimento</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border-2 border-info/40 bg-info/5">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
-              <BarChart3 className="w-5 h-5 text-info" />
+        <Card className="rounded-xl border-l-4 border-l-secondary bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-11 h-11 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+              <BarChart3 className="w-5 h-5 text-secondary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{summaryStats.conversionRate}%</p>
-              <p className="text-xs text-muted-foreground">Conversão</p>
+              <p className="text-3xl font-bold tracking-tight leading-none">{summaryStats.conversionRate}%</p>
+              <p className="text-sm text-muted-foreground mt-1">Conversão</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border-2 border-secondary/40 bg-secondary/5">
-          <CardContent className="flex items-center gap-4 p-4">
-            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5 text-secondary" />
+        <Card className="rounded-xl border-l-4 border-l-warning bg-card shadow-sm">
+          <CardContent className="flex items-center gap-4 p-5">
+            <div className="w-11 h-11 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-warning" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{summaryStats.uniqueVendors}</p>
-              <p className="text-xs text-muted-foreground">Consultores</p>
+              <p className="text-3xl font-bold tracking-tight leading-none">{summaryStats.uniqueVendors}</p>
+              <p className="text-sm text-muted-foreground mt-1">Consultores</p>
             </div>
           </CardContent>
         </Card>
