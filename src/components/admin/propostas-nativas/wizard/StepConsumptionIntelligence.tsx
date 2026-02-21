@@ -476,10 +476,14 @@ export function StepConsumptionIntelligence({
         values={(() => {
           const cfg = getTopoConfig(topoMesAMes.topo);
           const meses = cfg.fator_geracao_meses || {};
-          // Pre-fill empty months with current fator_geracao
           const hasValues = Object.values(meses).some(v => v > 0);
           if (!hasValues && cfg.fator_geracao > 0) {
-            return Object.fromEntries(MESES.map(m => [m, cfg.fator_geracao]));
+            // Distribute using typical Brazilian solar irradiation curve (normalized weights)
+            const PESOS_IRRADIACAO = [1.23, 1.27, 1.06, 0.92, 0.77, 0.73, 0.76, 0.92, 1.00, 1.06, 1.03, 1.21];
+            // Normalize so average = 1.0
+            const soma = PESOS_IRRADIACAO.reduce((a, b) => a + b, 0);
+            const norm = PESOS_IRRADIACAO.map(p => p * 12 / soma);
+            return Object.fromEntries(MESES.map((m, i) => [m, Math.round(cfg.fator_geracao * norm[i] * 100) / 100]));
           }
           return meses;
         })()}
