@@ -14,12 +14,12 @@ import {
   type FileType,
   parseCSVLine,
   detectFileType,
-  detectColumns,
   parseNumber,
   norm,
   stripSuffixes,
   parseTarifasHomologadas,
   parseComponentesTarifas,
+  parseXlsxFile,
 } from "./importCsvAneelUtils";
 
 interface Props {
@@ -52,14 +52,27 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setFile(f);
 
     try {
-      const text = await f.text();
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      const isXlsx = f.name.toLowerCase().endsWith(".xlsx") || f.name.toLowerCase().endsWith(".xls");
+      
+      let headers: string[];
+      let lines: string[];
+      
+      if (isXlsx) {
+        const buffer = await f.arrayBuffer();
+        const result = parseXlsxFile(buffer);
+        headers = result.headers;
+        lines = result.lines;
+      } else {
+        const text = await f.text();
+        lines = text.split(/\r?\n/).filter(l => l.trim());
+        headers = parseCSVLine(lines[0]);
+      }
+      
       if (lines.length < 2) {
         toast({ title: "Arquivo vazio ou inválido", variant: "destructive" });
         return;
       }
 
-      const headers = parseCSVLine(lines[0]);
       const detected = detectFileType(headers);
       setFileType(detected);
 
@@ -293,7 +306,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               onClick={() => fileRef.current?.click()}>
               <FileText className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
-                Clique para selecionar o arquivo <strong>.csv</strong>
+                Clique para selecionar o arquivo <strong>.csv</strong> ou <strong>.xlsx</strong>
               </p>
               <p className="text-[10px] text-muted-foreground mt-1">
                 Exportado do site dadosabertos.aneel.gov.br
@@ -303,7 +316,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
               <span>Importe primeiro as <strong>Tarifas Homologadas</strong> (TE/TUSD), depois as <strong>Componentes</strong> (Fio B) para complementar os dados.</span>
             </div>
-            <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleFileSelect} />
+            <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />
           </div>
         )}
 
