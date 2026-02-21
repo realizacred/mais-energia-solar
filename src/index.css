@@ -12,171 +12,176 @@
 @layer base {
   :root {
     /* =============================================
-       MAIS ENERGIA SOLAR — ENTERPRISE DESIGN SYSTEM
-       Stripe / Linear / Notion tier aesthetics.
-       Ultra-low saturation neutrals, restrained brand,
-       crisp edges, airy spacing, zero visual noise.
+       MAIS ENERGIA SOLAR — SOLAR AUTHORITY DESIGN SYSTEM
+       Structural Blue + Solar Orange dual-mode.
+       WCAG AA compliant. No pastel. No opacity hacks.
        ============================================= */
 
-    /* --- Surfaces (near-white, barely warm) --- */
-    --background: 220 14% 96%;
-    --foreground: 224 20% 12%;
+    /* --- Surfaces --- */
+    --background: 0 0% 100%;
+    --foreground: 216 75% 15%;
     --card: 0 0% 100%;
-    --card-foreground: 224 20% 12%;
+    --card-foreground: 216 75% 15%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 20% 12%;
+    --popover-foreground: 216 75% 15%;
 
-    /* --- Brand Colors (vivid, true to logo) --- */
-    --primary: 28 95% 53%;              /* Bright brand orange from logo */
+    /* --- Brand: Solar Orange (Action) --- */
+    --primary: 25 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 32 90% 60%;         /* Warm lift for gradients */
-    --secondary: 225 78% 30%;           /* Vivid navy blue from logo */
+    --primary-glow: 27 100% 55%;
+
+    /* --- Brand: Structural Blue (Authority) --- */
+    --secondary: 218 72% 28%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 225 65% 40%;
+    --secondary-glow: 216 72% 21%;
 
-    /* --- Neutral Tones (clean grays) --- */
-    --muted: 220 10% 94%;
-    --muted-foreground: 220 8% 46%;
-    --accent: 220 10% 92%;
-    --accent-foreground: 224 20% 12%;
+    /* --- Neutral Tones --- */
+    --muted: 222 43% 95%;
+    --muted-foreground: 218 20% 44%;
+    --accent: 222 30% 93%;
+    --accent-foreground: 216 75% 15%;
 
-    /* --- Semantic (clear, readable) --- */
-    --destructive: 4 62% 46%;
+    /* --- Semantic (solid, no opacity) --- */
+    --destructive: 1 100% 44%;
     --destructive-foreground: 0 0% 100%;
-    --success: 158 50% 38%;
+    --success: 155 100% 36%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 72% 48%;
+    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 58% 48%;
+    --info: 218 72% 28%;
     --info-foreground: 0 0% 100%;
 
     /* --- Edges --- */
-    --border: 220 10% 90%;
-    --input: 220 10% 90%;
-    --ring: 28 90% 53%;
+    --border: 222 20% 90%;
+    --input: 222 20% 90%;
+    --ring: 25 100% 50%;
     --radius: 0.5rem;
 
     /* --- Brand Aliases --- */
-    --brand-orange: 28 95% 53%;
-    --brand-blue: 225 78% 30%;
-    --brand-blue-light: 225 65% 40%;
-
-    /* (SolarMarket tokens removed — use semantic tokens instead) */
+    --brand-orange: 25 100% 50%;
+    --brand-blue: 218 72% 28%;
+    --brand-blue-light: 222 53% 50%;
 
     /* --- Elevation Surfaces --- */
     --surface-1: 0 0% 100%;
-    --surface-2: 220 10% 97%;
-    --surface-3: 220 10% 94%;
+    --surface-2: 222 43% 97%;
+    --surface-3: 222 30% 93%;
 
-    /* --- Shadows (Stripe-grade: barely visible, wide spread) --- */
-    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.02);
-    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.03), 0 1px 2px -1px rgb(0 0 0 / 0.02);
-    --shadow-md: 0 4px 12px -3px rgb(0 0 0 / 0.04), 0 2px 4px -2px rgb(0 0 0 / 0.02);
-    --shadow-lg: 0 10px 28px -8px rgb(0 0 0 / 0.06), 0 4px 10px -4px rgb(0 0 0 / 0.02);
-    --shadow-xl: 0 20px 44px -10px rgb(0 0 0 / 0.08), 0 8px 18px -8px rgb(0 0 0 / 0.03);
-    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.1);
-    --shadow-primary: 0 4px 20px 0 hsl(28 95% 53% / 0.2);
-    --shadow-secondary: 0 4px 20px 0 hsl(225 78% 30% / 0.15);
+    /* --- Shadows --- */
+    --shadow-xs: 0 1px 2px 0 rgb(10 31 68 / 0.03);
+    --shadow-sm: 0 1px 3px 0 rgb(10 31 68 / 0.04), 0 1px 2px -1px rgb(10 31 68 / 0.03);
+    --shadow-md: 0 4px 12px -3px rgb(10 31 68 / 0.06), 0 2px 4px -2px rgb(10 31 68 / 0.03);
+    --shadow-lg: 0 10px 28px -8px rgb(10 31 68 / 0.08), 0 4px 10px -4px rgb(10 31 68 / 0.03);
+    --shadow-xl: 0 20px 44px -10px rgb(10 31 68 / 0.10), 0 8px 18px -8px rgb(10 31 68 / 0.04);
+    --shadow-2xl: 0 25px 50px -12px rgb(10 31 68 / 0.12);
+    --shadow-primary: 0 4px 20px 0 hsl(25 100% 50% / 0.18);
+    --shadow-secondary: 0 4px 20px 0 hsl(218 72% 28% / 0.14);
 
-    /* --- Sidebar --- */
-    --sidebar-background: 220 12% 96%;
-    --sidebar-foreground: 224 20% 12%;
-    --sidebar-primary: 28 95% 53%;
+    /* --- Sidebar (deep structural blue) --- */
+    --sidebar-background: 216 75% 15%;
+    --sidebar-foreground: 220 20% 92%;
+    --sidebar-primary: 25 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 10% 92%;
-    --sidebar-accent-foreground: 224 20% 12%;
-    --sidebar-border: 220 10% 90%;
-    --sidebar-ring: 28 90% 53%;
+    --sidebar-accent: 216 60% 20%;
+    --sidebar-accent-foreground: 220 20% 92%;
+    --sidebar-border: 216 50% 20%;
+    --sidebar-ring: 25 100% 50%;
 
-    /* Section colors — vivid brand orange & blue */
-    --sidebar-section-intelligence: 225 65% 45%;
-    --sidebar-section-commercial: 28 90% 52%;
-    --sidebar-section-clients: 210 55% 48%;
-    --sidebar-section-operations: 30 70% 50%;
-    --sidebar-section-finance: 225 70% 35%;
-    --sidebar-section-marketing: 28 80% 52%;
-    --sidebar-section-settings: 220 14% 44%;
-    --sidebar-section-atendimento: 262 50% 50%;
-    --sidebar-section-cadastros: 180 40% 40%;
-    --sidebar-section-ai: 270 60% 52%;
-    --sidebar-section-integrations: 340 55% 48%;
+    /* Section families — 4 categories only */
+    --sidebar-section-commercial: 25 100% 50%;
+    --sidebar-section-operations: 222 53% 50%;
+    --sidebar-section-finance: 218 72% 28%;
+    --sidebar-section-admin: 216 72% 21%;
+
+    /* Legacy aliases (mapped to 4 families) */
+    --sidebar-section-intelligence: 25 100% 50%;
+    --sidebar-section-clients: 222 53% 50%;
+    --sidebar-section-atendimento: 25 100% 50%;
+    --sidebar-section-cadastros: 216 72% 21%;
+    --sidebar-section-marketing: 222 53% 50%;
+    --sidebar-section-settings: 216 72% 21%;
+    --sidebar-section-ai: 222 53% 50%;
+    --sidebar-section-integrations: 222 53% 50%;
   }
 
   .dark {
-    /* --- Surfaces (ink blue, not black) --- */
-    --background: 224 22% 7%;
-    --foreground: 220 12% 92%;
-    --card: 224 20% 9%;
-    --card-foreground: 220 12% 92%;
-    --popover: 224 20% 9%;
-    --popover-foreground: 220 12% 92%;
+    /* --- Surfaces (ink navy, not black) --- */
+    --background: 220 50% 8%;
+    --foreground: 220 20% 92%;
+    --card: 222 47% 11%;
+    --card-foreground: 220 20% 92%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 220 20% 92%;
 
-    /* --- Brand (vivid, lifted for dark contrast) --- */
-    --primary: 28 85% 56%;
+    /* --- Brand (lifted for dark contrast) --- */
+    --primary: 27 100% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 30 78% 62%;
-    --secondary: 225 60% 48%;
+    --primary-glow: 29 100% 60%;
+    --secondary: 222 57% 41%;
     --secondary-foreground: 0 0% 100%;
-    --secondary-glow: 225 52% 56%;
+    --secondary-glow: 222 53% 50%;
 
     /* --- Neutrals --- */
-    --muted: 224 16% 14%;
-    --muted-foreground: 220 8% 55%;
-    --accent: 224 14% 16%;
-    --accent-foreground: 220 12% 92%;
+    --muted: 220 32% 15%;
+    --muted-foreground: 220 14% 52%;
+    --accent: 220 28% 18%;
+    --accent-foreground: 220 20% 92%;
 
     /* --- Semantic --- */
-    --destructive: 4 58% 46%;
+    --destructive: 4 100% 60%;
     --destructive-foreground: 0 0% 100%;
-    --success: 158 45% 42%;
+    --success: 143 73% 48%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 65% 50%;
+    --warning: 38 85% 52%;
     --warning-foreground: 0 0% 100%;
-    --info: 210 52% 52%;
+    --info: 222 57% 41%;
     --info-foreground: 0 0% 100%;
 
     /* --- Edges --- */
-    --border: 224 14% 15%;
-    --input: 224 14% 15%;
-    --ring: 28 78% 56%;
+    --border: 220 28% 18%;
+    --input: 220 28% 18%;
+    --ring: 27 100% 55%;
 
     /* --- Elevation --- */
-    --surface-1: 224 20% 9%;
-    --surface-2: 224 20% 11%;
-    --surface-3: 224 20% 13%;
+    --surface-1: 222 47% 11%;
+    --surface-2: 220 38% 13%;
+    --surface-3: 220 32% 15%;
 
     /* --- Shadows --- */
-    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.12);
-    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.16), 0 1px 2px -1px rgb(0 0 0 / 0.12);
-    --shadow-md: 0 4px 12px -3px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.16);
-    --shadow-lg: 0 10px 28px -8px rgb(0 0 0 / 0.25), 0 4px 10px -4px rgb(0 0 0 / 0.2);
-    --shadow-xl: 0 20px 44px -10px rgb(0 0 0 / 0.3), 0 8px 18px -8px rgb(0 0 0 / 0.25);
-    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.4);
-    --shadow-primary: 0 4px 20px 0 hsl(28 85% 56% / 0.2);
-    --shadow-secondary: 0 4px 20px 0 hsl(225 60% 48% / 0.18);
+    --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.15);
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.20), 0 1px 2px -1px rgb(0 0 0 / 0.15);
+    --shadow-md: 0 4px 12px -3px rgb(0 0 0 / 0.25), 0 2px 4px -2px rgb(0 0 0 / 0.18);
+    --shadow-lg: 0 10px 28px -8px rgb(0 0 0 / 0.30), 0 4px 10px -4px rgb(0 0 0 / 0.22);
+    --shadow-xl: 0 20px 44px -10px rgb(0 0 0 / 0.35), 0 8px 18px -8px rgb(0 0 0 / 0.28);
+    --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.45);
+    --shadow-primary: 0 4px 20px 0 hsl(27 100% 55% / 0.20);
+    --shadow-secondary: 0 4px 20px 0 hsl(222 57% 41% / 0.18);
 
     /* --- Sidebar --- */
-    --sidebar-background: 224 22% 6%;
-    --sidebar-foreground: 220 12% 92%;
-    --sidebar-primary: 28 85% 56%;
+    --sidebar-background: 220 50% 6%;
+    --sidebar-foreground: 220 20% 88%;
+    --sidebar-primary: 27 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 16% 14%;
-    --sidebar-accent-foreground: 220 12% 92%;
-    --sidebar-border: 224 14% 15%;
-    --sidebar-ring: 28 78% 56%;
+    --sidebar-accent: 220 40% 12%;
+    --sidebar-accent-foreground: 220 20% 88%;
+    --sidebar-border: 220 35% 14%;
+    --sidebar-ring: 27 100% 55%;
 
-    /* Section colors — vivid, lifted for dark */
-    --sidebar-section-intelligence: 225 52% 56%;
-    --sidebar-section-commercial: 28 78% 56%;
-    --sidebar-section-clients: 210 45% 56%;
-    --sidebar-section-operations: 28 58% 54%;
-    --sidebar-section-finance: 225 55% 48%;
-    --sidebar-section-marketing: 28 65% 56%;
-    --sidebar-section-settings: 220 12% 54%;
-    --sidebar-section-atendimento: 262 45% 62%;
-    --sidebar-section-cadastros: 180 35% 52%;
-    --sidebar-section-ai: 270 52% 62%;
-    --sidebar-section-integrations: 340 48% 58%;
+    /* Section families */
+    --sidebar-section-commercial: 27 100% 55%;
+    --sidebar-section-operations: 222 53% 50%;
+    --sidebar-section-finance: 222 57% 41%;
+    --sidebar-section-admin: 222 53% 50%;
+
+    /* Legacy aliases */
+    --sidebar-section-intelligence: 27 100% 55%;
+    --sidebar-section-clients: 222 53% 50%;
+    --sidebar-section-atendimento: 27 100% 55%;
+    --sidebar-section-cadastros: 222 53% 50%;
+    --sidebar-section-marketing: 222 53% 50%;
+    --sidebar-section-settings: 222 53% 50%;
+    --sidebar-section-ai: 222 53% 50%;
+    --sidebar-section-integrations: 222 53% 50%;
   }
 }
 
@@ -274,12 +279,6 @@
   .text-brand-orange { color: hsl(var(--brand-orange)); }
   .bg-brand-blue { background-color: hsl(var(--brand-blue)); }
   .bg-brand-orange { background-color: hsl(var(--brand-orange)); }
-
-  /* SolarMarket utility classes */
-  .text-teal-solar { color: hsl(var(--teal-solar)); }
-  .bg-teal-solar { background-color: hsl(var(--teal-solar)); }
-  .text-amarelo-sol { color: hsl(var(--amarelo-sol)); }
-  .bg-amarelo-sol { background-color: hsl(var(--amarelo-sol)); }
 
   /* Status colors */
   .text-success { color: hsl(var(--success)); }

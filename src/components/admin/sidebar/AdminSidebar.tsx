@@ -247,9 +247,9 @@ function SidebarSectionGroup({
             className={`
               text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2
               flex items-center gap-2 cursor-pointer select-none
-              transition-all duration-200
-              hover:bg-accent/60 rounded-lg
-              ${section.labelClass}
+              transition-all duration-200 ease-in-out
+              hover:bg-sidebar-accent rounded-lg
+              text-sidebar-foreground/60
             `}
           >
             <div
@@ -262,8 +262,8 @@ function SidebarSectionGroup({
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1 opacity-90">{section.label}</span>
-                <ChevronDown className="h-3 w-3 opacity-30 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                <span className="flex-1">{section.label}</span>
+                <ChevronDown className="h-3 w-3 opacity-40 transition-transform duration-200 ease-in-out group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
           </SidebarGroupLabel>
@@ -464,8 +464,8 @@ export function AdminSidebar({
   );
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border/15 bg-sidebar-background/80 backdrop-blur-sm">
-      <SidebarHeader className="border-b border-border/15 px-3 py-3.5">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-3.5">
         <Link
           to="/"
           className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
@@ -516,10 +516,10 @@ export function AdminSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/15 p-3 space-y-2">
+      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
         {!collapsed && userEmail && (
-          <div className="px-3 py-2 rounded-lg bg-muted/30 border border-border/15">
-            <p className="text-[11px] text-muted-foreground/80 truncate font-medium">
+          <div className="px-3 py-2 rounded-lg bg-sidebar-accent border border-sidebar-border">
+            <p className="text-[11px] text-sidebar-foreground/70 truncate font-medium">
               {userEmail}
             </p>
           </div>

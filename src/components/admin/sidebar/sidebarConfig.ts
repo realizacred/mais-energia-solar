@@ -101,26 +101,26 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Dashboard",
     labelIcon: BarChart3,
-    indicatorBg: "bg-sidebar-intelligence",
+    indicatorBg: "bg-sidebar-commercial",
     activeClass:
-      "bg-sidebar-intelligence/18 text-sidebar-intelligence font-semibold border-l-[3px] border-sidebar-intelligence shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-intelligence)/0.12)]",
-    hoverClass: "hover:bg-sidebar-intelligence/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-intelligence",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: true,
     items: [
       { id: "dashboard", title: "Dashboard", icon: BarChart3, description: "Visão geral do negócio", keywords: ["resumo", "métricas", "KPI", "overview", "indicadores"] },
     ],
   },
 
-  // ─── 2. COMERCIAL ─────────────────────────────────────────
+  // ─── 2. COMERCIAL (Revenue Core) ─────────────────────────
   {
     label: "Comercial",
     labelIcon: TrendingUp,
     indicatorBg: "bg-sidebar-commercial",
     activeClass:
-      "bg-sidebar-commercial/18 text-sidebar-commercial font-semibold border-l-[3px] border-sidebar-commercial shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-commercial)/0.12)]",
-    hoverClass: "hover:bg-sidebar-commercial/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-commercial",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: true,
     items: [
       { id: "leads", title: "Leads", icon: Users, description: "Cadastro e gestão de leads", keywords: ["contato", "prospect", "captura", "formulário"] },
@@ -133,15 +133,15 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 3. CONVERSAS ─────────────────────────────────────────
+  // ─── 3. CONVERSAS (Revenue Core) ──────────────────────────
   {
     label: "Conversas",
     labelIcon: MessageCircle,
-    indicatorBg: "bg-sidebar-atendimento",
+    indicatorBg: "bg-sidebar-commercial",
     activeClass:
-      "bg-sidebar-atendimento/18 text-sidebar-atendimento font-semibold border-l-[3px] border-sidebar-atendimento shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-atendimento)/0.12)]",
-    hoverClass: "hover:bg-sidebar-atendimento/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-atendimento",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: true,
     items: [
       { id: "inbox", title: "Central WhatsApp", icon: MessageCircle, description: "Inbox de atendimento", keywords: ["chat", "mensagem", "conversa", "WhatsApp"] },
@@ -150,15 +150,15 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 4. CLIENTES ──────────────────────────────────────────
+  // ─── 4. CLIENTES (Operations) ─────────────────────────────
   {
     label: "Clientes",
     labelIcon: UserCheck,
-    indicatorBg: "bg-sidebar-clients",
+    indicatorBg: "bg-sidebar-operations",
     activeClass:
-      "bg-sidebar-clients/18 text-sidebar-clients font-semibold border-l-[3px] border-sidebar-clients shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-clients)/0.12)]",
-    hoverClass: "hover:bg-sidebar-clients/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-clients",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: true,
     items: [
       { id: "clientes", title: "Gestão de Clientes", icon: UserCheck, description: "Cadastro e documentos", keywords: ["cliente", "contrato", "documentação", "CPF"] },
@@ -174,9 +174,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Wrench,
     indicatorBg: "bg-sidebar-operations",
     activeClass:
-      "bg-sidebar-operations/18 text-sidebar-operations font-semibold border-l-[3px] border-sidebar-operations shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-operations)/0.12)]",
-    hoverClass: "hover:bg-sidebar-operations/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-operations",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: false,
     items: [
       { id: "instaladores", title: "Instaladores", icon: Wrench, description: "Equipe de campo", keywords: ["técnico", "instalador", "equipe", "campo"] },
@@ -191,9 +191,9 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     labelIcon: Wallet,
     indicatorBg: "bg-sidebar-finance",
     activeClass:
-      "bg-sidebar-finance/18 text-sidebar-finance font-semibold border-l-[3px] border-sidebar-finance shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-finance)/0.12)]",
-    hoverClass: "hover:bg-sidebar-finance/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-finance",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: false,
     items: [
       { id: "recebimentos", title: "Recebimentos", icon: DollarSign, description: "Controle de pagamentos", keywords: ["pagamento", "parcela", "receber", "financeiro"] },
@@ -204,75 +204,70 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 7. GESTÃO ────────────────────────────────────────────
+  // ─── 7. GESTÃO (Administration) ───────────────────────────
   {
     label: "Gestão",
     labelIcon: Users,
-    indicatorBg: "bg-sidebar-cadastros",
+    indicatorBg: "bg-sidebar-admin",
     activeClass:
-      "bg-sidebar-cadastros/18 text-sidebar-cadastros font-semibold border-l-[3px] border-sidebar-cadastros shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-cadastros)/0.12)]",
-    hoverClass: "hover:bg-sidebar-cadastros/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-cadastros",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: false,
     items: [
       { id: "vendedores", title: "Consultores", icon: Users, description: "Cadastro de consultores", keywords: ["consultor", "consultora", "consultores", "equipe", "cadastro"] },
-      
       { id: "aprovacao", title: "Aprovações", icon: ClipboardCheck, description: "Solicitações de acesso", keywords: ["aprovação", "solicitação", "pendente"] },
       { id: "gamificacao", title: "Gamificação", icon: Trophy, description: "Metas e ranking da equipe", keywords: ["meta", "ranking", "conquista", "pontuação", "competição"] },
       { id: "release", title: "Release Notes", icon: Rocket, description: "Checklist de versões", keywords: ["versão", "release", "novidade"] },
     ],
   },
 
-  // ─── 8. IA ────────────────────────────────────────────────
+  // ─── 8. IA (Administration) ───────────────────────────────
   {
     label: "IA",
     labelIcon: Bot,
-    indicatorBg: "bg-sidebar-ai",
+    indicatorBg: "bg-sidebar-admin",
     activeClass:
-      "bg-sidebar-ai/18 text-sidebar-ai font-semibold border-l-[3px] border-sidebar-ai shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-ai)/0.12)]",
-    hoverClass: "hover:bg-sidebar-ai/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-ai",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: false,
     items: [
       { id: "diretor", title: "Copilot IA", icon: Sparkles, description: "Análise inteligente & sugestões", keywords: ["IA", "copilot", "sugestão", "automático", "inteligência"] },
     ],
   },
 
-  // ─── 9. INTEGRAÇÕES ───────────────────────────────────────
+  // ─── 9. INTEGRAÇÕES (Administration) ──────────────────────
   {
     label: "Integrações",
     labelIcon: Cable,
-    indicatorBg: "bg-sidebar-integrations",
+    indicatorBg: "bg-sidebar-admin",
     activeClass:
-      "bg-sidebar-integrations/18 text-sidebar-integrations font-semibold border-l-[3px] border-sidebar-integrations shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-integrations)/0.12)]",
-    hoverClass: "hover:bg-sidebar-integrations/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-integrations",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: false,
     items: [
       { id: "integracoes", title: "Integrações", icon: Cable, description: "Google Agenda e serviços externos", keywords: ["integração", "google", "calendar", "agenda", "oauth"] },
-      
       { id: "google-maps-config", title: "Google Maps", icon: MapPin, description: "API Key para mapas", keywords: ["google", "maps", "mapa", "api", "geocodificação"] },
-
       { id: "wa-instances", title: "Instâncias WhatsApp", icon: Smartphone, description: "Evolution API", keywords: ["instância", "evolution", "API", "número"] },
       { id: "whatsapp", title: "WhatsApp API", icon: MessageCircle, description: "Automações de mensagens", keywords: ["API", "automação", "webhook", "bot"] },
       { id: "instagram", title: "Instagram", icon: Instagram, description: "Sincronizar posts", keywords: ["instagram", "post", "rede social", "feed"] },
-      
       { id: "webhooks", title: "Webhooks", icon: Webhook, description: "Integrações externas", keywords: ["webhook", "integração", "API", "n8n"] },
       { id: "n8n", title: "Automações", icon: Workflow, description: "Workflows via MCP", keywords: ["n8n", "automação", "workflow", "MCP"] },
-      // google-calendar removed
       { id: "ai-config", title: "Configuração de IA", icon: Brain, description: "Modelo, temperatura e gate de follow-up", keywords: ["ia", "ai", "openai", "gpt", "modelo", "inteligência", "artificial", "configuração"] },
     ],
   },
 
-  // ─── 10. SITE ─────────────────────────────────────────────
+  // ─── 10. SITE (Administration) ────────────────────────────
   {
     label: "Site",
     labelIcon: Globe,
-    indicatorBg: "bg-sidebar-marketing",
+    indicatorBg: "bg-sidebar-admin",
     activeClass:
-      "bg-sidebar-marketing/18 text-sidebar-marketing font-semibold border-l-[3px] border-sidebar-marketing shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-marketing)/0.12)]",
-    hoverClass: "hover:bg-sidebar-marketing/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-marketing",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: false,
     items: [
       { id: "site-config", title: "Conteúdo & Visual", icon: Globe, description: "Layout e textos do site", keywords: ["site", "landing", "visual", "layout", "marca"] },
@@ -281,15 +276,15 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     ],
   },
 
-  // ─── 11. CONFIGURAÇÕES ────────────────────────────────────
+  // ─── 11. CONFIGURAÇÕES (Administration) ───────────────────
   {
     label: "Configurações",
     labelIcon: Settings,
-    indicatorBg: "bg-sidebar-cadastros",
+    indicatorBg: "bg-sidebar-admin",
     activeClass:
-      "bg-sidebar-cadastros/18 text-sidebar-cadastros font-semibold border-l-[3px] border-sidebar-cadastros shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-cadastros)/0.12)]",
-    hoverClass: "hover:bg-sidebar-cadastros/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-cadastros",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: false,
     items: [
       { id: "config", title: "Calculadora Solar", icon: Calculator, description: "Parâmetros de geração e custo", keywords: ["cálculo", "geração", "kWp", "tarifa", "custo"] },
@@ -302,7 +297,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "inversores-cadastro", title: "Inversores", icon: Cpu, description: "Inversores solares cadastrados", keywords: ["inversor", "potência", "micro-inversor", "string"] },
       { id: "baterias", title: "Baterias", icon: Battery, description: "Sistemas de armazenamento", keywords: ["bateria", "armazenamento", "lítio", "energia"] },
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas por distribuidora", keywords: ["tarifa", "distribuidora", "concessionária", "ANEEL"] },
-      // agenda-config removed
       { id: "loading-config", title: "Loading & Mensagens", icon: Sun, description: "Animação e mensagens de carregamento", keywords: ["loading", "carregamento", "mensagem", "animação", "sol", "loader"], separator: true },
     ],
   },
@@ -311,11 +305,11 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Administração",
     labelIcon: Shield,
-    indicatorBg: "bg-sidebar-settings",
+    indicatorBg: "bg-sidebar-admin",
     activeClass:
-      "bg-sidebar-settings/18 text-sidebar-settings font-semibold border-l-[3px] border-sidebar-settings shadow-[inset_0_0_0_1px_hsl(var(--sidebar-section-settings)/0.12)]",
-    hoverClass: "hover:bg-sidebar-settings/12 hover:text-sidebar-foreground/90",
-    labelClass: "text-sidebar-settings",
+      "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
+    hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
+    labelClass: "text-sidebar-foreground/70",
     defaultOpen: false,
     items: [
       { id: "tenant-settings", title: "Empresa", icon: Building2, description: "Identidade, localização e regras de cadastro", keywords: ["empresa", "cnpj", "tenant", "configuração", "crm", "cadastro"] },
