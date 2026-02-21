@@ -114,6 +114,7 @@ export function ConcessionariasManager() {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [subgrupoCounts, setSubgrupoCounts] = useState<Record<string, { bt: number; mt: number }>>({});
   const [syncing, setSyncing] = useState(false);
   const [syncRunId, setSyncRunId] = useState<string | null>(null);
   const [syncProgress, setSyncProgress] = useState<{ status: string; totalUpdated: number; totalErrors: number; totalFetched: number; message: string } | null>(null);
@@ -295,14 +296,31 @@ export function ConcessionariasManager() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("concessionarias")
-        .select("*")
-        .order("estado", { ascending: true })
-        .order("nome", { ascending: true });
+      const [concResult, subgrupoResult] = await Promise.all([
+        supabase
+          .from("concessionarias")
+          .select("*")
+          .order("estado", { ascending: true })
+          .order("nome", { ascending: true }),
+        supabase
+          .from("concessionaria_tarifas_subgrupo")
+          .select("concessionaria_id, subgrupo"),
+      ]);
 
-      if (error) throw error;
-      setConcessionarias(data || []);
+      if (concResult.error) throw concResult.error;
+      setConcessionarias(concResult.data || []);
+
+      // Count BT/MT subgrupos per concessionária
+      const counts: Record<string, { bt: number; mt: number }> = {};
+      for (const row of subgrupoResult.data || []) {
+        if (!counts[row.concessionaria_id]) counts[row.concessionaria_id] = { bt: 0, mt: 0 };
+        if (row.subgrupo.startsWith("A")) {
+          counts[row.concessionaria_id].mt++;
+        } else {
+          counts[row.concessionaria_id].bt++;
+        }
+      }
+      setSubgrupoCounts(counts);
     } catch (error: any) {
       toast({
         title: "Erro ao carregar concessionárias",
@@ -592,6 +610,7 @@ export function ConcessionariasManager() {
                 <TableHead>Nome</TableHead>
                 <TableHead>Sigla</TableHead>
                 <TableHead>UF</TableHead>
+                <TableHead>Subgrupos</TableHead>
                 <TableHead>Tarifa</TableHead>
                 <TableHead>Fio B</TableHead>
                 <TableHead>ICMS</TableHead>
@@ -604,7 +623,7 @@ export function ConcessionariasManager() {
             <TableBody>
               {filteredConcessionarias.length === 0 ? (
                <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
                     Nenhuma concessionária encontrada
                   </TableCell>
                 </TableRow>
@@ -628,6 +647,28 @@ export function ConcessionariasManager() {
                         {c.estado ? (
                           <Badge variant="outline" className="font-mono">{c.estado}</Badge>
                         ) : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          const counts = subgrupoCounts[c.id];
+                          if (!counts || (counts.bt === 0 && counts.mt === 0)) {
+                            return <span className="text-xs text-muted-foreground">—</span>;
+                          }
+                          return (
+                            <div className="flex items-center gap-1">
+                              {counts.bt > 0 && (
+                                <Badge variant="outline" className="text-[9px] bg-success/10 text-success border-success/30 font-mono">
+                                  B:{counts.bt}
+                                </Badge>
+                              )}
+                              {counts.mt > 0 && (
+                                <Badge variant="outline" className="text-[9px] bg-primary/10 text-primary border-primary/30 font-mono">
+                                  A:{counts.mt}
+                                </Badge>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-xs">
                         {c.tarifa_energia != null ? `R$ ${Number(c.tarifa_energia).toFixed(2)}` : (
@@ -704,7 +745,7 @@ export function ConcessionariasManager() {
                     </TableRow>
                     {expandedId === c.id && (
                       <TableRow>
-                        <TableCell colSpan={10} className="p-0 bg-muted/20">
+                        <TableCell colSpan={12} className="p-0 bg-muted/20">
                           <ConcessionariaSubgruposPanel
                             concessionariaId={c.id}
                             concessionariaNome={c.nome}

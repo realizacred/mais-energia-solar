@@ -188,16 +188,17 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         return null;
       };
 
-      const allAgents = new Set<string>();
-      const matchedAgentsSet = new Set<string>();
+      // Pre-cache agent→conc matching (runs once per unique agent instead of per row)
+      const agentCache = new Map<string, typeof concessionarias[0] | null>();
       const unmatchedSet = new Set<string>();
       
       for (const r of parsed) {
         const agent = r.sigAgente || r.nomAgente;
-        allAgents.add(agent);
-        const match = findConc(r.sigAgente, r.nomAgente);
-        if (match) matchedAgentsSet.add(agent);
-        else unmatchedSet.add(agent);
+        if (!agentCache.has(agent)) {
+          const match = findConc(r.sigAgente, r.nomAgente);
+          agentCache.set(agent, match);
+          if (!match) unmatchedSet.add(agent);
+        }
       }
       
       if (unmatchedSet.size > 0) {
@@ -207,30 +208,32 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
       const mwhToKwh = (v: number) => v / 1000;
 
-      if (fileType === "componentes") {
-        // Componentes: update fio_b fields
-        const grouped = new Map<string, { conc: typeof concessionarias[0]; records: ParsedTarifa[] }>();
-        for (const r of parsed) {
-          const conc = findConc(r.sigAgente, r.nomAgente);
-          if (!conc) continue;
-          const key = `${conc.id}|${r.subgrupo}|${r.modalidade}`;
-          if (!grouped.has(key)) grouped.set(key, { conc, records: [] });
-          grouped.get(key)!.records.push(r);
-        }
+      // Group records by concessionária+subgrupo+modalidade
+      const grouped = new Map<string, { conc: typeof concessionarias[0]; records: ParsedTarifa[] }>();
+      for (const r of parsed) {
+        const agent = r.sigAgente || r.nomAgente;
+        const conc = agentCache.get(agent);
+        if (!conc) continue;
+        const key = `${conc.id}|${r.subgrupo}|${r.modalidade}`;
+        if (!grouped.has(key)) grouped.set(key, { conc, records: [] });
+        grouped.get(key)!.records.push(r);
+      }
 
-        let updated = 0;
-        let grupoA = 0, grupoB = 0;
-        const errors: string[] = [];
-        const entries = [...grouped.entries()];
-        const totalEntries = entries.length;
+      let updated = 0;
+      let grupoA = 0, grupoB = 0;
+      const errors: string[] = [];
+      const entries = [...grouped.entries()];
+      const totalEntries = entries.length;
+      const BATCH_SIZE = 50;
 
-        for (let idx = 0; idx < entries.length; idx++) {
-          const [, { conc, records }] = entries[idx];
-          const first = records[0];
-          const sub = first.subgrupo;
-          const isGA = sub.startsWith("A");
+      // Build all upsert payloads first, then batch
+      const payloads: any[] = [];
+      for (const [, { conc, records }] of entries) {
+        const first = records[0];
+        const sub = first.subgrupo;
 
-          if (isGA) {
+        if (fileType === "componentes") {
+          if (sub.startsWith("A")) {
             let fio_b_ponta = 0, fio_b_fora_ponta = 0;
             for (const r of records) {
               const isPonta = r.posto.toLowerCase().includes("ponta") && !r.posto.toLowerCase().includes("fora");
@@ -240,70 +243,29 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               if (isPonta) fio_b_ponta = val;
               else fio_b_fora_ponta = val;
             }
-
-            const { error } = await supabase
-              .from("concessionaria_tarifas_subgrupo")
-              .upsert({
-                concessionaria_id: conc.id,
-                subgrupo: sub,
-                modalidade_tarifaria: first.modalidade || "Convencional",
-                fio_b_ponta, fio_b_fora_ponta,
-                origem: "CSV_ANEEL_COMP",
-                is_active: true,
-                updated_at: new Date().toISOString(),
-              } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
-
-            if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
-            else { updated++; grupoA++; }
+            payloads.push({
+              concessionaria_id: conc.id, subgrupo: sub,
+              modalidade_tarifaria: first.modalidade || "Convencional",
+              fio_b_ponta, fio_b_fora_ponta,
+              origem: "CSV_ANEEL_COMP", is_active: true,
+              updated_at: new Date().toISOString(),
+              _isGA: true,
+            });
           } else {
             const r = records[0];
             const isMWh = norm(r.unidade).includes("mwh");
             const rawFioB = r.vlrFioB || 0;
-            const val = isMWh ? mwhToKwh(rawFioB) : rawFioB;
-            const { error } = await supabase
-              .from("concessionaria_tarifas_subgrupo")
-              .upsert({
-                concessionaria_id: conc.id,
-                subgrupo: sub,
-                modalidade_tarifaria: first.modalidade || "Convencional",
-                tarifa_fio_b: val,
-                origem: "CSV_ANEEL_COMP",
-                is_active: true,
-                updated_at: new Date().toISOString(),
-              } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
-
-            if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
-            else { updated++; grupoB++; }
+            payloads.push({
+              concessionaria_id: conc.id, subgrupo: sub,
+              modalidade_tarifaria: first.modalidade || "Convencional",
+              tarifa_fio_b: isMWh ? mwhToKwh(rawFioB) : rawFioB,
+              origem: "CSV_ANEEL_COMP", is_active: true,
+              updated_at: new Date().toISOString(),
+              _isGA: false,
+            });
           }
-          setProgress({ current: idx + 1, total: totalEntries, percent: Math.round(((idx + 1) / totalEntries) * 100) });
-          if (idx % 5 === 0) await new Promise(r => setTimeout(r, 10));
-        }
-
-        const matched = grouped.size;
-        const skipped = parsed.length - [...grouped.values()].reduce((sum, g) => sum + g.records.length, 0);
-        setResult({ matched, updated, skipped, errors, grupoA, grupoB });
-      } else {
-        // Tarifas homologadas
-        const grouped = new Map<string, { conc: typeof concessionarias[0]; records: ParsedTarifa[] }>();
-        for (const r of parsed) {
-          const conc = findConc(r.sigAgente, r.nomAgente);
-          if (!conc) continue;
-          const key = `${conc.id}|${r.subgrupo}|${r.modalidade}`;
-          if (!grouped.has(key)) grouped.set(key, { conc, records: [] });
-          grouped.get(key)!.records.push(r);
-        }
-
-        let updated = 0;
-        let grupoA = 0, grupoB = 0;
-        const errors: string[] = [];
-        const entries2 = [...grouped.entries()];
-        const totalEntries2 = entries2.length;
-
-        for (let idx = 0; idx < entries2.length; idx++) {
-          const [, { conc, records }] = entries2[idx];
-          const first = records[0];
-          const sub = first.subgrupo;
-
+        } else {
+          // Tarifas homologadas
           if (sub.startsWith("A")) {
             let te_ponta = 0, te_fora_ponta = 0, tusd_ponta = 0, tusd_fora_ponta = 0;
             let demanda_consumo_rs = 0, demanda_geracao_rs = 0;
@@ -312,90 +274,103 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               const isEnergy = norm(r.unidade).includes("mwh");
               const isDemand = norm(r.unidade).includes("kw") && !norm(r.unidade).includes("kwh");
               const isGeracao = norm(r.modalidade).includes("gera");
-              
               if (isDemand) {
-                if (isGeracao) {
-                  demanda_geracao_rs = r.vlrTUSD || r.vlrTE;
-                } else if (isPonta) {
-                  demanda_consumo_rs = Math.max(demanda_consumo_rs, r.vlrTUSD);
-                } else {
-                  demanda_consumo_rs = demanda_consumo_rs || r.vlrTUSD;
-                }
+                if (isGeracao) demanda_geracao_rs = r.vlrTUSD || r.vlrTE;
+                else if (isPonta) demanda_consumo_rs = Math.max(demanda_consumo_rs, r.vlrTUSD);
+                else demanda_consumo_rs = demanda_consumo_rs || r.vlrTUSD;
               } else if (isEnergy) {
-                if (isPonta) {
-                  te_ponta = mwhToKwh(r.vlrTE);
-                  tusd_ponta = mwhToKwh(r.vlrTUSD);
-                } else {
-                  te_fora_ponta = mwhToKwh(r.vlrTE);
-                  tusd_fora_ponta = mwhToKwh(r.vlrTUSD);
-                }
+                if (isPonta) { te_ponta = mwhToKwh(r.vlrTE); tusd_ponta = mwhToKwh(r.vlrTUSD); }
+                else { te_fora_ponta = mwhToKwh(r.vlrTE); tusd_fora_ponta = mwhToKwh(r.vlrTUSD); }
               }
             }
-
             const upsertData: any = {
-              concessionaria_id: conc.id,
-              subgrupo: sub,
+              concessionaria_id: conc.id, subgrupo: sub,
               modalidade_tarifaria: first.modalidade || "Convencional",
               te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta,
-              origem: "CSV_ANEEL",
-              is_active: true,
+              origem: "CSV_ANEEL", is_active: true,
               updated_at: new Date().toISOString(),
+              _isGA: true,
             };
             if (demanda_consumo_rs) upsertData.demanda_consumo_rs = demanda_consumo_rs;
             if (demanda_geracao_rs) upsertData.demanda_geracao_rs = demanda_geracao_rs;
-
-            const { error } = await supabase
-              .from("concessionaria_tarifas_subgrupo")
-              .upsert(upsertData, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
-
-            if (error) errors.push(`${conc.nome} ${sub} ${first.modalidade}: ${error.message}`);
-            else { updated++; grupoA++; }
+            payloads.push(upsertData);
           } else {
             const energyRows = records.filter(r => norm(r.unidade).includes("mwh"));
             const r = energyRows.length > 0 ? energyRows[0] : records[0];
             const isMWh = norm(r.unidade).includes("mwh");
-            const { error } = await supabase
-              .from("concessionaria_tarifas_subgrupo")
-              .upsert({
-                concessionaria_id: conc.id,
-                subgrupo: sub,
-                modalidade_tarifaria: first.modalidade || "Convencional",
-                tarifa_energia: isMWh ? mwhToKwh(r.vlrTE) : r.vlrTE,
-                tarifa_fio_b: isMWh ? mwhToKwh(r.vlrTUSD) : r.vlrTUSD,
-                origem: "CSV_ANEEL",
-                is_active: true,
-                updated_at: new Date().toISOString(),
-              } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
-
-            if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
-            else { updated++; grupoB++; }
+            payloads.push({
+              concessionaria_id: conc.id, subgrupo: sub,
+              modalidade_tarifaria: first.modalidade || "Convencional",
+              tarifa_energia: isMWh ? mwhToKwh(r.vlrTE) : r.vlrTE,
+              tarifa_fio_b: isMWh ? mwhToKwh(r.vlrTUSD) : r.vlrTUSD,
+              origem: "CSV_ANEEL", is_active: true,
+              updated_at: new Date().toISOString(),
+              _isGA: false,
+            });
           }
-          setProgress({ current: idx + 1, total: totalEntries2, percent: Math.round(((idx + 1) / totalEntries2) * 100) });
-          if (idx % 5 === 0) await new Promise(r => setTimeout(r, 10));
+        }
+      }
+
+      // Batch upsert
+      for (let i = 0; i < payloads.length; i += BATCH_SIZE) {
+        const batch = payloads.slice(i, i + BATCH_SIZE).map(p => {
+          const isGA = p._isGA;
+          const { _isGA, ...clean } = p;
+          return { ...clean, _isGA: isGA };
+        });
+
+        // Track grupo counts
+        for (const p of batch) {
+          if (p._isGA) grupoA++;
+          else grupoB++;
         }
 
-        const matched = grouped.size;
-        const skipped = parsed.length - [...grouped.values()].reduce((sum, g) => sum + g.records.length, 0);
-        setResult({ matched, updated, skipped, errors, grupoA, grupoB });
+        const cleanBatch = batch.map(({ _isGA, ...rest }) => rest);
+        
+        const { error } = await supabase
+          .from("concessionaria_tarifas_subgrupo")
+          .upsert(cleanBatch as any[], { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
+
+        if (error) {
+          errors.push(`Lote ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
+        } else {
+          updated += cleanBatch.length;
+        }
+
+        setProgress({
+          current: Math.min(i + BATCH_SIZE, payloads.length),
+          total: payloads.length,
+          percent: Math.round((Math.min(i + BATCH_SIZE, payloads.length) / payloads.length) * 100),
+        });
+        // Yield to UI thread
+        await new Promise(r => setTimeout(r, 30));
       }
+
+      const matched = grouped.size;
+      const skipped = parsed.length - [...grouped.values()].reduce((sum, g) => sum + g.records.length, 0);
+      const finalResult: ImportResult = { matched, updated, skipped, errors, grupoA, grupoB };
+      setResult(finalResult);
 
       // Record audit log to aneel_sync_runs
       try {
         await supabase.from("aneel_sync_runs").insert({
           trigger_type: "manual_csv",
-          status: "completed",
+          status: errors.length > 0 ? "partial" : "completed",
           started_at: new Date().toISOString(),
           finished_at: new Date().toISOString(),
           total_fetched: rawRows.length,
-          total_matched: result?.matched ?? 0,
-          total_updated: result?.updated ?? 0,
-          total_errors: result?.errors?.length ?? 0,
+          total_matched: finalResult.matched,
+          total_updated: finalResult.updated,
+          total_errors: finalResult.errors.length,
           logs: {
             fileName: file?.name,
             fileType,
             totalRows: rawRows.length,
             validRows: validation?.validRows ?? 0,
             invalidRows: validation?.invalidRows ?? 0,
+            grupoA: finalResult.grupoA,
+            grupoB: finalResult.grupoB,
+            unmatchedAgents: [...unmatchedSet].slice(0, 50),
             importedAt: new Date().toISOString(),
           },
         } as any);
@@ -807,7 +782,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                 <div className="flex-1 flex items-center gap-3">
                   <Progress value={progress.percent} className="h-2 flex-1" />
                   <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
-                    {progress.percent}%
+                    {progress.current}/{progress.total} ({progress.percent}%)
                   </span>
                 </div>
               )}
