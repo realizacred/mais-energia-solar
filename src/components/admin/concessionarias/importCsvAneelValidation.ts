@@ -127,6 +127,32 @@ export function validateRows(
 ): ValidationReport & { discardedFooterRows: DiscardedRow[] } {
   const colMap = detectColumns(headers);
   
+  // Content-based fallback for subgrupo if not found by headers
+  if (colMap.subgrupo === undefined && rows.length > 0) {
+    for (let colIdx = 0; colIdx < (rows[0]?.length || 0); colIdx++) {
+      const sampleValues = rows.slice(0, 20).map(r => r[colIdx] || "").filter(Boolean);
+      const subgrupoPattern = /^(A\d[a-z]?|AS|B\d)$/i;
+      const matchCount = sampleValues.filter(v => subgrupoPattern.test(v.trim())).length;
+      if (matchCount >= 3) {
+        colMap.subgrupo = colIdx;
+        console.log("[ANEEL Validate] Content-based fallback: subgrupo at col", colIdx);
+        break;
+      }
+    }
+  }
+  
+  // Content-based fallback for sigAgente if not found
+  if (colMap.sigAgente === undefined && colMap.nomAgente === undefined && rows.length > 0) {
+    for (let colIdx = 0; colIdx < (rows[0]?.length || 0); colIdx++) {
+      const sampleValues = rows.slice(0, 10).map(r => r[colIdx] || "").filter(Boolean);
+      if (sampleValues.some(v => /^[A-Z]{2,10}$/i.test(v.trim()))) {
+        colMap.sigAgente = colIdx;
+        console.log("[ANEEL Validate] Content-based fallback: sigAgente at col", colIdx);
+        break;
+      }
+    }
+  }
+  
   // Check required columns based on file type
   const requiredCols = fileType === "componentes" ? REQUIRED_COLUMNS_COMPONENTES : REQUIRED_COLUMNS_HOMOLOGADAS;
   const missingRequiredColumns: string[] = [];

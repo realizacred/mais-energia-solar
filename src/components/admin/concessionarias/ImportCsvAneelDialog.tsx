@@ -57,6 +57,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
   const [step, setStep] = useState<Step>("upload");
   const [validation, setValidation] = useState<ValidationReport | null>(null);
   const [showAllRows, setShowAllRows] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<{ headers: string[]; colMap: Record<string, number>; sampleRows: string[][] } | null>(null);
 
   const reset = () => {
     setFile(null);
@@ -70,6 +71,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setStep("upload");
     setValidation(null);
     setShowAllRows(false);
+    setDebugInfo(null);
   };
 
   // ─── Step 1: Upload & Parse ───
@@ -108,6 +110,13 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       const colMap = detectColumns(hdrs);
       console.log("[ANEEL Import] Detected columns:", colMap);
       
+      // Save debug info for UI display
+      setDebugInfo({
+        headers: hdrs,
+        colMap,
+        sampleRows: rows.slice(0, 3),
+      });
+      
       const detected = detectFileType(hdrs);
       setFileType(detected);
 
@@ -131,7 +140,9 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       }
       console.log("[ANEEL Import] Parsed records:", records.length, "from", rows.length, "rows, type:", detected);
       if (records.length === 0 && rows.length > 0) {
-        console.warn("[ANEEL Import] 0 records parsed! Sample raw rows:", rows.slice(0, 3));
+        console.warn("[ANEEL Import] 0 records parsed! Headers:", hdrs);
+        console.warn("[ANEEL Import] Column map:", colMap);
+        console.warn("[ANEEL Import] Sample raw rows:", rows.slice(0, 5));
       }
       setParsed(records);
 
@@ -685,6 +696,55 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                 )}
               </div>
             </ScrollArea>
+
+            {/* Diagnostic info when 0 records */}
+            {parsed.length === 0 && debugInfo && (
+              <div className="p-3 rounded-lg bg-destructive/5 border border-destructive/20 space-y-2">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-destructive">
+                  <AlertTriangle className="w-4 h-4" />
+                  Nenhum registro parseado — Diagnóstico
+                </div>
+                <div className="space-y-1.5 text-[10px] font-mono">
+                  <div>
+                    <span className="font-bold text-foreground">Cabeçalhos detectados ({debugInfo.headers.length}):</span>
+                    <div className="mt-0.5 flex flex-wrap gap-1">
+                      {debugInfo.headers.filter(h => h).map((h, i) => (
+                        <Badge key={i} variant="outline" className="text-[9px]">{h}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="font-bold text-foreground">Colunas mapeadas:</span>
+                    {Object.keys(debugInfo.colMap).length === 0 ? (
+                      <span className="text-destructive ml-1">Nenhuma coluna reconhecida!</span>
+                    ) : (
+                      <div className="mt-0.5 flex flex-wrap gap-1">
+                        {Object.entries(debugInfo.colMap).map(([key, idx]) => (
+                          <Badge key={key} variant="secondary" className="text-[9px]">
+                            {key}→{debugInfo.headers[idx] || `col${idx}`}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {debugInfo.sampleRows.length > 0 && (
+                    <div>
+                      <span className="font-bold text-foreground">Amostra da linha 1:</span>
+                      <div className="mt-0.5 p-1.5 bg-muted rounded text-[9px] overflow-x-auto whitespace-nowrap">
+                        {debugInfo.sampleRows[0].map((c, i) => (
+                          <span key={i} className="inline-block mr-2">
+                            <span className="text-muted-foreground">[{i}]</span> {c || "(vazio)"}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Se os cabeçalhos acima não correspondem ao esperado, verifique se o arquivo foi exportado corretamente do site da ANEEL (dadosabertos.aneel.gov.br).
+                </p>
+              </div>
+            )}
 
             <div className="flex items-start gap-2 p-2 rounded-lg bg-warning/10 border border-warning/30 text-[11px]">
               <AlertTriangle className="w-3.5 h-3.5 text-warning mt-0.5 shrink-0" />

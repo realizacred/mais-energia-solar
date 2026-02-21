@@ -101,10 +101,17 @@ function findColumnIndex(normalizedHeaders: string[], aliases: string[]): number
     if (idx !== -1) return idx;
   }
 
-  // Priority 3: contains
+  // Priority 3: header contains alias
   for (const alias of normAliases) {
-    if (alias.length < 3) continue; // skip very short aliases for contains
+    if (alias.length < 3) continue;
     const idx = normalizedHeaders.findIndex(h => h.includes(alias));
+    if (idx !== -1) return idx;
+  }
+
+  // Priority 4: alias contains header (reverse contains)
+  for (const alias of normAliases) {
+    if (alias.length < 4) continue;
+    const idx = normalizedHeaders.findIndex(h => h.length >= 3 && alias.includes(h));
     if (idx !== -1) return idx;
   }
 
@@ -116,25 +123,78 @@ export function detectColumns(headers: string[]): ColumnMap {
   const normalizedHeaders = headers.map(h => norm(h));
 
   const columnAliases: Record<string, string[]> = {
-    sigAgente:     ["sigla", "sigla agente", "sigagente", "sig agente", "sig", "sigla do agente"],
-    nomAgente:     ["nom agente", "nomagente", "distribuidora", "nome agente", "nome da distribuidora", "nome do agente", "agente"],
-    subgrupo:      ["subgrupo", "sub grupo", "sub_grupo", "dscsubgrupo", "dsc sub grupo"],
-    modalidade:    ["modalidade", "modalidade tarifaria", "dscmodalidadetarifaria", "modalidade tarifária"],
-    posto:         ["posto", "posto tarifario", "posto tarifário", "nompostotarifario", "nom posto tarifario"],
-    vlrTUSD:       ["tusd", "vlr tusd", "vlrtusd", "valor tusd"],
-    vlrTE:         ["vlr te", "vlrte", "valor te"],
-    unidade:       ["unidade", "und", "dscunidade"],
-    baseTarifaria: ["base tarifaria", "basetarifaria", "base tarif", "dscbasetarifaria", "dsc base tarifaria"],
-    detalhe:       ["detalhe", "detalhe tarifa", "dscdetalhe", "dsc detalhe"],
-    vigencia:      ["inicio vigencia", "iniciovigencia", "dat inicio", "data inicio vigencia", "inicio da vigencia", "datiniciovigencia", "dat inicio vigencia"],
-    fimVigencia:   ["fim vigencia", "fimvigencia", "fim da vigencia", "data fim vigencia", "datfimvigencia", "dat fim vigencia"],
-    classe:        ["classe", "dscclasse"],
+    sigAgente:     [
+      "sigla", "sigla agente", "sigagente", "sig agente", "sig",
+      "sigla do agente", "sigla da distribuidora", "sigla distribuidora",
+      "codigo agente", "cod agente", "codagente",
+    ],
+    nomAgente:     [
+      "nom agente", "nomagente", "distribuidora", "nome agente",
+      "nome da distribuidora", "nome do agente", "agente",
+      "nome distribuidora", "razao social", "empresa",
+      "concessionaria", "nome concessionaria",
+    ],
+    subgrupo:      [
+      "subgrupo", "sub grupo", "sub_grupo", "dscsubgrupo", "dsc sub grupo",
+      "grupo tarifario", "classe", "dsc subgrupo",
+    ],
+    modalidade:    [
+      "modalidade", "modalidade tarifaria", "dscmodalidadetarifaria",
+      "modalidade tarifária", "dsc modalidade tarifaria",
+      "modalidade_tarifaria", "mod tarifaria",
+    ],
+    posto:         [
+      "posto", "posto tarifario", "posto tarifário",
+      "nompostotarifario", "nom posto tarifario",
+      "posto_tarifario", "dsc posto tarifario",
+    ],
+    vlrTUSD:       [
+      "tusd", "vlr tusd", "vlrtusd", "valor tusd",
+      "vlr_tusd", "valor_tusd", "tarifa tusd",
+    ],
+    vlrTE:         [
+      "vlr te", "vlrte", "valor te", "vlr_te", "valor_te",
+      "tarifa te", "te r$/mwh", "te (r$/mwh)",
+    ],
+    unidade:       [
+      "unidade", "und", "dscunidade", "dsc unidade",
+      "unid", "un", "unidade medida",
+    ],
+    baseTarifaria: [
+      "base tarifaria", "basetarifaria", "base tarif",
+      "dscbasetarifaria", "dsc base tarifaria",
+      "base_tarifaria", "tipo tarifa",
+    ],
+    detalhe:       [
+      "detalhe", "detalhe tarifa", "dscdetalhe", "dsc detalhe",
+      "detalhamento", "detalhe_tarifa",
+    ],
+    vigencia:      [
+      "inicio vigencia", "iniciovigencia", "dat inicio", "data inicio vigencia",
+      "inicio da vigencia", "datiniciovigencia", "dat inicio vigencia",
+      "inicio_vigencia", "data inicio", "dt inicio vigencia",
+      "data vigencia", "vigencia",
+    ],
+    fimVigencia:   [
+      "fim vigencia", "fimvigencia", "fim da vigencia",
+      "data fim vigencia", "datfimvigencia", "dat fim vigencia",
+      "fim_vigencia", "data fim", "dt fim vigencia",
+    ],
+    classe:        ["classe", "dscclasse", "dsc classe"],
     subclasse:     ["subclasse", "sub classe", "dscsubclasse"],
     resolucao:     ["resolucao", "resolucao aneel", "reh", "dscreh"],
     acessante:     ["acessante"],
     // Componentes-specific
-    componente:    ["componente", "tipo componente", "dsctipcomponente", "dsc tipo componente"],
-    vlrComponente: ["valor", "vlr componente", "vlrcomponente"],
+    componente:    [
+      "componente", "tipo componente", "dsctipcomponente",
+      "dsc tipo componente", "tipo_componente",
+      "desc componente", "descricao componente",
+    ],
+    vlrComponente: [
+      "valor", "vlr componente", "vlrcomponente",
+      "valor componente", "vlr_componente",
+      "valor_componente", "valor r$",
+    ],
   };
 
   for (const [key, aliases] of Object.entries(columnAliases)) {
@@ -153,6 +213,12 @@ export function detectColumns(headers: string[]): ColumnMap {
     delete map.vlrTE;
   }
 
+  // Safety: if vlrComponente matched the same column as vlrTUSD or vlrTE, keep vlrComponente
+  // (it's more specific for componentes files)
+
+  console.log("[ANEEL detectColumns] Normalized headers:", normalizedHeaders);
+  console.log("[ANEEL detectColumns] Column map result:", map);
+
   return map;
 }
 
@@ -162,7 +228,41 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
 
   if (!cols.sigAgente && !cols.nomAgente) {
     console.warn("[ANEEL Homol] No sigAgente/nomAgente column found. Headers:", headers);
-    return [];
+    
+    // Content-based fallback: try to find agent column by scanning data
+    const sampleRows = (data.slice(0, 10) as string[][]);
+    for (let colIdx = 0; colIdx < (sampleRows[0]?.length || 0); colIdx++) {
+      const values = sampleRows.map(r => r[colIdx] || "").filter(Boolean);
+      // Agent columns typically have 2-10 char abbreviations
+      if (values.length > 0 && values.every(v => v.length >= 2 && v.length <= 50)) {
+        // Check if any value looks like a known energy company abbreviation
+        if (values.some(v => /^[A-Z]{2,10}$/i.test(v.trim()))) {
+          cols.sigAgente = colIdx;
+          console.log("[ANEEL Homol] Content-based fallback: sigAgente at col", colIdx);
+          break;
+        }
+      }
+    }
+    
+    if (cols.sigAgente === undefined && cols.nomAgente === undefined) {
+      return [];
+    }
+  }
+
+  // Content-based fallback for subgrupo
+  if (cols.subgrupo === undefined) {
+    const sampleRows = (isPreParsed ? data.slice(0, 20) : data.slice(1, 21)) as string[][];
+    for (let colIdx = 0; colIdx < (sampleRows[0]?.length || 0); colIdx++) {
+      const values = sampleRows.map(r => r[colIdx] || "").filter(Boolean);
+      // Subgrupo values match pattern like A1, A2, A3, A3a, A4, AS, B1, B2, B3
+      const subgrupoPattern = /^(A\d[a-z]?|AS|B\d)$/i;
+      const matchCount = values.filter(v => subgrupoPattern.test(v.trim())).length;
+      if (matchCount >= 3) {
+        cols.subgrupo = colIdx;
+        console.log("[ANEEL Homol] Content-based fallback: subgrupo at col", colIdx, "matched", matchCount, "values");
+        break;
+      }
+    }
   }
 
   const debugSkipReasons = { noSub: 0, shortRow: 0, total: 0, filteredBase: 0, filteredDetalhe: 0 };
@@ -227,7 +327,36 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
 
   if (!cols.sigAgente && !cols.nomAgente) {
     console.warn("[ANEEL Comp] No sigAgente/nomAgente column found. Headers:", headers);
-    return [];
+    
+    // Content-based fallback for agent
+    const sampleRows = (data.slice(0, 10) as string[][]);
+    for (let colIdx = 0; colIdx < (sampleRows[0]?.length || 0); colIdx++) {
+      const values = sampleRows.map(r => r[colIdx] || "").filter(Boolean);
+      if (values.length > 0 && values.some(v => /^[A-Z]{2,10}$/i.test(v.trim()))) {
+        cols.sigAgente = colIdx;
+        console.log("[ANEEL Comp] Content-based fallback: sigAgente at col", colIdx);
+        break;
+      }
+    }
+    
+    if (cols.sigAgente === undefined && cols.nomAgente === undefined) {
+      return [];
+    }
+  }
+
+  // Content-based fallback for subgrupo
+  if (cols.subgrupo === undefined) {
+    const sampleRows = (isPreParsed ? data.slice(0, 20) : data.slice(1, 21)) as string[][];
+    for (let colIdx = 0; colIdx < (sampleRows[0]?.length || 0); colIdx++) {
+      const values = sampleRows.map(r => r[colIdx] || "").filter(Boolean);
+      const subgrupoPattern = /^(A\d[a-z]?|AS|B\d)$/i;
+      const matchCount = values.filter(v => subgrupoPattern.test(v.trim())).length;
+      if (matchCount >= 3) {
+        cols.subgrupo = colIdx;
+        console.log("[ANEEL Comp] Content-based fallback: subgrupo at col", colIdx);
+        break;
+      }
+    }
   }
 
   const records: ParsedTarifa[] = [];
@@ -293,19 +422,31 @@ export function parseXlsxFile(buffer: ArrayBuffer): { headers: string[]; rows: s
   
   if (raw.length < 2) return { headers: [], rows: [] };
   
-  // Smart header detection: scan first 10 rows to find the actual header row
-  // A header row should contain known column keywords
-  const HEADER_KEYWORDS = ["sigla", "agente", "subgrupo", "tusd", "vigencia", "modalidade", "distribuidora", "tarifa"];
+  // Smart header detection: scan first 30 rows to find the actual header row
+  const HEADER_KEYWORDS = [
+    "agente", "subgrupo", "tusd", "vigencia", "modalidade",
+    "distribuidora", "tarifa", "componente", "valor", "posto",
+    "classe", "unidade", "detalhe", "resolucao",
+  ];
   let headerRowIndex = 0;
+  let bestMatchCount = 0;
   
-  for (let i = 0; i < Math.min(10, raw.length); i++) {
+  for (let i = 0; i < Math.min(30, raw.length); i++) {
     const rowCells = (raw[i] as any[]).map(c => norm(String(c ?? "")));
     const matchCount = HEADER_KEYWORDS.filter(kw => rowCells.some(cell => cell.includes(kw))).length;
-    if (matchCount >= 3) {
+    if (matchCount > bestMatchCount) {
+      bestMatchCount = matchCount;
       headerRowIndex = i;
+    }
+    if (matchCount >= 4) {
       console.log(`[ANEEL XLSX] Header found at row ${i + 1} (matched ${matchCount} keywords)`);
       break;
     }
+  }
+  
+  if (bestMatchCount < 2) {
+    // Fallback: use first non-empty row as header
+    console.warn(`[ANEEL XLSX] Low header confidence (${bestMatchCount} keywords). Using row ${headerRowIndex + 1} as header.`);
   }
   
   const headers = (raw[headerRowIndex] as any[]).map(c => String(c ?? "").trim());
@@ -314,7 +455,10 @@ export function parseXlsxFile(buffer: ArrayBuffer): { headers: string[]; rows: s
     .map(row => (row as any[]).map(c => String(c ?? "").trim()));
   
   console.log(`[ANEEL XLSX] Headers detected (row ${headerRowIndex + 1}):`, headers);
-  console.log(`[ANEEL XLSX] Data rows: ${rows.length}`);
+  console.log(`[ANEEL XLSX] Total data rows: ${rows.length}`);
+  if (rows.length > 0) {
+    console.log(`[ANEEL XLSX] Sample row 1:`, rows[0]);
+  }
   
   return { headers, rows };
 }
