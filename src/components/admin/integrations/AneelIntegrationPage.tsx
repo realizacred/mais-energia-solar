@@ -226,11 +226,62 @@ export function AneelIntegrationPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // No more polling needed — sync is now synchronous
+  // Poll for sync progress when syncing
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!activeRunId) return;
+
+    const interval = setInterval(async () => {
+      const { data } = await supabase
+        .from("aneel_sync_runs" as any)
+        .select("status, total_fetched, total_matched, total_updated, total_errors, error_message, logs")
+        .eq("id", activeRunId)
+        .single();
+
+      if (!data) return;
+
+      const run = data as any;
+
+      // Update the runs list with latest progress
+      setRuns(prev => {
+        const updated = [...prev];
+        const idx = updated.findIndex(r => r.id === activeRunId);
+        if (idx >= 0) {
+          updated[idx] = { ...updated[idx], ...run };
+        }
+        return updated;
+      });
+
+      // Check if completed
+      if (run.status !== 'running') {
+        clearInterval(interval);
+        setActiveRunId(null);
+        setSyncing(false);
+
+        if (run.status === 'success' || run.status === 'partial') {
+          toast({
+            title: `Sincronização concluída ${run.status === 'success' ? '✅' : '⚠️'}`,
+            description: `${run.total_updated || 0} atualizadas, ${run.total_matched || 0} matched, ${run.total_errors || 0} erros`,
+          });
+        } else if (run.status === 'test_run') {
+          toast({ title: "Test Run concluído 🧪", description: `${run.total_updated || 0} simuladas` });
+        } else if (run.status === 'error') {
+          toast({ title: "Sincronização com erro", description: run.error_message || "Erro", variant: "destructive" });
+        } else {
+          toast({ title: `Sync finalizado: ${run.status}`, description: run.error_message || "" });
+        }
+
+        fetchData(); // Refresh all data
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [activeRunId, toast, fetchData]);
 
   const handleSync = async (testRun = false) => {
     setSyncing(true);
-    toast({ title: testRun ? "Test Run iniciado..." : "Sincronização iniciada...", description: "Isso pode levar até 2 minutos. Aguarde." });
+    toast({ title: testRun ? "Test Run iniciado..." : "Sincronização iniciada...", description: "Processando em segundo plano. Acompanhe o progresso abaixo." });
     try {
       const { data, error } = await supabase.functions.invoke("sync-tarifas-aneel", {
         body: { trigger_type: "manual", test_run: testRun },
@@ -238,29 +289,31 @@ export function AneelIntegrationPage() {
       if (error) throw error;
       if (data?.success) {
         if (data.already_running) {
-          toast({ title: "Sincronização já em andamento", description: "Aguarde a conclusão da execução atual." });
+          toast({ title: "Sincronização já em andamento", description: "Aguarde a conclusão." });
+          setActiveRunId(data.run_id);
         } else {
-          const status = data.status as string;
-          if (status === 'success' || status === 'partial') {
-            toast({
-              title: "Sincronização concluída ✅",
-              description: `${data.total_updated || 0} atualizadas, ${data.total_errors || 0} erros`,
-            });
-          } else if (status === 'test_run') {
-            toast({ title: "Test Run concluído 🧪", description: `${data.total_updated || 0} simuladas` });
-          } else if (status === 'error') {
-            toast({ title: "Sincronização com erro", description: data.message || "Erro desconhecido", variant: "destructive" });
-          } else {
-            toast({ title: "Sincronização processada", description: data.message || `Status: ${status}` });
-          }
+          setActiveRunId(data.run_id);
+          // Add placeholder run to the list
+          setRuns(prev => [{
+            id: data.run_id,
+            trigger_type: testRun ? 'test_run' : 'manual',
+            status: 'running',
+            started_at: new Date().toISOString(),
+            finished_at: null,
+            total_fetched: 0,
+            total_matched: 0,
+            total_updated: 0,
+            total_errors: 0,
+            snapshot_hash: null,
+            logs: [],
+            error_message: null,
+          }, ...prev]);
         }
-        fetchData();
       } else {
         throw new Error(data?.error || "Erro desconhecido");
       }
     } catch (err: any) {
       toast({ title: "Erro ao sincronizar", description: err.message, variant: "destructive" });
-    } finally {
       setSyncing(false);
     }
   };

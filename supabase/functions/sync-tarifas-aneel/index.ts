@@ -1,6 +1,5 @@
 // ──────────────────────────────────────────────────────────────────────────────
-// sync-tarifas-aneel v4.0 — ANEEL Tariff Sync with Grupo A + B support
-// Supports: full sync, single concessionária, test_run (dry-run) mode
+// sync-tarifas-aneel v5.0 — Optimized batch processing with background exec
 // ──────────────────────────────────────────────────────────────────────────────
 import { createClient } from "npm:@supabase/supabase-js@2.39.3";
 
@@ -116,7 +115,7 @@ const SIGLA_ALIASES: Record<string, string[]> = {
   "CEPISA": ["EQUATORIAL PI"], "CEB": ["NEOENERGIA BRASILIA"], "NEO-ELK": ["ELEKTRO"],
   "EMS": ["EMS"], "EMT": ["EMT"], "EPB": ["EPB"], "ERO": ["ERO"], "ESE": ["ESE"],
   "ETO": ["ETO"], "EAC": ["EAC"], "RGE": ["RGE"],
-};
+}
 
 // ── SHA-256 hash ──────────────────────────────────────────────────────────────
 
@@ -130,22 +129,19 @@ async function sha256(data: string): Promise<string> {
 
 type ValidationStatus = 'ok' | 'atencao' | 'incompleto_gd3';
 
-function validateTariffRecord(te: number, tusdTotal: number, _concNome: string): {
+function validateTariffRecord(te: number, tusdTotal: number): {
   status: ValidationStatus;
   notes: string[];
 } {
   const notes: string[] = [];
-
   if (te <= 0) notes.push("TE negativa ou zero — dado suspeito");
   if (tusdTotal < 0) notes.push("TUSD negativo — dado suspeito");
   if (te > 2.0) notes.push(`TE muito alta (${te.toFixed(4)} R$/kWh) — verificar unidade`);
   if (tusdTotal > 2.0) notes.push(`TUSD muito alto (${tusdTotal.toFixed(4)} R$/kWh) — verificar unidade`);
   if (te + tusdTotal > 3.0) notes.push("Tarifa total > R$ 3,00/kWh — possível erro de unidade");
 
-  const hasGd3Data = false;
   const status: ValidationStatus =
-    notes.some(n => n.includes("suspeito") || n.includes("erro")) ? 'atencao' :
-    !hasGd3Data ? 'incompleto_gd3' : 'ok';
+    notes.some(n => n.includes("suspeito") || n.includes("erro")) ? 'atencao' : 'incompleto_gd3';
 
   return { status, notes };
 }
@@ -174,10 +170,8 @@ function matchAgentToConc(
   const agSigNorm = normalizeStr(agenteSig);
   const agNomNorm = normalizeStr(agenteNom);
 
-  // Direct sigla match
   if (concSiglaNorm && agSigNorm === concSiglaNorm) return true;
 
-  // Alias match
   if (conc.sigla) {
     for (const alias of (SIGLA_ALIASES[conc.sigla.toUpperCase()] || [])) {
       const aliasNorm = normalizeStr(alias);
@@ -185,10 +179,8 @@ function matchAgentToConc(
     }
   }
 
-  // Name match
   if (agNomNorm === concNomeNorm) return true;
 
-  // Stripped match
   const strippedConc = stripSuffixes(concNomeNorm);
   const strippedAg = stripSuffixes(agSigNorm);
   const strippedAgNom = stripSuffixes(agNomNorm);
@@ -196,7 +188,6 @@ function matchAgentToConc(
     strippedConc.includes(strippedAg) || strippedAg.includes(strippedConc) ||
     strippedConc.includes(strippedAgNom) || strippedAgNom.includes(strippedConc))) return true;
 
-  // Sigla partial
   if (concSiglaNorm && (agSigNorm.includes(concSiglaNorm) || concSiglaNorm.includes(agSigNorm))) return true;
 
   return false;
@@ -235,44 +226,25 @@ function findTarifaForConc(
   return undefined;
 }
 
-// ── Minimum vigência year — only fetch recent tariffs ────────────────────────
 const MIN_VIGENCIA_YEAR = 2024;
 
 // ── Fetch ANEEL API with pagination ──────────────────────────────────────────
 
-async function fetchWithRetry(
-  url: string,
-  log: (msg: string) => void,
-  maxRetries = 3,
-): Promise<Response> {
+async function fetchWithRetry(url: string, log: (msg: string) => void, maxRetries = 3): Promise<Response> {
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const response = await fetch(url);
       if (response.ok) return response;
-
       const errText = await response.text();
       log(`⚠️ ANEEL API tentativa ${attempt}/${maxRetries}: HTTP ${response.status} — ${errText.substring(0, 150)}`);
-
-      if (attempt === maxRetries) {
-        throw new Error(
-          response.status >= 500
-            ? `A API da ANEEL está temporariamente indisponível (HTTP ${response.status}). Tente novamente em alguns minutos.`
-            : `Erro na API ANEEL: HTTP ${response.status}`
-        );
-      }
-
-      // Exponential backoff: 2s, 4s, 8s
-      const delay = Math.pow(2, attempt) * 1000;
-      log(`  ⏳ Aguardando ${delay / 1000}s antes de tentar novamente...`);
-      await new Promise(r => setTimeout(r, delay));
+      if (attempt === maxRetries) throw new Error(`Erro na API ANEEL: HTTP ${response.status}`);
+      await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
     } catch (err) {
       if (attempt === maxRetries) throw err;
-      const delay = Math.pow(2, attempt) * 1000;
-      log(`  ⚠️ Erro de rede tentativa ${attempt}/${maxRetries}, retry em ${delay / 1000}s...`);
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
     }
   }
-  throw new Error("Falha ao conectar com API ANEEL após múltiplas tentativas");
+  throw new Error("Falha ao conectar com API ANEEL");
 }
 
 async function fetchAneelRecords(
@@ -287,27 +259,17 @@ async function fetchAneelRecords(
   for (let page = 0; page < maxPages; page++) {
     const filtersStr = JSON.stringify(filters);
     const url = `${ANEEL_API_URL}?resource_id=${ANEEL_RESOURCE_ID}&filters=${encodeURIComponent(filtersStr)}&q=&limit=${limit}&offset=${offset}&sort=DatInicioVigencia desc`;
-
     const response = await fetchWithRetry(url, log);
-
     const data = await response.json();
-    if (!data.success || !data.result?.records) {
-      throw new Error("Resposta inesperada da API ANEEL");
-    }
-
+    if (!data.success || !data.result?.records) throw new Error("Resposta inesperada da API ANEEL");
     const records = data.result.records as TarifaAneel[];
     allRecords.push(...records);
-
     if (records.length < limit) break;
     offset += limit;
   }
 
-  // Post-filter: only keep records with vigência >= MIN_VIGENCIA_YEAR
   const minDate = `${MIN_VIGENCIA_YEAR}-01-01`;
-  const filtered = allRecords.filter(r => {
-    if (!r.DatInicioVigencia) return false;
-    return r.DatInicioVigencia.substring(0, 10) >= minDate;
-  });
+  const filtered = allRecords.filter(r => r.DatInicioVigencia && r.DatInicioVigencia.substring(0, 10) >= minDate);
 
   if (filtered.length < allRecords.length) {
     log(`📅 Filtro de vigência: ${allRecords.length} → ${filtered.length} registros (≥ ${MIN_VIGENCIA_YEAR})`);
@@ -316,7 +278,7 @@ async function fetchAneelRecords(
   return filtered;
 }
 
-// ── Group A: Aggregate Ponta/Fora Ponta records per agent+subgrupo+modalidade ─
+// ── Group A aggregation ──────────────────────────────────────────────────────
 
 interface GrupoATarifaAgregada {
   sigAgente: string;
@@ -328,18 +290,13 @@ interface GrupoATarifaAgregada {
   te_fora_ponta: number;
   tusd_fora_ponta: number;
   vigencia_inicio: string;
-  vigencia_fim: string | null;
-  raw_records: TarifaAneel[];
 }
 
 function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] {
-  // Group by agent + subgrupo + modalidade + vigência
   const grouped = new Map<string, TarifaAneel[]>();
 
   for (const r of records) {
-    // Only use "Tarifa de Aplicação" records
     if (!r.DscBaseTarifaria || !r.DscBaseTarifaria.toLowerCase().includes("aplica")) continue;
-
     const key = `${normalizeStr(r.SigAgente)}|${normalizeStr(r.NomAgente)}|${normalizeStr(r.DscSubGrupo)}|${normalizeStr(r.DscModalidadeTarifaria)}|${r.DatInicioVigencia}`;
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)!.push(r);
@@ -347,7 +304,7 @@ function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] 
 
   const result: GrupoATarifaAgregada[] = [];
 
-  for (const [_key, recs] of grouped) {
+  for (const [, recs] of grouped) {
     const ref = recs[0];
     let te_ponta = 0, tusd_ponta = 0, te_fora_ponta = 0, tusd_fora_ponta = 0;
 
@@ -355,45 +312,31 @@ function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] 
       const posto = normalizeStr(r.NomPostoTarifario);
       const tusd = parseFloat(r.VlrTUSD) || 0;
       const te = parseFloat(r.VlrTE) || 0;
-
-      // Convert MWh → kWh
       const tusdKwh = Math.round(tusd / 1000 * 1000000) / 1000000;
       const teKwh = Math.round(te / 1000 * 1000000) / 1000000;
 
       if (posto.includes("PONTA") && !posto.includes("FORA")) {
-        // "Ponta" (not "Fora ponta")
         te_ponta = teKwh;
         tusd_ponta = tusdKwh;
       } else if (posto.includes("FORA")) {
-        // "Fora ponta"
         te_fora_ponta = teKwh;
         tusd_fora_ponta = tusdKwh;
       }
     }
 
-    // Only add if we have at least one valid value
     if (te_ponta > 0 || tusd_ponta > 0 || te_fora_ponta > 0 || tusd_fora_ponta > 0) {
-      const vigenciaFim = ref.DatFimVigencia && ref.DatFimVigencia !== '0001-01-01'
-        ? ref.DatFimVigencia.substring(0, 10)
-        : null;
-
       result.push({
         sigAgente: ref.SigAgente,
         nomAgente: ref.NomAgente,
         subgrupo: ref.DscSubGrupo,
         modalidade: ref.DscModalidadeTarifaria,
-        te_ponta,
-        tusd_ponta,
-        te_fora_ponta,
-        tusd_fora_ponta,
+        te_ponta, tusd_ponta, te_fora_ponta, tusd_fora_ponta,
         vigencia_inicio: ref.DatInicioVigencia?.substring(0, 10) || new Date().toISOString().substring(0, 10),
-        vigencia_fim: vigenciaFim,
-        raw_records: recs,
       });
     }
   }
 
-  // Deduplicate: keep only most recent vigência per agent+subgrupo+modalidade
+  // Deduplicate: keep most recent vigência per agent+subgrupo+modalidade
   const deduped = new Map<string, GrupoATarifaAgregada>();
   for (const item of result) {
     const dedupKey = `${normalizeStr(item.sigAgente)}|${normalizeStr(item.nomAgente)}|${item.subgrupo}|${item.modalidade}`;
@@ -405,8 +348,6 @@ function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] 
 
   return Array.from(deduped.values());
 }
-
-// ── Main handler ──────────────────────────────────────────────────────────────
 
 // ── Background processor ─────────────────────────────────────────────────────
 
@@ -426,27 +367,37 @@ async function processSync(
     runLogs.push(line);
   };
 
-  // Helper to periodically flush logs to the run record
+  // Flush logs + counters periodically
+  let totalUpdated = 0;
+  let totalMatched = 0;
+  let totalFetched = 0;
+  let totalErrors = 0;
   let lastFlush = Date.now();
-  const flushLogs = async () => {
-    if (Date.now() - lastFlush < 5000) return; // max every 5s
+
+  const flushProgress = async (force = false) => {
+    if (!force && Date.now() - lastFlush < 3000) return;
     lastFlush = Date.now();
     try {
-      await supabase.from('aneel_sync_runs').update({ logs: runLogs }).eq('id', runId);
+      await supabase.from('aneel_sync_runs').update({
+        logs: runLogs,
+        total_fetched: totalFetched,
+        total_matched: totalMatched,
+        total_updated: totalUpdated,
+        total_errors: totalErrors,
+      }).eq('id', runId);
     } catch {}
   };
 
   try {
-    log(`Sync v4.1 iniciado — tenant=${tenantId}, trigger=${testRun ? 'test_run' : triggerType}, runId=${runId}`);
+    log(`Sync v5.0 iniciado — tenant=${tenantId}, trigger=${testRun ? 'test_run' : triggerType}, runId=${runId}`);
     if (testRun) log("🧪 MODO TEST RUN — nenhuma alteração será publicada");
 
-    // ── Fetch concessionárias ─────────────────────────────────────────────────
+    // ── Fetch concessionárias ─────────────────────────────────────────────
     let query = supabase.from('concessionarias')
       .select('id, nome, sigla, estado, tarifa_energia, tarifa_fio_b, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, aliquota_icms, possui_isencao_scee, percentual_isencao')
       .eq('tenant_id', tenantId);
 
     if (concessionariaId) query = query.eq('id', concessionariaId);
-
     const { data: concessionarias, error: concError } = await query;
     if (concError) throw concError;
 
@@ -460,9 +411,9 @@ async function processSync(
       return;
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // PHASE 1: BT
-    // ══════════════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
+    // PHASE 1: BT (B1, B2, B3)
+    // ══════════════════════════════════════════════════════════════════════
 
     log("═══ FASE 1: Tarifas BT (B1, B2, B3) ═══");
 
@@ -485,29 +436,26 @@ async function processSync(
         log(`⚠️ Erro ao buscar BT ${sub}: ${err instanceof Error ? err.message : String(err)}`);
         btRecordsBySubgrupo[sub] = [];
       }
-      await flushLogs();
     }
 
+    totalFetched = allBtRecords.length;
     const snapshotHash = await sha256(JSON.stringify(allBtRecords));
     log(`ANEEL BT total: ${allBtRecords.length} registros — hash=${snapshotHash.substring(0, 16)}...`);
+    await flushProgress(true);
 
     // Build lookup indexes per subgrupo
     const btIndexBySubgrupo: Record<string, { porAgente: Record<string, TarifaAneel>; porNome: Record<string, TarifaAneel> }> = {};
-
     for (const sub of BT_SUBGRUPOS) {
       const porAgente: Record<string, TarifaAneel> = {};
       const porNome: Record<string, TarifaAneel> = {};
-
       for (const t of (btRecordsBySubgrupo[sub] || [])) {
         if (t.SigAgente) {
           const k = normalizeStr(t.SigAgente);
-          if (!porAgente[k] || t.DatInicioVigencia > porAgente[k].DatInicioVigencia)
-            porAgente[k] = t;
+          if (!porAgente[k] || t.DatInicioVigencia > porAgente[k].DatInicioVigencia) porAgente[k] = t;
         }
         if (t.NomAgente) {
           const k = normalizeStr(t.NomAgente);
-          if (!porNome[k] || t.DatInicioVigencia > porNome[k].DatInicioVigencia)
-            porNome[k] = t;
+          if (!porNome[k] || t.DatInicioVigencia > porNome[k].DatInicioVigencia) porNome[k] = t;
         }
       }
       btIndexBySubgrupo[sub] = { porAgente, porNome };
@@ -517,17 +465,15 @@ async function processSync(
     const tarifasPorNome = btIndexBySubgrupo['B1']?.porNome || {};
 
     // Process BT for each concessionária
-    const resultados: object[] = [];
     const erros: { concessionaria: string; erro: string }[] = [];
-    let totalUpdated = 0;
-    let totalMatched = 0;
 
     for (const conc of concessionarias) {
       const tarifa = findTarifaForConc(conc, tarifasPorAgente, tarifasPorNome);
 
       if (!tarifa) {
         log(`⚠️ BT NÃO ENCONTRADO: ${conc.nome} (sigla=${conc.sigla || '?'})`);
-        erros.push({ concessionaria: conc.nome, erro: `BT: Não encontrada na ANEEL. Sigla: "${conc.sigla || ''}"` });
+        erros.push({ concessionaria: conc.nome, erro: `BT: Não encontrada na ANEEL` });
+        totalErrors++;
         continue;
       }
 
@@ -539,16 +485,14 @@ async function processSync(
       const te = Math.round(teMwh / 1000 * 1000000) / 1000000;
       const tarifaTotal = Math.round((tusdTotal + te) * 1000000) / 1000000;
 
-      const { status: validStatus, notes: validNotes } = validateTariffRecord(te, tusdTotal, conc.nome);
+      const { status: validStatus, notes: validNotes } = validateTariffRecord(te, tusdTotal);
       const { precisao, tusd_fio_b_real } = detectPrecisao(conc.tarifa_fio_b, tusdTotal);
-
       const recordHash = await sha256(JSON.stringify(tarifa));
       const vigenciaInicio = tarifa.DatInicioVigencia ? tarifa.DatInicioVigencia.substring(0, 10) : new Date().toISOString().substring(0, 10);
       const vigenciaFim = tarifa.DatFimVigencia && tarifa.DatFimVigencia !== '0001-01-01' ? tarifa.DatFimVigencia.substring(0, 10) : null;
 
-      const precLabel = precisao === 'exato' ? 'EXATO (Fio B real)' : 'ESTIMADO (TUSD total como proxy)';
-
       if (!testRun) {
+        // Deactivate old versions
         await supabase.from('tariff_versions')
           .update({ is_active: false })
           .eq('concessionaria_id', conc.id)
@@ -584,19 +528,22 @@ async function processSync(
         if (tvError) {
           log(`⚠️ Erro ao criar tariff_version para ${conc.nome}: ${tvError.message}`);
           erros.push({ concessionaria: conc.nome, erro: tvError.message });
+          totalErrors++;
           continue;
         }
 
+        // Update concessionaria main record
         await supabase.from('concessionarias').update({
           tarifa_energia: tarifaTotal,
           tarifa_fio_b: tusd_fio_b_real ?? tusdTotal,
           ultima_sync_tarifas: new Date().toISOString(),
         }).eq('id', conc.id);
 
+        // Batch upsert BT subgrupos — collect all 3 in memory, upsert at once
+        const btUpserts: any[] = [];
         for (const sub of BT_SUBGRUPOS) {
           const subIndex = btIndexBySubgrupo[sub];
           if (!subIndex) continue;
-
           const subTarifa = findTarifaForConc(conc, subIndex.porAgente, subIndex.porNome);
           const srcTarifa = subTarifa || tarifa;
           const subTusdMwh = parseFloat(srcTarifa.VlrTUSD) || 0;
@@ -606,18 +553,22 @@ async function processSync(
           const subTotal = Math.round((subTusd + subTe) * 1000000) / 1000000;
           const { tusd_fio_b_real: subFioB } = detectPrecisao(conc.tarifa_fio_b, subTusd);
 
+          btUpserts.push({
+            concessionaria_id: conc.id,
+            tenant_id: tenantId,
+            subgrupo: sub,
+            modalidade_tarifaria: 'Convencional',
+            tarifa_energia: subTotal,
+            tarifa_fio_b: subFioB ?? subTusd,
+            origem: subTarifa ? 'ANEEL' : 'ANEEL (fallback B1)',
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          });
+        }
+
+        if (btUpserts.length > 0) {
           await supabase.from('concessionaria_tarifas_subgrupo')
-            .upsert({
-              concessionaria_id: conc.id,
-              tenant_id: tenantId,
-              subgrupo: sub,
-              modalidade_tarifaria: 'Convencional',
-              tarifa_energia: subTotal,
-              tarifa_fio_b: subFioB ?? subTusd,
-              origem: subTarifa ? 'ANEEL' : 'ANEEL (fallback B1)',
-              is_active: true,
-              updated_at: new Date().toISOString(),
-            }, {
+            .upsert(btUpserts, {
               onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
               ignoreDuplicates: false,
             });
@@ -629,21 +580,17 @@ async function processSync(
         log(`🧪 [DRY-RUN] BT ${conc.nome} → ${tarifaTotal.toFixed(6)}`);
         totalUpdated++;
       }
-      await flushLogs();
+      await flushProgress();
     }
 
-    // ══════════════════════════════════════════════════════════════════════════
-    // PHASE 2: Grupo A (MT)
-    // ══════════════════════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════════════════
+    // PHASE 2: Grupo A (MT) — BATCH OPTIMIZED
+    // ══════════════════════════════════════════════════════════════════════
 
-    log("═══ FASE 2: Tarifas Grupo A (MT) ═══");
-
-    let totalMtUpdated = 0;
-    let totalMtMatched = 0;
+    log("═══ FASE 2: Tarifas Grupo A (MT) — Batch ═══");
 
     const MT_SUBGRUPOS = ['A1', 'A2', 'A3', 'A3a', 'A4', 'AS'];
     const MT_MODALIDADES = ['Azul', 'Verde'];
-
     const allMtRecords: TarifaAneel[] = [];
 
     for (const subgrupo of MT_SUBGRUPOS) {
@@ -662,14 +609,36 @@ async function processSync(
           log(`⚠️ Erro MT ${subgrupo}/${modalidade}: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
-      await flushLogs();
     }
 
+    totalFetched = allBtRecords.length + allMtRecords.length;
     log(`Total registros MT brutos: ${allMtRecords.length}`);
+    await flushProgress(true);
+
+    let totalMtUpdated = 0;
+    let totalMtMatched = 0;
 
     if (allMtRecords.length > 0) {
       const aggregated = aggregateGrupoARecords(allMtRecords);
       log(`Tarifas MT agregadas: ${aggregated.length} combinações`);
+
+      // ── PRE-FETCH all existing manual MT records in ONE query ──────────
+      const concIds = concessionarias.map(c => c.id);
+      const { data: existingManual } = await supabase
+        .from('concessionaria_tarifas_subgrupo')
+        .select('concessionaria_id, subgrupo, modalidade_tarifaria')
+        .eq('tenant_id', tenantId)
+        .eq('origem', 'manual')
+        .in('concessionaria_id', concIds);
+
+      const manualKeys = new Set(
+        (existingManual || []).map(r => `${r.concessionaria_id}|${r.subgrupo}|${r.modalidade_tarifaria}`)
+      );
+      log(`🔒 ${manualKeys.size} registros manuais protegidos (não serão sobrescritos)`);
+
+      // ── Build all MT upserts in memory ────────────────────────────────
+      const mtUpserts: any[] = [];
+      const mtSkipped: string[] = [];
 
       for (const conc of concessionarias) {
         const concMtTarifas = aggregated.filter(a =>
@@ -677,81 +646,85 @@ async function processSync(
         );
 
         if (concMtTarifas.length === 0) continue;
-
         totalMtMatched++;
 
         for (const mt of concMtTarifas) {
-          if (!testRun) {
-            const { data: existing } = await supabase
-              .from('concessionaria_tarifas_subgrupo')
-              .select('id, origem')
-              .eq('concessionaria_id', conc.id)
-              .eq('tenant_id', tenantId)
-              .eq('subgrupo', mt.subgrupo)
-              .eq('modalidade_tarifaria', mt.modalidade)
-              .maybeSingle();
-
-            if (existing?.origem === 'manual') {
-              log(`  ⏭️ ${mt.subgrupo}/${mt.modalidade} ${conc.nome} — mantido (manual)`);
-              continue;
-            }
-
-            const { error: upsertError } = await supabase
-              .from('concessionaria_tarifas_subgrupo')
-              .upsert({
-                concessionaria_id: conc.id,
-                tenant_id: tenantId,
-                subgrupo: mt.subgrupo,
-                modalidade_tarifaria: mt.modalidade,
-                te_ponta: mt.te_ponta,
-                te_fora_ponta: mt.te_fora_ponta,
-                tusd_ponta: mt.tusd_ponta,
-                tusd_fora_ponta: mt.tusd_fora_ponta,
-                vigencia_inicio: mt.vigencia_inicio,
-                origem: 'ANEEL',
-                is_active: true,
-                updated_at: new Date().toISOString(),
-              }, {
-                onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
-                ignoreDuplicates: false,
-              });
-
-            if (upsertError) {
-              log(`  ⚠️ Erro MT ${mt.subgrupo}/${mt.modalidade}: ${upsertError.message}`);
-              erros.push({ concessionaria: `${conc.nome} (${mt.subgrupo})`, erro: upsertError.message });
-            } else {
-              totalMtUpdated++;
-              log(`  ✅ ${mt.subgrupo}/${mt.modalidade} ${conc.nome} atualizado`);
-            }
-          } else {
-            log(`  🧪 [DRY-RUN] ${mt.subgrupo}/${mt.modalidade} ${conc.nome}`);
-            totalMtUpdated++;
+          const manualKey = `${conc.id}|${mt.subgrupo}|${mt.modalidade}`;
+          if (manualKeys.has(manualKey)) {
+            mtSkipped.push(`${mt.subgrupo}/${mt.modalidade} ${conc.nome}`);
+            continue;
           }
+
+          mtUpserts.push({
+            concessionaria_id: conc.id,
+            tenant_id: tenantId,
+            subgrupo: mt.subgrupo,
+            modalidade_tarifaria: mt.modalidade,
+            te_ponta: mt.te_ponta,
+            te_fora_ponta: mt.te_fora_ponta,
+            tusd_ponta: mt.tusd_ponta,
+            tusd_fora_ponta: mt.tusd_fora_ponta,
+            vigencia_inicio: mt.vigencia_inicio,
+            origem: 'ANEEL',
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          });
         }
-        await flushLogs();
+      }
+
+      if (mtSkipped.length > 0) {
+        log(`⏭️ ${mtSkipped.length} registros manuais mantidos`);
+      }
+
+      // ── Batch upsert MT in chunks of 50 ───────────────────────────────
+      if (!testRun && mtUpserts.length > 0) {
+        const BATCH_SIZE = 50;
+        for (let i = 0; i < mtUpserts.length; i += BATCH_SIZE) {
+          const batch = mtUpserts.slice(i, i + BATCH_SIZE);
+          const { error: batchError } = await supabase
+            .from('concessionaria_tarifas_subgrupo')
+            .upsert(batch, {
+              onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
+              ignoreDuplicates: false,
+            });
+
+          if (batchError) {
+            log(`⚠️ Erro batch MT [${i}..${i + batch.length}]: ${batchError.message}`);
+            totalErrors += batch.length;
+          } else {
+            totalMtUpdated += batch.length;
+          }
+          await flushProgress();
+        }
+        log(`✅ MT: ${totalMtUpdated} subgrupos atualizados em ${Math.ceil(mtUpserts.length / BATCH_SIZE)} lotes`);
+      } else if (testRun) {
+        totalMtUpdated = mtUpserts.length;
+        log(`🧪 [DRY-RUN] MT: ${mtUpserts.length} subgrupos simulados`);
       }
     }
 
+    totalMatched += totalMtMatched;
+    totalUpdated += totalMtUpdated;
+    totalErrors += erros.length;
+
     log(`MT: ${totalMtMatched} concs, ${totalMtUpdated} subgrupos ${testRun ? 'simulados' : 'atualizados'}`);
 
-    // ── Finalize run ──────────────────────────────────────────────────────────
-    const grandTotalUpdated = totalUpdated + totalMtUpdated;
-    const grandTotalFetched = allBtRecords.length + allMtRecords.length;
-
+    // ── Finalize run ──────────────────────────────────────────────────────
     const finalStatus = testRun ? 'test_run' :
-      erros.length === 0 ? 'success' : grandTotalUpdated > 0 ? 'partial' : 'error';
+      erros.length === 0 ? 'success' : totalUpdated > 0 ? 'partial' : 'error';
+
     await supabase.from('aneel_sync_runs').update({
       status: finalStatus,
       finished_at: new Date().toISOString(),
-      total_fetched: grandTotalFetched,
-      total_matched: totalMatched + totalMtMatched,
-      total_updated: grandTotalUpdated,
-      total_errors: erros.length,
+      total_fetched: totalFetched,
+      total_matched: totalMatched,
+      total_updated: totalUpdated,
+      total_errors: totalErrors,
       snapshot_hash: snapshotHash,
       logs: runLogs,
     }).eq('id', runId);
 
-    log(`Sync concluído: BT=${totalUpdated}, MT=${totalMtUpdated}, erros=${erros.length}. Status=${finalStatus}`);
+    log(`✅ Sync v5.0 concluído: BT=${totalUpdated - totalMtUpdated}, MT=${totalMtUpdated}, erros=${erros.length}. Status=${finalStatus}`);
 
   } catch (error) {
     console.error("[sync-tarifas-aneel] Erro no processamento:", error);
@@ -761,6 +734,11 @@ async function processSync(
         status: 'error',
         finished_at: new Date().toISOString(),
         error_message: errorMsg,
+        logs: runLogs,
+        total_fetched: totalFetched,
+        total_matched: totalMatched,
+        total_updated: totalUpdated,
+        total_errors: totalErrors,
       }).eq('id', runId);
     } catch {}
   }
@@ -778,17 +756,14 @@ Deno.serve(async (req) => {
   try {
     const authCheck = await verifyAdminRole(req);
     if (!authCheck.authorized) return authCheck.error!;
-
     const { userId, tenantId } = authCheck;
 
     if (!tenantId) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Tenant não encontrado para o usuário.',
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ success: false, error: 'Tenant não encontrado.' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Check for already running sync
+    // Check for already running sync — 5 min stale threshold
     const { data: activeRun } = await supabase
       .from('aneel_sync_runs')
       .select('id, started_at')
@@ -799,36 +774,33 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (activeRun) {
-      // If running for more than 3 min, mark as stale and allow new run
       const startedAt = new Date(activeRun.started_at).getTime();
-      const now = Date.now();
-      if (now - startedAt < 3 * 60 * 1000) {
+      if (Date.now() - startedAt < 5 * 60 * 1000) {
         return new Response(JSON.stringify({
-          success: true,
-          run_id: activeRun.id,
+          success: true, run_id: activeRun.id,
           message: 'Sincronização já em andamento. Acompanhe o progresso.',
           already_running: true,
         }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
-      // Mark stale run as timed_out
+      // Mark stale
       await supabase.from('aneel_sync_runs').update({
         status: 'timed_out',
         finished_at: new Date().toISOString(),
-        error_message: 'Execução expirou (timeout > 3min)',
+        error_message: 'Execução expirou (timeout > 5min)',
       }).eq('id', activeRun.id);
     }
 
     let concessionariaId: string | null = null;
-    let triggerType: string = 'manual';
+    let triggerType = 'manual';
     let testRun = false;
     try {
       const body = await req.json();
       concessionariaId = body?.concessionaria_id || null;
       triggerType = body?.trigger_type || 'manual';
       testRun = body?.test_run === true;
-    } catch { /* no body */ }
+    } catch {}
 
-    // ── Create run record ─────────────────────────────────────────────────────
+    // Create run record
     const { data: runData, error: runError } = await supabase
       .from('aneel_sync_runs')
       .insert({
@@ -844,49 +816,27 @@ Deno.serve(async (req) => {
     if (runError) throw runError;
     const runId = runData.id;
 
-    // 🚀 Process synchronously — the frontend uses a long timeout
-    // This ensures the function completes before the runtime kills it
-    try {
-      await processSync(supabase, runId, tenantId, userId, concessionariaId, triggerType, testRun);
-    } catch (err) {
-      console.error("[sync-tarifas-aneel] Processing error:", err);
-      const errorMsg = err instanceof Error ? err.message : "Erro desconhecido";
-      await supabase.from('aneel_sync_runs').update({
-        status: 'error',
-        finished_at: new Date().toISOString(),
-        error_message: errorMsg,
-        logs: [`Erro fatal: ${errorMsg}`],
-      }).eq('id', runId);
-    }
+    // 🚀 FIRE AND FORGET — return immediately, process in background
+    // The Edge Runtime keeps the isolate alive for the wall_clock_limit (300s)
+    // even after the response is sent.
+    const syncPromise = processSync(supabase, runId, tenantId, userId, concessionariaId, triggerType, testRun);
 
-    // Fetch final status to return
-    const { data: finalRun } = await supabase
-      .from('aneel_sync_runs')
-      .select('status, total_fetched, total_matched, total_updated, total_errors, error_message')
-      .eq('id', runId)
-      .single();
+    // Don't await — let it run in background
+    syncPromise.catch((err) => {
+      console.error("[sync-tarifas-aneel] Background error:", err);
+    });
 
     return new Response(JSON.stringify({
       success: true,
       run_id: runId,
-      status: finalRun?.status || 'unknown',
-      total_updated: finalRun?.total_updated || 0,
-      total_matched: finalRun?.total_matched || 0,
-      total_errors: finalRun?.total_errors || 0,
-      message: finalRun?.status === 'success' 
-        ? `Sincronização concluída: ${finalRun.total_updated} atualizadas`
-        : finalRun?.status === 'error'
-        ? `Erro: ${finalRun.error_message}`
-        : 'Sincronização processada',
-      test_run: testRun,
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
+      message: 'Sincronização iniciada. Acompanhe o progresso na interface.',
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-  } catch (error) {
-    console.error("[sync-tarifas-aneel] Erro:", error);
-    const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
+  } catch (err: any) {
+    console.error("[sync-tarifas-aneel] Handler error:", err);
     return new Response(JSON.stringify({
       success: false,
-      error: errorMsg,
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+      error: err.message || "Erro interno",
+    }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

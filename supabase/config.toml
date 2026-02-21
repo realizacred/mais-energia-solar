@@ -29,6 +29,7 @@ verify_jwt = false
 
 [functions.sync-tarifas-aneel]
 verify_jwt = false
+wall_clock_limit = 300
 
 [functions.test-evolution-connection]
 verify_jwt = false
