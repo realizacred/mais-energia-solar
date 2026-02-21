@@ -59,6 +59,12 @@ export interface TenantPremises {
   tipo_preco: string;
   dod: number;
   fornecedor_filtro: string;
+  // Solar Brain fields (calculadora pública)
+  percentual_economia: number;
+  vida_util_sistema: number;
+  geracao_mensal_por_kwp: number;
+  custo_por_kwp: number;
+  kg_co2_por_kwh: number;
 }
 
 export const PREMISES_DEFAULTS: TenantPremises = {
@@ -110,6 +116,12 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   tipo_preco: "equipamentos",
   dod: 80.00,
   fornecedor_filtro: "escolher",
+  // Solar Brain fields
+  percentual_economia: 90,
+  vida_util_sistema: 25,
+  geracao_mensal_por_kwp: 130,
+  custo_por_kwp: 5500,
+  kg_co2_por_kwh: 0.084,
 };
 
 export interface RoofAreaFactor {
