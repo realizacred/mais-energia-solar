@@ -184,13 +184,65 @@ export function StepDocumento({
     toast({ title: "Link copiado!" });
   };
 
-  const handleSendWhatsapp = () => {
-    // Via Evolution API (internal system messaging)
-    toast({ title: "Proposta enviada via WhatsApp!", description: "A mensagem será entregue pela API integrada." });
+  const [sendingWa, setSendingWa] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
+  const handleSendWhatsapp = async () => {
+    if (!result?.proposta_id || !result?.versao_id) {
+      toast({ title: "Gere a proposta primeiro", variant: "destructive" });
+      return;
+    }
+    if (!waDestinatario) {
+      toast({ title: "Informe o destinatário", variant: "destructive" });
+      return;
+    }
+    setSendingWa(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("proposal-send", {
+        body: {
+          proposta_id: result.proposta_id,
+          versao_id: result.versao_id,
+          canal: "whatsapp",
+          lead_id: undefined,
+        },
+      });
+      if (error) throw new Error("Erro ao enviar via WhatsApp");
+      if (!data?.success) throw new Error(data?.error || "Erro desconhecido");
+      toast({ title: "Proposta enviada via WhatsApp!", description: data.whatsapp_sent ? "Mensagem entregue pela API integrada." : "Link gerado com sucesso." });
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
+    } finally {
+      setSendingWa(false);
+    }
   };
 
-  const handleSendEmail = () => {
-    toast({ title: "Proposta enviada por e-mail!", description: `Destinatário: ${emailDestinatario}` });
+  const handleSendEmail = async () => {
+    if (!result?.proposta_id || !result?.versao_id) {
+      toast({ title: "Gere a proposta primeiro", variant: "destructive" });
+      return;
+    }
+    if (!emailDestinatario) {
+      toast({ title: "Informe o e-mail do destinatário", variant: "destructive" });
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("proposal-send", {
+        body: {
+          proposta_id: result.proposta_id,
+          versao_id: result.versao_id,
+          canal: "link",
+          lead_id: undefined,
+        },
+      });
+      if (error) throw new Error("Erro ao enviar por e-mail");
+      if (!data?.success) throw new Error(data?.error || "Erro desconhecido");
+      toast({ title: "Link da proposta gerado!", description: `URL: ${data.public_url}` });
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const wpPerKwp = potenciaKwp > 0 ? (precoFinal / potenciaKwp / 1000).toFixed(2) : "0.00";
@@ -439,9 +491,9 @@ export function StepDocumento({
         </div>
 
         <div className="pt-5 shrink-0">
-          <Button size="sm" className="gap-2" onClick={handleSendWhatsapp}>
-            <Send className="h-3.5 w-3.5" />
-            Enviar proposta
+          <Button size="sm" className="gap-2" onClick={handleSendWhatsapp} disabled={sendingWa || !result}>
+            {sendingWa ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            {sendingWa ? "Enviando..." : "Enviar proposta"}
           </Button>
         </div>
       </div>
@@ -477,9 +529,9 @@ export function StepDocumento({
             />
             Anexar versão em PDF
           </label>
-          <Button size="sm" className="gap-2" onClick={handleSendEmail}>
-            <Send className="h-3.5 w-3.5" />
-            Enviar proposta
+          <Button size="sm" className="gap-2" onClick={handleSendEmail} disabled={sendingEmail || !result}>
+            {sendingEmail ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            {sendingEmail ? "Enviando..." : "Enviar proposta"}
           </Button>
         </div>
       </div>

@@ -366,7 +366,7 @@ export function StepLocalizacao({
         <div className="flex items-center gap-2">
           {geoStatusBadge()}
           <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
-            Etapa 1/10
+            Localização
           </Badge>
         </div>
       </div>
