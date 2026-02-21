@@ -367,8 +367,50 @@
     background: linear-gradient(90deg, transparent, hsl(var(--border)), transparent);
   }
 
-  /* Admin content container */
-  .admin-content { @apply p-4 sm:p-6 space-y-6 max-w-[1600px]; }
+  /* Admin content container — responsive wrapper for all admin pages */
+  .admin-content {
+    @apply p-4 sm:p-6 lg:p-8 space-y-6 mx-auto w-full;
+    max-width: min(1400px, 100%);
+  }
+
+  /* Admin page section — constrained width for form-heavy pages */
+  .admin-section-narrow { @apply mx-auto w-full; max-width: 720px; }
+  .admin-section-medium { @apply mx-auto w-full; max-width: 960px; }
+
+  /* Responsive toolbar — wraps filters/actions on mobile */
+  .admin-toolbar {
+    @apply flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between;
+  }
+  .admin-toolbar-actions {
+    @apply flex flex-wrap items-center gap-2;
+  }
+
+  /* Responsive form grid — 2-col on desktop, 1-col on mobile */
+  .admin-form-grid { @apply grid grid-cols-1 sm:grid-cols-2 gap-4; }
+
+  /* Mobile sticky footer for action buttons */
+  .admin-sticky-footer {
+    @apply fixed bottom-0 left-0 right-0 z-40 p-4 bg-background/95 backdrop-blur-sm border-t border-border
+           sm:static sm:p-0 sm:bg-transparent sm:backdrop-blur-none sm:border-0;
+  }
+
+  /* Responsive table → card on mobile */
+  .admin-table-wrapper {
+    @apply hidden sm:block;
+  }
+  .admin-cards-mobile {
+    @apply block sm:hidden space-y-3;
+  }
+
+  /* Admin stat grid — responsive */
+  .admin-stats-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4;
+  }
+
+  /* Admin page header — responsive */
+  .admin-page-header {
+    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-3;
+  }
 
   /* Page transition wrapper */
   .page-transition { animation: fade-in 0.25s ease-out; }

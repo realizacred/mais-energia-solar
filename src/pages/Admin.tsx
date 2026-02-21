@@ -417,25 +417,25 @@ export default function Admin() {
         />
         
         <SidebarInset className="flex-1 min-w-0">
-          <header className="sticky top-0 z-50 flex items-center gap-3 px-4 py-2 bg-background/80 backdrop-blur-md border-b border-border/40">
-            <SidebarTrigger className="-ml-1 h-8 w-8">
+          <header className="sticky top-0 z-50 flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-background/80 backdrop-blur-md border-b border-border/40">
+            <SidebarTrigger className="-ml-1 h-8 w-8 shrink-0">
               <Menu className="h-4 w-4" />
             </SidebarTrigger>
             <div className="h-4 w-px bg-border/40 hidden sm:block" />
             <div className="flex flex-col gap-0 min-w-0 flex-1">
               <AdminBreadcrumb activeTab={activeTab} />
-              <h1 className="text-lg font-display font-bold tracking-tight leading-tight">
+              <h1 className="text-base sm:text-lg font-display font-bold tracking-tight leading-tight truncate">
                 {TAB_TITLES[activeTab] || activeTab}
               </h1>
             </div>
 
-            {/* Right-aligned actions */}
-            <div className="flex items-center gap-1 shrink-0">
-              <HeaderSearch />
-              <HelpDropdown />
+            {/* Right-aligned actions — hide less important on mobile */}
+            <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+              <span className="hidden md:inline-flex"><HeaderSearch /></span>
+              <span className="hidden sm:inline-flex"><HelpDropdown /></span>
               <NotificationsDropdown />
               <AgendaSheet />
-              <div className="h-4 w-px bg-border/40 mx-1 hidden sm:block" />
+              <div className="h-4 w-px bg-border/40 mx-0.5 sm:mx-1 hidden sm:block" />
               <ProfileDropdown userEmail={user?.email} onSignOut={handleSignOut} />
             </div>
           </header>
