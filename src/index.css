@@ -328,24 +328,23 @@
 
   /* Card variants — Soft Depth system */
   .card-interactive {
-    @apply rounded-xl border border-border/50 bg-card transition-all duration-200 ease-out;
-    box-shadow: var(--shadow-sm);
+    @apply rounded-xl border border-border/50 bg-card transition-all duration-200 ease-in-out;
+    box-shadow: var(--shadow-xs);
   }
 
   .card-interactive:hover {
     @apply border-border;
-    box-shadow: var(--shadow-md);
-    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
   }
 
   .card-highlight {
     @apply rounded-xl border border-secondary/20 bg-card;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
   }
 
   .card-highlight:hover {
     @apply border-secondary/30;
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
   }
 
   /* NOTE: badge-glow REMOVED — violates Soft Depth spec. Use shadow-sm on hover instead. */
@@ -424,23 +423,12 @@
 
   @keyframes pulse-soft {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-  }
-
-  @keyframes bounce-soft {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-4px); }
+    50% { opacity: 0.85; }
   }
 
   @keyframes spin-slow {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-  }
-
-  @keyframes float {
-    0%, 100% { transform: translateY(0) rotate(0deg); }
-    33% { transform: translateY(-6px) rotate(1deg); }
-    66% { transform: translateY(-3px) rotate(-1deg); }
   }
 
   @keyframes gradient-x {
@@ -523,9 +511,7 @@
     animation: shimmer 1.5s infinite;
   }
   .animate-pulse-soft { animation: pulse-soft 2s ease-in-out infinite; }
-  .animate-bounce-soft { animation: bounce-soft 1s ease-in-out infinite; }
   .animate-spin-slow { animation: spin-slow 3s linear infinite; }
-  .animate-float { animation: float 6s ease-in-out infinite; }
   .animate-gradient-x {
     background-size: 200% 100%;
     animation: gradient-x 3s ease infinite;

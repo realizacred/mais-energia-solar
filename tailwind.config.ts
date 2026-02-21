@@ -194,11 +194,7 @@ export default {
         },
         "pulse-soft": {
           "0%, 100%": { opacity: "1" },
-          "50%": { opacity: "0.7" },
-        },
-        "bounce-soft": {
-          "0%, 100%": { transform: "translateY(0)" },
-          "50%": { transform: "translateY(-4px)" },
+          "50%": { opacity: "0.85" },
         },
       },
       animation: {
@@ -216,7 +212,6 @@ export default {
         "slide-in-top": "slide-in-top 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards",
         "shimmer": "shimmer 1.5s infinite",
         "pulse-soft": "pulse-soft 2s ease-in-out infinite",
-        "bounce-soft": "bounce-soft 1s ease-in-out infinite",
       },
       transitionDuration: {
         "250": "250ms",
@@ -224,7 +219,6 @@ export default {
         "400": "400ms",
       },
       transitionTimingFunction: {
-        "spring": "cubic-bezier(0.16, 1, 0.3, 1)",
         "smooth": "cubic-bezier(0.4, 0, 0.2, 1)",
       },
     },
