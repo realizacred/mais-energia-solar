@@ -1636,6 +1636,7 @@ export type Database = {
           tusd_fora_ponta: number | null
           tusd_ponta: number | null
           updated_at: string
+          versao_id: string | null
           vigencia_inicio: string | null
         }
         Insert: {
@@ -1661,6 +1662,7 @@ export type Database = {
           tusd_fora_ponta?: number | null
           tusd_ponta?: number | null
           updated_at?: string
+          versao_id?: string | null
           vigencia_inicio?: string | null
         }
         Update: {
@@ -1686,6 +1688,7 @@ export type Database = {
           tusd_fora_ponta?: number | null
           tusd_ponta?: number | null
           updated_at?: string
+          versao_id?: string | null
           vigencia_inicio?: string | null
         }
         Relationships: [
@@ -1701,6 +1704,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concessionaria_tarifas_subgrupo_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "tarifa_versoes"
             referencedColumns: ["id"]
           },
         ]
@@ -11507,6 +11517,59 @@ export type Database = {
           {
             foreignKeyName: "super_admin_actions_target_tenant_id_fkey"
             columns: ["target_tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tarifa_versoes: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          arquivo_nome: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notas: string | null
+          origem: string
+          status: string
+          tenant_id: string
+          total_concessionarias: number | null
+          total_registros: number | null
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          arquivo_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notas?: string | null
+          origem?: string
+          status?: string
+          tenant_id: string
+          total_concessionarias?: number | null
+          total_registros?: number | null
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          arquivo_nome?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notas?: string | null
+          origem?: string
+          status?: string
+          tenant_id?: string
+          total_concessionarias?: number | null
+          total_registros?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tarifa_versoes_tenant_id_fkey"
+            columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]

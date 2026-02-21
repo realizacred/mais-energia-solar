@@ -503,6 +503,25 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
           }
         }
       }
+      // ─── Create tariff version ───
+      const uniqueConcs = new Set(payloads.map(p => p.concessionaria_id));
+      const { data: versaoData, error: versaoErr } = await supabase
+        .from("tarifa_versoes")
+        .insert({
+          origem: "import",
+          notas: `Importação CSV: ${file?.name || "unknown"}`,
+          status: "rascunho",
+          total_registros: payloads.length,
+          total_concessionarias: uniqueConcs.size,
+          arquivo_nome: file?.name || null,
+        } as any)
+        .select("id")
+        .single();
+
+      const versaoId = versaoData?.id || null;
+      if (versaoErr) {
+        console.warn("[ANEEL Import] Failed to create version:", versaoErr);
+      }
 
       const BATCH_SIZE = 50;
       for (let i = 0; i < payloads.length; i += BATCH_SIZE) {
@@ -511,7 +530,10 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
           if (p._isGA) grupoA++;
           else grupoB++;
         }
-        const cleanBatch = batch.map(({ _isGA, ...rest }) => rest);
+        const cleanBatch = batch.map(({ _isGA, ...rest }) => ({
+          ...rest,
+          ...(versaoId ? { versao_id: versaoId } : {}),
+        }));
         
         const { error } = await supabase
           .from("concessionaria_tarifas_subgrupo")
@@ -574,6 +596,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
             unmatchedAgents: [...unmatchedSet].slice(0, 50),
             taxaMapeamento: reports.resumo.taxaMapeamento,
             importedAt: new Date().toISOString(),
+            versaoId,
           },
         } as any);
       } catch (auditErr) {
