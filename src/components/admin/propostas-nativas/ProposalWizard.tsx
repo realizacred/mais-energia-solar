@@ -697,17 +697,13 @@ export function ProposalWizard() {
         },
         pagamento_opcoes: pagamentoOpcoes.map(({ id, ...rest }) => rest),
         observacoes: venda.observacoes || undefined,
+        aceite_estimativa: enforcement.aceiteEstimativa || undefined,
       };
 
       const genResult = await generateProposal(payload);
       setResult(genResult);
 
-      // ── Persist audit data after successful generation
-      if (genResult.proposta_id) {
-        enforcement.persistAudit(genResult.proposta_id).catch(err =>
-          console.error("[ProposalWizard] Audit persist failed:", err)
-        );
-      }
+      // Audit is now persisted by the backend — no need for frontend persistAudit
 
       setRendering(true);
       try {
@@ -719,6 +715,20 @@ export function ProposalWizard() {
 
       toast({ title: "Proposta gerada!", description: `Versão ${genResult.versao_numero} criada.` });
     } catch (e: any) {
+      // ── Handle structured 422 errors from backend enforcement ──
+      const errorCode = (e as any).errorCode;
+      if (errorCode === "missing_required_variables") {
+        setBlockReason("missing_required");
+        setBlockMissing((e as any).missing || []);
+        setShowBlockModal(true);
+        return;
+      }
+      if (errorCode === "estimativa_not_accepted") {
+        setBlockReason("estimativa_not_accepted");
+        setBlockMissing([]);
+        setShowBlockModal(true);
+        return;
+      }
       toast({ title: "Erro ao gerar proposta", description: e.message, variant: "destructive" });
     } finally { setGenerating(false); }
   };

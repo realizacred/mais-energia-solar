@@ -89,6 +89,7 @@ export interface GenerateProposalPayload {
   }>;
   observacoes?: string;
   idempotency_key: string;
+  aceite_estimativa?: boolean;
 }
 
 export interface GenerateProposalResult {
@@ -128,23 +129,33 @@ export async function generateProposal(
   });
 
   if (error) {
-    // Extract Portuguese error from edge function response body
+    // Extract structured error from edge function response body
     let msg = "Erro ao gerar proposta";
+    let errorCode: string | undefined;
+    let missing: string[] | undefined;
     try {
       const ctx = (error as any).context;
       if (ctx && typeof ctx.json === "function") {
         const body = await ctx.json();
-        msg = body?.error || msg;
+        msg = body?.message || body?.error || msg;
+        errorCode = body?.error;
+        missing = body?.missing;
       } else {
         msg = error.message || msg;
       }
     } catch {
       msg = error.message || msg;
     }
-    throw new Error(msg);
+    const err = new Error(msg) as any;
+    err.errorCode = errorCode;
+    err.missing = missing;
+    throw err;
   }
   if (!data?.success) {
-    throw new Error(data?.error || "Erro desconhecido ao gerar proposta");
+    const err = new Error(data?.error || "Erro desconhecido ao gerar proposta") as any;
+    err.errorCode = data?.error;
+    err.missing = data?.missing;
+    throw err;
   }
   return data as GenerateProposalResult;
 }
