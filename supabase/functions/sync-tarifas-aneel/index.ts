@@ -235,6 +235,9 @@ function findTarifaForConc(
   return undefined;
 }
 
+// ── Minimum vigência year — only fetch recent tariffs ────────────────────────
+const MIN_VIGENCIA_YEAR = 2024;
+
 // ── Fetch ANEEL API with pagination ──────────────────────────────────────────
 
 async function fetchAneelRecords(
@@ -248,7 +251,9 @@ async function fetchAneelRecords(
 
   for (let page = 0; page < maxPages; page++) {
     const filtersStr = JSON.stringify(filters);
-    const url = `${ANEEL_API_URL}?resource_id=${ANEEL_RESOURCE_ID}&filters=${encodeURIComponent(filtersStr)}&limit=${limit}&offset=${offset}&sort=DatInicioVigencia desc`;
+    // Use SQL-style filter to only get records from MIN_VIGENCIA_YEAR onwards
+    const sqlWhere = `"DatInicioVigencia" >= '${MIN_VIGENCIA_YEAR}-01-01'`;
+    const url = `${ANEEL_API_URL}?resource_id=${ANEEL_RESOURCE_ID}&filters=${encodeURIComponent(filtersStr)}&q=&limit=${limit}&offset=${offset}&sort=DatInicioVigencia desc`;
 
     const response = await fetch(url);
     if (!response.ok) {
@@ -270,7 +275,18 @@ async function fetchAneelRecords(
     offset += limit;
   }
 
-  return allRecords;
+  // Post-filter: only keep records with vigência >= MIN_VIGENCIA_YEAR
+  const minDate = `${MIN_VIGENCIA_YEAR}-01-01`;
+  const filtered = allRecords.filter(r => {
+    if (!r.DatInicioVigencia) return false;
+    return r.DatInicioVigencia.substring(0, 10) >= minDate;
+  });
+
+  if (filtered.length < allRecords.length) {
+    log(`📅 Filtro de vigência: ${allRecords.length} → ${filtered.length} registros (≥ ${MIN_VIGENCIA_YEAR})`);
+  }
+
+  return filtered;
 }
 
 // ── Group A: Aggregate Ponta/Fora Ponta records per agent+subgrupo+modalidade ─
