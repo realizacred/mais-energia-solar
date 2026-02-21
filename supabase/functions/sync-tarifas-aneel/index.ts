@@ -467,7 +467,7 @@ async function processSync(
         .insert({
           tenant_id: tenantId,
           created_by: userId,
-          origem: 'sync_aneel',
+          origem: 'sync',
           status: 'rascunho',
           notas: `Sync ANEEL automático — run ${runId.substring(0, 8)}`,
           sync_run_id: runId,
