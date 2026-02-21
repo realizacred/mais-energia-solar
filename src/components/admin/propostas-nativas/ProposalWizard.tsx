@@ -955,7 +955,7 @@ export function ProposalWizard() {
 
       {/* ── Body: Content — responsive padding, max-width for readability */}
       <div className="flex-1 overflow-y-auto">
-        <div className="w-full max-w-[1600px] mx-auto px-3 sm:px-4 lg:px-6 xl:px-8 py-4 lg:py-6 pb-24 sm:pb-20">
+        <div className="w-full max-w-[1280px] mx-auto px-3 sm:px-4 lg:px-6 py-4 lg:py-6 pb-24 sm:pb-20">
           <AnimatePresence mode="wait">
             {renderStepContent()}
           </AnimatePresence>

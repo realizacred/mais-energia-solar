@@ -372,7 +372,7 @@ export function StepLocalizacao({
       </div>
 
       {/* Side-by-side: Fields LEFT, Map RIGHT — responsive */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 lg:gap-6">
         {/* Left column: Address + Telhado + Distribuidora + Irradiação */}
         <div className="space-y-3 order-2 lg:order-1">
           {/* Address */}

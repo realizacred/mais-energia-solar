@@ -58,7 +58,7 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
   const margemLiquida = custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
       {/* ── Left: Controls ── */}
       <div className="flex-1 min-w-0 space-y-5">
         {/* Margem */}
