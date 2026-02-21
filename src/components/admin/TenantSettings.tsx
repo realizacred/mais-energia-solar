@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
@@ -207,15 +208,8 @@ export function TenantSettings() {
       </div>
 
       {/* ═══ BLOCO 1: IDENTIDADE ═══ */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Building2 className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base">Identidade da Empresa</CardTitle>
-          </div>
-          <CardDescription>Dados básicos da sua empresa</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard icon={Building2} title="Identidade da Empresa" description="Dados básicos da sua empresa" variant="blue">
+        <div className="space-y-4">
           {/* Logo preview (read-only, managed in brand_settings) */}
           <div className="flex items-center gap-4 p-3 rounded-lg bg-muted/50 border border-border/60">
             <div className="h-14 w-14 rounded-lg border border-border/60 bg-background flex items-center justify-center overflow-hidden">
@@ -270,19 +264,11 @@ export function TenantSettings() {
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
 
       {/* ═══ BLOCO 2: LOCALIZAÇÃO ═══ */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base">Localização</CardTitle>
-          </div>
-          <CardDescription>Endereço da sede da empresa</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <SectionCard icon={MapPin} title="Localização" description="Endereço da sede da empresa" variant="green">
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Estado (UF)</Label>
@@ -309,19 +295,11 @@ export function TenantSettings() {
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {/* ═══ BLOCO 3: REGRAS DE CADASTRO (CRM) ═══ */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Settings2 className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base">Regras de Cadastro</CardTitle>
-          </div>
-          <CardDescription>Configure como leads e clientes são validados no seu CRM</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
+      <SectionCard icon={Settings2} title="Regras de Cadastro" description="Configure como leads e clientes são validados no seu CRM" variant="orange">
+        <div className="space-y-5">
           {/* Duplicate blocking */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/60">
             <div className="space-y-0.5">
@@ -366,20 +344,11 @@ export function TenantSettings() {
               })}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
       {/* ═══ BLOCO 4: BRANDING IA & WHATSAPP ═══ */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <CardTitle className="text-base">Identidade da IA & WhatsApp</CardTitle>
-          </div>
-          <CardDescription>
-            Personalize o nome e emoji do assistente de IA e do canal WhatsApp da sua empresa
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard icon={Sparkles} title="Identidade da IA & WhatsApp" description="Personalize o nome e emoji do assistente de IA e do canal WhatsApp da sua empresa" variant="purple">
+        <div className="space-y-4">
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
@@ -498,8 +467,8 @@ export function TenantSettings() {
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
 
       {/* ═══ BLOCO 5: HORÁRIOS DE ATENDIMENTO ═══ */}
       <BusinessHoursConfig tenantId={tenant.id} />
@@ -524,14 +493,8 @@ export function TenantSettings() {
       {/* ═══ RIGHT COLUMN: Contextual Panel (desktop only) ═══ */}
       <div className="admin-context-panel hidden lg:block">
         {/* Tenant Status */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <Info className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-sm">Status do Tenant</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <SectionCard icon={Info} title="Status do Tenant" variant="neutral">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Identificador</span>
               <Badge variant="outline" className="text-[10px] font-mono">{tenant.slug}</Badge>
@@ -553,15 +516,12 @@ export function TenantSettings() {
               <CheckCircle2 className="h-3.5 w-3.5" />
               <span className="font-medium">Tenant ativo</span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
         {/* Quick Actions */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Ações Rápidas</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1.5">
+        <SectionCard title="Ações Rápidas" variant="neutral">
+          <div className="space-y-1.5">
             <a href="/admin/site-config" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
               <ExternalLink className="h-3.5 w-3.5 shrink-0" />
               <span>Configurar logo e marca</span>
@@ -574,15 +534,12 @@ export function TenantSettings() {
               <FileText className="h-3.5 w-3.5 shrink-0" />
               <span>Ver log de auditoria</span>
             </a>
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
 
         {/* CRM Summary */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Resumo CRM</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+        <SectionCard title="Resumo CRM" variant="neutral">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Bloqueio duplicados</span>
               <Badge variant={crmConfig.block_duplicate_clients ? "default" : "secondary"} className="text-[10px]">
@@ -603,8 +560,8 @@ export function TenantSettings() {
                 </span>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </SectionCard>
       </div>
     </div>
   );
