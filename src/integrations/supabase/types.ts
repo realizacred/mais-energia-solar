@@ -1570,6 +1570,99 @@ export type Database = {
           },
         ]
       }
+      concessionaria_tarifas_subgrupo: {
+        Row: {
+          concessionaria_id: string
+          created_at: string
+          demanda_consumo_rs: number | null
+          demanda_geracao_rs: number | null
+          fio_b_fora_ponta: number | null
+          fio_b_ponta: number | null
+          id: string
+          is_active: boolean | null
+          modalidade_tarifaria: string | null
+          origem: string | null
+          subgrupo: string
+          tarifa_energia: number | null
+          tarifa_fio_b: number | null
+          tarifacao_bt: number | null
+          tarifacao_fora_ponta: number | null
+          tarifacao_ponta: number | null
+          te_fora_ponta: number | null
+          te_ponta: number | null
+          tenant_id: string
+          tusd_fora_ponta: number | null
+          tusd_ponta: number | null
+          updated_at: string
+          vigencia_inicio: string | null
+        }
+        Insert: {
+          concessionaria_id: string
+          created_at?: string
+          demanda_consumo_rs?: number | null
+          demanda_geracao_rs?: number | null
+          fio_b_fora_ponta?: number | null
+          fio_b_ponta?: number | null
+          id?: string
+          is_active?: boolean | null
+          modalidade_tarifaria?: string | null
+          origem?: string | null
+          subgrupo: string
+          tarifa_energia?: number | null
+          tarifa_fio_b?: number | null
+          tarifacao_bt?: number | null
+          tarifacao_fora_ponta?: number | null
+          tarifacao_ponta?: number | null
+          te_fora_ponta?: number | null
+          te_ponta?: number | null
+          tenant_id: string
+          tusd_fora_ponta?: number | null
+          tusd_ponta?: number | null
+          updated_at?: string
+          vigencia_inicio?: string | null
+        }
+        Update: {
+          concessionaria_id?: string
+          created_at?: string
+          demanda_consumo_rs?: number | null
+          demanda_geracao_rs?: number | null
+          fio_b_fora_ponta?: number | null
+          fio_b_ponta?: number | null
+          id?: string
+          is_active?: boolean | null
+          modalidade_tarifaria?: string | null
+          origem?: string | null
+          subgrupo?: string
+          tarifa_energia?: number | null
+          tarifa_fio_b?: number | null
+          tarifacao_bt?: number | null
+          tarifacao_fora_ponta?: number | null
+          tarifacao_ponta?: number | null
+          te_fora_ponta?: number | null
+          te_ponta?: number | null
+          tenant_id?: string
+          tusd_fora_ponta?: number | null
+          tusd_ponta?: number | null
+          updated_at?: string
+          vigencia_inicio?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concessionaria_tarifas_subgrupo_concessionaria_id_fkey"
+            columns: ["concessionaria_id"]
+            isOneToOne: false
+            referencedRelation: "concessionarias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "concessionaria_tarifas_subgrupo_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concessionarias: {
         Row: {
           aliquota_icms: number | null

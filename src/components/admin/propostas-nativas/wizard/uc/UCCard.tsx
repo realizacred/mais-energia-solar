@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Info } from "lucide-react";
 import { AlertCircle, MoreVertical, Pencil, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { type UCData, type RegraCompensacao, type GrupoTarifario, FASE_TENSAO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT } from "../types";
+import { type UCData, type RegraCompensacao, type GrupoTarifario, FASE_TENSAO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT, SUBGRUPO_MT_LABELS } from "../types";
 import { resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
+import { useFetchTarifaSubgrupo, parseSubgrupoModalidade, fetchAvailableSubgrupos } from "@/hooks/useConcessionariaTarifaSubgrupo";
 
 const SUBGRUPO_BT_LABELS: Record<string, string> = {
   B1: "B1 - Convencional - Residencial",
@@ -87,6 +88,62 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
   const isGrupoA = uc.grupo_tarifario === "A";
   const isGD3 = uc.regra === "GD3";
   const resolvedGrupo = resolveGrupoFromSubgrupo(uc.subgrupo) || uc.grupo_tarifario;
+  const { fetchTarifa } = useFetchTarifaSubgrupo();
+  const [dynamicSubgruposMT, setDynamicSubgruposMT] = useState<Array<{ value: string; label: string }> | null>(null);
+  const prevSubgrupoRef = useRef(uc.subgrupo);
+  const prevDistRef = useRef(uc.distribuidora_id);
+
+  // Fetch dynamic subgrupos when distribuidora changes
+  useEffect(() => {
+    if (!uc.distribuidora_id) {
+      setDynamicSubgruposMT(null);
+      return;
+    }
+    fetchAvailableSubgrupos(uc.distribuidora_id, isGrupoA ? "A" : "B").then(results => {
+      setDynamicSubgruposMT(results.length > 0 ? results : null);
+    });
+  }, [uc.distribuidora_id, isGrupoA]);
+
+  // Auto-fetch tarifas when subgrupo or distribuidora changes
+  useEffect(() => {
+    const subgrupoChanged = prevSubgrupoRef.current !== uc.subgrupo;
+    const distChanged = prevDistRef.current !== uc.distribuidora_id;
+    prevSubgrupoRef.current = uc.subgrupo;
+    prevDistRef.current = uc.distribuidora_id;
+
+    if (!subgrupoChanged && !distChanged) return;
+    if (!uc.distribuidora_id || !uc.subgrupo) return;
+
+    fetchTarifa(uc.distribuidora_id, uc.subgrupo).then(tarifa => {
+      if (!tarifa) return;
+      const { subgrupo: baseSub } = parseSubgrupoModalidade(uc.subgrupo);
+      const isBT = baseSub.startsWith("B");
+
+      const updated = { ...uc };
+      if (isBT) {
+        updated.tarifa_distribuidora = tarifa.tarifa_energia || uc.tarifa_distribuidora;
+        updated.tarifa_fio_b = tarifa.tarifa_fio_b || uc.tarifa_fio_b;
+        updated.tarifa_tarifacao_fp = tarifa.tarifacao_bt || uc.tarifa_tarifacao_fp;
+      } else {
+        updated.tarifa_te_p = tarifa.te_ponta || uc.tarifa_te_p;
+        updated.tarifa_tusd_p = tarifa.tusd_ponta || uc.tarifa_tusd_p;
+        updated.tarifa_fio_b_p = tarifa.fio_b_ponta || uc.tarifa_fio_b_p;
+        updated.tarifa_te_fp = tarifa.te_fora_ponta || uc.tarifa_te_fp;
+        updated.tarifa_tusd_fp = tarifa.tusd_fora_ponta || uc.tarifa_tusd_fp;
+        updated.tarifa_fio_b_fp = tarifa.fio_b_fora_ponta || uc.tarifa_fio_b_fp;
+        updated.tarifa_tarifacao_p = tarifa.tarifacao_ponta || uc.tarifa_tarifacao_p;
+        updated.tarifa_tarifacao_fp = tarifa.tarifacao_fora_ponta || uc.tarifa_tarifacao_fp;
+        updated.demanda_consumo_rs = tarifa.demanda_consumo_rs || uc.demanda_consumo_rs;
+        updated.demanda_geracao_rs = tarifa.demanda_geracao_rs || uc.demanda_geracao_rs;
+      }
+      onChange(updated);
+    });
+  }, [uc.subgrupo, uc.distribuidora_id]);
+
+  // Determine which MT subgrupos to show
+  const mtOptions = dynamicSubgruposMT && dynamicSubgruposMT.length > 0
+    ? dynamicSubgruposMT
+    : SUBGRUPO_MT.map(s => ({ value: s, label: SUBGRUPO_MT_LABELS[s] || s }));
 
   const update = <K extends keyof UCData>(field: K, value: UCData[K]) => {
     const updated = { ...uc, [field]: value };
@@ -192,7 +249,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
               <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
               <SelectContent>
                 {isGrupoA
-                  ? SUBGRUPO_MT.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)
+                  ? mtOptions.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)
                   : SUBGRUPO_BT.map(s => <SelectItem key={s} value={s}>{SUBGRUPO_BT_LABELS[s] || s}</SelectItem>)
                 }
               </SelectContent>

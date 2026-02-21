@@ -23,12 +23,13 @@ const SUBGRUPOS_B = ["B1", "B2", "B3"];
  */
 export function resolveGrupoFromSubgrupo(subgrupo: string | undefined | null): GrupoTarifario | null {
   if (!subgrupo) return null;
-  const upper = subgrupo.toUpperCase();
-  if (SUBGRUPOS_A.some(s => s.toUpperCase() === upper)) return "A";
-  if (SUBGRUPOS_B.some(s => s.toUpperCase() === upper)) return "B";
+  // Extract base subgrupo (before " - Verde" / " - Azul" etc.)
+  const base = subgrupo.split(/\s*-\s*/)[0].trim().toUpperCase();
+  if (SUBGRUPOS_A.some(s => s.toUpperCase() === base)) return "A";
+  if (SUBGRUPOS_B.some(s => s.toUpperCase() === base)) return "B";
   // Fallback: if starts with A → A, B → B
-  if (upper.startsWith("A")) return "A";
-  if (upper.startsWith("B")) return "B";
+  if (base.startsWith("A")) return "A";
+  if (base.startsWith("B")) return "B";
   return null;
 }
 

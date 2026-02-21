@@ -321,7 +321,29 @@ export const GRUPO_OPTIONS = [
 ];
 
 export const SUBGRUPO_BT = ["B1", "B2", "B3"];
-export const SUBGRUPO_MT = ["A1", "A2", "A3", "A3a", "A4", "AS"];
+
+// Subgrupos MT padrão ANEEL com modalidade tarifária
+// Cada concessionária pode ter apenas um subconjunto destes
+export const SUBGRUPO_MT = [
+  "A1",
+  "A2",
+  "A3",
+  "A3a - Verde",
+  "A4 - Verde",
+  "A4 - Azul",
+  "AS",
+];
+
+// Labels descritivos para subgrupos MT
+export const SUBGRUPO_MT_LABELS: Record<string, string> = {
+  "A1": "A1 - Alta Tensão (≥ 230kV)",
+  "A2": "A2 - Alta Tensão (88 a 138kV)",
+  "A3": "A3 - Alta Tensão (69kV)",
+  "A3a - Verde": "A3a - Verde (30 a 44kV)",
+  "A4 - Verde": "A4 - Verde (2,3 a 25kV)",
+  "A4 - Azul": "A4 - Azul (2,3 a 25kV)",
+  "AS": "AS - Subterrâneo",
+};
 
 export const FASE_TENSAO_OPTIONS = [
   { value: "monofasico_127", label: "Monofásico 127V" },
