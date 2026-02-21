@@ -161,11 +161,19 @@ export function StepConsumptionIntelligence({
 
   const mesAMesTitle = mesAMes.field === "hp" ? "Consumo Ponta (HP)" : mesAMes.field === "hfp" ? "Consumo Fora Ponta (HFP)" : "Consumo";
 
-  // Store base desempenho (without shading) for recalculation
+  // Store base desempenho AND base fator_geracao (without shading) for recalculation
   const [baseDesempenho, setBaseDesempenho] = useState<Record<string, number>>(() => {
     const base: Record<string, number> = {};
     for (const topo of ["tradicional", "microinversor", "otimizador"]) {
       base[topo] = getTopoConfig(topo).desempenho;
+    }
+    return base;
+  });
+
+  const [baseFatorGeracao, setBaseFatorGeracao] = useState<Record<string, number>>(() => {
+    const base: Record<string, number> = {};
+    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+      base[topo] = getTopoConfig(topo).fator_geracao;
     }
     return base;
   });
@@ -176,12 +184,14 @@ export function StepConsumptionIntelligence({
     if (baseInitialized) return;
     const hasNonDefault = Object.values(pd.topologia_configs || {}).some(c => c.desempenho > 0);
     if (hasNonDefault) {
-      const base: Record<string, number> = {};
+      const baseD: Record<string, number> = {};
+      const baseF: Record<string, number> = {};
       for (const topo of ["tradicional", "microinversor", "otimizador"]) {
-        // If already shaded, we need to reverse to get base. But on first load, sombreamento is "Nenhuma" so desempenho IS the base.
-        base[topo] = getTopoConfig(topo).desempenho;
+        baseD[topo] = getTopoConfig(topo).desempenho;
+        baseF[topo] = getTopoConfig(topo).fator_geracao;
       }
-      setBaseDesempenho(base);
+      setBaseDesempenho(baseD);
+      setBaseFatorGeracao(baseF);
       setBaseInitialized(true);
     }
   }, [pd.topologia_configs]);
@@ -192,10 +202,17 @@ export function StepConsumptionIntelligence({
 
     const configs = { ...currentPd.topologia_configs };
     for (const topo of ["tradicional", "microinversor", "otimizador"]) {
-      const base = baseDesempenho[topo] || getTopoConfig(topo).desempenho;
+      const baseD = baseDesempenho[topo] || getTopoConfig(topo).desempenho;
+      const baseF = baseFatorGeracao[topo] || getTopoConfig(topo).fator_geracao;
       const lossPct = levelKey ? (sombConfig[levelKey] as any)?.[topo] ?? 0 : 0;
-      const adjusted = Math.round(base * (1 - lossPct / 100) * 100) / 100;
-      configs[topo] = { ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]), desempenho: adjusted };
+      const factor = 1 - lossPct / 100;
+      const adjustedDesempenho = Math.round(baseD * factor * 100) / 100;
+      const adjustedFatorGeracao = Math.round(baseF * factor * 100) / 100;
+      configs[topo] = {
+        ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]),
+        desempenho: adjustedDesempenho,
+        fator_geracao: adjustedFatorGeracao,
+      };
     }
 
     const updated: PreDimensionamentoData = {
@@ -203,9 +220,10 @@ export function StepConsumptionIntelligence({
       sombreamento: sombreamentoLevel,
       topologia_configs: configs,
       desempenho: configs.tradicional?.desempenho ?? currentPd.desempenho,
+      fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
     };
     setPd(updated);
-  }, [baseDesempenho, setPd]);
+  }, [baseDesempenho, baseFatorGeracao, setPd]);
 
   // ─── Pre-dimensionamento helpers
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
@@ -455,7 +473,16 @@ export function StepConsumptionIntelligence({
         open={topoMesAMes.open}
         onOpenChange={o => setTopoMesAMes({ ...topoMesAMes, open: o })}
         title={`Fator de Geração — ${TOPOLOGIA_LABELS[topoMesAMes.topo] || topoMesAMes.topo}`}
-        values={getTopoConfig(topoMesAMes.topo).fator_geracao_meses || {}}
+        values={(() => {
+          const cfg = getTopoConfig(topoMesAMes.topo);
+          const meses = cfg.fator_geracao_meses || {};
+          // Pre-fill empty months with current fator_geracao
+          const hasValues = Object.values(meses).some(v => v > 0);
+          if (!hasValues && cfg.fator_geracao > 0) {
+            return Object.fromEntries(MESES.map(m => [m, cfg.fator_geracao]));
+          }
+          return meses;
+        })()}
         onSave={(values) => {
           const vals = Object.values(values).filter(v => v > 0);
           const media = vals.length > 0 ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 100) / 100 : getTopoConfig(topoMesAMes.topo).fator_geracao;
@@ -595,7 +622,7 @@ function PremissasContent({
         <div className="space-y-1.5">
           <Label className="text-[11px]">Margem para Pot. Ideal</Label>
           <div className="relative">
-            <Input type="number" step="0.01" value={pd.margem_pot_ideal ?? ""} onChange={e => pdUpdate("margem_pot_ideal", Number(e.target.value))} className="h-9 text-xs pr-8" />
+            <Input type="number" step="0.01" value={pd.margem_pot_ideal != null ? Number(pd.margem_pot_ideal).toFixed(2) : ""} onChange={e => pdUpdate("margem_pot_ideal", Number(e.target.value))} className="h-9 text-xs pr-8" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
           </div>
         </div>
