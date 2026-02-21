@@ -27,9 +27,10 @@ interface Props {
   premises: TenantPremises;
   onChange: (fn: (prev: TenantPremises) => TenantPremises) => void;
   onSyncedFields?: (fields: string[]) => void;
+  onAutoSave?: () => Promise<void>;
 }
 
-export function ConcessionariaSection({ premises, onChange, onSyncedFields }: Props) {
+export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAutoSave }: Props) {
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
   const [loadingConc, setLoadingConc] = useState(true);
   const [subgrupoData, setSubgrupoData] = useState<{ bt: any; mt: any }>({ bt: null, mt: null });
@@ -144,7 +145,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields }: Pr
     return diffs;
   }, [selectedConc, subgrupoData, premises, justSynced]);
 
-  const syncAllFromConc = useCallback(() => {
+  const syncAllFromConc = useCallback(async () => {
     if (!selectedConc) return;
     const bt = subgrupoData.bt as any;
     const mt = subgrupoData.mt as any;
@@ -175,11 +176,22 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields }: Pr
     onSyncedFields?.(syncedKeys);
     setJustSynced(true);
 
-    toast.success(
-      `${divergencias.length} campo(s) atualizado(s) com valores da concessionária. Clique em Salvar para confirmar.`,
-      { duration: 4000 }
-    );
-  }, [selectedConc, subgrupoData, onChange, divergencias, onSyncedFields]);
+    // Auto-save after a micro-delay to let React state settle
+    if (onAutoSave) {
+      setTimeout(async () => {
+        try {
+          await onAutoSave();
+        } catch (e) {
+          console.error("Auto-save after sync failed:", e);
+        }
+      }, 100);
+    } else {
+      toast.success(
+        `${divergencias.length} campo(s) atualizado(s). Clique em Salvar para confirmar.`,
+        { duration: 4000 }
+      );
+    }
+  }, [selectedConc, subgrupoData, onChange, divergencias, onSyncedFields, onAutoSave]);
 
   // Reset justSynced when premises change externally (user edits a field)
   useEffect(() => {

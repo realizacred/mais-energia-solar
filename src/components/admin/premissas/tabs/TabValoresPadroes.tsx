@@ -7,9 +7,10 @@ import { KitsSection } from "./valores-padroes/KitsSection";
 interface Props {
   premises: TenantPremises;
   onChange: (fn: (prev: TenantPremises) => TenantPremises) => void;
+  onAutoSave?: () => Promise<void>;
 }
 
-export function TabValoresPadroes({ premises, onChange }: Props) {
+export function TabValoresPadroes({ premises, onChange, onAutoSave }: Props) {
   const [syncedFields, setSyncedFields] = useState<string[]>([]);
 
   const handleSyncedFields = useCallback((fields: string[]) => {
@@ -20,7 +21,7 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
 
   return (
     <div className="space-y-6">
-      <ConcessionariaSection premises={premises} onChange={onChange} onSyncedFields={handleSyncedFields} />
+      <ConcessionariaSection premises={premises} onChange={onChange} onSyncedFields={handleSyncedFields} onAutoSave={onAutoSave} />
       <TarifasSection premises={premises} onChange={onChange} syncedFields={syncedFields} />
       <KitsSection premises={premises} onChange={onChange} />
     </div>
