@@ -77,31 +77,34 @@
     --shadow-primary: 0 4px 20px 0 hsl(25 100% 50% / 0.18);
     --shadow-secondary: 0 4px 20px 0 hsl(218 72% 28% / 0.14);
 
-    /* --- Sidebar (deep structural blue) --- */
-    --sidebar-background: 216 75% 15%;
-    --sidebar-foreground: 220 20% 92%;
+    /* --- Sidebar (refined deep navy/ink — premium SaaS) --- */
+    --sidebar-background: 220 42% 16%;
+    --sidebar-background-subtle: 220 38% 18%;
+    --sidebar-foreground: 220 15% 82%;
+    --sidebar-foreground-muted: 220 12% 58%;
     --sidebar-primary: 25 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 216 60% 20%;
-    --sidebar-accent-foreground: 220 20% 92%;
-    --sidebar-border: 216 50% 20%;
+    --sidebar-accent: 220 32% 21%;
+    --sidebar-accent-foreground: 220 15% 90%;
+    --sidebar-border: 220 25% 22%;
+    --sidebar-border-subtle: 220 20% 25%;
     --sidebar-ring: 25 100% 50%;
 
     /* Section families — 4 categories only */
     --sidebar-section-commercial: 25 100% 50%;
-    --sidebar-section-operations: 222 53% 50%;
-    --sidebar-section-finance: 218 72% 28%;
-    --sidebar-section-admin: 216 72% 21%;
+    --sidebar-section-operations: 220 30% 52%;
+    --sidebar-section-finance: 220 35% 38%;
+    --sidebar-section-admin: 220 28% 32%;
 
     /* Legacy aliases (mapped to 4 families) */
     --sidebar-section-intelligence: 25 100% 50%;
-    --sidebar-section-clients: 222 53% 50%;
+    --sidebar-section-clients: 220 30% 52%;
     --sidebar-section-atendimento: 25 100% 50%;
-    --sidebar-section-cadastros: 216 72% 21%;
-    --sidebar-section-marketing: 222 53% 50%;
-    --sidebar-section-settings: 216 72% 21%;
-    --sidebar-section-ai: 222 53% 50%;
-    --sidebar-section-integrations: 222 53% 50%;
+    --sidebar-section-cadastros: 220 28% 32%;
+    --sidebar-section-marketing: 220 30% 52%;
+    --sidebar-section-settings: 220 28% 32%;
+    --sidebar-section-ai: 220 30% 52%;
+    --sidebar-section-integrations: 220 30% 52%;
   }
 
   .dark {
@@ -157,31 +160,34 @@
     --shadow-primary: 0 4px 20px 0 hsl(27 100% 55% / 0.20);
     --shadow-secondary: 0 4px 20px 0 hsl(222 57% 41% / 0.18);
 
-    /* --- Sidebar --- */
-    --sidebar-background: 220 50% 6%;
-    --sidebar-foreground: 220 20% 88%;
+    /* --- Sidebar (dark mode — refined ink) --- */
+    --sidebar-background: 222 40% 9%;
+    --sidebar-background-subtle: 222 36% 11%;
+    --sidebar-foreground: 220 15% 78%;
+    --sidebar-foreground-muted: 220 12% 48%;
     --sidebar-primary: 27 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 40% 12%;
-    --sidebar-accent-foreground: 220 20% 88%;
-    --sidebar-border: 220 35% 14%;
+    --sidebar-accent: 222 30% 14%;
+    --sidebar-accent-foreground: 220 15% 85%;
+    --sidebar-border: 222 22% 16%;
+    --sidebar-border-subtle: 222 18% 20%;
     --sidebar-ring: 27 100% 55%;
 
     /* Section families */
     --sidebar-section-commercial: 27 100% 55%;
-    --sidebar-section-operations: 222 53% 50%;
-    --sidebar-section-finance: 222 57% 41%;
-    --sidebar-section-admin: 222 53% 50%;
+    --sidebar-section-operations: 220 30% 52%;
+    --sidebar-section-finance: 220 35% 44%;
+    --sidebar-section-admin: 220 28% 40%;
 
     /* Legacy aliases */
     --sidebar-section-intelligence: 27 100% 55%;
-    --sidebar-section-clients: 222 53% 50%;
+    --sidebar-section-clients: 220 30% 52%;
     --sidebar-section-atendimento: 27 100% 55%;
-    --sidebar-section-cadastros: 222 53% 50%;
-    --sidebar-section-marketing: 222 53% 50%;
-    --sidebar-section-settings: 222 53% 50%;
-    --sidebar-section-ai: 222 53% 50%;
-    --sidebar-section-integrations: 222 53% 50%;
+    --sidebar-section-cadastros: 220 28% 40%;
+    --sidebar-section-marketing: 220 30% 52%;
+    --sidebar-section-settings: 220 28% 40%;
+    --sidebar-section-ai: 220 30% 52%;
+    --sidebar-section-integrations: 220 30% 52%;
   }
 }
 
@@ -308,6 +314,17 @@
 
   .link-underline:hover::after {
     @apply origin-bottom-left scale-x-100;
+  }
+
+  /* Premium sidebar surface */
+  .sidebar-premium {
+    background: linear-gradient(
+      180deg,
+      hsl(var(--sidebar-background)) 0%,
+      hsl(var(--sidebar-background-subtle)) 100%
+    );
+    border-right: 1px solid hsl(var(--sidebar-border-subtle) / 0.5);
+    box-shadow: inset -1px 0 0 0 hsl(var(--sidebar-border-subtle) / 0.25);
   }
 
   /* Skeleton pulse */
