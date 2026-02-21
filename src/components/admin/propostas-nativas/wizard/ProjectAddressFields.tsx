@@ -242,11 +242,11 @@ export function ProjectAddressFields({
     : "";
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-1.5">
 
       {/* Same as client checkbox */}
       {clientHasAddress(clienteData) && (
-        <label className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all duration-200
+        <label className={`flex items-center gap-2 px-2 py-1.5 rounded-md border cursor-pointer transition-all duration-200 text-[11px]
           ${sameAsClient
             ? 'border-primary/40 bg-primary/5'
             : 'border-border/50 bg-muted/20 hover:bg-muted/40'}
@@ -254,28 +254,27 @@ export function ProjectAddressFields({
           <Checkbox
             checked={sameAsClient}
             onCheckedChange={(v) => handleSameAsClient(!!v)}
+            className="h-3.5 w-3.5"
           />
-          <div className="flex items-center gap-1.5 text-xs min-w-0">
-            <Copy className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground whitespace-nowrap">Mesmo endereço do cliente</span>
-            {clientSummary && (
-              <span className="text-foreground/70 font-medium truncate text-[11px]">
-                ({clientSummary})
-              </span>
-            )}
-          </div>
+          <Copy className="h-3 w-3 text-muted-foreground shrink-0" />
+          <span className="text-muted-foreground whitespace-nowrap">Mesmo endereço do cliente</span>
+          {clientSummary && (
+            <span className="text-foreground/70 font-medium truncate text-[10px]">
+              ({clientSummary})
+            </span>
+          )}
         </label>
       )}
 
-      {/* Address grid */}
-      <div className="rounded-lg border border-border/40 bg-card p-2.5 space-y-2">
-        {/* Row 1: CEP + Número */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          <div className="col-span-1 sm:col-span-2 space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">CEP</Label>
+      {/* Address grid — compact */}
+      <div className="space-y-1.5">
+        {/* Row 1: CEP + Rua + Número */}
+        <div className="grid grid-cols-6 gap-1.5">
+          <div className="col-span-2 space-y-0.5">
+            <Label className="text-[9px] text-muted-foreground uppercase tracking-wide">CEP</Label>
             <div className="relative">
               <Input
-                className="h-8 text-xs bg-background pr-8"
+                className="h-7 text-xs bg-background pr-7"
                 placeholder="00000-000"
                 value={address.cep}
                 maxLength={9}
@@ -283,14 +282,24 @@ export function ProjectAddressFields({
                 onBlur={(e) => handleCepBlur(e.target.value)}
               />
               {cepLoading && (
-                <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-primary" />
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-primary" />
               )}
             </div>
           </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Número</Label>
+          <div className="col-span-3 space-y-0.5">
+            <Label className="text-[9px] text-muted-foreground uppercase tracking-wide">Rua / Logradouro</Label>
             <Input
-              className="h-8 text-xs bg-background"
+              className="h-7 text-xs bg-background"
+              placeholder="Rua, Avenida..."
+              value={address.rua}
+              onChange={(e) => updateField("rua", e.target.value)}
+              onBlur={handleRuaBlur}
+            />
+          </div>
+          <div className="col-span-1 space-y-0.5">
+            <Label className="text-[9px] text-muted-foreground uppercase tracking-wide">Nº</Label>
+            <Input
+              className="h-7 text-xs bg-background"
               placeholder="Nº"
               value={address.numero}
               onChange={(e) => updateField("numero", e.target.value)}
@@ -299,35 +308,23 @@ export function ProjectAddressFields({
           </div>
         </div>
 
-        {/* Row 2: Rua */}
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Rua / Logradouro</Label>
-          <Input
-             className="h-8 text-xs bg-background"
-            placeholder="Rua, Avenida, Travessa..."
-            value={address.rua}
-            onChange={(e) => updateField("rua", e.target.value)}
-            onBlur={handleRuaBlur}
-          />
-        </div>
-
-        {/* Row 3: Bairro + Cidade + UF */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-          <div className="col-span-1 sm:col-span-2 space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Bairro</Label>
+        {/* Row 2: Bairro + Cidade + UF + Complemento */}
+        <div className="grid grid-cols-6 gap-1.5">
+          <div className="col-span-1 space-y-0.5">
+            <Label className="text-[9px] text-muted-foreground uppercase tracking-wide">Bairro</Label>
             <Input
-              className="h-8 text-xs bg-background"
+              className="h-7 text-xs bg-background"
               placeholder="Bairro"
               value={address.bairro}
               onChange={(e) => updateField("bairro", e.target.value)}
             />
           </div>
-          <div className="col-span-1 sm:col-span-2 space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Cidade</Label>
+          <div className="col-span-2 space-y-0.5">
+            <Label className="text-[9px] text-muted-foreground uppercase tracking-wide">Cidade</Label>
             {cidades.length > 0 ? (
               <Select value={address.cidade} onValueChange={handleCidadeChange}>
-                <SelectTrigger className="h-8 text-xs bg-background">
-                  <SelectValue placeholder={cidadesLoading ? "Carregando..." : "Cidade"} />
+                <SelectTrigger className="h-7 text-xs bg-background">
+                  <SelectValue placeholder={cidadesLoading ? "..." : "Cidade"} />
                 </SelectTrigger>
                 <SelectContent>
                   {cidades.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
@@ -335,17 +332,17 @@ export function ProjectAddressFields({
               </Select>
             ) : (
               <Input
-                className="h-8 text-xs bg-background"
+                className="h-7 text-xs bg-background"
                 placeholder="Cidade"
                 value={address.cidade}
                 onChange={(e) => updateField("cidade", e.target.value)}
               />
             )}
           </div>
-          <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">UF</Label>
+          <div className="col-span-1 space-y-0.5">
+            <Label className="text-[9px] text-muted-foreground uppercase tracking-wide">UF</Label>
             <Select value={address.uf} onValueChange={handleUfChange}>
-              <SelectTrigger className="h-8 text-xs bg-background">
+              <SelectTrigger className="h-7 text-xs bg-background">
                 <SelectValue placeholder="UF" />
               </SelectTrigger>
               <SelectContent>
@@ -353,26 +350,24 @@ export function ProjectAddressFields({
               </SelectContent>
             </Select>
           </div>
-        </div>
-
-        {/* Row 4: Complemento */}
-        <div className="space-y-1">
-          <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Complemento</Label>
-          <Input
-            className="h-8 text-xs bg-background"
-            placeholder="Apto, Bloco, Referência..."
-            value={address.complemento}
-            onChange={(e) => updateField("complemento", e.target.value)}
-          />
+          <div className="col-span-2 space-y-0.5">
+            <Label className="text-[9px] text-muted-foreground uppercase tracking-wide">Complemento</Label>
+            <Input
+              className="h-7 text-xs bg-background"
+              placeholder="Apto, Bloco..."
+              value={address.complemento}
+              onChange={(e) => updateField("complemento", e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
       {/* Warning if no coordinates */}
       {!address.lat && address.cidade && !geocoding && (
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-warning/10 border border-warning/20">
-          <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />
-          <span className="text-[11px] text-warning font-medium">
-            Coordenadas não definidas — clique no mapa ou preencha o endereço completo.
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-warning/10 border border-warning/20">
+          <AlertTriangle className="h-3 w-3 text-warning shrink-0" />
+          <span className="text-[10px] text-warning font-medium">
+            Coordenadas não definidas — clique no mapa ou preencha o endereço.
           </span>
         </div>
       )}
