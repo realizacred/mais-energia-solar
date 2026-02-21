@@ -91,9 +91,9 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
   const precoWp = potenciaKwp > 0 ? totalResumo / (potenciaKwp * 1000) : 0;
 
   return (
-    <div className="flex gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
       {/* ── Left: Serviços ── */}
-      <div className="flex-1 space-y-5 min-w-0">
+      <div className="space-y-5 min-w-0">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-bold flex items-center gap-2">
             <Wrench className="h-4 w-4 text-primary" /> Serviços
@@ -130,7 +130,7 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-3 gap-2 items-end">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
                   <div className="space-y-1">
                     <Label className="text-[10px] text-muted-foreground">Categoria</Label>
                     <Select value={servico.categoria} onValueChange={v => updateServico(servico.id, "categoria", v)}>
@@ -165,7 +165,7 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
       </div>
 
       {/* ── Right: Resumo ── */}
-      <div className="w-80 shrink-0 hidden lg:block">
+      <div className="hidden lg:block">
         <div className="rounded-xl border border-border/50 overflow-hidden sticky top-4">
           {/* Header */}
           <div className="px-4 py-3 border-b border-border/30">

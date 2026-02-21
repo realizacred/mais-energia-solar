@@ -250,17 +250,17 @@ export function StepDocumento({
   // ─── METRICS HEADER ─────────────────────────────────────
 
   const MetricsHeader = () => (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
       <div className="flex items-center gap-2">
         <FileText className="h-5 w-5 text-primary" />
         <h3 className="text-base font-bold text-foreground">Proposta</h3>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
         <div className="flex items-center gap-1.5">
           <Zap className="h-3.5 w-3.5 text-primary" />
           <div className="text-right">
-            <p className="text-[10px] text-muted-foreground leading-none">Potência Total</p>
+            <p className="text-[10px] text-muted-foreground leading-none">Potência</p>
             <p className="text-sm font-bold">{potenciaKwp.toFixed(2)} kWp</p>
           </div>
         </div>
@@ -272,12 +272,12 @@ export function StepDocumento({
         )}
         {geracaoMensalKwh > 0 && (
           <div className="text-right">
-            <p className="text-[10px] text-muted-foreground leading-none">Geração Mensal</p>
+            <p className="text-[10px] text-muted-foreground leading-none">Geração</p>
             <p className="text-sm font-bold">{geracaoMensalKwh} kWh</p>
           </div>
         )}
         <div className="text-right">
-          <p className="text-[10px] text-muted-foreground leading-none">Preço do Projeto</p>
+          <p className="text-[10px] text-muted-foreground leading-none">Preço</p>
           <p className="text-sm font-bold">
             {formatBRL(precoFinal)}{" "}
             <span className="text-[10px] font-normal text-muted-foreground">R$ {wpPerKwp}/Wp</span>
@@ -302,9 +302,9 @@ export function StepDocumento({
     // Before generation
     if (!result) {
       return (
-        <div className="flex gap-6 min-h-[400px]">
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
           {/* Left: Template Selection */}
-          <div className="w-56 shrink-0 space-y-4">
+          <div className="space-y-4">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Selecione o template</Label>
               <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
@@ -343,7 +343,7 @@ export function StepDocumento({
           </div>
 
           {/* Right: Preview placeholder */}
-          <div className="flex-1 rounded-xl border border-border/50 bg-muted/20 flex items-center justify-center min-h-[400px]">
+          <div className="rounded-xl border border-border/50 bg-muted/20 flex items-center justify-center min-h-[300px] sm:min-h-[400px]">
             <div className="text-center text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
               <p className="text-sm">Selecione um template e gere a proposta</p>
@@ -355,10 +355,10 @@ export function StepDocumento({
     }
 
     // After generation
-    return (
-      <div className="flex gap-6 min-h-[400px]">
-        {/* Left: Sidebar with actions */}
-        <div className="w-56 shrink-0 space-y-4">
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 min-h-[400px]">
+          {/* Left: Sidebar with actions */}
+          <div className="space-y-4">
           <div className="space-y-1.5">
             <Label className="text-xs text-muted-foreground">Template</Label>
             <Select value={templateSelecionado} onValueChange={onTemplateSelecionado}>
@@ -441,7 +441,7 @@ export function StepDocumento({
         </div>
 
         {/* Right: Preview */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 min-h-[300px] sm:min-h-[400px]">
           {rendering ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Sun className="h-10 w-10 text-primary animate-spin" style={{ animationDuration: "2s" }} />

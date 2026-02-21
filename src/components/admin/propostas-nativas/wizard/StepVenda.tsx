@@ -58,7 +58,7 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
   const margemLiquida = custoBase > 0 ? ((precoFinal - custoBase) / precoFinal) * 100 : 0;
 
   return (
-    <div className="flex gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
       {/* ── Left: Controls ── */}
       <div className="flex-1 min-w-0 space-y-5">
         {/* Margem */}
@@ -97,7 +97,7 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
       </div>
 
       {/* ── Right: Summary (sticky sidebar) ── */}
-      <div className="w-80 shrink-0 hidden lg:block">
+      <div className="hidden lg:block">
         <div className="rounded-xl border border-border/50 overflow-hidden sticky top-4">
           <div className="bg-muted/30 px-4 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Resumo de Custos</div>
           <div className="divide-y divide-border/30">

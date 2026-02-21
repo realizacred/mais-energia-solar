@@ -30,8 +30,8 @@ export function WizardStepCard({
   className,
 }: WizardStepCardProps) {
   return (
-    <Card className={cn("card-premium border-border/60", className)}>
-      <CardHeader className="pb-3 pt-5 px-5 lg:px-6">
+    <Card className={cn("card-premium border-border/60 w-full", className)}>
+      <CardHeader className="pb-3 pt-4 sm:pt-5 px-3 sm:px-5 lg:px-6">
         <div className="flex items-center gap-2.5">
           {Icon && (
             <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-primary/10 shrink-0">
@@ -39,7 +39,7 @@ export function WizardStepCard({
             </div>
           )}
           <div className="min-w-0">
-            <h2 className="text-base font-bold text-foreground leading-tight truncate">
+            <h2 className="text-sm sm:text-base font-bold text-foreground leading-tight truncate">
               {title}
             </h2>
             {description && (
@@ -50,7 +50,7 @@ export function WizardStepCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-5 lg:px-6 pb-5">
+      <CardContent className="px-3 sm:px-5 lg:px-6 pb-4 sm:pb-5">
         {children}
       </CardContent>
     </Card>
