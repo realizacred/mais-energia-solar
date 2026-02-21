@@ -386,13 +386,41 @@
 
   /* Admin content container — responsive wrapper for all admin pages */
   .admin-content {
-    @apply p-4 sm:p-6 lg:p-8 space-y-6 mx-auto w-full;
-    max-width: min(1400px, 100%);
+    @apply p-4 sm:p-6 lg:p-8 space-y-6 w-full;
+    max-width: 100%;
   }
 
   /* Admin page section — constrained width for form-heavy pages */
   .admin-section-narrow { @apply mx-auto w-full; max-width: 720px; }
   .admin-section-medium { @apply mx-auto w-full; max-width: 960px; }
+
+  /* 2-column settings layout — form + contextual panel */
+  .admin-layout-settings {
+    @apply w-full grid gap-6;
+    grid-template-columns: 1fr;
+  }
+  @media (min-width: 1024px) {
+    .admin-layout-settings {
+      grid-template-columns: minmax(0, 720px) minmax(280px, 340px);
+    }
+  }
+  @media (min-width: 1280px) {
+    .admin-layout-settings {
+      grid-template-columns: minmax(0, 780px) minmax(300px, 360px);
+    }
+  }
+
+  /* Contextual sidebar panel — sticky on desktop */
+  .admin-context-panel {
+    @apply space-y-4;
+  }
+  @media (min-width: 1024px) {
+    .admin-context-panel {
+      position: sticky;
+      top: 2rem;
+      align-self: start;
+    }
+  }
 
   /* Responsive toolbar — wraps filters/actions on mobile */
   .admin-toolbar {
