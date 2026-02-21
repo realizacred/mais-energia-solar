@@ -421,7 +421,7 @@
   .premium-table th { @apply text-xs font-semibold uppercase tracking-wider text-secondary bg-muted first:rounded-tl-lg last:rounded-tr-lg; }
   .premium-table td { @apply text-sm py-3.5; }
   .premium-table tr { @apply transition-colors duration-150; }
-  .premium-table tbody tr:hover { @apply bg-muted/60; }
+  .premium-table tbody tr:hover { background: hsl(var(--surface-2)); }
 
   /* Divider */
   .divider-gradient {
@@ -540,7 +540,7 @@
   /* ===== KANBAN CARD STATUS BORDERS ===== */
   .kanban-card {
     @apply bg-card rounded-xl cursor-grab active:cursor-grabbing;
-    @apply border border-border/50 transition-all duration-200 ease-out relative;
+    @apply border border-border transition-all duration-200 ease-out relative;
     box-shadow: var(--shadow-sm);
   }
   .kanban-card:hover {
@@ -550,7 +550,7 @@
   }
   .kanban-card--won {
     border-left: 3px solid hsl(var(--success));
-    background: hsl(var(--success) / 0.04);
+    background: hsl(var(--surface-2));
   }
   .kanban-card--lost {
     border-left: 3px solid hsl(var(--destructive));
@@ -570,7 +570,7 @@
   /* ===== ENHANCED SURFACE SYSTEM ===== */
   /* Cards with more visual presence */
   .section-card-elevated {
-    @apply rounded-xl border border-border/60 bg-card;
+    @apply rounded-xl border border-border bg-card;
     box-shadow: var(--shadow-sm);
   }
   .section-card-elevated:hover {
@@ -586,7 +586,7 @@
   .admin-content {
     @apply p-4 sm:p-6 lg:p-8 space-y-6 w-full;
     max-width: 100%;
-    background: hsl(var(--surface-2) / 0.5);
+    background: hsl(var(--surface-2));
   }
 }
 
