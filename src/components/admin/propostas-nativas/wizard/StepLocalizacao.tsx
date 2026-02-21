@@ -373,97 +373,96 @@ export function StepLocalizacao({
             />
           )}
 
-          {/* Tipo de Telhado */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium flex items-center gap-1.5">
-              <RoofIcon className="h-3.5 w-3.5" /> Tipo de Telhado / Estrutura *
-            </Label>
-            <Select value={tipoTelhado} onValueChange={onTipoTelhadoChange}>
-              <SelectTrigger className={`h-9 text-xs ${!tipoTelhado ? "border-destructive ring-1 ring-destructive/30" : ""}`}>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {tiposTelhado.map(t => {
-                  const Icon = ROOF_TYPE_ICONS[t] || ROOF_TYPE_ICONS["_default"];
-                  return (
-                    <SelectItem key={t} value={t}>
-                      <span className="flex items-center gap-2">
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        {t}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            {!tipoTelhado && (
-              <p className="text-[10px] text-destructive font-medium">⚠ Campo obrigatório</p>
-            )}
-          </div>
-
-          {/* Distribuidora */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium flex items-center gap-1.5">
-              <Zap className="h-3 w-3" /> Distribuidora de Energia *
-            </Label>
-            {loadingConc ? (
-              <div className="flex items-center gap-1.5 px-3 h-9 border rounded-md bg-muted/30">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span className="text-xs text-muted-foreground">Carregando...</span>
-              </div>
-            ) : (
-              <Select value={distribuidoraId} onValueChange={handleConcChange}>
-                <SelectTrigger className={`h-9 text-xs ${!distribuidoraId && estado ? "border-destructive/50" : ""}`}>
-                  <SelectValue placeholder="Selecione a distribuidora" />
+          {/* Tipo de Telhado + Distribuidora + Irradiação — side by side */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Tipo de Telhado */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <RoofIcon className="h-3.5 w-3.5" /> Tipo de Telhado *
+              </Label>
+              <Select value={tipoTelhado} onValueChange={onTipoTelhadoChange}>
+                <SelectTrigger className={`h-9 text-xs ${!tipoTelhado ? "border-destructive ring-1 ring-destructive/30" : ""}`}>
+                  <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {concessionarias.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.sigla ? `${c.sigla} — ${c.nome}` : c.nome}
-                    </SelectItem>
-                  ))}
+                  {tiposTelhado.map(t => {
+                    const Icon = ROOF_TYPE_ICONS[t] || ROOF_TYPE_ICONS["_default"];
+                    return (
+                      <SelectItem key={t} value={t}>
+                        <span className="flex items-center gap-2">
+                          <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          {t}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
-            )}
-            {!distribuidoraId && estado && (
-              <p className="text-[10px] text-destructive">A distribuidora é obrigatória!</p>
-            )}
-          </div>
-
-          {/* Irradiação */}
-          <div className="space-y-1.5">
-            <Label className="text-xs font-medium flex items-center gap-1.5">
-              <Sun className="h-3.5 w-3.5 text-warning" /> Irradiação Solar
-              {loadingIrrad && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
-            </Label>
-            <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-muted/10">
-              {irradiacao !== null ? (
-                <>
-                  <Sun className="h-4 w-4 text-warning shrink-0" />
-                  <span className="text-sm font-bold text-foreground">
-                    {irradiacao.toFixed(2)}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">kWh/m²/dia</span>
-                  {distKm !== null && (
-                    <span className="text-[9px] text-muted-foreground">
-                      ~{distKm.toFixed(0)}km
-                    </span>
-                  )}
-                  <Badge variant="secondary" className="text-[9px] ml-auto">
-                    {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "Atlas INPE" : irradSource || "Atlas"}
-                  </Badge>
-                </>
-              ) : loadingIrrad ? (
-                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Buscando dados de irradiação...
-                </span>
-              ) : geoStatus === "manual" ? (
-                <span className="text-xs text-muted-foreground">Informe o endereço para buscar</span>
-              ) : cidade ? (
-                <span className="text-xs text-muted-foreground">Geocodificando endereço...</span>
-              ) : (
-                <span className="text-xs text-muted-foreground">Preencha o endereço para buscar</span>
+              {!tipoTelhado && (
+                <p className="text-[10px] text-destructive font-medium">⚠ Campo obrigatório</p>
               )}
+            </div>
+
+            {/* Distribuidora */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Zap className="h-3 w-3" /> Distribuidora *
+              </Label>
+              {loadingConc ? (
+                <div className="flex items-center gap-1.5 px-3 h-9 border rounded-md bg-muted/30">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span className="text-xs text-muted-foreground">Carregando...</span>
+                </div>
+              ) : (
+                <Select value={distribuidoraId} onValueChange={handleConcChange}>
+                  <SelectTrigger className={`h-9 text-xs ${!distribuidoraId && estado ? "border-destructive/50" : ""}`}>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {concessionarias.map(c => (
+                      <SelectItem key={c.id} value={c.id}>
+                        {c.sigla ? `${c.sigla} — ${c.nome}` : c.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              {!distribuidoraId && estado && (
+                <p className="text-[10px] text-destructive">Obrigatório</p>
+              )}
+            </div>
+
+            {/* Irradiação */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Sun className="h-3.5 w-3.5 text-warning" /> Irradiação Solar
+                {loadingIrrad && <Loader2 className="h-3 w-3 animate-spin text-primary" />}
+              </Label>
+              <div className="flex items-center gap-2 h-9 px-3 border rounded-md bg-muted/10">
+                {irradiacao !== null ? (
+                  <>
+                    <Sun className="h-4 w-4 text-warning shrink-0" />
+                    <span className="text-sm font-bold text-foreground">{irradiacao.toFixed(2)}</span>
+                    <span className="text-[10px] text-muted-foreground">kWh/m²/dia</span>
+                    {distKm !== null && (
+                      <span className="text-[9px] text-muted-foreground">~{distKm.toFixed(0)}km</span>
+                    )}
+                    <Badge variant="secondary" className="text-[9px] ml-auto">
+                      {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "Atlas INPE" : irradSource || "Atlas"}
+                    </Badge>
+                  </>
+                ) : loadingIrrad ? (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Buscando...
+                  </span>
+                ) : geoStatus === "manual" ? (
+                  <span className="text-xs text-muted-foreground">Informe o endereço</span>
+                ) : cidade ? (
+                  <span className="text-xs text-muted-foreground">Geocodificando...</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Preencha o endereço</span>
+                )}
+              </div>
             </div>
           </div>
         </div>
