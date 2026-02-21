@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +22,6 @@ import {
   FileText,
   Image,
   ExternalLink,
-  
   Eye,
   CreditCard,
   Navigation,
@@ -226,14 +225,10 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
         </DialogHeader>
 
         <ScrollArea className="flex-1 px-6 pb-6">
-          <div className="space-y-5 pt-4">
-            {/* Dados Pessoais */}
-            <section className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <User className="h-4 w-4" />
-                Dados Pessoais
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-6">
+          <div className="space-y-4 pt-4">
+            {/* Card: Dados Pessoais */}
+            <SectionCard icon={User} title="Dados do Cliente" variant="blue">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <InfoRow icon={CreditCard} label="CPF/CNPJ" value={cliente.cpf_cnpj} />
                 <InfoRow
                   icon={Calendar}
@@ -246,17 +241,11 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                   value={format(new Date(cliente.created_at), "dd/MM/yyyy", { locale: ptBR })}
                 />
               </div>
-            </section>
+            </SectionCard>
 
-            <Separator />
-
-            {/* Endereço */}
-            <section className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Endereço
-              </h3>
-              <div className="pl-6 space-y-2">
+            {/* Card: Endereço */}
+            <SectionCard icon={MapPin} title="Endereço" variant="green">
+              <div className="space-y-2">
                 {endereco && <InfoRow icon={MapPin} label="Endereço" value={endereco} />}
                 {cidadeEstado && <InfoRow icon={MapPin} label="Cidade" value={cidadeEstado} />}
                 <InfoRow icon={MapPin} label="CEP" value={cliente.cep} />
@@ -275,17 +264,11 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                   </div>
                 )}
               </div>
-            </section>
+            </SectionCard>
 
-            <Separator />
-
-            {/* Projeto Solar */}
-            <section className="space-y-2">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Sun className="h-4 w-4" />
-                Projeto Solar
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-6">
+            {/* Card: Projeto Solar */}
+            <SectionCard icon={Sun} title="Projeto Solar" variant="orange">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <InfoRow icon={Sun} label="Potência" value={cliente.potencia_kwp ? `${cliente.potencia_kwp} kWp` : null} />
                 <InfoRow icon={DollarSign} label="Valor" value={formatCurrency(cliente.valor_projeto)} />
                 <InfoRow icon={Sun} label="Placas" value={cliente.numero_placas?.toString()} />
@@ -296,31 +279,18 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                   value={cliente.data_instalacao ? format(new Date(cliente.data_instalacao + "T12:00:00"), "dd/MM/yyyy") : null}
                 />
               </div>
-            </section>
+            </SectionCard>
 
-            {/* Observações */}
+            {/* Card: Observações */}
             {cliente.observacoes && (
-              <>
-                <Separator />
-                <section className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-primary" />
-                    Observações
-                  </h3>
-                  <p className="text-sm pl-6 whitespace-pre-wrap text-muted-foreground">{cliente.observacoes}</p>
-                </section>
-              </>
+              <SectionCard icon={FileText} title="Observações" variant="neutral">
+                <p className="text-sm whitespace-pre-wrap text-muted-foreground">{cliente.observacoes}</p>
+              </SectionCard>
             )}
 
-            <Separator />
-
-            {/* Documentos (somente leitura) */}
-            <section className="space-y-4">
-              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Image className="h-4 w-4" />
-                Documentos
-              </h3>
-              <div className="pl-6 space-y-4">
+            {/* Card: Documentos */}
+            <SectionCard icon={Image} title="Documentos" variant="blue">
+              <div className="space-y-4">
                 {DOC_CATEGORIES.map((cat) => (
                   <ReadOnlyDocumentSection
                     key={cat.field}
@@ -329,7 +299,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                   />
                 ))}
               </div>
-            </section>
+            </SectionCard>
           </div>
         </ScrollArea>
       </DialogContent>
