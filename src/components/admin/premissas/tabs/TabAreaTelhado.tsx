@@ -158,8 +158,8 @@ function RoofCard({
 }: RoofCardProps) {
   return (
     <div className={cn(
-      "rounded-lg border bg-card p-4 space-y-3 transition-shadow",
-      f.enabled ? "border-border shadow-sm" : "border-border/40 opacity-60"
+      "rounded-lg border bg-card p-4 space-y-3 transition-all duration-200",
+      f.enabled ? "border-border shadow-sm" : "border-dashed border-border/50 opacity-50"
     )}>
       {/* Header: nome + switch */}
       <div className="flex items-center justify-between gap-2">
@@ -180,6 +180,17 @@ function RoofCard({
             <span className="text-sm font-semibold truncate">{getRoofLabel(f)}</span>
           )}
         </div>
+        <Badge
+          variant="outline"
+          className={cn(
+            "text-[10px] px-2 py-0.5 font-medium shrink-0 pointer-events-none",
+            f.enabled
+              ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300"
+              : "border-border bg-muted text-muted-foreground"
+          )}
+        >
+          {f.enabled ? "Ativo" : "Inativo"}
+        </Badge>
       </div>
 
       {/* Campos numéricos */}
@@ -232,9 +243,10 @@ function RoofCard({
                 key={opt.value}
                 variant="outline"
                 className={cn(
-                  "cursor-pointer select-none transition-colors text-[10px] px-2 py-0.5 font-normal",
-                  active && "bg-muted border-foreground/30 text-foreground",
-                  !active && "border-border/50 text-muted-foreground hover:bg-muted/50"
+                  "cursor-pointer select-none transition-colors text-[10px] px-2.5 py-0.5 font-medium",
+                  active
+                    ? "border-secondary bg-secondary/10 text-secondary dark:bg-secondary/20"
+                    : "border-border/50 text-muted-foreground/60 hover:bg-muted/50 line-through decoration-muted-foreground/30"
                 )}
                 onClick={() => onToggleArray(idx, "topologias_permitidas", opt.value)}
               >
@@ -256,9 +268,10 @@ function RoofCard({
                 key={opt.value}
                 variant="outline"
                 className={cn(
-                  "cursor-pointer select-none transition-colors text-[10px] px-2 py-0.5 font-normal",
-                  active && "bg-muted border-foreground/30 text-foreground",
-                  !active && "border-border/50 text-muted-foreground hover:bg-muted/50"
+                  "cursor-pointer select-none transition-colors text-[10px] px-2.5 py-0.5 font-medium",
+                  active
+                    ? "border-secondary bg-secondary/10 text-secondary dark:bg-secondary/20"
+                    : "border-border/50 text-muted-foreground/60 hover:bg-muted/50 line-through decoration-muted-foreground/30"
                 )}
                 onClick={() => onToggleArray(idx, "tipos_sistema_permitidos", opt.value)}
               >
