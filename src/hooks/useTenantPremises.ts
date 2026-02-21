@@ -94,7 +94,7 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   preco_demanda: 0,
   fase_tensao_rede: "bifasico_127_220",
   fator_simultaneidade: 30.00,
-  imposto_energia: 0,
+  imposto_energia: 18.00,
   outros_encargos_atual: 0,
   outros_encargos_novo: 0,
   tipo_telhado_padrao: "metalico",
@@ -109,7 +109,7 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   considerar_kits_transformador: true,
   tipo_preco: "equipamentos",
   dod: 80.00,
-  fornecedor_filtro: "qualquer",
+  fornecedor_filtro: "escolher",
 };
 
 export interface RoofAreaFactor {
