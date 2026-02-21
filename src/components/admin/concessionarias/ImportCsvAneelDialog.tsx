@@ -578,6 +578,28 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               </div>
             )}
 
+            {/* Discarded footer/summary rows */}
+            {(validation as any).discardedFooterRows?.length > 0 && (
+              <div className="space-y-1.5">
+                <h4 className="text-xs font-bold text-muted-foreground flex items-center gap-1.5">
+                  <Info className="w-3.5 h-3.5" />
+                  Linhas Descartadas Automaticamente ({(validation as any).discardedFooterRows.length})
+                </h4>
+                <div className="rounded-lg border bg-muted/30 p-2 space-y-1">
+                  {(validation as any).discardedFooterRows.map((d: any) => (
+                    <div key={d.rowIndex} className="flex items-start gap-2 text-[10px] text-muted-foreground">
+                      <Badge variant="outline" className="text-[9px] shrink-0 font-mono">Linha {d.rowIndex}</Badge>
+                      <span className="font-medium text-foreground/70">{d.reason}</span>
+                      {d.preview && <span className="truncate italic">— {d.preview}</span>}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground italic">
+                  Essas linhas foram identificadas como rodapé, resumo de filtros ou linhas em branco do arquivo exportado da ANEEL e não serão importadas.
+                </p>
+              </div>
+            )}
+
             {/* Pipeline explanation */}
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border text-[11px] text-muted-foreground">
               <Info className="w-4 h-4 mt-0.5 shrink-0 text-secondary" />
