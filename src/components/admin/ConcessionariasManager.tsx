@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload } from "lucide-react";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
-import { ConcessionariaFormDialog, type ConcessionariaFormData } from "./concessionarias/ConcessionariaFormDialog";
+import { ConcessionariaFormDialog, ESTADOS_BRASIL, type ConcessionariaFormData } from "./concessionarias/ConcessionariaFormDialog";
 import { Progress } from "@/components/ui/progress";
 import { ImportCsvAneelDialog } from "./concessionarias/ImportCsvAneelDialog";
 import { supabase } from "@/integrations/supabase/client";
