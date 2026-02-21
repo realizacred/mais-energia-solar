@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, Plus, Trash2, LayoutGrid, Pencil, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Save, Loader2, Plus, Trash2, LayoutGrid } from "lucide-react";
 import type { RoofAreaFactor } from "@/hooks/useTenantPremises";
 import { getRoofLabel, TOPOLOGIA_OPTIONS, TIPO_SISTEMA_OPTIONS } from "@/hooks/useTenantPremises";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,6 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
   const [newName, setNewName] = useState("");
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editLabel, setEditLabel] = useState("");
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
 
   const updateFactor = (idx: number, key: keyof RoofAreaFactor, value: any) => {
     setLocal((prev) => prev.map((f, i) => (i === idx ? { ...f, [key]: value } : f)));
@@ -58,11 +57,13 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
       },
     ]);
     setNewName("");
+    setEditingIdx(local.length); // auto-edit new item
+    setEditLabel(name);
   };
 
   const remove = (idx: number) => {
     setLocal((prev) => prev.filter((_, i) => i !== idx));
-    if (expandedIdx === idx) setExpandedIdx(null);
+    if (editingIdx === idx) setEditingIdx(null);
   };
 
   const startEditing = (idx: number) => {
@@ -89,148 +90,23 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
           Configure área útil, inclinação, desvio azimutal, topologias e tipos de sistema permitidos por tipo de telhado.
         </p>
 
-        <div className="space-y-2">
-          {local.map((f, idx) => {
-            const isExpanded = expandedIdx === idx;
-            return (
-              <div key={f.tipo_telhado} className="rounded-lg border border-border/50 bg-background overflow-hidden">
-                {/* Header row */}
-                <div className="flex items-center gap-3 p-3">
-                  <Switch
-                    checked={f.enabled}
-                    onCheckedChange={(v) => updateFactor(idx, "enabled", v)}
-                  />
-                  {editingIdx === idx ? (
-                    <div className="flex items-center gap-1 min-w-[100px]">
-                      <Input
-                        value={editLabel}
-                        onChange={(e) => setEditLabel(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && confirmEdit()}
-                        className="h-7 text-sm"
-                        autoFocus
-                      />
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={confirmEdit}>
-                        <Check className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1 min-w-[100px]">
-                      <Label className="text-sm font-medium">{getRoofLabel(f)}</Label>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-muted-foreground hover:text-foreground" onClick={() => startEditing(idx)}>
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Quick summary badges */}
-                  <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-hidden">
-                    <Badge variant="outline" className="text-[10px] shrink-0">{f.fator_area}x área</Badge>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{f.inclinacao_padrao ?? 0}°</Badge>
-                    <Badge variant="outline" className="text-[10px] shrink-0">{(f.topologias_permitidas || []).length} topol.</Badge>
-                  </div>
-
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => setExpandedIdx(isExpanded ? null : idx)}>
-                    {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive shrink-0" onClick={() => remove(idx)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-
-                {/* Expanded detail */}
-                {isExpanded && (
-                  <div className="px-4 pb-4 pt-1 border-t border-border/30 space-y-4">
-                    {/* Row 1: Área + Inclinação + Desvio */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <Label className="text-[11px] text-muted-foreground">Fator de Área Útil</Label>
-                        <div className="relative mt-1">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={f.fator_area}
-                            onChange={(e) => updateFactor(idx, "fator_area", Number(e.target.value))}
-                            className="pr-28"
-                          />
-                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">m²/m² módulos</span>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-[11px] text-muted-foreground">Inclinação Padrão</Label>
-                        <select
-                          value={f.inclinacao_padrao ?? 0}
-                          onChange={(e) => updateFactor(idx, "inclinacao_padrao", Number(e.target.value))}
-                          className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          {INCLINACOES.map((v) => (
-                            <option key={v} value={v}>{v}°</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <Label className="text-[11px] text-muted-foreground">Desvio Azimutal Padrão</Label>
-                        <Input
-                          type="number"
-                          step="1"
-                          value={f.desvio_azimutal_padrao ?? 0}
-                          onChange={(e) => updateFactor(idx, "desvio_azimutal_padrao", Number(e.target.value))}
-                          className="mt-1"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Row 2: Topologias */}
-                    <div>
-                      <Label className="text-[11px] text-muted-foreground mb-2 block">Topologias Permitidas</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {TOPOLOGIA_OPTIONS.map((opt) => {
-                          const active = (f.topologias_permitidas || []).includes(opt.value);
-                          return (
-                            <Badge
-                              key={opt.value}
-                              variant={active ? "default" : "outline"}
-                              className={cn(
-                                "cursor-pointer select-none transition-colors text-xs",
-                                active && "bg-primary text-primary-foreground hover:bg-primary/90",
-                                !active && "hover:bg-muted"
-                              )}
-                              onClick={() => toggleArrayItem(idx, "topologias_permitidas", opt.value)}
-                            >
-                              {opt.label}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Row 3: Tipos de Sistema */}
-                    <div>
-                      <Label className="text-[11px] text-muted-foreground mb-2 block">Tipos de Sistema Permitidos</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {TIPO_SISTEMA_OPTIONS.map((opt) => {
-                          const active = (f.tipos_sistema_permitidos || []).includes(opt.value);
-                          return (
-                            <Badge
-                              key={opt.value}
-                              variant={active ? "default" : "outline"}
-                              className={cn(
-                                "cursor-pointer select-none transition-colors text-xs",
-                                active && "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-                                !active && "hover:bg-muted"
-                              )}
-                              onClick={() => toggleArrayItem(idx, "tipos_sistema_permitidos", opt.value)}
-                            >
-                              {opt.label}
-                            </Badge>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {local.map((f, idx) => (
+            <RoofCard
+              key={f.tipo_telhado}
+              factor={f}
+              idx={idx}
+              isEditing={editingIdx === idx}
+              editLabel={editLabel}
+              onEditLabel={setEditLabel}
+              onStartEdit={() => startEditing(idx)}
+              onConfirmEdit={confirmEdit}
+              onCancelEdit={() => { setEditingIdx(null); setEditLabel(""); }}
+              onUpdate={updateFactor}
+              onToggleArray={toggleArrayItem}
+              onRemove={() => remove(idx)}
+            />
+          ))}
         </div>
 
         {/* Add new */}
@@ -252,7 +128,167 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
       <div className="flex justify-end pt-2">
         <Button onClick={() => onSave(local)} disabled={saving} className="gap-1.5">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Salvar
+          Salvar Todos
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Card por tipo de telhado ─── */
+
+interface RoofCardProps {
+  factor: RoofAreaFactor;
+  idx: number;
+  isEditing: boolean;
+  editLabel: string;
+  onEditLabel: (v: string) => void;
+  onStartEdit: () => void;
+  onConfirmEdit: () => void;
+  onCancelEdit: () => void;
+  onUpdate: (idx: number, key: keyof RoofAreaFactor, value: any) => void;
+  onToggleArray: (idx: number, key: "topologias_permitidas" | "tipos_sistema_permitidos", item: string) => void;
+  onRemove: () => void;
+}
+
+function RoofCard({
+  factor: f, idx, isEditing, editLabel,
+  onEditLabel, onStartEdit, onConfirmEdit, onCancelEdit,
+  onUpdate, onToggleArray, onRemove,
+}: RoofCardProps) {
+  return (
+    <div className={cn(
+      "rounded-lg border bg-card p-4 space-y-3 transition-shadow",
+      f.enabled ? "border-border shadow-sm" : "border-border/40 opacity-60"
+    )}>
+      {/* Header: nome + switch */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <Switch
+            checked={f.enabled}
+            onCheckedChange={(v) => onUpdate(idx, "enabled", v)}
+          />
+          {isEditing ? (
+            <Input
+              value={editLabel}
+              onChange={(e) => onEditLabel(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onConfirmEdit()}
+              className="h-8 text-sm font-semibold"
+              autoFocus
+            />
+          ) : (
+            <span className="text-sm font-semibold truncate">{getRoofLabel(f)}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Campos numéricos */}
+      <div className="grid grid-cols-3 gap-2">
+        <div>
+          <Label className="text-[10px] text-muted-foreground">Área Útil</Label>
+          <div className="relative mt-0.5">
+            <Input
+              type="number"
+              step="0.01"
+              value={f.fator_area}
+              onChange={(e) => onUpdate(idx, "fator_area", Number(e.target.value))}
+              className="h-8 text-xs pr-6"
+            />
+            <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground pointer-events-none">x</span>
+          </div>
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground">Inclinação</Label>
+          <select
+            value={f.inclinacao_padrao ?? 0}
+            onChange={(e) => onUpdate(idx, "inclinacao_padrao", Number(e.target.value))}
+            className="mt-0.5 flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {INCLINACOES.map((v) => (
+              <option key={v} value={v}>{v}°</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label className="text-[10px] text-muted-foreground">Desvio Azim.</Label>
+          <Input
+            type="number"
+            step="1"
+            value={f.desvio_azimutal_padrao ?? 0}
+            onChange={(e) => onUpdate(idx, "desvio_azimutal_padrao", Number(e.target.value))}
+            className="mt-0.5 h-8 text-xs"
+          />
+        </div>
+      </div>
+
+      {/* Topologias */}
+      <div>
+        <Label className="text-[10px] text-muted-foreground mb-1 block">Topologias</Label>
+        <div className="flex flex-wrap gap-1">
+          {TOPOLOGIA_OPTIONS.map((opt) => {
+            const active = (f.topologias_permitidas || []).includes(opt.value);
+            return (
+              <Badge
+                key={opt.value}
+                variant={active ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer select-none transition-colors text-[10px] px-2 py-0.5",
+                  active && "bg-primary text-primary-foreground hover:bg-primary/90",
+                  !active && "hover:bg-muted"
+                )}
+                onClick={() => onToggleArray(idx, "topologias_permitidas", opt.value)}
+              >
+                {opt.label}
+              </Badge>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Tipos de Sistema */}
+      <div>
+        <Label className="text-[10px] text-muted-foreground mb-1 block">Sistemas</Label>
+        <div className="flex flex-wrap gap-1">
+          {TIPO_SISTEMA_OPTIONS.map((opt) => {
+            const active = (f.tipos_sistema_permitidos || []).includes(opt.value);
+            return (
+              <Badge
+                key={opt.value}
+                variant={active ? "default" : "outline"}
+                className={cn(
+                  "cursor-pointer select-none transition-colors text-[10px] px-2 py-0.5",
+                  active && "bg-secondary text-secondary-foreground hover:bg-secondary/90",
+                  !active && "hover:bg-muted"
+                )}
+                onClick={() => onToggleArray(idx, "tipos_sistema_permitidos", opt.value)}
+              >
+                {opt.label}
+              </Badge>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Botões de ação com texto */}
+      <div className="flex items-center gap-2 pt-1 border-t border-border/30">
+        {isEditing ? (
+          <>
+            <Button variant="default" size="sm" className="text-xs h-7" onClick={onConfirmEdit}>
+              Salvar
+            </Button>
+            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={onCancelEdit}>
+              Cancelar
+            </Button>
+          </>
+        ) : (
+          <Button variant="outline" size="sm" className="text-xs h-7" onClick={onStartEdit}>
+            Editar Nome
+          </Button>
+        )}
+        <div className="flex-1" />
+        <Button variant="ghost" size="sm" className="text-xs h-7 text-destructive hover:text-destructive" onClick={onRemove}>
+          <Trash2 className="h-3 w-3 mr-1" />
+          Remover
         </Button>
       </div>
     </div>
