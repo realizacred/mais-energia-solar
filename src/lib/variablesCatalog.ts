@@ -31,6 +31,10 @@ export type VariableCategory =
   | "tabelas"
   | "series"
   | "premissas"
+  | "tarifa"
+  | "aneel"
+  | "gd"
+  | "calculo"
   | "cdd"
   | "customizada";
 
@@ -44,6 +48,10 @@ export const CATEGORY_LABELS: Record<VariableCategory, string> = {
   tabelas: "Tabelas",
   series: "Séries",
   premissas: "Premissas",
+  tarifa: "Tarifa / Distribuidora",
+  aneel: "ANEEL Sync",
+  gd: "Geração Distribuída (GD)",
+  calculo: "Cálculo Grupo B",
   cdd: "Campos dos Distribuidores",
   customizada: "Variáveis Customizadas",
 };
@@ -58,6 +66,10 @@ export const CATEGORY_ORDER: VariableCategory[] = [
   "tabelas",
   "series",
   "premissas",
+  "tarifa",
+  "aneel",
+  "gd",
+  "calculo",
   "cdd",
   "customizada",
 ];
@@ -763,6 +775,48 @@ export const VARIABLES_CATALOG: CatalogVariable[] = [
   v("premissas", "premissas.troca_inversor_custo", "troca_inversor_custo", "Custo troca inversor", "Custo estimado da troca do inversor", "R$", "6000.00"),
   v("premissas", "premissas.sobredimensionamento", "sobredimensionamento", "Sobredimensionamento", "Percentual de sobredimensionamento", "%", "10"),
   v("premissas", "premissas.vida_util_sistema", "vida_util_sistema", "Vida útil do sistema", "Vida útil projetada do sistema", "anos", "25"),
+
+  // ──────────────────────────────────────────────────────────────
+  // TARIFA / DISTRIBUIDORA
+  // ──────────────────────────────────────────────────────────────
+  v("tarifa", "tarifa.te_kwh", "tarifa_te_kwh", "TE (Tarifa de Energia)", "Tarifa de Energia — componente TE (R$/kWh)", "R$/kWh", "0.450000"),
+  v("tarifa", "tarifa.tusd_total_kwh", "tarifa_tusd_total_kwh", "TUSD Total", "TUSD total da ANEEL (R$/kWh) — inclui Fio A + Fio B + encargos", "R$/kWh", "0.380000"),
+  v("tarifa", "tarifa.fio_b_real_kwh", "tarifa_fio_b_real_kwh", "Fio B Real", "Fio B real (R$/kWh) — disponível apenas quando configurado manualmente", "R$/kWh", "0.210000"),
+  v("tarifa", "tarifa.fio_b_usado_kwh", "tarifa_fio_b_usado_kwh", "Fio B Usado no Cálculo", "Fio B efetivamente usado no motor de cálculo (real ou proxy TUSD)", "R$/kWh", "0.380000"),
+  v("tarifa", "tarifa.precisao", "tarifa_precisao", "Precisão da Tarifa", "Nível de precisão: EXATO (Fio B real) ou ESTIMADO (proxy TUSD)", "-", "estimado"),
+  v("tarifa", "tarifa.precisao_motivo", "tarifa_precisao_motivo", "Motivo da Precisão", "Explicação do nível de precisão aplicado", "-", "Fio B não disponível na fonte atual; usamos TUSD total como aproximação."),
+  v("tarifa", "tarifa.origem", "tarifa_origem", "Origem da Tarifa", "Fonte do dado tarifário: ANEEL, manual ou premissa", "-", "ANEEL"),
+  v("tarifa", "tarifa.vigencia_inicio", "tarifa_vigencia_inicio", "Vigência Início", "Data de início da vigência da tarifa", "data", "2026-01-15"),
+  v("tarifa", "tarifa.vigencia_fim", "tarifa_vigencia_fim", "Vigência Fim", "Data de fim da vigência (ou 'atual' se vigente)", "data", "atual"),
+
+  // ──────────────────────────────────────────────────────────────
+  // ANEEL SYNC
+  // ──────────────────────────────────────────────────────────────
+  v("aneel", "aneel.last_sync_at", "aneel_last_sync_at", "Último Sync ANEEL", "Data/hora da última sincronização ANEEL", "data/hora", "2026-02-20 14:30"),
+  v("aneel", "aneel.run_id", "aneel_run_id", "Run ID", "ID da execução de sync que gerou os dados", "-", "abc12345"),
+  v("aneel", "aneel.snapshot_hash_curto", "aneel_snapshot_hash_curto", "Hash do Snapshot", "Hash curto (8 chars) do snapshot ANEEL para auditoria", "-", "a1b2c3d4"),
+
+  // ──────────────────────────────────────────────────────────────
+  // GERAÇÃO DISTRIBUÍDA (GD)
+  // ──────────────────────────────────────────────────────────────
+  v("gd", "gd.regra", "gd_regra", "Regra GD", "Regra de compensação aplicada: GD I, GD II ou GD III", "-", "GD_II"),
+  v("gd", "gd.ano_aplicado", "gd_ano_aplicado", "Ano Aplicado", "Ano base para escalonamento do Fio B (Lei 14.300)", "-", "2026"),
+  v("gd", "gd.fio_b_percent_cobrado", "gd_fio_b_percent_cobrado", "Fio B % Cobrado", "Percentual do Fio B cobrado no ano (ex: 60% em 2026)", "%", "60"),
+  v("gd", "gd.fio_b_percent_compensado", "gd_fio_b_percent_compensado", "Fio B % Compensado", "Percentual do Fio B compensado (100% − cobrado)", "%", "40"),
+
+  // ──────────────────────────────────────────────────────────────
+  // CÁLCULO GRUPO B
+  // ──────────────────────────────────────────────────────────────
+  v("calculo", "calculo.consumo_mensal_kwh", "calc_consumo_mensal_kwh", "Consumo Mensal (Cálculo)", "Consumo mensal usado no motor de cálculo GD", "kWh", "500"),
+  v("calculo", "calculo.custo_disponibilidade_kwh", "calc_custo_disponibilidade_kwh", "Custo Disponibilidade (Cálculo)", "Custo de disponibilidade em kWh aplicado", "kWh", "100"),
+  v("calculo", "calculo.consumo_compensavel_kwh", "calc_consumo_compensavel_kwh", "Consumo Compensável", "Consumo − custo de disponibilidade (mín. 0)", "kWh", "400"),
+  v("calculo", "calculo.geracao_mensal_kwh", "calc_geracao_mensal_kwh", "Geração Mensal (Cálculo)", "Geração mensal usada no motor", "kWh", "450"),
+  v("calculo", "calculo.energia_compensada_kwh", "calc_energia_compensada_kwh", "Energia Compensada", "Mínimo entre geração e consumo compensável", "kWh", "400"),
+  v("calculo", "calculo.valor_credito_kwh", "calc_valor_credito_kwh", "Crédito por kWh", "Valor do crédito de compensação (R$/kWh)", "R$/kWh", "0.630000"),
+  v("calculo", "calculo.economia_mensal_rs", "calc_economia_mensal_rs", "Economia Mensal", "Economia mensal calculada pelo motor GD", "R$", "252.00"),
+
+  // ── Alerta de precisão (para PDF) ──
+  v("calculo", "alerta.estimado.texto_pdf", "alerta_estimado_texto_pdf", "Alerta Estimado (PDF)", "Bloco de texto padrão para inclusão no PDF quando cálculo é ESTIMADO", "-", "ATENÇÃO: Economia estimada. Fio B real indisponível; usamos TUSD total como proxy. Economia pode variar."),
 
   // ──────────────────────────────────────────────────────────────
   // CAMPOS DOS DISTRIBUIDORES (CDD)

@@ -49,6 +49,10 @@ const CATEGORY_ICONS: Partial<Record<VariableCategory, string>> = {
   tabelas: "📊",
   series: "📈",
   premissas: "⚙️",
+  tarifa: "🏷️",
+  aneel: "🔄",
+  gd: "🌞",
+  calculo: "🧮",
   cdd: "🔗",
   customizada: "🧩",
 };
