@@ -5,9 +5,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Info, CheckCircle2, AlertTriangle, Sun, Gauge, RefreshCw, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { TenantPremises } from "@/hooks/useTenantPremises";
+import type { TenantPremises, SombreamentoConfig } from "@/hooks/useTenantPremises";
+import { DEFAULT_SOMBREAMENTO_CONFIG } from "@/hooks/useTenantPremises";
 import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { FieldTooltip, NumField } from "./valores-padroes/shared";
+import { Eye } from "lucide-react";
 
 interface Props {
   premises: TenantPremises;
@@ -55,6 +57,19 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
   ];
 
   const currentBase = baseStatus[premises.base_irradiancia];
+
+  const sombConfig: SombreamentoConfig = (premises.sombreamento_config as any) || DEFAULT_SOMBREAMENTO_CONFIG;
+
+  const setSombra = (level: keyof SombreamentoConfig, topo: keyof SombreamentoConfig["pouco"], value: number) => {
+    const updated = { ...sombConfig, [level]: { ...sombConfig[level], [topo]: value } };
+    onChange((p) => ({ ...p, sombreamento_config: updated }));
+  };
+
+  const SOMBRA_LEVELS = [
+    { key: "pouco" as const, label: "Pouco", desc: "Sombreamento em poucos momentos do dia ou início/final do dia" },
+    { key: "medio" as const, label: "Médio", desc: "Sombreamento parcial nos módulos durante maior irradiação" },
+    { key: "alto" as const, label: "Alto", desc: "Sombreamento em períodos de maior irradiação" },
+  ] as const;
 
   return (
     <div className="space-y-5">
@@ -132,6 +147,29 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
           <NumField label="Tradicional (String)" suffix="Anos" step="1" value={premises.troca_inversor_anos_tradicional} tooltip="Vida útil estimada do inversor string. Dura 10-15 anos." onChange={(v) => set("troca_inversor_anos_tradicional", v)} />
           <NumField label="Microinversor" suffix="Anos" step="1" value={premises.troca_inversor_anos_microinversor} tooltip="Microinversores geralmente têm garantia de 25 anos." onChange={(v) => set("troca_inversor_anos_microinversor", v)} />
           <NumField label="Otimizador" suffix="Anos" step="1" value={premises.troca_inversor_anos_otimizador} tooltip="Otimizadores DC têm garantia de 20-25 anos." onChange={(v) => set("troca_inversor_anos_otimizador", v)} />
+        </div>
+      </SectionCard>
+
+      {/* Sombreamento */}
+      <SectionCard icon={Eye} title="Fator de sombreamento — perda no desempenho" variant="neutral">
+        <p className="text-xs text-muted-foreground mb-3">
+          Percentual de perda aplicado à taxa de desempenho de cada topologia quando há sombreamento.
+          Sistemas com microinversores e otimizadores sofrem menos com sombreamento que strings tradicionais.
+        </p>
+        <div className="space-y-3">
+          {SOMBRA_LEVELS.map(level => (
+            <div key={level.key} className="rounded-lg border border-border/50 p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold">{level.label}</span>
+                <span className="text-[10px] text-muted-foreground">— {level.desc}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <NumField label="Tradicional (String)" suffix="%" value={sombConfig[level.key].tradicional} tooltip="Perda no desempenho para inversor string" onChange={(v) => setSombra(level.key, "tradicional", v)} />
+                <NumField label="Microinversor" suffix="%" value={sombConfig[level.key].microinversor} tooltip="Perda no desempenho para microinversor" onChange={(v) => setSombra(level.key, "microinversor", v)} />
+                <NumField label="Otimizador" suffix="%" value={sombConfig[level.key].otimizador} tooltip="Perda no desempenho para otimizador" onChange={(v) => setSombra(level.key, "otimizador", v)} />
+              </div>
+            </div>
+          ))}
         </div>
       </SectionCard>
 

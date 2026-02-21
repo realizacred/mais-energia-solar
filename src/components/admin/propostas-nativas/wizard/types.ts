@@ -428,6 +428,7 @@ export interface PreDimensionamentoData {
   tipos_kit: string[];
   topologias: string[];
   sombreamento: string;
+  sombreamento_config?: import("@/hooks/useTenantPremises").SombreamentoConfig;
   desvio_azimutal: number;
   inclinacao: number;
   dod: number;
@@ -447,6 +448,7 @@ export const DEFAULT_PRE_DIMENSIONAMENTO: PreDimensionamentoData = {
   tipos_kit: ["customizado", "fechado"],
   topologias: ["tradicional"],
   sombreamento: "Nenhuma",
+  sombreamento_config: undefined,
   desvio_azimutal: 0,
   inclinacao: 20,
   dod: 0,
@@ -460,7 +462,7 @@ export const DEFAULT_PRE_DIMENSIONAMENTO: PreDimensionamentoData = {
   tipo_kit: "fechado",
 };
 
-export const SOMBREAMENTO_OPTIONS = ["Nenhuma", "Leve (5%)", "Moderada (10%)", "Forte (15%)"];
+export const SOMBREAMENTO_OPTIONS = ["Nenhuma", "Pouco", "Médio", "Alto"];
 
 export const DESVIO_AZIMUTAL_OPTIONS = Array.from({ length: 19 }, (_, i) => i * 10); // 0° to 180°
 

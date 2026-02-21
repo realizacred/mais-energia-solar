@@ -14,6 +14,8 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { SombreamentoConfig } from "@/hooks/useTenantPremises";
+import { DEFAULT_SOMBREAMENTO_CONFIG } from "@/hooks/useTenantPremises";
 
 // ─── Canonical Shape ────────────────────────────────
 
@@ -50,6 +52,9 @@ export interface SolarPremises {
   grupo_tarifario: string;
   fase_tensao_rede: string;
   tipo_telhado_padrao: string;
+
+  // Sombreamento config
+  sombreamento_config: SombreamentoConfig;
 }
 
 // ─── Safe Defaults ──────────────────────────────────
@@ -76,6 +81,7 @@ export const SOLAR_DEFAULTS: SolarPremises = {
   grupo_tarifario: "BT",
   fase_tensao_rede: "bifasico_127_220",
   tipo_telhado_padrao: "metalico",
+  sombreamento_config: { ...DEFAULT_SOMBREAMENTO_CONFIG },
 };
 
 // ─── Query Key ──────────────────────────────────────
@@ -107,6 +113,7 @@ function mapRowToSolarPremises(row: Record<string, unknown>): SolarPremises {
     grupo_tarifario: (row.grupo_tarifario as string) ?? SOLAR_DEFAULTS.grupo_tarifario,
     fase_tensao_rede: (row.fase_tensao_rede as string) ?? SOLAR_DEFAULTS.fase_tensao_rede,
     tipo_telhado_padrao: (row.tipo_telhado_padrao as string) ?? SOLAR_DEFAULTS.tipo_telhado_padrao,
+    sombreamento_config: (row.sombreamento_config as SombreamentoConfig) ?? SOLAR_DEFAULTS.sombreamento_config,
   };
 }
 
@@ -124,7 +131,8 @@ export function useSolarPremises() {
           "geracao_mensal_por_kwp, custo_por_kwp, vida_util_sistema, kg_co2_por_kwh, " +
           "base_irradiancia, grupo_tarifario, fase_tensao_rede, tipo_telhado_padrao, " +
           "taxa_desempenho_tradicional, taxa_desempenho_microinversor, taxa_desempenho_otimizador, " +
-          "topologias, tipo_kits, considerar_kits_transformador, margem_potencia_ideal"
+          "topologias, tipo_kits, considerar_kits_transformador, margem_potencia_ideal, " +
+          "sombreamento_config"
         )
         .limit(1)
         .maybeSingle();

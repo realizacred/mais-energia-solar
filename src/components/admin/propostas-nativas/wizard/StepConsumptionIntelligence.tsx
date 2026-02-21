@@ -16,6 +16,7 @@ import {
   TOPOLOGIA_LABELS, DEFAULT_TOPOLOGIA_CONFIGS,
   createEmptyUC,
 } from "./types";
+import { DEFAULT_SOMBREAMENTO_CONFIG, type SombreamentoConfig } from "@/hooks/useTenantPremises";
 import { UCCard } from "./uc/UCCard";
 import { UCConfigModal, RateioCreditsModal, MesAMesDialog } from "./uc/UCModals";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
@@ -159,8 +160,58 @@ export function StepConsumptionIntelligence({
 
   const mesAMesTitle = mesAMes.field === "hp" ? "Consumo Ponta (HP)" : mesAMes.field === "hfp" ? "Consumo Fora Ponta (HFP)" : "Consumo";
 
+  // Store base desempenho (without shading) for recalculation
+  const [baseDesempenho, setBaseDesempenho] = useState<Record<string, number>>(() => {
+    const base: Record<string, number> = {};
+    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+      base[topo] = getTopoConfig(topo).desempenho;
+    }
+    return base;
+  });
+
+  // Update base desempenho when configs load from Solar Brain (only on first load)
+  const [baseInitialized, setBaseInitialized] = useState(false);
+  useEffect(() => {
+    if (baseInitialized) return;
+    const hasNonDefault = Object.values(pd.topologia_configs || {}).some(c => c.desempenho > 0);
+    if (hasNonDefault) {
+      const base: Record<string, number> = {};
+      for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+        // If already shaded, we need to reverse to get base. But on first load, sombreamento is "Nenhuma" so desempenho IS the base.
+        base[topo] = getTopoConfig(topo).desempenho;
+      }
+      setBaseDesempenho(base);
+      setBaseInitialized(true);
+    }
+  }, [pd.topologia_configs]);
+
+  const applySombreamento = useCallback((sombreamentoLevel: string, currentPd: PreDimensionamentoData) => {
+    const sombConfig: SombreamentoConfig = currentPd.sombreamento_config || DEFAULT_SOMBREAMENTO_CONFIG;
+    const levelKey = sombreamentoLevel === "Pouco" ? "pouco" : sombreamentoLevel === "Médio" ? "medio" : sombreamentoLevel === "Alto" ? "alto" : null;
+
+    const configs = { ...currentPd.topologia_configs };
+    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+      const base = baseDesempenho[topo] || getTopoConfig(topo).desempenho;
+      const lossPct = levelKey ? (sombConfig[levelKey] as any)?.[topo] ?? 0 : 0;
+      const adjusted = Math.round(base * (1 - lossPct / 100) * 100) / 100;
+      configs[topo] = { ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]), desempenho: adjusted };
+    }
+
+    const updated: PreDimensionamentoData = {
+      ...currentPd,
+      sombreamento: sombreamentoLevel,
+      topologia_configs: configs,
+      desempenho: configs.tradicional?.desempenho ?? currentPd.desempenho,
+    };
+    setPd(updated);
+  }, [baseDesempenho, setPd]);
+
   // ─── Pre-dimensionamento helpers
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
+    if (field === "sombreamento") {
+      applySombreamento(value as string, pd);
+      return;
+    }
     setPd({ ...pd, [field]: value });
   };
 
@@ -438,7 +489,7 @@ function PremissasContent({
         <div className="space-y-1.5">
           <Label className="text-[11px] flex items-center gap-1">
             Sombreamento <span className="text-destructive">*</span>
-            <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Nível de sombreamento no local</p></TooltipContent></Tooltip></TooltipProvider>
+            <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent className="max-w-[280px]"><p className="text-xs">A intensidade de sombreamento afeta a taxa de desempenho. Sistemas com microinversores e otimizadores sofrem menos perdas que strings tradicionais.</p></TooltipContent></Tooltip></TooltipProvider>
           </Label>
           <Select value={pd.sombreamento} onValueChange={v => pdUpdate("sombreamento", v)}>
             <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
