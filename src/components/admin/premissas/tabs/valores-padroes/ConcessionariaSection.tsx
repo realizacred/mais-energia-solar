@@ -215,8 +215,9 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields }: Pr
       </Select>
       {selectedConc && (
         <div className="flex flex-wrap gap-2 text-[10px]">
-          <Badge variant="outline" className="text-[10px]">Tarifa: R$ {selectedConc.tarifa_energia?.toFixed(3) ?? "—"}/kWh</Badge>
-          <Badge variant="outline" className="text-[10px]">Fio B: R$ {selectedConc.tarifa_fio_b?.toFixed(3) ?? "—"}/kWh</Badge>
+          <Badge variant="outline" className="text-[10px] font-mono">TE: R$ {selectedConc.tarifa_energia?.toFixed(6) ?? "—"}/kWh</Badge>
+          <Badge variant="outline" className="text-[10px] font-mono">TUSD (Fio B): R$ {selectedConc.tarifa_fio_b?.toFixed(6) ?? "—"}/kWh</Badge>
+          <Badge variant="secondary" className="text-[10px] font-mono">Total (TE+TUSD): R$ {((selectedConc.tarifa_energia ?? 0) + (selectedConc.tarifa_fio_b ?? 0)).toFixed(6)}/kWh</Badge>
           <Badge variant="outline" className="text-[10px]">ICMS: {selectedConc.aliquota_icms ?? "—"}%</Badge>
           {selectedConc.possui_isencao_scee && (
             <Badge variant="secondary" className="text-[10px]">Isenção SCEE: {selectedConc.percentual_isencao}%</Badge>

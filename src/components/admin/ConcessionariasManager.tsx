@@ -635,8 +635,8 @@ export function ConcessionariasManager() {
                 <TableHead>Sigla</TableHead>
                 <TableHead>UF</TableHead>
                 <TableHead>Subgrupos</TableHead>
-                <TableHead>Tarifa</TableHead>
-                <TableHead>Fio B</TableHead>
+                <TableHead>Tarifa (TE+TUSD)</TableHead>
+                <TableHead>Fio B (100%)</TableHead>
                 <TableHead>Fio B Vigente</TableHead>
                 <TableHead>Integral c/ Imp.</TableHead>
                 <TableHead>ICMS</TableHead>
@@ -696,13 +696,23 @@ export function ConcessionariasManager() {
                           );
                         })()}
                       </TableCell>
-                      <TableCell className="text-xs">
-                        {c.tarifa_energia != null ? `R$ ${Number(c.tarifa_energia).toFixed(2)}` : (
+                      <TableCell className="text-xs font-mono">
+                        {c.tarifa_energia != null ? (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="cursor-help">R$ {(Number(c.tarifa_energia) + (Number(c.tarifa_fio_b) || 0)).toFixed(6)}</span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="text-xs space-y-0.5">
+                              <p className="font-mono">TE: R$ {Number(c.tarifa_energia).toFixed(6)}</p>
+                              <p className="font-mono">TUSD: R$ {(Number(c.tarifa_fio_b) || 0).toFixed(6)}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        ) : (
                           <span className="text-muted-foreground">padrão</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-xs">
-                        {c.tarifa_fio_b != null && Number(c.tarifa_fio_b) > 0 ? `R$ ${Number(c.tarifa_fio_b).toFixed(2)}` : (
+                      <TableCell className="text-xs font-mono">
+                        {c.tarifa_fio_b != null && Number(c.tarifa_fio_b) > 0 ? `R$ ${Number(c.tarifa_fio_b).toFixed(6)}` : (
                           <span className="text-muted-foreground">padrão</span>
                         )}
                       </TableCell>
