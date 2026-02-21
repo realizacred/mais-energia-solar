@@ -39,7 +39,7 @@
    return (
      <div className="grid grid-cols-3 gap-3 sm:gap-4">
        {stats.map((stat) => (
-         <Card key={stat.title} className="border-0 shadow-sm hover-lift">
+         <Card key={stat.title} className="card-stat-elevated border-0">
            <CardContent className="p-4 text-center">
              <div className={`inline-flex items-center justify-center w-10 h-10 rounded-full ${stat.bgColor} mb-2`}>
                <stat.icon className={`h-5 w-5 ${stat.color}`} />

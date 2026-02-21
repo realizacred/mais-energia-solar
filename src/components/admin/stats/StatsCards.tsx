@@ -59,14 +59,10 @@ export function StatsCards({ totalLeads, totalKwh, uniqueEstados }: StatsCardsPr
           initial="hidden"
           animate="visible"
           variants={cardVariants}
-          className={`group relative overflow-hidden rounded-xl border-2 bg-card p-5 transition-all duration-200 ease-out hover:border-border/80 ${stat.borderColor}`}
-          style={{ boxShadow: "var(--shadow-sm)" }}
-          onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-md)"; e.currentTarget.style.transform = "translateY(-1px)"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "var(--shadow-sm)"; e.currentTarget.style.transform = "translateY(0)"; }}
+          className={`group card-premium border-2 p-5 ${stat.borderColor}`}
         >
-
           <div className="flex items-center gap-4">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${stat.iconBg}`}>
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105 ${stat.iconBg}`}>
               <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
             </div>
             <div className="min-w-0 flex-1">
@@ -75,7 +71,6 @@ export function StatsCards({ totalLeads, totalKwh, uniqueEstados }: StatsCardsPr
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">{stat.label}</p>
             </div>
-            
           </div>
         </motion.div>
       ))}

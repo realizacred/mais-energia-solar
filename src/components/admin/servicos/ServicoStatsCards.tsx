@@ -33,7 +33,7 @@ export function ServicoStatsCards({ servicos }: ServicoStatsCardsProps) {
       {cards.map((card) => {
         const Icon = card.icon;
         return (
-          <Card key={card.label} className={`rounded-xl border-2 border-${card.color}/40 bg-${card.color}/5`}>
+          <Card key={card.label} className={`card-stat-elevated border-2 border-${card.color}/40 bg-${card.color}/5`}>
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-lg bg-${card.color}/10`}>
