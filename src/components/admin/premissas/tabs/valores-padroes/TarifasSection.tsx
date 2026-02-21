@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Zap } from "lucide-react";
+import { Zap, Info } from "lucide-react";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FieldTooltip, NumField } from "./shared";
 
 interface Props {
@@ -58,6 +60,16 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
 
   const isBT = premises.grupo_tarifario === "BT";
 
+  // Tarifa integral com impostos (read-only calculated)
+  const tarifaIntegral = useMemo(() => {
+    const icms = premises.imposto_energia || 0;
+    const pis = 1.65; // PIS padrão
+    const cofins = 7.60; // COFINS padrão
+    const divisor = 1 - (icms + pis + cofins) / 100;
+    if (divisor <= 0) return 0;
+    return premises.tarifa / divisor;
+  }, [premises.tarifa, premises.imposto_energia]);
+
   return (
     <div className="rounded-xl border-2 border-warning/30 bg-warning/5 p-5 space-y-6">
       <div className="flex items-center gap-2">
@@ -66,7 +78,7 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
       </div>
 
       {/* Grupo tarifário + Tarifa base */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">
             Grupo Tarifário
@@ -80,7 +92,32 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
             </SelectContent>
           </Select>
         </div>
-        <NumField label="Tarifa" suffix="R$/kWh" value={premises.tarifa} step="0.00001" tooltip="Tarifa de energia da concessionária (R$/kWh)." highlight={h(syncedFields, "tarifa")} onChange={(v) => set("tarifa", v)} />
+        <NumField label="Tarifa (TE + TUSD)" suffix="R$/kWh" value={premises.tarifa} step="0.00001" tooltip="Tarifa total da concessionária (TE + TUSD), sem impostos." highlight={h(syncedFields, "tarifa")} onChange={(v) => set("tarifa", v)} />
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+            Tarifa Integral c/ Impostos
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3 w-3 text-muted-foreground/60 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="top" className="text-xs space-y-1 max-w-xs">
+                <p className="font-semibold">Cálculo automático</p>
+                <p className="font-mono">Tarifa / (1 - (ICMS + PIS + COFINS) / 100)</p>
+                <p className="font-mono">= {premises.tarifa.toFixed(5)} / (1 - ({premises.imposto_energia} + 1,65 + 7,60) / 100)</p>
+              </TooltipContent>
+            </Tooltip>
+          </Label>
+          <div className="relative">
+            <Input
+              type="text"
+              readOnly
+              value={`R$ ${tarifaIntegral.toFixed(5)}`}
+              className="bg-muted/50 font-mono text-sm cursor-default"
+            />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">R$/kWh</span>
+          </div>
+          <p className="text-[10px] text-muted-foreground">Valor calculado (não editável)</p>
+        </div>
         {!isBT && (
           <NumField label="Tarifa TE - Ponta" suffix="R$/kWh" value={premises.tarifa_te_ponta} step="0.00001" tooltip="Tarifa de Energia no horário de ponta. Aplicável para Média Tensão." highlight={h(syncedFields, "tarifa_te_ponta")} onChange={(v) => set("tarifa_te_ponta", v)} />
         )}
