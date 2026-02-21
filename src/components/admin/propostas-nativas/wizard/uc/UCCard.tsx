@@ -3,11 +3,13 @@ import { Info } from "lucide-react";
 import { AlertCircle, MoreVertical, Pencil, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type UCData, type RegraCompensacao, type GrupoTarifario, FASE_TENSAO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT } from "../types";
+import { resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
 
 const SUBGRUPO_BT_LABELS: Record<string, string> = {
   B1: "B1 - Convencional - Residencial",
@@ -84,6 +86,7 @@ function Section({ title, children, className = "" }: { title?: string; children
 export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesAMes, isFirst, totalUcs }: UCCardProps) {
   const isGrupoA = uc.grupo_tarifario === "A";
   const isGD3 = uc.regra === "GD3";
+  const resolvedGrupo = resolveGrupoFromSubgrupo(uc.subgrupo) || uc.grupo_tarifario;
 
   const update = <K extends keyof UCData>(field: K, value: UCData[K]) => {
     const updated = { ...uc, [field]: value };
@@ -98,9 +101,28 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
     <div className="rounded-xl border border-border bg-card min-w-[280px] max-w-[420px] flex-shrink-0 flex flex-col">
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
-        <p className="text-sm font-bold text-foreground">
-          {index + 1}. {isFirst ? "(Geradora)" : "Unidade"}
-        </p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm font-bold text-foreground">
+            {index + 1}. {isFirst ? "(Geradora)" : "Unidade"}
+          </p>
+          <Badge
+            variant="outline"
+            className={`text-[9px] font-bold ${
+              resolvedGrupo === "A"
+                ? "border-blue-400/50 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+                : resolvedGrupo === "B"
+                ? "border-green-400/50 bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                : "border-destructive/50 bg-destructive/5 text-destructive"
+            }`}
+          >
+            {resolvedGrupo ? `Grupo ${resolvedGrupo}` : "Indefinido"}
+          </Badge>
+          {uc.subgrupo && (
+            <Badge variant="secondary" className="text-[9px]">
+              {uc.subgrupo}
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <TooltipProvider>
             <Tooltip>
