@@ -111,7 +111,7 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
          <CardHeader>
            <div className="flex items-center justify-between">
              <CardTitle className="text-sm flex items-center gap-2">
-               <CalendarIcon className="h-4 w-4" />
+               <CalendarIcon className="h-4 w-4 text-primary" />
                {format(currentMonth, "MMMM yyyy", { locale: ptBR })}
              </CardTitle>
              <div className="flex gap-1">
