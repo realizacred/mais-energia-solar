@@ -460,7 +460,7 @@ function PremissasContent({
                 <div className="relative">
                   <Input
                     type="number" step="0.01"
-                    value={cfg.desempenho || ""}
+                    value={cfg.desempenho ?? ""}
                     onChange={e => updateTopoConfig(topo, "desempenho", Number(e.target.value))}
                     className="h-9 text-xs pr-8"
                   />
@@ -479,7 +479,7 @@ function PremissasContent({
                 <div className="relative">
                   <Input
                     type="number" step="0.01"
-                    value={cfg.fator_geracao || ""}
+                    value={cfg.fator_geracao ?? ""}
                     onChange={e => updateTopoConfig(topo, "fator_geracao", Number(e.target.value))}
                     className="h-9 text-xs pr-16"
                   />
@@ -497,14 +497,14 @@ function PremissasContent({
         <div className="space-y-1.5">
           <Label className="text-[11px]">Sobredimensionamento</Label>
           <div className="relative">
-            <Input type="number" step="0.01" value={pd.sobredimensionamento || ""} onChange={e => pdUpdate("sobredimensionamento", Number(e.target.value))} className="h-9 text-xs pr-8" />
+            <Input type="number" step="0.01" value={pd.sobredimensionamento ?? ""} onChange={e => pdUpdate("sobredimensionamento", Number(e.target.value))} className="h-9 text-xs pr-8" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
           </div>
         </div>
         <div className="space-y-1.5">
           <Label className="text-[11px]">Margem para Pot. Ideal</Label>
           <div className="relative">
-            <Input type="number" step="0.01" value={pd.margem_pot_ideal || ""} onChange={e => pdUpdate("margem_pot_ideal", Number(e.target.value))} className="h-9 text-xs pr-8" />
+            <Input type="number" step="0.01" value={pd.margem_pot_ideal ?? ""} onChange={e => pdUpdate("margem_pot_ideal", Number(e.target.value))} className="h-9 text-xs pr-8" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
           </div>
         </div>
