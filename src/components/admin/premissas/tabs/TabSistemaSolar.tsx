@@ -59,7 +59,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
   return (
     <div className="space-y-5">
       {/* Base de irradiância */}
-      <SectionCard icon={Sun} title="Base de irradiância" variant="orange">
+      <SectionCard icon={Sun} title="Base de irradiância" variant="neutral">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="md:col-span-2 space-y-2">
             <Label className="text-xs font-medium text-muted-foreground">
@@ -118,7 +118,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
       </SectionCard>
 
       {/* Eficiência */}
-      <SectionCard icon={Gauge} title="Perda de eficiência anual" variant="warning">
+      <SectionCard icon={Gauge} title="Perda de eficiência anual" variant="neutral">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <NumField label="Tradicional (String)" suffix="%" value={premises.perda_eficiencia_tradicional} tooltip="Degradação anual dos módulos com inversor string. ~0.5-0.7%/ano." onChange={(v) => set("perda_eficiencia_tradicional", v)} />
           <NumField label="Microinversor" suffix="%" value={premises.perda_eficiencia_microinversor} tooltip="Degradação anual com microinversores." onChange={(v) => set("perda_eficiencia_microinversor", v)} />
@@ -136,7 +136,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
       </SectionCard>
 
       {/* Troca inversor - Custo */}
-      <SectionCard icon={DollarSign} title="Custo da troca de inversor" variant="red">
+      <SectionCard icon={DollarSign} title="Custo da troca de inversor" variant="neutral">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <NumField label="Tradicional (String)" suffix="%" value={premises.custo_troca_inversor_tradicional} tooltip="Custo como % do valor total do sistema." onChange={(v) => set("custo_troca_inversor_tradicional", v)} />
           <NumField label="Microinversor" suffix="%" value={premises.custo_troca_inversor_microinversor} onChange={(v) => set("custo_troca_inversor_microinversor", v)} />
@@ -171,7 +171,7 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
                 <SelectItem value="nao">Não</SelectItem>
               </SelectContent>
             </Select>
-            <p className="flex items-center gap-1 text-[11px] text-primary">
+            <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
               <Info className="h-3 w-3" />
               Afeta somente na Regra Anterior
             </p>

@@ -16,13 +16,13 @@ import { cn } from "@/lib/utils";
 export type SectionCardVariant = "blue" | "orange" | "green" | "red" | "purple" | "warning" | "neutral";
 
 const VARIANT_STYLES: Record<SectionCardVariant, { border: string; bg: string; iconColor: string }> = {
-  blue:    { border: "border-info/25",        bg: "bg-info/[0.03]",        iconColor: "text-info" },
-  orange:  { border: "border-primary/25",     bg: "bg-primary/[0.03]",     iconColor: "text-primary" },
-  green:   { border: "border-success/25",     bg: "bg-success/[0.03]",     iconColor: "text-success" },
-  red:     { border: "border-destructive/25", bg: "bg-destructive/[0.03]", iconColor: "text-destructive" },
-  purple:  { border: "border-accent/25",      bg: "bg-accent/[0.03]",      iconColor: "text-accent" },
-  warning: { border: "border-warning/25",     bg: "bg-warning/[0.03]",     iconColor: "text-warning" },
-  neutral: { border: "border-border/50",      bg: "",                       iconColor: "text-secondary" },
+  blue:    { border: "border-info/20",        bg: "",                       iconColor: "text-info" },
+  orange:  { border: "border-primary/20",     bg: "",                       iconColor: "text-primary" },
+  green:   { border: "border-success/20",     bg: "",                       iconColor: "text-success" },
+  red:     { border: "border-destructive/20", bg: "",                       iconColor: "text-destructive" },
+  purple:  { border: "border-accent/20",      bg: "",                       iconColor: "text-accent" },
+  warning: { border: "border-warning/20",     bg: "",                       iconColor: "text-warning" },
+  neutral: { border: "border-border",         bg: "",                       iconColor: "text-secondary" },
 };
 
 interface SectionCardProps {
@@ -56,7 +56,7 @@ export function SectionCard({
       {title && (
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div className="space-y-1">
-            <CardTitle className="text-sm font-bold flex items-center gap-2.5 text-foreground uppercase tracking-wider">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2.5 text-foreground tracking-wide">
               {Icon && <Icon className={cn("h-4 w-4", v.iconColor)} />}
               {title}
             </CardTitle>

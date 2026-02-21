@@ -155,8 +155,8 @@ export default function CalculadoraConfig() {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <Alert className="border-primary/30 bg-primary/5">
-          <Info className="w-4 h-4 text-primary" />
+        <Alert className="border-info/20 bg-info/5">
+          <Info className="w-4 h-4 text-info" />
           <AlertDescription className="text-sm text-foreground">
             <strong>Configurações Unificadas com Propostas.</strong>{" "}
             Estes valores são compartilhados com o módulo de Premissas Técnicas.

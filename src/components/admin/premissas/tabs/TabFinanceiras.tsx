@@ -18,7 +18,7 @@ export function TabFinanceiras({ premises, onChange }: Props) {
   return (
     <div className="space-y-5">
       {/* Inflação */}
-      <SectionCard icon={TrendingUp} title="Índices de inflação" variant="orange">
+      <SectionCard icon={TrendingUp} title="Índices de inflação" variant="neutral">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
@@ -128,7 +128,7 @@ export function TabFinanceiras({ premises, onChange }: Props) {
               <SelectItem value="nao">Não</SelectItem>
             </SelectContent>
           </Select>
-          <p className="flex items-center gap-1 text-[11px] text-primary">
+          <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
             <Info className="h-3 w-3" />
             Afeta somente na Regra Anterior
           </p>
