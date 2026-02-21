@@ -18,12 +18,12 @@
        ============================================= */
 
     /* --- Surfaces --- */
-    --background: 0 0% 100%;
-    --foreground: 216 75% 15%;
+    --background: 220 20% 97%;
+    --foreground: 216 75% 13%;
     --card: 0 0% 100%;
-    --card-foreground: 216 75% 15%;
+    --card-foreground: 216 75% 13%;
     --popover: 0 0% 100%;
-    --popover-foreground: 216 75% 15%;
+    --popover-foreground: 216 75% 13%;
 
     /* --- Brand: Solar Orange (Action) --- */
     --primary: 25 100% 50%;
@@ -36,24 +36,24 @@
     --secondary-glow: 216 72% 21%;
 
     /* --- Neutral Tones --- */
-    --muted: 222 43% 95%;
-    --muted-foreground: 218 20% 44%;
-    --accent: 222 30% 93%;
-    --accent-foreground: 216 75% 15%;
+    --muted: 222 25% 92%;
+    --muted-foreground: 218 22% 38%;
+    --accent: 222 20% 90%;
+    --accent-foreground: 216 75% 13%;
 
-    /* --- Semantic (solid, no opacity) --- */
-    --destructive: 1 100% 44%;
+    /* --- Semantic (solid, high-contrast) --- */
+    --destructive: 0 84% 40%;
     --destructive-foreground: 0 0% 100%;
-    --success: 155 100% 36%;
+    --success: 152 82% 30%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 35 95% 48%;
     --warning-foreground: 0 0% 100%;
     --info: 218 72% 28%;
     --info-foreground: 0 0% 100%;
 
     /* --- Edges --- */
-    --border: 222 20% 90%;
-    --input: 222 20% 90%;
+    --border: 222 18% 86%;
+    --input: 222 18% 86%;
     --ring: 25 100% 50%;
     --radius: 0.5rem;
 
@@ -64,18 +64,18 @@
 
     /* --- Elevation Surfaces --- */
     --surface-1: 0 0% 100%;
-    --surface-2: 222 43% 97%;
-    --surface-3: 222 30% 93%;
+    --surface-2: 220 18% 95%;
+    --surface-3: 222 16% 91%;
 
     /* --- Shadows --- */
-    --shadow-xs: 0 1px 2px 0 rgb(10 31 68 / 0.03);
-    --shadow-sm: 0 1px 3px 0 rgb(10 31 68 / 0.04), 0 1px 2px -1px rgb(10 31 68 / 0.03);
-    --shadow-md: 0 4px 12px -3px rgb(10 31 68 / 0.06), 0 2px 4px -2px rgb(10 31 68 / 0.03);
-    --shadow-lg: 0 10px 28px -8px rgb(10 31 68 / 0.08), 0 4px 10px -4px rgb(10 31 68 / 0.03);
-    --shadow-xl: 0 20px 44px -10px rgb(10 31 68 / 0.10), 0 8px 18px -8px rgb(10 31 68 / 0.04);
-    --shadow-2xl: 0 25px 50px -12px rgb(10 31 68 / 0.12);
-    --shadow-primary: 0 4px 20px 0 hsl(25 100% 50% / 0.18);
-    --shadow-secondary: 0 4px 20px 0 hsl(218 72% 28% / 0.14);
+    --shadow-xs: 0 1px 2px 0 rgb(10 31 68 / 0.05);
+    --shadow-sm: 0 1px 3px 0 rgb(10 31 68 / 0.07), 0 1px 2px -1px rgb(10 31 68 / 0.05);
+    --shadow-md: 0 4px 12px -3px rgb(10 31 68 / 0.10), 0 2px 4px -2px rgb(10 31 68 / 0.06);
+    --shadow-lg: 0 10px 28px -8px rgb(10 31 68 / 0.12), 0 4px 10px -4px rgb(10 31 68 / 0.06);
+    --shadow-xl: 0 20px 44px -10px rgb(10 31 68 / 0.14), 0 8px 18px -8px rgb(10 31 68 / 0.07);
+    --shadow-2xl: 0 25px 50px -12px rgb(10 31 68 / 0.18);
+    --shadow-primary: 0 4px 20px 0 hsl(25 100% 50% / 0.22);
+    --shadow-secondary: 0 4px 20px 0 hsl(218 72% 28% / 0.18);
 
     /* --- Sidebar (Light Premium — warm neutral) --- */
     --sidebar-background: 30 20% 98%;
@@ -388,9 +388,9 @@
   .scrollbar-thin::-webkit-scrollbar-thumb { background-color: hsl(var(--muted-foreground) / 0.2); border-radius: 3px; }
   .scrollbar-thin::-webkit-scrollbar-thumb:hover { background-color: hsl(var(--muted-foreground) / 0.4); }
 
-  /* Card variants — Soft Depth system */
+  /* Card variants — Solid Depth system */
   .card-interactive {
-    @apply rounded-xl border border-border/60 bg-card transition-all duration-200 ease-in-out;
+    @apply rounded-xl border border-border bg-card transition-all duration-200 ease-in-out;
     box-shadow: var(--shadow-sm);
   }
 
@@ -400,12 +400,12 @@
   }
 
   .card-highlight {
-    @apply rounded-xl border border-secondary/20 bg-card;
+    @apply rounded-xl border border-secondary/25 bg-card;
     box-shadow: var(--shadow-sm);
   }
 
   .card-highlight:hover {
-    @apply border-secondary/30;
+    @apply border-secondary/35;
     box-shadow: var(--shadow-md);
   }
 
@@ -413,15 +413,15 @@
 
   /* Empty state */
   .empty-state { @apply flex flex-col items-center justify-center py-16 text-center; }
-  .empty-state-icon { @apply w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mb-4; }
+  .empty-state-icon { @apply w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4; }
   .empty-state-title { @apply text-lg font-semibold text-foreground mb-1; }
   .empty-state-description { @apply text-sm text-muted-foreground max-w-sm; }
 
   /* Premium table */
-  .premium-table th { @apply text-xs font-semibold uppercase tracking-wider text-secondary bg-muted/40 first:rounded-tl-lg last:rounded-tr-lg; }
+  .premium-table th { @apply text-xs font-semibold uppercase tracking-wider text-secondary bg-muted first:rounded-tl-lg last:rounded-tr-lg; }
   .premium-table td { @apply text-sm py-3.5; }
   .premium-table tr { @apply transition-colors duration-150; }
-  .premium-table tbody tr:hover { @apply bg-muted/30; }
+  .premium-table tbody tr:hover { @apply bg-muted/60; }
 
   /* Divider */
   .divider-gradient {
