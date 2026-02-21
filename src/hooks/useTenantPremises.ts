@@ -130,6 +130,10 @@ export interface RoofAreaFactor {
   tipo_telhado: string;
   label?: string;
   fator_area: number;
+  inclinacao_padrao?: number;
+  desvio_azimutal_padrao?: number;
+  topologias_permitidas?: string[];
+  tipos_sistema_permitidos?: string[];
   enabled: boolean;
 }
 
@@ -144,15 +148,27 @@ export const ROOF_LABELS: Record<string, string> = {
   solo: "Solo",
 };
 
+export const TOPOLOGIA_OPTIONS = [
+  { value: "tradicional", label: "Tradicional" },
+  { value: "microinversor", label: "Microinversor" },
+  { value: "otimizador", label: "Otimizador" },
+] as const;
+
+export const TIPO_SISTEMA_OPTIONS = [
+  { value: "on_grid", label: "On Grid" },
+  { value: "hibrido", label: "Híbrido" },
+  { value: "off_grid", label: "Off Grid" },
+] as const;
+
 export const DEFAULT_ROOF_FACTORS: RoofAreaFactor[] = [
-  { tipo_telhado: "carport", label: "Carport", fator_area: 1.30, enabled: true },
-  { tipo_telhado: "ceramico", label: "Cerâmico", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "fibrocimento", label: "Fibrocimento", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "laje", label: "Laje", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "shingle", label: "Shingle", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "metalico", label: "Metálico", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "zipado", label: "Zipado", fator_area: 1.20, enabled: true },
-  { tipo_telhado: "solo", label: "Solo", fator_area: 1.60, enabled: true },
+  { tipo_telhado: "carport", label: "Carport", fator_area: 1.30, inclinacao_padrao: 0, desvio_azimutal_padrao: 0, topologias_permitidas: ["tradicional", "microinversor", "otimizador"], tipos_sistema_permitidos: ["on_grid", "hibrido", "off_grid"], enabled: true },
+  { tipo_telhado: "ceramico", label: "Cerâmico", fator_area: 1.20, inclinacao_padrao: 20, desvio_azimutal_padrao: 0, topologias_permitidas: ["tradicional", "microinversor"], tipos_sistema_permitidos: ["on_grid", "hibrido"], enabled: true },
+  { tipo_telhado: "fibrocimento", label: "Fibrocimento", fator_area: 1.20, inclinacao_padrao: 10, desvio_azimutal_padrao: 0, topologias_permitidas: ["tradicional", "microinversor", "otimizador"], tipos_sistema_permitidos: ["on_grid", "hibrido"], enabled: true },
+  { tipo_telhado: "laje", label: "Laje", fator_area: 1.20, inclinacao_padrao: 10, desvio_azimutal_padrao: 0, topologias_permitidas: ["tradicional", "microinversor", "otimizador"], tipos_sistema_permitidos: ["on_grid", "hibrido", "off_grid"], enabled: true },
+  { tipo_telhado: "shingle", label: "Shingle", fator_area: 1.20, inclinacao_padrao: 20, desvio_azimutal_padrao: 0, topologias_permitidas: ["tradicional", "microinversor"], tipos_sistema_permitidos: ["on_grid", "hibrido"], enabled: true },
+  { tipo_telhado: "metalico", label: "Metálico", fator_area: 1.20, inclinacao_padrao: 10, desvio_azimutal_padrao: 0, topologias_permitidas: ["tradicional", "microinversor", "otimizador"], tipos_sistema_permitidos: ["on_grid", "hibrido"], enabled: true },
+  { tipo_telhado: "zipado", label: "Zipado", fator_area: 1.20, inclinacao_padrao: 10, desvio_azimutal_padrao: 0, topologias_permitidas: ["tradicional", "microinversor", "otimizador"], tipos_sistema_permitidos: ["on_grid", "hibrido"], enabled: true },
+  { tipo_telhado: "solo", label: "Solo", fator_area: 1.60, inclinacao_padrao: 15, desvio_azimutal_padrao: 0, topologias_permitidas: ["tradicional"], tipos_sistema_permitidos: ["on_grid"], enabled: true },
 ];
 
 /** Returns the display label for a roof factor */

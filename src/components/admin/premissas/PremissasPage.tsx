@@ -12,7 +12,7 @@ import { PremissasFooter } from "./PremissasFooter";
 const TABS = [
   { value: "financeiras", label: "Financeiras", icon: DollarSign },
   { value: "sistema-solar", label: "Sistema solar", icon: Sun },
-  { value: "area-telhado", label: "Área útil por tipo de telhado", icon: LayoutGrid },
+  { value: "area-telhado", label: "Dados técnicos do telhado", icon: LayoutGrid },
   { value: "valores-padroes", label: "Valores padrões", icon: SlidersHorizontal },
 ] as const;
 
