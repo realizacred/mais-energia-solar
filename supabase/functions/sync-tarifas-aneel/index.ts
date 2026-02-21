@@ -489,33 +489,59 @@ Deno.serve(async (req) => {
     // PHASE 1: Fetch & Process BT (B1 Convencional) — existing logic
     // ══════════════════════════════════════════════════════════════════════════
 
-    log("═══ FASE 1: Tarifas BT (B1 Convencional) ═══");
+    log("═══ FASE 1: Tarifas BT (B1, B2, B3) ═══");
 
-    const btRecords = await fetchAneelRecords({
-      DscSubGrupo: "B1",
-      DscModalidadeTarifaria: "Convencional",
-      DscDetalhe: "Não se aplica",
-      DscBaseTarifaria: "Tarifa de Aplicação",
-    }, log);
-
-    const snapshotHash = await sha256(JSON.stringify(btRecords));
-    log(`ANEEL BT retornou ${btRecords.length} registros — hash=${snapshotHash.substring(0, 16)}...`);
-
-    // Build lookup indexes for BT
-    const tarifasPorAgente: Record<string, TarifaAneel> = {};
-    const tarifasPorNome: Record<string, TarifaAneel> = {};
-    for (const t of btRecords) {
-      if (t.SigAgente) {
-        const k = normalizeStr(t.SigAgente);
-        if (!tarifasPorAgente[k] || t.DatInicioVigencia > tarifasPorAgente[k].DatInicioVigencia)
-          tarifasPorAgente[k] = t;
-      }
-      if (t.NomAgente) {
-        const k = normalizeStr(t.NomAgente);
-        if (!tarifasPorNome[k] || t.DatInicioVigencia > tarifasPorNome[k].DatInicioVigencia)
-          tarifasPorNome[k] = t;
+    const BT_SUBGRUPOS = ['B1', 'B2', 'B3'];
+    
+    // Fetch each BT subgroup individually from ANEEL
+    const btRecordsBySubgrupo: Record<string, TarifaAneel[]> = {};
+    let allBtRecords: TarifaAneel[] = [];
+    
+    for (const sub of BT_SUBGRUPOS) {
+      try {
+        const records = await fetchAneelRecords({
+          DscSubGrupo: sub,
+          DscModalidadeTarifaria: "Convencional",
+          DscDetalhe: "Não se aplica",
+          DscBaseTarifaria: "Tarifa de Aplicação",
+        }, log);
+        btRecordsBySubgrupo[sub] = records;
+        allBtRecords.push(...records);
+        log(`📡 ANEEL BT: ${sub} → ${records.length} registros`);
+      } catch (err) {
+        log(`⚠️ Erro ao buscar BT ${sub}: ${err instanceof Error ? err.message : String(err)}`);
+        btRecordsBySubgrupo[sub] = [];
       }
     }
+
+    const snapshotHash = await sha256(JSON.stringify(allBtRecords));
+    log(`ANEEL BT total: ${allBtRecords.length} registros — hash=${snapshotHash.substring(0, 16)}...`);
+
+    // Build lookup indexes per subgrupo: { subgrupo -> { agentKey -> tarifa } }
+    const btIndexBySubgrupo: Record<string, { porAgente: Record<string, TarifaAneel>; porNome: Record<string, TarifaAneel> }> = {};
+    
+    for (const sub of BT_SUBGRUPOS) {
+      const porAgente: Record<string, TarifaAneel> = {};
+      const porNome: Record<string, TarifaAneel> = {};
+      
+      for (const t of (btRecordsBySubgrupo[sub] || [])) {
+        if (t.SigAgente) {
+          const k = normalizeStr(t.SigAgente);
+          if (!porAgente[k] || t.DatInicioVigencia > porAgente[k].DatInicioVigencia)
+            porAgente[k] = t;
+        }
+        if (t.NomAgente) {
+          const k = normalizeStr(t.NomAgente);
+          if (!porNome[k] || t.DatInicioVigencia > porNome[k].DatInicioVigencia)
+            porNome[k] = t;
+        }
+      }
+      btIndexBySubgrupo[sub] = { porAgente, porNome };
+    }
+    
+    // Also build a combined B1 index for backward compat (concessionarias table update)
+    const tarifasPorAgente = btIndexBySubgrupo['B1']?.porAgente || {};
+    const tarifasPorNome = btIndexBySubgrupo['B1']?.porNome || {};
 
     // Process BT for each concessionária
     const resultados: object[] = [];
@@ -599,26 +625,44 @@ Deno.serve(async (req) => {
           ultima_sync_tarifas: new Date().toISOString(),
         }).eq('id', conc.id);
 
-        // ── Upsert BT subgroups in concessionaria_tarifas_subgrupo ──
-        const btSubgroups = ['B1', 'B2', 'B3'];
-        for (const sub of btSubgroups) {
+        // ── Upsert each BT subgroup with its own tariff from ANEEL ──
+        for (const sub of BT_SUBGRUPOS) {
+          const subIndex = btIndexBySubgrupo[sub];
+          if (!subIndex) continue;
+          
+          const subTarifa = findTarifaForConc(conc, subIndex.porAgente, subIndex.porNome);
+          
+          // If no specific data for this subgroup, use B1 values as fallback
+          const srcTarifa = subTarifa || tarifa;
+          const subTusdMwh = parseFloat(srcTarifa.VlrTUSD) || 0;
+          const subTeMwh = parseFloat(srcTarifa.VlrTE) || 0;
+          const subTusd = Math.round(subTusdMwh / 1000 * 1000000) / 1000000;
+          const subTe = Math.round(subTeMwh / 1000 * 1000000) / 1000000;
+          const subTotal = Math.round((subTusd + subTe) * 1000000) / 1000000;
+          const { tusd_fio_b_real: subFioB } = detectPrecisao(conc.tarifa_fio_b, subTusd);
+
           await supabase.from('concessionaria_tarifas_subgrupo')
             .upsert({
               concessionaria_id: conc.id,
               tenant_id: tenantId,
               subgrupo: sub,
               modalidade_tarifaria: 'Convencional',
-              tarifa_energia: tarifaTotal,
-              tarifa_fio_b: tusd_fio_b_real ?? tusdTotal,
-              origem: 'ANEEL',
+              tarifa_energia: subTotal,
+              tarifa_fio_b: subFioB ?? subTusd,
+              origem: subTarifa ? 'ANEEL' : 'ANEEL (fallback B1)',
               is_active: true,
               updated_at: new Date().toISOString(),
             }, {
               onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
               ignoreDuplicates: false,
             });
+          
+          if (subTarifa) {
+            log(`  📦 ${sub}: TE=${subTe.toFixed(6)}, TUSD=${subTusd.toFixed(6)}, Total=${subTotal.toFixed(6)}`);
+          } else {
+            log(`  📦 ${sub}: usando B1 como fallback (${subTotal.toFixed(6)})`);
+          }
         }
-        log(`📦 Subgrupos BT atualizados para ${conc.nome}`);
 
         totalUpdated++;
         log(`✅ BT ${conc.nome} → TE=${te.toFixed(6)} + TUSD=${tusdTotal.toFixed(6)} = ${tarifaTotal.toFixed(6)} R$/kWh | vigência=${vigenciaInicio} | ${precLabel} | auditoria=${validStatus}`);
@@ -770,7 +814,7 @@ Deno.serve(async (req) => {
 
     // ── Finalize run ──────────────────────────────────────────────────────────
     const grandTotalUpdated = totalUpdated + totalMtUpdated;
-    const grandTotalFetched = btRecords.length + allMtRecords.length;
+    const grandTotalFetched = allBtRecords.length + allMtRecords.length;
 
     const finalStatus = testRun ? 'test_run' :
       erros.length === 0 ? 'success' : grandTotalUpdated > 0 ? 'partial' : 'error';
@@ -798,7 +842,7 @@ Deno.serve(async (req) => {
       resultados,
       erros,
       fonte: "ANEEL - Dados Abertos (Tarifas Homologadas BT + MT)",
-      total_aneel_bt: btRecords.length,
+      total_aneel_bt: allBtRecords.length,
       total_aneel_mt: allMtRecords.length,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
 
