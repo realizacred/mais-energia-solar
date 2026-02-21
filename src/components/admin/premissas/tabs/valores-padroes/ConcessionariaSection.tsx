@@ -3,7 +3,8 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Zap, AlertTriangle, CheckCircle2, RefreshCw, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { FieldTooltip } from "./shared";
@@ -145,13 +146,16 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
     return diffs;
   }, [selectedConc, subgrupoData, premises, justSynced]);
 
+  const [syncing, setSyncing] = useState(false);
+
   const syncAllFromConc = useCallback(async () => {
     if (!selectedConc) return;
+    setSyncing(true);
     const bt = subgrupoData.bt as any;
     const mt = subgrupoData.mt as any;
 
     // Collect field keys that will be synced
-    const syncedKeys = divergencias.map(d => FIELD_MAP[d.campo]).filter(Boolean) as string[];
+    const syncedKeys = Object.values(FIELD_MAP).filter(Boolean) as string[];
 
     onChange((p) => ({
       ...p,
@@ -181,15 +185,20 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
       setTimeout(async () => {
         try {
           await onAutoSave();
+          toast.success("Premissas sincronizadas e salvas automaticamente!");
         } catch (e) {
           console.error("Auto-save after sync failed:", e);
+          toast.error("Erro ao salvar após sincronização");
+        } finally {
+          setSyncing(false);
         }
-      }, 100);
+      }, 150);
     } else {
       toast.success(
-        `${divergencias.length} campo(s) atualizado(s). Clique em Salvar para confirmar.`,
+        `Campos atualizados. Clique em Salvar para confirmar.`,
         { duration: 4000 }
       );
+      setSyncing(false);
     }
   }, [selectedConc, subgrupoData, onChange, divergencias, onSyncedFields, onAutoSave]);
 
@@ -237,8 +246,26 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
         </div>
       )}
 
-      {/* Divergence panel - hidden after sync */}
-      {divergencias.length > 0 && (
+      {/* Always-visible sync button */}
+      {selectedConc && !justSynced && (
+        <Button
+          type="button"
+          variant="default"
+          size="sm"
+          className="w-full gap-2"
+          onClick={syncAllFromConc}
+          disabled={syncing}
+        >
+          {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Sincronizar TODAS as premissas com valores da concessionária
+          {divergencias.length > 0 && (
+            <Badge variant="secondary" className="ml-1 text-[10px]">{divergencias.length} divergências</Badge>
+          )}
+        </Button>
+      )}
+
+      {/* Divergence detail panel */}
+      {divergencias.length > 0 && !justSynced && (
         <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 space-y-2">
           <div className="flex items-center gap-1.5 text-xs font-medium text-warning">
             <AlertTriangle className="h-3.5 w-3.5" />
@@ -251,22 +278,15 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
               </Badge>
             ))}
           </div>
-          <button
-            type="button"
-            className="text-xs font-semibold text-primary hover:underline"
-            onClick={syncAllFromConc}
-          >
-            ✅ Atualizar TODAS as premissas com valores da concessionária ({divergencias.length} campos)
-          </button>
         </div>
       )}
 
       {/* Success message after sync */}
-      {justSynced && divergencias.length === 0 && (
+      {justSynced && (
         <div className="rounded-lg border border-success/30 bg-success/10 p-3 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 text-success" />
           <span className="text-xs font-medium text-success">
-            Todos os campos foram sincronizados com a concessionária. Salve para confirmar.
+            Todos os campos foram sincronizados e salvos com a concessionária.
           </span>
         </div>
       )}
