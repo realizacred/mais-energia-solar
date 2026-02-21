@@ -308,7 +308,7 @@ export function StepConsumptionIntelligence({
 
       {/* ─── Tab content */}
       {activeTab === "ucs" ? (
-        <div className="flex gap-4 overflow-x-auto pb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 pb-2">
           {ucs.map((uc, i) => (
             <UCCard
               key={uc.id}
@@ -325,7 +325,7 @@ export function StepConsumptionIntelligence({
 
           <button
             onClick={addUC}
-            className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 min-w-[200px] min-h-[300px] flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-colors flex-shrink-0"
+            className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 min-h-[200px] flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-colors"
           >
             <Plus className="h-5 w-5 text-primary" />
             <span className="text-sm text-primary font-medium">+ Nova Unidade</span>
