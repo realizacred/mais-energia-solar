@@ -165,8 +165,8 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     return [];
   }
 
-  const debugSkipReasons = { noSub: 0, shortRow: 0, total: 0 };
-  const records: ParsedTarifa[] = [];
+  const debugSkipReasons = { noSub: 0, shortRow: 0, total: 0, filteredBase: 0, filteredDetalhe: 0 };
+  const allRecords: ParsedTarifa[] = [];
   const startIdx = isPreParsed ? 0 : 1;
 
   for (let i = startIdx; i < data.length; i++) {
@@ -174,13 +174,11 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     if (cells.length < 3) { debugSkipReasons.shortRow++; continue; }
     debugSkipReasons.total++;
 
-    // baseTarifaria is informational only — NO filtering on it
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
-
     const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
     if (!subgrupo) { debugSkipReasons.noSub++; continue; }
 
-    records.push({
+    allRecords.push({
       sigAgente: cols.sigAgente !== undefined ? cells[cols.sigAgente] || "" : "",
       nomAgente: cols.nomAgente !== undefined ? cells[cols.nomAgente] || "" : "",
       subgrupo,
@@ -195,9 +193,29 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     });
   }
 
-  console.log("[ANEEL Homol] Debug:", debugSkipReasons, "Records found:", records.length, "Column map:", cols);
+  // Smart filtering: prefer "Tarifa de Aplicação" over "Base Econômica"
+  const hasAplicacao = allRecords.some(r => norm(r.baseTarifaria).includes("aplica"));
+  let filtered = allRecords;
+  if (hasAplicacao) {
+    filtered = filtered.filter(r => norm(r.baseTarifaria).includes("aplica"));
+    debugSkipReasons.filteredBase = allRecords.length - filtered.length;
+  }
 
-  return records;
+  // Smart filtering: prefer "Não se aplica" detalhe (standard tariffs) over APE/SCEE
+  const detalhes = new Set(filtered.map(r => norm(r.detalhe)));
+  const hasNaoAplica = detalhes.has("nao se aplica") || detalhes.has(norm("Não se aplica"));
+  if (hasNaoAplica && detalhes.size > 1) {
+    const before = filtered.length;
+    filtered = filtered.filter(r => {
+      const nd = norm(r.detalhe);
+      return nd === "nao se aplica" || nd === "" || nd === norm("Não se aplica");
+    });
+    debugSkipReasons.filteredDetalhe = before - filtered.length;
+  }
+
+  console.log("[ANEEL Homol] Debug:", debugSkipReasons, "Records found:", filtered.length, "Column map:", cols);
+
+  return filtered;
 }
 
 

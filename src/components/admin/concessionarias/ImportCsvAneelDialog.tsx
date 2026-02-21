@@ -147,15 +147,22 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       }
 
       const findConc = (sig: string, nome: string) => {
+        // Try exact sigla match
         if (sig && concBySigla[norm(sig)]) return concBySigla[norm(sig)];
+        // Try exact nome match
         if (nome && concByNome[norm(nome)]) return concByNome[norm(nome)];
+        // Try sig as nome (some files put full name in "Sigla" column)
+        if (sig && concByNome[norm(sig)]) return concByNome[norm(sig)];
+        // Fuzzy matching
         const normSig = stripSuffixes(norm(sig));
-        const normNome = stripSuffixes(norm(nome));
+        const normNome = stripSuffixes(norm(nome || sig));
         for (const c of concessionarias) {
           const ns = stripSuffixes(norm(c.sigla || ""));
           const nn = stripSuffixes(norm(c.nome));
           if (normSig && (ns.includes(normSig) || normSig.includes(ns))) return c;
           if (normNome && (nn.includes(normNome) || normNome.includes(nn))) return c;
+          // Also try sig against nome for fuzzy
+          if (normSig && (nn.includes(normSig) || normSig.includes(nn))) return c;
         }
         return null;
       };
@@ -255,33 +262,55 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
           if (sub.startsWith("A")) {
             let te_ponta = 0, te_fora_ponta = 0, tusd_ponta = 0, tusd_fora_ponta = 0;
+            let demanda_consumo_rs = 0, demanda_geracao_rs = 0;
             for (const r of records) {
               const isPonta = r.posto.toLowerCase().includes("ponta") && !r.posto.toLowerCase().includes("fora");
-              if (isPonta) {
-                te_ponta = r.vlrTE;
-                tusd_ponta = r.vlrTUSD;
-              } else {
-                te_fora_ponta = r.vlrTE;
-                tusd_fora_ponta = r.vlrTUSD;
+              const isEnergy = norm(r.unidade).includes("mwh");
+              const isDemand = norm(r.unidade).includes("kw") && !norm(r.unidade).includes("kwh");
+              const isGeracao = norm(r.modalidade).includes("gera");
+              
+              if (isDemand) {
+                if (isGeracao) {
+                  demanda_geracao_rs = r.vlrTUSD || r.vlrTE;
+                } else if (isPonta) {
+                  // Demand values - store the higher (ponta) as reference
+                  demanda_consumo_rs = Math.max(demanda_consumo_rs, r.vlrTUSD);
+                } else {
+                  demanda_consumo_rs = demanda_consumo_rs || r.vlrTUSD;
+                }
+              } else if (isEnergy) {
+                if (isPonta) {
+                  te_ponta = r.vlrTE;
+                  tusd_ponta = r.vlrTUSD;
+                } else {
+                  te_fora_ponta = r.vlrTE;
+                  tusd_fora_ponta = r.vlrTUSD;
+                }
               }
             }
 
+            const upsertData: any = {
+              concessionaria_id: conc.id,
+              subgrupo: sub,
+              modalidade_tarifaria: first.modalidade || null,
+              te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta,
+              origem: "CSV_ANEEL",
+              is_active: true,
+              updated_at: new Date().toISOString(),
+            };
+            if (demanda_consumo_rs) upsertData.demanda_consumo_rs = demanda_consumo_rs;
+            if (demanda_geracao_rs) upsertData.demanda_geracao_rs = demanda_geracao_rs;
+
             const { error } = await supabase
               .from("concessionaria_tarifas_subgrupo")
-              .upsert({
-                concessionaria_id: conc.id,
-                subgrupo: sub,
-                modalidade_tarifaria: first.modalidade || null,
-                te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta,
-                origem: "CSV_ANEEL",
-                is_active: true,
-                updated_at: new Date().toISOString(),
-              } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+              .upsert(upsertData, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
 
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
             else updated++;
           } else {
-            const r = records[0];
+            // BT: use R$/MWh energy rows
+            const energyRows = records.filter(r => norm(r.unidade).includes("mwh"));
+            const r = energyRows.length > 0 ? energyRows[0] : records[0];
             const { error } = await supabase
               .from("concessionaria_tarifas_subgrupo")
               .upsert({
