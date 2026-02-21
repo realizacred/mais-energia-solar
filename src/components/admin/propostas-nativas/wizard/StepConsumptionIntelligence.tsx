@@ -47,6 +47,11 @@ export function StepConsumptionIntelligence({
     }, 0);
   }, [ucs]);
 
+  // Monthly generation estimate: potência × fator_geração
+  const geracaoMensal = useMemo(() => {
+    return Math.round(potenciaKwp * pd.fator_geracao * 100) / 100;
+  }, [potenciaKwp, pd.fator_geracao]);
+
   const potenciaIdeal = useMemo(() => {
     if (pd.fator_geracao <= 0) return 0;
     return Math.round((consumoTotal / pd.fator_geracao) * 100) / 100;
@@ -384,6 +389,7 @@ export function StepConsumptionIntelligence({
         open={rateioOpen}
         onOpenChange={setRateioOpen}
         ucs={ucs}
+        geracaoMensal={geracaoMensal}
         onSave={onUcsChange}
       />
 
