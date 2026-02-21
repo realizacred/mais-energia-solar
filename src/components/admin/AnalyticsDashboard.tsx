@@ -87,27 +87,27 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
 
   return (
     <div className="space-y-6">
-      {/* KPI Cards — Command Center with left accent borders */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-xl border-l-4 border-l-primary bg-card shadow-sm">
+      {/* KPI Cards — Structural blue default, orange only for revenue */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <Card className="border-l-[3px] border-l-secondary bg-card">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-11 h-11 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Target className="w-5 h-5 text-primary" />
+            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+              <Target className="w-5 h-5 text-secondary" />
             </div>
             <div>
-              <p className="text-3xl font-bold tracking-tight leading-none">{summaryStats.total}</p>
+              <p className="text-2xl font-bold tracking-tight leading-none">{summaryStats.total}</p>
               <p className="text-sm text-muted-foreground mt-1">Total de leads</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border-l-4 border-l-success bg-card shadow-sm">
+        <Card className="border-l-[3px] border-l-success bg-card">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-11 h-11 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
               <TrendingUp className="w-5 h-5 text-success" />
             </div>
             <div>
-              <p className="text-3xl font-bold tracking-tight leading-none">
+              <p className="text-2xl font-bold tracking-tight leading-none">
                 {summaryStats.growth > 0 ? "+" : ""}{summaryStats.growth}%
               </p>
               <p className="text-sm text-muted-foreground mt-1">Crescimento</p>
@@ -115,25 +115,25 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border-l-4 border-l-secondary bg-card shadow-sm">
+        <Card className="border-l-[3px] border-l-secondary bg-card">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-11 h-11 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
               <BarChart3 className="w-5 h-5 text-secondary" />
             </div>
             <div>
-              <p className="text-3xl font-bold tracking-tight leading-none">{summaryStats.conversionRate}%</p>
+              <p className="text-2xl font-bold tracking-tight leading-none">{summaryStats.conversionRate}%</p>
               <p className="text-sm text-muted-foreground mt-1">Conversão</p>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl border-l-4 border-l-warning bg-card shadow-sm">
+        <Card className="border-l-[3px] border-l-secondary bg-card">
           <CardContent className="flex items-center gap-4 p-5">
-            <div className="w-11 h-11 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5 text-warning" />
+            <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-secondary" />
             </div>
             <div>
-              <p className="text-3xl font-bold tracking-tight leading-none">{summaryStats.uniqueVendors}</p>
+              <p className="text-2xl font-bold tracking-tight leading-none">{summaryStats.uniqueVendors}</p>
               <p className="text-sm text-muted-foreground mt-1">Consultores</p>
             </div>
           </CardContent>
@@ -228,7 +228,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
                     .slice(0, 10)
                     .map(([name, count], i) => (
                       <div key={name} className="flex items-center gap-3 py-1">
-                        <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                        <span className="w-6 h-6 rounded-full bg-secondary/10 flex items-center justify-center text-xs font-bold text-secondary">
                           {i + 1}
                         </span>
                         <span className="text-sm flex-1 truncate" title={name}>{name}</span>
@@ -250,7 +250,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-center py-4">
-                  <p className="text-5xl font-bold text-primary">{summaryStats.conversionRate}%</p>
+                  <p className="text-5xl font-bold text-secondary">{summaryStats.conversionRate}%</p>
                   <p className="text-sm text-muted-foreground mt-1">Taxa de Conversão Geral</p>
                 </div>
                 
