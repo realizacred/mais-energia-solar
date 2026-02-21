@@ -299,6 +299,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas por distribuidora", keywords: ["tarifa", "distribuidora", "concessionária", "ANEEL"] },
       { id: "dicionario-aneel", title: "Dicionário ANEEL", icon: FileSearch, description: "Mapeamento ANEEL ↔ Concessionárias", keywords: ["aneel", "dicionário", "match", "alias", "mapeamento"] },
       { id: "tarifa-versoes", title: "Versões de Tarifa", icon: HistoryIcon, description: "Versionamento, diff e rollback de tarifas", keywords: ["versão", "tarifa", "rollback", "diff", "histórico", "ativar"] },
+      { id: "saude-tarifaria", title: "Saúde Tarifária", icon: Activity, description: "Alertas, cobertura e governança de tarifas", keywords: ["saúde", "alerta", "vigência", "zero", "governança", "diagnóstico"] },
       { id: "loading-config", title: "Loading & Mensagens", icon: Sun, description: "Animação e mensagens de carregamento", keywords: ["loading", "carregamento", "mensagem", "animação", "sol", "loader"], separator: true },
     ],
   },
