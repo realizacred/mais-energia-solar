@@ -133,7 +133,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
     };
     const { error } = await supabase
       .from("concessionaria_tarifas_subgrupo")
-      .upsert([payload] as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+      .upsert([payload] as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;

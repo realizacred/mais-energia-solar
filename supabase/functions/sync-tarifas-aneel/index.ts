@@ -614,7 +614,7 @@ Deno.serve(async (req) => {
               is_active: true,
               updated_at: new Date().toISOString(),
             }, {
-              onConflict: 'concessionaria_id,subgrupo,tenant_id',
+              onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
               ignoreDuplicates: false,
             });
         }
@@ -734,7 +734,7 @@ Deno.serve(async (req) => {
                 is_active: true,
                 updated_at: new Date().toISOString(),
               }, {
-                onConflict: 'concessionaria_id,subgrupo,tenant_id',
+                onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
                 ignoreDuplicates: false,
               });
 
