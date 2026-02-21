@@ -143,7 +143,7 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
                 </Tooltip>
               </Label>
               <div className="relative">
-                <Input type="text" readOnly value={`R$ ${tarifaIntegral.toFixed(5)}`} className="bg-muted/50 font-mono text-sm cursor-default" />
+                <Input type="text" readOnly value={tarifaIntegral.toFixed(5)} className="bg-muted/50 font-mono text-sm cursor-default pr-16" />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">R$/kWh</span>
               </div>
               <p className="text-[10px] text-muted-foreground">Valor calculado (não editável)</p>
