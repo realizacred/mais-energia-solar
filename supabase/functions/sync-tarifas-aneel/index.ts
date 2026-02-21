@@ -816,11 +816,13 @@ async function processSync(
     // ══════════════════════════════════════════════════════════════════════
 
     if (!testRun && versaoId) {
-      // Check for TE/TUSD = 0 in the records we just wrote
+      // Check for TE/TUSD = 0 in BT records only.
+      // MT records legitimately have tarifa_energia=0 because they use te_ponta/tusd_ponta fields.
       const { data: zeroCheck } = await supabase
         .from('concessionaria_tarifas_subgrupo')
         .select('id')
         .eq('versao_id', versaoId)
+        .like('subgrupo', 'B%')
         .or('tarifa_energia.eq.0,tarifa_fio_b.eq.0')
         .limit(1);
 
