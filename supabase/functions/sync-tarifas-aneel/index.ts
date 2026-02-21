@@ -72,7 +72,7 @@ async function verifyAdminRole(req: Request): Promise<{
   const { data: profile } = await adminClient
     .from('profiles')
     .select('tenant_id')
-    .eq('id', userId)
+    .eq('user_id', userId)
     .single();
 
   const tenantId = profile?.tenant_id || null;
@@ -393,6 +393,13 @@ Deno.serve(async (req) => {
     if (!authCheck.authorized) return authCheck.error!;
 
     const { userId, tenantId } = authCheck;
+
+    if (!tenantId) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Tenant não encontrado para o usuário. Verifique o cadastro do perfil.',
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     let concessionariaId: string | null = null;
     let triggerType: string = 'manual';
