@@ -218,29 +218,53 @@ export function AneelSyncStatusPage() {
     if (orphanCount === 0) return;
     setBackfilling(true);
     try {
-      // Find the active version
+      // Try active version first, then fall back to latest rascunho
+      let targetVersao: { id: string } | null = null;
+
       const { data: activeVersao } = await supabase
         .from("tarifa_versoes")
         .select("id")
         .eq("status", "ativa")
         .order("created_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
-      if (!activeVersao) {
-        toast({ title: "Sem versão ativa", description: "Não existe uma versão ativa para vincular os registros legados.", variant: "destructive" });
+      if (activeVersao) {
+        targetVersao = activeVersao;
+      } else {
+        // No active version — use latest rascunho and activate it
+        const { data: latestRascunho } = await supabase
+          .from("tarifa_versoes")
+          .select("id")
+          .eq("status", "rascunho")
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latestRascunho) {
+          // Activate this rascunho version
+          await supabase
+            .from("tarifa_versoes")
+            .update({ status: "ativa", activated_at: new Date().toISOString() })
+            .eq("id", latestRascunho.id);
+          targetVersao = latestRascunho;
+        }
+      }
+
+      if (!targetVersao) {
+        toast({ title: "Sem versão disponível", description: "Não existe nenhuma versão para vincular os registros legados.", variant: "destructive" });
         return;
       }
 
       const { error } = await supabase
         .from("concessionaria_tarifas_subgrupo")
-        .update({ versao_id: activeVersao.id })
+        .update({ versao_id: targetVersao.id })
         .eq("is_active", true)
         .is("versao_id", null);
 
       if (error) throw error;
 
-      toast({ title: "✅ Backfill concluído", description: `Registros legados vinculados à versão ${activeVersao.id.substring(0, 8)}…` });
+      toast({ title: "✅ Backfill concluído", description: `Registros legados vinculados à versão ${targetVersao.id.substring(0, 8)}…` });
       setOrphanCount(0);
       fetchData();
     } catch (err: any) {
