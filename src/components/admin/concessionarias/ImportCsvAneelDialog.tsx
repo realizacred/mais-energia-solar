@@ -17,11 +17,13 @@ import {
   detectFileType,
   parseNumber,
   norm,
+  normMatch,
   stripSuffixes,
   parseTarifasHomologadas,
   parseComponentesTarifas,
   parseXlsxFile,
   detectColumns,
+  ANEEL_AGENT_ALIASES,
 } from "./importCsvAneelUtils";
 import { validateRows, type ValidationReport, type RowValidation } from "./importCsvAneelValidation";
 
@@ -53,6 +55,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 });
   const [unmatchedAgents, setUnmatchedAgents] = useState<string[]>([]);
+  const [matchedAgentsPreview, setMatchedAgentsPreview] = useState<{ agent: string; conc: string }[]>([]);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<Step>("upload");
   const [validation, setValidation] = useState<ValidationReport | null>(null);
@@ -68,6 +71,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setFileType(null);
     setProgress({ current: 0, total: 0, percent: 0 });
     setUnmatchedAgents([]);
+    setMatchedAgentsPreview([]);
     setStep("upload");
     setValidation(null);
     setShowAllRows(false);
@@ -152,8 +156,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     }
   };
 
-  // ─── Step 2→3: Proceed to preview ───
-  const handleProceedToPreview = () => {
+  // ─── Step 2→3: Proceed to preview with pre-matching ───
+  const handleProceedToPreview = async () => {
     if (!validation) return;
     
     // Re-parse only valid/warning rows
@@ -164,6 +168,65 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       records = parseTarifasHomologadas(rawRows, headers);
     }
     setParsed(records);
+
+    // Pre-compute matching preview against DB concessionárias
+    try {
+      const { data: concessionarias } = await supabase
+        .from("concessionarias")
+        .select("id, nome, sigla");
+      
+      if (concessionarias?.length) {
+        const concByNormMatch: Record<string, typeof concessionarias[0]> = {};
+        const concBySigla: Record<string, typeof concessionarias[0]> = {};
+        for (const c of concessionarias) {
+          if (c.sigla) {
+            concBySigla[norm(c.sigla)] = c;
+            concBySigla[normMatch(c.sigla)] = c;
+          }
+          concByNormMatch[normMatch(c.nome)] = c;
+          const stripped = stripSuffixes(normMatch(c.nome));
+          if (stripped) concByNormMatch[stripped] = c;
+        }
+
+        const quickFind = (agent: string) => {
+          const nm = normMatch(agent);
+          const nms = stripSuffixes(nm);
+          if (concByNormMatch[nm]) return concByNormMatch[nm];
+          if (concByNormMatch[nms]) return concByNormMatch[nms];
+          if (concBySigla[nm]) return concBySigla[nm];
+          const aliases = ANEEL_AGENT_ALIASES[nm] || ANEEL_AGENT_ALIASES[nms];
+          if (aliases) {
+            for (const a of aliases) {
+              if (concByNormMatch[a]) return concByNormMatch[a];
+              if (concBySigla[a]) return concBySigla[a];
+              if (concBySigla[norm(a)]) return concBySigla[norm(a)];
+            }
+          }
+          for (const c of concessionarias) {
+            const nn = normMatch(c.nome);
+            const nns = stripSuffixes(nn);
+            if (nm.length >= 3 && (nn.includes(nm) || nns.includes(nm))) return c;
+            if (nms.length >= 3 && (nn.includes(nms) || nns.includes(nms))) return c;
+          }
+          return null;
+        };
+
+        const uniqueAgentsInFile = [...new Set(records.map(r => r.sigAgente || r.nomAgente))];
+        const matched: { agent: string; conc: string }[] = [];
+        const unmatched: string[] = [];
+        for (const agent of uniqueAgentsInFile) {
+          const c = quickFind(agent);
+          if (c) matched.push({ agent, conc: c.nome });
+          else unmatched.push(agent);
+        }
+        setMatchedAgentsPreview(matched);
+        setUnmatchedAgents(unmatched.sort());
+        console.log(`[ANEEL Import] Pre-match: ${matched.length} matched, ${unmatched.length} unmatched from ${uniqueAgentsInFile.length} agents`);
+      }
+    } catch (err) {
+      console.warn("[ANEEL Import] Pre-match failed:", err);
+    }
+
     setStep("preview");
   };
 
@@ -185,25 +248,58 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       }
 
       // Build lookup
+      // Build lookup with normMatch (strips hyphens, dots, parens)
       const concBySigla: Record<string, typeof concessionarias[0]> = {};
       const concByNome: Record<string, typeof concessionarias[0]> = {};
+      const concByNormMatch: Record<string, typeof concessionarias[0]> = {};
       for (const c of concessionarias) {
-        if (c.sigla) concBySigla[norm(c.sigla)] = c;
+        if (c.sigla) {
+          concBySigla[norm(c.sigla)] = c;
+          concBySigla[normMatch(c.sigla)] = c;
+        }
         concByNome[norm(c.nome)] = c;
+        concByNormMatch[normMatch(c.nome)] = c;
+        // Also index by normMatch'd stripped name
+        const stripped = stripSuffixes(normMatch(c.nome));
+        if (stripped) concByNormMatch[stripped] = c;
       }
 
       const findConc = (sig: string, nome: string) => {
+        const rawAgent = sig || nome;
+        if (!rawAgent) return null;
+        
+        // 1. Direct lookups
         if (sig && concBySigla[norm(sig)]) return concBySigla[norm(sig)];
         if (nome && concByNome[norm(nome)]) return concByNome[norm(nome)];
         if (sig && concByNome[norm(sig)]) return concByNome[norm(sig)];
-        const normSig = stripSuffixes(norm(sig));
-        const normNome = stripSuffixes(norm(nome || sig));
+        
+        // 2. normMatch lookups (strips hyphens, dots, etc.)
+        const nmAgent = normMatch(rawAgent);
+        if (concByNormMatch[nmAgent]) return concByNormMatch[nmAgent];
+        const nmStripped = stripSuffixes(nmAgent);
+        if (nmStripped && concByNormMatch[nmStripped]) return concByNormMatch[nmStripped];
+        
+        // 3. ANEEL alias map lookup
+        const aliases = ANEEL_AGENT_ALIASES[nmAgent] || ANEEL_AGENT_ALIASES[nmStripped];
+        if (aliases) {
+          for (const alias of aliases) {
+            if (concByNormMatch[alias]) return concByNormMatch[alias];
+            if (concBySigla[alias]) return concBySigla[alias];
+            // Also try norm (for siglas with special chars)
+            if (concBySigla[norm(alias)]) return concBySigla[norm(alias)];
+          }
+        }
+        
+        // 4. Fuzzy contains matching with normMatch
         for (const c of concessionarias) {
-          const ns = stripSuffixes(norm(c.sigla || ""));
-          const nn = stripSuffixes(norm(c.nome));
-          if (normSig && (ns.includes(normSig) || normSig.includes(ns))) return c;
-          if (normNome && (nn.includes(normNome) || normNome.includes(nn))) return c;
-          if (normSig && (nn.includes(normSig) || normSig.includes(nn))) return c;
+          const ns = normMatch(c.sigla || "");
+          const nn = normMatch(c.nome);
+          const nnStripped = stripSuffixes(nn);
+          if (nmAgent.length >= 3 && nn.includes(nmAgent)) return c;
+          if (nmAgent.length >= 3 && nnStripped.includes(nmAgent)) return c;
+          if (nmStripped.length >= 3 && nn.includes(nmStripped)) return c;
+          if (ns.length >= 2 && nmAgent.includes(ns) && ns.length >= 3) return c;
+          if (nmAgent.length >= 3 && ns.includes(nmAgent)) return c;
         }
         return null;
       };
@@ -648,7 +744,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
         {/* ─── Step 3: Preview (import-ready) ─── */}
         {step === "preview" && (
-          <div className="space-y-3">
+          <ScrollArea className="flex-1 max-h-[55vh]">
+          <div className="space-y-3 pr-3">
             <div className="flex items-center gap-2">
               <Badge variant={fileTypeBadge as any} className="text-[10px]">{fileTypeLabel}</Badge>
               <span className="text-[10px] text-muted-foreground">{file?.name}</span>
@@ -661,17 +758,58 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               </div>
               <div className="rounded-lg bg-muted/50 p-3 text-center">
                 <div className="text-lg font-bold font-mono">{uniqueAgents}</div>
-                <div className="text-[10px] text-muted-foreground">Distribuidoras</div>
+                <div className="text-[10px] text-muted-foreground">No Arquivo</div>
               </div>
-              <div className="rounded-lg bg-muted/50 p-3 text-center">
-                <div className="text-lg font-bold font-mono">{uniqueSubgrupos}</div>
-                <div className="text-[10px] text-muted-foreground">Subgrupos</div>
+              <div className="rounded-lg bg-success/10 border border-success/20 p-3 text-center">
+                <div className="text-lg font-bold text-success font-mono">{matchedAgentsPreview.length}</div>
+                <div className="text-[10px] text-success/80">Correspondidas</div>
               </div>
             </div>
 
-            <ScrollArea className="h-48 rounded-lg border">
+            {/* Matched agents list */}
+            {matchedAgentsPreview.length > 0 && (
+              <div className="space-y-1.5">
+                <h4 className="text-xs font-bold text-success flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  Distribuidoras Correspondidas ({matchedAgentsPreview.length})
+                </h4>
+                <ScrollArea className="h-28 rounded-lg border">
+                  <div className="p-2 space-y-0.5">
+                    {matchedAgentsPreview.map((m, i) => (
+                      <div key={i} className="flex items-center justify-between text-[10px] py-0.5 px-2 rounded hover:bg-muted/30">
+                        <span className="font-mono text-muted-foreground truncate max-w-[200px]">{m.agent}</span>
+                        <span className="text-success font-medium truncate max-w-[200px]">→ {m.conc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {/* Unmatched agents (preview) */}
+            {unmatchedAgents.length > 0 && (
+              <div className="space-y-1.5">
+                <h4 className="text-xs font-bold text-warning flex items-center gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Sem Correspondência ({unmatchedAgents.length}) — serão ignoradas
+                </h4>
+                <ScrollArea className="h-20 rounded-lg border">
+                  <div className="p-2 space-y-0.5">
+                    {unmatchedAgents.map((a, i) => (
+                      <div key={i} className="text-[10px] text-muted-foreground font-mono py-0.5 px-2">{a}</div>
+                    ))}
+                  </div>
+                </ScrollArea>
+                <p className="text-[10px] text-muted-foreground italic">
+                  Para importar estas, cadastre-as primeiro em Concessionárias ou ajuste o nome/sigla.
+                </p>
+              </div>
+            )}
+
+            {/* Sample data */}
+            <ScrollArea className="h-32 rounded-lg border">
               <div className="p-2 space-y-0.5">
-                {parsed.slice(0, 50).map((r, i) => (
+                {parsed.slice(0, 30).map((r, i) => (
                   <div key={i} className="flex items-center justify-between text-[11px] py-1 px-2 rounded hover:bg-muted/30">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-[9px] font-mono">{r.subgrupo}</Badge>
@@ -689,9 +827,9 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                     </div>
                   </div>
                 ))}
-                {parsed.length > 50 && (
+                {parsed.length > 30 && (
                   <div className="text-[10px] text-muted-foreground text-center py-1">
-                    … e mais {parsed.length - 50} registros
+                    … e mais {parsed.length - 30} registros
                   </div>
                 )}
               </div>
@@ -727,30 +865,11 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                       </div>
                     )}
                   </div>
-                  {debugInfo.sampleRows.length > 0 && (
-                    <div>
-                      <span className="font-bold text-foreground">Amostra da linha 1:</span>
-                      <div className="mt-0.5 p-1.5 bg-muted rounded text-[9px] overflow-x-auto whitespace-nowrap">
-                        {debugInfo.sampleRows[0].map((c, i) => (
-                          <span key={i} className="inline-block mr-2">
-                            <span className="text-muted-foreground">[{i}]</span> {c || "(vazio)"}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Se os cabeçalhos acima não correspondem ao esperado, verifique se o arquivo foi exportado corretamente do site da ANEEL (dadosabertos.aneel.gov.br).
-                </p>
               </div>
             )}
-
-            <div className="flex items-start gap-2 p-2 rounded-lg bg-warning/10 border border-warning/30 text-[11px]">
-              <AlertTriangle className="w-3.5 h-3.5 text-warning mt-0.5 shrink-0" />
-              <span>Apenas distribuidoras já cadastradas no sistema serão atualizadas. Registros sem correspondência serão ignorados.</span>
-            </div>
           </div>
+          </ScrollArea>
         )}
 
         {/* ─── Step 4: Done ─── */}
