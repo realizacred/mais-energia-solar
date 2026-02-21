@@ -383,36 +383,59 @@ export function mapLeadTipoTelhadoToProposal(leadTipo: string | null | undefined
 
 // ─── Pre-Dimensionamento ───────────────────────────────────
 
+export interface TopologiaConfig {
+  desempenho: number;
+  fator_geracao: number;
+  fator_geracao_meses: Record<string, number>;
+}
+
+export const TOPOLOGIA_LABELS: Record<string, string> = {
+  tradicional: "Tradicional",
+  microinversor: "Microinversor",
+  otimizador: "Otimizador",
+};
+
+export const DEFAULT_TOPOLOGIA_CONFIGS: Record<string, TopologiaConfig> = {
+  tradicional: { desempenho: 69.80, fator_geracao: 111.29, fator_geracao_meses: {} },
+  microinversor: { desempenho: 72.00, fator_geracao: 114.80, fator_geracao_meses: {} },
+  otimizador: { desempenho: 74.00, fator_geracao: 117.99, fator_geracao_meses: {} },
+};
+
 export interface PreDimensionamentoData {
   sistema: "on_grid" | "hibrido" | "off_grid";
-  tipo_kit: "customizado" | "fechado";
-  topologias: string[]; // "tradicional" | "microinversor" | "otimizador"
+  tipos_kit: string[];
+  topologias: string[];
   sombreamento: string;
   desvio_azimutal: number;
   inclinacao: number;
   dod: number;
-  desempenho: number;
-  fator_geracao: number;
-  fator_geracao_meses: Record<string, number>;
+  topologia_configs: Record<string, TopologiaConfig>;
   sobredimensionamento: number;
   margem_pot_ideal: number;
   considerar_transformador: boolean;
+  // Legacy compat — mirrors topologia_configs.tradicional
+  desempenho: number;
+  fator_geracao: number;
+  fator_geracao_meses: Record<string, number>;
+  tipo_kit: "customizado" | "fechado";
 }
 
 export const DEFAULT_PRE_DIMENSIONAMENTO: PreDimensionamentoData = {
   sistema: "on_grid",
-  tipo_kit: "fechado",
+  tipos_kit: ["customizado", "fechado"],
   topologias: ["tradicional"],
   sombreamento: "Nenhuma",
   desvio_azimutal: 0,
   inclinacao: 20,
   dod: 0,
-  desempenho: 69.80,
-  fator_geracao: 108.49,
-  fator_geracao_meses: {},
+  topologia_configs: { ...DEFAULT_TOPOLOGIA_CONFIGS },
   sobredimensionamento: 20,
   margem_pot_ideal: 0,
   considerar_transformador: true,
+  desempenho: 69.80,
+  fator_geracao: 111.29,
+  fator_geracao_meses: {},
+  tipo_kit: "fechado",
 };
 
 export const SOMBREAMENTO_OPTIONS = ["Nenhuma", "Leve (5%)", "Moderada (10%)", "Forte (15%)"];

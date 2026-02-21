@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from "react";
-import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle } from "lucide-react";
+import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,8 +11,9 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
-  type UCData, type PreDimensionamentoData, MESES,
+  type UCData, type PreDimensionamentoData, type TopologiaConfig, MESES,
   SOMBREAMENTO_OPTIONS, DESVIO_AZIMUTAL_OPTIONS, INCLINACAO_OPTIONS,
+  TOPOLOGIA_LABELS, DEFAULT_TOPOLOGIA_CONFIGS,
   createEmptyUC,
 } from "./types";
 import { UCCard } from "./uc/UCCard";
@@ -28,12 +29,14 @@ interface Props {
 }
 
 type ActiveTab = "ucs" | "pre";
+type PreSubTab = "premissas" | "equipamentos";
 
 export function StepConsumptionIntelligence({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
 }: Props) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
+  const [preSubTab, setPreSubTab] = useState<PreSubTab>("premissas");
   const [configModal, setConfigModal] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
   const [rateioOpen, setRateioOpen] = useState(false);
   const [mesAMes, setMesAMes] = useState<{ open: boolean; ucIndex: number; field: "consumo" | "hp" | "hfp" }>({ open: false, ucIndex: 0, field: "consumo" });
@@ -47,17 +50,29 @@ export function StepConsumptionIntelligence({
     }, 0);
   }, [ucs]);
 
-  // Monthly generation estimate: potência × fator_geração
+  // Per-topology potência ideal
+  const getTopoConfig = (topo: string): TopologiaConfig => {
+    return pd.topologia_configs?.[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo] || DEFAULT_TOPOLOGIA_CONFIGS.tradicional;
+  };
+
+  const potenciaIdealByTopo = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+      const cfg = getTopoConfig(topo);
+      result[topo] = cfg.fator_geracao > 0 ? Math.round((consumoTotal / cfg.fator_geracao) * 100) / 100 : 0;
+    }
+    return result;
+  }, [consumoTotal, pd.topologia_configs]);
+
+  // Legacy compat: use tradicional as primary
+  const primaryFatorGeracao = getTopoConfig("tradicional").fator_geracao;
+  const potenciaIdeal = potenciaIdealByTopo.tradicional;
+
+  // Monthly generation estimate
   const geracaoMensal = useMemo(() => {
-    return Math.round(potenciaKwp * pd.fator_geracao * 100) / 100;
-  }, [potenciaKwp, pd.fator_geracao]);
+    return Math.round(potenciaKwp * primaryFatorGeracao * 100) / 100;
+  }, [potenciaKwp, primaryFatorGeracao]);
 
-  const potenciaIdeal = useMemo(() => {
-    if (pd.fator_geracao <= 0) return 0;
-    return Math.round((consumoTotal / pd.fator_geracao) * 100) / 100;
-  }, [consumoTotal, pd.fator_geracao]);
-
-  // Auto-update potenciaKwp when potenciaIdeal changes
   const applyPotIdeal = useCallback(() => {
     if (potenciaIdeal > 0) onPotenciaChange(potenciaIdeal);
   }, [potenciaIdeal, onPotenciaChange]);
@@ -76,7 +91,6 @@ export function StepConsumptionIntelligence({
 
   const addUC = () => {
     const newUC = createEmptyUC(ucs.length + 1);
-    // Inherit regra/grupo from first UC
     newUC.regra = ucs[0].regra;
     newUC.grupo_tarifario = ucs[0].grupo_tarifario;
     newUC.tipo_dimensionamento = ucs[0].tipo_dimensionamento;
@@ -103,28 +117,41 @@ export function StepConsumptionIntelligence({
   }, [ucs, mesAMes]);
 
   const handleMesAMesSave = (values: Record<string, number>) => {
-    const updated = [...ucs];
-    const uc = { ...updated[mesAMes.ucIndex] };
-    const total = MESES.reduce((s, m) => s + (values[m] || 0), 0);
+    const uc = { ...ucs[mesAMes.ucIndex] };
     if (mesAMes.field === "hp") {
       uc.consumo_meses_p = values;
-      uc.consumo_mensal_p = Math.round(total / 12);
+      const vals = Object.values(values).filter(v => v > 0);
+      uc.consumo_mensal_p = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : uc.consumo_mensal_p;
     } else if (mesAMes.field === "hfp") {
       uc.consumo_meses_fp = values;
-      uc.consumo_mensal_fp = Math.round(total / 12);
+      const vals = Object.values(values).filter(v => v > 0);
+      uc.consumo_mensal_fp = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : uc.consumo_mensal_fp;
     } else {
       uc.consumo_meses = values;
-      uc.consumo_mensal = Math.round(total / 12);
+      const vals = Object.values(values).filter(v => v > 0);
+      uc.consumo_mensal = vals.length > 0 ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : uc.consumo_mensal;
     }
-    updated[mesAMes.ucIndex] = uc;
-    onUcsChange(updated);
+    updateUC(mesAMes.ucIndex, uc);
   };
 
   const mesAMesTitle = mesAMes.field === "hp" ? "Consumo Ponta (HP)" : mesAMes.field === "hfp" ? "Consumo Fora Ponta (HFP)" : "Consumo";
 
-  // ─── Pre-dimensionamento update helper
+  // ─── Pre-dimensionamento helpers
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
     setPd({ ...pd, [field]: value });
+  };
+
+  const updateTopoConfig = (topo: string, field: keyof TopologiaConfig, value: any) => {
+    const configs = { ...pd.topologia_configs };
+    configs[topo] = { ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]), [field]: value };
+    const updated: PreDimensionamentoData = { ...pd, topologia_configs: configs };
+    // Sync legacy fields from tradicional
+    if (topo === "tradicional") {
+      updated.desempenho = configs.tradicional.desempenho;
+      updated.fator_geracao = configs.tradicional.fator_geracao;
+      updated.fator_geracao_meses = configs.tradicional.fator_geracao_meses;
+    }
+    setPd(updated);
   };
 
   const toggleTopologia = (t: string) => {
@@ -136,9 +163,19 @@ export function StepConsumptionIntelligence({
     }
   };
 
-  const showDoD = pd.sistema === "hibrido" || pd.sistema === "off_grid";
+  const toggleTipoKit = (tk: string) => {
+    const current = pd.tipos_kit || [];
+    if (current.includes(tk)) {
+      if (current.length > 1) setPd({ ...pd, tipos_kit: current.filter(x => x !== tk) });
+    } else {
+      setPd({ ...pd, tipos_kit: [...current, tk] });
+    }
+  };
 
-  // ─── Pre-dimensionamento content (reused in tab and modal)
+  const showDoD = pd.sistema === "hibrido" || pd.sistema === "off_grid";
+  const allTopos = ["tradicional", "microinversor", "otimizador"];
+
+  // ─── Pre-dimensionamento content
   const preDimContent = (
     <div className="space-y-5">
       {/* Sistema / Tipo Kit / Topologia */}
@@ -156,11 +193,11 @@ export function StepConsumptionIntelligence({
           <Label className="text-[11px]">Tipo de kit <span className="text-destructive">*</span></Label>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <Checkbox id="kit-custom" checked={pd.tipo_kit === "customizado"} onCheckedChange={() => pdUpdate("tipo_kit", "customizado")} />
+              <Checkbox id="kit-custom" checked={(pd.tipos_kit || []).includes("customizado")} onCheckedChange={() => toggleTipoKit("customizado")} />
               <Label htmlFor="kit-custom" className="text-xs cursor-pointer">Customizado</Label>
             </div>
             <div className="flex items-center gap-1.5">
-              <Checkbox id="kit-fechado" checked={pd.tipo_kit === "fechado"} onCheckedChange={() => pdUpdate("tipo_kit", "fechado")} />
+              <Checkbox id="kit-fechado" checked={(pd.tipos_kit || []).includes("fechado")} onCheckedChange={() => toggleTipoKit("fechado")} />
               <Label htmlFor="kit-fechado" className="text-xs cursor-pointer">Fechado</Label>
             </div>
           </div>
@@ -169,10 +206,10 @@ export function StepConsumptionIntelligence({
         <div className="flex items-center gap-4">
           <Label className="text-[11px]">Topologia <span className="text-destructive">*</span></Label>
           <div className="flex items-center gap-3">
-            {["tradicional", "microinversor", "otimizador"].map(t => (
+            {allTopos.map(t => (
               <div key={t} className="flex items-center gap-1.5">
                 <Checkbox id={`topo-${t}`} checked={pd.topologias.includes(t)} onCheckedChange={() => toggleTopologia(t)} />
-                <Label htmlFor={`topo-${t}`} className="text-xs cursor-pointer capitalize">{t === "microinversor" ? "Microinversor" : t === "otimizador" ? "Otimizador" : "Tradicional"}</Label>
+                <Label htmlFor={`topo-${t}`} className="text-xs cursor-pointer">{TOPOLOGIA_LABELS[t]}</Label>
               </div>
             ))}
           </div>
@@ -182,111 +219,34 @@ export function StepConsumptionIntelligence({
       {/* Sub-tabs: Premissas | Equipamentos */}
       <div className="border-b border-border">
         <div className="flex gap-6">
-          <button className="text-sm font-semibold text-secondary border-b-2 border-secondary pb-2 px-1">Premissas</button>
-          <button className="text-sm text-muted-foreground pb-2 px-1 hover:text-foreground">Equipamentos</button>
+          <button
+            onClick={() => setPreSubTab("premissas")}
+            className={`text-sm font-semibold pb-2 px-1 border-b-2 transition-colors ${preSubTab === "premissas" ? "border-secondary text-secondary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            Premissas
+          </button>
+          <button
+            onClick={() => setPreSubTab("equipamentos")}
+            className={`text-sm pb-2 px-1 border-b-2 transition-colors ${preSubTab === "equipamentos" ? "border-secondary text-secondary font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            Equipamentos
+          </button>
         </div>
       </div>
 
-      {/* Premissas content */}
-      <div className="space-y-4">
-        <p className="text-xs font-semibold">Fator Geração</p>
-
-        {/* Sombreamento / Desvio / Inclinação / DoD */}
-        <div className="space-y-1.5">
-          <Label className="text-[11px] flex items-center gap-1">
-            Sombreamento <span className="text-destructive">*</span>
-            <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Nível de sombreamento no local</p></TooltipContent></Tooltip></TooltipProvider>
-          </Label>
-          <Select value={pd.sombreamento} onValueChange={v => pdUpdate("sombreamento", v)}>
-            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>{SOMBREAMENTO_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
-          </Select>
-        </div>
-
-        <div className={`grid gap-3 ${showDoD ? "grid-cols-3" : "grid-cols-2"}`}>
-          <div className="space-y-1.5">
-            <Label className="text-[11px]">Desvio Azimutal <span className="text-destructive">*</span></Label>
-            <Select value={String(pd.desvio_azimutal)} onValueChange={v => pdUpdate("desvio_azimutal", Number(v))}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>{DESVIO_AZIMUTAL_OPTIONS.map(d => <SelectItem key={d} value={String(d)}>{d}°</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-[11px]">Inclinação <span className="text-destructive">*</span></Label>
-            <Select value={String(pd.inclinacao)} onValueChange={v => pdUpdate("inclinacao", Number(v))}>
-              <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-              <SelectContent>{INCLINACAO_OPTIONS.map(i => <SelectItem key={i} value={String(i)}>{i}°</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          {showDoD && (
-            <div className="space-y-1.5">
-              <Label className="text-[11px] flex items-center gap-1">
-                DoD <span className="text-destructive">*</span>
-                <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Depth of Discharge — profundidade de descarga da bateria</p></TooltipContent></Tooltip></TooltipProvider>
-              </Label>
-              <div className="relative">
-                <Input type="number" step="0.01" value={pd.dod || ""} onChange={e => pdUpdate("dod", Number(e.target.value))} className="h-9 text-xs pr-8" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Tradicional + badge Pot ideal */}
-        <div className="flex items-center gap-3 pt-1">
-          <p className="text-sm font-bold">Tradicional</p>
-          <Badge variant="outline" className="text-[10px] font-mono border-secondary text-secondary">
-            Pot. ideal: {potenciaIdeal.toFixed(2)} kWp
-          </Badge>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-[11px] flex items-center gap-1">
-              Desempenho <span className="text-destructive">*</span>
-              <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Performance Ratio do sistema</p></TooltipContent></Tooltip></TooltipProvider>
-            </Label>
-            <div className="relative">
-              <Input type="number" step="0.01" value={pd.desempenho || ""} onChange={e => pdUpdate("desempenho", Number(e.target.value))} className="h-9 text-xs pr-8" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
-              <button className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
-            </div>
-            <div className="relative">
-              <Input type="number" step="0.01" value={pd.fator_geracao || ""} onChange={e => pdUpdate("fator_geracao", Number(e.target.value))} className="h-9 text-xs pr-16" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh/kWp</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Sistema Solar */}
-        <p className="text-sm font-bold pt-1">Sistema Solar</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-[11px]">Sobredimensionamento</Label>
-            <div className="relative">
-              <Input type="number" step="0.01" value={pd.sobredimensionamento || ""} onChange={e => pdUpdate("sobredimensionamento", Number(e.target.value))} className="h-9 text-xs pr-8" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-[11px]">Margem para Pot. Ideal</Label>
-            <div className="relative">
-              <Input type="number" step="0.01" value={pd.margem_pot_ideal || ""} onChange={e => pdUpdate("margem_pot_ideal", Number(e.target.value))} className="h-9 text-xs pr-8" />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 pt-1">
-          <Label className="text-xs">Considerar kits que necessitam de transformador</Label>
-          <Switch checked={pd.considerar_transformador} onCheckedChange={v => pdUpdate("considerar_transformador", v)} />
-        </div>
-      </div>
+      {preSubTab === "premissas" ? (
+        <PremissasContent
+          pd={pd}
+          pdUpdate={pdUpdate}
+          updateTopoConfig={updateTopoConfig}
+          getTopoConfig={getTopoConfig}
+          potenciaIdealByTopo={potenciaIdealByTopo}
+          consumoTotal={consumoTotal}
+          showDoD={showDoD}
+        />
+      ) : (
+        <EquipamentosPreFilter pd={pd} consumoTotal={consumoTotal} potenciaIdealByTopo={potenciaIdealByTopo} />
+      )}
     </div>
   );
 
@@ -308,7 +268,7 @@ export function StepConsumptionIntelligence({
         <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
           <Zap className="h-3.5 w-3.5" />
           <span>Fator de Geração</span>
-          <span className="font-bold text-foreground">{pd.fator_geracao.toFixed(2)} kWh/kWp</span>
+          <span className="font-bold text-foreground">{primaryFatorGeracao.toFixed(2)} kWh/kWp</span>
           <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </div>
@@ -363,7 +323,6 @@ export function StepConsumptionIntelligence({
             />
           ))}
 
-          {/* + Nova Unidade card */}
           <button
             onClick={addUC}
             className="rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 min-w-[200px] min-h-[300px] flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-colors flex-shrink-0"
@@ -403,7 +362,7 @@ export function StepConsumptionIntelligence({
 
       {/* Pre-dimensionamento modal (from header click) */}
       <Dialog open={preDimModal} onOpenChange={setPreDimModal}>
-        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Pré-dimensionamento</DialogTitle>
           </DialogHeader>
@@ -414,6 +373,221 @@ export function StepConsumptionIntelligence({
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+/* ─── Premissas Content (3-column layout by topology) ─── */
+
+function PremissasContent({
+  pd, pdUpdate, updateTopoConfig, getTopoConfig, potenciaIdealByTopo, consumoTotal, showDoD,
+}: {
+  pd: PreDimensionamentoData;
+  pdUpdate: <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => void;
+  updateTopoConfig: (topo: string, field: keyof TopologiaConfig, value: any) => void;
+  getTopoConfig: (topo: string) => TopologiaConfig;
+  potenciaIdealByTopo: Record<string, number>;
+  consumoTotal: number;
+  showDoD: boolean;
+}) {
+  const allTopos = ["tradicional", "microinversor", "otimizador"];
+
+  return (
+    <div className="space-y-4">
+      {/* Sombreamento / Desvio / Inclinação / DoD — shared across topologies */}
+      <div className={`grid gap-3 ${showDoD ? "grid-cols-4" : "grid-cols-3"}`}>
+        <div className="space-y-1.5">
+          <Label className="text-[11px] flex items-center gap-1">
+            Sombreamento <span className="text-destructive">*</span>
+            <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Nível de sombreamento no local</p></TooltipContent></Tooltip></TooltipProvider>
+          </Label>
+          <Select value={pd.sombreamento} onValueChange={v => pdUpdate("sombreamento", v)}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{SOMBREAMENTO_OPTIONS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[11px]">Desvio Azimutal <span className="text-destructive">*</span></Label>
+          <Select value={String(pd.desvio_azimutal)} onValueChange={v => pdUpdate("desvio_azimutal", Number(v))}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{DESVIO_AZIMUTAL_OPTIONS.map(d => <SelectItem key={d} value={String(d)}>{d}°</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[11px]">Inclinação <span className="text-destructive">*</span></Label>
+          <Select value={String(pd.inclinacao)} onValueChange={v => pdUpdate("inclinacao", Number(v))}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{INCLINACAO_OPTIONS.map(i => <SelectItem key={i} value={String(i)}>{i}°</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        {showDoD && (
+          <div className="space-y-1.5">
+            <Label className="text-[11px] flex items-center gap-1">
+              DoD <span className="text-destructive">*</span>
+              <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Depth of Discharge — profundidade de descarga da bateria</p></TooltipContent></Tooltip></TooltipProvider>
+            </Label>
+            <div className="relative">
+              <Input type="number" step="0.01" value={pd.dod || ""} onChange={e => pdUpdate("dod", Number(e.target.value))} className="h-9 text-xs pr-8" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ─── 3-column topology grid ─── */}
+      <div className="grid grid-cols-3 gap-4">
+        {allTopos.map(topo => {
+          const cfg = getTopoConfig(topo);
+          const potIdeal = potenciaIdealByTopo[topo] || 0;
+          const isActive = pd.topologias.includes(topo);
+
+          return (
+            <div key={topo} className={`space-y-3 ${!isActive ? "opacity-40 pointer-events-none" : ""}`}>
+              {/* Topology header + badge */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-bold">{TOPOLOGIA_LABELS[topo]}</p>
+                <Badge variant="outline" className="text-[10px] font-mono border-secondary text-secondary whitespace-nowrap">
+                  Pot. ideal: {potIdeal.toFixed(2)} kWp
+                </Badge>
+              </div>
+
+              {/* Desempenho */}
+              <div className="space-y-1.5">
+                <Label className="text-[11px] flex items-center gap-1">
+                  Desempenho <span className="text-destructive">*</span>
+                  <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Performance Ratio do sistema</p></TooltipContent></Tooltip></TooltipProvider>
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="number" step="0.01"
+                    value={cfg.desempenho || ""}
+                    onChange={e => updateTopoConfig(topo, "desempenho", Number(e.target.value))}
+                    className="h-9 text-xs pr-8"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                </div>
+              </div>
+
+              {/* Fator de Geração */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
+                  <button className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">
+                    mês a mês <Pencil className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+                <div className="relative">
+                  <Input
+                    type="number" step="0.01"
+                    value={cfg.fator_geracao || ""}
+                    onChange={e => updateTopoConfig(topo, "fator_geracao", Number(e.target.value))}
+                    className="h-9 text-xs pr-16"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh/kWp</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Sistema Solar — shared */}
+      <p className="text-sm font-bold pt-1">Sistema Solar</p>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-[11px]">Sobredimensionamento</Label>
+          <div className="relative">
+            <Input type="number" step="0.01" value={pd.sobredimensionamento || ""} onChange={e => pdUpdate("sobredimensionamento", Number(e.target.value))} className="h-9 text-xs pr-8" />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-[11px]">Margem para Pot. Ideal</Label>
+          <div className="relative">
+            <Input type="number" step="0.01" value={pd.margem_pot_ideal || ""} onChange={e => pdUpdate("margem_pot_ideal", Number(e.target.value))} className="h-9 text-xs pr-8" />
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 pt-1">
+        <Label className="text-xs">Considerar kits que necessitam de transformador</Label>
+        <Switch checked={pd.considerar_transformador} onCheckedChange={v => pdUpdate("considerar_transformador", v)} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Equipamentos Pre-Filter Skeleton ─── */
+
+function EquipamentosPreFilter({ pd, consumoTotal, potenciaIdealByTopo }: {
+  pd: PreDimensionamentoData;
+  consumoTotal: number;
+  potenciaIdealByTopo: Record<string, number>;
+}) {
+  const activeTopos = pd.topologias;
+  const primaryPotIdeal = potenciaIdealByTopo[activeTopos[0] || "tradicional"] || 0;
+  const potMin = Math.round(primaryPotIdeal * (1 - (pd.margem_pot_ideal || 0) / 100) * 100) / 100;
+  const potMax = Math.round(primaryPotIdeal * (1 + (pd.sobredimensionamento || 0) / 100) * 100) / 100;
+
+  return (
+    <div className="space-y-4">
+      {/* Summary banner */}
+      <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2">
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-secondary" />
+          <p className="text-sm font-semibold">Pré-filtro de Equipamentos</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Com base no consumo de <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh/mês</span> e
+          topologias selecionadas ({activeTopos.map(t => TOPOLOGIA_LABELS[t]).join(", ")}),
+          o sistema filtrará equipamentos compatíveis na faixa de <span className="font-bold text-foreground">{potMin.toFixed(2)}</span> a <span className="font-bold text-foreground">{potMax.toFixed(2)} kWp</span>.
+        </p>
+      </div>
+
+      {/* Criteria grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-lg border border-border p-3 space-y-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Consumo Rede</p>
+          <p className="text-lg font-bold">{consumoTotal.toLocaleString("pt-BR")} <span className="text-xs font-normal text-muted-foreground">kWh/mês</span></p>
+        </div>
+        <div className="rounded-lg border border-border p-3 space-y-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Faixa Potência</p>
+          <p className="text-lg font-bold">{potMin.toFixed(1)} – {potMax.toFixed(1)} <span className="text-xs font-normal text-muted-foreground">kWp</span></p>
+        </div>
+      </div>
+
+      {/* Per-topology filter preview */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Filtros por Topologia</p>
+        {activeTopos.map(topo => {
+          const cfg = pd.topologia_configs?.[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo];
+          const potIdeal = potenciaIdealByTopo[topo] || 0;
+          return (
+            <div key={topo} className="flex items-center justify-between p-3 rounded-lg border border-border/50 bg-card">
+              <div className="flex items-center gap-3">
+                <Badge variant="outline" className="text-[10px]">{TOPOLOGIA_LABELS[topo]}</Badge>
+                <span className="text-xs text-muted-foreground">Pot. ideal: <span className="font-mono font-bold text-foreground">{potIdeal.toFixed(2)} kWp</span></span>
+                <span className="text-xs text-muted-foreground">Desempenho: <span className="font-mono font-bold text-foreground">{cfg.desempenho}%</span></span>
+              </div>
+              <Badge variant="secondary" className="text-[10px]">
+                {topo === "tradicional" ? "String Inverter" : topo === "microinversor" ? "Micro Inverter" : "Optimizer"}
+              </Badge>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Integration placeholder */}
+      <div className="rounded-lg border-2 border-dashed border-primary/20 bg-primary/5 p-6 text-center space-y-2">
+        <Package className="h-8 w-8 mx-auto text-primary/40" />
+        <p className="text-sm font-medium text-primary/60">Integração BelEnergia</p>
+        <p className="text-xs text-muted-foreground">
+          Quando conectado, o sistema consultará automaticamente a API e pré-selecionará
+          os melhores kits compatíveis com os critérios acima.
+        </p>
+        <Badge variant="outline" className="text-[10px]">Em breve</Badge>
+      </div>
     </div>
   );
 }

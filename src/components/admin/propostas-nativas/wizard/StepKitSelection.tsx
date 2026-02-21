@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import {
-  type KitItemRow, type LayoutArranjo, type PreDimensionamentoData,
+  type KitItemRow, type LayoutArranjo, type PreDimensionamentoData, type TopologiaConfig,
   SOMBREAMENTO_OPTIONS, DESVIO_AZIMUTAL_OPTIONS, INCLINACAO_OPTIONS,
+  TOPOLOGIA_LABELS, DEFAULT_TOPOLOGIA_CONFIGS,
   formatBRL,
 } from "./types";
 import { toast } from "@/hooks/use-toast";
@@ -492,14 +493,36 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
     setPd({ ...pd, [field]: value });
   };
 
-  const potenciaIdeal = useMemo(() => {
-    if (pd.fator_geracao <= 0) return 0;
-    return Math.round((consumoTotal / pd.fator_geracao) * 100) / 100;
-  }, [consumoTotal, pd.fator_geracao]);
+  const getTopoConfig = (topo: string): TopologiaConfig => {
+    return pd.topologia_configs?.[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo] || DEFAULT_TOPOLOGIA_CONFIGS.tradicional;
+  };
+
+  const updateTopoConfig = (topo: string, field: keyof TopologiaConfig, value: any) => {
+    const configs = { ...pd.topologia_configs };
+    configs[topo] = { ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]), [field]: value };
+    const updated: PreDimensionamentoData = { ...pd, topologia_configs: configs };
+    if (topo === "tradicional") {
+      updated.desempenho = configs.tradicional.desempenho;
+      updated.fator_geracao = configs.tradicional.fator_geracao;
+      updated.fator_geracao_meses = configs.tradicional.fator_geracao_meses;
+    }
+    setPd(updated);
+  };
+
+  const allTopos = ["tradicional", "microinversor", "otimizador"];
+
+  const potenciaIdealByTopo = useMemo(() => {
+    const result: Record<string, number> = {};
+    for (const topo of allTopos) {
+      const cfg = getTopoConfig(topo);
+      result[topo] = cfg.fator_geracao > 0 ? Math.round((consumoTotal / cfg.fator_geracao) * 100) / 100 : 0;
+    }
+    return result;
+  }, [consumoTotal, pd.topologia_configs]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-base">Premissas</DialogTitle>
         </DialogHeader>
@@ -558,36 +581,43 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
               </div>
             </div>
 
-            {/* Tradicional + badge */}
-            <div className="flex items-center gap-3 pt-1">
-              <p className="text-sm font-bold">Tradicional</p>
-              <Badge variant="outline" className="text-[10px] font-mono border-secondary text-secondary">
-                Pot. ideal: {potenciaIdeal.toFixed(2)} kWp
-              </Badge>
-            </div>
-
-            {/* Desempenho / Fator Geração */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-[11px] flex items-center gap-1">
-                  Desempenho <span className="text-destructive">*</span>
-                  <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Performance Ratio do sistema</p></TooltipContent></Tooltip></TooltipProvider>
-                </Label>
-                <div className="relative">
-                  <Input type="number" step="0.01" value={pd.desempenho || ""} onChange={e => pdUpdate("desempenho", Number(e.target.value))} className="h-9 text-xs pr-8" />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
-                  <button className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
-                </div>
-                <div className="relative">
-                  <Input type="number" step="0.01" value={pd.fator_geracao || ""} onChange={e => pdUpdate("fator_geracao", Number(e.target.value))} className="h-9 text-xs pr-16" />
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh/kWp</span>
-                </div>
-              </div>
+            {/* 3-column topology grid */}
+            <div className="grid grid-cols-3 gap-4">
+              {allTopos.map(topo => {
+                const cfg = getTopoConfig(topo);
+                const potIdeal = potenciaIdealByTopo[topo] || 0;
+                const isActive = pd.topologias.includes(topo);
+                return (
+                  <div key={topo} className={`space-y-3 ${!isActive ? "opacity-40 pointer-events-none" : ""}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="text-sm font-bold">{TOPOLOGIA_LABELS[topo]}</p>
+                      <Badge variant="outline" className="text-[10px] font-mono border-secondary text-secondary">
+                        Pot. ideal: {potIdeal.toFixed(2)} kWp
+                      </Badge>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[11px] flex items-center gap-1">
+                        Desempenho <span className="text-destructive">*</span>
+                        <TooltipProvider><Tooltip><TooltipTrigger><AlertCircle className="h-3 w-3 text-muted-foreground" /></TooltipTrigger><TooltipContent><p className="text-xs">Performance Ratio</p></TooltipContent></Tooltip></TooltipProvider>
+                      </Label>
+                      <div className="relative">
+                        <Input type="number" step="0.01" value={cfg.desempenho || ""} onChange={e => updateTopoConfig(topo, "desempenho", Number(e.target.value))} className="h-9 text-xs pr-8" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-[11px]">Fator de Geração <span className="text-destructive">*</span></Label>
+                        <button className="text-[10px] text-secondary hover:underline flex items-center gap-0.5">mês a mês <Pencil className="h-2.5 w-2.5" /></button>
+                      </div>
+                      <div className="relative">
+                        <Input type="number" step="0.01" value={cfg.fator_geracao || ""} onChange={e => updateTopoConfig(topo, "fator_geracao", Number(e.target.value))} className="h-9 text-xs pr-16" />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">kWh/kWp</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : (
