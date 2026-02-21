@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical } from "lucide-react";
+import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -112,7 +113,7 @@ export function ConcessionariasManager() {
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [syncing, setSyncing] = useState(false);
-
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   // Check if any concessionária needs tariff update (>12 months)
   const syncAlert = useMemo(() => {
     const now = new Date();
@@ -329,24 +330,16 @@ export function ConcessionariasManager() {
           </CardDescription>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="outline"
-                  onClick={handleSyncTarifas}
-                  disabled={syncing}
-                  className="gap-2"
-                >
-                  <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-                  {syncing ? "Sincronizando..." : "Sincronizar Tarifas"}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                Buscar tarifas atualizadas da ANEEL (Dados Abertos)
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+          <Button
+            variant="outline"
+            onClick={() => handleSyncTarifas()}
+            disabled={syncing}
+            className="gap-2"
+            title="Buscar tarifas atualizadas da ANEEL (Dados Abertos)"
+          >
+            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Sincronizando..." : "Sincronizar ANEEL"}
+          </Button>
           <Button onClick={() => openDialog()} className="gap-2">
             <Plus className="w-4 h-4" />
             Nova Concessionária
@@ -463,120 +456,99 @@ export function ConcessionariasManager() {
                 </TableRow>
               ) : (
                 filteredConcessionarias.map((c) => (
-                  <TableRow key={c.id}>
-                    <TableCell className="font-medium">{c.nome}</TableCell>
-                    <TableCell>{c.sigla || "-"}</TableCell>
-                    <TableCell>
-                      {c.estado ? (
-                        <Badge variant="outline" className="font-mono">{c.estado}</Badge>
-                      ) : "-"}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {c.tarifa_energia != null ? `R$ ${Number(c.tarifa_energia).toFixed(2)}` : (
-                        <span className="text-muted-foreground">padrão</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {c.tarifa_fio_b != null && Number(c.tarifa_fio_b) > 0 ? `R$ ${Number(c.tarifa_fio_b).toFixed(2)}` : (
-                        <span className="text-muted-foreground">padrão</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {c.aliquota_icms != null ? `${Number(c.aliquota_icms).toFixed(1)}%` : (
-                        <span className="text-muted-foreground">estado</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {c.possui_isencao_scee != null ? (
-                        <Badge variant={c.possui_isencao_scee ? "default" : "secondary"} className="text-xs">
-                          {c.possui_isencao_scee ? "Sim" : "Não"}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">estado</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {(() => {
-                        if (!c.ultima_sync_tarifas) {
+                  <React.Fragment key={c.id}>
+                    <TableRow className="cursor-pointer" onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}>
+                      <TableCell className="font-medium">{c.nome}</TableCell>
+                      <TableCell>{c.sigla || "-"}</TableCell>
+                      <TableCell>
+                        {c.estado ? (
+                          <Badge variant="outline" className="font-mono">{c.estado}</Badge>
+                        ) : "-"}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {c.tarifa_energia != null ? `R$ ${Number(c.tarifa_energia).toFixed(2)}` : (
+                          <span className="text-muted-foreground">padrão</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {c.tarifa_fio_b != null && Number(c.tarifa_fio_b) > 0 ? `R$ ${Number(c.tarifa_fio_b).toFixed(2)}` : (
+                          <span className="text-muted-foreground">padrão</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {c.aliquota_icms != null ? `${Number(c.aliquota_icms).toFixed(1)}%` : (
+                          <span className="text-muted-foreground">estado</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {c.possui_isencao_scee != null ? (
+                          <Badge variant={c.possui_isencao_scee ? "default" : "secondary"} className="text-xs">
+                            {c.possui_isencao_scee ? "Sim" : "Não"}
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">estado</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {(() => {
+                          if (!c.ultima_sync_tarifas) {
+                            return (
+                              <Badge variant="outline" className="gap-1 text-[10px] text-muted-foreground border-muted-foreground/30">
+                                <XCircle className="h-3 w-3" />
+                                Nunca
+                              </Badge>
+                            );
+                          }
+                          const syncDate = new Date(c.ultima_sync_tarifas);
+                          const monthsAgo = Math.floor((Date.now() - syncDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+                          const isRecent = monthsAgo < 6;
+                          const isOutdated = monthsAgo >= 12;
+                          const dateStr = syncDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
                           return (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger>
-                                  <Badge variant="outline" className="gap-1 text-[10px] text-muted-foreground border-muted-foreground/30">
-                                    <XCircle className="h-3 w-3" />
-                                    Nunca
-                                  </Badge>
-                                </TooltipTrigger>
-                                <TooltipContent>Nunca sincronizada com a ANEEL</TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <Badge
+                              variant="outline"
+                              className={`gap-1 text-[10px] ${
+                                isRecent ? "text-success border-success/30 bg-success/5"
+                                : isOutdated ? "text-destructive border-destructive/30 bg-destructive/5"
+                                : "text-warning border-warning/30 bg-warning/5"
+                              }`}
+                            >
+                              {isRecent ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+                              {dateStr}
+                            </Badge>
                           );
-                        }
-                        const syncDate = new Date(c.ultima_sync_tarifas);
-                        const monthsAgo = Math.floor((Date.now() - syncDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
-                        const isRecent = monthsAgo < 6;
-                        const isOutdated = monthsAgo >= 12;
-                        const dateStr = syncDate.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
-                        
-                        return (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <Badge
-                                  variant="outline"
-                                  className={`gap-1 text-[10px] ${
-                                    isRecent
-                                      ? "text-success border-success/30 bg-success/5"
-                                      : isOutdated
-                                      ? "text-destructive border-destructive/30 bg-destructive/5"
-                                      : "text-warning border-warning/30 bg-warning/5"
-                                  }`}
-                                >
-                                  {isRecent ? <CheckCircle2 className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
-                                  {dateStr}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                {isRecent
-                                  ? `Sincronizada em ${syncDate.toLocaleDateString("pt-BR")}`
-                                  : isOutdated
-                                  ? `Desatualizada (${monthsAgo} meses atrás)`
-                                  : `Sincronizada há ${monthsAgo} meses`}
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        );
-                      })()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Switch
-                          checked={c.ativo}
-                          onCheckedChange={() => handleToggleAtivo(c)}
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openDialog(c)}
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => setDeleting(c)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
+                        })()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
+                          <Switch
+                            checked={c.ativo}
+                            onCheckedChange={() => handleToggleAtivo(c)}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1" onClick={e => e.stopPropagation()}>
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openDialog(c)}>
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive" onClick={() => setDeleting(c)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                    {expandedId === c.id && (
+                      <TableRow>
+                        <TableCell colSpan={10} className="p-0 bg-muted/20">
+                          <ConcessionariaSubgruposPanel
+                            concessionariaId={c.id}
+                            concessionariaNome={c.nome}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </TableBody>
