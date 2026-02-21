@@ -59,14 +59,25 @@ interface Concessionaria {
   ativo: boolean;
   tarifa_energia: number | null;
   tarifa_fio_b: number | null;
+  tarifa_fio_b_gd: number | null;
   custo_disponibilidade_monofasico: number | null;
   custo_disponibilidade_bifasico: number | null;
   custo_disponibilidade_trifasico: number | null;
   aliquota_icms: number | null;
+  pis_percentual: number | null;
+  cofins_percentual: number | null;
   possui_isencao_scee: boolean | null;
   percentual_isencao: number | null;
   ultima_sync_tarifas: string | null;
   created_at: string;
+}
+
+/** Calcula tarifa integral com todos os tributos (ICMS + PIS + COFINS) */
+function calcTarifaIntegral(te: number, fioB: number, icms: number, pis: number, cofins: number) {
+  const sem = te + fioB;
+  if (sem <= 0) return null;
+  const totalTributo = (icms + pis + cofins) / 100;
+  return totalTributo > 0 && totalTributo < 1 ? sem / (1 - totalTributo) : sem;
 }
 
 interface ConcessionariaForm {
@@ -75,10 +86,13 @@ interface ConcessionariaForm {
   estado: string;
   tarifa_energia: string;
   tarifa_fio_b: string;
+  tarifa_fio_b_gd: string;
   custo_disponibilidade_monofasico: string;
   custo_disponibilidade_bifasico: string;
   custo_disponibilidade_trifasico: string;
   aliquota_icms: string;
+  pis_percentual: string;
+  cofins_percentual: string;
   possui_isencao_scee: boolean | null;
   percentual_isencao: string;
 }
@@ -95,10 +109,13 @@ const EMPTY_FORM: ConcessionariaForm = {
   estado: "",
   tarifa_energia: "",
   tarifa_fio_b: "",
+  tarifa_fio_b_gd: "",
   custo_disponibilidade_monofasico: "",
   custo_disponibilidade_bifasico: "",
   custo_disponibilidade_trifasico: "",
   aliquota_icms: "",
+  pis_percentual: "",
+  cofins_percentual: "",
   possui_isencao_scee: null,
   percentual_isencao: "",
 };
@@ -361,10 +378,13 @@ export function ConcessionariasManager() {
         estado: concessionaria.estado || "",
         tarifa_energia: concessionaria.tarifa_energia?.toString() || "",
         tarifa_fio_b: concessionaria.tarifa_fio_b?.toString() || "",
+        tarifa_fio_b_gd: concessionaria.tarifa_fio_b_gd?.toString() || "",
         custo_disponibilidade_monofasico: concessionaria.custo_disponibilidade_monofasico?.toString() || "",
         custo_disponibilidade_bifasico: concessionaria.custo_disponibilidade_bifasico?.toString() || "",
         custo_disponibilidade_trifasico: concessionaria.custo_disponibilidade_trifasico?.toString() || "",
         aliquota_icms: concessionaria.aliquota_icms?.toString() || "",
+        pis_percentual: concessionaria.pis_percentual?.toString() || "",
+        cofins_percentual: concessionaria.cofins_percentual?.toString() || "",
         possui_isencao_scee: concessionaria.possui_isencao_scee,
         percentual_isencao: concessionaria.percentual_isencao?.toString() || "",
       });
@@ -390,10 +410,13 @@ export function ConcessionariasManager() {
         estado: form.estado || null,
         tarifa_energia: parseNum(form.tarifa_energia),
         tarifa_fio_b: parseNum(form.tarifa_fio_b),
+        tarifa_fio_b_gd: parseNum(form.tarifa_fio_b_gd),
         custo_disponibilidade_monofasico: parseNum(form.custo_disponibilidade_monofasico),
         custo_disponibilidade_bifasico: parseNum(form.custo_disponibilidade_bifasico),
         custo_disponibilidade_trifasico: parseNum(form.custo_disponibilidade_trifasico),
         aliquota_icms: parseNum(form.aliquota_icms),
+        pis_percentual: parseNum(form.pis_percentual),
+        cofins_percentual: parseNum(form.cofins_percentual),
         possui_isencao_scee: form.possui_isencao_scee,
         percentual_isencao: parseNum(form.percentual_isencao),
       };
@@ -706,9 +729,10 @@ export function ConcessionariasManager() {
                           const te = c.tarifa_energia != null ? Number(c.tarifa_energia) : 0;
                           const fioB = c.tarifa_fio_b != null ? Number(c.tarifa_fio_b) : 0;
                           const icms = c.aliquota_icms != null ? Number(c.aliquota_icms) : 0;
-                          const tarifaSemImposto = te + fioB;
-                          if (tarifaSemImposto <= 0) return <span className="text-muted-foreground">—</span>;
-                          const integral = icms > 0 ? tarifaSemImposto / (1 - icms / 100) : tarifaSemImposto;
+                          const pis = c.pis_percentual != null ? Number(c.pis_percentual) : 0;
+                          const cofins = c.cofins_percentual != null ? Number(c.cofins_percentual) : 0;
+                          const integral = calcTarifaIntegral(te, fioB, icms, pis, cofins);
+                          if (!integral) return <span className="text-muted-foreground">—</span>;
                           return (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -716,9 +740,12 @@ export function ConcessionariasManager() {
                                   R$ {integral.toFixed(6)}
                                 </span>
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="text-xs">
-                                <p>Tarifa + Fio B com ICMS incluso</p>
-                                <p className="font-mono">(R$ {tarifaSemImposto.toFixed(6)}) / (1 - {icms}%)</p>
+                              <TooltipContent side="top" className="text-xs space-y-1">
+                                <p className="font-semibold">Tarifa integral c/ impostos</p>
+                                <p className="font-mono">TE: R$ {te.toFixed(6)}</p>
+                                <p className="font-mono">Fio B: R$ {fioB.toFixed(6)}</p>
+                                <p className="font-mono">ICMS: {icms}% | PIS: {pis}% | COFINS: {cofins}%</p>
+                                <p className="font-mono text-muted-foreground text-[10px]">= (TE+FioB) / (1 - {(icms+pis+cofins).toFixed(2)}%)</p>
                               </TooltipContent>
                             </Tooltip>
                           );
@@ -873,25 +900,45 @@ export function ConcessionariasManager() {
               {/* Tarifas */}
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold text-muted-foreground">Tarifas (R$/kWh)</h4>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Tarifa Energia</Label>
+                    <Label className="text-xs">Tarifa Energia (TE)</Label>
                     <Input
                       type="number"
-                      step="0.01"
-                      placeholder="Ex: 0.85"
+                      step="0.000001"
+                      placeholder="Ex: 0.45"
                       value={form.tarifa_energia}
                       onChange={(e) => updateForm("tarifa_energia", e.target.value)}
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Tarifa Fio B</Label>
+                    <Label className="text-xs">Fio B Total (TUSD)</Label>
                     <Input
                       type="number"
-                      step="0.01"
+                      step="0.000001"
                       placeholder="Ex: 0.40"
                       value={form.tarifa_fio_b}
                       onChange={(e) => updateForm("tarifa_fio_b", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Label className="text-xs flex items-center gap-1 cursor-help">
+                          Fio B GD
+                          <Info className="w-3 h-3 text-muted-foreground" />
+                        </Label>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="text-xs max-w-[200px]">
+                        Parcela do TUSD que o prosumidor GD paga (regra atual). Geralmente menor que o Fio B total.
+                      </TooltipContent>
+                    </Tooltip>
+                    <Input
+                      type="number"
+                      step="0.000001"
+                      placeholder="Ex: 0.28"
+                      value={form.tarifa_fio_b_gd}
+                      onChange={(e) => updateForm("tarifa_fio_b_gd", e.target.value)}
                     />
                   </div>
                 </div>
@@ -938,43 +985,79 @@ export function ConcessionariasManager() {
 
               <Separator />
 
-              {/* ICMS / Tributação */}
+              {/* Tributação */}
               <div className="space-y-3">
                 <h4 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
                   <Building className="w-4 h-4" />
-                  Tributação ICMS
+                  Tributação
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Deixe vazio para usar o padrão do estado.
+                  Deixe vazio para usar o padrão do estado. PIS/COFINS são obrigatórios para calcular o valor integral.
                 </p>
                 {/* Valor integral computado */}
                 {(() => {
                   const te = parseFloat(form.tarifa_energia) || 0;
                   const fioB = parseFloat(form.tarifa_fio_b) || 0;
                   const icms = parseFloat(form.aliquota_icms) || 0;
+                  const pis = parseFloat(form.pis_percentual) || 0;
+                  const cofins = parseFloat(form.cofins_percentual) || 0;
+                  const integral = calcTarifaIntegral(te, fioB, icms, pis, cofins);
+                  if (!integral) return null;
                   const sem = te + fioB;
-                  if (sem <= 0) return null;
-                  const integral = icms > 0 ? sem / (1 - icms / 100) : sem;
                   return (
-                    <div className="rounded-md bg-primary/5 border border-primary/20 p-2.5 flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Valor integral c/ imposto (kWh)</span>
-                      <span className="text-sm font-mono font-semibold text-primary">R$ {integral.toFixed(6)}</span>
+                    <div className="rounded-md bg-primary/5 border border-primary/20 p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-foreground">Valor integral c/ impostos (kWh)</span>
+                        <span className="text-base font-mono font-bold text-primary">R$ {integral.toFixed(6)}</span>
+                      </div>
+                      <div className="grid grid-cols-4 gap-2 text-[10px] font-mono text-muted-foreground border-t border-primary/10 pt-2">
+                        <div>TE: {te.toFixed(6)}</div>
+                        <div>Fio B: {fioB.toFixed(6)}</div>
+                        <div>Sem imp: {sem.toFixed(6)}</div>
+                        <div>Tributos: {(icms+pis+cofins).toFixed(2)}%</div>
+                      </div>
                     </div>
                   );
                 })()}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Alíquota ICMS (%)</Label>
+                    <Label className="text-xs">ICMS (%)</Label>
                     <Input
                       type="number"
-                      step="0.1"
+                      step="0.01"
                       min={0}
                       max={40}
-                      placeholder="Usar do estado"
+                      placeholder="Ex: 18"
                       value={form.aliquota_icms}
                       onChange={(e) => updateForm("aliquota_icms", e.target.value)}
                     />
                   </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">PIS (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      max={10}
+                      placeholder="Ex: 1.65"
+                      value={form.pis_percentual}
+                      onChange={(e) => updateForm("pis_percentual", e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">COFINS (%)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min={0}
+                      max={15}
+                      placeholder="Ex: 7.60"
+                      value={form.cofins_percentual}
+                      onChange={(e) => updateForm("cofins_percentual", e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">% Isenção SCEE</Label>
                     <Input
