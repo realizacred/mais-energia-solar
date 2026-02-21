@@ -246,10 +246,10 @@ export function ProjectAddressFields({
 
       {/* Same as client checkbox */}
       {clientHasAddress(clienteData) && (
-        <label className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-2 cursor-pointer transition-all duration-200
+        <label className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border cursor-pointer transition-all duration-200
           ${sameAsClient
-            ? 'border-primary/40 bg-primary/5 shadow-sm'
-            : 'border-border/50 bg-muted/20 hover:bg-muted/40 hover:border-border'}
+            ? 'border-primary/40 bg-primary/5'
+            : 'border-border/50 bg-muted/20 hover:bg-muted/40'}
         `}>
           <Checkbox
             checked={sameAsClient}
@@ -268,14 +268,14 @@ export function ProjectAddressFields({
       )}
 
       {/* Address grid */}
-      <div className="rounded-lg border border-border/40 bg-card p-3 space-y-2.5">
+      <div className="rounded-lg border border-border/40 bg-card p-2.5 space-y-2">
         {/* Row 1: CEP + Número */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           <div className="col-span-1 sm:col-span-2 space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">CEP</Label>
             <div className="relative">
               <Input
-                className="h-9 text-xs bg-background pr-8"
+                className="h-8 text-xs bg-background pr-8"
                 placeholder="00000-000"
                 value={address.cep}
                 maxLength={9}
@@ -290,7 +290,7 @@ export function ProjectAddressFields({
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Número</Label>
             <Input
-              className="h-9 text-xs bg-background"
+              className="h-8 text-xs bg-background"
               placeholder="Nº"
               value={address.numero}
               onChange={(e) => updateField("numero", e.target.value)}
@@ -303,7 +303,7 @@ export function ProjectAddressFields({
         <div className="space-y-1">
           <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Rua / Logradouro</Label>
           <Input
-            className="h-9 text-xs bg-background"
+             className="h-8 text-xs bg-background"
             placeholder="Rua, Avenida, Travessa..."
             value={address.rua}
             onChange={(e) => updateField("rua", e.target.value)}
@@ -316,7 +316,7 @@ export function ProjectAddressFields({
           <div className="col-span-1 sm:col-span-2 space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Bairro</Label>
             <Input
-              className="h-9 text-xs bg-background"
+              className="h-8 text-xs bg-background"
               placeholder="Bairro"
               value={address.bairro}
               onChange={(e) => updateField("bairro", e.target.value)}
@@ -326,7 +326,7 @@ export function ProjectAddressFields({
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Cidade</Label>
             {cidades.length > 0 ? (
               <Select value={address.cidade} onValueChange={handleCidadeChange}>
-                <SelectTrigger className="h-9 text-xs bg-background">
+                <SelectTrigger className="h-8 text-xs bg-background">
                   <SelectValue placeholder={cidadesLoading ? "Carregando..." : "Cidade"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -335,7 +335,7 @@ export function ProjectAddressFields({
               </Select>
             ) : (
               <Input
-                className="h-9 text-xs bg-background"
+                className="h-8 text-xs bg-background"
                 placeholder="Cidade"
                 value={address.cidade}
                 onChange={(e) => updateField("cidade", e.target.value)}
@@ -345,7 +345,7 @@ export function ProjectAddressFields({
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">UF</Label>
             <Select value={address.uf} onValueChange={handleUfChange}>
-              <SelectTrigger className="h-9 text-xs bg-background">
+              <SelectTrigger className="h-8 text-xs bg-background">
                 <SelectValue placeholder="UF" />
               </SelectTrigger>
               <SelectContent>
@@ -359,7 +359,7 @@ export function ProjectAddressFields({
         <div className="space-y-1">
           <Label className="text-[10px] text-muted-foreground uppercase tracking-wide">Complemento</Label>
           <Input
-            className="h-9 text-xs bg-background"
+            className="h-8 text-xs bg-background"
             placeholder="Apto, Bloco, Referência..."
             value={address.complemento}
             onChange={(e) => updateField("complemento", e.target.value)}
