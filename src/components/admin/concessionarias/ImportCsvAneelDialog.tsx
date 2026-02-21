@@ -167,6 +167,17 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         return null;
       };
 
+      // Debug: log matching for first 3 unique agents
+      const debugAgents = new Set<string>();
+      for (const r of parsed) {
+        const agent = r.sigAgente || r.nomAgente;
+        if (debugAgents.size < 3 && !debugAgents.has(agent)) {
+          debugAgents.add(agent);
+          const match = findConc(r.sigAgente, r.nomAgente);
+          console.log(`[ANEEL Match] sig="${r.sigAgente}" nom="${r.nomAgente}" → ${match ? match.nome : "NOT FOUND"}`);
+        }
+      }
+
       if (fileType === "componentes") {
         // Componentes: update fio_b fields
         const grouped = new Map<string, { conc: typeof concessionarias[0]; records: ParsedTarifa[] }>();
@@ -206,12 +217,12 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               .upsert({
                 concessionaria_id: conc.id,
                 subgrupo: sub,
-                modalidade_tarifaria: first.modalidade || null,
+                modalidade_tarifaria: first.modalidade || "Convencional",
                 fio_b_ponta, fio_b_fora_ponta,
                 origem: "CSV_ANEEL_COMP",
                 is_active: true,
                 updated_at: new Date().toISOString(),
-              } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+              } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
 
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
             else updated++;
@@ -227,7 +238,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                 origem: "CSV_ANEEL_COMP",
                 is_active: true,
                 updated_at: new Date().toISOString(),
-              } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+              } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
 
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
             else updated++;
@@ -292,7 +303,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
             const upsertData: any = {
               concessionaria_id: conc.id,
               subgrupo: sub,
-              modalidade_tarifaria: first.modalidade || null,
+              modalidade_tarifaria: first.modalidade || "Convencional",
               te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta,
               origem: "CSV_ANEEL",
               is_active: true,
@@ -303,7 +314,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
             const { error } = await supabase
               .from("concessionaria_tarifas_subgrupo")
-              .upsert(upsertData, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+              .upsert(upsertData, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
 
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
             else updated++;
@@ -322,7 +333,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                 origem: "CSV_ANEEL",
                 is_active: true,
                 updated_at: new Date().toISOString(),
-              } as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
+              } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
 
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
             else updated++;
