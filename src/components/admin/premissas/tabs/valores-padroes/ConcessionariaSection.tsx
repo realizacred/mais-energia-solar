@@ -68,7 +68,31 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
     details?: Array<{
       nome: string;
       sigla: string | null;
+      estado?: string | null;
       status: 'atualizada' | 'sem_alteracao' | 'sem_dados';
+      bt?: {
+        subgrupo?: string;
+        origem?: string;
+        te?: { de: number | null; para: number | null };
+        fio_b?: { de: number | null; para: number | null };
+        tarifacao_bt?: number | null;
+      } | null;
+      mt?: {
+        subgrupo?: string;
+        modalidade?: string;
+        origem?: string;
+        te_ponta?: number | null;
+        tusd_ponta?: number | null;
+        te_fora_ponta?: number | null;
+        tusd_fora_ponta?: number | null;
+        fio_b_ponta?: number | null;
+        fio_b_fora_ponta?: number | null;
+        demanda?: number | null;
+        demanda_geracao?: number | null;
+        tarifacao_ponta?: number | null;
+        tarifacao_fora_ponta?: number | null;
+      } | null;
+      // Legacy fields
       fonte?: string;
       origem?: string;
       changes?: {
@@ -419,45 +443,89 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
                           return (order[a.status] ?? 9) - (order[b.status] ?? 9);
                         })
                         .map((d, i) => (
-                        <div key={i} className="px-3 py-2 flex items-start gap-2">
+                        <div key={i} className="px-3 py-2.5 flex items-start gap-2">
                           {d.status === 'atualizada' && <CheckCircle2 className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />}
                           {d.status === 'sem_alteracao' && <MinusCircle className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />}
                           {d.status === 'sem_dados' && <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
                               <span className="text-xs font-medium truncate">
-                                {d.nome} {d.sigla ? `(${d.sigla})` : ''}
+                                {d.nome} {d.sigla ? `(${d.sigla})` : ''} {d.estado ? `— ${d.estado}` : ''}
                               </span>
-                              {d.fonte && (
-                                <Badge variant="outline" className="text-[9px] shrink-0">Fonte: {d.fonte}</Badge>
-                              )}
-                              {d.origem && d.origem !== 'manual' && (
-                                <Badge variant="secondary" className="text-[9px] shrink-0">{d.origem}</Badge>
-                              )}
                             </div>
-                            {d.status === 'atualizada' && d.changes && (
-                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
-                                {d.changes.tarifa_energia && (
-                                  d.changes.tarifa_energia.de !== d.changes.tarifa_energia.para && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">
-                                      TE: {(d.changes.tarifa_energia.de ?? 0).toFixed(6)}
-                                      <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
-                                      <span className="text-success font-semibold">{(d.changes.tarifa_energia.para ?? 0).toFixed(6)}</span>
-                                    </span>
-                                  )
-                                )}
-                                {d.changes.tarifa_fio_b && (
-                                  d.changes.tarifa_fio_b.de !== d.changes.tarifa_fio_b.para && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">
-                                      Fio B: {(d.changes.tarifa_fio_b.de ?? 0).toFixed(6)}
-                                      <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
-                                      <span className="text-success font-semibold">{(d.changes.tarifa_fio_b.para ?? 0).toFixed(6)}</span>
-                                    </span>
-                                  )
+
+                            {/* BT Section */}
+                            {d.bt && (
+                              <div className="rounded border border-success/20 bg-success/5 px-2 py-1.5 space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <Badge variant="outline" className="text-[9px] border-success/30 text-success">BT — {d.bt.subgrupo || 'B1'}</Badge>
+                                  {d.bt.origem && d.bt.origem !== 'manual' && (
+                                    <Badge variant="secondary" className="text-[9px]">{d.bt.origem}</Badge>
+                                  )}
+                                </div>
+                                {d.status === 'atualizada' && d.bt.te && (
+                                  <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                                    {d.bt.te.de !== d.bt.te.para && (
+                                      <span className="text-[10px] text-muted-foreground font-mono">
+                                        TE: {(d.bt.te.de ?? 0).toFixed(6)}
+                                        <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
+                                        <span className="text-success font-semibold">{(d.bt.te.para ?? 0).toFixed(6)}</span>
+                                      </span>
+                                    )}
+                                    {d.bt.fio_b && d.bt.fio_b.de !== d.bt.fio_b.para && (
+                                      <span className="text-[10px] text-muted-foreground font-mono">
+                                        Fio B: {(d.bt.fio_b.de ?? 0).toFixed(6)}
+                                        <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
+                                        <span className="text-success font-semibold">{(d.bt.fio_b.para ?? 0).toFixed(6)}</span>
+                                      </span>
+                                    )}
+                                  </div>
                                 )}
                               </div>
                             )}
-                            {d.status === 'sem_dados' && (
+
+                            {/* MT Section */}
+                            {d.mt && (
+                              <div className="rounded border border-info/20 bg-info/5 px-2 py-1.5 space-y-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <Badge variant="outline" className="text-[9px] border-info/30 text-info">
+                                    MT — {d.mt.subgrupo} {d.mt.modalidade ? `(${d.mt.modalidade})` : ''}
+                                  </Badge>
+                                  {d.mt.origem && d.mt.origem !== 'manual' && (
+                                    <Badge variant="secondary" className="text-[9px]">{d.mt.origem}</Badge>
+                                  )}
+                                </div>
+                                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+                                  {d.mt.te_ponta != null && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">TE Ponta: {d.mt.te_ponta.toFixed(5)}</span>
+                                  )}
+                                  {d.mt.te_fora_ponta != null && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">TE F.Ponta: {d.mt.te_fora_ponta.toFixed(5)}</span>
+                                  )}
+                                  {d.mt.tusd_ponta != null && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">TUSD Ponta: {d.mt.tusd_ponta.toFixed(5)}</span>
+                                  )}
+                                  {d.mt.tusd_fora_ponta != null && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">TUSD F.Ponta: {d.mt.tusd_fora_ponta.toFixed(5)}</span>
+                                  )}
+                                  {d.mt.fio_b_ponta != null && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">Fio B Ponta: {d.mt.fio_b_ponta.toFixed(5)}</span>
+                                  )}
+                                  {d.mt.fio_b_fora_ponta != null && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">Fio B F.Ponta: {d.mt.fio_b_fora_ponta.toFixed(5)}</span>
+                                  )}
+                                  {d.mt.demanda != null && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">Demanda: R$ {d.mt.demanda.toFixed(2)}</span>
+                                  )}
+                                  {d.mt.demanda_geracao != null && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">Dem. Ger.: R$ {d.mt.demanda_geracao.toFixed(2)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* No data messages */}
+                            {d.status === 'sem_dados' && !d.bt && (
                               <span className="text-[10px] text-warning">Nenhum subgrupo B1 ativo encontrado</span>
                             )}
                             {d.status === 'sem_alteracao' && (
