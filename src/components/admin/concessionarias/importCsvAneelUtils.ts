@@ -86,26 +86,27 @@ interface ColumnMap {
 export function detectColumns(headers: string[]): ColumnMap {
   const map: ColumnMap = {};
   const patterns: Record<string, RegExp> = {
-    sigAgente: /sig\s*agente|sigla/i,
-    nomAgente: /nom\s*agente/i,
+    sigAgente: /^sigla$|sig\s*agente/i,
+    nomAgente: /nom\s*agente|distribuidora/i,
     subgrupo: /sub\s*grupo/i,
     modalidade: /modalidade/i,
-    posto: /posto/i,
-    vlrTUSD: /tusd|vlr.*tusd/i,
-    vlrTE: /\bte\b|vlr.*te/i,
-    unidade: /unidade/i,
+    posto: /^posto$/i,
+    vlrTUSD: /^tusd$|vlr.*tusd/i,
+    vlrTE: /^te$|vlr.*te/i,
+    unidade: /^unidade$/i,
     baseTarifaria: /base\s*tarif/i,
-    detalhe: /detalhe/i,
+    detalhe: /^detalhe$/i,
     vigencia: /inicio\s*vig|dat.*inicio/i,
-    classe: /classe/i,
+    classe: /^classe$/i,
     subclasse: /sub\s*classe/i,
+    resolucao: /resolu[cç][aã]o/i,
     // Componentes-specific
     componente: /componente|dsc.*tipo.*componente/i,
     vlrComponente: /vlr.*componente|valor/i,
   };
 
   for (const [key, re] of Object.entries(patterns)) {
-    const idx = headers.findIndex(h => re.test(h));
+    const idx = headers.findIndex(h => re.test(h.trim()));
     if (idx >= 0) map[key] = idx;
   }
   return map;
