@@ -2,7 +2,7 @@ import { formatBRLCompact as formatBRL, formatBRLCompact as formatBRLCard } from
 import { getEtiquetaConfig } from "@/lib/etiquetas";
 import { useState } from "react";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
-import { Zap, Plus, LayoutGrid, Phone } from "lucide-react";
+import { Zap, Plus, LayoutGrid, Phone, DollarSign } from "lucide-react";
 import type { OwnerColumn, DealKanbanCard } from "@/hooks/useDealPipeline";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -118,7 +118,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
               </div>
 
               {/* ── Cards ── */}
-              <div className="px-3 pb-3 min-h-[120px] space-y-2 flex-1">
+              <div className="px-3 pb-3 min-h-[120px] space-y-2.5 flex-1">
                 {col.deals.length === 0 && (
                   <div className="flex items-center justify-center h-20 text-xs text-muted-foreground/50 italic">
                     Arraste projetos aqui
@@ -161,45 +161,47 @@ function OwnerDealCard({ deal, isDragging, onDragStart, onClick }: OwnerDealCard
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "relative bg-card rounded-xl border border-border/50 p-3.5 cursor-grab active:cursor-grabbing",
-        "hover:border-primary/30 transition-all duration-150",
+        "relative bg-card rounded-lg border border-border/50 cursor-grab active:cursor-grabbing",
+        "hover:border-border transition-all duration-200 ease-out",
         isDragging && "opacity-40 scale-95"
       )}
-      style={{ boxShadow: "var(--shadow-xs)" }}
+      style={{ boxShadow: isDragging ? "var(--shadow-lg)" : "var(--shadow-xs)" }}
     >
-      {/* Title row */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <p className="text-[13px] font-bold text-foreground leading-snug line-clamp-2">
-          {deal.customer_name || deal.deal_title || "Sem nome"}
-        </p>
-        {etiquetaCfg && (
-          <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded-md border shrink-0", etiquetaCfg.className)}>
-            {etiquetaCfg.short || etiquetaCfg.label}
-          </span>
-        )}
-      </div>
-
-      {/* Phone */}
-      {deal.customer_phone && deal.customer_phone !== "" && (
-        <div className="flex items-center gap-1 text-[11px] text-muted-foreground mb-2">
-          <Phone className="h-3 w-3" />
-          <span>{deal.customer_phone}</span>
-        </div>
-      )}
-
-      {/* Stats row */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-3">
-          {deal.deal_value > 0 && (
-            <span className="font-bold text-foreground text-[12px]">
-              {formatBRLCard(deal.deal_value)}
+      <div className="p-3 space-y-1.5">
+        {/* Line 1: Name */}
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-semibold text-foreground leading-tight line-clamp-1 flex-1">
+            {deal.customer_name || deal.deal_title || "Sem nome"}
+          </p>
+          {etiquetaCfg && (
+            <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-md border shrink-0", etiquetaCfg.className)}>
+              {etiquetaCfg.short || etiquetaCfg.label}
             </span>
           )}
         </div>
-        {/* Stage badge */}
-        <Badge variant="outline" className="text-[10px] h-5 px-2 font-medium border-border/60 bg-muted/50 rounded-lg">
-          {deal.stage_name}
-        </Badge>
+
+        {/* Line 2: Value */}
+        {deal.deal_value > 0 && (
+          <div className="flex items-center gap-1 text-xs">
+            <DollarSign className="h-3 w-3 text-success" />
+            <span className="font-semibold text-foreground">{formatBRLCard(deal.deal_value)}</span>
+          </div>
+        )}
+
+        {/* Line 3: Phone (compact) */}
+        {deal.customer_phone && (
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Phone className="h-3 w-3" />
+            <span className="font-mono">{deal.customer_phone}</span>
+          </div>
+        )}
+
+        {/* Line 4: Stage badge */}
+        <div className="pt-0.5">
+          <Badge variant="secondary" className="text-[10px] h-5 px-2 font-medium">
+            {deal.stage_name}
+          </Badge>
+        </div>
       </div>
     </div>
   );
