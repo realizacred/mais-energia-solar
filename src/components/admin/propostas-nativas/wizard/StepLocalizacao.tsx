@@ -352,13 +352,11 @@ export function StepLocalizacao({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] xl:grid-cols-[1fr_400px] gap-3">
+    <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] xl:grid-cols-[1fr_400px] gap-2.5">
       {/* ═══ LEFT COLUMN ═══ */}
-      <div className="space-y-3 min-w-0 order-2 lg:order-1">
-
-        {/* Endereço de instalação */}
+      <div className="min-w-0 order-2 lg:order-1">
         <Card className="border-border/40">
-          <CardHeader className="pb-1 pt-2.5 px-3">
+          <CardHeader className="pb-0.5 pt-2 px-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
                 <MapPin className="h-3 w-3 text-primary" />
@@ -367,7 +365,7 @@ export function StepLocalizacao({
               {geoStatusBadge()}
             </div>
           </CardHeader>
-          <CardContent className="px-3 pb-2.5">
+          <CardContent className="px-3 pb-2.5 space-y-2">
             {onProjectAddressChange && projectAddress && (
               <ProjectAddressFields
                 address={projectAddress}
@@ -377,111 +375,113 @@ export function StepLocalizacao({
                 reverseGeocodedAddress={reverseGeoResult}
               />
             )}
+
+            {/* Telhado + Distribuidora + Irradiação — inline dentro do card */}
+            <div className="border-t border-border/30 pt-2">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                {/* Tipo de Telhado */}
+                <div className="space-y-0.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <Home className="h-2.5 w-2.5" /> Tipo de Telhado *
+                  </Label>
+                  <Select value={tipoTelhado} onValueChange={onTipoTelhadoChange}>
+                    <SelectTrigger className={cn(
+                      "h-7 text-xs",
+                      !tipoTelhado && "border-destructive ring-1 ring-destructive/30"
+                    )}>
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {tiposTelhado.map(t => {
+                        const Icon = ROOF_TYPE_ICONS[t] || ROOF_TYPE_ICONS["_default"];
+                        return (
+                          <SelectItem key={t} value={t}>
+                            <span className="flex items-center gap-2">
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              {t}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                  {!tipoTelhado && (
+                    <p className="text-[9px] text-destructive font-medium">⚠ Obrigatório</p>
+                  )}
+                </div>
+
+                {/* Distribuidora */}
+                <div className="space-y-0.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <Zap className="h-2.5 w-2.5" /> Distribuidora *
+                  </Label>
+                  {loadingConc ? (
+                    <div className="flex items-center gap-1.5 px-2 h-7 border rounded-md bg-muted/30">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span className="text-[10px] text-muted-foreground">Carregando...</span>
+                    </div>
+                  ) : (
+                    <Select value={distribuidoraId} onValueChange={handleConcChange}>
+                      <SelectTrigger className={cn(
+                        "h-7 text-xs",
+                        !distribuidoraId && estado && "border-destructive/50"
+                      )}>
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {concessionarias.map(c => (
+                          <SelectItem key={c.id} value={c.id}>
+                            {c.sigla ? `${c.sigla} — ${c.nome}` : c.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {!distribuidoraId && estado && (
+                    <p className="text-[9px] text-destructive">Obrigatório</p>
+                  )}
+                </div>
+
+                {/* Irradiação Solar */}
+                <div className="space-y-0.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <Sun className="h-2.5 w-2.5" /> Irradiação Solar
+                    {loadingIrrad && <Loader2 className="h-2 w-2 animate-spin text-primary ml-0.5" />}
+                  </Label>
+                  <div className="flex items-center gap-1 h-7 px-2 border rounded-md bg-muted/10 text-xs">
+                    {irradiacao !== null ? (
+                      <>
+                        <Sun className="h-3 w-3 text-warning shrink-0" />
+                        <span className="font-bold text-foreground">{irradiacao.toFixed(2)}</span>
+                        <span className="text-[9px] text-muted-foreground">kWh/m²/dia</span>
+                        {distKm !== null && (
+                          <span className="text-[9px] text-muted-foreground">~{distKm.toFixed(0)}km</span>
+                        )}
+                        <Badge variant="secondary" className="text-[8px] ml-auto px-1 py-0">
+                          {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "INPE" : irradSource || "Atlas"}
+                        </Badge>
+                      </>
+                    ) : loadingIrrad ? (
+                      <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando...
+                      </span>
+                    ) : cidade ? (
+                      <span className="text-[10px] text-muted-foreground">Geocodificando...</span>
+                    ) : (
+                      <span className="text-[10px] text-muted-foreground">Preencha endereço</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
-
-        {/* Telhado + Distribuidora + Irradiação — inline row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {/* Tipo de Telhado */}
-          <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-              <Home className="h-2.5 w-2.5" /> Tipo de Telhado *
-            </Label>
-            <Select value={tipoTelhado} onValueChange={onTipoTelhadoChange}>
-              <SelectTrigger className={cn(
-                "h-8 text-xs",
-                !tipoTelhado && "border-destructive ring-1 ring-destructive/30"
-              )}>
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                {tiposTelhado.map(t => {
-                  const Icon = ROOF_TYPE_ICONS[t] || ROOF_TYPE_ICONS["_default"];
-                  return (
-                    <SelectItem key={t} value={t}>
-                      <span className="flex items-center gap-2">
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                        {t}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
-              </SelectContent>
-            </Select>
-            {!tipoTelhado && (
-              <p className="text-[9px] text-destructive font-medium">⚠ Obrigatório</p>
-            )}
-          </div>
-
-          {/* Distribuidora */}
-          <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-              <Zap className="h-2.5 w-2.5" /> Distribuidora *
-            </Label>
-            {loadingConc ? (
-              <div className="flex items-center gap-1.5 px-3 h-8 border rounded-md bg-muted/30">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span className="text-xs text-muted-foreground">Carregando...</span>
-              </div>
-            ) : (
-              <Select value={distribuidoraId} onValueChange={handleConcChange}>
-                <SelectTrigger className={cn(
-                  "h-8 text-xs",
-                  !distribuidoraId && estado && "border-destructive/50"
-                )}>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {concessionarias.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.sigla ? `${c.sigla} — ${c.nome}` : c.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-            {!distribuidoraId && estado && (
-              <p className="text-[9px] text-destructive">Obrigatório</p>
-            )}
-          </div>
-
-          {/* Irradiação Solar */}
-          <div className="space-y-1">
-            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-              <Sun className="h-2.5 w-2.5" /> Irradiação Solar
-              {loadingIrrad && <Loader2 className="h-2 w-2 animate-spin text-primary ml-0.5" />}
-            </Label>
-            <div className="flex items-center gap-1.5 h-8 px-2 border rounded-md bg-muted/10">
-              {irradiacao !== null ? (
-                <>
-                  <Sun className="h-3 w-3 text-warning shrink-0" />
-                  <span className="text-xs font-bold text-foreground">{irradiacao.toFixed(2)}</span>
-                  <span className="text-[9px] text-muted-foreground">kWh/m²/dia</span>
-                  {distKm !== null && (
-                    <span className="text-[9px] text-muted-foreground">~{distKm.toFixed(0)}km</span>
-                  )}
-                  <Badge variant="secondary" className="text-[8px] ml-auto px-1 py-0">
-                    {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "INPE" : irradSource || "Atlas"}
-                  </Badge>
-                </>
-              ) : loadingIrrad ? (
-                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando...
-                </span>
-              ) : cidade ? (
-                <span className="text-[10px] text-muted-foreground">Geocodificando...</span>
-              ) : (
-                <span className="text-[10px] text-muted-foreground">Preencha endereço</span>
-              )}
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* ═══ RIGHT COLUMN — Map ═══ */}
-      <div className="order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start">
+      <div className="order-1 lg:order-2 lg:sticky lg:top-2 lg:self-start">
         <Card className="border-border/40">
-          <CardHeader className="pb-1 pt-2 px-3">
+          <CardHeader className="pb-0.5 pt-2 px-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
                 <MapPin className="h-3 w-3 text-secondary" />
@@ -494,9 +494,9 @@ export function StepLocalizacao({
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-0 pb-2">
+          <CardContent className="px-0 pb-1.5">
             <Suspense fallback={
-              <div className="h-[240px] lg:h-[380px] xl:h-[440px] flex items-center justify-center bg-muted/20">
+              <div className="h-[220px] lg:h-[360px] xl:h-[420px] flex items-center justify-center bg-muted/20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             }>
