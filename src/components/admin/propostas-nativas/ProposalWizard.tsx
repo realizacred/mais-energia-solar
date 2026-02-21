@@ -730,7 +730,15 @@ export function ProposalWizard() {
               distribuidoraId={locDistribuidoraId}
               onEstadoChange={(v) => { setLocEstado(v); setCliente(c => ({ ...c, estado: v })); }}
               onCidadeChange={(v) => { setLocCidade(v); setCliente(c => ({ ...c, cidade: v })); }}
-              onTipoTelhadoChange={setLocTipoTelhado}
+              onTipoTelhadoChange={(v) => {
+                setLocTipoTelhado(v);
+                // Propagar tipo de telhado para a UC geradora (ucs[0])
+                setUcs(prev => {
+                  if (prev.length === 0) return prev;
+                  if (prev[0].tipo_telhado === v) return prev;
+                  return [{ ...prev[0], tipo_telhado: v }, ...prev.slice(1)];
+                });
+              }}
               onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
               onIrradiacaoChange={setLocIrradiacao}
               onMapSnapshotsChange={setMapSnapshots}
