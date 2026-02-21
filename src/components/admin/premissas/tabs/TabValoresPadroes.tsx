@@ -2,7 +2,6 @@ import { useState, useCallback } from "react";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { ConcessionariaSection } from "./valores-padroes/ConcessionariaSection";
 import { TarifasSection } from "./valores-padroes/TarifasSection";
-import { KitsSection } from "./valores-padroes/KitsSection";
 
 interface Props {
   premises: TenantPremises;
@@ -23,7 +22,6 @@ export function TabValoresPadroes({ premises, onChange, onAutoSave }: Props) {
     <div className="space-y-6">
       <ConcessionariaSection premises={premises} onChange={onChange} onSyncedFields={handleSyncedFields} onAutoSave={onAutoSave} />
       <TarifasSection premises={premises} onChange={onChange} syncedFields={syncedFields} />
-      <KitsSection premises={premises} onChange={onChange} />
     </div>
   );
 }
