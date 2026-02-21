@@ -633,6 +633,7 @@ export function ConcessionariasManager() {
                 <TableHead>Subgrupos</TableHead>
                 <TableHead>Tarifa</TableHead>
                 <TableHead>Fio B</TableHead>
+                <TableHead>Integral c/ Imp.</TableHead>
                 <TableHead>ICMS</TableHead>
                 <TableHead>Isenção</TableHead>
                 <TableHead>Sync ANEEL</TableHead>
@@ -699,6 +700,29 @@ export function ConcessionariasManager() {
                         {c.tarifa_fio_b != null && Number(c.tarifa_fio_b) > 0 ? `R$ ${Number(c.tarifa_fio_b).toFixed(2)}` : (
                           <span className="text-muted-foreground">padrão</span>
                         )}
+                      </TableCell>
+                      <TableCell className="text-xs font-mono">
+                        {(() => {
+                          const te = c.tarifa_energia != null ? Number(c.tarifa_energia) : 0;
+                          const fioB = c.tarifa_fio_b != null ? Number(c.tarifa_fio_b) : 0;
+                          const icms = c.aliquota_icms != null ? Number(c.aliquota_icms) : 0;
+                          const tarifaSemImposto = te + fioB;
+                          if (tarifaSemImposto <= 0) return <span className="text-muted-foreground">—</span>;
+                          const integral = icms > 0 ? tarifaSemImposto / (1 - icms / 100) : tarifaSemImposto;
+                          return (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-primary font-semibold cursor-help">
+                                  R$ {integral.toFixed(6)}
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="text-xs">
+                                <p>Tarifa + Fio B com ICMS incluso</p>
+                                <p className="font-mono">(R$ {tarifaSemImposto.toFixed(6)}) / (1 - {icms}%)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell className="text-xs">
                         {c.aliquota_icms != null ? `${Number(c.aliquota_icms).toFixed(1)}%` : (
@@ -921,9 +945,23 @@ export function ConcessionariasManager() {
                   Tributação ICMS
                 </h4>
                 <p className="text-[11px] text-muted-foreground">
-                  Deixe vazio para usar o padrão do estado. Configure aqui se esta concessionária tem regras
-                  de ICMS ou isenção SCEE diferentes do padrão estadual.
+                  Deixe vazio para usar o padrão do estado.
                 </p>
+                {/* Valor integral computado */}
+                {(() => {
+                  const te = parseFloat(form.tarifa_energia) || 0;
+                  const fioB = parseFloat(form.tarifa_fio_b) || 0;
+                  const icms = parseFloat(form.aliquota_icms) || 0;
+                  const sem = te + fioB;
+                  if (sem <= 0) return null;
+                  const integral = icms > 0 ? sem / (1 - icms / 100) : sem;
+                  return (
+                    <div className="rounded-md bg-primary/5 border border-primary/20 p-2.5 flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Valor integral c/ imposto (kWh)</span>
+                      <span className="text-sm font-mono font-semibold text-primary">R$ {integral.toFixed(6)}</span>
+                    </div>
+                  );
+                })()}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-xs">Alíquota ICMS (%)</Label>
