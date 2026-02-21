@@ -113,6 +113,25 @@ export function StageDealCard({
   const docDone = docChecklist ? Object.values(docChecklist).filter(Boolean).length : 0;
   const isOverdue = deal.expected_close_date && new Date(deal.expected_close_date) < new Date();
 
+  // Determine border class — priority: won > lost > critical > warning > etiqueta > proposal status
+  const isWonLost = deal.deal_status === "won" || deal.deal_status === "lost";
+  const hasEtiquetaColor = !!etiquetaCfg?.cor;
+  const borderClass = isWonLost
+    ? (deal.deal_status === "won" ? "kanban-card--won" : "kanban-card--lost")
+    : stagnation === "critical"
+      ? "kanban-card--stagnation-critical"
+      : stagnation === "warning"
+        ? "kanban-card--stagnation-warning"
+        : hasEtiquetaColor
+          ? "kanban-card--etiqueta"
+          : propostaInfo
+            ? "kanban-card--has-proposal"
+            : "kanban-card--no-proposal";
+
+  const borderStyle = hasEtiquetaColor && !isWonLost && !stagnation
+    ? { borderLeftColor: etiquetaCfg.cor, borderLeftWidth: 4, borderLeftStyle: "solid" as const }
+    : undefined;
+
   const cardContent = (
     <div
       draggable
@@ -120,12 +139,10 @@ export function StageDealCard({
       onClick={onClick}
       className={cn(
         "kanban-card group",
-        deal.deal_status === "won" && "kanban-card--won",
-        deal.deal_status === "lost" && "kanban-card--lost",
-        !deal.deal_status?.match(/won|lost/) && stagnation === "critical" && "kanban-card--stagnation-critical",
-        !deal.deal_status?.match(/won|lost/) && stagnation === "warning" && "kanban-card--stagnation-warning",
+        borderClass,
         isDragging && "kanban-card--dragging",
       )}
+      style={borderStyle}
     >
       <div className="p-3.5 space-y-2.5">
         {/* Row 1: Header — Name + City + Value */}
