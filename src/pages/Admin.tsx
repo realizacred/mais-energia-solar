@@ -43,6 +43,7 @@ const BateriasManager = lazy(() => import("@/components/admin/equipamentos").the
 const ConcessionariasManager = lazy(() => import("@/components/admin/ConcessionariasManager").then(m => ({ default: m.ConcessionariasManager })));
 const DicionarioAneelPage = lazy(() => import("@/components/admin/concessionarias/DicionarioAneelPage").then(m => ({ default: m.DicionarioAneelPage })));
 const TarifaVersoesPage = lazy(() => import("@/components/admin/concessionarias/TarifaVersoesPage").then(m => ({ default: m.TarifaVersoesPage })));
+const SaudeTarifariaPage = lazy(() => import("@/components/admin/concessionarias/SaudeTarifariaPage").then(m => ({ default: m.SaudeTarifariaPage })));
 const GamificacaoConfig = lazy(() => import("@/components/admin/GamificacaoConfig").then(m => ({ default: m.GamificacaoConfig })));
 const ComissoesManager = lazy(() => import("@/components/admin/ComissoesManager").then(m => ({ default: m.ComissoesManager })));
 const ValidacaoVendasManager = lazy(() => import("@/components/admin/ValidacaoVendasManager").then(m => ({ default: m.ValidacaoVendasManager })));
@@ -288,7 +289,9 @@ const TAB_TITLES: Record<string, string> = {
   "pricing-policy": "Política de precificação",
   "custom-fields": "Opções customizáveis",
   menus: "Personalizar menu",
-  
+  "dicionario-aneel": "Dicionário ANEEL",
+  "tarifa-versoes": "Versões de tarifa",
+  "saude-tarifaria": "Saúde tarifária",
 };
 
 /** N8n placeholder component */
@@ -516,6 +519,7 @@ export default function Admin() {
                 <Route path="concessionarias" element={<ConcessionariasManager />} />
                 <Route path="dicionario-aneel" element={<DicionarioAneelPage />} />
                 <Route path="tarifa-versoes" element={<TarifaVersoesPage />} />
+                <Route path="saude-tarifaria" element={<SaudeTarifariaPage />} />
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="premissas" element={<PremissasPage />} />
