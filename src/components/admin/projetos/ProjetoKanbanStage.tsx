@@ -319,8 +319,8 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
               <div
                 key={stage.id}
                 className={cn(
-                  "w-[300px] xl:w-[320px] flex-shrink-0 rounded-xl border border-border/40 transition-all flex flex-col",
-                  "bg-muted/20",
+                  "w-[300px] xl:w-[320px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
+                  "bg-card/60",
                   isOver && "ring-2 ring-primary/30 bg-primary/5"
                 )}
                 onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(stage.id); }}
@@ -331,7 +331,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                 <div className="px-3 pt-3 pb-2 border-b-2 border-primary/20">
                   <div className="flex items-center justify-between mb-1.5">
                     <div className="flex items-center gap-2 min-w-0">
-                      <h3 className="text-[11px] font-semibold text-foreground leading-tight truncate uppercase tracking-wider">
+                      <h3 className="text-[11px] font-bold text-secondary leading-tight truncate uppercase tracking-wider">
                         {stage.name}
                       </h3>
                       {hasActiveAutomation && (
@@ -552,13 +552,13 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
       onClick={onClick}
       className={cn(
         "bg-card rounded-lg cursor-grab active:cursor-grabbing",
-        "border border-border/50",
-        "hover:border-border transition-all duration-200 ease-out relative group",
-        deal.deal_status === "won" && "bg-success/5",
+        "border border-border/60",
+        "hover:border-secondary/30 transition-all duration-200 ease-out relative group",
+        deal.deal_status === "won" && "bg-success/5 border-success/20",
         deal.deal_status === "lost" && "opacity-50",
         isDragging && "opacity-30 scale-95",
       )}
-      style={{ boxShadow: isDragging ? "var(--shadow-lg)" : "var(--shadow-xs)" }}
+      style={{ boxShadow: isDragging ? "var(--shadow-lg)" : "var(--shadow-sm)" }}
     >
       <div className="p-3 space-y-1.5">
         {/* Line 1: Client name + etiqueta */}

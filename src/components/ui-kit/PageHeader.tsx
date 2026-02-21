@@ -18,7 +18,7 @@ export function PageHeader({ icon: Icon, title, description, actions, className,
       <div className="space-y-1.5">
         <h1 className="text-2xl font-display font-bold tracking-tight flex items-center gap-2.5 text-foreground">
           {Icon && (
-            <div className="h-9 w-9 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
+            <div className="h-9 w-9 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0" style={{ boxShadow: "var(--shadow-xs)" }}>
               <Icon className="h-5 w-5 text-secondary" />
             </div>
           )}
