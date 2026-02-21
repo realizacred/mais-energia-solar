@@ -408,60 +408,36 @@ function aggregateGrupoARecords(records: TarifaAneel[]): GrupoATarifaAgregada[] 
 
 // ── Main handler ──────────────────────────────────────────────────────────────
 
-Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+// ── Background processor ─────────────────────────────────────────────────────
 
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+async function processSync(
+  supabase: ReturnType<typeof createClient>,
+  runId: string,
+  tenantId: string,
+  userId: string | null,
+  concessionariaId: string | null,
+  triggerType: string,
+  testRun: boolean,
+) {
+  const runLogs: string[] = [];
+  const log = (msg: string) => {
+    const line = `[${new Date().toISOString()}] ${msg}`;
+    console.log(line);
+    runLogs.push(line);
+  };
+
+  // Helper to periodically flush logs to the run record
+  let lastFlush = Date.now();
+  const flushLogs = async () => {
+    if (Date.now() - lastFlush < 5000) return; // max every 5s
+    lastFlush = Date.now();
+    try {
+      await supabase.from('aneel_sync_runs').update({ logs: runLogs }).eq('id', runId);
+    } catch {}
+  };
 
   try {
-    const authCheck = await verifyAdminRole(req);
-    if (!authCheck.authorized) return authCheck.error!;
-
-    const { userId, tenantId } = authCheck;
-
-    if (!tenantId) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Tenant não encontrado para o usuário. Verifique o cadastro do perfil.',
-      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
-    }
-
-    let concessionariaId: string | null = null;
-    let triggerType: string = 'manual';
-    let testRun = false;
-    try {
-      const body = await req.json();
-      concessionariaId = body?.concessionaria_id || null;
-      triggerType = body?.trigger_type || 'manual';
-      testRun = body?.test_run === true;
-    } catch { /* no body */ }
-
-    // ── Create run record ─────────────────────────────────────────────────────
-    const { data: runData, error: runError } = await supabase
-      .from('aneel_sync_runs')
-      .insert({
-        tenant_id: tenantId,
-        triggered_by: userId,
-        trigger_type: testRun ? 'test_run' : triggerType,
-        status: 'running',
-        logs: [],
-      })
-      .select('id')
-      .single();
-
-    if (runError) throw runError;
-    const runId = runData.id;
-    const runLogs: string[] = [];
-
-    const log = (msg: string) => {
-      const line = `[${new Date().toISOString()}] ${msg}`;
-      console.log(line);
-      runLogs.push(line);
-    };
-
-    log(`Sync v4.0 iniciado — tenant=${tenantId}, trigger=${testRun ? 'test_run' : triggerType}, runId=${runId}`);
+    log(`Sync v4.1 iniciado — tenant=${tenantId}, trigger=${testRun ? 'test_run' : triggerType}, runId=${runId}`);
     if (testRun) log("🧪 MODO TEST RUN — nenhuma alteração será publicada");
 
     // ── Fetch concessionárias ─────────────────────────────────────────────────
@@ -481,22 +457,19 @@ Deno.serve(async (req) => {
         status: 'success', finished_at: new Date().toISOString(),
         logs: runLogs, total_fetched: 0, total_matched: 0, total_updated: 0,
       }).eq('id', runId);
-      return new Response(JSON.stringify({ success: true, message: "Nenhuma concessionária", run_id: runId }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      return;
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // PHASE 1: Fetch & Process BT (B1 Convencional) — existing logic
+    // PHASE 1: BT
     // ══════════════════════════════════════════════════════════════════════════
 
     log("═══ FASE 1: Tarifas BT (B1, B2, B3) ═══");
 
     const BT_SUBGRUPOS = ['B1', 'B2', 'B3'];
-    
-    // Fetch each BT subgroup individually from ANEEL
     const btRecordsBySubgrupo: Record<string, TarifaAneel[]> = {};
     let allBtRecords: TarifaAneel[] = [];
-    
+
     for (const sub of BT_SUBGRUPOS) {
       try {
         const records = await fetchAneelRecords({
@@ -512,18 +485,19 @@ Deno.serve(async (req) => {
         log(`⚠️ Erro ao buscar BT ${sub}: ${err instanceof Error ? err.message : String(err)}`);
         btRecordsBySubgrupo[sub] = [];
       }
+      await flushLogs();
     }
 
     const snapshotHash = await sha256(JSON.stringify(allBtRecords));
     log(`ANEEL BT total: ${allBtRecords.length} registros — hash=${snapshotHash.substring(0, 16)}...`);
 
-    // Build lookup indexes per subgrupo: { subgrupo -> { agentKey -> tarifa } }
+    // Build lookup indexes per subgrupo
     const btIndexBySubgrupo: Record<string, { porAgente: Record<string, TarifaAneel>; porNome: Record<string, TarifaAneel> }> = {};
-    
+
     for (const sub of BT_SUBGRUPOS) {
       const porAgente: Record<string, TarifaAneel> = {};
       const porNome: Record<string, TarifaAneel> = {};
-      
+
       for (const t of (btRecordsBySubgrupo[sub] || [])) {
         if (t.SigAgente) {
           const k = normalizeStr(t.SigAgente);
@@ -538,8 +512,7 @@ Deno.serve(async (req) => {
       }
       btIndexBySubgrupo[sub] = { porAgente, porNome };
     }
-    
-    // Also build a combined B1 index for backward compat (concessionarias table update)
+
     const tarifasPorAgente = btIndexBySubgrupo['B1']?.porAgente || {};
     const tarifasPorNome = btIndexBySubgrupo['B1']?.porNome || {};
 
@@ -560,7 +533,6 @@ Deno.serve(async (req) => {
 
       totalMatched++;
 
-      // Convert MWh → kWh
       const tusdMwh = parseFloat(tarifa.VlrTUSD) || 0;
       const teMwh = parseFloat(tarifa.VlrTE) || 0;
       const tusdTotal = Math.round(tusdMwh / 1000 * 1000000) / 1000000;
@@ -575,17 +547,14 @@ Deno.serve(async (req) => {
       const vigenciaFim = tarifa.DatFimVigencia && tarifa.DatFimVigencia !== '0001-01-01' ? tarifa.DatFimVigencia.substring(0, 10) : null;
 
       const precLabel = precisao === 'exato' ? 'EXATO (Fio B real)' : 'ESTIMADO (TUSD total como proxy)';
-      log(`📊 BT ${conc.nome} → TE=${te.toFixed(6)}, TUSD total=${tusdTotal.toFixed(6)}, FioB real=${tusd_fio_b_real?.toFixed(6) ?? 'N/A'} → ${precLabel}`);
 
       if (!testRun) {
-        // Deactivate previous active version
         await supabase.from('tariff_versions')
           .update({ is_active: false })
           .eq('concessionaria_id', conc.id)
           .eq('tenant_id', tenantId)
           .eq('is_active', true);
 
-        // Create new versioned record
         const { error: tvError } = await supabase.from('tariff_versions').insert({
           tenant_id: tenantId,
           concessionaria_id: conc.id,
@@ -618,21 +587,17 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Also update concessionarias (backward compat)
         await supabase.from('concessionarias').update({
           tarifa_energia: tarifaTotal,
           tarifa_fio_b: tusd_fio_b_real ?? tusdTotal,
           ultima_sync_tarifas: new Date().toISOString(),
         }).eq('id', conc.id);
 
-        // ── Upsert each BT subgroup with its own tariff from ANEEL ──
         for (const sub of BT_SUBGRUPOS) {
           const subIndex = btIndexBySubgrupo[sub];
           if (!subIndex) continue;
-          
+
           const subTarifa = findTarifaForConc(conc, subIndex.porAgente, subIndex.porNome);
-          
-          // If no specific data for this subgroup, use B1 values as fallback
           const srcTarifa = subTarifa || tarifa;
           const subTusdMwh = parseFloat(srcTarifa.VlrTUSD) || 0;
           const subTeMwh = parseFloat(srcTarifa.VlrTE) || 0;
@@ -656,48 +621,26 @@ Deno.serve(async (req) => {
               onConflict: 'tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria',
               ignoreDuplicates: false,
             });
-          
-          if (subTarifa) {
-            log(`  📦 ${sub}: TE=${subTe.toFixed(6)}, TUSD=${subTusd.toFixed(6)}, Total=${subTotal.toFixed(6)}`);
-          } else {
-            log(`  📦 ${sub}: usando B1 como fallback (${subTotal.toFixed(6)})`);
-          }
         }
 
         totalUpdated++;
-        log(`✅ BT ${conc.nome} → TE=${te.toFixed(6)} + TUSD=${tusdTotal.toFixed(6)} = ${tarifaTotal.toFixed(6)} R$/kWh | vigência=${vigenciaInicio} | ${precLabel} | auditoria=${validStatus}`);
+        log(`✅ BT ${conc.nome} → ${tarifaTotal.toFixed(6)} R$/kWh`);
       } else {
-        log(`🧪 [DRY-RUN] BT ${conc.nome} → TE=${te.toFixed(6)} + TUSD=${tusdTotal.toFixed(6)} = ${tarifaTotal.toFixed(6)} | ${precLabel} | auditoria=${validStatus}`);
+        log(`🧪 [DRY-RUN] BT ${conc.nome} → ${tarifaTotal.toFixed(6)}`);
         totalUpdated++;
       }
-
-      resultados.push({
-        grupo: 'B',
-        concessionaria: conc.nome,
-        tarifa_anterior: conc.tarifa_energia,
-        tarifa_nova: tarifaTotal,
-        te,
-        tusd_total: tusdTotal,
-        tusd_fio_b_real,
-        precisao,
-        vigencia: vigenciaInicio,
-        validation_status: validStatus,
-        validation_notes: validNotes,
-        sincronizado: !testRun,
-      });
+      await flushLogs();
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // PHASE 2: Fetch & Process Grupo A (MT) — NEW
+    // PHASE 2: Grupo A (MT)
     // ══════════════════════════════════════════════════════════════════════════
 
-    log("═══ FASE 2: Tarifas Grupo A (Média/Alta Tensão) ═══");
+    log("═══ FASE 2: Tarifas Grupo A (MT) ═══");
 
     let totalMtUpdated = 0;
     let totalMtMatched = 0;
 
-    // Fetch all Group A subgroups at once (the API supports multiple via OR-like behavior)
-    // We fetch all records and filter client-side for flexibility
     const MT_SUBGRUPOS = ['A1', 'A2', 'A3', 'A3a', 'A4', 'AS'];
     const MT_MODALIDADES = ['Azul', 'Verde'];
 
@@ -713,24 +656,22 @@ Deno.serve(async (req) => {
           }, log, 500);
           allMtRecords.push(...records);
           if (records.length > 0) {
-            log(`📡 ANEEL MT: ${subgrupo}/${modalidade} → ${records.length} registros`);
+            log(`📡 MT: ${subgrupo}/${modalidade} → ${records.length} registros`);
           }
         } catch (err) {
-          log(`⚠️ Erro ao buscar ${subgrupo}/${modalidade}: ${err instanceof Error ? err.message : String(err)}`);
+          log(`⚠️ Erro MT ${subgrupo}/${modalidade}: ${err instanceof Error ? err.message : String(err)}`);
         }
       }
+      await flushLogs();
     }
 
     log(`Total registros MT brutos: ${allMtRecords.length}`);
 
     if (allMtRecords.length > 0) {
-      // Aggregate Ponta/Fora Ponta records
       const aggregated = aggregateGrupoARecords(allMtRecords);
-      log(`Tarifas MT agregadas: ${aggregated.length} combinações subgrupo/modalidade/distribuidora`);
+      log(`Tarifas MT agregadas: ${aggregated.length} combinações`);
 
-      // Process each concessionária
       for (const conc of concessionarias) {
-        // Find all MT tarifas that match this concessionária
         const concMtTarifas = aggregated.filter(a =>
           matchAgentToConc(a.sigAgente, a.nomAgente, conc)
         );
@@ -738,27 +679,20 @@ Deno.serve(async (req) => {
         if (concMtTarifas.length === 0) continue;
 
         totalMtMatched++;
-        log(`🔍 MT ${conc.nome}: ${concMtTarifas.length} subgrupo(s) encontrado(s)`);
 
         for (const mt of concMtTarifas) {
-          const subgrupoLabel = `${mt.subgrupo}`;
-          const modalidadeLabel = mt.modalidade;
-
-          log(`  📊 ${subgrupoLabel}/${modalidadeLabel} → TE_P=${mt.te_ponta.toFixed(6)}, TE_FP=${mt.te_fora_ponta.toFixed(6)}, TUSD_P=${mt.tusd_ponta.toFixed(6)}, TUSD_FP=${mt.tusd_fora_ponta.toFixed(6)}`);
-
           if (!testRun) {
-            // Check if there's already a manual record — don't overwrite manual data
             const { data: existing } = await supabase
               .from('concessionaria_tarifas_subgrupo')
               .select('id, origem')
               .eq('concessionaria_id', conc.id)
               .eq('tenant_id', tenantId)
               .eq('subgrupo', mt.subgrupo)
-              .eq('modalidade_tarifaria', modalidadeLabel)
+              .eq('modalidade_tarifaria', mt.modalidade)
               .maybeSingle();
 
             if (existing?.origem === 'manual') {
-              log(`  ⏭️ ${subgrupoLabel}/${modalidadeLabel} — mantido (origem manual)`);
+              log(`  ⏭️ ${mt.subgrupo}/${mt.modalidade} ${conc.nome} — mantido (manual)`);
               continue;
             }
 
@@ -768,7 +702,7 @@ Deno.serve(async (req) => {
                 concessionaria_id: conc.id,
                 tenant_id: tenantId,
                 subgrupo: mt.subgrupo,
-                modalidade_tarifaria: modalidadeLabel,
+                modalidade_tarifaria: mt.modalidade,
                 te_ponta: mt.te_ponta,
                 te_fora_ponta: mt.te_fora_ponta,
                 tusd_ponta: mt.tusd_ponta,
@@ -783,34 +717,22 @@ Deno.serve(async (req) => {
               });
 
             if (upsertError) {
-              log(`  ⚠️ Erro upsert MT ${subgrupoLabel}/${modalidadeLabel}: ${upsertError.message}`);
-              erros.push({ concessionaria: `${conc.nome} (${subgrupoLabel})`, erro: upsertError.message });
+              log(`  ⚠️ Erro MT ${mt.subgrupo}/${mt.modalidade}: ${upsertError.message}`);
+              erros.push({ concessionaria: `${conc.nome} (${mt.subgrupo})`, erro: upsertError.message });
             } else {
               totalMtUpdated++;
-              log(`  ✅ ${subgrupoLabel}/${modalidadeLabel} atualizado via ANEEL`);
+              log(`  ✅ ${mt.subgrupo}/${mt.modalidade} ${conc.nome} atualizado`);
             }
           } else {
-            log(`  🧪 [DRY-RUN] ${subgrupoLabel}/${modalidadeLabel} seria atualizado`);
+            log(`  🧪 [DRY-RUN] ${mt.subgrupo}/${mt.modalidade} ${conc.nome}`);
             totalMtUpdated++;
           }
-
-          resultados.push({
-            grupo: 'A',
-            concessionaria: conc.nome,
-            subgrupo: mt.subgrupo,
-            modalidade: modalidadeLabel,
-            te_ponta: mt.te_ponta,
-            te_fora_ponta: mt.te_fora_ponta,
-            tusd_ponta: mt.tusd_ponta,
-            tusd_fora_ponta: mt.tusd_fora_ponta,
-            vigencia: mt.vigencia_inicio,
-            sincronizado: !testRun,
-          });
         }
+        await flushLogs();
       }
     }
 
-    log(`MT concluído: ${totalMtMatched} concessionárias com dados MT, ${totalMtUpdated} subgrupos ${testRun ? 'simulados' : 'atualizados'}`);
+    log(`MT: ${totalMtMatched} concs, ${totalMtUpdated} subgrupos ${testRun ? 'simulados' : 'atualizados'}`);
 
     // ── Finalize run ──────────────────────────────────────────────────────────
     const grandTotalUpdated = totalUpdated + totalMtUpdated;
@@ -829,47 +751,118 @@ Deno.serve(async (req) => {
       logs: runLogs,
     }).eq('id', runId);
 
-    log(`Sync concluído: BT=${totalUpdated}, MT=${totalMtUpdated} ${testRun ? 'simuladas' : 'atualizadas'}, ${erros.length} erros. Status=${finalStatus}`);
+    log(`Sync concluído: BT=${totalUpdated}, MT=${totalMtUpdated}, erros=${erros.length}. Status=${finalStatus}`);
 
+  } catch (error) {
+    console.error("[sync-tarifas-aneel] Erro no processamento:", error);
+    const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
+    try {
+      await supabase.from('aneel_sync_runs').update({
+        status: 'error',
+        finished_at: new Date().toISOString(),
+        error_message: errorMsg,
+      }).eq('id', runId);
+    } catch {}
+  }
+}
+
+// ── Main handler ──────────────────────────────────────────────────────────────
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  try {
+    const authCheck = await verifyAdminRole(req);
+    if (!authCheck.authorized) return authCheck.error!;
+
+    const { userId, tenantId } = authCheck;
+
+    if (!tenantId) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Tenant não encontrado para o usuário.',
+      }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Check for already running sync
+    const { data: activeRun } = await supabase
+      .from('aneel_sync_runs')
+      .select('id, started_at')
+      .eq('tenant_id', tenantId)
+      .eq('status', 'running')
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (activeRun) {
+      // If running for more than 10 min, mark as stale and allow new run
+      const startedAt = new Date(activeRun.started_at).getTime();
+      const now = Date.now();
+      if (now - startedAt < 10 * 60 * 1000) {
+        return new Response(JSON.stringify({
+          success: true,
+          run_id: activeRun.id,
+          message: 'Sincronização já em andamento. Acompanhe o progresso.',
+          already_running: true,
+        }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+      // Mark stale run as timed_out
+      await supabase.from('aneel_sync_runs').update({
+        status: 'timed_out',
+        finished_at: new Date().toISOString(),
+        error_message: 'Execução expirou (timeout > 10min)',
+      }).eq('id', activeRun.id);
+    }
+
+    let concessionariaId: string | null = null;
+    let triggerType: string = 'manual';
+    let testRun = false;
+    try {
+      const body = await req.json();
+      concessionariaId = body?.concessionaria_id || null;
+      triggerType = body?.trigger_type || 'manual';
+      testRun = body?.test_run === true;
+    } catch { /* no body */ }
+
+    // ── Create run record ─────────────────────────────────────────────────────
+    const { data: runData, error: runError } = await supabase
+      .from('aneel_sync_runs')
+      .insert({
+        tenant_id: tenantId,
+        triggered_by: userId,
+        trigger_type: testRun ? 'test_run' : triggerType,
+        status: 'running',
+        logs: [],
+      })
+      .select('id')
+      .single();
+
+    if (runError) throw runError;
+    const runId = runData.id;
+
+    // 🚀 Fire processing in background — DO NOT await
+    // The EdgeRuntime keeps the function alive for the duration of pending promises
+    processSync(supabase, runId, tenantId, userId, concessionariaId, triggerType, testRun)
+      .catch(err => console.error("[sync-tarifas-aneel] Background error:", err));
+
+    // Return immediately with run_id for polling
     return new Response(JSON.stringify({
       success: true,
       run_id: runId,
-      status: finalStatus,
+      message: 'Sincronização iniciada. Acompanhe o progresso na tela.',
       test_run: testRun,
-      message: testRun
-        ? `Test run: ${grandTotalUpdated} registro(s) seriam atualizados (BT=${totalUpdated}, MT=${totalMtUpdated})`
-        : `Tarifas atualizadas: BT=${totalUpdated}, MT=${totalMtUpdated} concessionária(s)`,
-      resultados,
-      erros,
-      fonte: "ANEEL - Dados Abertos (Tarifas Homologadas BT + MT)",
-      total_aneel_bt: allBtRecords.length,
-      total_aneel_mt: allMtRecords.length,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 });
 
   } catch (error) {
     console.error("[sync-tarifas-aneel] Erro:", error);
-
     const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
-    const isAneelDown = errorMsg.includes("indisponível") || errorMsg.includes("ANEEL API");
-
-    // Update run status if runId exists
-    if (typeof runId !== 'undefined' && runId) {
-      try {
-        await supabase.from('aneel_sync_runs').update({
-          status: 'error',
-          finished_at: new Date().toISOString(),
-          error_message: errorMsg,
-          logs: typeof runLogs !== 'undefined' ? runLogs : [],
-        }).eq('id', runId);
-      } catch {}
-    }
-
     return new Response(JSON.stringify({
       success: false,
-      error: isAneelDown
-        ? "A API da ANEEL (dadosabertos.aneel.gov.br) está fora do ar no momento. Isso é temporário — tente novamente em alguns minutos."
-        : errorMsg,
-      retryable: isAneelDown,
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: isAneelDown ? 503 : 500 });
+      error: errorMsg,
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
   }
 });
