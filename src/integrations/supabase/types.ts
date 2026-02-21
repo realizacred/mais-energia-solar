@@ -1719,6 +1719,7 @@ export type Database = {
         Row: {
           aliquota_icms: number | null
           ativo: boolean
+          cofins_percentual: number | null
           created_at: string
           custo_disponibilidade_bifasico: number | null
           custo_disponibilidade_monofasico: number | null
@@ -1728,10 +1729,12 @@ export type Database = {
           nome: string
           nome_aneel_oficial: string | null
           percentual_isencao: number | null
+          pis_percentual: number | null
           possui_isencao_scee: boolean | null
           sigla: string | null
           tarifa_energia: number | null
           tarifa_fio_b: number | null
+          tarifa_fio_b_gd: number | null
           tenant_id: string
           ultima_sync_tarifas: string | null
           updated_at: string
@@ -1739,6 +1742,7 @@ export type Database = {
         Insert: {
           aliquota_icms?: number | null
           ativo?: boolean
+          cofins_percentual?: number | null
           created_at?: string
           custo_disponibilidade_bifasico?: number | null
           custo_disponibilidade_monofasico?: number | null
@@ -1748,10 +1752,12 @@ export type Database = {
           nome: string
           nome_aneel_oficial?: string | null
           percentual_isencao?: number | null
+          pis_percentual?: number | null
           possui_isencao_scee?: boolean | null
           sigla?: string | null
           tarifa_energia?: number | null
           tarifa_fio_b?: number | null
+          tarifa_fio_b_gd?: number | null
           tenant_id?: string
           ultima_sync_tarifas?: string | null
           updated_at?: string
@@ -1759,6 +1765,7 @@ export type Database = {
         Update: {
           aliquota_icms?: number | null
           ativo?: boolean
+          cofins_percentual?: number | null
           created_at?: string
           custo_disponibilidade_bifasico?: number | null
           custo_disponibilidade_monofasico?: number | null
@@ -1768,10 +1775,12 @@ export type Database = {
           nome?: string
           nome_aneel_oficial?: string | null
           percentual_isencao?: number | null
+          pis_percentual?: number | null
           possui_isencao_scee?: boolean | null
           sigla?: string | null
           tarifa_energia?: number | null
           tarifa_fio_b?: number | null
+          tarifa_fio_b_gd?: number | null
           tenant_id?: string
           ultima_sync_tarifas?: string | null
           updated_at?: string
