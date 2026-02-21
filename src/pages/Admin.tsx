@@ -10,7 +10,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { AdminSidebar } from "@/components/admin/sidebar/AdminSidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import Footer from "@/components/layout/Footer";
+
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { TrialBanner } from "@/components/plan";
 import { TourProvider } from "@/components/tour";
@@ -571,8 +571,6 @@ export default function Admin() {
               </Routes>
             </Suspense>
           </main>
-
-          <Footer />
         </SidebarInset>
       </div>
       </TourProvider>
