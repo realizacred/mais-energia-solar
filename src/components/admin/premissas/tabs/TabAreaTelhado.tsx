@@ -230,11 +230,11 @@ function RoofCard({
             return (
               <Badge
                 key={opt.value}
-                variant={active ? "default" : "outline"}
+                variant="outline"
                 className={cn(
-                  "cursor-pointer select-none transition-colors text-[10px] px-2 py-0.5",
-                  active && "bg-primary text-primary-foreground hover:bg-primary/90",
-                  !active && "hover:bg-muted"
+                  "cursor-pointer select-none transition-colors text-[10px] px-2 py-0.5 font-normal",
+                  active && "bg-muted border-foreground/30 text-foreground",
+                  !active && "border-border/50 text-muted-foreground hover:bg-muted/50"
                 )}
                 onClick={() => onToggleArray(idx, "topologias_permitidas", opt.value)}
               >
@@ -254,11 +254,11 @@ function RoofCard({
             return (
               <Badge
                 key={opt.value}
-                variant={active ? "default" : "outline"}
+                variant="outline"
                 className={cn(
-                  "cursor-pointer select-none transition-colors text-[10px] px-2 py-0.5",
-                  active && "bg-secondary text-secondary-foreground hover:bg-secondary/90",
-                  !active && "hover:bg-muted"
+                  "cursor-pointer select-none transition-colors text-[10px] px-2 py-0.5 font-normal",
+                  active && "bg-muted border-foreground/30 text-foreground",
+                  !active && "border-border/50 text-muted-foreground hover:bg-muted/50"
                 )}
                 onClick={() => onToggleArray(idx, "tipos_sistema_permitidos", opt.value)}
               >
