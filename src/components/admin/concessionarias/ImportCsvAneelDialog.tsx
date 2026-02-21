@@ -3,6 +3,7 @@ import { Upload, FileText, AlertTriangle, CheckCircle2, Info } from "lucide-reac
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
@@ -35,6 +36,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
   const [parsed, setParsed] = useState<ParsedTarifa[]>([]);
   const [fileType, setFileType] = useState<FileType | null>(null);
   const [importing, setImporting] = useState(false);
+  const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 });
   const [result, setResult] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<"upload" | "preview" | "done">("upload");
 
@@ -43,6 +45,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setParsed([]);
     setResult(null);
     setFileType(null);
+    setProgress({ current: 0, total: 0, percent: 0 });
     setStep("upload");
   };
 
@@ -122,6 +125,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
   const handleImport = async () => {
     if (parsed.length === 0) return;
     setImporting(true);
+    setProgress({ current: 0, total: 0, percent: 0 });
 
     try {
       const { data: concessionarias, error: concError } = await supabase
@@ -169,8 +173,11 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
         let updated = 0;
         const errors: string[] = [];
+        const entries = [...grouped.entries()];
+        const totalEntries = entries.length;
 
-        for (const [, { conc, records }] of grouped) {
+        for (let idx = 0; idx < entries.length; idx++) {
+          const [, { conc, records }] = entries[idx];
           const first = records[0];
           const sub = first.subgrupo;
           const isGrupoA = sub.startsWith("A");
@@ -218,6 +225,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
             else updated++;
           }
+          setProgress({ current: idx + 1, total: totalEntries, percent: Math.round(((idx + 1) / totalEntries) * 100) });
+          if (idx % 5 === 0) await new Promise(r => setTimeout(r, 10));
         }
 
         const matched = grouped.size;
@@ -236,8 +245,11 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
         let updated = 0;
         const errors: string[] = [];
+        const entries2 = [...grouped.entries()];
+        const totalEntries2 = entries2.length;
 
-        for (const [, { conc, records }] of grouped) {
+        for (let idx = 0; idx < entries2.length; idx++) {
+          const [, { conc, records }] = entries2[idx];
           const first = records[0];
           const sub = first.subgrupo;
 
@@ -286,6 +298,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
             else updated++;
           }
+          setProgress({ current: idx + 1, total: totalEntries2, percent: Math.round(((idx + 1) / totalEntries2) * 100) });
+          if (idx % 5 === 0) await new Promise(r => setTimeout(r, 10));
         }
 
         const matched = grouped.size;
@@ -293,6 +307,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         setResult({ matched, updated, skipped, errors });
       }
 
+      setProgress({ current: 1, total: 1, percent: 100 });
       setStep("done");
       if (result?.updated || true) {
         onImportComplete();
@@ -433,11 +448,19 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         )}
 
         <DialogFooter>
-          {step === "preview" && (
+        {step === "preview" && (
             <>
-              <Button variant="outline" size="sm" onClick={reset}>Voltar</Button>
+              {importing && (
+                <div className="flex-1 flex items-center gap-3">
+                  <Progress value={progress.percent} className="h-2 flex-1" />
+                  <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
+                    {progress.percent}%
+                  </span>
+                </div>
+              )}
+              {!importing && <Button variant="outline" size="sm" onClick={reset}>Voltar</Button>}
               <Button size="sm" onClick={handleImport} disabled={importing}>
-                {importing ? "Importando..." : `Importar ${parsed.length} registros`}
+                {importing ? `Importando… ${progress.percent}%` : `Importar ${parsed.length} registros`}
               </Button>
             </>
           )}
