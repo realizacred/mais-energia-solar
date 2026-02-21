@@ -67,10 +67,6 @@ const PRECO_OPTIONS = [
   { value: "total", label: "Total" },
 ];
 
-const FORNECEDOR_OPTIONS = [
-  { value: "qualquer", label: "Qualquer fornecedor" },
-  { value: "escolher", label: "Escolher fornecedores" },
-];
 
 export function TarifasSection({ premises, onChange, syncedFields }: Props) {
   const set = (key: keyof TenantPremises, value: any) =>
@@ -355,23 +351,28 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
               onChange={(v) => set("dod", v)}
             />
           </div>
-          <div className="space-y-2 pt-2 border-t border-border/30">
-            <Label className="text-xs font-medium text-muted-foreground">Fornecedores</Label>
-            <div className="flex gap-4">
-              {FORNECEDOR_OPTIONS.map((o) => (
-                <label key={o.value} className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="fornecedor_filtro"
-                    value={o.value}
-                    checked={premises.fornecedor_filtro === o.value}
-                    onChange={() => set("fornecedor_filtro", o.value)}
-                    className="accent-primary"
-                  />
-                  <span className="text-sm">{o.label}</span>
-                </label>
-              ))}
+          <div className="space-y-3 pt-2 border-t border-border/30">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-xs font-medium text-muted-foreground">Filtrar por Fornecedores</Label>
+                <p className="text-[10px] text-muted-foreground">
+                  {premises.fornecedor_filtro === "escolher"
+                    ? "Apenas fornecedores selecionados serão considerados"
+                    : "Todos os fornecedores disponíveis serão considerados"}
+                </p>
+              </div>
+              <Switch
+                checked={premises.fornecedor_filtro === "escolher"}
+                onCheckedChange={(v) => set("fornecedor_filtro", v ? "escolher" : "qualquer")}
+              />
             </div>
+            {premises.fornecedor_filtro === "escolher" && (
+              <div className="rounded-lg border border-border/50 bg-muted/30 p-3 space-y-2">
+                <p className="text-xs text-muted-foreground italic">
+                  O cadastro de fornecedores ainda não está disponível. Em breve você poderá selecionar fornecedores específicos aqui.
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </SectionCard>
