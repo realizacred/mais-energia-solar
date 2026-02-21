@@ -116,6 +116,7 @@ interface GenerateRequestV2 {
   observacoes?: string;
   idempotency_key: string;
   variaveis_custom?: boolean;
+  aceite_estimativa?: boolean;
 }
 
 // ─── Main Handler ───────────────────────────────────────────
@@ -203,8 +204,9 @@ Deno.serve(async (req) => {
     const uc1 = body.ucs[0];
     const estado = uc1.estado;
     const anoAtual = new Date().getFullYear();
+    const distribuidoraId = uc1.distribuidora_id || null;
 
-    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes] = await Promise.all([
+    const [fioBRes, tributacaoRes, irradiacaoRes, defaultPremissasRes, consultorRes, tariffVersionRes, aneelRunRes] = await Promise.all([
       adminClient.from("fio_b_escalonamento")
         .select("ano, percentual_nao_compensado")
         .or(`tenant_id.eq.${tenantId},tenant_id.is.null`)
@@ -223,10 +225,31 @@ Deno.serve(async (req) => {
         .eq("tenant_id", tenantId).maybeSingle(),
       adminClient.from("consultores")
         .select("id").eq("user_id", userId).eq("tenant_id", tenantId).eq("ativo", true).maybeSingle(),
+      // ── ENFORCEMENT: Fetch active tariff_version for distribuidora ──
+      distribuidoraId
+        ? adminClient.from("tariff_versions")
+            .select("id, te_kwh, tusd_total_kwh, tusd_fio_b_kwh, tusd_fio_a_kwh, tfsee_kwh, pnd_kwh, precisao, origem, vigencia_inicio, vigencia_fim, snapshot_hash, run_id, is_active")
+            .eq("tenant_id", tenantId)
+            .eq("concessionaria_id", distribuidoraId)
+            .eq("is_active", true)
+            .order("vigencia_inicio", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+      // ── ENFORCEMENT: Fetch latest ANEEL sync run ──
+      adminClient.from("aneel_sync_runs")
+        .select("id, started_at, snapshot_hash, status")
+        .eq("tenant_id", tenantId)
+        .eq("status", "completed")
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
     const consultorId = consultorRes.data?.id ?? null;
     const geracaoMediaKwpMes = irradiacaoRes.data?.geracao_media_kwp_mes ?? 120;
+    const activeTariff = tariffVersionRes.data;
+    const lastAneelRun = aneelRunRes.data;
 
     // Build Fio B escalation steps
     const fioBSteps: FioBStep[] = (fioBRes.data ?? []).map((r: any) => ({
@@ -235,6 +258,77 @@ Deno.serve(async (req) => {
     }));
     const fioBCurrentYear = fioBSteps.find(s => s.ano === anoAtual);
     const percentualFioB = fioBCurrentYear?.percentual ?? 0;
+
+    // ── ENFORCEMENT: Recalculate precision from tariff data (NEVER trust frontend) ──
+    let backendPrecisao: "exato" | "estimado" = "estimado";
+    let backendPrecisaoMotivo = "Fio B real não disponível — usando TUSD total como proxy";
+    if (activeTariff && activeTariff.tusd_fio_b_kwh && activeTariff.tusd_fio_b_kwh > 0) {
+      backendPrecisao = "exato";
+      backendPrecisaoMotivo = "Fio B real disponível na tariff_version ativa";
+    }
+
+    // ── ENFORCEMENT: GD rule recalculation (NEVER trust frontend values) ──
+    const backendRegraGd = body.grupo === "B" ? "GD_II" : "GD_I";
+    const backendAnoGd = anoAtual;
+    const GD_FIO_B_BY_YEAR: Record<number, number> = {
+      2023: 0.15, 2024: 0.30, 2025: 0.45, 2026: 0.60, 2027: 0.75, 2028: 0.90,
+    };
+    const backendFioBPercent = GD_FIO_B_BY_YEAR[anoAtual] ?? (anoAtual >= 2029 ? 0.90 : 0.60);
+
+    // ── ENFORCEMENT: Validate required variables ──
+    const missingRequired: string[] = [];
+    if (!body.lead_id) missingRequired.push("lead_id");
+    if (!body.potencia_kwp || body.potencia_kwp <= 0) missingRequired.push("sistema_solar.potencia_sistema");
+    const consumoCheck = body.ucs.reduce((s, uc) => s + (uc.tipo_dimensionamento === "MT" ? uc.consumo_mensal_p + uc.consumo_mensal_fp : uc.consumo_mensal), 0);
+    if (consumoCheck <= 0) missingRequired.push("entrada.consumo_mensal");
+    const custoKitCheck = body.itens.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+    if (custoKitCheck <= 0) missingRequired.push("financeiro.preco_total");
+
+    if (missingRequired.length > 0) {
+      // Log bypass attempt
+      await adminClient.from("audit_logs").insert({
+        tenant_id: tenantId,
+        tabela: "propostas_nativas",
+        acao: "pdf_bloqueado_backend",
+        user_id: userId,
+        registro_id: body.lead_id,
+        dados_novos: {
+          motivo: "missing_required_variables",
+          missing_required: missingRequired,
+          precisao: backendPrecisao,
+        },
+      }).then(() => {}).catch(() => {});
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: "missing_required_variables",
+        missing: missingRequired,
+        message: "Variáveis obrigatórias ausentes. Não é possível gerar a proposta.",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    // ── ENFORCEMENT: Check aceite_estimativa if precision is estimated ──
+    if (backendPrecisao === "estimado" && body.aceite_estimativa !== true) {
+      // Log bypass attempt
+      await adminClient.from("audit_logs").insert({
+        tenant_id: tenantId,
+        tabela: "propostas_nativas",
+        acao: "pdf_bloqueado_backend",
+        user_id: userId,
+        registro_id: body.lead_id,
+        dados_novos: {
+          motivo: "estimativa_not_accepted",
+          precisao: backendPrecisao,
+          precisao_motivo: backendPrecisaoMotivo,
+        },
+      }).then(() => {}).catch(() => {});
+
+      return new Response(JSON.stringify({
+        success: false,
+        error: "estimativa_not_accepted",
+        message: "É necessário aceitar que os valores são estimados antes de gerar a proposta.",
+      }), { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
     // Resolve premissas (payload > tenant defaults > hardcoded)
     let premissas = body.premissas;
@@ -729,6 +823,32 @@ Deno.serve(async (req) => {
       console.warn(`[proposal-generate] ${failures.length}/${granularResults.length} granular ops failed:`,
         failures.map(f => (f as PromiseRejectedResult).reason));
     }
+
+    // ── ENFORCEMENT: Save audit data from BACKEND-COMPUTED values (NEVER from frontend) ──
+    const auditPayload: Record<string, unknown> = {
+      precisao_calculo: backendPrecisao,
+      regra_gd: backendRegraGd,
+      ano_gd: backendAnoGd,
+      fio_b_percent_aplicado: backendFioBPercent,
+      origem_tarifa: activeTariff?.origem ?? "desconhecida",
+      vigencia_tarifa: activeTariff?.vigencia_inicio ?? null,
+      snapshot_hash: activeTariff?.snapshot_hash ?? lastAneelRun?.snapshot_hash ?? null,
+      missing_variables: null, // passed validation
+      tariff_version_id: activeTariff?.id ?? null,
+      aneel_run_id: activeTariff?.run_id ?? lastAneelRun?.id ?? null,
+    };
+    if (backendPrecisao === "estimado" && body.aceite_estimativa === true) {
+      auditPayload.aceite_estimativa = true;
+      auditPayload.data_aceite_estimativa = new Date().toISOString();
+    }
+
+    await adminClient.from("propostas_nativas")
+      .update(auditPayload)
+      .eq("id", propostaId)
+      .eq("tenant_id", tenantId)
+      .then(({ error: auditErr }) => {
+        if (auditErr) console.warn("[proposal-generate] Audit persist failed:", auditErr.message);
+      });
 
     return jsonOk({
       success: true, idempotent: false,
