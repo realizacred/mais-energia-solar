@@ -250,7 +250,7 @@ export function detectColumns(headers: string[]): ColumnMap {
     ],
     subgrupo:      [
       "subgrupo", "sub grupo", "sub_grupo", "dscsubgrupo", "dsc sub grupo",
-      "grupo tarifario", "classe", "dsc subgrupo",
+      "grupo tarifario", "dsc subgrupo",
     ],
     modalidade:    [
       "modalidade", "modalidade tarifaria", "dscmodalidadetarifaria",
@@ -336,6 +336,29 @@ export function detectColumns(headers: string[]): ColumnMap {
   return map;
 }
 
+/**
+ * Known non-agent values that should NEVER be treated as distributor names.
+ * These are modalidade, classe, base tarifária and other categorical values.
+ */
+const NON_AGENT_VALUES = new Set([
+  "azul", "branca", "verde", "convencional", "convencional pre-pagamento",
+  "convencional pre pagamento", "geracao", "distribuicao", "transmissao",
+  "tarifa de aplicacao", "base economica", "ponta", "fora ponta",
+  "intermediario", "nao se aplica", "ape", "scee",
+  "a1", "a2", "a3", "a3a", "a4", "as", "b1", "b2", "b3", "bt",
+]);
+
+/** Check if a set of values looks like agent/company names (not modalidade/classe) */
+function looksLikeAgentColumn(values: string[]): boolean {
+  const nonEmpty = values.filter(Boolean);
+  if (nonEmpty.length === 0) return false;
+  const normalizedVals = nonEmpty.map(v => norm(v));
+  // If most values are known non-agent values, reject this column
+  const nonAgentCount = normalizedVals.filter(v => NON_AGENT_VALUES.has(v)).length;
+  if (nonAgentCount / nonEmpty.length > 0.3) return false;
+  return true;
+}
+
 export function parseTarifasHomologadas(data: string[] | string[][], headers: string[]): ParsedTarifa[] {
   const cols = detectColumns(headers);
   const isPreParsed = Array.isArray(data[0]);
@@ -343,12 +366,23 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
   if (!cols.sigAgente && !cols.nomAgente) {
     console.warn("[ANEEL Homol] No sigAgente/nomAgente column found. Headers:", headers);
     
+    // Collect already-mapped column indices to skip
+    const mappedCols = new Set(Object.values(cols).filter(v => v !== undefined));
+    
     // Content-based fallback: try to find agent column by scanning data
     const sampleRows = (data.slice(0, 10) as string[][]);
     for (let colIdx = 0; colIdx < (sampleRows[0]?.length || 0); colIdx++) {
+      // Skip columns already mapped to other fields
+      if (mappedCols.has(colIdx)) continue;
+      
       const values = sampleRows.map(r => r[colIdx] || "").filter(Boolean);
+      if (values.length === 0) continue;
+      
+      // Validate this column doesn't contain known non-agent values
+      if (!looksLikeAgentColumn(values)) continue;
+      
       // Agent columns typically have 2-10 char abbreviations
-      if (values.length > 0 && values.every(v => v.length >= 2 && v.length <= 50)) {
+      if (values.every(v => v.length >= 2 && v.length <= 50)) {
         // Check if any value looks like a known energy company abbreviation
         if (values.some(v => /^[A-Z]{2,10}$/i.test(v.trim()))) {
           cols.sigAgente = colIdx;
@@ -360,6 +394,42 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     
     if (cols.sigAgente === undefined && cols.nomAgente === undefined) {
       return [];
+    }
+  } else {
+    // Even when columns are detected by header, validate the content isn't wrong
+    const agentColIdx = cols.nomAgente ?? cols.sigAgente;
+    if (agentColIdx !== undefined) {
+      const sampleRows = (isPreParsed ? data.slice(0, 20) : data.slice(1, 21)) as string[][];
+      const values = sampleRows.map(r => r[agentColIdx] || "").filter(Boolean);
+      if (!looksLikeAgentColumn(values)) {
+        console.warn("[ANEEL Homol] Detected agent column", agentColIdx, "contains non-agent values:", [...new Set(values)].slice(0, 5));
+        // Try to find real agent column by scanning unmapped columns
+        const mappedCols = new Set(Object.values(cols).filter(v => v !== undefined));
+        let foundAlternative = false;
+        for (let colIdx = 0; colIdx < (sampleRows[0]?.length || 0); colIdx++) {
+          if (mappedCols.has(colIdx)) continue;
+          const colVals = sampleRows.map(r => r[colIdx] || "").filter(Boolean);
+          if (colVals.length === 0) continue;
+          if (!looksLikeAgentColumn(colVals)) continue;
+          // Check if values look like company names (longer, mixed case, contains company keywords)
+          const hasCompanyPattern = colVals.some(v => 
+            v.length >= 3 && (
+              /\b(energia|eletri|distribu|celesc|cemig|copel|cpfl|enel|equatorial|energisa|neoenergia|edp|light|elektro|rge)\b/i.test(v)
+              || /^[A-Z]{2,10}$/i.test(v.trim())
+            )
+          );
+          if (hasCompanyPattern) {
+            console.log("[ANEEL Homol] Reassigning agent to col", colIdx, "with values:", colVals.slice(0, 3));
+            if (cols.nomAgente === agentColIdx) cols.nomAgente = colIdx;
+            if (cols.sigAgente === agentColIdx) cols.sigAgente = colIdx;
+            foundAlternative = true;
+            break;
+          }
+        }
+        if (!foundAlternative) {
+          console.warn("[ANEEL Homol] Could not find alternative agent column. Keeping original mapping.");
+        }
+      }
     }
   }
 
@@ -442,10 +512,15 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
   if (!cols.sigAgente && !cols.nomAgente) {
     console.warn("[ANEEL Comp] No sigAgente/nomAgente column found. Headers:", headers);
     
+    // Collect already-mapped column indices to skip
+    const mappedCols = new Set(Object.values(cols).filter(v => v !== undefined));
+    
     // Content-based fallback for agent
     const sampleRows = (data.slice(0, 10) as string[][]);
     for (let colIdx = 0; colIdx < (sampleRows[0]?.length || 0); colIdx++) {
+      if (mappedCols.has(colIdx)) continue;
       const values = sampleRows.map(r => r[colIdx] || "").filter(Boolean);
+      if (!looksLikeAgentColumn(values)) continue;
       if (values.length > 0 && values.some(v => /^[A-Z]{2,10}$/i.test(v.trim()))) {
         cols.sigAgente = colIdx;
         console.log("[ANEEL Comp] Content-based fallback: sigAgente at col", colIdx);
