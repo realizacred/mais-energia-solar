@@ -267,7 +267,7 @@
                            size="icon"
                            onClick={() => openViewDialog(checklist)}
                          >
-                           <Eye className="h-4 w-4" />
+                           <Eye className="h-4 w-4 text-secondary" />
                          </Button>
                        </TableCell>
                      </TableRow>

@@ -196,20 +196,20 @@ export function ServicoValidacaoDialog({
                 <Tabs defaultValue="fotos" className="w-full">
                   <TabsList className="grid w-full grid-cols-4">
                     <TabsTrigger value="fotos" className="gap-2">
-                      <Image className="h-4 w-4" />
+                      <Image className="h-4 w-4 text-primary" />
                       <span className="hidden sm:inline">Fotos</span>
                       {servico.fotos_urls?.length ? (
                         <Badge variant="secondary" className="ml-1">{servico.fotos_urls.length}</Badge>
                       ) : null}
                     </TabsTrigger>
                     <TabsTrigger value="video" disabled={!servico.video_url}>
-                      <Video className="h-4 w-4" />
+                      <Video className="h-4 w-4 text-info" />
                     </TabsTrigger>
                     <TabsTrigger value="audio" disabled={!servico.audio_url}>
-                      <Volume2 className="h-4 w-4" />
+                      <Volume2 className="h-4 w-4 text-warning" />
                     </TabsTrigger>
                     <TabsTrigger value="layout" disabled={!hasLayout}>
-                      <Grid3X3 className="h-4 w-4" />
+                      <Grid3X3 className="h-4 w-4 text-secondary" />
                       {hasLayout && (
                         <Badge variant="secondary" className="ml-1">{servico.layout_modulos?.totalModules}</Badge>
                       )}

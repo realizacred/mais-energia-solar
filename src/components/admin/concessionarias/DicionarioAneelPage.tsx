@@ -479,7 +479,7 @@ export function DicionarioAneelPage() {
                                   className="h-8 w-8"
                                   onClick={() => openEdit(c)}
                                 >
-                                  <Pencil className="h-4 w-4" />
+                                  <Pencil className="h-4 w-4 text-info" />
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>Editar mapeamento</TooltipContent>

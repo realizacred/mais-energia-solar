@@ -530,7 +530,7 @@ export function ValidacaoVendasManager() {
                             <TableCell>
                               <div className="flex items-center gap-1">
                                 <Button size="sm" variant="ghost" onClick={() => { setSelectedCliente(cliente); setDetailsOpen(true); }}>
-                                  <Eye className="h-4 w-4" />
+                                  <Eye className="h-4 w-4 text-secondary" />
                                 </Button>
                                 <Button
                                   size="sm"

@@ -63,15 +63,15 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
       <Tabs defaultValue="form" className="w-full">
         <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="form" className="gap-1.5 text-xs sm:text-sm">
-            <Users className="h-3.5 w-3.5" />
+            <Users className="h-3.5 w-3.5 text-secondary" />
             Formulário
           </TabsTrigger>
           <TabsTrigger value="whatsapp" className="gap-1.5 text-xs sm:text-sm">
-            <MessageCircle className="h-3.5 w-3.5" />
+            <MessageCircle className="h-3.5 w-3.5 text-success" />
             WhatsApp
           </TabsTrigger>
           <TabsTrigger value="pwa" className="gap-1.5 text-xs sm:text-sm">
-            <Smartphone className="h-3.5 w-3.5" />
+            <Smartphone className="h-3.5 w-3.5 text-info" />
             App PWA
           </TabsTrigger>
         </TabsList>

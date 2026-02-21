@@ -80,15 +80,15 @@ export function TasksSlaDashboard() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="w-full h-12 bg-muted/50 p-1 rounded-xl grid grid-cols-3 gap-1">
           <TabsTrigger value="tasks" className="flex items-center gap-2 rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm">
-            <ClipboardCheck className="h-4 w-4" />
+            <ClipboardCheck className="h-4 w-4 text-primary" />
             <span className="hidden sm:inline">Tarefas</span>
           </TabsTrigger>
           <TabsTrigger value="sla" className="flex items-center gap-2 rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm">
-            <BarChart3 className="h-4 w-4" />
+            <BarChart3 className="h-4 w-4 text-info" />
             <span className="hidden sm:inline">Dashboard SLA</span>
           </TabsTrigger>
           <TabsTrigger value="rules" className="flex items-center gap-2 rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm">
-            <Settings className="h-4 w-4" />
+            <Settings className="h-4 w-4 text-secondary" />
             <span className="hidden sm:inline">Regras SLA</span>
           </TabsTrigger>
         </TabsList>

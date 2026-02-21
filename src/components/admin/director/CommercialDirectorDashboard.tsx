@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { Brain, AlertTriangle, ClipboardList, FileBarChart, Sparkles } from "lucide-react";
 import { DirectorOverview } from "./DirectorOverview";
 import { DirectorAlerts } from "./DirectorAlerts";
@@ -8,10 +9,10 @@ import { DirectorReports } from "./DirectorReports";
 import { useAiInsights } from "@/hooks/useAiInsights";
 
 const tabs = [
-  { id: "overview", label: "Visão Geral", icon: Brain },
-  { id: "alerts", label: "Alertas & Riscos", icon: AlertTriangle },
-  { id: "actions", label: "Plano de Ação", icon: ClipboardList },
-  { id: "reports", label: "Relatórios", icon: FileBarChart },
+  { id: "overview", label: "Visão Geral", icon: Brain, color: "text-info" },
+  { id: "alerts", label: "Alertas & Riscos", icon: AlertTriangle, color: "text-destructive" },
+  { id: "actions", label: "Plano de Ação", icon: ClipboardList, color: "text-primary" },
+  { id: "reports", label: "Relatórios", icon: FileBarChart, color: "text-success" },
 ] as const;
 
 export function CommercialDirectorDashboard() {
@@ -41,7 +42,7 @@ export function CommercialDirectorDashboard() {
               value={tab.id}
               className="flex items-center gap-2 rounded-lg text-xs sm:text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-sm data-[state=active]:text-foreground transition-all"
             >
-              <tab.icon className="h-4 w-4" />
+              <tab.icon className={cn("h-4 w-4", tab.color)} />
               <span className="hidden sm:inline">{tab.label}</span>
             </TabsTrigger>
           ))}

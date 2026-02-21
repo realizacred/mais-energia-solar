@@ -143,10 +143,10 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
       {/* Tabbed Content */}
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="funnel">Funil</TabsTrigger>
-          <TabsTrigger value="vendors">Vendedores</TabsTrigger>
-          <TabsTrigger value="conversion">Conversão</TabsTrigger>
+          <TabsTrigger value="overview" className="gap-1.5"><BarChart3 className="h-4 w-4 text-info" /> Visão Geral</TabsTrigger>
+          <TabsTrigger value="funnel" className="gap-1.5"><Target className="h-4 w-4 text-primary" /> Funil</TabsTrigger>
+          <TabsTrigger value="vendors" className="gap-1.5"><Users className="h-4 w-4 text-secondary" /> Vendedores</TabsTrigger>
+          <TabsTrigger value="conversion" className="gap-1.5"><TrendingUp className="h-4 w-4 text-success" /> Conversão</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">

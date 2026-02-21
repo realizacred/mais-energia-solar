@@ -192,22 +192,22 @@ import { Spinner } from "@/components/ui-kit/Spinner";
      <div className="space-y-6">
        <Tabs defaultValue="ranking" className="w-full">
          <TabsList className="grid w-full max-w-2xl grid-cols-4">
-           <TabsTrigger value="ranking" className="gap-2">
-             <Trophy className="h-4 w-4" />
-             Ranking
-           </TabsTrigger>
-           <TabsTrigger value="metas" className="gap-2">
-             <Target className="h-4 w-4" />
-             Metas
-           </TabsTrigger>
-           <TabsTrigger value="individuais" className="gap-2">
-             <User className="h-4 w-4" />
-             Por Consultor
-           </TabsTrigger>
-           <TabsTrigger value="conquistas" className="gap-2">
-             <Medal className="h-4 w-4" />
-             Conquistas
-           </TabsTrigger>
+            <TabsTrigger value="ranking" className="gap-2">
+              <Trophy className="h-4 w-4 text-warning" />
+              Ranking
+            </TabsTrigger>
+            <TabsTrigger value="metas" className="gap-2">
+              <Target className="h-4 w-4 text-primary" />
+              Metas
+            </TabsTrigger>
+            <TabsTrigger value="individuais" className="gap-2">
+              <User className="h-4 w-4 text-secondary" />
+              Por Consultor
+            </TabsTrigger>
+            <TabsTrigger value="conquistas" className="gap-2">
+              <Medal className="h-4 w-4 text-success" />
+              Conquistas
+            </TabsTrigger>
          </TabsList>
  
          {/* Ranking Tab */}

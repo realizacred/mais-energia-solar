@@ -140,19 +140,19 @@ export function SiteConfigManager() {
       <Tabs defaultValue="empresa" className="space-y-4">
         <TabsList className="grid grid-cols-5 w-full max-w-2xl">
           <TabsTrigger value="empresa" className="gap-1.5 text-xs">
-            <Building2 className="w-3.5 h-3.5" /> Empresa
+            <Building2 className="w-3.5 h-3.5 text-secondary" /> Empresa
           </TabsTrigger>
           <TabsTrigger value="contato" className="gap-1.5 text-xs">
-            <Phone className="w-3.5 h-3.5" /> Contato
+            <Phone className="w-3.5 h-3.5 text-info" /> Contato
           </TabsTrigger>
           <TabsTrigger value="hero" className="gap-1.5 text-xs">
-            <Type className="w-3.5 h-3.5" /> Hero & CTA
+            <Type className="w-3.5 h-3.5 text-primary" /> Hero & CTA
           </TabsTrigger>
           <TabsTrigger value="stats" className="gap-1.5 text-xs">
-            <BarChart3 className="w-3.5 h-3.5" /> Estatísticas
+            <BarChart3 className="w-3.5 h-3.5 text-success" /> Estatísticas
           </TabsTrigger>
           <TabsTrigger value="cores" className="gap-1.5 text-xs">
-            <Palette className="w-3.5 h-3.5" /> Cores
+            <Palette className="w-3.5 h-3.5 text-warning" /> Cores
           </TabsTrigger>
         </TabsList>
 
