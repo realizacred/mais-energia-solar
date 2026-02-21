@@ -12142,32 +12142,41 @@ export type Database = {
       tenant_roof_area_factors: {
         Row: {
           created_at: string
+          desvio_azimutal_padrao: number | null
           enabled: boolean
           fator_area: number
           id: string
           label: string | null
           tenant_id: string
           tipo_telhado: string
+          tipos_sistema_permitidos: string[] | null
+          topologias_permitidas: string[] | null
           updated_at: string
         }
         Insert: {
           created_at?: string
+          desvio_azimutal_padrao?: number | null
           enabled?: boolean
           fator_area?: number
           id?: string
           label?: string | null
           tenant_id: string
           tipo_telhado: string
+          tipos_sistema_permitidos?: string[] | null
+          topologias_permitidas?: string[] | null
           updated_at?: string
         }
         Update: {
           created_at?: string
+          desvio_azimutal_padrao?: number | null
           enabled?: boolean
           fator_area?: number
           id?: string
           label?: string | null
           tenant_id?: string
           tipo_telhado?: string
+          tipos_sistema_permitidos?: string[] | null
+          topologias_permitidas?: string[] | null
           updated_at?: string
         }
         Relationships: [
