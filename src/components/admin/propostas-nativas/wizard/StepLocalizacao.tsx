@@ -358,14 +358,6 @@ export function StepLocalizacao({
 
   return (
     <div className="space-y-3 sm:space-y-4">
-      {/* Geo status inline — no redundant headers */}
-      <div className="flex items-center justify-between">
-        <Label className="text-xs font-medium flex items-center gap-1.5">
-          <MapPin className="h-3.5 w-3.5 text-primary" /> Endereço de instalação
-        </Label>
-        {geoStatusBadge()}
-      </div>
-
       {/* Side-by-side: Fields LEFT, Map RIGHT — responsive */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4 lg:gap-6">
         {/* Left column: Address + Telhado + Distribuidora + Irradiação */}
@@ -476,32 +468,12 @@ export function StepLocalizacao({
           </div>
         </div>
 
-        {/* Right column: Map + Client overlay — sticky on desktop */}
+        {/* Right column: Map — sticky on desktop */}
         <div className="order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start space-y-3">
-          {/* Client card overlay when linked */}
-          {clienteData && clienteData.nome && (
-            <div className="rounded-lg border border-border/50 bg-card p-3 space-y-1">
-              <div className="flex items-center gap-2">
-                <User className="h-3.5 w-3.5 text-primary shrink-0" />
-                <span className="text-xs font-semibold truncate">{clienteData.nome}</span>
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
-                {clienteData.celular && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="h-3 w-3" /> {clienteData.celular}
-                  </span>
-                )}
-                {(clienteData.endereco || clienteData.cidade) && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3 w-3 shrink-0" />
-                    {[clienteData.endereco, clienteData.numero, clienteData.bairro].filter(Boolean).join(", ")}
-                    {clienteData.cidade && ` — ${clienteData.cidade}`}
-                    {clienteData.estado && `/${clienteData.estado}`}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+          {/* Geo status badge */}
+          <div className="flex items-center justify-end">
+            {geoStatusBadge()}
+          </div>
 
           <Suspense fallback={
             <div className="rounded-xl border border-border/50 h-[220px] sm:h-[280px] lg:h-[360px] flex items-center justify-center bg-muted/20">

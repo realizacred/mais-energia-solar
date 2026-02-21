@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2, Package,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
-  Zap, AlertTriangle,
+  Zap, AlertTriangle, Phone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -675,17 +675,40 @@ export function ProposalWizard() {
   const renderStepContent = () => {
     console.log("[ProposalWizard] renderStepContent, currentStepKey:", currentStepKey);
 
-    const wrap = (key: string, children: React.ReactNode) => (
+    const wrap = (key: string, children: React.ReactNode, headerRight?: React.ReactNode) => (
       <StepContent key={key}>
         <WizardStepCard
           title={stepMeta.title}
           description={stepMeta.description}
           icon={currentStepDef?.icon}
+          headerRight={headerRight}
         >
           {children}
         </WizardStepCard>
       </StepContent>
     );
+
+    // Client/lead card for header
+    const clientHeaderCard = projectContext && cliente.nome ? (
+      <div className="flex items-center gap-3 text-xs">
+        <div className="flex items-center gap-4 px-3 py-1.5 rounded-lg border border-border/50 bg-muted/30">
+          <span className="flex items-center gap-1.5 font-semibold text-foreground">
+            <User className="h-3.5 w-3.5 text-primary shrink-0" />
+            {cliente.nome}
+          </span>
+          {cliente.celular && (
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <Phone className="h-3 w-3 shrink-0" /> {cliente.celular}
+            </span>
+          )}
+          {cliente.cidade && (
+            <span className="flex items-center gap-1 text-muted-foreground">
+              <MapPin className="h-3 w-3 shrink-0" /> {cliente.cidade}{cliente.estado ? `/${cliente.estado}` : ""}
+            </span>
+          )}
+        </div>
+      </div>
+    ) : null;
 
     switch (currentStepKey) {
       case STEP_KEYS.LOCALIZACAO:
@@ -704,7 +727,7 @@ export function ProposalWizard() {
               projectAddress={projectAddress}
               onProjectAddressChange={setProjectAddress}
             />
-            {/* Cliente section — only show full form when NOT from project (card already on map) */}
+            {/* Cliente section — only show full form when NOT from project */}
             {!projectContext && (
               <div className="border-t border-border/50 pt-4">
                 <StepCliente
@@ -718,7 +741,7 @@ export function ProposalWizard() {
               </div>
             )}
           </div>
-        ));
+        ), clientHeaderCard);
 
       case STEP_KEYS.UCS:
         return wrap("ucs", (
