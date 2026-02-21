@@ -81,8 +81,11 @@ export function AneelSyncStatusPage() {
   const [logsOpen, setLogsOpen] = useState(true);
 
   /* ─── Fetch latest data ─────────────────────────────── */
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const [runRes, versaoRes, orphanRes] = await Promise.all([
         supabase
@@ -90,13 +93,13 @@ export function AneelSyncStatusPage() {
           .select("id, trigger_type, status, started_at, finished_at, total_fetched, total_matched, total_updated, total_errors, error_message, logs")
           .order("started_at", { ascending: false })
           .limit(1)
-          .single(),
+          .maybeSingle(),
         supabase
           .from("tarifa_versoes")
           .select("id, status, origem, created_at, activated_at, total_registros, total_concessionarias, sync_run_id, notas")
           .order("created_at", { ascending: false })
           .limit(1)
-          .single(),
+          .maybeSingle(),
         supabase
           .from("concessionaria_tarifas_subgrupo")
           .select("id", { count: "exact", head: true })
@@ -104,11 +107,20 @@ export function AneelSyncStatusPage() {
           .is("versao_id", null),
       ]);
 
+      if (runRes.error) {
+        console.error("Erro ao buscar sync runs:", runRes.error);
+        setFetchError(`Erro ao buscar runs: ${runRes.error.message}`);
+      }
+      if (versaoRes.error) {
+        console.error("Erro ao buscar versões:", versaoRes.error);
+      }
+
       if (runRes.data) setRun(runRes.data as unknown as SyncRun);
       if (versaoRes.data) setVersao(versaoRes.data as unknown as TarifaVersao);
       setOrphanCount(orphanRes.count ?? 0);
     } catch (err: any) {
       console.error("Fetch error:", err);
+      setFetchError(`Erro inesperado: ${err.message}`);
     } finally {
       setLoading(false);
     }
@@ -271,6 +283,14 @@ export function AneelSyncStatusPage() {
           </Button>
         </div>
       </div>
+
+      {/* Error banner */}
+      {fetchError && (
+        <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-sm text-destructive">
+          <strong>⚠️ Erro ao carregar dados:</strong> {fetchError}
+          <p className="text-xs mt-1 text-muted-foreground">Verifique se você está logado e tem permissão para acessar esta página.</p>
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
