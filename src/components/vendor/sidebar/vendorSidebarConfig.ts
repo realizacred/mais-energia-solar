@@ -25,6 +25,8 @@ export interface VendorSidebarSection {
   hoverClass: string;
   labelClass: string;
   indicatorBg: string;
+  indicatorClass?: string;
+  iconColor?: string;
   defaultOpen?: boolean;
 }
 
@@ -33,6 +35,8 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     label: "Principal",
     labelIcon: LayoutDashboard,
     indicatorBg: "bg-primary",
+    indicatorClass: "sidebar-indicator-commercial",
+    iconColor: "text-sidebar-commercial",
     activeClass:
       "bg-primary/15 text-primary font-semibold border-l-[3px] border-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -63,6 +67,8 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     label: "Comercial",
     labelIcon: FileText,
     indicatorBg: "bg-secondary",
+    indicatorClass: "sidebar-indicator-finance",
+    iconColor: "text-sidebar-finance",
     activeClass:
       "bg-secondary/15 text-secondary font-semibold border-l-[3px] border-secondary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -87,6 +93,8 @@ export const VENDOR_SIDEBAR_SECTIONS: VendorSidebarSection[] = [
     label: "Ferramentas",
     labelIcon: Smartphone,
     indicatorBg: "bg-muted-foreground",
+    indicatorClass: "sidebar-indicator-settings",
+    iconColor: "text-sidebar-settings",
     activeClass:
       "bg-muted-foreground/15 text-muted-foreground font-semibold border-l-[3px] border-muted-foreground",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",

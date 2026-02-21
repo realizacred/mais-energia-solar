@@ -319,9 +319,26 @@
   /* Premium sidebar surface — light warm */
   .sidebar-premium {
     background: hsl(var(--sidebar-background));
-    border-right: 1px solid hsl(var(--sidebar-border));
-    box-shadow: 1px 0 8px -2px hsl(218 50% 20% / 0.04);
+    border-right: 1px solid hsl(var(--sidebar-border) / 0.6);
+    box-shadow: 
+      1px 0 12px -3px hsl(218 50% 20% / 0.06),
+      inset -1px 0 0 0 hsl(var(--sidebar-background-subtle));
   }
+
+  /* Sidebar section indicator colors */
+  .sidebar-indicator-commercial { background: hsl(var(--sidebar-section-commercial) / 0.12); color: hsl(var(--sidebar-section-commercial)); }
+  .sidebar-indicator-operations { background: hsl(var(--sidebar-section-operations) / 0.12); color: hsl(var(--sidebar-section-operations)); }
+  .sidebar-indicator-finance { background: hsl(var(--sidebar-section-finance) / 0.12); color: hsl(var(--sidebar-section-finance)); }
+  .sidebar-indicator-admin { background: hsl(var(--sidebar-section-admin) / 0.12); color: hsl(var(--sidebar-section-admin)); }
+  .sidebar-indicator-clients { background: hsl(var(--sidebar-section-clients) / 0.12); color: hsl(var(--sidebar-section-clients)); }
+  .sidebar-indicator-ai { background: hsl(var(--sidebar-section-ai) / 0.12); color: hsl(var(--sidebar-section-ai)); }
+  .sidebar-indicator-integrations { background: hsl(var(--sidebar-section-integrations) / 0.12); color: hsl(var(--sidebar-section-integrations)); }
+  .sidebar-indicator-settings { background: hsl(var(--sidebar-section-settings) / 0.12); color: hsl(var(--sidebar-section-settings)); }
+  /* Legacy aliases */
+  .sidebar-indicator-intelligence { background: hsl(var(--sidebar-section-intelligence) / 0.12); color: hsl(var(--sidebar-section-intelligence)); }
+  .sidebar-indicator-atendimento { background: hsl(var(--sidebar-section-atendimento) / 0.12); color: hsl(var(--sidebar-section-atendimento)); }
+  .sidebar-indicator-cadastros { background: hsl(var(--sidebar-section-cadastros) / 0.12); color: hsl(var(--sidebar-section-cadastros)); }
+  .sidebar-indicator-marketing { background: hsl(var(--sidebar-section-marketing) / 0.12); color: hsl(var(--sidebar-section-marketing)); }
 
   /* Skeleton pulse */
   .skeleton-pulse {

@@ -149,6 +149,8 @@ export interface NavSectionMeta {
   icon: string;
   order: number;
   indicatorBg: string;
+  indicatorClass?: string;
+  iconColor?: string;
   activeClass: string;
   hoverClass: string;
   labelClass: string;

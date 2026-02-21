@@ -11,6 +11,20 @@ import {
 import type { SidebarSection, MenuItem } from "@/components/admin/sidebar/sidebarConfig";
 import * as Icons from "lucide-react";
 
+// Derive indicator CSS class from the indicatorBg Tailwind class
+// e.g. "bg-sidebar-commercial" → "sidebar-indicator-commercial"
+function deriveIndicatorClass(indicatorBg: string): string {
+  const match = indicatorBg.match(/bg-sidebar-(\w+)/);
+  return match ? `sidebar-indicator-${match[1]}` : "sidebar-indicator-admin";
+}
+
+// Derive icon text color from the indicatorBg Tailwind class
+// e.g. "bg-sidebar-commercial" → "text-sidebar-commercial"
+function deriveIconColor(indicatorBg: string): string {
+  const match = indicatorBg.match(/bg-sidebar-(\w+)/);
+  return match ? `text-sidebar-${match[1]}` : "text-sidebar-admin";
+}
+
 // ─── Types ───────────────────────────────────────────────────
 
 interface NavOverride {
@@ -155,6 +169,8 @@ export function useNavConfig(): {
         label: meta.label,
         labelIcon: resolveIcon(meta.icon),
         indicatorBg: meta.indicatorBg,
+        indicatorClass: meta.indicatorClass || deriveIndicatorClass(meta.indicatorBg),
+        iconColor: meta.iconColor || deriveIconColor(meta.indicatorBg),
         activeClass: meta.activeClass,
         hoverClass: meta.hoverClass,
         labelClass: meta.labelClass,
