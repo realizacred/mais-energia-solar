@@ -7,6 +7,7 @@ import { Zap, Info } from "lucide-react";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FieldTooltip, NumField } from "./shared";
+import { Switch } from "@/components/ui/switch";
 
 interface Props {
   premises: TenantPremises;
@@ -30,14 +31,16 @@ const FASE_TENSAO_OPTIONS = [
 ];
 
 const TELHADO_OPTIONS = [
-  "nenhum", "carport", "ceramico", "fibrocimento", "laje", "shingle",
-  "metalico", "zipado", "solo", "sem_estrutura",
+  { value: "carport", label: "Carport" },
+  { value: "ceramico", label: "Cerâmico" },
+  { value: "fibrocimento", label: "Fibrocimento" },
+  { value: "laje", label: "Laje" },
+  { value: "shingle", label: "Shingle" },
+  { value: "metalico", label: "Metálico" },
+  { value: "zipado", label: "Zipado" },
+  { value: "solo", label: "Solo" },
+  { value: "sem_estrutura", label: "Sem Estrutura" },
 ];
-const TELHADO_LABELS: Record<string, string> = {
-  nenhum: "Nenhum", carport: "Carport", ceramico: "Cerâmico", fibrocimento: "Fibrocimento",
-  laje: "Laje", shingle: "Shingle", metalico: "Metálico", zipado: "Zipado",
-  solo: "Solo", sem_estrutura: "Sem Estrutura",
-};
 
 const INCLINACAO_OPTIONS = ["nenhum", "0", "10", "20", "30", "40", "50", "60", "70", "80", "90"];
 
@@ -47,24 +50,58 @@ const TOPOLOGIA_OPTIONS = [
   { value: "otimizador", label: "Otimizador" },
 ];
 
+const SISTEMA_OPTIONS = [
+  { value: "on_grid", label: "On Grid" },
+  { value: "hibrido", label: "Híbrido" },
+  { value: "off_grid", label: "Off Grid" },
+];
+
+const KIT_OPTIONS = [
+  { value: "fechados", label: "Fechados" },
+  { value: "customizados", label: "Customizados" },
+];
+
+const PRECO_OPTIONS = [
+  { value: "equipamentos", label: "Equipamentos" },
+  { value: "total", label: "Total" },
+];
+
+const FORNECEDOR_OPTIONS = [
+  { value: "qualquer", label: "Qualquer fornecedor" },
+  { value: "escolher", label: "Escolher fornecedores" },
+];
+
 export function TarifasSection({ premises, onChange, syncedFields }: Props) {
   const set = (key: keyof TenantPremises, value: any) =>
     onChange((p) => ({ ...p, [key]: value }));
 
   const toggleArrayItem = (key: "topologias" | "tipo_kits", item: string) => {
     onChange((p) => {
-      const arr = p[key] as string[];
+      const arr = (p[key] as string[]) || [];
       return { ...p, [key]: arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item] };
     });
   };
+
+  const toggleSistema = (item: string) => {
+    // tipo_sistema is a string field — we'll treat it as a comma-separated multi-select
+    onChange((p) => {
+      const current = (p.tipo_sistema || "").split(",").map(s => s.trim()).filter(Boolean);
+      const next = current.includes(item) ? current.filter(x => x !== item) : [...current, item];
+      return { ...p, tipo_sistema: next.join(",") };
+    });
+  };
+
+  const sistemaValues = useMemo(() => {
+    return (premises.tipo_sistema || "").split(",").map(s => s.trim()).filter(Boolean);
+  }, [premises.tipo_sistema]);
 
   const isBT = premises.grupo_tarifario === "BT";
 
   // Tarifa integral com impostos (read-only calculated)
   const tarifaIntegral = useMemo(() => {
     const icms = premises.imposto_energia || 0;
-    const pis = 1.65; // PIS padrão
-    const cofins = 7.60; // COFINS padrão
+    const pis = 1.65;
+    const cofins = 7.60;
     const divisor = 1 - (icms + pis + cofins) / 100;
     if (divisor <= 0) return 0;
     return premises.tarifa / divisor;
@@ -77,8 +114,8 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
         <p className="text-xs font-semibold uppercase tracking-wider text-warning">Tarifas e encargos</p>
       </div>
 
-      {/* Grupo tarifário + Tarifa base */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      {/* Row 1: Grupo + Tarifa + Tarifa Integral + TE Ponta (MT) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">
             Grupo Tarifário
@@ -108,45 +145,38 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
             </Tooltip>
           </Label>
           <div className="relative">
-            <Input
-              type="text"
-              readOnly
-              value={`R$ ${tarifaIntegral.toFixed(5)}`}
-              className="bg-muted/50 font-mono text-sm cursor-default"
-            />
+            <Input type="text" readOnly value={`R$ ${tarifaIntegral.toFixed(5)}`} className="bg-muted/50 font-mono text-sm cursor-default" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">R$/kWh</span>
           </div>
           <p className="text-[10px] text-muted-foreground">Valor calculado (não editável)</p>
         </div>
-        {!isBT && (
-          <NumField label="Tarifa TE - Ponta" suffix="R$/kWh" value={premises.tarifa_te_ponta} step="0.00001" tooltip="Tarifa de Energia no horário de ponta. Aplicável para Média Tensão." highlight={h(syncedFields, "tarifa_te_ponta")} onChange={(v) => set("tarifa_te_ponta", v)} />
-        )}
       </div>
 
-      {/* MT-only fields */}
+      {/* MT-only: TE/TUSD Ponta e Fora Ponta */}
       {!isBT && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <NumField label="Tarifa TE - Ponta" suffix="R$/kWh" value={premises.tarifa_te_ponta} step="0.00001" tooltip="Tarifa de Energia no horário de ponta." highlight={h(syncedFields, "tarifa_te_ponta")} onChange={(v) => set("tarifa_te_ponta", v)} />
           <NumField label="Tarifa TUSD - Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_ponta} step="0.00001" highlight={h(syncedFields, "tarifa_tusd_ponta")} onChange={(v) => set("tarifa_tusd_ponta", v)} />
           <NumField label="Tarifa TE - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_te_fora_ponta} step="0.00001" highlight={h(syncedFields, "tarifa_te_fora_ponta")} onChange={(v) => set("tarifa_te_fora_ponta", v)} />
+        </div>
+      )}
+      {!isBT && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NumField label="Tarifa TUSD - Fora Ponta" suffix="R$/kWh" value={premises.tarifa_tusd_fora_ponta} step="0.00001" highlight={h(syncedFields, "tarifa_tusd_fora_ponta")} onChange={(v) => set("tarifa_tusd_fora_ponta", v)} />
         </div>
       )}
 
-      {/* GD II - Fio B */}
+      {/* GD II - Fio B — Always show all 3 columns */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">GD II — TUSD Fio B (100%)</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NumField label="TUSD Fio B - Baixa Tensão (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_bt")} onChange={(v) => set("tusd_fio_b_bt", v)} />
-          {!isBT && (
-            <>
-              <NumField label="TUSD Fio B - Fora Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_fora_ponta} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_fora_ponta")} onChange={(v) => set("tusd_fio_b_fora_ponta", v)} />
-              <NumField label="TUSD Fio B - Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_ponta} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_ponta")} onChange={(v) => set("tusd_fio_b_ponta", v)} />
-            </>
-          )}
+          <NumField label="TUSD Fio B - Fora Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_fora_ponta} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_fora_ponta")} onChange={(v) => set("tusd_fio_b_fora_ponta", v)} />
+          <NumField label="TUSD Fio B - Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_ponta} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_ponta")} onChange={(v) => set("tusd_fio_b_ponta", v)} />
         </div>
       </div>
 
-      {/* GD III - Tarifação Compensada */}
+      {/* GD III - Tarifação Compensada — Always show all 3 columns */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           GD III — Tarifação Compensada
@@ -154,23 +184,15 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NumField label="Tarifação Energia Compensada - BT (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_bt")} onChange={(v) => set("tarifacao_compensada_bt", v)} />
-          {!isBT && (
-            <>
-              <NumField label="Tarifação Compensada - Fora Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_fora_ponta")} onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
-              <NumField label="Tarifação Compensada - Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_ponta")} onChange={(v) => set("tarifacao_compensada_ponta", v)} />
-            </>
-          )}
+          <NumField label="Tarifação Compensada - Fora Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_fora_ponta")} onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
+          <NumField label="Tarifação Compensada - Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_ponta")} onChange={(v) => set("tarifacao_compensada_ponta", v)} />
         </div>
       </div>
 
-      {/* Demanda (MT only) + Fase + Encargos */}
+      {/* Demanda + Fase */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {!isBT && (
-          <>
-            <NumField label="Preço da Demanda Geração" suffix="R$" value={premises.preco_demanda_geracao} step="0.01" tooltip="Valor da demanda contratada para geração. Aplicável em Média Tensão." highlight={h(syncedFields, "preco_demanda_geracao")} onChange={(v) => set("preco_demanda_geracao", v)} />
-            <NumField label="Preço da Demanda" suffix="R$" value={premises.preco_demanda} step="0.01" tooltip="Valor da demanda contratada." highlight={h(syncedFields, "preco_demanda")} onChange={(v) => set("preco_demanda", v)} />
-          </>
-        )}
+        <NumField label="Preço da Demanda Geração" suffix="R$" value={premises.preco_demanda_geracao} step="0.01" tooltip="Valor da demanda contratada para geração." highlight={h(syncedFields, "preco_demanda_geracao")} onChange={(v) => set("preco_demanda_geracao", v)} />
+        <NumField label="Preço da Demanda" suffix="R$" value={premises.preco_demanda} step="0.01" tooltip="Valor da demanda contratada." highlight={h(syncedFields, "preco_demanda")} onChange={(v) => set("preco_demanda", v)} />
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">
             Fase e Tensão da Rede
@@ -194,7 +216,7 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
         <NumField label="Outros Encargos (Atual)" suffix="R$" value={premises.outros_encargos_atual} step="0.01" onChange={(v) => set("outros_encargos_atual", v)} />
       </div>
 
-      {/* Config técnica */}
+      {/* Config técnica — Telhado, Desvio, Inclinação */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <NumField label="Outros Encargos (Novo)" suffix="R$" value={premises.outros_encargos_novo} step="0.01" onChange={(v) => set("outros_encargos_novo", v)} />
         <div className="space-y-1.5">
@@ -203,7 +225,7 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {TELHADO_OPTIONS.map((t) => (
-                <SelectItem key={t} value={t}>{TELHADO_LABELS[t] || t}</SelectItem>
+                <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -214,19 +236,13 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
             <FieldTooltip text="Desvio em graus da orientação Norte." />
           </Label>
           <div className="relative">
-            <Input
-              type="number"
-              step="1"
-              value={premises.desvio_azimutal}
-              onChange={(e) => set("desvio_azimutal", Number(e.target.value))}
-              className="pr-10"
-            />
+            <Input type="number" step="1" value={premises.desvio_azimutal} onChange={(e) => set("desvio_azimutal", Number(e.target.value))} className="pr-10" />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">º</span>
           </div>
         </div>
       </div>
 
-      {/* Inclinação, Topologias, Tipo sistema */}
+      {/* Inclinação, Topologias, Tipo Sistema (multi-select) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">Inclinação dos Módulos</Label>
@@ -256,14 +272,98 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">Tipo de Sistema</Label>
-          <Select value={premises.tipo_sistema} onValueChange={(v) => set("tipo_sistema", v)}>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {SISTEMA_OPTIONS.map((o) => (
+              <Badge
+                key={o.value}
+                variant={sistemaValues.includes(o.value) ? "default" : "outline"}
+                className="cursor-pointer select-none"
+                onClick={() => toggleSistema(o.value)}
+              >
+                {o.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Taxa de Desempenho */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <NumField label="Taxa de Desempenho (Tradicional)" suffix="%" value={premises.taxa_desempenho_tradicional} onChange={(v) => set("taxa_desempenho_tradicional", v)} />
+        <NumField label="Taxa de Desempenho (Microinversor)" suffix="%" value={premises.taxa_desempenho_microinversor} onChange={(v) => set("taxa_desempenho_microinversor", v)} />
+        <NumField label="Taxa de Desempenho (Otimizador)" suffix="%" value={premises.taxa_desempenho_otimizador} onChange={(v) => set("taxa_desempenho_otimizador", v)} />
+      </div>
+
+      {/* Kits, Transformador, Tipo de Preço */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Tipo de Kits</Label>
+          <div className="flex flex-wrap gap-1.5 pt-1">
+            {KIT_OPTIONS.map((o) => (
+              <Badge
+                key={o.value}
+                variant={(premises.tipo_kits || []).includes(o.value) ? "default" : "outline"}
+                className="cursor-pointer select-none"
+                onClick={() => toggleArrayItem("tipo_kits", o.value)}
+              >
+                {o.label}
+              </Badge>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Considerar kits que necessitam de transformador</Label>
+          <div className="flex items-center gap-2 pt-2">
+            <Switch
+              checked={premises.considerar_kits_transformador}
+              onCheckedChange={(v) => set("considerar_kits_transformador", v)}
+            />
+            <span className="text-xs text-muted-foreground">
+              {premises.considerar_kits_transformador ? "Habilitado" : "Desabilitado"}
+            </span>
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs font-medium text-muted-foreground">Tipo de Preço</Label>
+          <Select value={premises.tipo_preco} onValueChange={(v) => set("tipo_preco", v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="on_grid">On grid</SelectItem>
-              <SelectItem value="hibrido">Híbrido</SelectItem>
-              <SelectItem value="off_grid">Off grid</SelectItem>
+              {PRECO_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
+        </div>
+      </div>
+
+      {/* DoD */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <NumField
+          label="DoD"
+          suffix="%"
+          value={premises.dod}
+          tooltip="Depth of Discharge — profundidade de descarga para sistemas com bateria."
+          onChange={(v) => set("dod", v)}
+        />
+      </div>
+
+      {/* Fornecedores */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider border-t border-border/50 pt-4">Fornecedores</p>
+        <div className="flex gap-4">
+          {FORNECEDOR_OPTIONS.map((o) => (
+            <label key={o.value} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="fornecedor_filtro"
+                value={o.value}
+                checked={premises.fornecedor_filtro === o.value}
+                onChange={() => set("fornecedor_filtro", o.value)}
+                className="accent-primary"
+              />
+              <span className="text-sm">{o.label}</span>
+            </label>
+          ))}
         </div>
       </div>
     </div>
