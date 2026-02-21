@@ -298,7 +298,7 @@ export function TenantSettings() {
       </SectionCard>
 
       {/* ═══ BLOCO 3: REGRAS DE CADASTRO (CRM) ═══ */}
-      <SectionCard icon={Settings2} title="Regras de Cadastro" description="Configure como leads e clientes são validados no seu CRM" variant="orange">
+      <SectionCard icon={Settings2} title="Regras de Cadastro" description="Configure como leads e clientes são validados no seu CRM" variant="neutral">
         <div className="space-y-5">
           {/* Duplicate blocking */}
           <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/60">

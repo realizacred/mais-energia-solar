@@ -267,7 +267,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
             </SectionCard>
 
             {/* Card: Projeto Solar */}
-            <SectionCard icon={Sun} title="Projeto Solar" variant="orange">
+            <SectionCard icon={Sun} title="Projeto Solar" variant="neutral">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <InfoRow icon={Sun} label="Potência" value={cliente.potencia_kwp ? `${cliente.potencia_kwp} kWp` : null} />
                 <InfoRow icon={DollarSign} label="Valor" value={formatCurrency(cliente.valor_projeto)} />

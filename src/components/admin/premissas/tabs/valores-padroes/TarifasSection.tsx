@@ -307,7 +307,7 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
       </SectionCard>
 
       {/* Card 6: Desempenho */}
-      <SectionCard icon={Gauge} title="Taxas de Desempenho" variant="orange">
+      <SectionCard icon={Gauge} title="Taxas de Desempenho" variant="neutral">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <NumField label="Taxa de Desempenho (Tradicional)" suffix="%" value={premises.taxa_desempenho_tradicional} onChange={(v) => set("taxa_desempenho_tradicional", v)} />
           <NumField label="Taxa de Desempenho (Microinversor)" suffix="%" value={premises.taxa_desempenho_microinversor} onChange={(v) => set("taxa_desempenho_microinversor", v)} />

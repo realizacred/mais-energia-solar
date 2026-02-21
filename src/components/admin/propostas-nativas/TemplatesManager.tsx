@@ -441,9 +441,9 @@ export function TemplatesManager() {
 
           <div className="space-y-5">
             {/* Dados do template */}
-            <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 space-y-4">
+            <div className="rounded-xl border border-border bg-card p-4 space-y-4" style={{ boxShadow: "var(--shadow-xs)" }}>
               <p className="text-sm font-semibold flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" /> Dados do template
+                <FileText className="h-4 w-4 text-secondary" /> Dados do template
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -481,7 +481,7 @@ export function TemplatesManager() {
 
             {/* Conteúdo — only for DOCX */}
             {isDocx && (
-              <div className="rounded-xl border-2 border-secondary/30 bg-secondary/5 p-4 space-y-3">
+              <div className="rounded-xl border border-border bg-card p-4 space-y-3" style={{ boxShadow: "var(--shadow-xs)" }}>
                 <p className="text-sm font-semibold flex items-center gap-2">
                   <Upload className="h-4 w-4 text-secondary" />
                   Arquivo DOCX
@@ -537,8 +537,8 @@ export function TemplatesManager() {
 
             {/* For WEB templates: hint to use Visual Builder */}
             {!isDocx && (
-              <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-4 text-center space-y-2">
-                <Paintbrush className="h-6 w-6 text-primary mx-auto" />
+              <div className="rounded-xl border border-border bg-muted/30 p-4 text-center space-y-2">
+                <Paintbrush className="h-6 w-6 text-secondary mx-auto" />
                 <p className="text-sm font-medium text-foreground">Conteúdo editado via Editor Visual</p>
                 <p className="text-xs text-muted-foreground">
                   Após salvar os dados básicos, use o botão <strong>"Editar Visual"</strong> na lista para abrir o editor drag & drop.

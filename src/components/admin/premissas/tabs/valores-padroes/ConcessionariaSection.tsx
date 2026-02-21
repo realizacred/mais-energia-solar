@@ -308,7 +308,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
   return (
     <div className="space-y-5">
       {/* Card 1: Concessionária Padrão selector */}
-      <SectionCard icon={Zap} title="Concessionária Padrão" description="Selecione a concessionária para preencher automaticamente os campos de tarifa, Fio B e ICMS." variant="orange">
+      <SectionCard icon={Zap} title="Concessionária Padrão" description="Selecione a concessionária para preencher automaticamente os campos de tarifa, Fio B e ICMS." variant="neutral">
         <div className="space-y-3">
           <Select
             value={(premises as any).concessionaria_id || ""}

@@ -81,10 +81,10 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-4">
+      <div className="rounded-xl border border-border bg-card p-5 space-y-4" style={{ boxShadow: "var(--shadow-sm)" }}>
         <div className="flex items-center gap-2">
-          <LayoutGrid className="h-4 w-4 text-primary" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Dados Técnicos do Telhado</p>
+          <LayoutGrid className="h-4 w-4 text-secondary" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-foreground">Dados Técnicos do Telhado</p>
         </div>
         <p className="text-xs text-muted-foreground">
           Configure área útil, inclinação, desvio azimutal, topologias e tipos de sistema permitidos por tipo de telhado.
@@ -110,7 +110,7 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
         </div>
 
         {/* Add new */}
-        <div className="flex items-center gap-3 rounded-lg border border-dashed border-primary/30 bg-background p-3">
+        <div className="flex items-center gap-3 rounded-lg border border-dashed border-border bg-background p-3">
           <Plus className="h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Nome do novo tipo de telhado"
