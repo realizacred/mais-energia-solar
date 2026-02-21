@@ -126,6 +126,7 @@ export function useSolarBrainSync(
         considerar_transformador: solarBrain.considerar_kits_transformador ?? prev.considerar_transformador,
         desempenho: configs.tradicional?.desempenho ?? prev.desempenho,
         margem_pot_ideal: solarBrain.margem_potencia_ideal ?? prev.margem_pot_ideal,
+        sombreamento_config: solarBrain.sombreamento_config ?? prev.sombreamento_config,
       };
     });
   }, [solarBrain]);

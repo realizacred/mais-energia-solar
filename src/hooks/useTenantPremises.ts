@@ -59,6 +59,8 @@ export interface TenantPremises {
   tipo_preco: string;
   dod: number;
   fornecedor_filtro: string;
+  // Sombreamento config
+  sombreamento_config: SombreamentoConfig;
   // Solar Brain fields (calculadora pública)
   percentual_economia: number;
   vida_util_sistema: number;
@@ -66,6 +68,24 @@ export interface TenantPremises {
   custo_por_kwp: number;
   kg_co2_por_kwh: number;
 }
+
+export interface SombreamentoLevel {
+  tradicional: number;
+  microinversor: number;
+  otimizador: number;
+}
+
+export interface SombreamentoConfig {
+  pouco: SombreamentoLevel;
+  medio: SombreamentoLevel;
+  alto: SombreamentoLevel;
+}
+
+export const DEFAULT_SOMBREAMENTO_CONFIG: SombreamentoConfig = {
+  pouco: { tradicional: 12, microinversor: 6, otimizador: 6 },
+  medio: { tradicional: 25, microinversor: 12, otimizador: 12 },
+  alto: { tradicional: 37, microinversor: 18, otimizador: 18 },
+};
 
 export const PREMISES_DEFAULTS: TenantPremises = {
   inflacao_energetica: 9.50,
@@ -116,6 +136,7 @@ export const PREMISES_DEFAULTS: TenantPremises = {
   tipo_preco: "equipamentos",
   dod: 80.00,
   fornecedor_filtro: "escolher",
+  sombreamento_config: { ...DEFAULT_SOMBREAMENTO_CONFIG },
   // Solar Brain fields
   percentual_economia: 90,
   vida_util_sistema: 25,

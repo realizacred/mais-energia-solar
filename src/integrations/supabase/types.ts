@@ -11970,6 +11970,7 @@ export type Database = {
           preco_demanda: number
           preco_demanda_geracao: number
           sobredimensionamento_padrao: number
+          sombreamento_config: Json
           tarifa: number
           tarifa_te_fora_ponta: number
           tarifa_te_ponta: number
@@ -12032,6 +12033,7 @@ export type Database = {
           preco_demanda?: number
           preco_demanda_geracao?: number
           sobredimensionamento_padrao?: number
+          sombreamento_config?: Json
           tarifa?: number
           tarifa_te_fora_ponta?: number
           tarifa_te_ponta?: number
@@ -12094,6 +12096,7 @@ export type Database = {
           preco_demanda?: number
           preco_demanda_geracao?: number
           sobredimensionamento_padrao?: number
+          sombreamento_config?: Json
           tarifa?: number
           tarifa_te_fora_ponta?: number
           tarifa_te_ponta?: number
