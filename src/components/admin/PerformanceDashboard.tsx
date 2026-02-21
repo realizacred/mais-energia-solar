@@ -412,16 +412,16 @@ export default function PerformanceDashboard() {
       <Tabs defaultValue="ranking" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="ranking" className="gap-1.5 text-xs sm:text-sm">
-            <Trophy className="h-4 w-4" /> Ranking
+            <Trophy className="h-4 w-4 text-warning" /> Ranking
           </TabsTrigger>
           <TabsTrigger value="calendar" className="gap-1.5 text-xs sm:text-sm">
-            <Calendar className="h-4 w-4" /> Mensal
+            <Calendar className="h-4 w-4 text-primary" /> Mensal
           </TabsTrigger>
           <TabsTrigger value="losses" className="gap-1.5 text-xs sm:text-sm">
-            <AlertTriangle className="h-4 w-4" /> Perdas
+            <AlertTriangle className="h-4 w-4 text-destructive" /> Perdas
           </TabsTrigger>
           <TabsTrigger value="funnel" className="gap-1.5 text-xs sm:text-sm">
-            <BarChart3 className="h-4 w-4" /> Funil
+            <BarChart3 className="h-4 w-4 text-info" /> Funil
           </TabsTrigger>
         </TabsList>
 

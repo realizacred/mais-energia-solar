@@ -388,13 +388,13 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 max-w-md">
           <TabsTrigger value="orcamentos" className="gap-2">
-            <FileText className="w-4 h-4" />Orçamentos
+            <FileText className="w-4 h-4 text-primary" />Orçamentos
             {(orcamentosCategories.urgentLeads.length + orcamentosCategories.pendingLeads.length) > 0 && (
               <Badge variant="destructive" className="ml-1">{orcamentosCategories.urgentLeads.length + orcamentosCategories.pendingLeads.length}</Badge>
             )}
           </TabsTrigger>
           <TabsTrigger value="leads" className="gap-2">
-            <Users className="w-4 h-4" />Leads
+            <Users className="w-4 h-4 text-secondary" />Leads
             {(leadsCategories.urgentLeads.length + leadsCategories.pendingLeads.length) > 0 && (
               <Badge variant="secondary" className="ml-1">{leadsCategories.urgentLeads.length + leadsCategories.pendingLeads.length}</Badge>
             )}

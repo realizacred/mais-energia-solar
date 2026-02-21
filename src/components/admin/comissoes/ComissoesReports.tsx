@@ -191,10 +191,10 @@ export function ComissoesReports({
       <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4 mb-6">
-            <TabsTrigger value="resumo">Resumo Mensal</TabsTrigger>
-            <TabsTrigger value="historico">Histórico</TabsTrigger>
-            <TabsTrigger value="projecao">Projeção</TabsTrigger>
-            <TabsTrigger value="comparativo">Comparativo</TabsTrigger>
+            <TabsTrigger value="resumo" className="gap-1.5">Resumo Mensal</TabsTrigger>
+            <TabsTrigger value="historico" className="gap-1.5">Histórico</TabsTrigger>
+            <TabsTrigger value="projecao" className="gap-1.5">Projeção</TabsTrigger>
+            <TabsTrigger value="comparativo" className="gap-1.5">Comparativo</TabsTrigger>
           </TabsList>
 
           {/* Resumo Mensal */}

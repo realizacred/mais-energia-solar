@@ -229,23 +229,23 @@ export function WhatsAppAutomationConfig() {
         <Tabs defaultValue="config" className="w-full">
           <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="config" className="gap-2">
-              <Settings className="h-4 w-4" />
+              <Settings className="h-4 w-4 text-secondary" />
               <span className="hidden sm:inline">Geral</span>
             </TabsTrigger>
             <TabsTrigger value="automacoes" className="gap-2">
-              <Bot className="h-4 w-4" />
+              <Bot className="h-4 w-4 text-info" />
               <span className="hidden sm:inline">Automações</span>
             </TabsTrigger>
             <TabsTrigger value="integracao" className="gap-2">
-              <Plug className="h-4 w-4" />
+              <Plug className="h-4 w-4 text-primary" />
               <span className="hidden sm:inline">Integração</span>
             </TabsTrigger>
             <TabsTrigger value="push" className="gap-2">
-              <Bell className="h-4 w-4" />
+              <Bell className="h-4 w-4 text-warning" />
               <span className="hidden sm:inline">Push</span>
             </TabsTrigger>
             <TabsTrigger value="historico" className="gap-2">
-              <Clock className="h-4 w-4" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="hidden sm:inline">Histórico</span>
             </TabsTrigger>
           </TabsList>

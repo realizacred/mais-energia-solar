@@ -738,7 +738,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                           handleEdit(cliente);
                         }}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-4 w-4 text-info" />
                       </Button>
                       {canDeleteClients && (
                         <Button

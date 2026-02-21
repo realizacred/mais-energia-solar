@@ -275,15 +275,15 @@ export function InstaladorManager() {
       <Tabs defaultValue="ranking" className="w-full">
         <TabsList className="grid w-full max-w-xl grid-cols-3">
           <TabsTrigger value="ranking" className="gap-2">
-            <Trophy className="h-4 w-4" />
+            <Trophy className="h-4 w-4 text-warning" />
             Ranking
           </TabsTrigger>
           <TabsTrigger value="metas" className="gap-2">
-            <Target className="h-4 w-4" />
+            <Target className="h-4 w-4 text-primary" />
             Metas
           </TabsTrigger>
           <TabsTrigger value="individuais" className="gap-2">
-            <Users className="h-4 w-4" />
+            <Users className="h-4 w-4 text-secondary" />
             Por Instalador
           </TabsTrigger>
         </TabsList>
