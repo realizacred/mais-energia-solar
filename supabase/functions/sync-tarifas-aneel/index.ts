@@ -240,6 +240,41 @@ const MIN_VIGENCIA_YEAR = 2024;
 
 // ── Fetch ANEEL API with pagination ──────────────────────────────────────────
 
+async function fetchWithRetry(
+  url: string,
+  log: (msg: string) => void,
+  maxRetries = 3,
+): Promise<Response> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const response = await fetch(url);
+      if (response.ok) return response;
+
+      const errText = await response.text();
+      log(`⚠️ ANEEL API tentativa ${attempt}/${maxRetries}: HTTP ${response.status} — ${errText.substring(0, 150)}`);
+
+      if (attempt === maxRetries) {
+        throw new Error(
+          response.status >= 500
+            ? `A API da ANEEL está temporariamente indisponível (HTTP ${response.status}). Tente novamente em alguns minutos.`
+            : `Erro na API ANEEL: HTTP ${response.status}`
+        );
+      }
+
+      // Exponential backoff: 2s, 4s, 8s
+      const delay = Math.pow(2, attempt) * 1000;
+      log(`  ⏳ Aguardando ${delay / 1000}s antes de tentar novamente...`);
+      await new Promise(r => setTimeout(r, delay));
+    } catch (err) {
+      if (attempt === maxRetries) throw err;
+      const delay = Math.pow(2, attempt) * 1000;
+      log(`  ⚠️ Erro de rede tentativa ${attempt}/${maxRetries}, retry em ${delay / 1000}s...`);
+      await new Promise(r => setTimeout(r, delay));
+    }
+  }
+  throw new Error("Falha ao conectar com API ANEEL após múltiplas tentativas");
+}
+
 async function fetchAneelRecords(
   filters: Record<string, string>,
   log: (msg: string) => void,
@@ -247,20 +282,13 @@ async function fetchAneelRecords(
 ): Promise<TarifaAneel[]> {
   const allRecords: TarifaAneel[] = [];
   let offset = 0;
-  const maxPages = 10; // Safety limit
+  const maxPages = 10;
 
   for (let page = 0; page < maxPages; page++) {
     const filtersStr = JSON.stringify(filters);
-    // Use SQL-style filter to only get records from MIN_VIGENCIA_YEAR onwards
-    const sqlWhere = `"DatInicioVigencia" >= '${MIN_VIGENCIA_YEAR}-01-01'`;
     const url = `${ANEEL_API_URL}?resource_id=${ANEEL_RESOURCE_ID}&filters=${encodeURIComponent(filtersStr)}&q=&limit=${limit}&offset=${offset}&sort=DatInicioVigencia desc`;
 
-    const response = await fetch(url);
-    if (!response.ok) {
-      const errText = await response.text();
-      log(`ERRO API ANEEL: ${response.status} — ${errText.substring(0, 200)}`);
-      throw new Error(`ANEEL API error ${response.status}`);
-    }
+    const response = await fetchWithRetry(url, log);
 
     const data = await response.json();
     if (!data.success || !data.result?.records) {
@@ -270,7 +298,6 @@ async function fetchAneelRecords(
     const records = data.result.records as TarifaAneel[];
     allRecords.push(...records);
 
-    // If we got fewer records than limit, we've reached the end
     if (records.length < limit) break;
     offset += limit;
   }
@@ -777,9 +804,28 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error("[sync-tarifas-aneel] Erro:", error);
+
+    const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
+    const isAneelDown = errorMsg.includes("indisponível") || errorMsg.includes("ANEEL API");
+
+    // Update run status if runId exists
+    if (typeof runId !== 'undefined' && runId) {
+      try {
+        await supabase.from('aneel_sync_runs').update({
+          status: 'error',
+          finished_at: new Date().toISOString(),
+          error_message: errorMsg,
+          logs: typeof runLogs !== 'undefined' ? runLogs : [],
+        }).eq('id', runId);
+      } catch {}
+    }
+
     return new Response(JSON.stringify({
       success: false,
-      error: error instanceof Error ? error.message : "Erro desconhecido",
-    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 });
+      error: isAneelDown
+        ? "A API da ANEEL (dadosabertos.aneel.gov.br) está fora do ar no momento. Isso é temporário — tente novamente em alguns minutos."
+        : errorMsg,
+      retryable: isAneelDown,
+    }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: isAneelDown ? 503 : 500 });
   }
 });

@@ -129,7 +129,13 @@ export function ConcessionariasManager() {
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke("sync-tarifas-aneel");
-      if (error) throw error;
+      
+      if (error) {
+        // Parse the edge function error for a user-friendly message
+        const { parseEdgeFunctionError } = await import("@/lib/parseEdgeFunctionError");
+        const friendlyMsg = await parseEdgeFunctionError(error, "Erro ao sincronizar tarifas");
+        throw new Error(friendlyMsg);
+      }
 
       if (data?.success) {
         const updated = data.resultados?.length || 0;
@@ -143,7 +149,6 @@ export function ConcessionariasManager() {
           description,
         });
 
-        // Show details of errors if any
         if (data.erros?.length > 0) {
           const errorNames = data.erros.map((e: any) => e.concessionaria).join(", ");
           toast({
@@ -153,14 +158,23 @@ export function ConcessionariasManager() {
           });
         }
       } else {
-        throw new Error(data?.error || "Erro desconhecido");
+        // The edge function returned success: false with a friendly error message
+        const errorMsg = data?.error || "Erro desconhecido";
+        const isRetryable = data?.retryable;
+        toast({
+          title: isRetryable ? "API ANEEL indisponível" : "Erro ao sincronizar",
+          description: errorMsg,
+          variant: "destructive",
+        });
+        fetchData();
+        return;
       }
 
       fetchData();
     } catch (error: any) {
       toast({
         title: "Erro ao sincronizar tarifas",
-        description: error.message,
+        description: error.message || "Tente novamente em alguns minutos",
         variant: "destructive",
       });
     } finally {
