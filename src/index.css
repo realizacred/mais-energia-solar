@@ -77,34 +77,34 @@
     --shadow-primary: 0 4px 20px 0 hsl(25 100% 50% / 0.18);
     --shadow-secondary: 0 4px 20px 0 hsl(218 72% 28% / 0.14);
 
-    /* --- Sidebar (refined deep navy/ink — premium SaaS) --- */
-    --sidebar-background: 220 42% 16%;
-    --sidebar-background-subtle: 220 38% 18%;
-    --sidebar-foreground: 220 15% 82%;
-    --sidebar-foreground-muted: 220 12% 58%;
+    /* --- Sidebar (Light Premium — warm neutral) --- */
+    --sidebar-background: 30 20% 98%;
+    --sidebar-background-subtle: 30 15% 96%;
+    --sidebar-foreground: 218 50% 20%;
+    --sidebar-foreground-muted: 218 20% 52%;
     --sidebar-primary: 25 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 32% 21%;
-    --sidebar-accent-foreground: 220 15% 90%;
-    --sidebar-border: 220 25% 22%;
-    --sidebar-border-subtle: 220 20% 25%;
+    --sidebar-accent: 30 20% 94%;
+    --sidebar-accent-foreground: 218 50% 20%;
+    --sidebar-border: 30 15% 90%;
+    --sidebar-border-subtle: 30 10% 92%;
     --sidebar-ring: 25 100% 50%;
 
-    /* Section families — 4 categories only */
-    --sidebar-section-commercial: 25 100% 50%;
-    --sidebar-section-operations: 220 30% 52%;
-    --sidebar-section-finance: 220 35% 38%;
-    --sidebar-section-admin: 220 28% 32%;
+    /* Section icon accent families */
+    --sidebar-section-commercial: 25 95% 52%;
+    --sidebar-section-operations: 215 65% 50%;
+    --sidebar-section-finance: 155 70% 38%;
+    --sidebar-section-admin: 218 25% 55%;
+    --sidebar-section-clients: 215 65% 50%;
+    --sidebar-section-ai: 270 60% 55%;
+    --sidebar-section-integrations: 175 60% 42%;
+    --sidebar-section-settings: 218 25% 55%;
 
-    /* Legacy aliases (mapped to 4 families) */
-    --sidebar-section-intelligence: 25 100% 50%;
-    --sidebar-section-clients: 220 30% 52%;
-    --sidebar-section-atendimento: 25 100% 50%;
-    --sidebar-section-cadastros: 220 28% 32%;
-    --sidebar-section-marketing: 220 30% 52%;
-    --sidebar-section-settings: 220 28% 32%;
-    --sidebar-section-ai: 220 30% 52%;
-    --sidebar-section-integrations: 220 30% 52%;
+    /* Legacy aliases */
+    --sidebar-section-intelligence: 25 95% 52%;
+    --sidebar-section-atendimento: 25 95% 52%;
+    --sidebar-section-cadastros: 218 25% 55%;
+    --sidebar-section-marketing: 215 65% 50%;
   }
 
   .dark {
@@ -173,21 +173,21 @@
     --sidebar-border-subtle: 222 18% 20%;
     --sidebar-ring: 27 100% 55%;
 
-    /* Section families */
+    /* Section icon accent families */
     --sidebar-section-commercial: 27 100% 55%;
-    --sidebar-section-operations: 220 30% 52%;
-    --sidebar-section-finance: 220 35% 44%;
-    --sidebar-section-admin: 220 28% 40%;
+    --sidebar-section-operations: 215 60% 55%;
+    --sidebar-section-finance: 155 65% 45%;
+    --sidebar-section-admin: 220 30% 55%;
+    --sidebar-section-clients: 215 60% 55%;
+    --sidebar-section-ai: 270 55% 60%;
+    --sidebar-section-integrations: 175 55% 48%;
+    --sidebar-section-settings: 220 30% 55%;
 
     /* Legacy aliases */
     --sidebar-section-intelligence: 27 100% 55%;
-    --sidebar-section-clients: 220 30% 52%;
     --sidebar-section-atendimento: 27 100% 55%;
-    --sidebar-section-cadastros: 220 28% 40%;
-    --sidebar-section-marketing: 220 30% 52%;
-    --sidebar-section-settings: 220 28% 40%;
-    --sidebar-section-ai: 220 30% 52%;
-    --sidebar-section-integrations: 220 30% 52%;
+    --sidebar-section-cadastros: 220 30% 55%;
+    --sidebar-section-marketing: 215 60% 55%;
   }
 }
 
@@ -316,15 +316,11 @@
     @apply origin-bottom-left scale-x-100;
   }
 
-  /* Premium sidebar surface */
+  /* Premium sidebar surface — light warm */
   .sidebar-premium {
-    background: linear-gradient(
-      180deg,
-      hsl(var(--sidebar-background)) 0%,
-      hsl(var(--sidebar-background-subtle)) 100%
-    );
-    border-right: 1px solid hsl(var(--sidebar-border-subtle) / 0.5);
-    box-shadow: inset -1px 0 0 0 hsl(var(--sidebar-border-subtle) / 0.25);
+    background: hsl(var(--sidebar-background));
+    border-right: 1px solid hsl(var(--sidebar-border));
+    box-shadow: 1px 0 8px -2px hsl(218 50% 20% / 0.04);
   }
 
   /* Skeleton pulse */
