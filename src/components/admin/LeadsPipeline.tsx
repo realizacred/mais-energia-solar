@@ -366,11 +366,11 @@ export default function LeadsPipeline() {
 
         <TabsContent value="kanban" className="mt-0">
           <ScrollArea className="w-full">
-            <div className="flex gap-3 pb-4" style={{ minWidth: "max-content" }}>
+            <div className="flex gap-4 pb-4" style={{ minWidth: "max-content" }}>
               {/* Sem status */}
               <div className="w-72 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, "")}>
                 <ColumnHeader name="Sem status" count={getLeadsByStatus(null).length} value={getColumnValue(null)} />
-                <div className="bg-muted/20 rounded-b-md p-1.5 min-h-[500px] space-y-1.5 border border-t-0 border-slate-200">
+                <div className="rounded-b-lg p-2 min-h-[500px] space-y-2.5 border border-t-0 border-border/40 bg-muted/10">
                   {getLeadsByStatus(null).map(lead => (
                     <KanbanCard key={lead.id} lead={lead} onDragStart={handleDragStart} isDragging={draggedLead?.id === lead.id} onViewDetails={handleViewDetails} onQuickAction={handleQuickAction} onWin={handleWin} onLose={handleLose} />
                   ))}
@@ -382,7 +382,7 @@ export default function LeadsPipeline() {
                 return (
                   <div key={status.id} className="w-72 flex-shrink-0" onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, status.id)}>
                     <ColumnHeader name={status.nome} count={columnLeads.length} value={getColumnValue(status.id)} color={status.cor} />
-                    <div className="bg-muted/20 rounded-b-md p-1.5 min-h-[500px] space-y-1.5 border border-t-0 border-slate-200">
+                    <div className="rounded-b-lg p-2 min-h-[500px] space-y-2.5 border border-t-0 border-border/40 bg-muted/10">
                       {columnLeads.map(lead => (
                         <KanbanCard key={lead.id} lead={lead} onDragStart={handleDragStart} isDragging={draggedLead?.id === lead.id} onViewDetails={handleViewDetails} onQuickAction={handleQuickAction} onWin={handleWin} onLose={handleLose} />
                       ))}

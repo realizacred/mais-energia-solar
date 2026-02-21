@@ -202,7 +202,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
               )}
 
               {/* Cards */}
-              <div className="flex-1 px-2.5 pb-2.5 space-y-1.5 overflow-y-auto" style={{ maxHeight: "calc(100vh - 340px)" }}>
+              <div className="flex-1 px-2.5 pb-2.5 space-y-2.5 overflow-y-auto" style={{ maxHeight: "calc(100vh - 340px)" }}>
                 {col.deals.length === 0 ? (
                   <p className="text-[10px] text-muted-foreground/40 italic text-center py-6">Nenhum projeto</p>
                 ) : (
@@ -271,121 +271,85 @@ function OwnerDealCard({
       onDragStart={onDragStart}
       onClick={onClick}
       className={cn(
-        "group relative bg-card rounded-xl p-3 cursor-pointer",
-        "shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200",
-        "border border-border/40 hover:border-border/70 border-l-[5px]",
+        "group relative bg-card rounded-lg cursor-pointer",
+        "border border-border/50 hover:border-border transition-all duration-200 ease-out",
         isDragging && "opacity-40 scale-95",
-        // Status-based border colors — VIVID
-        deal.deal_status === "won" && "border-l-emerald-500 bg-emerald-50/60 dark:bg-emerald-950/20",
-        deal.deal_status === "lost" && "border-l-red-500 bg-red-50/40 dark:bg-red-950/20 opacity-60",
-        isOpen && stagnation === "critical" && "border-l-red-500",
-        isOpen && stagnation === "warning" && "border-l-amber-500",
-        isOpen && !stagnation && !hasProposta && !etiquetaInfo && "border-l-orange-400",
-        isOpen && !stagnation && hasProposta && !etiquetaInfo && "border-l-primary",
+        deal.deal_status === "won" && "bg-success/5",
+        deal.deal_status === "lost" && "opacity-50",
       )}
-      style={{
-        // Etiqueta color overrides when applicable (open, no stagnation)
-        ...(etiquetaInfo && isOpen && !stagnation ? { borderLeftColor: etiquetaInfo.cor } : {}),
-      }}
+      style={{ boxShadow: isDragging ? "var(--shadow-lg)" : "var(--shadow-xs)" }}
     >
-      {/* Row 1: Stage + Time */}
-      <div className="flex items-center gap-1.5 mb-1.5">
-        {etiquetaInfo && (
-          <span
-            className="text-[8px] font-bold rounded-full px-2 py-0.5 text-white leading-none shadow-sm"
-            style={{ backgroundColor: etiquetaInfo.cor }}
-          >
-            {etiquetaInfo.icon ? `${etiquetaInfo.icon} ` : ""}{etiquetaInfo.short || etiquetaInfo.nome.substring(0, 3).toUpperCase()}
-          </span>
-        )}
-        <span className="text-[9px] text-muted-foreground font-medium truncate">
-          {deal.stage_name}
-        </span>
-        <span className={cn(
-          "ml-auto text-[9px] flex items-center gap-0.5 font-semibold tabular-nums",
-          stagnation === "critical" && "text-destructive",
-          stagnation === "warning" && "text-warning",
-          !stagnation && "text-muted-foreground",
-        )}>
-          <Clock className="h-2.5 w-2.5" />
-          {getTimeInStage(deal.last_stage_change)}
-        </span>
-      </div>
-
-      {/* Row 2: Customer name */}
-      <h4 className={cn(
-        "text-[13px] font-bold leading-tight truncate",
-        deal.deal_status === "lost" ? "text-muted-foreground line-through" : "text-foreground"
-      )}>
-        {deal.customer_name || deal.deal_title}
-      </h4>
-      {deal.cliente_code && (
-        <span className="text-[9px] font-mono font-semibold text-primary/70 mb-1.5">{deal.cliente_code}</span>
-      )}
-
-      {/* Row 3: Phone + quick actions */}
-      {deal.customer_phone && (
-        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground mb-2">
-          <Phone className="h-3 w-3 text-muted-foreground/60" />
-          <span className="font-mono text-[10px]">{deal.customer_phone}</span>
-          <div className="ml-auto flex items-center gap-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  className="h-6 w-6 rounded-full bg-success/15 text-success hover:bg-success hover:text-white flex items-center justify-center transition-all duration-150"
-                  onClick={handleSendWhatsApp}
-                >
-                  <MessageSquare className="h-3 w-3" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="text-xs">Abrir no WhatsApp interno</TooltipContent>
-            </Tooltip>
+      <div className="p-3 space-y-1.5">
+        {/* Line 1: Name + etiqueta */}
+        <div className="flex items-start justify-between gap-1.5">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            {stagnation === "critical" && (
+              <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0 mt-1.5" />
+            )}
+            {stagnation === "warning" && (
+              <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0 mt-1.5" />
+            )}
+            <h4 className={cn(
+              "text-sm font-semibold leading-tight truncate",
+              deal.deal_status === "lost" ? "text-muted-foreground line-through" : "text-foreground"
+            )}>
+              {deal.customer_name || deal.deal_title}
+            </h4>
           </div>
+          {etiquetaInfo && (
+            <span
+              className="text-[9px] font-semibold rounded-full px-1.5 py-0.5 text-white shrink-0"
+              style={{ backgroundColor: etiquetaInfo.cor }}
+            >
+              {etiquetaInfo.icon ? `${etiquetaInfo.icon} ` : ""}{etiquetaInfo.short || etiquetaInfo.nome.substring(0, 3).toUpperCase()}
+            </span>
+          )}
         </div>
-      )}
 
-      {/* Row 4: Value + kWp */}
-      <div className="flex items-center gap-2.5 mb-1.5">
-        {deal.deal_value > 0 && (
-          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold font-mono text-success">
-            <DollarSign className="h-3 w-3" />
-            {formatBRL(deal.deal_value)}
-          </span>
-        )}
-        {deal.deal_kwp > 0 && (
-          <span className="inline-flex items-center gap-0.5 text-[10px] font-bold font-mono text-info">
-            <Zap className="h-3 w-3" />
-            {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
-          </span>
-        )}
-      </div>
+        {/* Line 2: Value + kWp */}
+        <div className="flex items-center gap-3 text-xs">
+          {deal.deal_value > 0 && (
+            <span className="flex items-center gap-0.5 font-semibold text-foreground">
+              <DollarSign className="h-3 w-3 text-success" />
+              {formatBRL(deal.deal_value)}
+            </span>
+          )}
+          {deal.deal_kwp > 0 && (
+            <span className="flex items-center gap-0.5 text-muted-foreground">
+              <Zap className="h-3 w-3" />
+              {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
+            </span>
+          )}
+        </div>
 
-      {/* Row 5: Indicators */}
-      <div className="flex items-center gap-1.5 flex-wrap">
-        {hasProposta ? (
-          <Badge variant="outline" className="text-[8px] h-[18px] px-1.5 gap-0.5 bg-success/10 text-success border-success/40 font-semibold">
-            <FileText className="h-2.5 w-2.5" />
-            Proposta
-          </Badge>
-        ) : isOpen ? (
-          <Badge variant="outline" className="text-[8px] h-[18px] px-1.5 gap-0.5 bg-warning/10 text-warning border-warning/40 font-semibold">
-            <FileText className="h-2.5 w-2.5" />
-            Sem proposta
-          </Badge>
-        ) : null}
-        {hasNotas && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Badge variant="outline" className="text-[8px] h-[18px] px-1.5 gap-0.5 bg-info/10 text-info border-info/40 font-semibold">
-                <StickyNote className="h-2.5 w-2.5" />
-                Notas
-              </Badge>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs max-w-[200px]">
-              <p className="line-clamp-3">{deal.notas}</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
+        {/* Line 3: Stage + time in stage */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span className="truncate">{deal.stage_name}</span>
+          <span className={cn(
+            "flex items-center gap-0.5 tabular-nums shrink-0",
+            stagnation === "critical" && "text-destructive font-semibold",
+            stagnation === "warning" && "text-warning font-semibold",
+          )}>
+            <Clock className="h-2.5 w-2.5" />
+            {getTimeInStage(deal.last_stage_change)}
+          </span>
+        </div>
+
+        {/* Line 4: Status indicators */}
+        <div className="flex items-center gap-1.5">
+          {hasProposta && (
+            <Badge variant="secondary" className="text-[9px] h-4 px-1.5 gap-0.5 font-medium">
+              <FileText className="h-2.5 w-2.5" />
+              Proposta
+            </Badge>
+          )}
+          {hasNotas && (
+            <Badge variant="secondary" className="text-[9px] h-4 px-1.5 gap-0.5 font-medium">
+              <StickyNote className="h-2.5 w-2.5" />
+              Notas
+            </Badge>
+          )}
+        </div>
       </div>
     </div>
 
