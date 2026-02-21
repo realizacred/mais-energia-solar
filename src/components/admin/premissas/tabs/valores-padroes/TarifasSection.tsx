@@ -3,8 +3,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Zap, Info, Settings2, Wrench, Gauge, Package } from "lucide-react";
-import type { TenantPremises } from "@/hooks/useTenantPremises";
+import { Zap, Info, Settings2, Wrench, Gauge, Package, Eye } from "lucide-react";
+import type { TenantPremises, SombreamentoConfig } from "@/hooks/useTenantPremises";
+import { DEFAULT_SOMBREAMENTO_CONFIG } from "@/hooks/useTenantPremises";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { FieldTooltip, NumField } from "./shared";
 import { Switch } from "@/components/ui/switch";
@@ -232,13 +233,16 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
 
       {/* Configuração Técnica removida — dados agora gerenciados por tipo de telhado */}
 
-      {/* Card 6: Desempenho */}
-      <SectionCard icon={Gauge} title="Taxas de Desempenho" variant="neutral">
+      {/* Card 6: Desempenho + Sombreamento */}
+      <SectionCard icon={Gauge} title="Taxas de Desempenho e Sombreamento" variant="neutral">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="Taxa de Desempenho (Tradicional)" suffix="%" value={premises.taxa_desempenho_tradicional} onChange={(v) => set("taxa_desempenho_tradicional", v)} />
-          <NumField label="Taxa de Desempenho (Microinversor)" suffix="%" value={premises.taxa_desempenho_microinversor} onChange={(v) => set("taxa_desempenho_microinversor", v)} />
-          <NumField label="Taxa de Desempenho (Otimizador)" suffix="%" value={premises.taxa_desempenho_otimizador} onChange={(v) => set("taxa_desempenho_otimizador", v)} />
+          <NumField label="Taxa de Desempenho (Tradicional)" suffix="%" value={premises.taxa_desempenho_tradicional} tooltip="Performance Ratio base sem sombreamento. Típico: 65-75%." onChange={(v) => set("taxa_desempenho_tradicional", v)} />
+          <NumField label="Taxa de Desempenho (Microinversor)" suffix="%" value={premises.taxa_desempenho_microinversor} tooltip="Performance Ratio base sem sombreamento. Típico: 70-78%." onChange={(v) => set("taxa_desempenho_microinversor", v)} />
+          <NumField label="Taxa de Desempenho (Otimizador)" suffix="%" value={premises.taxa_desempenho_otimizador} tooltip="Performance Ratio base sem sombreamento. Típico: 72-80%." onChange={(v) => set("taxa_desempenho_otimizador", v)} />
         </div>
+
+        {/* Sombreamento */}
+        <SombreamentoSection premises={premises} onChange={onChange} />
       </SectionCard>
 
       {/* Card 7: Kits e Fornecedores */}
@@ -318,6 +322,48 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
           </div>
         </div>
       </SectionCard>
+    </div>
+  );
+}
+
+/* ─── Sombreamento Sub-Section ─── */
+
+const SOMBRA_LEVELS = [
+  { key: "pouco" as const, label: "Pouco", desc: "Sombreamento em poucos momentos do dia ou início/final do dia" },
+  { key: "medio" as const, label: "Médio", desc: "Sombreamento parcial nos módulos durante maior irradiação" },
+  { key: "alto" as const, label: "Alto", desc: "Sombreamento em períodos de maior irradiação" },
+] as const;
+
+function SombreamentoSection({ premises, onChange }: { premises: TenantPremises; onChange: (fn: (prev: TenantPremises) => TenantPremises) => void }) {
+  const sombConfig: SombreamentoConfig = (premises.sombreamento_config as any) || DEFAULT_SOMBREAMENTO_CONFIG;
+
+  const setSombra = (level: keyof SombreamentoConfig, topo: keyof SombreamentoConfig["pouco"], value: number) => {
+    const updated = { ...sombConfig, [level]: { ...sombConfig[level], [topo]: value } };
+    onChange((p) => ({ ...p, sombreamento_config: updated }));
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-border/50 space-y-3">
+      <div className="flex items-center gap-2">
+        <Eye className="h-4 w-4 text-muted-foreground" />
+        <p className="text-xs font-semibold text-muted-foreground">Perda por sombreamento (% aplicado sobre o desempenho base)</p>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Sistemas com microinversores e otimizadores sofrem menos com sombreamento que strings tradicionais.
+      </p>
+      {SOMBRA_LEVELS.map(level => (
+        <div key={level.key} className="rounded-lg border border-border/50 p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold">{level.label}</span>
+            <span className="text-[10px] text-muted-foreground">— {level.desc}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <NumField label="Tradicional (String)" suffix="%" value={sombConfig[level.key].tradicional} tooltip="Perda no desempenho para inversor string" onChange={(v) => setSombra(level.key, "tradicional", v)} />
+            <NumField label="Microinversor" suffix="%" value={sombConfig[level.key].microinversor} tooltip="Perda no desempenho para microinversor" onChange={(v) => setSombra(level.key, "microinversor", v)} />
+            <NumField label="Otimizador" suffix="%" value={sombConfig[level.key].otimizador} tooltip="Perda no desempenho para otimizador" onChange={(v) => setSombra(level.key, "otimizador", v)} />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
