@@ -7,7 +7,7 @@ import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/s
 import { VendorSidebar, VENDOR_TAB_TITLES } from "@/components/vendor/sidebar";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useVendedorPortal } from "@/hooks/useVendedorPortal";
-import Footer from "@/components/layout/Footer";
+
 
 // Lazy load sub-pages
 const VendorDashboardView = lazy(() => import("@/components/vendor/views/VendorDashboardView"));
@@ -109,8 +109,6 @@ export default function VendedorPortal() {
               </Routes>
             </Suspense>
           </main>
-
-          <Footer />
         </SidebarInset>
       </div>
     </SidebarProvider>
