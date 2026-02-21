@@ -73,12 +73,12 @@ function VendorSidebarItem({
           transition-all duration-200 rounded-lg mx-1 my-px text-[13px]
           ${
             isActive
-              ? `${section.activeClass} shadow-sm font-semibold`
-              : `text-sidebar-foreground/75 ${section.hoverClass} hover:text-sidebar-foreground`
+              ? "bg-sidebar-accent/80 text-sidebar-accent-foreground font-semibold border-l-[3px] border-sidebar-primary"
+              : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90"
           }
         `}
       >
-        <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? '' : 'opacity-70'}`} />
+        <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-sidebar-primary' : 'opacity-50'}`} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
             <span className="text-[13px] truncate leading-tight">
@@ -131,24 +131,24 @@ function VendorSidebarSectionGroup({
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             className={`
-              text-[10px] font-extrabold uppercase tracking-[0.14em] px-3 py-2
+              text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2
               flex items-center gap-2 cursor-pointer select-none
               transition-all duration-200
-              hover:bg-accent/60 rounded-lg
-              ${section.labelClass}
+              hover:bg-sidebar-accent/40 rounded-lg
+              text-sidebar-foreground/45
             `}
           >
             <div
               className={`
                 w-5 h-5 rounded-md flex items-center justify-center shrink-0
-                ${section.indicatorBg}
+                bg-sidebar-accent/80
               `}
             >
-              <LabelIcon className="h-3 w-3 text-white" />
+              <LabelIcon className="h-3 w-3 text-sidebar-foreground/60" />
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1 opacity-90">{section.label}</span>
+                <span className="flex-1">{section.label}</span>
                 <ChevronDown className="h-3 w-3 opacity-30 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
@@ -193,9 +193,9 @@ export function VendorSidebar({
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-border/15 bg-sidebar-background/80 backdrop-blur-sm"
+      className="sidebar-premium border-0"
     >
-      <SidebarHeader className="border-b border-border/15 px-3 py-3.5">
+      <SidebarHeader className="border-b border-sidebar-border/50 px-3 py-3.5">
         <Link
           to="/"
           className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
@@ -228,10 +228,10 @@ export function VendorSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/15 p-3 space-y-2">
+      <SidebarFooter className="border-t border-sidebar-border/50 p-3 space-y-2">
         {!collapsed && (
-          <div className="px-3 py-2 rounded-lg bg-muted/30 border border-border/15">
-            <p className="text-[11px] text-muted-foreground/80 truncate font-medium">
+          <div className="px-3 py-2 rounded-lg bg-sidebar-accent/50 border border-sidebar-border/30">
+            <p className="text-[11px] text-sidebar-foreground/55 truncate font-medium">
               {displayName}
             </p>
             {isAdminMode && (
