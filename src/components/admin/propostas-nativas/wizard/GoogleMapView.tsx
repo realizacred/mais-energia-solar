@@ -377,7 +377,7 @@ export default function GoogleMapView({
   return (
     <div className="space-y-2">
       {/* Map container */}
-      <div ref={mapContainerRef} className="rounded-xl border border-border/50 overflow-hidden relative h-[260px] sm:h-[320px] lg:h-[420px] xl:h-[480px]">
+      <div ref={mapContainerRef} className="rounded-xl border border-border/50 overflow-hidden relative h-[240px] sm:h-[280px] lg:h-[360px] xl:h-[420px]">
         <div ref={mapRef} className="w-full h-full" />
 
         {/* City label */}

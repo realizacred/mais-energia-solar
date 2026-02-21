@@ -352,25 +352,22 @@ export function StepLocalizacao({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] xl:grid-cols-[1fr_420px] gap-4">
-      {/* ═══ LEFT COLUMN — Form cards ═══ */}
-      <div className="space-y-4 min-w-0 order-2 lg:order-1">
+    <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] xl:grid-cols-[1fr_400px] gap-3">
+      {/* ═══ LEFT COLUMN ═══ */}
+      <div className="space-y-3 min-w-0 order-2 lg:order-1">
 
-        {/* Card 1 — Endereço de instalação */}
+        {/* Endereço de instalação */}
         <Card className="border-border/40">
-          <CardHeader className="pb-2 pt-3 px-4">
+          <CardHeader className="pb-1 pt-2.5 px-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-semibold flex items-center gap-2 text-foreground">
-                <MapPin className="h-3.5 w-3.5 text-primary" />
+              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
+                <MapPin className="h-3 w-3 text-primary" />
                 Endereço de instalação
               </CardTitle>
               {geoStatusBadge()}
             </div>
-            <CardDescription className="text-[11px]">
-              Preencha ou clique no mapa para definir o local da instalação
-            </CardDescription>
           </CardHeader>
-          <CardContent className="px-4 pb-3">
+          <CardContent className="px-3 pb-2.5">
             {onProjectAddressChange && projectAddress && (
               <ProjectAddressFields
                 address={projectAddress}
@@ -383,129 +380,112 @@ export function StepLocalizacao({
           </CardContent>
         </Card>
 
-        {/* Card 2 — Telhado + Distribuidora + Irradiação — 3 cols on md+, 1 col on mobile */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {/* Telhado + Distribuidora + Irradiação — inline row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           {/* Tipo de Telhado */}
-          <Card className="border-border/40">
-            <CardHeader className="pb-1.5 pt-2.5 px-3">
-              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
-                <Home className="h-3 w-3 text-secondary shrink-0" />
-                Tipo de Telhado *
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-2.5">
-              <Select value={tipoTelhado} onValueChange={onTipoTelhadoChange}>
-                <SelectTrigger className={cn(
-                  "h-8 text-xs",
-                  !tipoTelhado && "border-destructive ring-1 ring-destructive/30"
-                )}>
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tiposTelhado.map(t => {
-                    const Icon = ROOF_TYPE_ICONS[t] || ROOF_TYPE_ICONS["_default"];
-                    return (
-                      <SelectItem key={t} value={t}>
-                        <span className="flex items-center gap-2">
-                          <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                          {t}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-              {!tipoTelhado && (
-                <p className="text-[10px] text-destructive font-medium mt-1">⚠ Campo obrigatório</p>
-              )}
-            </CardContent>
-          </Card>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Home className="h-2.5 w-2.5" /> Tipo de Telhado *
+            </Label>
+            <Select value={tipoTelhado} onValueChange={onTipoTelhadoChange}>
+              <SelectTrigger className={cn(
+                "h-8 text-xs",
+                !tipoTelhado && "border-destructive ring-1 ring-destructive/30"
+              )}>
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {tiposTelhado.map(t => {
+                  const Icon = ROOF_TYPE_ICONS[t] || ROOF_TYPE_ICONS["_default"];
+                  return (
+                    <SelectItem key={t} value={t}>
+                      <span className="flex items-center gap-2">
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                        {t}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+            {!tipoTelhado && (
+              <p className="text-[9px] text-destructive font-medium">⚠ Obrigatório</p>
+            )}
+          </div>
 
           {/* Distribuidora */}
-          <Card className="border-border/40">
-            <CardHeader className="pb-1.5 pt-2.5 px-3">
-              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
-                <Zap className="h-3 w-3 text-warning shrink-0" />
-                Distribuidora *
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-2.5">
-              {loadingConc ? (
-                <div className="flex items-center gap-1.5 px-3 h-8 border rounded-md bg-muted/30">
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span className="text-xs text-muted-foreground">Carregando...</span>
-                </div>
-              ) : (
-                <Select value={distribuidoraId} onValueChange={handleConcChange}>
-                  <SelectTrigger className={cn(
-                    "h-8 text-xs",
-                    !distribuidoraId && estado && "border-destructive/50"
-                  )}>
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {concessionarias.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.sigla ? `${c.sigla} — ${c.nome}` : c.nome}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-              {!distribuidoraId && estado && (
-                <p className="text-[10px] text-destructive mt-1">Obrigatório</p>
-              )}
-            </CardContent>
-          </Card>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Zap className="h-2.5 w-2.5" /> Distribuidora *
+            </Label>
+            {loadingConc ? (
+              <div className="flex items-center gap-1.5 px-3 h-8 border rounded-md bg-muted/30">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span className="text-xs text-muted-foreground">Carregando...</span>
+              </div>
+            ) : (
+              <Select value={distribuidoraId} onValueChange={handleConcChange}>
+                <SelectTrigger className={cn(
+                  "h-8 text-xs",
+                  !distribuidoraId && estado && "border-destructive/50"
+                )}>
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  {concessionarias.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.sigla ? `${c.sigla} — ${c.nome}` : c.nome}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {!distribuidoraId && estado && (
+              <p className="text-[9px] text-destructive">Obrigatório</p>
+            )}
+          </div>
 
           {/* Irradiação Solar */}
-          <Card className="border-border/40 sm:col-span-2 md:col-span-1">
-            <CardHeader className="pb-1.5 pt-2.5 px-3">
-              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
-                <Sun className="h-3 w-3 text-warning shrink-0" />
-                Irradiação Solar
-                {loadingIrrad && <Loader2 className="h-2.5 w-2.5 animate-spin text-primary ml-1" />}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 pb-2.5">
-              <div className="flex items-center gap-1.5 h-8 px-2.5 border rounded-md bg-muted/10">
-                {irradiacao !== null ? (
-                  <>
-                    <Sun className="h-3.5 w-3.5 text-warning shrink-0" />
-                    <span className="text-xs font-bold text-foreground">{irradiacao.toFixed(2)}</span>
-                    <span className="text-[9px] text-muted-foreground">kWh/m²/dia</span>
-                    {distKm !== null && (
-                      <span className="text-[9px] text-muted-foreground">~{distKm.toFixed(0)}km</span>
-                    )}
-                    <Badge variant="secondary" className="text-[8px] ml-auto px-1.5 py-0">
-                      {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "Atlas INPE" : irradSource || "Atlas"}
-                    </Badge>
-                  </>
-                ) : loadingIrrad ? (
-                  <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                    <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando...
-                  </span>
-                ) : geoStatus === "manual" ? (
-                  <span className="text-[10px] text-muted-foreground">Informe endereço</span>
-                ) : cidade ? (
-                  <span className="text-[10px] text-muted-foreground">Geocodificando...</span>
-                ) : (
-                  <span className="text-[10px] text-muted-foreground">Preencha endereço</span>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Sun className="h-2.5 w-2.5" /> Irradiação Solar
+              {loadingIrrad && <Loader2 className="h-2 w-2 animate-spin text-primary ml-0.5" />}
+            </Label>
+            <div className="flex items-center gap-1.5 h-8 px-2 border rounded-md bg-muted/10">
+              {irradiacao !== null ? (
+                <>
+                  <Sun className="h-3 w-3 text-warning shrink-0" />
+                  <span className="text-xs font-bold text-foreground">{irradiacao.toFixed(2)}</span>
+                  <span className="text-[9px] text-muted-foreground">kWh/m²/dia</span>
+                  {distKm !== null && (
+                    <span className="text-[9px] text-muted-foreground">~{distKm.toFixed(0)}km</span>
+                  )}
+                  <Badge variant="secondary" className="text-[8px] ml-auto px-1 py-0">
+                    {irradSource?.includes("INPE") || irradSource?.includes("inpe") ? "INPE" : irradSource || "Atlas"}
+                  </Badge>
+                </>
+              ) : loadingIrrad ? (
+                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                  <Loader2 className="h-2.5 w-2.5 animate-spin" /> Buscando...
+                </span>
+              ) : cidade ? (
+                <span className="text-[10px] text-muted-foreground">Geocodificando...</span>
+              ) : (
+                <span className="text-[10px] text-muted-foreground">Preencha endereço</span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ═══ RIGHT COLUMN — Map (sticky) ═══ */}
+      {/* ═══ RIGHT COLUMN — Map ═══ */}
       <div className="order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start">
         <Card className="border-border/40">
-          <CardHeader className="pb-2 pt-3 px-4">
+          <CardHeader className="pb-1 pt-2 px-3">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-semibold flex items-center gap-2 text-foreground">
-                <MapPin className="h-3.5 w-3.5 text-secondary" />
-                Mapa & Localização
+              <CardTitle className="text-[11px] font-semibold flex items-center gap-1.5 text-foreground">
+                <MapPin className="h-3 w-3 text-secondary" />
+                Mapa
               </CardTitle>
               {geoLat && geoLon && (
                 <span className="text-[9px] font-mono text-muted-foreground">
@@ -514,9 +494,9 @@ export function StepLocalizacao({
               )}
             </div>
           </CardHeader>
-          <CardContent className="px-0 pb-3">
+          <CardContent className="px-0 pb-2">
             <Suspense fallback={
-              <div className="h-[260px] sm:h-[320px] lg:h-[420px] xl:h-[480px] flex items-center justify-center bg-muted/20">
+              <div className="h-[240px] lg:h-[380px] xl:h-[440px] flex items-center justify-center bg-muted/20">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             }>
