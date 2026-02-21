@@ -484,11 +484,11 @@ export function StepLocalizacao({
         {/* Right column: Map — sticky on desktop, full-width on mobile */}
         <div className="order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start">
           <Suspense fallback={
-            <div className="rounded-xl border border-border/50 h-[260px] sm:h-[360px] lg:h-[460px] flex items-center justify-center bg-muted/20">
+            <div className="rounded-xl border border-border/50 h-[220px] sm:h-[280px] lg:h-[360px] flex items-center justify-center bg-muted/20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           }>
-            <div className="h-[260px] sm:h-[360px] lg:h-[460px] rounded-xl overflow-hidden border border-border/50">
+            <div className="h-[220px] sm:h-[280px] lg:h-[360px] rounded-xl overflow-hidden border border-border/50">
               <GoogleMapView
                 lat={geoLat}
                 lon={geoLon}
