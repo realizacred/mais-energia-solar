@@ -42,6 +42,7 @@ const InversoresManager = lazy(() => import("@/components/admin/equipamentos").t
 const BateriasManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.BateriasManager })));
 const ConcessionariasManager = lazy(() => import("@/components/admin/ConcessionariasManager").then(m => ({ default: m.ConcessionariasManager })));
 const DicionarioAneelPage = lazy(() => import("@/components/admin/concessionarias/DicionarioAneelPage").then(m => ({ default: m.DicionarioAneelPage })));
+const TarifaVersoesPage = lazy(() => import("@/components/admin/concessionarias/TarifaVersoesPage").then(m => ({ default: m.TarifaVersoesPage })));
 const GamificacaoConfig = lazy(() => import("@/components/admin/GamificacaoConfig").then(m => ({ default: m.GamificacaoConfig })));
 const ComissoesManager = lazy(() => import("@/components/admin/ComissoesManager").then(m => ({ default: m.ComissoesManager })));
 const ValidacaoVendasManager = lazy(() => import("@/components/admin/ValidacaoVendasManager").then(m => ({ default: m.ValidacaoVendasManager })));
@@ -514,6 +515,7 @@ export default function Admin() {
                 <Route path="baterias" element={<BateriasManager />} />
                 <Route path="concessionarias" element={<ConcessionariasManager />} />
                 <Route path="dicionario-aneel" element={<DicionarioAneelPage />} />
+                <Route path="tarifa-versoes" element={<TarifaVersoesPage />} />
                 <Route path="config" element={<CalculadoraConfig />} />
                 <Route path="conf-solar" element={<ConfSolarPage />} />
                 <Route path="premissas" element={<PremissasPage />} />
