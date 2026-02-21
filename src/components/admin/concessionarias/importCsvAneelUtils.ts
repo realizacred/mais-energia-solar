@@ -1,3 +1,5 @@
+import * as XLSX from "xlsx";
+
 export interface ParsedTarifa {
   sigAgente: string;
   nomAgente: string;
@@ -158,15 +160,11 @@ export function parseComponentesTarifas(lines: string[], headers: string[]): Par
     const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
     if (!subgrupo) continue;
 
-    // Filter only "Fio B" component rows
     const componente = cols.componente !== undefined ? cells[cols.componente] || "" : "";
     if (!componente.toLowerCase().includes("fio b") && !componente.toLowerCase().includes("distribuicao") && !componente.toLowerCase().includes("distribuição")) continue;
-
-    // Only keep Fio B specifically
     if (!componente.toLowerCase().includes("fio b")) continue;
 
     const vlrComponente = cols.vlrComponente !== undefined ? parseNumber(cells[cols.vlrComponente]) : 0;
-    // Also check if TUSD column has the value
     const vlrTUSD = cols.vlrTUSD !== undefined ? parseNumber(cells[cols.vlrTUSD]) : 0;
 
     records.push({
@@ -185,4 +183,22 @@ export function parseComponentesTarifas(lines: string[], headers: string[]): Par
     });
   }
   return records;
+}
+
+/**
+ * Parse an XLSX file (ArrayBuffer) and return lines + headers like CSV.
+ */
+export function parseXlsxFile(buffer: ArrayBuffer): { headers: string[]; lines: string[] } {
+  const workbook = XLSX.read(buffer, { type: "array" });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  
+  const csv = XLSX.utils.sheet_to_csv(sheet, { FS: ";" });
+  const lines = csv.split(/\r?\n/).filter(l => l.trim());
+  
+  if (lines.length < 2) return { headers: [], lines: [] };
+  
+  const headers = parseCSVLine(lines[0]);
+  
+  return { headers, lines };
 }
