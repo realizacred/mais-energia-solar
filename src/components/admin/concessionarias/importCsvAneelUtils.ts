@@ -175,11 +175,15 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
     debugSkipReasons.total++;
 
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
-    // Use norm() for accent-safe comparison
+    // Accept: "Tarifa de Aplicação", "Base Econômica", or empty (no filter)
+    // Only REJECT if baseTarifaria is present AND is something truly irrelevant
     if (baseTarifaria) {
       const baseNorm = norm(baseTarifaria);
-      // Accept "tarifa de aplicação/aplicacao" and reject others like "base econômica"
-      if (!baseNorm.includes("aplica") && !baseNorm.includes("aplicacao")) {
+      const isAplicacao = baseNorm.includes("aplica") || baseNorm.includes("aplicacao");
+      const isEconomica = baseNorm.includes("econom");
+      const isBase = baseNorm.includes("base") || baseNorm.includes("tarifa");
+      // Accept aplicação, econômica, or anything that looks tariff-related
+      if (!isAplicacao && !isEconomica && !isBase) {
         debugSkipReasons.noBase++;
         continue;
       }
@@ -206,19 +210,18 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
   console.log("[ANEEL Homol] Debug skip reasons:", debugSkipReasons, "Records found:", records.length);
   console.log("[ANEEL Homol] Column map:", cols);
 
-  // Fallback: if zero records but rows existed, retry without baseTarifaria filter
-  if (records.length === 0 && debugSkipReasons.noBase > 0) {
-    console.warn("[ANEEL Homol] All rows filtered by baseTarifaria. Retrying without filter...");
-    return parseTarifasHomologadasNoBaseFilter(data, headers, cols, isPreParsed, startIdx);
+  // Fallback: if zero records but rows existed, retry without ANY filter
+  if (records.length === 0 && (debugSkipReasons.noBase > 0 || debugSkipReasons.noSub > 0)) {
+    console.warn("[ANEEL Homol] All rows filtered. Retrying without baseTarifaria filter...");
+    return parseTarifasNoFilter(data, cols, isPreParsed, startIdx);
   }
 
   return records;
 }
 
 /** Fallback parser that skips the baseTarifaria filter */
-function parseTarifasHomologadasNoBaseFilter(
+function parseTarifasNoFilter(
   data: string[] | string[][],
-  headers: string[],
   cols: Record<string, number>,
   isPreParsed: boolean,
   startIdx: number,
@@ -245,7 +248,7 @@ function parseTarifasHomologadasNoBaseFilter(
       vigencia: cols.vigencia !== undefined ? cells[cols.vigencia] || "" : "",
     });
   }
-  console.log("[ANEEL Homol] Fallback (no base filter) records:", records.length);
+  console.log("[ANEEL Homol] Fallback (no filter) records:", records.length);
   return records;
 }
 
@@ -260,7 +263,7 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
 
   const records: ParsedTarifa[] = [];
   const startIdx = isPreParsed ? 0 : 1;
-  let debugSkipReasons = { noBase: 0, noSub: 0, noComp: 0, noFioB: 0, total: 0 };
+  let debugSkipReasons = { noBase: 0, noSub: 0, noComp: 0, noFioB: 0, total: 0, accepted: 0 };
   
   for (let i = startIdx; i < data.length; i++) {
     const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);
@@ -268,9 +271,16 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
     debugSkipReasons.total++;
 
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
-    if (baseTarifaria && !baseTarifaria.toLowerCase().includes("aplica")) {
-      debugSkipReasons.noBase++;
-      continue;
+    // Accept: aplicação, econômica, or empty — same logic as homologadas
+    if (baseTarifaria) {
+      const baseNorm = norm(baseTarifaria);
+      const isAplicacao = baseNorm.includes("aplica") || baseNorm.includes("aplicacao");
+      const isEconomica = baseNorm.includes("econom");
+      const isBase = baseNorm.includes("base") || baseNorm.includes("tarifa");
+      if (!isAplicacao && !isEconomica && !isBase) {
+        debugSkipReasons.noBase++;
+        continue;
+      }
     }
 
     const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
@@ -279,18 +289,15 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
       continue;
     }
 
-    // For componentes, filter by component type if the column exists
+    // For componentes: accept ALL component types, not just "fio b"
+    // The user may want to import CVA, CDE, Proinfa, etc.
+    // We'll tag what component it is so downstream can decide
+    let componenteLabel = "";
     if (cols.componente !== undefined) {
-      const componente = cells[cols.componente] || "";
-      const compLower = norm(componente);
-      // Accept "fio b", "distribuicao", "distribuição" components
-      const isFioB = compLower.includes("fio b") || compLower.includes("fio_b");
-      const isDist = compLower.includes("distribuic") || compLower.includes("distribuicao");
-      if (!isFioB && !isDist) {
-        debugSkipReasons.noFioB++;
-        continue;
-      }
+      componenteLabel = cells[cols.componente] || "";
     }
+
+    debugSkipReasons.accepted++;
 
     const vlrComponente = cols.vlrComponente !== undefined ? parseNumber(cells[cols.vlrComponente]) : 0;
     const vlrTUSD = cols.vlrTUSD !== undefined ? parseNumber(cells[cols.vlrTUSD]) : 0;
@@ -306,12 +313,19 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
       vlrFioB: vlrComponente || vlrTUSD,
       unidade: cols.unidade !== undefined ? cells[cols.unidade] || "" : "",
       baseTarifaria,
-      detalhe: cols.detalhe !== undefined ? cells[cols.detalhe] || "" : "",
+      detalhe: componenteLabel || (cols.detalhe !== undefined ? cells[cols.detalhe] || "" : ""),
       vigencia: cols.vigencia !== undefined ? cells[cols.vigencia] || "" : "",
     });
   }
   
   console.log("[ANEEL Comp] Debug skip reasons:", debugSkipReasons, "Records found:", records.length);
+  
+  // Fallback: if still zero, retry without any filter
+  if (records.length === 0 && debugSkipReasons.total > 0) {
+    console.warn("[ANEEL Comp] All rows filtered. Retrying without filters...");
+    return parseTarifasNoFilter(data, cols, isPreParsed, startIdx);
+  }
+  
   return records;
 }
 
