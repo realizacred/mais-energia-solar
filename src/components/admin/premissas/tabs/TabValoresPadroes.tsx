@@ -1,3 +1,4 @@
+import { useState, useCallback } from "react";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { ConcessionariaSection } from "./valores-padroes/ConcessionariaSection";
 import { TarifasSection } from "./valores-padroes/TarifasSection";
@@ -9,10 +10,18 @@ interface Props {
 }
 
 export function TabValoresPadroes({ premises, onChange }: Props) {
+  const [syncedFields, setSyncedFields] = useState<string[]>([]);
+
+  const handleSyncedFields = useCallback((fields: string[]) => {
+    setSyncedFields(fields);
+    // Auto-clear after animation duration
+    setTimeout(() => setSyncedFields([]), 3500);
+  }, []);
+
   return (
     <div className="space-y-6">
-      <ConcessionariaSection premises={premises} onChange={onChange} />
-      <TarifasSection premises={premises} onChange={onChange} />
+      <ConcessionariaSection premises={premises} onChange={onChange} onSyncedFields={handleSyncedFields} />
+      <TarifasSection premises={premises} onChange={onChange} syncedFields={syncedFields} />
       <KitsSection premises={premises} onChange={onChange} />
     </div>
   );

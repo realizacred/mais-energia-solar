@@ -410,6 +410,18 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
                     <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold ml-auto rounded-full bg-primary/10 text-primary border-0">
                       {count}
                     </Badge>
+                    {/* Overdue count */}
+                    {(() => {
+                      const overdueCount = stageDeals.filter(d => {
+                        const hours = differenceInHours(new Date(), new Date(d.last_stage_change));
+                        return hours >= 72;
+                      }).length;
+                      return overdueCount > 0 ? (
+                        <Badge variant="destructive" className="text-[9px] h-4 px-1.5 font-bold rounded-full">
+                          {overdueCount} ⚠
+                        </Badge>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
 
@@ -512,21 +524,12 @@ interface StageDealCardProps {
 }
 
 function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, dynamicEtiquetas = [] }: StageDealCardProps) {
-  // Resolve etiqueta from dynamic DB list
   const etiquetaCfg = useMemo(() => {
     if (!deal.etiqueta) return null;
     const found = dynamicEtiquetas.find(e =>
-      e.nome.toLowerCase() === deal.etiqueta?.toLowerCase() ||
-      e.id === deal.etiqueta
+      e.nome.toLowerCase() === deal.etiqueta?.toLowerCase() || e.id === deal.etiqueta
     );
-    if (found) {
-      return {
-        label: found.nome,
-        short: found.short || found.nome.substring(0, 3).toUpperCase(),
-        cor: found.cor,
-        icon: found.icon,
-      };
-    }
+    if (found) return { label: found.nome, short: found.short || found.nome.substring(0, 3).toUpperCase(), cor: found.cor, icon: found.icon };
     return null;
   }, [deal.etiqueta, dynamicEtiquetas]);
 
@@ -534,15 +537,15 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
   const propostaInfo = deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
   const timeInStage = getTimeInStage(deal.last_stage_change);
   const stagnation = getStagnationLevel(deal.last_stage_change);
-
   const [whatsappDialogOpen, setWhatsappDialogOpen] = useState(false);
 
-  const handleSendWhatsApp = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (deal.customer_phone) {
-      setWhatsappDialogOpen(true);
-    }
-  };
+  // Doc checklist progress
+  const docChecklist = deal.doc_checklist as Record<string, boolean> | null;
+  const docTotal = docChecklist ? Object.keys(docChecklist).length : 0;
+  const docDone = docChecklist ? Object.values(docChecklist).filter(Boolean).length : 0;
+
+  // Expected close date
+  const isOverdue = deal.expected_close_date && new Date(deal.expected_close_date) < new Date();
 
   return (
     <>
@@ -551,139 +554,173 @@ function StageDealCard({ deal, isDragging, onDragStart, onClick, hasAutomation, 
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "bg-card rounded-lg cursor-grab active:cursor-grabbing",
-        "border border-border/60",
-        "hover:border-secondary/30 transition-all duration-200 ease-out relative group",
+        "bg-card rounded-xl cursor-grab active:cursor-grabbing",
+        "border border-border/40 shadow-sm",
+        "hover:shadow-md hover:border-border/80 transition-all duration-200 ease-out relative group",
         deal.deal_status === "won" && "bg-success/5 border-success/20",
         deal.deal_status === "lost" && "opacity-50",
-        isDragging && "opacity-30 scale-95",
+        isDragging && "opacity-30 scale-95 shadow-lg",
       )}
-      style={{ boxShadow: isDragging ? "var(--shadow-lg)" : "var(--shadow-sm)" }}
     >
-      <div className="p-3 space-y-1.5">
-        {/* Line 1: Client name + etiqueta */}
-        <div className="flex items-start justify-between gap-1.5">
-          <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            {stagnation === "critical" && (
-              <span className="w-1.5 h-1.5 rounded-full bg-destructive shrink-0 mt-1.5" />
-            )}
-            {stagnation === "warning" && !stagnation && (
-              <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0 mt-1.5" />
-            )}
+      {/* Stagnation left accent */}
+      {stagnation && (
+        <div className={cn(
+          "absolute left-0 top-2 bottom-2 w-[3px] rounded-full",
+          stagnation === "critical" ? "bg-destructive" : "bg-warning"
+        )} />
+      )}
+
+      <div className="p-3 space-y-2">
+        {/* Row 1: Header — Name + City + Value */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <p className={cn(
               "text-sm font-semibold leading-tight line-clamp-1",
               isInactive ? "text-muted-foreground" : "text-foreground"
             )}>
               {deal.customer_name || deal.deal_title || "Sem nome"}
             </p>
-          </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {propostaInfo && (
-              <Badge variant="secondary" className="text-[9px] h-4 px-1 font-medium">
-                {propostaInfo.label}
-              </Badge>
-            )}
-            {etiquetaCfg && (
-              <span
-                className="text-[9px] font-semibold rounded-full px-1.5 py-0.5 text-white"
-                style={{ backgroundColor: etiquetaCfg.cor }}
-              >
-                {etiquetaCfg.icon ? `${etiquetaCfg.icon} ` : ""}{etiquetaCfg.short || etiquetaCfg.label}
-              </span>
+            {(deal.customer_city || deal.customer_state) && (
+              <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
+              </p>
             )}
           </div>
-        </div>
-
-        {/* Line 2: Value + kWp */}
-        <div className="flex items-center gap-3 text-xs">
           {deal.deal_value > 0 && (
-            <span className="flex items-center gap-0.5 font-semibold text-foreground">
-              <DollarSign className="h-3 w-3 text-success" />
+            <span className="text-sm font-bold text-foreground whitespace-nowrap tabular-nums">
               {formatBRL(deal.deal_value)}
             </span>
           )}
-          {deal.deal_kwp > 0 && (
-            <span className="flex items-center gap-0.5 text-muted-foreground">
-              <Zap className="h-3 w-3" />
-              {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
+        </div>
+
+        {/* Row 2: Status chips */}
+        <div className="flex flex-wrap items-center gap-1">
+          {propostaInfo && (
+            <Badge variant="secondary" className={cn("text-[9px] h-[18px] px-1.5 font-medium border-0", propostaInfo.className)}>
+              {propostaInfo.label}
+            </Badge>
+          )}
+          {etiquetaCfg && (
+            <span
+              className="text-[9px] font-semibold rounded-full px-1.5 py-0.5 text-white"
+              style={{ backgroundColor: etiquetaCfg.cor }}
+            >
+              {etiquetaCfg.icon ? `${etiquetaCfg.icon} ` : ""}{etiquetaCfg.short || etiquetaCfg.label}
             </span>
+          )}
+          {deal.deal_kwp > 0 && (
+            <Badge variant="outline" className="text-[9px] h-[18px] px-1.5 font-mono font-medium border-border/50">
+              <Zap className="h-2.5 w-2.5 mr-0.5 text-info" />
+              {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
+            </Badge>
           )}
         </div>
 
-        {/* Line 3: Consultor + time in stage */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Avatar className="h-4 w-4 border border-border/50">
-              <AvatarFallback className="text-[7px] font-bold bg-muted text-muted-foreground">
-                {getInitials(deal.owner_name)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="truncate max-w-[80px]">{deal.owner_name}</span>
-          </div>
-          <span className={cn(
-            "flex items-center gap-0.5 tabular-nums",
-            stagnation === "critical" && "text-destructive font-semibold",
-            stagnation === "warning" && "text-warning font-semibold"
+        {/* Row 3: Next action / expected close */}
+        {deal.expected_close_date && (
+          <div className={cn(
+            "flex items-center gap-1.5 text-[10px] rounded-md px-2 py-1",
+            isOverdue ? "bg-destructive/10 text-destructive font-medium" : "bg-muted/50 text-muted-foreground"
           )}>
-            <Clock className="h-2.5 w-2.5" />
-            {timeInStage}
-          </span>
-        </div>
-
-        {/* Line 4: Notes indicator (compact) */}
-        {deal.notas?.trim() && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                <StickyNote className="h-2.5 w-2.5" />
-                <span className="truncate max-w-[150px] italic">{deal.notas}</span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs max-w-[250px]">
-              <p className="whitespace-pre-wrap">{deal.notas}</p>
-            </TooltipContent>
-          </Tooltip>
+            <Clock className="h-3 w-3 shrink-0" />
+            <span>Fechamento: {new Date(deal.expected_close_date).toLocaleDateString("pt-BR")}</span>
+            {isOverdue && <span className="font-bold ml-auto">ATRASADO</span>}
+          </div>
         )}
-      </div>
 
-      {/* Quick actions (hover) */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-150 px-3 pb-2 pt-0">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground"
-              onClick={(e) => { e.stopPropagation(); onClick(); }}
-            >
-              <FileText className="h-3 w-3 mr-0.5" />
-              Proposta
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent className="text-xs">Ver propostas</TooltipContent>
-        </Tooltip>
-        {deal.customer_phone && (
+        {/* Row 4: Progress indicators */}
+        {(docTotal > 0 || deal.proposta_economia_mensal) && (
+          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+            {docTotal > 0 && (
+              <span className="flex items-center gap-1">
+                <FileText className="h-3 w-3" />
+                {docDone}/{docTotal} docs
+              </span>
+            )}
+            {deal.proposta_economia_mensal && (
+              <span className="flex items-center gap-1 text-success">
+                <TrendingDown className="h-3 w-3" />
+                {formatBRL(deal.proposta_economia_mensal)}/mês
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Row 5: Quick action icons — always visible, compact */}
+        <div className="flex items-center gap-0.5 pt-0.5 border-t border-border/30">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="h-6 px-2 rounded-md bg-success/15 text-success hover:bg-success hover:text-white text-[10px] font-medium flex items-center gap-1 transition-all duration-150"
-                onClick={handleSendWhatsApp}
+                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-success hover:bg-success/10 transition-colors duration-150"
+                onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
+                disabled={!deal.customer_phone}
               >
-                <MessageSquare className="h-3 w-3" />
-                WhatsApp
+                <MessageSquare className="h-3.5 w-3.5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent className="text-xs">Abrir no WhatsApp interno</TooltipContent>
+            <TooltipContent className="text-xs">WhatsApp</TooltipContent>
           </Tooltip>
-        )}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-info hover:bg-info/10 transition-colors duration-150"
+                onClick={(e) => { e.stopPropagation(); onClick(); }}
+              >
+                <FileText className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Propostas</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors duration-150"
+                onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
+                disabled={!deal.customer_phone}
+              >
+                <Phone className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent className="text-xs">Ligar</TooltipContent>
+          </Tooltip>
+          {deal.notas?.trim() && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground">
+                  <StickyNote className="h-3.5 w-3.5" />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs max-w-[250px]">
+                <p className="whitespace-pre-wrap">{deal.notas}</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Spacer + Owner */}
+          <div className="ml-auto flex items-center gap-1.5">
+            <Avatar className="h-5 w-5 border border-border/50">
+              <AvatarFallback className="text-[8px] font-bold bg-muted text-muted-foreground">
+                {getInitials(deal.owner_name)}
+              </AvatarFallback>
+            </Avatar>
+            <span className={cn(
+              "text-[10px] tabular-nums",
+              stagnation === "critical" ? "text-destructive font-semibold" :
+              stagnation === "warning" ? "text-warning font-semibold" :
+              "text-muted-foreground"
+            )}>
+              {timeInStage}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
 
-      <ScheduleWhatsAppDialog
-        lead={deal.customer_phone ? { nome: deal.customer_name, telefone: deal.customer_phone } : null}
-        open={whatsappDialogOpen}
-        onOpenChange={setWhatsappDialogOpen}
-      />
+    <ScheduleWhatsAppDialog
+      lead={deal.customer_phone ? { nome: deal.customer_name, telefone: deal.customer_phone } : null}
+      open={whatsappDialogOpen}
+      onOpenChange={setWhatsappDialogOpen}
+    />
     </>
   );
 }

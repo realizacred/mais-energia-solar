@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { HelpCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function FieldTooltip({ text }: { text: string }) {
   return (
@@ -18,13 +20,26 @@ export function FieldTooltip({ text }: { text: string }) {
   );
 }
 
-export function NumField({ label, suffix, value, step, subtext, tooltip, onChange }: {
+export function NumField({ label, suffix, value, step, subtext, tooltip, highlight, onChange }: {
   label: string; suffix: string; value: number; step?: string; subtext?: string; tooltip?: string;
+  highlight?: boolean;
   onChange: (v: number) => void;
 }) {
   const isPercent = suffix === "%";
   const isKwh = suffix === "R$/kWh";
   const isReais = suffix === "R$";
+
+  // Animate highlight: green ring that fades after 3s
+  const [showHighlight, setShowHighlight] = useState(false);
+  useEffect(() => {
+    if (highlight) {
+      setShowHighlight(true);
+      const timer = setTimeout(() => setShowHighlight(false), 3000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowHighlight(false);
+    }
+  }, [highlight]);
 
   const formatValue = () => {
     if (isPercent) return value.toFixed(2);
@@ -35,7 +50,10 @@ export function NumField({ label, suffix, value, step, subtext, tooltip, onChang
 
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-medium text-muted-foreground">
+      <Label className={cn(
+        "text-xs font-medium text-muted-foreground transition-colors duration-300",
+        showHighlight && "text-success font-semibold"
+      )}>
         {label}
         {tooltip && <FieldTooltip text={tooltip} />}
       </Label>
@@ -45,7 +63,10 @@ export function NumField({ label, suffix, value, step, subtext, tooltip, onChang
           step={step || (isKwh ? "0.00001" : "0.01")}
           value={formatValue()}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="pr-16"
+          className={cn(
+            "pr-16 transition-all duration-300",
+            showHighlight && "ring-2 ring-success/50 border-success/60 bg-success/5"
+          )}
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">{suffix}</span>
       </div>

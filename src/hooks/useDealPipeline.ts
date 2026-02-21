@@ -52,6 +52,12 @@ export interface DealKanbanCard {
   proposta_economia_mensal?: number | null;
   proposta_id?: string | null;
   customer_id?: string | null;
+  // Enriched location
+  customer_city?: string | null;
+  customer_state?: string | null;
+  // Enriched deal fields
+  expected_close_date?: string | null;
+  doc_checklist?: Record<string, boolean> | null;
 }
 
 export interface OwnerColumn {
@@ -157,27 +163,46 @@ export function useDealPipeline() {
       // Fetch customer_id from deals
       const { data: dealsData } = await supabase
         .from("deals")
-        .select("id, customer_id, notas")
+        .select("id, customer_id, notas, expected_close_date, doc_checklist")
         .in("id", dealIds);
       
       const customerMap = new Map<string, string>();
       const notasMap = new Map<string, string | null>();
+      const closeDateMap = new Map<string, string | null>();
+      const docChecklistMap = new Map<string, Record<string, boolean> | null>();
       (dealsData || []).forEach((d: any) => {
         if (d.customer_id) customerMap.set(d.id, d.customer_id);
         notasMap.set(d.id, d.notas || null);
+        closeDateMap.set(d.id, d.expected_close_date || null);
+        docChecklistMap.set(d.id, d.doc_checklist || null);
       });
 
-      // Fetch latest proposal per customer
+      // Fetch latest proposal per customer + city/state
       const customerIds = [...new Set(Array.from(customerMap.values()))];
+      let locationMap = new Map<string, { city: string | null; state: string | null }>();
+
       if (customerIds.length > 0) {
-        const { data: propostas } = await supabase
-          .from("propostas_nativas")
-          .select("id, cliente_id, status, versao_atual")
-          .in("cliente_id", customerIds)
-          .order("created_at", { ascending: false });
+        // Parallel: proposals + locations
+        const [propostasRes, locationRes] = await Promise.all([
+          supabase
+            .from("propostas_nativas")
+            .select("id, cliente_id, status, versao_atual")
+            .in("cliente_id", customerIds)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("clientes")
+            .select("id, cidade, estado")
+            .in("id", customerIds),
+        ]);
+
+        // Location map
+        (locationRes.data || []).forEach((c: any) => {
+          locationMap.set(c.id, { city: c.cidade, state: c.estado });
+        });
 
         // Get economia from latest version
-        const propostaIds = (propostas || []).map((p: any) => p.id);
+        const propostas = propostasRes.data || [];
+        const propostaIds = propostas.map((p: any) => p.id);
         let economiaMap = new Map<string, number>();
         if (propostaIds.length > 0) {
           const { data: versoes } = await supabase
@@ -194,7 +219,7 @@ export function useDealPipeline() {
 
         // Map best proposal per customer (latest)
         const bestPropostaByCustomer = new Map<string, { id: string; status: string; economia: number | null }>();
-        (propostas || []).forEach((p: any) => {
+        propostas.forEach((p: any) => {
           if (!bestPropostaByCustomer.has(p.cliente_id)) {
             bestPropostaByCustomer.set(p.cliente_id, {
               id: p.id,
@@ -208,6 +233,7 @@ export function useDealPipeline() {
         results = results.map(d => {
           const custId = customerMap.get(d.deal_id);
           const proposta = custId ? bestPropostaByCustomer.get(custId) : null;
+          const loc = custId ? locationMap.get(custId) : null;
           return {
             ...d,
             notas: notasMap.get(d.deal_id) || d.notas || null,
@@ -215,6 +241,10 @@ export function useDealPipeline() {
             proposta_id: proposta?.id || null,
             proposta_status: proposta?.status || null,
             proposta_economia_mensal: proposta?.economia || null,
+            customer_city: loc?.city || null,
+            customer_state: loc?.state || null,
+            expected_close_date: closeDateMap.get(d.deal_id) || null,
+            doc_checklist: docChecklistMap.get(d.deal_id) || null,
           };
         });
       } else {
@@ -222,6 +252,8 @@ export function useDealPipeline() {
           ...d,
           notas: notasMap.get(d.deal_id) || d.notas || null,
           customer_id: customerMap.get(d.deal_id) || null,
+          expected_close_date: closeDateMap.get(d.deal_id) || null,
+          doc_checklist: docChecklistMap.get(d.deal_id) || null,
         }));
       }
     }
