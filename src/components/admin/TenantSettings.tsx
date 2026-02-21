@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import {
   Building2, MapPin, Settings2, Save, Loader2, Shield,
-  Sparkles, MessageCircle,
+  Sparkles, MessageCircle, Clock, FileText, ExternalLink,
+  Info, CheckCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,7 +176,9 @@ export function TenantSettings() {
   const crmConfig = getCrmConfig();
 
   return (
-    <div className="space-y-6 admin-section-medium">
+    <div className="admin-layout-settings">
+      {/* ═══ LEFT COLUMN: Form Sections ═══ */}
+      <div className="space-y-6">
       {/* Header */}
       <div className="admin-page-header">
         <div className="flex items-center gap-3">
@@ -516,6 +519,93 @@ export function TenantSettings() {
       </div>
       {/* Spacer for mobile sticky footer */}
       <div className="h-16 sm:hidden" />
+      </div>
+
+      {/* ═══ RIGHT COLUMN: Contextual Panel (desktop only) ═══ */}
+      <div className="admin-context-panel hidden lg:block">
+        {/* Tenant Status */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm">Status do Tenant</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Identificador</span>
+              <Badge variant="outline" className="text-[10px] font-mono">{tenant.slug}</Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Estado</span>
+              <span className="text-xs font-medium">{tenant.estado || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Cidade</span>
+              <span className="text-xs font-medium">{tenant.cidade || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">CNPJ</span>
+              <span className="text-xs font-medium font-mono">{tenant.documento || "—"}</span>
+            </div>
+            <div className="h-px bg-border/50 my-1" />
+            <div className="flex items-center gap-1.5 text-xs text-success">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span className="font-medium">Tenant ativo</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Ações Rápidas</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1.5">
+            <a href="/admin/site-config" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+              <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+              <span>Configurar logo e marca</span>
+            </a>
+            <a href="/admin/usuarios" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+              <Shield className="h-3.5 w-3.5 shrink-0" />
+              <span>Gerenciar permissões</span>
+            </a>
+            <a href="/admin/auditoria" className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
+              <FileText className="h-3.5 w-3.5 shrink-0" />
+              <span>Ver log de auditoria</span>
+            </a>
+          </CardContent>
+        </Card>
+
+        {/* CRM Summary */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Resumo CRM</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Bloqueio duplicados</span>
+              <Badge variant={crmConfig.block_duplicate_clients ? "default" : "secondary"} className="text-[10px]">
+                {crmConfig.block_duplicate_clients ? "Ativo" : "Inativo"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Campos obrigatórios</span>
+              <Badge variant="outline" className="text-[10px]">
+                {(crmConfig.required_fields || []).length} campos
+              </Badge>
+            </div>
+            {tenant.tenant_config?.branding?.ai_name && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Assistente IA</span>
+                <span className="text-xs font-medium">
+                  {tenant.tenant_config.branding.ai_emoji || "🤖"} {tenant.tenant_config.branding.ai_name}
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
