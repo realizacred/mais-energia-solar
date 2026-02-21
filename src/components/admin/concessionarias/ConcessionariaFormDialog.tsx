@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { Building, Zap, Receipt, ShieldCheck, Info } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Building, Zap, Receipt, ShieldCheck, Info, Calculator } from "lucide-react";
+import { getFioBCobranca, GD_FIO_B_PERCENT_BY_YEAR } from "@/lib/calcGrupoB";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -90,6 +91,9 @@ export function ConcessionariaFormDialog({
   onSave,
   isEditing,
 }: Props) {
+  const currentYear = new Date().getFullYear();
+  const fioBCobranca = getFioBCobranca(currentYear);
+  
   const integralInfo = useMemo(() => {
     const te = parseFloat(form.tarifa_energia) || 0;
     const fioB = parseFloat(form.tarifa_fio_b) || 0;
@@ -99,6 +103,16 @@ export function ConcessionariaFormDialog({
     const integral = calcTarifaIntegral(te, fioB, icms, pis, cofins);
     return { te, fioB, icms, pis, cofins, integral, sem: te + fioB };
   }, [form.tarifa_energia, form.tarifa_fio_b, form.aliquota_icms, form.pis_percentual, form.cofins_percentual]);
+
+  const fioBVigente = useMemo(() => {
+    const fioB = parseFloat(form.tarifa_fio_b) || 0;
+    const override = parseFloat(form.tarifa_fio_b_gd);
+    if (override > 0) return { value: override, source: "manual" as const };
+    if (fioB > 0 && fioBCobranca !== null) {
+      return { value: Math.round(fioB * fioBCobranca * 1000000) / 1000000, source: "lei14300" as const };
+    }
+    return { value: 0, source: "none" as const };
+  }, [form.tarifa_fio_b, form.tarifa_fio_b_gd, fioBCobranca]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -190,24 +204,46 @@ export function ConcessionariaFormDialog({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Label className="text-[11px] text-muted-foreground flex items-center gap-1 cursor-help">
-                      Fio B GD
+                      Fio B GD (override)
                       <Info className="w-3 h-3" />
                     </Label>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs max-w-[220px]">
-                    Parcela do TUSD que o prosumidor GD paga (Lei 14.300). Geralmente menor que o Fio B total.
+                    Override manual. Deixe vazio para usar o valor calculado pela Lei 14.300.
                   </TooltipContent>
                 </Tooltip>
                 <Input
                   type="number"
                   step="0.000001"
-                  placeholder="0.2800"
+                  placeholder="Auto"
                   value={form.tarifa_fio_b_gd}
                   onChange={(e) => onUpdateForm("tarifa_fio_b_gd", e.target.value)}
                   className="h-9 font-mono text-sm"
                 />
               </div>
             </div>
+
+            {/* Fio B Vigente — computed from Lei 14.300 */}
+            {fioBVigente.value > 0 && (
+              <div className="rounded-lg bg-warning/5 border border-warning/20 p-3 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <Calculator className="w-3.5 h-3.5 text-warning" />
+                    Fio B Vigente GD ({currentYear})
+                  </span>
+                  <span className="text-base font-mono font-bold text-warning">
+                    R$ {fioBVigente.value.toFixed(6)}
+                  </span>
+                </div>
+                <div className="text-[10px] text-muted-foreground">
+                  {fioBVigente.source === "lei14300" ? (
+                    <>Lei 14.300 — {((fioBCobranca ?? 0) * 100).toFixed(0)}% cobrado do Fio B total ({integralInfo.fioB.toFixed(6)} × {((fioBCobranca ?? 0) * 100).toFixed(0)}%)</>
+                  ) : (
+                    <>Override manual — valor definido no campo "Fio B GD"</>
+                  )}
+                </div>
+              </div>
+            )}
           </section>
 
           {/* ── Custo Disponibilidade ── */}
