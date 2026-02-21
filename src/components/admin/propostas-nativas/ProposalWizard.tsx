@@ -32,6 +32,8 @@ import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
 import { WizardSidebar, type WizardStep } from "./wizard/WizardSidebar";
+import { WizardStepCard } from "./wizard/WizardStepCard";
+import { useSavedFeedback, SavedFeedbackInline } from "./wizard/SavedFeedback";
 import { EstimativaCheckbox } from "./wizard/EstimativaCheckbox";
 import { MissingVariablesModal } from "./wizard/MissingVariablesModal";
 
@@ -71,6 +73,19 @@ const BASE_STEPS: WizardStep[] = [
   { key: STEP_KEYS.PROPOSTA, label: "Proposta", icon: FileText },
 ];
 
+/** Step card metadata — title + helper text for each step */
+const STEP_META: Record<string, { title: string; description: string }> = {
+  [STEP_KEYS.LOCALIZACAO]: { title: "Localização e Cliente", description: "Defina o endereço do projeto e selecione o cliente ou lead." },
+  [STEP_KEYS.UCS]: { title: "Unidades Consumidoras", description: "Configure as UCs, tarifas e dimensionamento do sistema." },
+  [STEP_KEYS.CAMPOS_PRE]: { title: "Campos Customizados", description: "Preencha os campos adicionais configurados para sua empresa." },
+  [STEP_KEYS.KIT]: { title: "Kit Gerador", description: "Monte o kit com módulos, inversores e demais equipamentos." },
+  [STEP_KEYS.ADICIONAIS]: { title: "Itens Adicionais", description: "Adicione baterias, otimizadores e outros componentes extras." },
+  [STEP_KEYS.SERVICOS]: { title: "Serviços", description: "Configure mão de obra, frete e serviços inclusos ou extras." },
+  [STEP_KEYS.VENDA]: { title: "Centro Financeiro", description: "Defina margens, comissões e precificação final do projeto." },
+  [STEP_KEYS.PAGAMENTO]: { title: "Formas de Pagamento", description: "Configure opções de pagamento, financiamentos e parcelamentos." },
+  [STEP_KEYS.PROPOSTA]: { title: "Gerar Proposta", description: "Revise os dados e gere o documento final da proposta comercial." },
+};
+
 const IDEM_KEY_PREFIX = "proposal_idem_";
 
 function getOrCreateIdempotencyKey(leadId: string): string {
@@ -88,7 +103,12 @@ function clearIdempotencyKey(leadId: string) {
 
 function StepContent({ children }: { children: React.ReactNode }) {
   return (
-    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }}>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
+    >
       {children}
     </motion.div>
   );
@@ -820,44 +840,58 @@ export function ProposalWizard() {
   const isLastStep = currentStepKey === STEP_KEYS.PROPOSTA;
 
   // ─── Render step content by key
+  const stepMeta = STEP_META[currentStepKey] || { title: "", description: "" };
+  const currentStepDef = activeSteps[step];
+
   const renderStepContent = () => {
     console.log("[ProposalWizard] renderStepContent, currentStepKey:", currentStepKey);
+
+    const wrap = (key: string, children: React.ReactNode) => (
+      <StepContent key={key}>
+        <WizardStepCard
+          title={stepMeta.title}
+          description={stepMeta.description}
+          icon={currentStepDef?.icon}
+        >
+          {children}
+        </WizardStepCard>
+      </StepContent>
+    );
+
     switch (currentStepKey) {
       case STEP_KEYS.LOCALIZACAO:
-        return (
-          <StepContent key="localizacao">
-            <div className="space-y-6">
-              <StepLocalizacao
-                estado={locEstado} cidade={locCidade} tipoTelhado={locTipoTelhado}
-                distribuidoraId={locDistribuidoraId}
-                onEstadoChange={(v) => { setLocEstado(v); setCliente(c => ({ ...c, estado: v })); }}
-                onCidadeChange={(v) => { setLocCidade(v); setCliente(c => ({ ...c, cidade: v })); }}
-                onTipoTelhadoChange={setLocTipoTelhado}
-                onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
-                onIrradiacaoChange={setLocIrradiacao}
-                onMapSnapshotsChange={setMapSnapshots}
-                clienteData={cliente}
-                projectAddress={projectAddress}
-                onProjectAddressChange={setProjectAddress}
+        return wrap("localizacao", (
+          <div className="space-y-6">
+            <StepLocalizacao
+              estado={locEstado} cidade={locCidade} tipoTelhado={locTipoTelhado}
+              distribuidoraId={locDistribuidoraId}
+              onEstadoChange={(v) => { setLocEstado(v); setCliente(c => ({ ...c, estado: v })); }}
+              onCidadeChange={(v) => { setLocCidade(v); setCliente(c => ({ ...c, cidade: v })); }}
+              onTipoTelhadoChange={setLocTipoTelhado}
+              onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
+              onIrradiacaoChange={setLocIrradiacao}
+              onMapSnapshotsChange={setMapSnapshots}
+              clienteData={cliente}
+              projectAddress={projectAddress}
+              onProjectAddressChange={setProjectAddress}
+            />
+            {/* Cliente inline */}
+            <div className="border-t border-border/50 pt-4">
+              <StepCliente
+                selectedLead={selectedLead}
+                onSelectLead={handleSelectLead}
+                onClearLead={() => setSelectedLead(null)}
+                cliente={cliente}
+                onClienteChange={setCliente}
+                fromProject={!!projectContext}
               />
-              {/* Cliente inline */}
-              <div className="border-t border-border/50 pt-4">
-                <StepCliente
-                  selectedLead={selectedLead}
-                  onSelectLead={handleSelectLead}
-                  onClearLead={() => setSelectedLead(null)}
-                  cliente={cliente}
-                  onClienteChange={setCliente}
-                  fromProject={!!projectContext}
-                />
-              </div>
             </div>
-          </StepContent>
-        );
+          </div>
+        ));
 
       case STEP_KEYS.UCS:
-        return (
-          <StepContent key="ucs">
+        return wrap("ucs", (
+          <>
             {/* Grupo consistency alert */}
             {(isGrupoMixed || isGrupoUndefined) && (
               <div className="mb-4 flex items-start gap-3 rounded-lg border border-destructive/50 bg-destructive/5 p-4">
@@ -891,63 +925,51 @@ export function ProposalWizard() {
               preDimensionamento={preDimensionamento}
               onPreDimensionamentoChange={setPreDimensionamento}
             />
-          </StepContent>
-        );
+          </>
+        ));
 
       case STEP_KEYS.CAMPOS_PRE:
-        return (
-          <StepContent key="campos_pre">
-            <StepCamposCustomizados values={customFieldValues} onValuesChange={setCustomFieldValues} />
-          </StepContent>
-        );
+        return wrap("campos_pre", (
+          <StepCamposCustomizados values={customFieldValues} onValuesChange={setCustomFieldValues} />
+        ));
 
       case STEP_KEYS.KIT:
-        return (
-          <StepContent key="kit">
-            <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} />
-          </StepContent>
-        );
+        return wrap("kit", (
+          <StepKitSelection itens={itens} onItensChange={setItens} modulos={modulos} inversores={inversores} otimizadores={otimizadores} loadingEquip={loadingEquip} potenciaKwp={potenciaKwp} preDimensionamento={preDimensionamento} onPreDimensionamentoChange={setPreDimensionamento} consumoTotal={consumoTotal} manualKits={manualKits} onManualKitsChange={setManualKits} />
+        ));
 
       case STEP_KEYS.ADICIONAIS:
-        return (
-          <StepContent key="adicionais">
-            <StepAdicionais
-              adicionais={adicionais}
-              onAdicionaisChange={setAdicionais}
-              itens={itens}
-              onItensChange={setItens}
-              layouts={layouts}
-              onLayoutsChange={setLayouts}
-              modulos={modulos}
-              inversores={inversores}
-            />
-          </StepContent>
-        );
+        return wrap("adicionais", (
+          <StepAdicionais
+            adicionais={adicionais}
+            onAdicionaisChange={setAdicionais}
+            itens={itens}
+            onItensChange={setItens}
+            layouts={layouts}
+            onLayoutsChange={setLayouts}
+            modulos={modulos}
+            inversores={inversores}
+          />
+        ));
 
       case STEP_KEYS.SERVICOS:
-        return (
-          <StepContent key="servicos">
-            <StepServicos servicos={servicos} onServicosChange={setServicos} kitItens={itens} potenciaKwp={potenciaKwp} />
-          </StepContent>
-        );
+        return wrap("servicos", (
+          <StepServicos servicos={servicos} onServicosChange={setServicos} kitItens={itens} potenciaKwp={potenciaKwp} />
+        ));
 
       case STEP_KEYS.VENDA:
-        return (
-          <StepContent key="venda">
-            <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
-          </StepContent>
-        );
+        return wrap("venda", (
+          <StepFinancialCenter venda={venda} onVendaChange={setVenda} itens={itens} servicos={servicos} potenciaKwp={potenciaKwp} />
+        ));
 
       case STEP_KEYS.PAGAMENTO:
-        return (
-          <StepContent key="pagamento">
-            <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} ucs={ucs} premissas={premissas} potenciaKwp={potenciaKwp} irradiacao={locIrradiacao} />
-          </StepContent>
-        );
+        return wrap("pagamento", (
+          <StepPagamento opcoes={pagamentoOpcoes} onOpcoesChange={setPagamentoOpcoes} bancos={bancos} loadingBancos={loadingBancos} precoFinal={precoFinal} ucs={ucs} premissas={premissas} potenciaKwp={potenciaKwp} irradiacao={locIrradiacao} />
+        ));
 
       case STEP_KEYS.PROPOSTA:
-        return (
-          <StepContent key="proposta">
+        return wrap("proposta", (
+          <>
             {/* Enforcement: EstimativaCheckbox before generation */}
             <EstimativaCheckbox
               precisao={enforcement.precisao}
@@ -977,8 +999,8 @@ export function ProposalWizard() {
               customFieldValues={customFieldValues}
               onCustomFieldValuesChange={setCustomFieldValues}
             />
-          </StepContent>
-        );
+          </>
+        ));
 
       default:
         return null;
@@ -1116,17 +1138,27 @@ export function ProposalWizard() {
         </div>
       </div>
 
-      {/* ── Sticky Footer Navigation — always visible */}
+      {/* ── Sticky Footer Navigation — single primary CTA per step */}
       {!result && (
         <div className="flex items-center justify-between px-4 lg:px-6 py-3 border-t border-border/60 bg-card shrink-0">
-          <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1 h-8 text-xs">
-            <ChevronLeft className="h-3 w-3" /> Voltar
+          <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1.5 h-9 text-xs text-muted-foreground hover:text-foreground">
+            <ChevronLeft className="h-3.5 w-3.5" /> Voltar
           </Button>
-          {!isLastStep && (
-            <Button size="sm" onClick={goNext} disabled={!canCurrentStep} className="gap-1 h-8 text-xs">
-              Próximo <ChevronRight className="h-3 w-3" />
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono text-muted-foreground">
+              {step + 1} de {activeSteps.length}
+            </span>
+            {!isLastStep && (
+              <Button
+                size="sm"
+                onClick={goNext}
+                disabled={!canCurrentStep}
+                className="gap-1.5 h-9 px-5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200"
+              >
+                Próximo <ChevronRight className="h-3.5 w-3.5" />
+              </Button>
+            )}
+          </div>
         </div>
       )}
 
