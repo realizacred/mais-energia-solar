@@ -36,6 +36,8 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
   const [loadingConc, setLoadingConc] = useState(true);
   const [subgrupoData, setSubgrupoData] = useState<{ bt: any; mt: any }>({ bt: null, mt: null });
   const [justSynced, setJustSynced] = useState(false);
+  const [bulkSyncing, setBulkSyncing] = useState(false);
+  const [bulkResult, setBulkResult] = useState<{ total: number; updated: number; skipped: number } | null>(null);
 
   useEffect(() => {
     supabase
@@ -202,6 +204,24 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
     }
   }, [selectedConc, subgrupoData, onChange, divergencias, onSyncedFields, onAutoSave]);
 
+  // Bulk sync: update ALL concessionárias from their own subgrupo data
+  const bulkSyncAll = useCallback(async () => {
+    setBulkSyncing(true);
+    setBulkResult(null);
+    try {
+      const { data, error } = await supabase.rpc("sync_concessionarias_from_subgrupos");
+      if (error) throw error;
+      const result = data as any;
+      if (result?.error) throw new Error(result.error);
+      setBulkResult(result);
+      toast.success(`${result.updated} concessionária(s) atualizada(s) de ${result.total} total.`);
+    } catch (e: any) {
+      toast.error("Erro ao sincronizar concessionárias", { description: e.message });
+    } finally {
+      setBulkSyncing(false);
+    }
+  }, []);
+
   // Reset justSynced when premises change externally (user edits a field)
   useEffect(() => {
     if (justSynced) {
@@ -290,6 +310,37 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
           </span>
         </div>
       )}
+
+      {/* Bulk sync ALL concessionárias */}
+      <div className="rounded-xl border border-info/30 bg-info/5 p-4 space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-wider text-info flex items-center gap-1.5">
+          <RefreshCw className="h-3.5 w-3.5" />
+          Atualização em Lote
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Atualiza TODAS as concessionárias ativas com os dados de suas próprias tarifas de subgrupo (B1 ativo).
+          Cada concessionária será atualizada com sua própria tarifa TE e Fio B.
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-full gap-2 border-info/40 hover:bg-info/10"
+          onClick={bulkSyncAll}
+          disabled={bulkSyncing}
+        >
+          {bulkSyncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4 text-info" />}
+          Atualizar TODAS as concessionárias de uma vez
+        </Button>
+        {bulkResult && (
+          <div className="rounded-lg border border-success/30 bg-success/10 p-3 flex items-center gap-2">
+            <CheckCircle2 className="h-4 w-4 text-success" />
+            <span className="text-xs font-medium text-success">
+              {bulkResult.updated} atualizada(s), {bulkResult.skipped} sem dados de subgrupo, {bulkResult.total} total.
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
