@@ -352,7 +352,7 @@ export function StepLocalizacao({
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] xl:grid-cols-[1fr_400px] gap-2.5">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-[1fr_1fr] gap-2.5">
       {/* ═══ LEFT COLUMN ═══ */}
       <div className="min-w-0 order-2 lg:order-1">
         <Card className="border-border/40">
