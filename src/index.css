@@ -448,6 +448,62 @@
 
   /* NOTE: badge-glow REMOVED — violates Soft Depth spec. Use shadow-sm on hover instead. */
 
+  /* ─── Premium Depth: 3D-like micro-interactions for KPI cards ─── */
+  .card-premium {
+    @apply rounded-xl border border-border bg-card relative overflow-hidden;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 250ms ease-in-out, transform 250ms ease-in-out, border-color 250ms ease-in-out;
+  }
+  .card-premium::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--foreground) / 0.02) 0%,
+      transparent 50%,
+      hsl(var(--foreground) / 0.01) 100%
+    );
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 250ms ease-in-out;
+  }
+  .card-premium:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+    border-color: hsl(var(--border) / 0.8);
+  }
+  .card-premium:hover::after {
+    opacity: 1;
+  }
+  .card-premium:active {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Lighter variant for stat cards inside grids */
+  .card-stat-elevated {
+    @apply rounded-xl border border-border bg-card relative overflow-hidden;
+    box-shadow: var(--shadow-xs);
+    transition: box-shadow 200ms ease-in-out, transform 200ms ease-in-out;
+  }
+  .card-stat-elevated::after {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--foreground) / 0.06), transparent);
+    opacity: 0;
+    transition: opacity 200ms ease-in-out;
+  }
+  .card-stat-elevated:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  .card-stat-elevated:hover::after {
+    opacity: 1;
+  }
+
   /* Empty state */
   .empty-state { @apply flex flex-col items-center justify-center py-16 text-center; }
   .empty-state-icon { @apply w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4; }

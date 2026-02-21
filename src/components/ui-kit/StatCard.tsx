@@ -26,9 +26,9 @@ interface StatCardProps {
 export function StatCard({ icon: Icon, label, value, color = "primary", subtitle, className }: StatCardProps) {
   const c = colorMap[color];
   return (
-    <Card className={cn("border-l-[3px] border-border/60", c.border, className)}>
+    <Card className={cn("border-l-[3px] border-border/60 card-stat-elevated", c.border, className)}>
       <CardContent className="flex items-center gap-4 p-4">
-        <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0", c.bg)}>
+        <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-105", c.bg)}>
           <Icon className={cn("h-5 w-5", c.text)} />
         </div>
         <div className="min-w-0">

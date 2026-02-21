@@ -88,10 +88,10 @@
        <CardContent>
          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
            {metricItems.map((item) => (
-             <div
-               key={item.label}
-               className={`p-4 rounded-lg ${item.bgColor} border border-border/50`}
-             >
+              <div
+                key={item.label}
+                className={`p-4 card-stat-elevated ${item.bgColor}`}
+              >
                <div className="flex items-start justify-between">
                  <div className="flex-1 min-w-0">
                    <p className="text-xs text-muted-foreground truncate">{item.label}</p>
