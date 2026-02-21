@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PageHeader } from "@/components/ui-kit";
 import { Activity, AlertTriangle, CheckCircle2, Clock, Send, XCircle, Lock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,10 +59,11 @@ export default function WaHealthDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">WhatsApp Engine Health</h1>
-        <p className="text-muted-foreground text-sm">Monitoramento operacional em tempo real</p>
-      </div>
+      <PageHeader
+        icon={Activity}
+        title="WhatsApp Engine Health"
+        description="Monitoramento operacional em tempo real"
+      />
 
       {/* Alerts */}
       {(isHighBacklog || isHighFailRate || hasDisconnected) && (

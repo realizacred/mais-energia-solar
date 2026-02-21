@@ -139,7 +139,7 @@ export default function GoogleMapsConfigPage() {
             <div className="flex items-center gap-3">
               <div className={`h-3 w-3 rounded-full ${
                 config?.is_active && config?.api_key
-                  ? connectionStatus === "error" ? "bg-destructive" : "bg-green-500"
+                  ? connectionStatus === "error" ? "bg-destructive" : "bg-success"
                   : "bg-muted-foreground/40"
               }`} />
               <div>
@@ -171,7 +171,7 @@ export default function GoogleMapsConfigPage() {
                   {testMutation.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
                   ) : connectionStatus === "connected" ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-500 mr-1.5" />
+                    <CheckCircle2 className="h-4 w-4 text-success mr-1.5" />
                   ) : connectionStatus === "error" ? (
                     <XCircle className="h-4 w-4 text-destructive mr-1.5" />
                   ) : (
@@ -221,7 +221,7 @@ export default function GoogleMapsConfigPage() {
           {/* Chave salva */}
           {maskedKey && !hasEdited && (
             <div className="flex items-center gap-2 p-3 rounded-md bg-muted/50 border">
-              <CheckCircle2 className="h-4 w-4 text-green-500 shrink-0" />
+              <CheckCircle2 className="h-4 w-4 text-success shrink-0" />
               <span className="text-sm font-mono flex-1">
                 {showSavedKey ? config?.api_key : maskedKey}
               </span>
@@ -302,8 +302,8 @@ export default function GoogleMapsConfigPage() {
                     Link direto para ativar Geocoding API <ExternalLink className="h-3 w-3" />
                   </a>
                 </p>
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-md flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                <div className="p-3 bg-warning/10 border border-warning/30 rounded-md flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                   <p className="text-xs"><strong>Importante:</strong> A API "Geocoding API" precisa estar ativada. Sem ela, a chave não funciona para buscar endereços.</p>
                 </div>
               </AccordionContent>
@@ -342,7 +342,7 @@ export default function GoogleMapsConfigPage() {
                   </li>
                 </ul>
                 <p>Em <strong>"Restrições de API"</strong>, selecione <strong>"Geocoding API"</strong>.</p>
-                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-md text-xs">
+                <div className="p-3 bg-info/10 border border-info/30 rounded-md text-xs">
                   <strong>Dica:</strong> Chaves restritas por domínio são mais seguras. O teste de conexão pode mostrar "restrita por domínio" — isso é normal e esperado.
                 </div>
               </AccordionContent>
@@ -370,8 +370,8 @@ export default function GoogleMapsConfigPage() {
               <AccordionContent className="space-y-2 text-sm text-muted-foreground">
                 <p>Copie a chave gerada e cole no campo <strong>"Chave de API"</strong> acima.</p>
                 <p>Clique em <strong>Salvar</strong>. Após salvar, use o botão <strong>"Testar Conexão"</strong> para verificar se tudo está funcionando.</p>
-                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-md flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
+                <div className="p-3 bg-warning/10 border border-warning/30 rounded-md flex items-start gap-2">
+                  <AlertTriangle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
                   <p className="text-xs"><strong>Chaves novas podem demorar 2-3 minutos</strong> para ativar no Google. Se o teste falhar, aguarde e tente novamente.</p>
                 </div>
               </AccordionContent>
