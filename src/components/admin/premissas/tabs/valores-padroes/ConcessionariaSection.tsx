@@ -430,7 +430,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
                     <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-xs font-medium text-muted-foreground">Relatório detalhado</span>
                   </div>
-                  <ScrollArea className="max-h-[300px]">
+                  <ScrollArea className="h-[300px]">
                     <div className="divide-y divide-border">
                       {bulkResult.details
                         .sort((a, b) => {
