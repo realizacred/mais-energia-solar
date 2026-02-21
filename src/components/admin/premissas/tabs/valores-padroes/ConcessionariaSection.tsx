@@ -4,7 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Zap, AlertTriangle, CheckCircle2, RefreshCw, Loader2 } from "lucide-react";
+import { Zap, AlertTriangle, CheckCircle2, RefreshCw, Loader2, ArrowRight, MinusCircle, FileText } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { FieldTooltip } from "./shared";
@@ -59,7 +60,23 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
   const [subgrupoData, setSubgrupoData] = useState<{ bt: any; mt: any }>({ bt: null, mt: null });
   const [justSynced, setJustSynced] = useState(false);
   const [bulkSyncing, setBulkSyncing] = useState(false);
-  const [bulkResult, setBulkResult] = useState<{ total: number; updated: number; skipped: number } | null>(null);
+  const [bulkResult, setBulkResult] = useState<{
+    total: number;
+    updated: number;
+    skipped: number;
+    unchanged?: number;
+    details?: Array<{
+      nome: string;
+      sigla: string | null;
+      status: 'atualizada' | 'sem_alteracao' | 'sem_dados';
+      fonte?: string;
+      origem?: string;
+      changes?: {
+        tarifa_energia?: { de: number | null; para: number | null };
+        tarifa_fio_b?: { de: number | null; para: number | null };
+      };
+    }>;
+  } | null>(null);
 
   useEffect(() => {
     supabase
@@ -366,11 +383,93 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
             Atualizar TODAS as concessionárias de uma vez
           </Button>
           {bulkResult && (
-            <div className="rounded-lg border border-success/30 bg-success/10 p-3 flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-success" />
-              <span className="text-xs font-medium text-success">
-                {bulkResult.updated} atualizada(s), {bulkResult.skipped} sem dados de subgrupo, {bulkResult.total} total.
-              </span>
+            <div className="space-y-3">
+              {/* Summary */}
+              <div className="rounded-lg border border-success/30 bg-success/10 p-3 space-y-1">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-success" />
+                  <span className="text-xs font-semibold text-success">
+                    Sincronização concluída
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2 ml-6">
+                  <Badge variant="default" className="text-[10px] bg-success/80">{bulkResult.updated} atualizada(s)</Badge>
+                  {(bulkResult.unchanged ?? 0) > 0 && (
+                    <Badge variant="secondary" className="text-[10px]">{bulkResult.unchanged} sem alteração</Badge>
+                  )}
+                  {bulkResult.skipped > 0 && (
+                    <Badge variant="outline" className="text-[10px] border-warning/40 text-warning">{bulkResult.skipped} sem dados</Badge>
+                  )}
+                  <Badge variant="outline" className="text-[10px]">{bulkResult.total} total</Badge>
+                </div>
+              </div>
+
+              {/* Detailed report */}
+              {bulkResult.details && bulkResult.details.length > 0 && (
+                <div className="rounded-lg border border-border/60 bg-muted/20">
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40">
+                    <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="text-xs font-medium text-muted-foreground">Relatório detalhado</span>
+                  </div>
+                  <ScrollArea className="max-h-[300px]">
+                    <div className="divide-y divide-border/30">
+                      {bulkResult.details
+                        .sort((a, b) => {
+                          const order = { atualizada: 0, sem_dados: 1, sem_alteracao: 2 };
+                          return (order[a.status] ?? 9) - (order[b.status] ?? 9);
+                        })
+                        .map((d, i) => (
+                        <div key={i} className="px-3 py-2 flex items-start gap-2">
+                          {d.status === 'atualizada' && <CheckCircle2 className="h-3.5 w-3.5 text-success mt-0.5 shrink-0" />}
+                          {d.status === 'sem_alteracao' && <MinusCircle className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />}
+                          {d.status === 'sem_dados' && <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-medium truncate">
+                                {d.nome} {d.sigla ? `(${d.sigla})` : ''}
+                              </span>
+                              {d.fonte && (
+                                <Badge variant="outline" className="text-[9px] shrink-0">Fonte: {d.fonte}</Badge>
+                              )}
+                              {d.origem && d.origem !== 'manual' && (
+                                <Badge variant="secondary" className="text-[9px] shrink-0">{d.origem}</Badge>
+                              )}
+                            </div>
+                            {d.status === 'atualizada' && d.changes && (
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1">
+                                {d.changes.tarifa_energia && (
+                                  d.changes.tarifa_energia.de !== d.changes.tarifa_energia.para && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">
+                                      TE: {(d.changes.tarifa_energia.de ?? 0).toFixed(6)}
+                                      <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
+                                      <span className="text-success font-semibold">{(d.changes.tarifa_energia.para ?? 0).toFixed(6)}</span>
+                                    </span>
+                                  )
+                                )}
+                                {d.changes.tarifa_fio_b && (
+                                  d.changes.tarifa_fio_b.de !== d.changes.tarifa_fio_b.para && (
+                                    <span className="text-[10px] text-muted-foreground font-mono">
+                                      Fio B: {(d.changes.tarifa_fio_b.de ?? 0).toFixed(6)}
+                                      <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
+                                      <span className="text-success font-semibold">{(d.changes.tarifa_fio_b.para ?? 0).toFixed(6)}</span>
+                                    </span>
+                                  )
+                                )}
+                              </div>
+                            )}
+                            {d.status === 'sem_dados' && (
+                              <span className="text-[10px] text-warning">Nenhum subgrupo B1 ativo encontrado</span>
+                            )}
+                            {d.status === 'sem_alteracao' && (
+                              <span className="text-[10px] text-muted-foreground">Valores já estão atualizados</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </div>
+              )}
             </div>
           )}
         </div>
