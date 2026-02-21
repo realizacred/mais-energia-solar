@@ -1,17 +1,17 @@
 import { AiFollowupSettingsPanel } from "@/components/admin/AiFollowupSettingsPanel";
 import { FollowupAnalyticsDashboard } from "@/components/admin/FollowupAnalyticsDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, BarChart3 } from "lucide-react";
+import { PageHeader } from "@/components/ui-kit";
+import { Settings, BarChart3, Brain } from "lucide-react";
 
 export default function AiConfigPage() {
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Configuração de IA</h2>
-        <p className="text-muted-foreground">
-          Modelo, temperatura, limites e gate inteligente de follow-up
-        </p>
-      </div>
+      <PageHeader
+        icon={Brain}
+        title="Configuração de IA"
+        description="Modelo, temperatura, limites e gate inteligente de follow-up"
+      />
 
       <Tabs defaultValue="settings" className="w-full">
         <TabsList>
