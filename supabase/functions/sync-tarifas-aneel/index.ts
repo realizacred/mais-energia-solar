@@ -444,7 +444,7 @@ async function processSync(
 
     // ── Step 1: Fetch concessionárias ─────────────────────────────────────
     let query = supabase.from('concessionarias')
-      .select('id, nome, sigla, estado, tarifa_energia, tarifa_fio_b, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, aliquota_icms, possui_isencao_scee, percentual_isencao')
+      .select('id, nome, sigla, estado, tarifa_energia, tarifa_fio_b, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, aliquota_icms, pis_percentual, cofins_percentual, possui_isencao_scee, percentual_isencao')
       .eq('tenant_id', tenantId)
       .eq('ativo', true);
 
@@ -458,6 +458,17 @@ async function processSync(
       finalStatus = 'success';
       return;
     }
+
+    // ── Step 1b: Fetch state tax config for auto-fill ──────────────────────
+    const { data: estadoTributos } = await supabase
+      .from('config_tributaria_estado')
+      .select('estado, aliquota_icms, possui_isencao_scee, percentual_isencao');
+
+    const tributoPorEstado: Record<string, { aliquota_icms: number; possui_isencao_scee: boolean; percentual_isencao: number }> = {};
+    for (const t of (estadoTributos || [])) {
+      tributoPorEstado[t.estado] = { aliquota_icms: t.aliquota_icms, possui_isencao_scee: t.possui_isencao_scee, percentual_isencao: t.percentual_isencao };
+    }
+    log(`🏛️ ${Object.keys(tributoPorEstado).length} estados com config tributária`);
 
     // ── Step 2: Create tarifa_versoes (draft) ─────────────────────────────
     let versaoId: string | null = null;
@@ -676,13 +687,48 @@ async function processSync(
         totalErrors += btResult.errors;
       }
 
-      // 4) Update concessionaria main records
-      for (const upd of concUpdates) {
-        await supabase.from('concessionarias').update({
+      // 4) Update concessionaria main records + auto-fill taxes
+      const PIS_DEFAULT = 1.65;
+      const COFINS_DEFAULT = 7.60;
+      let taxAutoFilled = 0;
+
+      for (const conc of concessionarias) {
+        const upd = concUpdates.find(u => u.id === conc.id);
+        if (!upd) continue;
+
+        const updatePayload: Record<string, any> = {
           tarifa_energia: upd.tarifa_energia,
           tarifa_fio_b: upd.tarifa_fio_b,
           ultima_sync_tarifas: new Date().toISOString(),
-        }).eq('id', upd.id);
+        };
+
+        // Auto-fill PIS/COFINS if missing
+        if (conc.pis_percentual == null || conc.pis_percentual === 0) {
+          updatePayload.pis_percentual = PIS_DEFAULT;
+        }
+        if (conc.cofins_percentual == null || conc.cofins_percentual === 0) {
+          updatePayload.cofins_percentual = COFINS_DEFAULT;
+        }
+
+        // Auto-fill ICMS from state config if missing
+        if (conc.aliquota_icms == null && conc.estado && tributoPorEstado[conc.estado]) {
+          updatePayload.aliquota_icms = tributoPorEstado[conc.estado].aliquota_icms;
+        }
+
+        // Auto-fill isenção SCEE from state config if null
+        if (conc.possui_isencao_scee == null && conc.estado && tributoPorEstado[conc.estado]) {
+          updatePayload.possui_isencao_scee = tributoPorEstado[conc.estado].possui_isencao_scee;
+          updatePayload.percentual_isencao = tributoPorEstado[conc.estado].percentual_isencao;
+        }
+
+        const hasAutoFill = updatePayload.pis_percentual || updatePayload.cofins_percentual || updatePayload.aliquota_icms !== undefined || updatePayload.possui_isencao_scee !== undefined;
+        if (hasAutoFill) taxAutoFilled++;
+
+        await supabase.from('concessionarias').update(updatePayload).eq('id', upd.id);
+      }
+
+      if (taxAutoFilled > 0) {
+        log(`🏛️ ${taxAutoFilled} concessionária(s) com impostos auto-preenchidos (ICMS/PIS/COFINS/isenção)`);
       }
     }
 

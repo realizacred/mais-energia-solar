@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload } from "lucide-react";
+import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload, FileUp } from "lucide-react";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
 import { ConcessionariaFormDialog, ESTADOS_BRASIL, type ConcessionariaFormData } from "./concessionarias/ConcessionariaFormDialog";
 import { Progress } from "@/components/ui/progress";
 import { ImportCsvAneelDialog } from "./concessionarias/ImportCsvAneelDialog";
+import { ImportContaEnergiaDialog } from "./concessionarias/ImportContaEnergiaDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -107,6 +108,7 @@ export function ConcessionariasManager() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
+  const [contaImportOpen, setContaImportOpen] = useState(false);
 
   // Find the most recent sync timestamp across all concessionárias
   const latestSyncTimestamp = useMemo(() => {
@@ -499,6 +501,15 @@ export function ConcessionariasManager() {
             <Upload className="w-4 h-4" />
             Importar CSV
           </Button>
+          <Button
+            variant="outline"
+            onClick={() => setContaImportOpen(true)}
+            className="gap-2"
+            title="Importar dados de uma conta de energia (PDF ou texto)"
+          >
+            <FileUp className="w-4 h-4" />
+            Importar Conta
+          </Button>
           <Button onClick={() => openDialog()} className="gap-2">
             <Plus className="w-4 h-4" />
             Nova Concessionária
@@ -853,6 +864,14 @@ export function ConcessionariasManager() {
         open={csvImportOpen}
         onOpenChange={setCsvImportOpen}
         onImportComplete={fetchData}
+      />
+      <ImportContaEnergiaDialog
+        open={contaImportOpen}
+        onOpenChange={setContaImportOpen}
+        onDataExtracted={(data) => {
+          console.log("[ImportConta] Dados extraídos:", data);
+          fetchData();
+        }}
       />
     </Card>
   );
