@@ -60,8 +60,23 @@ function formatVal(v: number | null, prefix = "R$ ", decimals = 4) {
 
 function OrigemBadge({ origem }: { origem: string | null }) {
   const label = origem || "manual";
-  const variant = label === "ANEEL" ? "default" : label === "auto_seed" ? "outline" : "secondary";
-  return <Badge variant={variant} className="text-[9px] font-mono">{label}</Badge>;
+  if (label === "ANEEL" || label === "sync_aneel") {
+    return <Badge variant="outline" className="text-[9px] font-mono bg-info/10 text-info border-info/30">{label}</Badge>;
+  }
+  if (label === "auto_seed" || label === "sync") {
+    return <Badge variant="outline" className="text-[9px] font-mono bg-muted text-muted-foreground border-border">{label}</Badge>;
+  }
+  return <Badge variant="outline" className="text-[9px] font-mono bg-warning/10 text-warning border-warning/30">{label}</Badge>;
+}
+
+/** Color config per modalidade */
+function getModalidadeColor(modalidade: string | null) {
+  switch (modalidade?.toLowerCase()) {
+    case "verde": return { bg: "bg-success/8", border: "border-success/25", accent: "text-success", badgeBg: "bg-success/15 text-success border-success/30" };
+    case "azul": return { bg: "bg-info/8", border: "border-info/25", accent: "text-info", badgeBg: "bg-info/15 text-info border-info/30" };
+    case "branca": return { bg: "bg-muted/60", border: "border-border", accent: "text-muted-foreground", badgeBg: "bg-muted text-muted-foreground border-border" };
+    default: return { bg: "bg-card", border: "border-border", accent: "text-primary", badgeBg: "bg-primary/10 text-primary border-primary/30" };
+  }
 }
 
 export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaNome }: Props) {
@@ -194,28 +209,28 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
 
         {/* Grupo B — Cards */}
         {tarifasBT.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Badge className="text-[10px] bg-success/15 text-success border-0 font-semibold">Grupo B</Badge>
-              <span className="text-[11px] text-muted-foreground">Baixa Tensão</span>
+              <span className="text-[11px] text-muted-foreground">Baixa Tensão — Convencional</span>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {tarifasBT.map(t => (
-                <div key={t.id} className="rounded-lg border bg-card p-3 flex flex-col gap-1.5 group hover:shadow-sm transition-shadow">
+                <div key={t.id} className="rounded-lg border border-success/20 bg-success/5 p-3.5 flex flex-col gap-2 group hover:shadow-md transition-all hover:border-success/40">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-bold font-mono text-foreground">{t.subgrupo}</span>
-                    <div className="flex items-center gap-1">
+                    <span className="text-base font-bold font-mono text-foreground">{t.subgrupo}</span>
+                    <div className="flex items-center gap-1.5">
                       <OrigemBadge origem={t.origem} />
                       <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setDeleting(t)}>
                         <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                     <span className="text-muted-foreground">Tarifa Energia</span>
-                    <span className="text-right font-medium">{formatVal(t.tarifa_energia)}</span>
-                    <span className="text-muted-foreground">Fio B</span>
-                    <span className="text-right font-medium">{formatVal(t.tarifa_fio_b)}</span>
+                    <span className="text-right font-semibold text-foreground">{formatVal(t.tarifa_energia)}</span>
+                    <span className="text-muted-foreground">Fio B (TUSD)</span>
+                    <span className="text-right font-semibold text-foreground">{formatVal(t.tarifa_fio_b)}</span>
                   </div>
                 </div>
               ))}
@@ -225,69 +240,72 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
 
         {/* Grupo A — Cards */}
         {tarifasMT.length > 0 && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex items-center gap-2">
               <Badge className="text-[10px] bg-primary/15 text-primary border-0 font-semibold">Grupo A</Badge>
-              <span className="text-[11px] text-muted-foreground">Média / Alta Tensão</span>
+              <span className="text-[11px] text-muted-foreground">Média / Alta Tensão — Ponta e Fora Ponta</span>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
-              {tarifasMT.map(t => (
-                <div key={t.id} className="rounded-lg border bg-card p-3 space-y-2 group hover:shadow-sm transition-shadow">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold font-mono text-foreground">{t.subgrupo}</span>
-                      {t.modalidade_tarifaria && (
-                        <Badge variant="secondary" className="text-[9px]">{t.modalidade_tarifaria}</Badge>
-                      )}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              {tarifasMT.map(t => {
+                const colors = getModalidadeColor(t.modalidade_tarifaria);
+                return (
+                  <div key={t.id} className={`rounded-lg border ${colors.border} ${colors.bg} p-4 space-y-3 group hover:shadow-md transition-all`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base font-bold font-mono text-foreground">{t.subgrupo}</span>
+                        {t.modalidade_tarifaria && (
+                          <Badge variant="outline" className={`text-[10px] font-semibold ${colors.badgeBg}`}>{t.modalidade_tarifaria}</Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <OrigemBadge origem={t.origem} />
+                        <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setDeleting(t)}>
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <OrigemBadge origem={t.origem} />
-                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setDeleting(t)}>
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                    <div className="grid grid-cols-2 gap-2.5">
+                      {/* TE */}
+                      <div className="rounded-md bg-background/60 border border-border/40 p-2.5 space-y-1">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.accent}`}>TE (R$/kWh)</span>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Ponta</span>
+                          <span className="font-semibold text-foreground">{formatVal(t.te_ponta, "", 4)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">F. Ponta</span>
+                          <span className="font-semibold text-foreground">{formatVal(t.te_fora_ponta, "", 4)}</span>
+                        </div>
+                      </div>
+                      {/* TUSD */}
+                      <div className="rounded-md bg-background/60 border border-border/40 p-2.5 space-y-1">
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${colors.accent}`}>TUSD (R$/kWh)</span>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Ponta</span>
+                          <span className="font-semibold text-foreground">{formatVal(t.tusd_ponta, "", 4)}</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">F. Ponta</span>
+                          <span className="font-semibold text-foreground">{formatVal(t.tusd_fora_ponta, "", 4)}</span>
+                        </div>
+                      </div>
                     </div>
+                    {/* Demanda */}
+                    {(t.demanda_consumo_rs != null || t.demanda_geracao_rs != null) && (
+                      <div className="flex gap-6 text-xs pt-2 border-t border-border/40">
+                        <div>
+                          <span className="text-muted-foreground">Dem. Consumo: </span>
+                          <span className="font-semibold text-foreground">{formatVal(t.demanda_consumo_rs, "R$ ", 2)}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Dem. Geração: </span>
+                          <span className="font-semibold text-foreground">{formatVal(t.demanda_geracao_rs, "R$ ", 2)}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {/* TE */}
-                    <div className="rounded-md bg-muted/40 p-2 space-y-0.5">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">TE (R$/kWh)</span>
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-muted-foreground">Ponta</span>
-                        <span className="font-medium">{formatVal(t.te_ponta, "", 4)}</span>
-                      </div>
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-muted-foreground">F. Ponta</span>
-                        <span className="font-medium">{formatVal(t.te_fora_ponta, "", 4)}</span>
-                      </div>
-                    </div>
-                    {/* TUSD */}
-                    <div className="rounded-md bg-muted/40 p-2 space-y-0.5">
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">TUSD (R$/kWh)</span>
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-muted-foreground">Ponta</span>
-                        <span className="font-medium">{formatVal(t.tusd_ponta, "", 4)}</span>
-                      </div>
-                      <div className="flex justify-between text-[11px]">
-                        <span className="text-muted-foreground">F. Ponta</span>
-                        <span className="font-medium">{formatVal(t.tusd_fora_ponta, "", 4)}</span>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Demanda */}
-                  {(t.demanda_consumo_rs != null || t.demanda_geracao_rs != null) && (
-                    <div className="flex gap-4 text-[11px] pt-1 border-t border-border/50">
-                      <div>
-                        <span className="text-muted-foreground">Dem. Consumo: </span>
-                        <span className="font-medium">{formatVal(t.demanda_consumo_rs, "R$ ", 2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-muted-foreground">Dem. Geração: </span>
-                        <span className="font-medium">{formatVal(t.demanda_geracao_rs, "R$ ", 2)}</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
