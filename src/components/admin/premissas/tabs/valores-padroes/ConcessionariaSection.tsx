@@ -81,7 +81,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields }: Pr
     onChange((p) => ({
       ...p,
       concessionaria_id: concId,
-      tarifa: bt?.tarifa_energia ?? conc.tarifa_energia ?? p.tarifa,
+      tarifa: bt ? ((bt.tarifa_energia ?? 0) + (bt.tarifa_fio_b ?? 0)) : ((conc.tarifa_energia ?? 0) + (conc.tarifa_fio_b ?? 0)) || p.tarifa,
       tusd_fio_b_bt: bt?.tarifa_fio_b ?? conc.tarifa_fio_b ?? p.tusd_fio_b_bt,
       imposto_energia: conc.aliquota_icms ?? p.imposto_energia,
       tarifacao_compensada_bt: bt?.tarifacao_bt ?? p.tarifacao_compensada_bt,
@@ -122,7 +122,10 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields }: Pr
     const check = (campo: string, pVal: number, cVal: number | null | undefined, tol = 0.0001) => {
       if (cVal != null && Math.abs(pVal - cVal) > tol) diffs.push({ campo, premissa: pVal, conc: cVal });
     };
-    check("Tarifa", premises.tarifa, subgrupoData.bt?.tarifa_energia ?? selectedConc.tarifa_energia);
+    const concTarifaTotal = subgrupoData.bt
+      ? ((subgrupoData.bt.tarifa_energia ?? 0) + (subgrupoData.bt.tarifa_fio_b ?? 0))
+      : ((selectedConc.tarifa_energia ?? 0) + (selectedConc.tarifa_fio_b ?? 0));
+    check("Tarifa", premises.tarifa, concTarifaTotal);
     check("TUSD Fio B BT", premises.tusd_fio_b_bt, subgrupoData.bt?.tarifa_fio_b ?? selectedConc.tarifa_fio_b);
     check("ICMS", premises.imposto_energia, selectedConc.aliquota_icms, 0.01);
     if (subgrupoData.bt) {
@@ -152,7 +155,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields }: Pr
     onChange((p) => ({
       ...p,
       concessionaria_id: selectedConc.id,
-      tarifa: bt?.tarifa_energia ?? selectedConc.tarifa_energia ?? p.tarifa,
+      tarifa: bt ? ((bt.tarifa_energia ?? 0) + (bt.tarifa_fio_b ?? 0)) : ((selectedConc.tarifa_energia ?? 0) + (selectedConc.tarifa_fio_b ?? 0)) || p.tarifa,
       tusd_fio_b_bt: bt?.tarifa_fio_b ?? selectedConc.tarifa_fio_b ?? p.tusd_fio_b_bt,
       imposto_energia: selectedConc.aliquota_icms ?? p.imposto_energia,
       tarifacao_compensada_bt: bt?.tarifacao_bt ?? p.tarifacao_compensada_bt,
