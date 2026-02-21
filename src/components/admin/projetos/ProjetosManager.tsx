@@ -216,15 +216,15 @@ export function ProjetosManager() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList className="bg-muted/50 border border-border/40">
           <TabsTrigger value="kanban" className="gap-1.5 text-xs">
-            <Layers className="h-3.5 w-3.5" />
+            <Layers className="h-4 w-4" />
             <span className="hidden sm:inline">Funil</span>
           </TabsTrigger>
           <TabsTrigger value="performance" className="gap-1.5 text-xs">
-            <BarChart3 className="h-3.5 w-3.5" />
+            <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Performance</span>
           </TabsTrigger>
           <TabsTrigger value="etiquetas" className="gap-1.5 text-xs">
-            <Tag className="h-3.5 w-3.5" />
+            <Tag className="h-4 w-4" />
             <span className="hidden sm:inline">Etiquetas</span>
           </TabsTrigger>
         </TabsList>

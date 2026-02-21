@@ -28,8 +28,8 @@ export function SectionCard({
       {title && (
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div className="space-y-1">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              {Icon && <Icon className="h-4 w-4 text-muted-foreground" />}
+            <CardTitle className="text-base font-bold flex items-center gap-2.5 text-foreground">
+              {Icon && <Icon className="h-5 w-5 text-secondary" />}
               {title}
             </CardTitle>
             {description && (

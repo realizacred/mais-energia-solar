@@ -151,8 +151,8 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
             <div
               key={col.id}
               className={cn(
-                "w-[300px] xl:w-[320px] flex-shrink-0 rounded-xl border border-border/40 transition-all flex flex-col",
-                "bg-muted/20",
+                "w-[300px] xl:w-[320px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
+                "bg-card/60",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
               onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverCol(col.id); }}
@@ -167,7 +167,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
                       {isOrphanColumn(col.id) ? "?" : getInitials(col.nome)}
                     </AvatarFallback>
                   </Avatar>
-                  <h3 className={cn("text-[11px] font-semibold leading-tight truncate uppercase tracking-wider", isOrphanColumn(col.id) ? "text-warning" : "text-foreground")}>
+                  <h3 className={cn("text-[11px] font-bold leading-tight truncate uppercase tracking-wider", isOrphanColumn(col.id) ? "text-warning" : "text-secondary")}>
                     {col.nome}
                   </h3>
                 </div>
