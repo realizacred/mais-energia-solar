@@ -375,16 +375,16 @@ export default function GoogleMapView({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       {/* Map container */}
-      <div ref={mapContainerRef} className="rounded-xl border border-border/50 overflow-hidden relative h-[240px] sm:h-[280px] lg:h-[360px] xl:h-[420px]">
+      <div ref={mapContainerRef} className="rounded-lg border border-border/50 overflow-hidden relative h-[200px] sm:h-[240px] lg:h-[300px] xl:h-[360px]">
         <div ref={mapRef} className="w-full h-full" />
 
         {/* City label */}
         {cidade && estado && !inStreetView && (
-          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-background/90 backdrop-blur-sm rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-md border border-border/50 z-10">
-            <p className="text-xs sm:text-sm font-semibold">{cidade}</p>
-            <p className="text-[9px] sm:text-[10px] text-muted-foreground">{estado}, Brasil</p>
+          <div className="absolute top-1.5 left-1.5 bg-background/90 backdrop-blur-sm rounded-md px-2 py-1 shadow-sm border border-border/50 z-10">
+            <p className="text-[11px] font-semibold leading-tight">{cidade}</p>
+            <p className="text-[9px] text-muted-foreground">{estado}, Brasil</p>
           </div>
         )}
 
