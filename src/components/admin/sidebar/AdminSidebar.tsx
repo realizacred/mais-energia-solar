@@ -101,30 +101,36 @@ function SidebarItemButton({
             : item.title
         }
         className={`
-          transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative text-[13px]
+          transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative
+          pl-4
           ${
             isActive
-              ? "bg-sidebar-primary/8 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary"
-              : "text-sidebar-foreground-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
+              ? "bg-sidebar-primary/10 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary shadow-sm shadow-sidebar-primary/5"
+              : "text-sidebar-foreground-muted hover:bg-sidebar-accent/80 hover:text-sidebar-foreground border-l-[3px] border-transparent"
           }
         `}
       >
         {/* Drag handle */}
         {draggable && !collapsed && (
-          <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover/item:opacity-30 cursor-grab active:cursor-grabbing transition-opacity -ml-0.5 mr-px" />
+          <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover/item:opacity-30 cursor-grab active:cursor-grabbing transition-opacity -ml-1 mr-px" />
         )}
-        <item.icon className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${isActive ? 'text-sidebar-primary' : section.iconColor || 'text-sidebar-foreground-muted'}`} />
+        <item.icon
+          className={`h-4 w-4 shrink-0 transition-all duration-200 sidebar-submenu-icon ${
+            isActive ? 'text-sidebar-primary' : section.iconColor || 'text-sidebar-foreground-muted'
+          }`}
+          data-active={isActive}
+        />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
-            <span className="text-[13px] truncate leading-tight">
+            <span className="text-[12.5px] truncate leading-tight">
               {item.title}
             </span>
-            <span className="text-[10px] opacity-65 font-normal truncate leading-tight">
+            <span className="text-[10px] opacity-50 font-normal truncate leading-tight">
               {item.description}
             </span>
           </div>
         ) : (
-          <span className="text-[13px] truncate flex-1">{item.title}</span>
+          <span className="text-[12.5px] truncate flex-1">{item.title}</span>
         )}
 
         {/* Star button — visible on hover */}
@@ -248,14 +254,14 @@ function SidebarSectionGroup({
 
   return (
     <Collapsible defaultOpen={shouldBeOpen} className="group/collapsible">
-      <SidebarGroup className="mb-0 px-2 py-0.5">
+      <SidebarGroup className="mb-0.5 px-2 py-0">
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             className={`
               text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
               flex items-center gap-2.5 cursor-pointer select-none
               transition-all duration-200 ease-in-out
-              hover:bg-sidebar-accent rounded-lg
+              hover:bg-sidebar-accent/60 rounded-lg
               text-sidebar-foreground/70
             `}
           >
@@ -264,34 +270,38 @@ function SidebarSectionGroup({
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1 text-sidebar-foreground/80">{section.label}</span>
+                <span className="flex-1 text-sidebar-foreground/80 font-extrabold">{section.label}</span>
                 <ChevronDown className="h-3 w-3 text-sidebar-foreground-muted transition-transform duration-200 ease-in-out group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
           </SidebarGroupLabel>
         </CollapsibleTrigger>
 
-        <CollapsibleContent>
+        <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-px mt-0.5">
-              {orderedItems.map((item) => {
+            <SidebarMenu className="gap-0 mt-1 ml-1 pl-2 border-l border-sidebar-border/40">
+              {orderedItems.map((item, idx) => {
                 const isActive = activeTab === item.id;
                 const badgeCount = badgeCounts?.[item.id] || 0;
                 const isDragging = dragId === item.id;
                 const isOver = overId === item.id && dragId !== item.id;
 
+                // Add spacing before subsection labels
+                const prevItem = idx > 0 ? orderedItems[idx - 1] : null;
+                const showExtraSpacing = item.subsectionLabel || (item.separator && !item.subsectionLabel);
+
                 return (
                   <React.Fragment key={item.id}>
                     {item.subsectionLabel && !dragId && (
-                      <div className="mx-3 mt-3 mb-1.5 flex items-center gap-2">
-                        <span className="text-[10px] font-extrabold uppercase tracking-[0.1em] text-foreground/50 select-none">
+                      <div className={`mx-2 ${idx > 0 ? 'mt-3' : 'mt-1'} mb-1 flex items-center gap-2`}>
+                        <span className="text-[9px] font-extrabold uppercase tracking-[0.12em] text-foreground/40 select-none">
                           {item.subsectionLabel}
                         </span>
-                        <div className="flex-1 h-px bg-border/50" />
+                        <div className="flex-1 h-px bg-border/30" />
                       </div>
                     )}
                     {item.separator && !item.subsectionLabel && !dragId && (
-                      <div className="mx-4 my-1.5 h-px bg-border/30" />
+                      <div className="mx-3 my-2 h-px bg-border/20" />
                     )}
                     <div
                       className={`transition-all duration-150 ${
@@ -353,14 +363,14 @@ function FavoritesSection({
 
   return (
     <Collapsible defaultOpen className="group/collapsible">
-      <SidebarGroup className="mb-0 px-2 py-1">
+      <SidebarGroup className="mb-0.5 px-2 py-0">
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             className={`
               text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
               flex items-center gap-2.5 cursor-pointer select-none
               transition-all duration-200 ease-in-out
-              hover:bg-sidebar-accent rounded-lg
+              hover:bg-sidebar-accent/60 rounded-lg
               text-sidebar-foreground/70
             `}
           >
@@ -369,15 +379,15 @@ function FavoritesSection({
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1 text-sidebar-foreground/80">Favoritos</span>
+                <span className="flex-1 text-sidebar-foreground/80 font-extrabold">Favoritos</span>
                 <ChevronDown className="h-3 w-3 text-sidebar-foreground-muted transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
           </SidebarGroupLabel>
         </CollapsibleTrigger>
-        <CollapsibleContent>
+        <CollapsibleContent className="sidebar-collapsible-content">
           <SidebarGroupContent>
-            <SidebarMenu className="gap-px mt-0.5">
+            <SidebarMenu className="gap-0 mt-1 ml-1 pl-2 border-l border-warning/20">
               {resolvedItems.map(({ item, section }) => (
                 <SidebarItemButton
                   key={item.id}

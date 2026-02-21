@@ -340,6 +340,38 @@
   .sidebar-indicator-cadastros { background: hsl(var(--sidebar-section-cadastros) / 0.12); color: hsl(var(--sidebar-section-cadastros)); }
   .sidebar-indicator-marketing { background: hsl(var(--sidebar-section-marketing) / 0.12); color: hsl(var(--sidebar-section-marketing)); }
 
+  /* Expanded section tinted background */
+  .sidebar-section-expanded-commercial { background: hsl(var(--sidebar-section-commercial) / 0.04); }
+  .sidebar-section-expanded-operations { background: hsl(var(--sidebar-section-operations) / 0.04); }
+  .sidebar-section-expanded-finance { background: hsl(var(--sidebar-section-finance) / 0.04); }
+  .sidebar-section-expanded-admin { background: hsl(var(--sidebar-section-admin) / 0.04); }
+  .sidebar-section-expanded-clients { background: hsl(var(--sidebar-section-clients) / 0.04); }
+  .sidebar-section-expanded-ai { background: hsl(var(--sidebar-section-ai) / 0.04); }
+  .sidebar-section-expanded-integrations { background: hsl(var(--sidebar-section-integrations) / 0.04); }
+  .sidebar-section-expanded-settings { background: hsl(var(--sidebar-section-settings) / 0.04); }
+
+  /* Submenu item — softer icon */
+  .sidebar-submenu-icon {
+    opacity: 0.7;
+    transition: opacity 200ms ease-in-out;
+  }
+  .sidebar-submenu-icon[data-active="true"] {
+    opacity: 1;
+  }
+
+  /* Collapsible content animation override for sidebar */
+  .sidebar-collapsible-content {
+    overflow: hidden;
+    transition: height 200ms ease-in-out, opacity 200ms ease-in-out;
+  }
+  .sidebar-collapsible-content[data-state="closed"] {
+    height: 0;
+    opacity: 0;
+  }
+  .sidebar-collapsible-content[data-state="open"] {
+    opacity: 1;
+  }
+
   /* Skeleton pulse */
   .skeleton-pulse {
     @apply animate-pulse bg-muted rounded;
