@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DollarSign, Sun, LayoutGrid, SlidersHorizontal, Sliders } from "lucide-react";
+import { DollarSign, Sun, LayoutGrid, SlidersHorizontal, Sliders, Landmark } from "lucide-react";
 import { useTenantPremises } from "@/hooks/useTenantPremises";
 import { Loader2 } from "lucide-react";
 import { TabFinanceiras } from "./tabs/TabFinanceiras";
 import { TabSistemaSolar } from "./tabs/TabSistemaSolar";
 import { TabAreaTelhado } from "./tabs/TabAreaTelhado";
 import { TabValoresPadroes } from "./tabs/TabValoresPadroes";
+import { TabTributacao } from "./tabs/TabTributacao";
 import { PremissasFooter } from "./PremissasFooter";
 
 const TABS = [
@@ -14,6 +15,7 @@ const TABS = [
   { value: "sistema-solar", label: "Sistema solar", icon: Sun },
   { value: "area-telhado", label: "Dados técnicos do telhado", icon: LayoutGrid },
   { value: "valores-padroes", label: "Valores padrões", icon: SlidersHorizontal },
+  { value: "tributacao", label: "Tributação", icon: Landmark },
 ] as const;
 
 export function PremissasPage() {
@@ -32,7 +34,7 @@ export function PremissasPage() {
           Premissas
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Parâmetros financeiros, técnicos e valores padrões para dimensionamento e propostas.
+          Parâmetros financeiros, técnicos, tributários e valores padrões para dimensionamento e propostas.
         </p>
       </div>
 
@@ -69,9 +71,12 @@ export function PremissasPage() {
         <TabsContent value="valores-padroes" className="mt-4">
           <TabValoresPadroes premises={ctx.premises} onChange={ctx.setPremises} onAutoSave={ctx.save} />
         </TabsContent>
+        <TabsContent value="tributacao" className="mt-4">
+          <TabTributacao />
+        </TabsContent>
       </Tabs>
 
-      {tab !== "area-telhado" && (
+      {tab !== "area-telhado" && tab !== "tributacao" && (
         <PremissasFooter
           isDirty={ctx.isDirty}
           saving={ctx.saving}
