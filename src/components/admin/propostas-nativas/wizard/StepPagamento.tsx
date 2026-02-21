@@ -94,9 +94,11 @@ export function StepPagamento({
     }
   }, [bancos]);
 
-  // ─── Derived metrics (simplified calc engine)
+  // ─── Derived metrics (aligned with calc-engine.ts)
   const prem = premissas || { inflacao_energetica: 9.5, perda_eficiencia_anual: 0.5, vpl_taxa_desconto: 10, imposto: 0, inflacao_ipca: 4.5, sobredimensionamento: 0, troca_inversor_anos: 15, troca_inversor_custo: 30 };
-  const geracaoAnualBase = potenciaKwp * (irradiacao || 4.5) * 365 * 0.8; // simplified
+  // Geração anual: potência × irradiação × 365 × PR(0.80) — aligned with engine
+  const geracaoMensalKwh = potenciaKwp * (irradiacao || 4.5) * 30 * 0.80;
+  const geracaoAnualBase = geracaoMensalKwh * 12;
   const ucGeradora = ucs.find(u => u.is_geradora) || ucs[0];
   const tarifaBase = ucGeradora?.tarifa_distribuidora || 1.10;
   const custoDisp = ucGeradora?.custo_disponibilidade_valor || 54.81;
@@ -107,17 +109,20 @@ export function StepPagamento({
   const economiaMensal = Math.max(0, economiaAtual - economiaNova);
   const economiaPercent = economiaAtual > 0 ? (economiaMensal / economiaAtual * 100) : 75;
 
-  // ─── Cash flow table (25 years)
+  // ─── Cash flow table (25 years) — aligned with calc-engine.ts calcSeries25
   const fluxoCaixaData = useMemo(() => {
-    const rows: { ano: number; geracao: number; tarifa: number; economia: number; investimento: number; fluxoCaixa: number }[] = [];
-    let acumulado = 0;
-    const degradacao = (prem.perda_eficiencia_anual || 0.5) / 100;
-    const inflacao = (prem.inflacao_energetica || 9.5) / 100;
+    const rows: { ano: number; geracao: number; tarifa: number; economiaBruta: number; custoFioB: number; economiaLiquida: number; custoExtra: number; economia: number; investimento: number; fluxoCaixa: number }[] = [];
+    let fluxoAcumulado = 0;
+    const degradacaoRate = (prem.perda_eficiencia_anual || 0.5) / 100;
+    const inflacaoRate = (prem.inflacao_energetica || 9.5) / 100;
     const geracaoBase = geracaoAnualBase || 4761;
+    const trocaInversorAnos = prem.troca_inversor_anos || 15;
+    const trocaInversorCustoPct = (prem.troca_inversor_custo || 30) / 100;
 
     // Find financing option for selected
     let investAno0 = precoFinal;
-    let investAno1 = 0;
+    let parcelasMensais = 0;
+    let parcelasCount = 0;
     if (fluxoFinanciamento !== "sem_financiamento") {
       const parts = fluxoFinanciamento.split("|");
       if (parts.length >= 2) {
@@ -126,65 +131,107 @@ export function StepPagamento({
         const group = bancoGroups[bIdx];
         if (group && group.opcoes[oIdx]) {
           const op = group.opcoes[oIdx];
-          const totalFinanciado = op.valor_parcela * op.num_parcelas + op.entrada;
-          investAno0 = op.entrada + (op.num_parcelas <= 12 ? op.valor_parcela * op.num_parcelas : op.valor_parcela * 12);
-          investAno1 = op.num_parcelas > 12 ? op.valor_parcela * Math.min(12, op.num_parcelas - 12) : 0;
+          investAno0 = op.entrada;
+          parcelasMensais = op.valor_parcela;
+          parcelasCount = op.num_parcelas;
         }
       }
     }
 
-    for (let ano = 0; ano <= 25; ano++) {
-      const geracao = geracaoBase * Math.pow(1 - degradacao, ano);
-      const tarifa = tarifaBase * Math.pow(1 + inflacao, ano);
-      const economia = (geracao / 12) * tarifa * 12 * (economiaPercent / 100);
-      const investimento = ano === 0 ? -investAno0 : ano === 1 ? -investAno1 : 0;
-      acumulado += economia + investimento;
-      rows.push({ ano, geracao, tarifa, economia, investimento, fluxoCaixa: acumulado });
+    // Year 0: investment only
+    fluxoAcumulado = -investAno0;
+    rows.push({ ano: 0, geracao: 0, tarifa: tarifaBase, economiaBruta: 0, custoFioB: 0, economiaLiquida: 0, custoExtra: 0, economia: 0, investimento: -investAno0, fluxoCaixa: fluxoAcumulado });
+
+    for (let ano = 1; ano <= 25; ano++) {
+      // Degradação e inflação conforme calc-engine.ts
+      const degradacao = Math.pow(1 - degradacaoRate, ano - 1);
+      const inflacao = Math.pow(1 + inflacaoRate, ano - 1);
+      const tarifaVigente = Math.round(tarifaBase * inflacao * 100) / 100;
+      const geracaoAnual = Math.round(geracaoBase * degradacao * 100) / 100;
+      const economiaBruta = Math.round(geracaoAnual * tarifaVigente * 100) / 100;
+
+      // Fio B: use simplified 15% for frontend preview (backend uses full Lei 14.300 escalation)
+      const fioBPct = 0.15;
+      const custoFioB = Math.round(geracaoAnual * tarifaVigente * 0.28 * fioBPct * 100) / 100;
+      const economiaLiquida = Math.round((economiaBruta - custoFioB) * 100) / 100;
+
+      // Troca de inversor
+      let custoExtra = 0;
+      if (trocaInversorAnos > 0 && ano === trocaInversorAnos) {
+        custoExtra = Math.round(precoFinal * trocaInversorCustoPct * 100) / 100;
+      }
+
+      // Parcelas de financiamento (distribuídas ao longo dos anos)
+      let custoFinanciamento = 0;
+      if (parcelasMensais > 0 && parcelasCount > 0) {
+        const mesesRestantes = parcelasCount - (ano - 1) * 12;
+        if (mesesRestantes > 0) {
+          custoFinanciamento = parcelasMensais * Math.min(12, mesesRestantes);
+        }
+      }
+
+      const fluxo = economiaLiquida - custoExtra - custoFinanciamento;
+      fluxoAcumulado += fluxo;
+
+      rows.push({
+        ano,
+        geracao: geracaoAnual,
+        tarifa: tarifaVigente,
+        economiaBruta,
+        custoFioB,
+        economiaLiquida,
+        custoExtra,
+        economia: economiaLiquida,
+        investimento: -(custoExtra + custoFinanciamento),
+        fluxoCaixa: Math.round(fluxoAcumulado * 100) / 100,
+      });
     }
     return rows;
-  }, [precoFinal, fluxoFinanciamento, bancoGroups, geracaoAnualBase, tarifaBase, prem, economiaPercent]);
+  }, [precoFinal, fluxoFinanciamento, bancoGroups, geracaoAnualBase, tarifaBase, prem]);
 
-  // Payback calculation
+  // Payback calculation — aligned with calc-engine.ts bisection TIR
   const paybackInfo = useMemo(() => {
-    const row = fluxoCaixaData.find(r => r.fluxoCaixa >= 0);
+    const row = fluxoCaixaData.find(r => r.ano > 0 && r.fluxoCaixa >= 0);
     const paybackAnos = row ? row.ano : 25;
     // Interpolate months
     let paybackMeses = 0;
     if (row && row.ano > 0) {
-      const prev = fluxoCaixaData[row.ano - 1];
+      const prev = fluxoCaixaData.find(r => r.ano === row.ano - 1);
       if (prev && prev.fluxoCaixa < 0) {
         const frac = Math.abs(prev.fluxoCaixa) / (row.fluxoCaixa - prev.fluxoCaixa);
         paybackMeses = Math.round(frac * 12);
       }
     }
 
-    // TIR simplified (Newton-Raphson approximation)
-    const cashflows = fluxoCaixaData.map(r => r.economia + r.investimento);
-    let tir = 0.1;
-    for (let iter = 0; iter < 50; iter++) {
-      let npv = 0, dnpv = 0;
-      for (let t = 0; t < cashflows.length; t++) {
-        const d = Math.pow(1 + tir, t);
-        npv += cashflows[t] / d;
-        dnpv -= t * cashflows[t] / (d * (1 + tir));
+    // TIR via bisection — same as calc-engine.ts
+    const fluxos = fluxoCaixaData.filter(r => r.ano > 0).map(r => r.economia + r.investimento);
+    let lo = -0.5, hi = 5.0;
+    for (let iter = 0; iter < 100; iter++) {
+      const mid = (lo + hi) / 2;
+      let npv = -precoFinal;
+      for (let i = 0; i < fluxos.length; i++) {
+        npv += fluxos[i] / Math.pow(1 + mid, i + 1);
       }
-      if (Math.abs(dnpv) < 1e-10) break;
-      tir -= npv / dnpv;
-      if (Math.abs(npv) < 0.01) break;
+      if (Math.abs(npv) < 0.01) { lo = mid; hi = mid; break; }
+      if (npv > 0) lo = mid; else hi = mid;
     }
+    const tir = ((lo + hi) / 2) * 100;
 
-    // VPL
+    // VPL — same as calc-engine.ts
     const taxa = (prem.vpl_taxa_desconto || 10) / 100;
-    const vpl = cashflows.reduce((sum, cf, t) => sum + cf / Math.pow(1 + taxa, t), 0);
+    let vpl = -precoFinal;
+    for (let i = 0; i < fluxos.length; i++) {
+      vpl += fluxos[i] / Math.pow(1 + taxa, i + 1);
+    }
 
     return {
       anos: paybackAnos,
       meses: paybackMeses,
       label: `${paybackAnos} ano${paybackAnos !== 1 ? "s" : ""} e ${paybackMeses} mes${paybackMeses !== 1 ? "es" : ""}`,
-      tir: Math.max(0, tir * 100),
-      vpl,
+      tir: Math.max(0, tir),
+      vpl: Math.round(vpl * 100) / 100,
     };
-  }, [fluxoCaixaData, prem]);
+  }, [fluxoCaixaData, prem, precoFinal]);
 
   // ─── Add option to a bank group
   const addOpcaoToBanco = (bancoIdx: number) => {
