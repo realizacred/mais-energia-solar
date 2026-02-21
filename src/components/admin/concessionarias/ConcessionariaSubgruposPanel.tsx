@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Plus, Trash2, ChevronDown, ChevronRight, Zap, Info } from "lucide-react";
+import { Plus, Trash2, Zap, Info, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -7,21 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from "@/components/ui/table";
-import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Collapsible, CollapsibleContent, CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface TarifaSubgrupo {
   id: string;
@@ -56,21 +53,24 @@ const MODALIDADES = ["Convencional", "Branca", "Verde", "Azul"];
 
 const isGrupoA = (sub: string) => sub.startsWith("A");
 
-function getGrupoLabel(sub: string) {
-  if (SUBGRUPOS_BT.includes(sub)) return "B";
-  if (sub.startsWith("A")) return "A";
-  return "?";
+function formatVal(v: number | null, prefix = "R$ ", decimals = 4) {
+  if (v == null) return "—";
+  return `${prefix}${Number(v).toFixed(decimals)}`;
+}
+
+function OrigemBadge({ origem }: { origem: string | null }) {
+  const label = origem || "manual";
+  const variant = label === "ANEEL" ? "default" : label === "auto_seed" ? "outline" : "secondary";
+  return <Badge variant={variant} className="text-[9px] font-mono">{label}</Badge>;
 }
 
 export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaNome }: Props) {
   const { toast } = useToast();
   const [tarifas, setTarifas] = useState<TarifaSubgrupo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState<TarifaSubgrupo | null>(null);
 
-  // Form state for new subgrupo
   const [form, setForm] = useState({
     subgrupo: "",
     modalidade_tarifaria: "Convencional",
@@ -96,8 +96,8 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
   }, [concessionariaId]);
 
   useEffect(() => {
-    if (open) fetchTarifas();
-  }, [open, fetchTarifas]);
+    fetchTarifas();
+  }, [fetchTarifas]);
 
   const tarifasBT = tarifas.filter(t => !isGrupoA(t.subgrupo));
   const tarifasMT = tarifas.filter(t => isGrupoA(t.subgrupo));
@@ -115,9 +115,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
       toast({ title: "Selecione um subgrupo", variant: "destructive" });
       return;
     }
-
     const parseNum = (v: string) => v.trim() ? parseFloat(v) : null;
-
     const payload = {
       concessionaria_id: concessionariaId,
       subgrupo: form.subgrupo,
@@ -133,16 +131,13 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
       origem: "manual",
       is_active: true,
     };
-
     const { error } = await supabase
       .from("concessionaria_tarifas_subgrupo")
       .upsert([payload] as any, { onConflict: "concessionaria_id,subgrupo,tenant_id" });
-
     if (error) {
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
     }
-
     toast({ title: "Subgrupo salvo com sucesso" });
     setDialogOpen(false);
     resetForm();
@@ -166,119 +161,137 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
 
   const selectedIsGrupoA = isGrupoA(form.subgrupo);
 
+  if (loading) {
+    return (
+      <div className="p-4 text-xs text-muted-foreground animate-pulse">
+        Carregando tarifas por subgrupo...
+      </div>
+    );
+  }
+
   return (
-    <>
-      <Collapsible open={open} onOpenChange={setOpen}>
-        <CollapsibleTrigger asChild>
-          <button className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 rounded transition-colors">
-            {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-            <Zap className="w-3.5 h-3.5 text-primary" />
-            <span className="font-medium">Tarifas por Subgrupo</span>
-            <Badge variant="outline" className="text-[10px] ml-auto">{tarifas.length} subgrupos</Badge>
-          </button>
-        </CollapsibleTrigger>
-        <CollapsibleContent>
-          <div className="px-3 pb-3 space-y-3">
-            {loading ? (
-              <div className="text-xs text-muted-foreground py-2">Carregando...</div>
-            ) : (
-              <>
-                {/* BT Section */}
-                {tarifasBT.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <Badge className="text-[10px] bg-success/15 text-success border-0">Grupo B</Badge>
-                      <span className="text-[10px] text-muted-foreground">Baixa Tensão</span>
-                    </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-[10px] h-7">Sub</TableHead>
-                          <TableHead className="text-[10px] h-7">Tarifa</TableHead>
-                          <TableHead className="text-[10px] h-7">Fio B</TableHead>
-                          <TableHead className="text-[10px] h-7">Origem</TableHead>
-                          <TableHead className="text-[10px] h-7 w-8"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tarifasBT.map(t => (
-                          <TableRow key={t.id}>
-                            <TableCell className="text-xs font-mono py-1">{t.subgrupo}</TableCell>
-                            <TableCell className="text-xs py-1">{t.tarifa_energia != null ? `R$ ${Number(t.tarifa_energia).toFixed(4)}` : "—"}</TableCell>
-                            <TableCell className="text-xs py-1">{t.tarifa_fio_b != null ? `R$ ${Number(t.tarifa_fio_b).toFixed(4)}` : "—"}</TableCell>
-                            <TableCell className="py-1">
-                              <Badge variant={t.origem === "ANEEL" ? "default" : "secondary"} className="text-[9px]">{t.origem || "manual"}</Badge>
-                            </TableCell>
-                            <TableCell className="py-1">
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleting(t)}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-
-                {/* MT Section */}
-                {tarifasMT.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <Badge className="text-[10px] bg-primary/15 text-primary border-0">Grupo A</Badge>
-                      <span className="text-[10px] text-muted-foreground">Média/Alta Tensão</span>
-                    </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="text-[10px] h-7">Sub</TableHead>
-                          <TableHead className="text-[10px] h-7">Mod.</TableHead>
-                          <TableHead className="text-[10px] h-7">TE P</TableHead>
-                          <TableHead className="text-[10px] h-7">TE FP</TableHead>
-                          <TableHead className="text-[10px] h-7">TUSD P</TableHead>
-                          <TableHead className="text-[10px] h-7">TUSD FP</TableHead>
-                          <TableHead className="text-[10px] h-7">Dem.</TableHead>
-                          <TableHead className="text-[10px] h-7 w-8"></TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {tarifasMT.map(t => (
-                          <TableRow key={t.id}>
-                            <TableCell className="text-xs font-mono py-1">{t.subgrupo}</TableCell>
-                            <TableCell className="text-[10px] py-1">{t.modalidade_tarifaria || "—"}</TableCell>
-                            <TableCell className="text-xs py-1">{t.te_ponta != null ? t.te_ponta.toFixed(4) : "—"}</TableCell>
-                            <TableCell className="text-xs py-1">{t.te_fora_ponta != null ? t.te_fora_ponta.toFixed(4) : "—"}</TableCell>
-                            <TableCell className="text-xs py-1">{t.tusd_ponta != null ? t.tusd_ponta.toFixed(4) : "—"}</TableCell>
-                            <TableCell className="text-xs py-1">{t.tusd_fora_ponta != null ? t.tusd_fora_ponta.toFixed(4) : "—"}</TableCell>
-                            <TableCell className="text-xs py-1">{t.demanda_consumo_rs != null ? `R$ ${t.demanda_consumo_rs.toFixed(2)}` : "—"}</TableCell>
-                            <TableCell className="py-1">
-                              <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleting(t)}>
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-
-                {tarifas.length === 0 && (
-                  <div className="flex items-start gap-2 p-2 bg-muted/30 rounded text-xs text-muted-foreground">
-                    <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                    <span>Nenhum subgrupo cadastrado. Clique em "Sincronizar Tarifas" para popular automaticamente os subgrupos BT, ou adicione manualmente.</span>
-                  </div>
-                )}
-
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => { resetForm(); setDialogOpen(true); }}>
-                  <Plus className="w-3 h-3" />
-                  Adicionar Subgrupo
-                </Button>
-              </>
-            )}
+    <TooltipProvider>
+      <div className="p-4 space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold">Tarifas por Subgrupo</span>
+            <Badge variant="outline" className="text-[10px]">{tarifas.length} subgrupos</Badge>
           </div>
-        </CollapsibleContent>
-      </Collapsible>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => { resetForm(); setDialogOpen(true); }}>
+            <Plus className="w-3 h-3" />
+            Adicionar
+          </Button>
+        </div>
+
+        {tarifas.length === 0 && (
+          <div className="flex items-start gap-2 p-3 bg-muted/40 rounded-lg text-xs text-muted-foreground border border-border/50">
+            <Info className="w-4 h-4 mt-0.5 shrink-0 text-info" />
+            <span>Nenhum subgrupo cadastrado. Clique em <strong>"Sincronizar ANEEL"</strong> para popular automaticamente, ou adicione manualmente.</span>
+          </div>
+        )}
+
+        {/* Grupo B — Cards */}
+        {tarifasBT.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge className="text-[10px] bg-success/15 text-success border-0 font-semibold">Grupo B</Badge>
+              <span className="text-[11px] text-muted-foreground">Baixa Tensão</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {tarifasBT.map(t => (
+                <div key={t.id} className="rounded-lg border bg-card p-3 flex flex-col gap-1.5 group hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold font-mono text-foreground">{t.subgrupo}</span>
+                    <div className="flex items-center gap-1">
+                      <OrigemBadge origem={t.origem} />
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setDeleting(t)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
+                    <span className="text-muted-foreground">Tarifa Energia</span>
+                    <span className="text-right font-medium">{formatVal(t.tarifa_energia)}</span>
+                    <span className="text-muted-foreground">Fio B</span>
+                    <span className="text-right font-medium">{formatVal(t.tarifa_fio_b)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Grupo A — Cards */}
+        {tarifasMT.length > 0 && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Badge className="text-[10px] bg-primary/15 text-primary border-0 font-semibold">Grupo A</Badge>
+              <span className="text-[11px] text-muted-foreground">Média / Alta Tensão</span>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+              {tarifasMT.map(t => (
+                <div key={t.id} className="rounded-lg border bg-card p-3 space-y-2 group hover:shadow-sm transition-shadow">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold font-mono text-foreground">{t.subgrupo}</span>
+                      {t.modalidade_tarifaria && (
+                        <Badge variant="secondary" className="text-[9px]">{t.modalidade_tarifaria}</Badge>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <OrigemBadge origem={t.origem} />
+                      <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setDeleting(t)}>
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* TE */}
+                    <div className="rounded-md bg-muted/40 p-2 space-y-0.5">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">TE (R$/kWh)</span>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-muted-foreground">Ponta</span>
+                        <span className="font-medium">{formatVal(t.te_ponta, "", 4)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-muted-foreground">F. Ponta</span>
+                        <span className="font-medium">{formatVal(t.te_fora_ponta, "", 4)}</span>
+                      </div>
+                    </div>
+                    {/* TUSD */}
+                    <div className="rounded-md bg-muted/40 p-2 space-y-0.5">
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">TUSD (R$/kWh)</span>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-muted-foreground">Ponta</span>
+                        <span className="font-medium">{formatVal(t.tusd_ponta, "", 4)}</span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-muted-foreground">F. Ponta</span>
+                        <span className="font-medium">{formatVal(t.tusd_fora_ponta, "", 4)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Demanda */}
+                  {(t.demanda_consumo_rs != null || t.demanda_geracao_rs != null) && (
+                    <div className="flex gap-4 text-[11px] pt-1 border-t border-border/50">
+                      <div>
+                        <span className="text-muted-foreground">Dem. Consumo: </span>
+                        <span className="font-medium">{formatVal(t.demanda_consumo_rs, "R$ ", 2)}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Dem. Geração: </span>
+                        <span className="font-medium">{formatVal(t.demanda_geracao_rs, "R$ ", 2)}</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Add subgrupo dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -392,6 +405,6 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </TooltipProvider>
   );
 }
