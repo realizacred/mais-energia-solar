@@ -151,29 +151,51 @@ export function AneelSyncStatusPage() {
   const handleSync = async (testRun = false) => {
     setSyncing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("sync-tarifas-aneel", {
+      // Fire the edge function — it now awaits internally (~50s).
+      // We race with a short timeout to get the run_id from polling instead.
+      const responsePromise = supabase.functions.invoke("sync-tarifas-aneel", {
         body: { trigger_type: "manual", test_run: testRun },
       });
-      if (error) throw error;
-      if (data?.success && data?.run_id) {
+
+      // Wait up to 5s for immediate response (unlikely since sync now awaits)
+      const raceResult = await Promise.race([
+        responsePromise,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      ]);
+
+      if (raceResult && !raceResult.error && raceResult.data?.run_id) {
+        // Got immediate response with run_id
         toast({ title: "🚀 Sync iniciado", description: "Acompanhe o progresso abaixo." });
-        // Set placeholder run
         setRun({
-          id: data.run_id,
+          id: raceResult.data.run_id,
           trigger_type: testRun ? "test_run" : "manual",
-          status: "running",
+          status: raceResult.data.status === "running" ? "running" : (raceResult.data.status || "running"),
           started_at: new Date().toISOString(),
           finished_at: null,
-          total_fetched: 0,
-          total_matched: 0,
-          total_updated: 0,
-          total_errors: 0,
+          total_fetched: raceResult.data.total_fetched || 0,
+          total_matched: raceResult.data.total_matched || 0,
+          total_updated: raceResult.data.total_updated || 0,
+          total_errors: raceResult.data.total_errors || 0,
           error_message: null,
           logs: [],
         });
       } else {
-        throw new Error(data?.error || "Erro desconhecido");
+        // Timeout — sync is running but we don't have run_id yet.
+        // Polling will pick it up from the DB.
+        toast({ title: "🚀 Sync iniciado", description: "Buscando progresso..." });
+        fetchData();
       }
+
+      // Continue waiting in background so we get the final response
+      responsePromise.then((res) => {
+        if (res?.data) {
+          fetchData();
+          setSyncing(false);
+        }
+      }).catch(() => {
+        fetchData();
+        setSyncing(false);
+      });
     } catch (err: any) {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
       setSyncing(false);

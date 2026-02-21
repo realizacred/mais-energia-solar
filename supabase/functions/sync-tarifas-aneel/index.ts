@@ -965,16 +965,35 @@ Deno.serve(async (req) => {
     if (runError) throw runError;
     const runId = runData.id;
 
-    // 🚀 FIRE AND FORGET — return immediately, process in background
-    const syncPromise = processSync(supabase, runId, tenantId, userId, concessionariaId, triggerType, testRun);
-    syncPromise.catch((err) => {
-      console.error("[sync-tarifas-aneel] Background error:", err);
-    });
+    // 🚀 AWAIT sync — must keep isolate alive until completion
+    // Supabase kills the isolate shortly after returning a response,
+    // so we MUST await here. The UI polls aneel_sync_runs for progress.
+    try {
+      await processSync(supabase, runId, tenantId, userId, concessionariaId, triggerType, testRun);
+    } catch (syncErr: any) {
+      console.error("[sync-tarifas-aneel] Sync error:", syncErr);
+      // processSync already finalizes the run status internally,
+      // so we just log here
+    }
+
+    // Fetch final status to return
+    const { data: finalRun } = await supabase
+      .from('aneel_sync_runs')
+      .select('status, total_fetched, total_matched, total_updated, total_errors, error_message')
+      .eq('id', runId)
+      .single();
 
     return new Response(JSON.stringify({
-      success: true,
+      success: finalRun?.status === 'success' || finalRun?.status === 'partial',
       run_id: runId,
-      message: 'Sincronização iniciada em segundo plano.',
+      status: finalRun?.status || 'unknown',
+      message: finalRun?.status === 'success' 
+        ? `Sincronização concluída: ${finalRun.total_updated} registros atualizados`
+        : finalRun?.error_message || 'Sincronização finalizada',
+      total_fetched: finalRun?.total_fetched || 0,
+      total_matched: finalRun?.total_matched || 0,
+      total_updated: finalRun?.total_updated || 0,
+      total_errors: finalRun?.total_errors || 0,
     }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (err: any) {
