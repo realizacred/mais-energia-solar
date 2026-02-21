@@ -70,17 +70,16 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
       sigla: string | null;
       estado?: string | null;
       status: 'atualizada' | 'sem_alteracao' | 'sem_dados';
-      bt?: {
+      bt_all?: Array<{
         subgrupo?: string;
-        origem?: string;
-        te?: { de: number | null; para: number | null };
-        fio_b?: { de: number | null; para: number | null };
+        tarifa_energia?: number | null;
+        tarifa_fio_b?: number | null;
         tarifacao_bt?: number | null;
-      } | null;
-      mt?: {
+        origem?: string;
+      }> | null;
+      mt_all?: Array<{
         subgrupo?: string;
         modalidade?: string;
-        origem?: string;
         te_ponta?: number | null;
         tusd_ponta?: number | null;
         te_fora_ponta?: number | null;
@@ -91,14 +90,10 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
         demanda_geracao?: number | null;
         tarifacao_ponta?: number | null;
         tarifacao_fora_ponta?: number | null;
-      } | null;
-      // Legacy fields
-      fonte?: string;
-      origem?: string;
-      changes?: {
-        tarifa_energia?: { de: number | null; para: number | null };
-        tarifa_fio_b?: { de: number | null; para: number | null };
-      };
+        origem?: string;
+      }> | null;
+      te_change?: { de: number | null; para: number | null };
+      fio_b_change?: { de: number | null; para: number | null };
     }>;
   } | null>(null);
 
@@ -393,7 +388,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
       </SectionCard>
 
       {/* Card 2: Atualização em Lote */}
-      <SectionCard icon={RefreshCw} title="Atualização em Lote" description="Atualiza TODAS as concessionárias ativas com os dados de suas próprias tarifas de subgrupo (B1 ativo)." variant="blue">
+      <SectionCard icon={RefreshCw} title="Atualização em Lote" description="Atualiza TODAS as concessionárias ativas com dados de todos os subgrupos (BT: B1/B2/B3 e MT: A1-A4). Esses dados alimentam o gerador de propostas." variant="blue">
         <div className="space-y-3">
           <Button
             type="button"
@@ -430,13 +425,13 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
 
               {/* Detailed report */}
               {bulkResult.details && bulkResult.details.length > 0 && (
-                <div className="rounded-lg border border-border/60 bg-muted/20">
-                  <div className="flex items-center gap-2 px-3 py-2 border-b border-border/40">
+                <div className="rounded-lg border border-border bg-surface-2">
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
                     <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-xs font-medium text-muted-foreground">Relatório detalhado</span>
                   </div>
                   <ScrollArea className="max-h-[300px]">
-                    <div className="divide-y divide-border/30">
+                    <div className="divide-y divide-border">
                       {bulkResult.details
                         .sort((a, b) => {
                           const order = { atualizada: 0, sem_dados: 1, sem_alteracao: 2 };
@@ -448,85 +443,83 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
                           {d.status === 'sem_alteracao' && <MinusCircle className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />}
                           {d.status === 'sem_dados' && <AlertTriangle className="h-3.5 w-3.5 text-warning mt-0.5 shrink-0" />}
                           <div className="flex-1 min-w-0 space-y-1.5">
-                            <div className="flex items-center gap-1.5 flex-wrap">
-                              <span className="text-xs font-medium truncate">
-                                {d.nome} {d.sigla ? `(${d.sigla})` : ''} {d.estado ? `— ${d.estado}` : ''}
-                              </span>
-                            </div>
+                            <span className="text-xs font-medium truncate block">
+                              {d.nome} {d.sigla ? `(${d.sigla})` : ''} {d.estado ? `— ${d.estado}` : ''}
+                            </span>
 
-                            {/* BT Section */}
-                            {d.bt && (
-                              <div className="rounded border border-success/20 bg-success/5 px-2 py-1.5 space-y-0.5">
-                                <div className="flex items-center gap-1.5">
-                                  <Badge variant="outline" className="text-[9px] border-success/30 text-success">BT — {d.bt.subgrupo || 'B1'}</Badge>
-                                  {d.bt.origem && d.bt.origem !== 'manual' && (
-                                    <Badge variant="secondary" className="text-[9px]">{d.bt.origem}</Badge>
-                                  )}
-                                </div>
-                                {d.status === 'atualizada' && d.bt.te && (
-                                  <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                                    {d.bt.te.de !== d.bt.te.para && (
-                                      <span className="text-[10px] text-muted-foreground font-mono">
-                                        TE: {(d.bt.te.de ?? 0).toFixed(6)}
-                                        <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
-                                        <span className="text-success font-semibold">{(d.bt.te.para ?? 0).toFixed(6)}</span>
-                                      </span>
-                                    )}
-                                    {d.bt.fio_b && d.bt.fio_b.de !== d.bt.fio_b.para && (
-                                      <span className="text-[10px] text-muted-foreground font-mono">
-                                        Fio B: {(d.bt.fio_b.de ?? 0).toFixed(6)}
-                                        <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
-                                        <span className="text-success font-semibold">{(d.bt.fio_b.para ?? 0).toFixed(6)}</span>
-                                      </span>
-                                    )}
-                                  </div>
+                            {/* TE/Fio B change summary */}
+                            {d.status === 'atualizada' && d.te_change && (
+                              <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                                {d.te_change.de !== d.te_change.para && (
+                                  <span className="text-[10px] text-muted-foreground font-mono">
+                                    TE: {(d.te_change.de ?? 0).toFixed(6)}
+                                    <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
+                                    <span className="text-success font-semibold">{(d.te_change.para ?? 0).toFixed(6)}</span>
+                                  </span>
+                                )}
+                                {d.fio_b_change && d.fio_b_change.de !== d.fio_b_change.para && (
+                                  <span className="text-[10px] text-muted-foreground font-mono">
+                                    Fio B: {(d.fio_b_change.de ?? 0).toFixed(6)}
+                                    <ArrowRight className="inline h-2.5 w-2.5 mx-0.5" />
+                                    <span className="text-success font-semibold">{(d.fio_b_change.para ?? 0).toFixed(6)}</span>
+                                  </span>
                                 )}
                               </div>
                             )}
 
-                            {/* MT Section */}
-                            {d.mt && (
-                              <div className="rounded border border-info/20 bg-info/5 px-2 py-1.5 space-y-0.5">
-                                <div className="flex items-center gap-1.5">
-                                  <Badge variant="outline" className="text-[9px] border-info/30 text-info">
-                                    MT — {d.mt.subgrupo} {d.mt.modalidade ? `(${d.mt.modalidade})` : ''}
-                                  </Badge>
-                                  {d.mt.origem && d.mt.origem !== 'manual' && (
-                                    <Badge variant="secondary" className="text-[9px]">{d.mt.origem}</Badge>
-                                  )}
-                                </div>
-                                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-                                  {d.mt.te_ponta != null && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">TE Ponta: {d.mt.te_ponta.toFixed(5)}</span>
-                                  )}
-                                  {d.mt.te_fora_ponta != null && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">TE F.Ponta: {d.mt.te_fora_ponta.toFixed(5)}</span>
-                                  )}
-                                  {d.mt.tusd_ponta != null && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">TUSD Ponta: {d.mt.tusd_ponta.toFixed(5)}</span>
-                                  )}
-                                  {d.mt.tusd_fora_ponta != null && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">TUSD F.Ponta: {d.mt.tusd_fora_ponta.toFixed(5)}</span>
-                                  )}
-                                  {d.mt.fio_b_ponta != null && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">Fio B Ponta: {d.mt.fio_b_ponta.toFixed(5)}</span>
-                                  )}
-                                  {d.mt.fio_b_fora_ponta != null && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">Fio B F.Ponta: {d.mt.fio_b_fora_ponta.toFixed(5)}</span>
-                                  )}
-                                  {d.mt.demanda != null && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">Demanda: R$ {d.mt.demanda.toFixed(2)}</span>
-                                  )}
-                                  {d.mt.demanda_geracao != null && (
-                                    <span className="text-[10px] text-muted-foreground font-mono">Dem. Ger.: R$ {d.mt.demanda_geracao.toFixed(2)}</span>
-                                  )}
+                            {/* BT Subgroups */}
+                            {d.bt_all && d.bt_all.length > 0 && (
+                              <div className="rounded border border-success/25 bg-card px-2 py-1.5 space-y-1">
+                                <span className="text-[9px] font-semibold text-success uppercase tracking-wider">Grupo B</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {d.bt_all.map((bt, bi) => (
+                                    <Badge key={bi} variant="outline" className="text-[9px] border-success/30 text-success font-mono">
+                                      {bt.subgrupo}: TE {(bt.tarifa_energia ?? 0).toFixed(5)} | Fio B {(bt.tarifa_fio_b ?? 0).toFixed(5)}
+                                    </Badge>
+                                  ))}
                                 </div>
                               </div>
                             )}
 
-                            {/* No data messages */}
-                            {d.status === 'sem_dados' && !d.bt && (
-                              <span className="text-[10px] text-warning">Nenhum subgrupo B1 ativo encontrado</span>
+                            {/* MT Subgroups */}
+                            {d.mt_all && d.mt_all.length > 0 && (
+                              <div className="rounded border border-info/25 bg-card px-2 py-1.5 space-y-1">
+                                <span className="text-[9px] font-semibold text-info uppercase tracking-wider">Grupo A</span>
+                                <div className="space-y-1">
+                                  {d.mt_all.map((mt, mi) => (
+                                    <div key={mi} className="space-y-0.5">
+                                      <Badge variant="outline" className="text-[9px] border-info/30 text-info">
+                                        {mt.subgrupo} {mt.modalidade ? `(${mt.modalidade})` : ''}
+                                      </Badge>
+                                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 ml-1">
+                                        {mt.te_ponta != null && (
+                                          <span className="text-[10px] text-muted-foreground font-mono">TE P: {mt.te_ponta.toFixed(5)}</span>
+                                        )}
+                                        {mt.te_fora_ponta != null && (
+                                          <span className="text-[10px] text-muted-foreground font-mono">TE FP: {mt.te_fora_ponta.toFixed(5)}</span>
+                                        )}
+                                        {mt.tusd_ponta != null && (
+                                          <span className="text-[10px] text-muted-foreground font-mono">TUSD P: {mt.tusd_ponta.toFixed(5)}</span>
+                                        )}
+                                        {mt.tusd_fora_ponta != null && (
+                                          <span className="text-[10px] text-muted-foreground font-mono">TUSD FP: {mt.tusd_fora_ponta.toFixed(5)}</span>
+                                        )}
+                                        {mt.demanda != null && (
+                                          <span className="text-[10px] text-muted-foreground font-mono">Dem: R$ {mt.demanda.toFixed(2)}</span>
+                                        )}
+                                        {mt.demanda_geracao != null && (
+                                          <span className="text-[10px] text-muted-foreground font-mono">Dem Ger: R$ {mt.demanda_geracao.toFixed(2)}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* No data / unchanged messages */}
+                            {d.status === 'sem_dados' && (!d.bt_all || d.bt_all.length === 0) && (
+                              <span className="text-[10px] text-warning">Nenhum subgrupo BT ativo encontrado</span>
                             )}
                             {d.status === 'sem_alteracao' && (
                               <span className="text-[10px] text-muted-foreground">Valores já estão atualizados</span>
