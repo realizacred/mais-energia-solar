@@ -11,7 +11,6 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   type ParsedTarifa,
-  type ImportResult,
   type FileType,
   parseCSVLine,
   detectFileType,
@@ -29,6 +28,15 @@ interface Props {
   onImportComplete: () => void;
 }
 
+interface ImportResult {
+  matched: number;
+  updated: number;
+  skipped: number;
+  errors: string[];
+  grupoA: number;
+  grupoB: number;
+}
+
 export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: Props) {
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -37,6 +45,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
   const [fileType, setFileType] = useState<FileType | null>(null);
   const [importing, setImporting] = useState(false);
   const [progress, setProgress] = useState({ current: 0, total: 0, percent: 0 });
+  const [unmatchedAgents, setUnmatchedAgents] = useState<string[]>([]);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [step, setStep] = useState<"upload" | "preview" | "done">("upload");
 
@@ -46,6 +55,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
     setResult(null);
     setFileType(null);
     setProgress({ current: 0, total: 0, percent: 0 });
+    setUnmatchedAgents([]);
     setStep("upload");
   };
 
@@ -167,16 +177,28 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         return null;
       };
 
-      // Debug: log matching for first 3 unique agents
-      const debugAgents = new Set<string>();
+      // Track all unique agents and which ones don't match
+      const allAgents = new Set<string>();
+      const matchedAgentsSet = new Set<string>();
+      const unmatchedSet = new Set<string>();
+      
       for (const r of parsed) {
         const agent = r.sigAgente || r.nomAgente;
-        if (debugAgents.size < 3 && !debugAgents.has(agent)) {
-          debugAgents.add(agent);
-          const match = findConc(r.sigAgente, r.nomAgente);
-          console.log(`[ANEEL Match] sig="${r.sigAgente}" nom="${r.nomAgente}" → ${match ? match.nome : "NOT FOUND"}`);
-        }
+        allAgents.add(agent);
+        const match = findConc(r.sigAgente, r.nomAgente);
+        if (match) matchedAgentsSet.add(agent);
+        else unmatchedSet.add(agent);
       }
+      
+      // Log unmatched for debugging
+      if (unmatchedSet.size > 0) {
+        console.warn(`[ANEEL Import] ${unmatchedSet.size} distribuidoras sem correspondência:`, [...unmatchedSet]);
+      }
+      console.log(`[ANEEL Import] ${matchedAgentsSet.size}/${allAgents.size} distribuidoras correspondidas`);
+      setUnmatchedAgents([...unmatchedSet].sort());
+
+      // Helper: convert R$/MWh → R$/kWh (÷1000)
+      const mwhToKwh = (v: number) => v / 1000;
 
       if (fileType === "componentes") {
         // Componentes: update fio_b fields
@@ -190,6 +212,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         }
 
         let updated = 0;
+        let grupoA = 0, grupoB = 0;
         const errors: string[] = [];
         const entries = [...grouped.entries()];
         const totalEntries = entries.length;
@@ -198,20 +221,19 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
           const [, { conc, records }] = entries[idx];
           const first = records[0];
           const sub = first.subgrupo;
-          const isGrupoA = sub.startsWith("A");
+          const isGA = sub.startsWith("A");
 
-          if (isGrupoA) {
+          if (isGA) {
             let fio_b_ponta = 0, fio_b_fora_ponta = 0;
             for (const r of records) {
               const isPonta = r.posto.toLowerCase().includes("ponta") && !r.posto.toLowerCase().includes("fora");
-              if (isPonta) {
-                fio_b_ponta = r.vlrFioB || 0;
-              } else {
-                fio_b_fora_ponta = r.vlrFioB || 0;
-              }
+              const isMWh = norm(r.unidade).includes("mwh");
+              const rawVal = r.vlrFioB || 0;
+              const val = isMWh ? mwhToKwh(rawVal) : rawVal;
+              if (isPonta) fio_b_ponta = val;
+              else fio_b_fora_ponta = val;
             }
 
-            // Use upsert - update fio_b fields on existing rows
             const { error } = await supabase
               .from("concessionaria_tarifas_subgrupo")
               .upsert({
@@ -225,23 +247,26 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
 
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
-            else updated++;
+            else { updated++; grupoA++; }
           } else {
             const r = records[0];
+            const isMWh = norm(r.unidade).includes("mwh");
+            const rawFioB = r.vlrFioB || 0;
+            const val = isMWh ? mwhToKwh(rawFioB) : rawFioB;
             const { error } = await supabase
               .from("concessionaria_tarifas_subgrupo")
               .upsert({
                 concessionaria_id: conc.id,
                 subgrupo: sub,
                 modalidade_tarifaria: first.modalidade || "Convencional",
-                tarifa_fio_b: r.vlrFioB || 0,
+                tarifa_fio_b: val,
                 origem: "CSV_ANEEL_COMP",
                 is_active: true,
                 updated_at: new Date().toISOString(),
               } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
 
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
-            else updated++;
+            else { updated++; grupoB++; }
           }
           setProgress({ current: idx + 1, total: totalEntries, percent: Math.round(((idx + 1) / totalEntries) * 100) });
           if (idx % 5 === 0) await new Promise(r => setTimeout(r, 10));
@@ -249,9 +274,9 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
         const matched = grouped.size;
         const skipped = parsed.length - [...grouped.values()].reduce((sum, g) => sum + g.records.length, 0);
-        setResult({ matched, updated, skipped, errors });
+        setResult({ matched, updated, skipped, errors, grupoA, grupoB });
       } else {
-        // Tarifas homologadas (existing logic)
+        // Tarifas homologadas
         const grouped = new Map<string, { conc: typeof concessionarias[0]; records: ParsedTarifa[] }>();
         for (const r of parsed) {
           const conc = findConc(r.sigAgente, r.nomAgente);
@@ -262,6 +287,7 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
         }
 
         let updated = 0;
+        let grupoA = 0, grupoB = 0;
         const errors: string[] = [];
         const entries2 = [...grouped.entries()];
         const totalEntries2 = entries2.length;
@@ -281,21 +307,22 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               const isGeracao = norm(r.modalidade).includes("gera");
               
               if (isDemand) {
+                // Demanda stays in R$/kW (already correct unit)
                 if (isGeracao) {
                   demanda_geracao_rs = r.vlrTUSD || r.vlrTE;
                 } else if (isPonta) {
-                  // Demand values - store the higher (ponta) as reference
                   demanda_consumo_rs = Math.max(demanda_consumo_rs, r.vlrTUSD);
                 } else {
                   demanda_consumo_rs = demanda_consumo_rs || r.vlrTUSD;
                 }
               } else if (isEnergy) {
+                // Convert R$/MWh → R$/kWh
                 if (isPonta) {
-                  te_ponta = r.vlrTE;
-                  tusd_ponta = r.vlrTUSD;
+                  te_ponta = mwhToKwh(r.vlrTE);
+                  tusd_ponta = mwhToKwh(r.vlrTUSD);
                 } else {
-                  te_fora_ponta = r.vlrTE;
-                  tusd_fora_ponta = r.vlrTUSD;
+                  te_fora_ponta = mwhToKwh(r.vlrTE);
+                  tusd_fora_ponta = mwhToKwh(r.vlrTUSD);
                 }
               }
             }
@@ -316,27 +343,28 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
               .from("concessionaria_tarifas_subgrupo")
               .upsert(upsertData, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
 
-            if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
-            else updated++;
+            if (error) errors.push(`${conc.nome} ${sub} ${first.modalidade}: ${error.message}`);
+            else { updated++; grupoA++; }
           } else {
-            // BT: use R$/MWh energy rows
+            // BT: use R$/MWh energy rows, convert to R$/kWh
             const energyRows = records.filter(r => norm(r.unidade).includes("mwh"));
             const r = energyRows.length > 0 ? energyRows[0] : records[0];
+            const isMWh = norm(r.unidade).includes("mwh");
             const { error } = await supabase
               .from("concessionaria_tarifas_subgrupo")
               .upsert({
                 concessionaria_id: conc.id,
                 subgrupo: sub,
                 modalidade_tarifaria: first.modalidade || "Convencional",
-                tarifa_energia: r.vlrTE,
-                tarifa_fio_b: r.vlrTUSD,
+                tarifa_energia: isMWh ? mwhToKwh(r.vlrTE) : r.vlrTE,
+                tarifa_fio_b: isMWh ? mwhToKwh(r.vlrTUSD) : r.vlrTUSD,
                 origem: "CSV_ANEEL",
                 is_active: true,
                 updated_at: new Date().toISOString(),
               } as any, { onConflict: "tenant_id,concessionaria_id,subgrupo,modalidade_tarifaria" });
 
             if (error) errors.push(`${conc.nome} ${sub}: ${error.message}`);
-            else updated++;
+            else { updated++; grupoB++; }
           }
           setProgress({ current: idx + 1, total: totalEntries2, percent: Math.round(((idx + 1) / totalEntries2) * 100) });
           if (idx % 5 === 0) await new Promise(r => setTimeout(r, 10));
@@ -344,14 +372,12 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
 
         const matched = grouped.size;
         const skipped = parsed.length - [...grouped.values()].reduce((sum, g) => sum + g.records.length, 0);
-        setResult({ matched, updated, skipped, errors });
+        setResult({ matched, updated, skipped, errors, grupoA, grupoB });
       }
 
       setProgress({ current: 1, total: 1, percent: 100 });
       setStep("done");
-      if (result?.updated || true) {
-        onImportComplete();
-      }
+      onImportComplete();
     } catch (err: any) {
       toast({ title: "Erro na importação", description: err.message, variant: "destructive" });
     } finally {
@@ -477,12 +503,45 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
                 <div className="text-[10px] text-muted-foreground">Ignorados</div>
               </div>
             </div>
+
+            {/* Grupo A / B breakdown */}
+            <div className="flex gap-2">
+              <div className="flex-1 rounded-lg bg-primary/10 p-2 text-center">
+                <div className="text-base font-bold text-primary">{result.grupoA}</div>
+                <div className="text-[10px] text-muted-foreground">Grupo A (MT)</div>
+              </div>
+              <div className="flex-1 rounded-lg bg-success/10 p-2 text-center">
+                <div className="text-base font-bold text-success">{result.grupoB}</div>
+                <div className="text-[10px] text-muted-foreground">Grupo B (BT)</div>
+              </div>
+            </div>
+
+            {/* Unmatched agents */}
+            {unmatchedAgents.length > 0 && (
+              <div className="space-y-1">
+                <div className="flex items-center gap-1.5 text-[11px] text-warning font-medium">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  {unmatchedAgents.length} distribuidora(s) sem correspondência no sistema:
+                </div>
+                <ScrollArea className="h-20 rounded border p-2">
+                  {unmatchedAgents.map((a, i) => (
+                    <div key={i} className="text-[10px] text-muted-foreground font-mono">{a}</div>
+                  ))}
+                </ScrollArea>
+              </div>
+            )}
+
             {result.errors.length > 0 && (
-              <ScrollArea className="h-24 rounded border p-2">
-                {result.errors.map((e, i) => (
-                  <div key={i} className="text-[10px] text-destructive">{e}</div>
-                ))}
-              </ScrollArea>
+              <div className="space-y-1">
+                <div className="text-[11px] text-destructive font-medium">
+                  {result.errors.length} erro(s):
+                </div>
+                <ScrollArea className="h-24 rounded border p-2">
+                  {result.errors.map((e, i) => (
+                    <div key={i} className="text-[10px] text-destructive">{e}</div>
+                  ))}
+                </ScrollArea>
+              </div>
             )}
           </div>
         )}
