@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Zap, AlertTriangle } from "lucide-react";
+import { Zap, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
 import { FieldTooltip } from "./shared";
@@ -26,12 +26,14 @@ interface Concessionaria {
 interface Props {
   premises: TenantPremises;
   onChange: (fn: (prev: TenantPremises) => TenantPremises) => void;
+  onSyncedFields?: (fields: string[]) => void;
 }
 
-export function ConcessionariaSection({ premises, onChange }: Props) {
+export function ConcessionariaSection({ premises, onChange, onSyncedFields }: Props) {
   const [concessionarias, setConcessionarias] = useState<Concessionaria[]>([]);
   const [loadingConc, setLoadingConc] = useState(true);
   const [subgrupoData, setSubgrupoData] = useState<{ bt: any; mt: any }>({ bt: null, mt: null });
+  const [justSynced, setJustSynced] = useState(false);
 
   useEffect(() => {
     supabase
@@ -64,6 +66,7 @@ export function ConcessionariaSection({ premises, onChange }: Props) {
   const handleConcessionariaChange = useCallback(async (concId: string) => {
     const conc = concessionarias.find((c) => c.id === concId);
     if (!conc) return;
+    setJustSynced(false);
 
     const { data: subgrupos } = await supabase
       .from("concessionaria_tarifas_subgrupo")
@@ -95,8 +98,26 @@ export function ConcessionariaSection({ premises, onChange }: Props) {
     }));
   }, [concessionarias, onChange]);
 
+  // Map divergencia campo names to TenantPremises keys for highlight
+  const FIELD_MAP: Record<string, keyof TenantPremises> = {
+    "Tarifa": "tarifa",
+    "TUSD Fio B BT": "tusd_fio_b_bt",
+    "ICMS": "imposto_energia",
+    "Tarifação Compensada BT": "tarifacao_compensada_bt",
+    "Fio B Fora Ponta": "tusd_fio_b_fora_ponta",
+    "Fio B Ponta": "tusd_fio_b_ponta",
+    "TE Ponta": "tarifa_te_ponta",
+    "TUSD Ponta": "tarifa_tusd_ponta",
+    "TE Fora Ponta": "tarifa_te_fora_ponta",
+    "TUSD Fora Ponta": "tarifa_tusd_fora_ponta",
+    "Demanda": "preco_demanda",
+    "Demanda Geração": "preco_demanda_geracao",
+    "Tarifação Compensada FP": "tarifacao_compensada_fora_ponta",
+    "Tarifação Compensada P": "tarifacao_compensada_ponta",
+  };
+
   const divergencias = useMemo(() => {
-    if (!selectedConc) return [];
+    if (!selectedConc || justSynced) return [];
     const diffs: { campo: string; premissa: number; conc: number }[] = [];
     const check = (campo: string, pVal: number, cVal: number | null | undefined, tol = 0.0001) => {
       if (cVal != null && Math.abs(pVal - cVal) > tol) diffs.push({ campo, premissa: pVal, conc: cVal });
@@ -118,12 +139,16 @@ export function ConcessionariaSection({ premises, onChange }: Props) {
       check("Demanda Geração", premises.preco_demanda_geracao, subgrupoData.mt.demanda_geracao_rs);
     }
     return diffs;
-  }, [selectedConc, subgrupoData, premises]);
+  }, [selectedConc, subgrupoData, premises, justSynced]);
 
   const syncAllFromConc = useCallback(() => {
     if (!selectedConc) return;
     const bt = subgrupoData.bt as any;
     const mt = subgrupoData.mt as any;
+
+    // Collect field keys that will be synced
+    const syncedKeys = divergencias.map(d => FIELD_MAP[d.campo]).filter(Boolean) as string[];
+
     onChange((p) => ({
       ...p,
       concessionaria_id: selectedConc.id,
@@ -142,7 +167,23 @@ export function ConcessionariaSection({ premises, onChange }: Props) {
       preco_demanda: mt?.demanda_consumo_rs ?? p.preco_demanda,
       preco_demanda_geracao: mt?.demanda_geracao_rs ?? p.preco_demanda_geracao,
     }));
-  }, [selectedConc, subgrupoData, onChange]);
+
+    // Notify parent about synced fields for visual highlight
+    onSyncedFields?.(syncedKeys);
+    setJustSynced(true);
+
+    toast.success(
+      `${divergencias.length} campo(s) atualizado(s) com valores da concessionária. Clique em Salvar para confirmar.`,
+      { duration: 4000 }
+    );
+  }, [selectedConc, subgrupoData, onChange, divergencias, onSyncedFields]);
+
+  // Reset justSynced when premises change externally (user edits a field)
+  useEffect(() => {
+    if (justSynced) {
+      // Will re-evaluate divergencias on next render cycle
+    }
+  }, [premises]);
 
   return (
     <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-3">
@@ -153,7 +194,10 @@ export function ConcessionariaSection({ premises, onChange }: Props) {
       </Label>
       <Select
         value={(premises as any).concessionaria_id || ""}
-        onValueChange={handleConcessionariaChange}
+        onValueChange={(v) => {
+          setJustSynced(false);
+          handleConcessionariaChange(v);
+        }}
       >
         <SelectTrigger>
           <SelectValue placeholder={loadingConc ? "Carregando..." : "Selecione a concessionária"} />
@@ -176,6 +220,8 @@ export function ConcessionariaSection({ premises, onChange }: Props) {
           )}
         </div>
       )}
+
+      {/* Divergence panel - hidden after sync */}
       {divergencias.length > 0 && (
         <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 space-y-2">
           <div className="flex items-center gap-1.5 text-xs font-medium text-warning">
@@ -192,13 +238,20 @@ export function ConcessionariaSection({ premises, onChange }: Props) {
           <button
             type="button"
             className="text-xs font-semibold text-primary hover:underline"
-            onClick={() => {
-              syncAllFromConc();
-              toast.success(`${divergencias.length} campo(s) atualizado(s) com valores da concessionária. Clique em Salvar para confirmar.`);
-            }}
+            onClick={syncAllFromConc}
           >
             ✅ Atualizar TODAS as premissas com valores da concessionária ({divergencias.length} campos)
           </button>
+        </div>
+      )}
+
+      {/* Success message after sync */}
+      {justSynced && divergencias.length === 0 && (
+        <div className="rounded-lg border border-success/30 bg-success/10 p-3 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <span className="text-xs font-medium text-success">
+            Todos os campos foram sincronizados com a concessionária. Salve para confirmar.
+          </span>
         </div>
       )}
     </div>
