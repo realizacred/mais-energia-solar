@@ -166,27 +166,37 @@ export function TarifasSection({ premises, onChange, syncedFields }: Props) {
         </div>
       )}
 
-      {/* GD II - Fio B — Always show all 3 columns */}
+      {/* GD II - Fio B — Contextual por grupo */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">GD II — TUSD Fio B (100%)</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="TUSD Fio B - Baixa Tensão (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_bt")} onChange={(v) => set("tusd_fio_b_bt", v)} />
-          <NumField label="TUSD Fio B - Fora Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_fora_ponta} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_fora_ponta")} onChange={(v) => set("tusd_fio_b_fora_ponta", v)} />
-          <NumField label="TUSD Fio B - Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_ponta} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_ponta")} onChange={(v) => set("tusd_fio_b_ponta", v)} />
-        </div>
+        {isBT ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <NumField label="TUSD Fio B - BT (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_bt} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_bt")} onChange={(v) => set("tusd_fio_b_bt", v)} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <NumField label="TUSD Fio B - Fora Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_fora_ponta} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_fora_ponta")} onChange={(v) => set("tusd_fio_b_fora_ponta", v)} />
+            <NumField label="TUSD Fio B - Ponta (GD II)" suffix="R$/kWh" value={premises.tusd_fio_b_ponta} step="0.00001" subtext="100% TUSD Fio B" highlight={h(syncedFields, "tusd_fio_b_ponta")} onChange={(v) => set("tusd_fio_b_ponta", v)} />
+          </div>
+        )}
       </div>
 
-      {/* GD III - Tarifação Compensada — Always show all 3 columns */}
+      {/* GD III - Tarifação Compensada — Contextual por grupo */}
       <div className="space-y-2">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           GD III — Tarifação Compensada
           <FieldTooltip text="Tarifação aplicada à energia compensada conforme Lei 14.300/2022." />
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <NumField label="Tarifação Energia Compensada - BT (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_bt")} onChange={(v) => set("tarifacao_compensada_bt", v)} />
-          <NumField label="Tarifação Compensada - Fora Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_fora_ponta")} onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
-          <NumField label="Tarifação Compensada - Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_ponta")} onChange={(v) => set("tarifacao_compensada_ponta", v)} />
-        </div>
+        {isBT ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <NumField label="Tarifação Compensada - BT (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_bt} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_bt")} onChange={(v) => set("tarifacao_compensada_bt", v)} />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <NumField label="Tarifação Compensada - Fora Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_fora_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_fora_ponta")} onChange={(v) => set("tarifacao_compensada_fora_ponta", v)} />
+            <NumField label="Tarifação Compensada - Ponta (GD III)" suffix="R$/kWh" value={premises.tarifacao_compensada_ponta} step="0.00001" subtext="100% TUSD Fio B + 40% TUSD Fio A + TFSEE + P&D" highlight={h(syncedFields, "tarifacao_compensada_ponta")} onChange={(v) => set("tarifacao_compensada_ponta", v)} />
+          </div>
+        )}
       </div>
 
       {/* Demanda + Fase */}
