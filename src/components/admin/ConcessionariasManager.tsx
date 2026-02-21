@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical } from "lucide-react";
+import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight } from "lucide-react";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -369,8 +369,8 @@ export function ConcessionariasManager() {
           <Info className="w-4 h-4 text-info mt-0.5 shrink-0" />
           <p className="text-xs text-muted-foreground">
             Cada concessionária pode ter sua própria configuração de ICMS e isenção SCEE. Quando não
-            definido, o sistema usa o padrão do estado (aba ICMS/Tributação). A sincronização busca tarifas
-            B1 residenciais homologadas diretamente da API de Dados Abertos da ANEEL.
+             definido, o sistema usa o padrão do estado (aba ICMS/Tributação). A sincronização busca tarifas
+             BT (B1, B2, B3) e MT (Grupo A — A1 a A4, AS) com Ponta/Fora Ponta da API ANEEL. Clique em uma concessionária para ver os subgrupos.
           </p>
         </div>
 
@@ -457,8 +457,13 @@ export function ConcessionariasManager() {
               ) : (
                 filteredConcessionarias.map((c) => (
                   <React.Fragment key={c.id}>
-                    <TableRow className="cursor-pointer" onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}>
-                      <TableCell className="font-medium">{c.nome}</TableCell>
+                    <TableRow className="cursor-pointer hover:bg-muted/40 transition-colors" onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}>
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          {expandedId === c.id ? <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}
+                          {c.nome}
+                        </div>
+                      </TableCell>
                       <TableCell>{c.sigla || "-"}</TableCell>
                       <TableCell>
                         {c.estado ? (
