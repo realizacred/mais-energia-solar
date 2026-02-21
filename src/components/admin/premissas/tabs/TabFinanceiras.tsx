@@ -1,28 +1,14 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { HelpCircle, Info, TrendingUp, Calculator, Shield } from "lucide-react";
+import { Info, TrendingUp, Calculator, Shield } from "lucide-react";
 import type { TenantPremises } from "@/hooks/useTenantPremises";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
+import { FieldTooltip } from "./valores-padroes/shared";
 
 interface Props {
   premises: TenantPremises;
   onChange: (fn: (prev: TenantPremises) => TenantPremises) => void;
-}
-
-function FieldTooltip({ text }: { text: string }) {
-  return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground/60 hover:text-primary cursor-help inline-block ml-1" />
-        </TooltipTrigger>
-        <TooltipContent side="top" className="max-w-[280px] text-xs">
-          <p>{text}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
 }
 
 export function TabFinanceiras({ premises, onChange }: Props) {
@@ -30,13 +16,9 @@ export function TabFinanceiras({ premises, onChange }: Props) {
     onChange((p) => ({ ...p, [key]: value }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* Inflação */}
-      <div className="rounded-xl border-2 border-primary/30 bg-primary/5 p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-primary" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Índices de inflação</p>
-        </div>
+      <SectionCard icon={TrendingUp} title="Índices de inflação" variant="orange">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
@@ -71,14 +53,10 @@ export function TabFinanceiras({ premises, onChange }: Props) {
             </div>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
       {/* Economia & Investimento */}
-      <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Calculator className="h-4 w-4 text-success" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-success">Economia e investimento</p>
-        </div>
+      <SectionCard icon={Calculator} title="Economia e investimento" variant="green">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-1.5">
             <Label className="text-xs font-medium text-muted-foreground">
@@ -129,14 +107,10 @@ export function TabFinanceiras({ premises, onChange }: Props) {
             </div>
           </div>
         </div>
-      </div>
+      </SectionCard>
 
       {/* Custo de disponibilidade */}
-      <div className="rounded-xl border-2 border-info/30 bg-info/5 p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-info" />
-          <p className="text-xs font-semibold uppercase tracking-wider text-info">Custo de disponibilidade</p>
-        </div>
+      <SectionCard icon={Shield} title="Custo de disponibilidade" variant="blue">
         <div className="space-y-1.5">
           <Label className="text-xs font-medium text-muted-foreground">
             Considerar custo de disponibilidade?
@@ -159,7 +133,7 @@ export function TabFinanceiras({ premises, onChange }: Props) {
             Afeta somente na Regra Anterior
           </p>
         </div>
-      </div>
+      </SectionCard>
     </div>
   );
 }
