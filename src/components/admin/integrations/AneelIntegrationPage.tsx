@@ -261,15 +261,17 @@ export function AneelIntegrationPage() {
 
         if (run.status === 'success' || run.status === 'partial') {
           toast({
-            title: `Sincronização concluída ${run.status === 'success' ? '✅' : '⚠️'}`,
-            description: `${run.total_updated || 0} atualizadas, ${run.total_matched || 0} matched, ${run.total_errors || 0} erros`,
+            title: run.status === 'success' ? '✅ Sincronização concluída com sucesso' : '⚠️ Sincronização parcial',
+            description: `${run.total_fetched || 0} registros da ANEEL · ${run.total_matched || 0} concessionárias encontradas · ${run.total_updated || 0} atualizadas${run.total_errors > 0 ? ` · ${run.total_errors} erros` : ''}`,
           });
         } else if (run.status === 'test_run') {
-          toast({ title: "Test Run concluído 🧪", description: `${run.total_updated || 0} simuladas` });
+          toast({ title: "🧪 Test Run concluído", description: `${run.total_matched || 0} concessionárias encontradas, ${run.total_updated || 0} simuladas` });
         } else if (run.status === 'error') {
-          toast({ title: "Sincronização com erro", description: run.error_message || "Erro", variant: "destructive" });
+          toast({ title: "❌ Sincronização falhou", description: run.error_message || "Erro desconhecido", variant: "destructive" });
+        } else if (run.status === 'timed_out') {
+          toast({ title: "⏱️ Sincronização expirou", description: `Timeout. ${run.total_updated || 0} atualizadas antes da expiração.`, variant: "destructive" });
         } else {
-          toast({ title: `Sync finalizado: ${run.status}`, description: run.error_message || "" });
+          toast({ title: `Sync: ${run.status}`, description: run.error_message || "" });
         }
 
         fetchData(); // Refresh all data
@@ -281,7 +283,6 @@ export function AneelIntegrationPage() {
 
   const handleSync = async (testRun = false) => {
     setSyncing(true);
-    toast({ title: testRun ? "Test Run iniciado..." : "Sincronização iniciada...", description: "Processando em segundo plano. Acompanhe o progresso abaixo." });
     try {
       const { data, error } = await supabase.functions.invoke("sync-tarifas-aneel", {
         body: { trigger_type: "manual", test_run: testRun },
@@ -289,10 +290,12 @@ export function AneelIntegrationPage() {
       if (error) throw error;
       if (data?.success) {
         if (data.already_running) {
-          toast({ title: "Sincronização já em andamento", description: "Aguarde a conclusão." });
+          toast({ title: "⏳ Sincronização já em andamento", description: "Acompanhe o progresso na tabela abaixo." });
           setActiveRunId(data.run_id);
         } else {
+          toast({ title: "🚀 Sincronização iniciada", description: "Processando em segundo plano. O progresso será atualizado automaticamente na tabela abaixo." });
           setActiveRunId(data.run_id);
+          setActiveTab("status");
           // Add placeholder run to the list
           setRuns(prev => [{
             id: data.run_id,
