@@ -97,13 +97,16 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       }
 
       if (records.length === 0) {
-        const colsStr = headers.join(" | ");
-        const colMapStr = Object.entries(colMap).map(([k,v]) => `${k}=${v}`).join(", ");
+        const colMapStr = Object.entries(colMap).map(([k,v]) => `${k}(${v})`).join(", ");
+        // Show first data row for diagnosis
+        const firstRow = Array.isArray(data[0]) 
+          ? (data as string[][])[0]?.slice(0, 6).join(" | ") 
+          : "";
         toast({ 
           title: "Nenhum registro válido encontrado", 
-          description: `Tipo: ${detected}. Cols mapeadas: ${colMapStr || "NENHUMA"}. Headers: ${colsStr}`,
+          description: `Tipo: ${detected}. Colunas mapeadas: ${colMapStr || "NENHUMA"}. Primeira linha: ${firstRow || "vazio"}. Confira console (F12) para detalhes.`,
           variant: "destructive",
-          duration: 15000,
+          duration: 20000,
         });
         return;
       }
