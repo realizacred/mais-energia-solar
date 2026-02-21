@@ -73,12 +73,12 @@ function VendorSidebarItem({
           transition-all duration-200 rounded-lg mx-1 my-px text-[13px]
           ${
             isActive
-              ? "bg-sidebar-accent/80 text-sidebar-accent-foreground font-semibold border-l-[3px] border-sidebar-primary"
-              : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90"
+              ? "bg-sidebar-primary/8 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary"
+              : "text-sidebar-foreground-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
           }
         `}
       >
-        <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-sidebar-primary' : 'opacity-50'}`} />
+        <item.icon className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground-muted'}`} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
             <span className="text-[13px] truncate leading-tight">
@@ -131,20 +131,20 @@ function VendorSidebarSectionGroup({
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             className={`
-              text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2
-              flex items-center gap-2 cursor-pointer select-none
-              transition-all duration-200
-              hover:bg-sidebar-accent/40 rounded-lg
-              text-sidebar-foreground/45
+              text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
+              flex items-center gap-2.5 cursor-pointer select-none
+              transition-all duration-200 ease-in-out
+              hover:bg-sidebar-accent rounded-lg
+              text-sidebar-foreground/70
             `}
           >
             <div
               className={`
-                w-5 h-5 rounded-md flex items-center justify-center shrink-0
-                bg-sidebar-accent/80
+                w-6 h-6 rounded-md flex items-center justify-center shrink-0
+                bg-sidebar-accent
               `}
             >
-              <LabelIcon className="h-3 w-3 text-sidebar-foreground/60" />
+              <LabelIcon className="h-3.5 w-3.5 text-sidebar-foreground-muted" />
             </div>
             {!collapsed && (
               <>

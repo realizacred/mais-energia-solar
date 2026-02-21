@@ -154,7 +154,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Clientes",
     labelIcon: UserCheck,
-    indicatorBg: "bg-sidebar-operations",
+    indicatorBg: "bg-sidebar-clients",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -226,7 +226,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "IA",
     labelIcon: Bot,
-    indicatorBg: "bg-sidebar-admin",
+    indicatorBg: "bg-sidebar-ai",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -241,7 +241,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Integrações",
     labelIcon: Cable,
-    indicatorBg: "bg-sidebar-admin",
+    indicatorBg: "bg-sidebar-integrations",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -280,7 +280,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   {
     label: "Configurações",
     labelIcon: Settings,
-    indicatorBg: "bg-sidebar-admin",
+    indicatorBg: "bg-sidebar-settings",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",

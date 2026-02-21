@@ -94,11 +94,11 @@ function SidebarItemButton({
             : item.title
         }
         className={`
-          transition-all duration-200 rounded-lg mx-1 my-px group/btn relative text-[13px]
+          transition-all duration-200 ease-in-out rounded-lg mx-1 my-px group/btn relative text-[13px]
           ${
             isActive
-              ? "bg-sidebar-accent/80 text-sidebar-accent-foreground font-semibold border-l-[3px] border-sidebar-primary"
-              : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground/90"
+              ? "bg-sidebar-primary/8 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary"
+              : "text-sidebar-foreground-muted hover:bg-sidebar-accent hover:text-sidebar-foreground"
           }
         `}
       >
@@ -106,7 +106,7 @@ function SidebarItemButton({
         {draggable && !collapsed && (
           <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover/item:opacity-30 cursor-grab active:cursor-grabbing transition-opacity -ml-0.5 mr-px" />
         )}
-        <item.icon className={`h-[18px] w-[18px] shrink-0 ${isActive ? 'text-sidebar-primary' : 'opacity-50'}`} />
+        <item.icon className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground-muted'}`} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
             <span className="text-[13px] truncate leading-tight">
@@ -245,25 +245,25 @@ function SidebarSectionGroup({
         <CollapsibleTrigger asChild>
           <SidebarGroupLabel
             className={`
-              text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2
-              flex items-center gap-2 cursor-pointer select-none
+              text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
+              flex items-center gap-2.5 cursor-pointer select-none
               transition-all duration-200 ease-in-out
-              hover:bg-sidebar-accent/40 rounded-lg
-              text-sidebar-foreground/45
+              hover:bg-sidebar-accent rounded-lg
+              text-sidebar-foreground/70
             `}
           >
             <div
               className={`
-                w-5 h-5 rounded-md flex items-center justify-center shrink-0
-                bg-sidebar-accent/80
+                w-6 h-6 rounded-md flex items-center justify-center shrink-0
+                bg-[hsl(var(${section.indicatorBg.replace('bg-sidebar-', '--sidebar-section-')})_/_0.12)]
               `}
             >
-              <LabelIcon className="h-3 w-3 text-sidebar-foreground/60" />
+              <LabelIcon className={`h-3.5 w-3.5`} style={{ color: `hsl(var(${section.indicatorBg.replace('bg-sidebar-', '--sidebar-section-')}))` }} />
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1">{section.label}</span>
-                <ChevronDown className="h-3 w-3 opacity-30 transition-transform duration-200 ease-in-out group-data-[state=closed]/collapsible:-rotate-90" />
+                <span className="flex-1 text-sidebar-foreground/80">{section.label}</span>
+                <ChevronDown className="h-3 w-3 text-sidebar-foreground-muted transition-transform duration-200 ease-in-out group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
           </SidebarGroupLabel>
@@ -356,19 +356,19 @@ function FavoritesSection({
           <SidebarGroupLabel
             className={`
               text-[10px] font-bold uppercase tracking-[0.12em] px-3 py-2.5
-              flex items-center gap-2 cursor-pointer select-none
-              transition-all duration-200
-              hover:bg-sidebar-accent/40 rounded-md
-              text-sidebar-foreground/45
+              flex items-center gap-2.5 cursor-pointer select-none
+              transition-all duration-200 ease-in-out
+              hover:bg-sidebar-accent rounded-lg
+              text-sidebar-foreground/70
             `}
           >
-            <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 bg-sidebar-accent/80">
-              <Star className="h-3 w-3 text-warning/80" fill="currentColor" />
+            <div className="w-6 h-6 rounded-md flex items-center justify-center shrink-0 bg-warning/10">
+              <Star className="h-3.5 w-3.5 text-warning" fill="currentColor" />
             </div>
             {!collapsed && (
               <>
-                <span className="flex-1">Favoritos</span>
-                <ChevronDown className="h-3 w-3 opacity-40 transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
+                <span className="flex-1 text-sidebar-foreground/80">Favoritos</span>
+                <ChevronDown className="h-3 w-3 text-sidebar-foreground-muted transition-transform duration-200 group-data-[state=closed]/collapsible:-rotate-90" />
               </>
             )}
           </SidebarGroupLabel>
@@ -465,20 +465,20 @@ export function AdminSidebar({
 
   return (
     <Sidebar collapsible="icon" className="sidebar-premium border-0">
-      <SidebarHeader className="border-b border-sidebar-border/50 px-3 py-3.5">
+      <SidebarHeader className="border-b border-sidebar-border px-3 py-3.5">
         <Link
           to="/"
           className="flex items-center gap-3 transition-all duration-200 hover:opacity-80"
         >
           {collapsed ? (
-            <div className="p-1.5 rounded-xl bg-primary/10 hover:bg-primary/15 transition-colors mx-auto">
+            <div className="p-1.5 rounded-xl bg-primary/10 transition-colors mx-auto">
               <Sun className="h-5 w-5 text-primary" />
             </div>
           ) : (
             <div className="flex items-center gap-3">
               <img src={logo} alt="Logo" className="h-8 w-auto" />
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">
+                <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-sidebar-foreground/60">
                   Admin
                 </span>
               </div>
@@ -516,10 +516,10 @@ export function AdminSidebar({
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border/50 p-3 space-y-2">
+      <SidebarFooter className="border-t border-sidebar-border p-3 space-y-2">
         {!collapsed && userEmail && (
-          <div className="px-3 py-2 rounded-lg bg-sidebar-accent/50 border border-sidebar-border/30">
-            <p className="text-[11px] text-sidebar-foreground/55 truncate font-medium">
+          <div className="px-3 py-2 rounded-lg bg-sidebar-accent border border-sidebar-border">
+            <p className="text-[11px] text-sidebar-foreground-muted truncate font-medium">
               {userEmail}
             </p>
           </div>
