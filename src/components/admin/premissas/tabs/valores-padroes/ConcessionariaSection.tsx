@@ -103,6 +103,8 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
 
     const bt = subgrupos?.find((s: any) => s.subgrupo?.startsWith("B1")) as any;
     const mt = pickBestMT(subgrupos || []);
+    // Update subgrupoData immediately so divergence check uses fresh values
+    setSubgrupoData({ bt: bt || null, mt: mt || null });
 
     // Use 0 as fallback instead of keeping stale premise values
     onChange((p) => ({
