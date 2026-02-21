@@ -9410,80 +9410,126 @@ export type Database = {
       propostas_nativas: {
         Row: {
           aceita_at: string | null
+          aceite_estimativa: boolean | null
+          aneel_run_id: string | null
+          ano_gd: number | null
           cliente_id: string | null
           codigo: string | null
           consultor_id: string | null
           created_at: string
           created_by: string | null
+          data_aceite_estimativa: string | null
           enviada_at: string | null
+          fio_b_percent_aplicado: number | null
           id: string
           lead_id: string | null
+          missing_variables: string[] | null
           origem: string
+          origem_tarifa: string | null
+          precisao_calculo: string | null
+          precisao_motivo: string | null
           projeto_id: string | null
           recusa_motivo: string | null
           recusada_at: string | null
+          regra_gd: string | null
           sm_id: string | null
           sm_project_id: string | null
           sm_raw_payload: Json | null
+          snapshot_hash: string | null
           status: string
+          tariff_version_id: string | null
           template_id: string | null
           tenant_id: string
           titulo: string
           updated_at: string
           validade_dias: number | null
           versao_atual: number
+          vigencia_tarifa: string | null
         }
         Insert: {
           aceita_at?: string | null
+          aceite_estimativa?: boolean | null
+          aneel_run_id?: string | null
+          ano_gd?: number | null
           cliente_id?: string | null
           codigo?: string | null
           consultor_id?: string | null
           created_at?: string
           created_by?: string | null
+          data_aceite_estimativa?: string | null
           enviada_at?: string | null
+          fio_b_percent_aplicado?: number | null
           id?: string
           lead_id?: string | null
+          missing_variables?: string[] | null
           origem?: string
+          origem_tarifa?: string | null
+          precisao_calculo?: string | null
+          precisao_motivo?: string | null
           projeto_id?: string | null
           recusa_motivo?: string | null
           recusada_at?: string | null
+          regra_gd?: string | null
           sm_id?: string | null
           sm_project_id?: string | null
           sm_raw_payload?: Json | null
+          snapshot_hash?: string | null
           status?: string
+          tariff_version_id?: string | null
           template_id?: string | null
           tenant_id: string
           titulo: string
           updated_at?: string
           validade_dias?: number | null
           versao_atual?: number
+          vigencia_tarifa?: string | null
         }
         Update: {
           aceita_at?: string | null
+          aceite_estimativa?: boolean | null
+          aneel_run_id?: string | null
+          ano_gd?: number | null
           cliente_id?: string | null
           codigo?: string | null
           consultor_id?: string | null
           created_at?: string
           created_by?: string | null
+          data_aceite_estimativa?: string | null
           enviada_at?: string | null
+          fio_b_percent_aplicado?: number | null
           id?: string
           lead_id?: string | null
+          missing_variables?: string[] | null
           origem?: string
+          origem_tarifa?: string | null
+          precisao_calculo?: string | null
+          precisao_motivo?: string | null
           projeto_id?: string | null
           recusa_motivo?: string | null
           recusada_at?: string | null
+          regra_gd?: string | null
           sm_id?: string | null
           sm_project_id?: string | null
           sm_raw_payload?: Json | null
+          snapshot_hash?: string | null
           status?: string
+          tariff_version_id?: string | null
           template_id?: string | null
           tenant_id?: string
           titulo?: string
           updated_at?: string
           validade_dias?: number | null
           versao_atual?: number
+          vigencia_tarifa?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "propostas_nativas_aneel_run_id_fkey"
+            columns: ["aneel_run_id"]
+            isOneToOne: false
+            referencedRelation: "aneel_sync_runs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "propostas_nativas_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -9510,6 +9556,13 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_tariff_version_id_fkey"
+            columns: ["tariff_version_id"]
+            isOneToOne: false
+            referencedRelation: "tariff_versions"
             referencedColumns: ["id"]
           },
           {
