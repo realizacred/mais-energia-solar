@@ -113,7 +113,7 @@ function SidebarItemButton({
         {draggable && !collapsed && (
           <GripVertical className="h-3 w-3 shrink-0 opacity-0 group-hover/item:opacity-30 cursor-grab active:cursor-grabbing transition-opacity -ml-0.5 mr-px" />
         )}
-        <item.icon className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${isActive ? 'text-sidebar-primary' : 'text-sidebar-foreground-muted'}`} />
+        <item.icon className={`h-[18px] w-[18px] shrink-0 transition-colors duration-200 ${isActive ? 'text-sidebar-primary' : section.iconColor || 'text-sidebar-foreground-muted'}`} />
         {item.description ? (
           <div className="flex flex-col items-start min-w-0 flex-1">
             <span className="text-[13px] truncate leading-tight">
@@ -259,13 +259,8 @@ function SidebarSectionGroup({
               text-sidebar-foreground/70
             `}
           >
-            <div
-              className={`
-                w-6 h-6 rounded-md flex items-center justify-center shrink-0
-                bg-[hsl(var(${section.indicatorBg.replace('bg-sidebar-', '--sidebar-section-')})_/_0.12)]
-              `}
-            >
-              <LabelIcon className="h-3.5 w-3.5 text-sidebar-foreground-muted" />
+            <div className={`w-6 h-6 rounded-md flex items-center justify-center shrink-0 ${section.indicatorClass || ''}`}>
+              <LabelIcon className="h-3.5 w-3.5" />
             </div>
             {!collapsed && (
               <>

@@ -75,6 +75,10 @@ export interface SidebarSection {
   labelClass: string;
   /** Tailwind bg class for the small colored indicator square */
   indicatorBg: string;
+  /** CSS class for the indicator square (maps to sidebar-indicator-* classes) */
+  indicatorClass: string;
+  /** Tailwind text color class for item icons in this section */
+  iconColor: string;
   /** Whether the section is expanded by default */
   defaultOpen?: boolean;
 }
@@ -102,6 +106,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Dashboard",
     labelIcon: BarChart3,
     indicatorBg: "bg-sidebar-commercial",
+    indicatorClass: "sidebar-indicator-commercial",
+    iconColor: "text-sidebar-commercial",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -117,6 +123,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Comercial",
     labelIcon: TrendingUp,
     indicatorBg: "bg-sidebar-commercial",
+    indicatorClass: "sidebar-indicator-commercial",
+    iconColor: "text-sidebar-commercial",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -138,6 +146,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Conversas",
     labelIcon: MessageCircle,
     indicatorBg: "bg-sidebar-commercial",
+    indicatorClass: "sidebar-indicator-commercial",
+    iconColor: "text-sidebar-commercial",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -155,6 +165,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Clientes",
     labelIcon: UserCheck,
     indicatorBg: "bg-sidebar-clients",
+    indicatorClass: "sidebar-indicator-clients",
+    iconColor: "text-sidebar-clients",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -173,6 +185,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Operações",
     labelIcon: Wrench,
     indicatorBg: "bg-sidebar-operations",
+    indicatorClass: "sidebar-indicator-operations",
+    iconColor: "text-sidebar-operations",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -190,6 +204,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Financeiro",
     labelIcon: Wallet,
     indicatorBg: "bg-sidebar-finance",
+    indicatorClass: "sidebar-indicator-finance",
+    iconColor: "text-sidebar-finance",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -209,6 +225,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Gestão",
     labelIcon: Users,
     indicatorBg: "bg-sidebar-admin",
+    indicatorClass: "sidebar-indicator-admin",
+    iconColor: "text-sidebar-admin",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -227,6 +245,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "IA",
     labelIcon: Bot,
     indicatorBg: "bg-sidebar-ai",
+    indicatorClass: "sidebar-indicator-ai",
+    iconColor: "text-sidebar-ai",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -242,6 +262,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Integrações",
     labelIcon: Cable,
     indicatorBg: "bg-sidebar-integrations",
+    indicatorClass: "sidebar-indicator-integrations",
+    iconColor: "text-sidebar-integrations",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -264,6 +286,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Site",
     labelIcon: Globe,
     indicatorBg: "bg-sidebar-admin",
+    indicatorClass: "sidebar-indicator-admin",
+    iconColor: "text-sidebar-admin",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -281,6 +305,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Configurações",
     labelIcon: Settings,
     indicatorBg: "bg-sidebar-settings",
+    indicatorClass: "sidebar-indicator-settings",
+    iconColor: "text-sidebar-settings",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
@@ -310,6 +336,8 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
     label: "Administração",
     labelIcon: Shield,
     indicatorBg: "bg-sidebar-admin",
+    indicatorClass: "sidebar-indicator-admin",
+    iconColor: "text-sidebar-admin",
     activeClass:
       "bg-sidebar-primary/15 text-sidebar-primary font-semibold border-l-[3px] border-sidebar-primary",
     hoverClass: "hover:bg-sidebar-accent hover:text-sidebar-foreground",
