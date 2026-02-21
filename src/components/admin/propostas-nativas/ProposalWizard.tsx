@@ -690,7 +690,7 @@ export function ProposalWizard() {
     switch (currentStepKey) {
       case STEP_KEYS.LOCALIZACAO:
         return wrap("localizacao", (
-          <div className="space-y-6">
+          <div className="space-y-4">
             <StepLocalizacao
               estado={locEstado} cidade={locCidade} tipoTelhado={locTipoTelhado}
               distribuidoraId={locDistribuidoraId}
@@ -704,17 +704,19 @@ export function ProposalWizard() {
               projectAddress={projectAddress}
               onProjectAddressChange={setProjectAddress}
             />
-            {/* Cliente inline */}
-            <div className="border-t border-border/50 pt-4">
-              <StepCliente
-                selectedLead={selectedLead}
-                onSelectLead={handleSelectLead}
-                onClearLead={() => setSelectedLead(null)}
-                cliente={cliente}
-                onClienteChange={setCliente}
-                fromProject={!!projectContext}
-              />
-            </div>
+            {/* Cliente section — only show full form when NOT from project (card already on map) */}
+            {!projectContext && (
+              <div className="border-t border-border/50 pt-4">
+                <StepCliente
+                  selectedLead={selectedLead}
+                  onSelectLead={handleSelectLead}
+                  onClearLead={() => setSelectedLead(null)}
+                  cliente={cliente}
+                  onClienteChange={setCliente}
+                  fromProject={false}
+                />
+              </div>
+            )}
           </div>
         ));
 
