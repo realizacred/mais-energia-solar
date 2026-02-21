@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -231,6 +232,31 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
     return diffs;
   }, [selectedConc, subgrupoData, premises]);
 
+  // Apply all concessionária values directly from already-loaded data (no refetch)
+  const syncAllFromConc = useCallback(() => {
+    if (!selectedConc) return;
+    const bt = subgrupoData.bt as any;
+    const mt = subgrupoData.mt as any;
+    onChange((p) => ({
+      ...p,
+      concessionaria_id: selectedConc.id,
+      tarifa: bt?.tarifa_energia ?? selectedConc.tarifa_energia ?? p.tarifa,
+      tusd_fio_b_bt: bt?.tarifa_fio_b ?? selectedConc.tarifa_fio_b ?? p.tusd_fio_b_bt,
+      imposto_energia: selectedConc.aliquota_icms ?? p.imposto_energia,
+      tarifacao_compensada_bt: bt?.tarifacao_bt ?? p.tarifacao_compensada_bt,
+      tusd_fio_b_fora_ponta: bt?.fio_b_fora_ponta ?? p.tusd_fio_b_fora_ponta,
+      tusd_fio_b_ponta: bt?.fio_b_ponta ?? p.tusd_fio_b_ponta,
+      tarifa_te_ponta: mt?.te_ponta ?? p.tarifa_te_ponta,
+      tarifa_tusd_ponta: mt?.tusd_ponta ?? p.tarifa_tusd_ponta,
+      tarifa_te_fora_ponta: mt?.te_fora_ponta ?? p.tarifa_te_fora_ponta,
+      tarifa_tusd_fora_ponta: mt?.tusd_fora_ponta ?? p.tarifa_tusd_fora_ponta,
+      tarifacao_compensada_fora_ponta: mt?.tarifacao_fora_ponta ?? p.tarifacao_compensada_fora_ponta,
+      tarifacao_compensada_ponta: mt?.tarifacao_ponta ?? p.tarifacao_compensada_ponta,
+      preco_demanda: mt?.demanda_consumo_rs ?? p.preco_demanda,
+      preco_demanda_geracao: mt?.demanda_geracao_rs ?? p.preco_demanda_geracao,
+    }));
+  }, [selectedConc, subgrupoData, onChange]);
+
   return (
     <div className="space-y-6">
         {/* Concessionária Selector */}
@@ -280,12 +306,13 @@ export function TabValoresPadroes({ premises, onChange }: Props) {
               </div>
               <button
                 type="button"
-                className="text-[10px] font-medium text-primary hover:underline"
+                className="text-xs font-semibold text-primary hover:underline"
                 onClick={() => {
-                  if (selectedConc) handleConcessionariaChange(selectedConc.id);
+                  syncAllFromConc();
+                  toast.success(`${divergencias.length} campo(s) atualizado(s) com valores da concessionária. Clique em Salvar para confirmar.`);
                 }}
               >
-                Atualizar premissas com valores da concessionária
+                ✅ Atualizar TODAS as premissas com valores da concessionária ({divergencias.length} campos)
               </button>
             </div>
           )}
