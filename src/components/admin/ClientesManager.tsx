@@ -727,7 +727,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                             onSelectCliente(cliente);
                           }}
                         >
-                          <DollarSign className="h-4 w-4" />
+                          <DollarSign className="h-4 w-4 text-success" />
                         </Button>
                       )}
                       <Button

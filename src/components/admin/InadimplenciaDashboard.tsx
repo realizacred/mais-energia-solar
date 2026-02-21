@@ -375,7 +375,7 @@ export function InadimplenciaDashboard() {
                             variant="outline"
                             onClick={() => handleCall(parcela.cliente_telefone)}
                           >
-                            <Phone className="h-4 w-4" />
+                            <Phone className="h-4 w-4 text-info" />
                           </Button>
                           <Button
                             size="sm"
@@ -386,7 +386,7 @@ export function InadimplenciaDashboard() {
                               parcela.valor
                             )}
                           >
-                            <MessageCircle className="h-4 w-4" />
+                            <MessageCircle className="h-4 w-4 text-success" />
                           </Button>
                         </div>
                       </TableCell>

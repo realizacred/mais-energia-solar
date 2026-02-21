@@ -301,15 +301,15 @@ export function RecebimentosManager() {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full max-w-md grid-cols-3">
           <TabsTrigger value="lista" className="gap-2">
-            <Receipt className="h-4 w-4" />
+            <Receipt className="h-4 w-4 text-success" />
             <span className="hidden sm:inline">Recebimentos</span>
           </TabsTrigger>
           <TabsTrigger value="relatorios" className="gap-2">
-            <BarChart3 className="h-4 w-4" />
+            <BarChart3 className="h-4 w-4 text-info" />
             <span className="hidden sm:inline">Relatórios</span>
           </TabsTrigger>
           <TabsTrigger value="calendario" className="gap-2">
-            <CalendarDays className="h-4 w-4" />
+            <CalendarDays className="h-4 w-4 text-primary" />
             <span className="hidden sm:inline">Calendário</span>
           </TabsTrigger>
         </TabsList>

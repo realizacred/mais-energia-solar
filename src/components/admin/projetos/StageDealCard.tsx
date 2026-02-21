@@ -119,23 +119,15 @@ export function StageDealCard({
       onDragStart={e => onDragStart(e, deal.deal_id)}
       onClick={onClick}
       className={cn(
-        "bg-card rounded-xl cursor-grab active:cursor-grabbing",
-        "border border-border/40 shadow-sm",
-        "hover:shadow-md hover:border-border/80 transition-all duration-200 ease-out relative group",
-        deal.deal_status === "won" && "bg-success/5 border-success/20",
-        deal.deal_status === "lost" && "opacity-50",
-        isDragging && "opacity-30 scale-95 shadow-lg",
+        "kanban-card group",
+        deal.deal_status === "won" && "kanban-card--won",
+        deal.deal_status === "lost" && "kanban-card--lost",
+        !deal.deal_status?.match(/won|lost/) && stagnation === "critical" && "kanban-card--stagnation-critical",
+        !deal.deal_status?.match(/won|lost/) && stagnation === "warning" && "kanban-card--stagnation-warning",
+        isDragging && "kanban-card--dragging",
       )}
     >
-      {/* Stagnation left accent */}
-      {stagnation && (
-        <div className={cn(
-          "absolute left-0 top-2 bottom-2 w-[3px] rounded-full",
-          stagnation === "critical" ? "bg-destructive" : "bg-warning"
-        )} />
-      )}
-
-      <div className="p-3 space-y-2">
+      <div className="p-3.5 space-y-2.5">
         {/* Row 1: Header — Name + City + Value */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -152,30 +144,34 @@ export function StageDealCard({
             )}
           </div>
           {deal.deal_value > 0 && (
-            <span className="text-sm font-bold text-foreground whitespace-nowrap tabular-nums">
+            <span className="text-sm font-bold text-success whitespace-nowrap tabular-nums">
               {formatBRL(deal.deal_value)}
             </span>
           )}
         </div>
 
         {/* Row 2: Status chips */}
-        <div className="flex flex-wrap items-center gap-1">
-          {propostaInfo && (
-            <Badge variant="secondary" className={cn("text-[9px] h-[18px] px-1.5 font-medium border-0", propostaInfo.className)}>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {propostaInfo ? (
+            <Badge variant="secondary" className={cn("text-[9px] h-[18px] px-1.5 font-semibold border-0", propostaInfo.className)}>
               {propostaInfo.label}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-[9px] h-[18px] px-1.5 font-medium border-warning/40 text-warning bg-warning/8">
+              Sem proposta
             </Badge>
           )}
           {etiquetaCfg && (
             <span
-              className="text-[9px] font-semibold rounded-full px-1.5 py-0.5 text-white"
+              className="text-[9px] font-semibold rounded-full px-2 py-0.5 text-white shadow-sm"
               style={{ backgroundColor: etiquetaCfg.cor }}
             >
               {etiquetaCfg.icon ? `${etiquetaCfg.icon} ` : ""}{etiquetaCfg.short || etiquetaCfg.label}
             </span>
           )}
           {deal.deal_kwp > 0 && (
-            <Badge variant="outline" className="text-[9px] h-[18px] px-1.5 font-mono font-medium border-border/50">
-              <Zap className="h-2.5 w-2.5 mr-0.5 text-info" />
+            <Badge variant="outline" className="text-[9px] h-[18px] px-1.5 font-mono font-semibold border-info/30 text-info bg-info/5">
+              <Zap className="h-2.5 w-2.5 mr-0.5" />
               {deal.deal_kwp.toFixed(1).replace(".", ",")} kWp
             </Badge>
           )}
@@ -184,26 +180,26 @@ export function StageDealCard({
         {/* Row 3: Next action / expected close */}
         {deal.expected_close_date && (
           <div className={cn(
-            "flex items-center gap-1.5 text-[10px] rounded-md px-2 py-1",
-            isOverdue ? "bg-destructive/10 text-destructive font-medium" : "bg-muted/50 text-muted-foreground"
+            "flex items-center gap-1.5 text-[10px] rounded-lg px-2.5 py-1.5",
+            isOverdue ? "bg-destructive/10 text-destructive font-semibold border border-destructive/20" : "bg-muted/60 text-muted-foreground"
           )}>
-            <Clock className="h-3 w-3 shrink-0" />
+            <Clock className={cn("h-3 w-3 shrink-0", isOverdue ? "text-destructive" : "icon-calendar")} />
             <span>Fechamento: {new Date(deal.expected_close_date).toLocaleDateString("pt-BR")}</span>
-            {isOverdue && <span className="font-bold ml-auto">ATRASADO</span>}
+            {isOverdue && <span className="font-bold ml-auto text-[9px] uppercase tracking-wide">Atrasado</span>}
           </div>
         )}
 
         {/* Row 4: Progress indicators */}
         {(docTotal > 0 || deal.proposta_economia_mensal) && (
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-3 text-[10px]">
             {docTotal > 0 && (
-              <span className="flex items-center gap-1">
-                <FileText className="h-3 w-3" />
+              <span className={cn("flex items-center gap-1", docDone === docTotal ? "text-success" : "text-muted-foreground")}>
+                <FileText className="h-3 w-3 icon-document" />
                 {docDone}/{docTotal} docs
               </span>
             )}
             {deal.proposta_economia_mensal && (
-              <span className="flex items-center gap-1 text-success">
+              <span className="flex items-center gap-1 text-success font-medium">
                 <TrendingDown className="h-3 w-3" />
                 {formatBRL(deal.proposta_economia_mensal)}/mês
               </span>
@@ -212,15 +208,15 @@ export function StageDealCard({
         )}
 
         {/* Row 5: Quick action icons */}
-        <div className="flex items-center gap-0.5 pt-0.5 border-t border-border/30">
+        <div className="flex items-center gap-1 pt-1.5 border-t border-border/40">
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-success hover:bg-success/10 transition-colors duration-150"
+                className="action-icon-btn action-icon-btn--whatsapp"
                 onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
                 disabled={!deal.customer_phone}
               >
-                <MessageSquare className="h-3.5 w-3.5" />
+                <MessageSquare className="h-4 w-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent className="text-xs">WhatsApp</TooltipContent>
@@ -228,10 +224,10 @@ export function StageDealCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-info hover:bg-info/10 transition-colors duration-150"
+                className="action-icon-btn action-icon-btn--proposal"
                 onClick={(e) => { e.stopPropagation(); onClick(); }}
               >
-                <FileText className="h-3.5 w-3.5" />
+                <FileText className="h-4 w-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent className="text-xs">Propostas</TooltipContent>
@@ -239,11 +235,11 @@ export function StageDealCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors duration-150"
+                className="action-icon-btn action-icon-btn--phone"
                 onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
                 disabled={!deal.customer_phone}
               >
-                <Phone className="h-3.5 w-3.5" />
+                <Phone className="h-4 w-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent className="text-xs">Ligar</TooltipContent>
@@ -251,10 +247,10 @@ export function StageDealCard({
           <Tooltip>
             <TooltipTrigger asChild>
               <button
-                className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-warning hover:bg-warning/10 transition-colors duration-150"
+                className="action-icon-btn action-icon-btn--calendar"
                 onClick={(e) => { e.stopPropagation(); onSchedule?.(deal); }}
               >
-                <Calendar className="h-3.5 w-3.5" />
+                <Calendar className="h-4 w-4" />
               </button>
             </TooltipTrigger>
             <TooltipContent className="text-xs">Agendar</TooltipContent>
@@ -262,8 +258,8 @@ export function StageDealCard({
           {deal.notas?.trim() && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground">
-                  <StickyNote className="h-3.5 w-3.5" />
+                <span className="action-icon-btn action-icon-btn--note">
+                  <StickyNote className="h-4 w-4" />
                 </span>
               </TooltipTrigger>
               <TooltipContent className="text-xs max-w-[250px]">
@@ -275,14 +271,14 @@ export function StageDealCard({
           {/* Spacer + Owner */}
           <div className="ml-auto flex items-center gap-1.5">
             <Avatar className="h-5 w-5 border border-border/50">
-              <AvatarFallback className="text-[8px] font-bold bg-muted text-muted-foreground">
+              <AvatarFallback className="text-[8px] font-bold bg-secondary/10 text-secondary">
                 {getInitials(deal.owner_name)}
               </AvatarFallback>
             </Avatar>
             <span className={cn(
-              "text-[10px] tabular-nums",
-              stagnation === "critical" ? "text-destructive font-semibold" :
-              stagnation === "warning" ? "text-warning font-semibold" :
+              "text-[10px] tabular-nums font-medium",
+              stagnation === "critical" ? "text-destructive font-bold" :
+              stagnation === "warning" ? "text-warning font-bold" :
               "text-muted-foreground"
             )}>
               {timeInStage}

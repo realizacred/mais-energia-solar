@@ -530,11 +530,11 @@ export function AvaliacoesManager() {
       <Tabs defaultValue="instalacao" className="w-full">
         <TabsList>
           <TabsTrigger value="instalacao" className="gap-2">
-            <Wrench className="h-4 w-4" />
+            <Wrench className="h-4 w-4 text-primary" />
             Instalação ({avaliacoes.length})
           </TabsTrigger>
           <TabsTrigger value="whatsapp" className="gap-2">
-            <MessageCircle className="h-4 w-4" />
+            <MessageCircle className="h-4 w-4 text-success" />
             WhatsApp ({waRatings.length})
           </TabsTrigger>
         </TabsList>

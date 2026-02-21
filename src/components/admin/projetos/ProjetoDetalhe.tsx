@@ -105,11 +105,11 @@ interface Props {
 }
 
 const TABS = [
-  { id: "gerenciamento", label: "Gerenciamento", icon: Settings },
-  { id: "chat", label: "Chat Whatsapp", icon: MessageSquare },
-  { id: "propostas", label: "Propostas", icon: FileText },
-  { id: "vinculo", label: "Vínculo de Contrato", icon: Link2 },
-  { id: "documentos", label: "Documentos", icon: FolderOpen },
+  { id: "gerenciamento", label: "Gerenciamento", icon: Settings, color: "text-secondary" },
+  { id: "chat", label: "Chat Whatsapp", icon: MessageSquare, color: "text-success" },
+  { id: "propostas", label: "Propostas", icon: FileText, color: "text-primary" },
+  { id: "vinculo", label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
+  { id: "documentos", label: "Documentos", icon: FolderOpen, color: "text-warning" },
 ] as const;
 
 type TabId = typeof TABS[number]["id"];
@@ -424,7 +424,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
                       : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon className={cn("h-4 w-4", isActive ? tab.color : "text-muted-foreground")} />
                   {tab.label}
                   {badge !== null && (
                     <span className="ml-1 bg-primary/10 text-primary text-[10px] font-bold rounded-full px-1.5 py-0.5">{badge}</span>
@@ -900,10 +900,10 @@ function GerenciamentoTab({
   }, [allEntries, timelineFilter]);
 
   const getEntryIcon = (entry: UnifiedTimelineItem) => {
-    if (entry.type === "funil") return <Zap className="h-3 w-3" />;
-    if (entry.type === "nota") return <StickyNote className="h-3 w-3" />;
-    if (entry.type === "documento") return <FolderOpen className="h-3 w-3" />;
-    return <CalendarDays className="h-3 w-3" />;
+    if (entry.type === "funil") return <Zap className="h-3 w-3 text-primary" />;
+    if (entry.type === "nota") return <StickyNote className="h-3 w-3 text-warning" />;
+    if (entry.type === "documento") return <FolderOpen className="h-3 w-3 text-info" />;
+    return <CalendarDays className="h-3 w-3 text-secondary" />;
   };
 
   // Pending documents list
@@ -932,7 +932,10 @@ function GerenciamentoTab({
           {/* Card: Dados do Cliente */}
           <Card>
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-              <CardTitle className="text-sm font-semibold">Dados do Cliente</CardTitle>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <User className="h-4 w-4 text-secondary" />
+                Dados do Cliente
+              </CardTitle>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -999,7 +1002,10 @@ function GerenciamentoTab({
           {/* Card: Documentos Pendentes */}
           <Card>
             <CardHeader className="pb-2 p-4">
-              <CardTitle className="text-sm font-semibold">Documentos Pendentes</CardTitle>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Paperclip className="h-4 w-4 text-primary" />
+                Documentos Pendentes
+              </CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
               <div className="space-y-2">
@@ -1032,7 +1038,10 @@ function GerenciamentoTab({
           {/* Card: Atividades */}
           <Card>
             <CardHeader className="pb-2 flex flex-row items-center justify-between space-y-0 p-4">
-              <CardTitle className="text-sm font-semibold">Atividades a fazer</CardTitle>
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <Activity className="h-4 w-4 text-warning" />
+                Atividades a fazer
+              </CardTitle>
               <Button size="sm" className="h-7 text-xs gap-1" onClick={() => setActivityDialogOpen(true)}>
                 <Plus className="h-3 w-3" /> Nova atividade
               </Button>
@@ -1260,9 +1269,17 @@ function GerenciamentoTab({
 // ─── Client Info Row ─────────────────────────────
 // ═══════════════════════════════════════════════════
 function ClientRow({ icon: Icon, label, muted, isLink }: { icon: typeof User; label: string; muted?: boolean; isLink?: boolean }) {
+  const iconColorMap: Record<string, string> = {
+    User: "text-secondary",
+    Hash: "text-muted-foreground",
+    Phone: "text-info",
+    Mail: "text-primary",
+    MapPin: "text-warning",
+  };
+  const iconColor = iconColorMap[Icon.displayName || ""] || "text-secondary";
   return (
     <div className="flex items-start gap-2.5">
-      <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
+      <Icon className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", iconColor)} />
       <span className={cn(
         "text-sm leading-snug",
         muted ? "text-muted-foreground" : "font-medium text-foreground",

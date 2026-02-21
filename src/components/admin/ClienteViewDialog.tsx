@@ -304,7 +304,7 @@ export function ClienteViewDialog({ cliente, open, onOpenChange }: ClienteViewDi
                 <Separator />
                 <section className="space-y-2">
                   <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
+                    <FileText className="h-4 w-4 text-primary" />
                     Observações
                   </h3>
                   <p className="text-sm pl-6 whitespace-pre-wrap text-muted-foreground">{cliente.observacoes}</p>
