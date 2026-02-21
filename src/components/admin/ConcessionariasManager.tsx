@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload } from "lucide-react";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
+import { ConcessionariaFormDialog, type ConcessionariaFormData } from "./concessionarias/ConcessionariaFormDialog";
 import { Progress } from "@/components/ui/progress";
 import { ImportCsvAneelDialog } from "./concessionarias/ImportCsvAneelDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,13 +18,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -33,7 +27,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -49,7 +42,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
 
 interface Concessionaria {
   id: string;
@@ -80,30 +72,7 @@ function calcTarifaIntegral(te: number, fioB: number, icms: number, pis: number,
   return totalTributo > 0 && totalTributo < 1 ? sem / (1 - totalTributo) : sem;
 }
 
-interface ConcessionariaForm {
-  nome: string;
-  sigla: string;
-  estado: string;
-  tarifa_energia: string;
-  tarifa_fio_b: string;
-  tarifa_fio_b_gd: string;
-  custo_disponibilidade_monofasico: string;
-  custo_disponibilidade_bifasico: string;
-  custo_disponibilidade_trifasico: string;
-  aliquota_icms: string;
-  pis_percentual: string;
-  cofins_percentual: string;
-  possui_isencao_scee: boolean | null;
-  percentual_isencao: string;
-}
-
-const ESTADOS_BRASIL = [
-  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
-  "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN",
-  "RS", "RO", "RR", "SC", "SP", "SE", "TO"
-];
-
-const EMPTY_FORM: ConcessionariaForm = {
+const EMPTY_FORM: ConcessionariaFormData = {
   nome: "",
   sigla: "",
   estado: "",
@@ -127,7 +96,7 @@ export function ConcessionariasManager() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Concessionaria | null>(null);
   const [deleting, setDeleting] = useState<Concessionaria | null>(null);
-  const [form, setForm] = useState<ConcessionariaForm>(EMPTY_FORM);
+  const [form, setForm] = useState<ConcessionariaFormData>(EMPTY_FORM);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterEstado, setFilterEstado] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -490,7 +459,7 @@ export function ConcessionariasManager() {
     setFilterStatus("all");
   };
 
-  const updateForm = (field: keyof ConcessionariaForm, value: any) => {
+  const updateForm = (field: keyof ConcessionariaFormData, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
@@ -848,278 +817,14 @@ export function ConcessionariasManager() {
         </div>
 
         {/* Add/Edit Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Building className="w-5 h-5" />
-                {editing ? "Editar Concessionária" : "Nova Concessionária"}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-5">
-              {/* Dados Básicos */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-muted-foreground">Dados Básicos</h4>
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome *</Label>
-                  <Input
-                    id="nome"
-                    placeholder="Ex: Light Serviços de Eletricidade"
-                    value={form.nome}
-                    onChange={(e) => updateForm("nome", e.target.value)}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="sigla">Sigla</Label>
-                    <Input
-                      id="sigla"
-                      placeholder="Ex: LIGHT"
-                      value={form.sigla}
-                      onChange={(e) => updateForm("sigla", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="estado">Estado</Label>
-                    <Select value={form.estado} onValueChange={(v) => updateForm("estado", v)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="UF" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ESTADOS_BRASIL.map((uf) => (
-                          <SelectItem key={uf} value={uf}>{uf}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tarifas */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-muted-foreground">Tarifas (R$/kWh)</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Tarifa Energia (TE)</Label>
-                    <Input
-                      type="number"
-                      step="0.000001"
-                      placeholder="Ex: 0.45"
-                      value={form.tarifa_energia}
-                      onChange={(e) => updateForm("tarifa_energia", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Fio B Total (TUSD)</Label>
-                    <Input
-                      type="number"
-                      step="0.000001"
-                      placeholder="Ex: 0.40"
-                      value={form.tarifa_fio_b}
-                      onChange={(e) => updateForm("tarifa_fio_b", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Label className="text-xs flex items-center gap-1 cursor-help">
-                          Fio B GD
-                          <Info className="w-3 h-3 text-muted-foreground" />
-                        </Label>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="text-xs max-w-[200px]">
-                        Parcela do TUSD que o prosumidor GD paga (regra atual). Geralmente menor que o Fio B total.
-                      </TooltipContent>
-                    </Tooltip>
-                    <Input
-                      type="number"
-                      step="0.000001"
-                      placeholder="Ex: 0.28"
-                      value={form.tarifa_fio_b_gd}
-                      onChange={(e) => updateForm("tarifa_fio_b_gd", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Custo Disponibilidade */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-muted-foreground">Custo Disponibilidade (R$)</h4>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Monofásico</Label>
-                    <Input
-                      type="number"
-                      step="1"
-                      placeholder="30"
-                      value={form.custo_disponibilidade_monofasico}
-                      onChange={(e) => updateForm("custo_disponibilidade_monofasico", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Bifásico</Label>
-                    <Input
-                      type="number"
-                      step="1"
-                      placeholder="50"
-                      value={form.custo_disponibilidade_bifasico}
-                      onChange={(e) => updateForm("custo_disponibilidade_bifasico", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Trifásico</Label>
-                    <Input
-                      type="number"
-                      step="1"
-                      placeholder="100"
-                      value={form.custo_disponibilidade_trifasico}
-                      onChange={(e) => updateForm("custo_disponibilidade_trifasico", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Tributação */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold flex items-center gap-2 text-muted-foreground">
-                  <Building className="w-4 h-4" />
-                  Tributação
-                </h4>
-                <p className="text-[11px] text-muted-foreground">
-                  Deixe vazio para usar o padrão do estado. PIS/COFINS são obrigatórios para calcular o valor integral.
-                </p>
-                {/* Valor integral computado */}
-                {(() => {
-                  const te = parseFloat(form.tarifa_energia) || 0;
-                  const fioB = parseFloat(form.tarifa_fio_b) || 0;
-                  const icms = parseFloat(form.aliquota_icms) || 0;
-                  const pis = parseFloat(form.pis_percentual) || 0;
-                  const cofins = parseFloat(form.cofins_percentual) || 0;
-                  const integral = calcTarifaIntegral(te, fioB, icms, pis, cofins);
-                  if (!integral) return null;
-                  const sem = te + fioB;
-                  return (
-                    <div className="rounded-md bg-primary/5 border border-primary/20 p-3 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-medium text-foreground">Valor integral c/ impostos (kWh)</span>
-                        <span className="text-base font-mono font-bold text-primary">R$ {integral.toFixed(6)}</span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-2 text-[10px] font-mono text-muted-foreground border-t border-primary/10 pt-2">
-                        <div>TE: {te.toFixed(6)}</div>
-                        <div>Fio B: {fioB.toFixed(6)}</div>
-                        <div>Sem imp: {sem.toFixed(6)}</div>
-                        <div>Tributos: {(icms+pis+cofins).toFixed(2)}%</div>
-                      </div>
-                    </div>
-                  );
-                })()}
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">ICMS (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      max={40}
-                      placeholder="Ex: 18"
-                      value={form.aliquota_icms}
-                      onChange={(e) => updateForm("aliquota_icms", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">PIS (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      max={10}
-                      placeholder="Ex: 1.65"
-                      value={form.pis_percentual}
-                      onChange={(e) => updateForm("pis_percentual", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">COFINS (%)</Label>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min={0}
-                      max={15}
-                      placeholder="Ex: 7.60"
-                      value={form.cofins_percentual}
-                      onChange={(e) => updateForm("cofins_percentual", e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">% Isenção SCEE</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      max={100}
-                      placeholder="Usar do estado"
-                      value={form.percentual_isencao}
-                      onChange={(e) => updateForm("percentual_isencao", e.target.value)}
-                      disabled={form.possui_isencao_scee === false}
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Label className="text-xs">Isenção SCEE:</Label>
-                  <div className="flex items-center gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            type="button"
-                            variant={form.possui_isencao_scee === null ? "default" : "outline"}
-                            size="sm"
-                            className="h-7 text-xs"
-                            onClick={() => updateForm("possui_isencao_scee", null)}
-                          >
-                            Padrão UF
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Usar configuração do estado</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                    <Button
-                      type="button"
-                      variant={form.possui_isencao_scee === true ? "default" : "outline"}
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => updateForm("possui_isencao_scee", true)}
-                    >
-                      Sim
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={form.possui_isencao_scee === false ? "default" : "outline"}
-                      size="sm"
-                      className="h-7 text-xs"
-                      onClick={() => updateForm("possui_isencao_scee", false)}
-                    >
-                      Não
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleSave}>Salvar alterações</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ConcessionariaFormDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          form={form}
+          onUpdateForm={updateForm}
+          onSave={handleSave}
+          isEditing={!!editing}
+        />
 
         {/* Delete Confirmation */}
         <AlertDialog open={!!deleting} onOpenChange={() => setDeleting(null)}>
