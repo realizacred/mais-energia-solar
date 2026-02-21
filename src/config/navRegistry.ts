@@ -122,7 +122,7 @@ export const NAV_REGISTRY: NavRegistryItem[] = [
   { nav_key: "webhooks", label_default: "Webhooks", group_default: "Integrações", order_default: 8, icon: "Webhook", description: "Conexões com sistemas externos", keywords: ["webhook", "integração", "API", "n8n"], criticality: "normal", permission: "admin_only" },
   { nav_key: "n8n", label_default: "Automações", group_default: "Integrações", order_default: 9, icon: "Workflow", description: "Workflows e processos automatizados", keywords: ["n8n", "automação", "workflow", "MCP"], criticality: "normal", permission: "admin_only" },
   { nav_key: "payment-gateway", label_default: "Pagamentos (Asaas)", group_default: "Integrações", order_default: 10, icon: "CreditCard", description: "Configurar gateway de pagamento para boletos e Pix", keywords: ["asaas", "boleto", "pix", "pagamento", "gateway", "cobrança"], criticality: "normal", permission: "admin_only" },
-  { nav_key: "aneel", label_default: "ANEEL", group_default: "Integrações", order_default: 11, icon: "Zap", description: "Sync semanal de tarifas homologadas · GD II/III 2026", keywords: ["aneel", "tarifa", "distribuidora", "gd", "energia", "sync", "fio b"], criticality: "normal", permission: "admin_only" },
+  
 
   // ── Projetos & Propostas (configurações operacionais) ──
   { nav_key: "proposta-comercial", label_default: "Proposta Comercial", group_default: "Projetos & Propostas", order_default: 0, icon: "FileText", description: "Variáveis, modelos de proposta, e-mail e configurações", keywords: ["proposta", "comercial", "variável", "template", "modelo", "email", "catálogo"], criticality: "normal", permission: "admin_only" },

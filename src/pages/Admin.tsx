@@ -538,7 +538,7 @@ export default function Admin() {
                 <Route path="webhooks" element={<WebhookManager />} />
                 <Route path="n8n" element={<N8nPlaceholder />} />
                 <Route path="integracoes" element={<IntegrationsPage />} />
-                <Route path="aneel" element={<AneelIntegrationPage />} />
+                <Route path="aneel" element={<Navigate to="/admin/concessionarias" replace />} />
                 <Route path="saude-integracoes" element={<IntegrationHealthPage />} />
                 <Route path="payment-gateway" element={<PaymentGatewayConfigPage />} />
                 <Route path="openai-config" element={<OpenAIConfigPage />} />
