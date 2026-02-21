@@ -188,23 +188,44 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
   const cols = detectColumns(headers);
   const isPreParsed = Array.isArray(data[0]);
 
-  if (!cols.sigAgente && !cols.nomAgente) return [];
+  if (!cols.sigAgente && !cols.nomAgente) {
+    console.warn("[ANEEL Comp] No sigAgente/nomAgente column found. Headers:", headers);
+    return [];
+  }
 
   const records: ParsedTarifa[] = [];
   const startIdx = isPreParsed ? 0 : 1;
+  let debugSkipReasons = { noBase: 0, noSub: 0, noComp: 0, noFioB: 0, total: 0 };
+  
   for (let i = startIdx; i < data.length; i++) {
     const cells = isPreParsed ? (data[i] as string[]) : parseCSVLine(data[i] as string);
     if (cells.length < 3) continue;
+    debugSkipReasons.total++;
 
     const baseTarifaria = cols.baseTarifaria !== undefined ? cells[cols.baseTarifaria] || "" : "";
-    if (baseTarifaria && !baseTarifaria.toLowerCase().includes("aplica")) continue;
+    if (baseTarifaria && !baseTarifaria.toLowerCase().includes("aplica")) {
+      debugSkipReasons.noBase++;
+      continue;
+    }
 
     const subgrupo = cols.subgrupo !== undefined ? cells[cols.subgrupo] || "" : "";
-    if (!subgrupo) continue;
+    if (!subgrupo) {
+      debugSkipReasons.noSub++;
+      continue;
+    }
 
-    const componente = cols.componente !== undefined ? cells[cols.componente] || "" : "";
-    if (!componente.toLowerCase().includes("fio b") && !componente.toLowerCase().includes("distribuicao") && !componente.toLowerCase().includes("distribuição")) continue;
-    if (!componente.toLowerCase().includes("fio b")) continue;
+    // For componentes, filter by component type if the column exists
+    if (cols.componente !== undefined) {
+      const componente = cells[cols.componente] || "";
+      const compLower = norm(componente);
+      // Accept "fio b", "distribuicao", "distribuição" components
+      const isFioB = compLower.includes("fio b") || compLower.includes("fio_b");
+      const isDist = compLower.includes("distribuic") || compLower.includes("distribuicao");
+      if (!isFioB && !isDist) {
+        debugSkipReasons.noFioB++;
+        continue;
+      }
+    }
 
     const vlrComponente = cols.vlrComponente !== undefined ? parseNumber(cells[cols.vlrComponente]) : 0;
     const vlrTUSD = cols.vlrTUSD !== undefined ? parseNumber(cells[cols.vlrTUSD]) : 0;
@@ -224,6 +245,8 @@ export function parseComponentesTarifas(data: string[] | string[][], headers: st
       vigencia: cols.vigencia !== undefined ? cells[cols.vigencia] || "" : "",
     });
   }
+  
+  console.log("[ANEEL Comp] Debug skip reasons:", debugSkipReasons, "Records found:", records.length);
   return records;
 }
 

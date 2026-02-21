@@ -77,6 +77,18 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       const detected = detectFileType(headers);
       setFileType(detected);
 
+      // Debug: log headers and detected columns for troubleshooting
+      console.log("[ANEEL Import] Headers:", headers);
+      console.log("[ANEEL Import] Detected type:", detected);
+      const { detectColumns } = await import("./importCsvAneelUtils");
+      const colMap = detectColumns(headers);
+      console.log("[ANEEL Import] Column map:", colMap);
+      
+      // Preview first few rows for debugging
+      if (Array.isArray(data[0])) {
+        console.log("[ANEEL Import] First row data:", (data as string[][])[0]);
+      }
+
       let records: ParsedTarifa[];
       if (detected === "componentes") {
         records = parseComponentesTarifas(data, headers);
@@ -85,11 +97,13 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       }
 
       if (records.length === 0) {
-        const cols = headers.slice(0, 8).join(", ");
+        const colsStr = headers.join(" | ");
+        const colMapStr = Object.entries(colMap).map(([k,v]) => `${k}=${v}`).join(", ");
         toast({ 
           title: "Nenhum registro válido encontrado", 
-          description: `Tipo detectado: ${detected}. Colunas: ${cols}...`,
-          variant: "destructive" 
+          description: `Tipo: ${detected}. Cols mapeadas: ${colMapStr || "NENHUMA"}. Headers: ${colsStr}`,
+          variant: "destructive",
+          duration: 15000,
         });
         return;
       }
