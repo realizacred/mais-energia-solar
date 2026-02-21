@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Pencil, Building, Search, Filter, Info, RefreshCw, AlertTriangle, CheckCircle2, Clock, XCircle, FlaskConical, ChevronDown, ChevronRight, Upload } from "lucide-react";
 import { ConcessionariaSubgruposPanel } from "./concessionarias/ConcessionariaSubgruposPanel";
+import { ImportCsvAneelDialog } from "./concessionarias/ImportCsvAneelDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -114,6 +115,7 @@ export function ConcessionariasManager() {
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [syncing, setSyncing] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
   // Check if any concessionária needs tariff update (>12 months)
   const syncAlert = useMemo(() => {
     const now = new Date();
@@ -353,6 +355,15 @@ export function ConcessionariasManager() {
           >
             <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
             {syncing ? "Sincronizando..." : "Sincronizar ANEEL"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setCsvImportOpen(true)}
+            className="gap-2"
+            title="Importar tarifas de um arquivo CSV baixado do site da ANEEL"
+          >
+            <Upload className="w-4 h-4" />
+            Importar CSV
           </Button>
           <Button onClick={() => openDialog()} className="gap-2">
             <Plus className="w-4 h-4" />
@@ -805,6 +816,12 @@ export function ConcessionariasManager() {
           </AlertDialogContent>
         </AlertDialog>
       </CardContent>
+
+      <ImportCsvAneelDialog
+        open={csvImportOpen}
+        onOpenChange={setCsvImportOpen}
+        onImportComplete={fetchData}
+      />
     </Card>
   );
 }
