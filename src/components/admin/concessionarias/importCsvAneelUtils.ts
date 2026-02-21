@@ -72,8 +72,8 @@ export function parseNumber(s: string): number {
  */
 export function detectFileType(headers: string[]): FileType {
   const joined = headers.map(h => norm(h)).join("|");
-  // Componentes file indicators
-  if (joined.includes("componente") || joined.includes("fio b") || joined.includes("fio_b") || joined.includes("dsctipcomponente")) {
+  // Componentes file indicators - match truncated headers too
+  if (joined.includes("componente") || joined.includes("componer") || joined.includes("fio b") || joined.includes("fio_b") || joined.includes("dsctipcomponente")) {
     return "componentes";
   }
   return "homologadas";
@@ -99,10 +99,10 @@ export function detectColumns(headers: string[]): ColumnMap {
     vigencia: /inicio\s*vig|dat.*inicio/i,
     classe: /^classe$/i,
     subclasse: /sub\s*classe/i,
-    resolucao: /resolu[cç][aã]o/i,
-    // Componentes-specific
-    componente: /componente|dsc.*tipo.*componente/i,
-    vlrComponente: /vlr.*componente|valor/i,
+    resolucao: /resolu[cç]|^reh$/i,
+    // Componentes-specific — handle truncated XLSX headers
+    componente: /compone[nrt]|dsc.*tipo.*componente/i,
+    vlrComponente: /^valor$|vlr.*componente/i,
   };
 
   for (const [key, re] of Object.entries(patterns)) {
