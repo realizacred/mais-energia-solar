@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,12 +48,16 @@ export function StepConsumptionIntelligence({
   const { roofFactors } = useTiposTelhado();
 
   // Sync inclinação/desvio azimutal from first UC's tipo_telhado into preDimensionamento
-  // The roof profile is the SSOT for these values — always override when tipo_telhado changes
+  // Uses ref to avoid stale closure — pd changes don't trigger re-run, but we always read latest
+  const pdRef = useRef(pd);
+  pdRef.current = pd;
+
   const uc1TipoTelhado = ucs[0]?.tipo_telhado;
   useEffect(() => {
     if (!uc1TipoTelhado || roofFactors.length === 0) return;
     const match = roofFactors.find(rf => getRoofLabel(rf) === uc1TipoTelhado);
     if (match) {
+      const current = pdRef.current;
       const updates: Partial<PreDimensionamentoData> = {};
       if (match.inclinacao_padrao != null) {
         updates.inclinacao = match.inclinacao_padrao;
@@ -62,10 +66,10 @@ export function StepConsumptionIntelligence({
         updates.desvio_azimutal = match.desvio_azimutal_padrao;
       }
       if (Object.keys(updates).length > 0) {
-        setPd({ ...pd, ...updates });
+        setPd({ ...current, ...updates });
       }
     }
-  }, [uc1TipoTelhado, roofFactors]);
+  }, [uc1TipoTelhado, roofFactors, setPd]);
 
   // ─── Derived metrics
   const consumoTotal = useMemo(() => {
