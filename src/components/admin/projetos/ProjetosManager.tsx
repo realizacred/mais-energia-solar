@@ -315,19 +315,19 @@ export function ProjetosManager() {
                     <p className="text-[10px] font-semibold text-foreground uppercase tracking-wider mb-2.5">Bordas dos cards</p>
                     <div className="space-y-2">
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full bg-emerald-500 shrink-0" />
+                        <span className="w-1.5 h-5 rounded-full shrink-0" style={{ backgroundColor: "hsl(142 71% 45%)" }} />
                         <span className="text-[11px] text-muted-foreground">Projeto ganho</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full bg-red-500 shrink-0" />
+                        <span className="w-1.5 h-5 rounded-full shrink-0" style={{ backgroundColor: "hsl(0 84% 60%)" }} />
                         <span className="text-[11px] text-muted-foreground">Projeto perdido / estagnado +7d</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full bg-amber-500 shrink-0" />
+                        <span className="w-1.5 h-5 rounded-full shrink-0" style={{ backgroundColor: "hsl(38 92% 50%)" }} />
                         <span className="text-[11px] text-muted-foreground">Estagnado +3 dias</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full bg-orange-400 shrink-0" />
+                        <span className="w-1.5 h-5 rounded-full shrink-0" style={{ backgroundColor: "hsl(27 96% 61%)" }} />
                         <span className="text-[11px] text-muted-foreground">Sem proposta vinculada</span>
                       </div>
                       <div className="flex items-center gap-2.5">
@@ -335,7 +335,7 @@ export function ProjetosManager() {
                         <span className="text-[11px] text-muted-foreground">Com proposta</span>
                       </div>
                       <div className="flex items-center gap-2.5">
-                        <span className="w-1.5 h-5 rounded-full bg-gradient-to-b from-info to-accent shrink-0" />
+                        <span className="w-1.5 h-5 rounded-full bg-accent shrink-0" />
                         <span className="text-[11px] text-muted-foreground">Cor da etiqueta do projeto</span>
                       </div>
                     </div>
