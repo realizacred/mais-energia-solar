@@ -175,9 +175,9 @@ export function TenantSettings() {
   const crmConfig = getCrmConfig();
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-6 admin-section-medium">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="admin-page-header">
         <div className="flex items-center gap-3">
           <div className="p-2.5 rounded-xl bg-primary/10">
             <Building2 className="h-6 w-6 text-primary" />
@@ -189,10 +189,13 @@ export function TenantSettings() {
             </p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="gap-1.5">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Salvar Alterações
-        </Button>
+        {/* Desktop: inline button. Mobile: sticky footer */}
+        <div className="hidden sm:block">
+          <Button onClick={handleSave} disabled={saving} className="gap-1.5">
+            {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Salvar Alterações
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -503,6 +506,16 @@ export function TenantSettings() {
 
       {/* ═══ BLOCO 6: AUTO-RESPOSTA FORA DO HORÁRIO ═══ */}
       <AutoReplyConfig tenantId={tenant.id} />
+
+      {/* Mobile sticky save footer */}
+      <div className="admin-sticky-footer sm:hidden">
+        <Button onClick={handleSave} disabled={saving} className="w-full gap-1.5">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Salvar Alterações
+        </Button>
+      </div>
+      {/* Spacer for mobile sticky footer */}
+      <div className="h-16 sm:hidden" />
     </div>
   );
 }

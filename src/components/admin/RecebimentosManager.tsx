@@ -333,15 +333,16 @@ export function RecebimentosManager() {
       </div>
 
       {/* Filters and Actions */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between">
-        <div className="flex flex-1 gap-4">
+      <div className="admin-toolbar">
+        <div className="flex flex-col sm:flex-row flex-1 gap-3 sm:gap-4">
           <SearchInput
               value={searchTerm}
               onChange={setSearchTerm}
               placeholder="Buscar por cliente..."
+              className="w-full sm:max-w-xs"
             />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -364,7 +365,7 @@ export function RecebimentosManager() {
               Novo Recebimento
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto sm:max-h-none">
             <DialogHeader>
               <DialogTitle>
                 {editingRecebimento ? "Editar Recebimento" : "Novo Recebimento"}
@@ -392,7 +393,7 @@ export function RecebimentosManager() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="valor_total">Valor Total *</Label>
                   <Input
@@ -416,7 +417,7 @@ export function RecebimentosManager() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Forma de Pagamento Acordada *</Label>
                   <Select
@@ -482,7 +483,8 @@ export function RecebimentosManager() {
           description={clientes.length === 0 ? "Cadastre um cliente primeiro" : undefined}
         />
       ) : (
-        <Card className="rounded-xl border-2 border-border/60">
+        <Card className="rounded-xl border-2 border-border/60 overflow-hidden">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -579,6 +581,7 @@ export function RecebimentosManager() {
               })}
             </TableBody>
           </Table>
+          </div>
         </Card>
       )}
         </TabsContent>
