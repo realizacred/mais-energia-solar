@@ -111,8 +111,8 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       const detected = detectFileType(hdrs);
       setFileType(detected);
 
-      // Run validation
-      const report = validateRows(hdrs, rows);
+      // Run validation with file type awareness
+      const report = validateRows(hdrs, rows, detected);
       setValidation(report);
 
       // If missing required columns, show that immediately
@@ -129,7 +129,10 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
       } else {
         records = parseTarifasHomologadas(rows, hdrs);
       }
-      console.log("[ANEEL Import] Parsed records:", records.length);
+      console.log("[ANEEL Import] Parsed records:", records.length, "from", rows.length, "rows, type:", detected);
+      if (records.length === 0 && rows.length > 0) {
+        console.warn("[ANEEL Import] 0 records parsed! Sample raw rows:", rows.slice(0, 3));
+      }
       setParsed(records);
 
       setStep("validate");
@@ -457,9 +460,19 @@ export function ImportCsvAneelDialog({ open, onOpenChange, onImportComplete }: P
             </div>
             <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/40 border text-[11px] text-muted-foreground">
               <Info className="w-4 h-4 mt-0.5 shrink-0 text-secondary" />
-              <div className="space-y-1">
-                <p>Importe primeiro as <strong>Tarifas Homologadas</strong> (TE/TUSD), depois as <strong>Componentes</strong> (Fio B).</p>
-                <p>O mapeamento é feito por <strong>nome de coluna</strong>, não por posição. Variações de cabeçalho são aceitas automaticamente.</p>
+              <div className="space-y-1.5">
+                <p className="font-semibold text-foreground">O sistema aceita dois tipos de arquivo (importe separadamente):</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-2 rounded border bg-background">
+                    <p className="font-bold text-foreground text-[10px]">📊 Tarifas Homologadas</p>
+                    <p className="text-[10px]">Contém colunas TE e TUSD. Usada para tarifas de energia e distribuição.</p>
+                  </div>
+                  <div className="p-2 rounded border bg-background">
+                    <p className="font-bold text-foreground text-[10px]">🔧 Componentes Tarifários</p>
+                    <p className="text-[10px]">Contém coluna Valor Componente / Fio B. Usada para composição tarifária.</p>
+                  </div>
+                </div>
+                <p>O tipo é detectado automaticamente pelo cabeçalho. O mapeamento é por <strong>nome de coluna</strong>.</p>
               </div>
             </div>
             <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFileSelect} />

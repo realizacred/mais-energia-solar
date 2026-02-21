@@ -214,6 +214,8 @@ export function parseTarifasHomologadas(data: string[] | string[][], headers: st
   }
 
   console.log("[ANEEL Homol] Debug:", debugSkipReasons, "Records found:", filtered.length, "Column map:", cols);
+  console.log("[ANEEL Homol] Sample baseTarifaria values:", [...new Set(allRecords.slice(0, 100).map(r => r.baseTarifaria))]);
+  console.log("[ANEEL Homol] Sample detalhe values:", [...new Set(allRecords.slice(0, 100).map(r => r.detalhe))]);
 
   return filtered;
 }
