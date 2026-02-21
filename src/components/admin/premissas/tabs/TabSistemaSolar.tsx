@@ -202,6 +202,18 @@ export function TabSistemaSolar({ premises, onChange }: Props) {
         </div>
       </div>
 
+      {/* Geração e ambiental */}
+      <div className="rounded-xl border-2 border-primary/20 bg-primary/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Sun className="h-4 w-4 text-primary" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-primary">Geração e impacto ambiental</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <NumField label="Geração mensal por kWp" suffix="kWh/kWp" value={premises.geracao_mensal_por_kwp} step="1" tooltip="Geração média mensal por kWp instalado. Varia conforme localidade e irradiância. Usado na calculadora pública." onChange={(v) => set("geracao_mensal_por_kwp", v)} />
+          <NumField label="CO₂ evitado por kWh" suffix="kg/kWh" value={premises.kg_co2_por_kwh} step="0.001" tooltip="Quantidade de CO₂ evitada por cada kWh gerado pelo sistema solar. Fator de emissão médio da matriz elétrica brasileira." onChange={(v) => set("kg_co2_por_kwh", v)} />
+        </div>
+      </div>
+
       {/* Outros parâmetros */}
       <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5 space-y-4">
         <div className="flex items-center gap-2">

@@ -73,6 +73,64 @@ export function TabFinanceiras({ premises, onChange }: Props) {
         </div>
       </div>
 
+      {/* Economia & Investimento */}
+      <div className="rounded-xl border-2 border-success/30 bg-success/5 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Calculator className="h-4 w-4 text-success" />
+          <p className="text-xs font-semibold uppercase tracking-wider text-success">Economia e investimento</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Percentual de economia
+              <FieldTooltip text="Percentual estimado de economia na conta de energia com o sistema solar. Usado na calculadora pública e nas propostas." />
+            </Label>
+            <div className="relative">
+              <Input
+                type="number"
+                step="1"
+                value={premises.percentual_economia}
+                onChange={(e) => set("percentual_economia", Number(e.target.value))}
+                className="pr-10"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">%</span>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Custo por kWp
+              <FieldTooltip text="Custo estimado por kWp instalado. Usado na calculadora pública para estimar o investimento total." />
+            </Label>
+            <div className="relative">
+              <Input
+                type="number"
+                step="100"
+                value={premises.custo_por_kwp}
+                onChange={(e) => set("custo_por_kwp", Number(e.target.value))}
+                className="pr-14"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">R$/kWp</span>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">
+              Vida útil do sistema
+              <FieldTooltip text="Vida útil estimada do sistema solar em anos. Usado para cálculo de economia total e payback." />
+            </Label>
+            <div className="relative">
+              <Input
+                type="number"
+                step="1"
+                value={premises.vida_util_sistema}
+                onChange={(e) => set("vida_util_sistema", Number(e.target.value))}
+                className="pr-12"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground font-medium pointer-events-none">anos</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Custo de disponibilidade */}
       <div className="rounded-xl border-2 border-info/30 bg-info/5 p-5 space-y-4">
         <div className="flex items-center gap-2">
