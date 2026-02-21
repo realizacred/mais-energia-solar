@@ -122,6 +122,18 @@ export function ConcessionariasManager() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [csvImportOpen, setCsvImportOpen] = useState(false);
 
+  // Find the most recent sync timestamp across all concessionárias
+  const latestSyncTimestamp = useMemo(() => {
+    let latest = 0;
+    for (const c of concessionarias) {
+      if (c.ultima_sync_tarifas) {
+        const ts = new Date(c.ultima_sync_tarifas).getTime();
+        if (ts > latest) latest = ts;
+      }
+    }
+    return latest;
+  }, [concessionarias]);
+
   // Check if any concessionária needs tariff update (>12 months)
   const syncAlert = useMemo(() => {
     const now = new Date();
@@ -132,6 +144,14 @@ export function ConcessionariasManager() {
     });
     return outdated.length > 0 ? outdated.length : 0;
   }, [concessionarias]);
+
+  // Detect "legacy" concessionárias that were NOT updated in the latest sync
+  const isLegacyConc = useCallback((c: Concessionaria): boolean => {
+    if (!latestSyncTimestamp || !c.ultima_sync_tarifas) return false;
+    const syncTs = new Date(c.ultima_sync_tarifas).getTime();
+    // If the concessionária's sync is more than 1 hour behind the latest, it's legacy
+    return (latestSyncTimestamp - syncTs) > 3600000;
+  }, [latestSyncTimestamp]);
 
   // Cleanup polling on unmount
   useEffect(() => {
@@ -702,6 +722,22 @@ export function ConcessionariasManager() {
                                 <XCircle className="h-3 w-3" />
                                 Nunca
                               </Badge>
+                            );
+                          }
+                          const legacy = isLegacyConc(c);
+                          if (legacy) {
+                            return (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Badge variant="outline" className="gap-1 text-[10px] text-warning border-warning/30 bg-warning/10 cursor-help">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    Legado
+                                  </Badge>
+                                </TooltipTrigger>
+                                <TooltipContent side="top" className="max-w-[220px] text-xs">
+                                  Não encontrada na API ANEEL. Tarifas precisam ser gerenciadas manualmente.
+                                </TooltipContent>
+                              </Tooltip>
                             );
                           }
                           const syncDate = new Date(c.ultima_sync_tarifas);
