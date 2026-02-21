@@ -409,6 +409,27 @@ Deno.serve(async (req) => {
           ultima_sync_tarifas: new Date().toISOString(),
         }).eq('id', conc.id);
 
+        // ── Upsert BT subgroups in concessionaria_tarifas_subgrupo ──
+        const btSubgroups = ['B1', 'B2', 'B3'];
+        for (const sub of btSubgroups) {
+          await supabase.from('concessionaria_tarifas_subgrupo')
+            .upsert({
+              concessionaria_id: conc.id,
+              tenant_id: tenantId,
+              subgrupo: sub,
+              modalidade_tarifaria: 'Convencional',
+              tarifa_energia: tarifaTotal,
+              tarifa_fio_b: tusd_fio_b_real ?? tusdTotal,
+              origem: 'ANEEL',
+              is_active: true,
+              updated_at: new Date().toISOString(),
+            }, {
+              onConflict: 'concessionaria_id,subgrupo,tenant_id',
+              ignoreDuplicates: false,
+            });
+        }
+        log(`📦 Subgrupos BT atualizados para ${conc.nome}`);
+
         totalUpdated++;
         log(`✅ ${conc.nome} → TE=${te.toFixed(6)} + TUSD=${tusdTotal.toFixed(6)} = ${tarifaTotal.toFixed(6)} R$/kWh | vigência=${vigenciaInicio} | ${precLabel} | auditoria=${validStatus}`);
       } else {
