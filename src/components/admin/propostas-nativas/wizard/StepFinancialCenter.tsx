@@ -199,47 +199,51 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         </h3>
       </div>
 
-      {/* Price Slider Bar */}
-      <div className="rounded-xl border border-border/50 bg-card p-4">
-        <div className="flex items-center justify-end gap-4">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap">Preço de venda</Label>
-          <div className="w-48">
-            <Slider
-              value={[precoVenda]}
-              onValueChange={handleSliderChange}
-              min={sliderMin}
-              max={sliderMax}
-              step={100}
-            />
+      {/* Price Slider Bar — responsive */}
+      <div className="rounded-xl border border-border/50 bg-card p-3 sm:p-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-end gap-3 sm:gap-4">
+          <div className="flex items-center gap-3 flex-1 sm:flex-initial">
+            <Label className="text-xs text-muted-foreground whitespace-nowrap">Preço de venda</Label>
+            <div className="flex-1 sm:w-48 sm:flex-initial">
+              <Slider
+                value={[precoVenda]}
+                onValueChange={handleSliderChange}
+                min={sliderMin}
+                max={sliderMax}
+                step={100}
+              />
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold">{formatBRL(precoVenda)}</span>
-            {precoWp > 0 && (
-              <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
-                {formatBRL(precoWp)} / Wp
-              </Badge>
-            )}
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={openEditModal}>
-              <Pencil className="h-3.5 w-3.5 text-primary" />
-            </Button>
-          </div>
+          <div className="flex items-center gap-2 justify-between sm:justify-end">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold">{formatBRL(precoVenda)}</span>
+              {precoWp > 0 && (
+                <Badge variant="outline" className="text-[10px] bg-primary/5 border-primary/20 text-primary">
+                  {formatBRL(precoWp)} / Wp
+                </Badge>
+              )}
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={openEditModal}>
+                <Pencil className="h-3.5 w-3.5 text-primary" />
+              </Button>
+            </div>
 
-          {/* View mode toggle */}
-          <div className="flex items-center gap-1 border-l border-border/40 pl-3">
-            <button
-              onClick={() => setViewMode("resumido")}
-              className={cn("p-1.5 rounded", viewMode === "resumido" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
-              title="Resumido"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode("detalhado")}
-              className={cn("p-1.5 rounded", viewMode === "detalhado" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
-              title="Detalhado"
-            >
-              <List className="h-4 w-4" />
-            </button>
+            {/* View mode toggle */}
+            <div className="flex items-center gap-1 border-l border-border/40 pl-3">
+              <button
+                onClick={() => setViewMode("resumido")}
+                className={cn("p-1.5 rounded", viewMode === "resumido" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
+                title="Resumido"
+              >
+                <SlidersHorizontal className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("detalhado")}
+                className={cn("p-1.5 rounded", viewMode === "detalhado" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground")}
+                title="Detalhado"
+              >
+                <List className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

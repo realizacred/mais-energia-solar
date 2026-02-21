@@ -359,7 +359,7 @@ export function StepLocalizacao({
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-sm sm:text-base font-bold flex items-center gap-2">
           <MapPin className="h-4 w-4 text-primary" /> Localização & Endereço
         </h3>
@@ -371,8 +371,8 @@ export function StepLocalizacao({
         </div>
       </div>
 
-      {/* Side-by-side: Fields LEFT, Map RIGHT */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Side-by-side: Fields LEFT, Map RIGHT — responsive */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
         {/* Left column: Address + Telhado + Distribuidora + Irradiação */}
         <div className="space-y-3 order-2 lg:order-1">
           {/* Address */}
@@ -481,21 +481,23 @@ export function StepLocalizacao({
           </div>
         </div>
 
-        {/* Right column: Map */}
-        <div className="order-1 lg:order-2">
+        {/* Right column: Map — sticky on desktop, full-width on mobile */}
+        <div className="order-1 lg:order-2 lg:sticky lg:top-4 lg:self-start">
           <Suspense fallback={
-            <div className="rounded-xl border border-border/50 h-[260px] sm:h-[400px] lg:h-[520px] flex items-center justify-center bg-muted/20">
+            <div className="rounded-xl border border-border/50 h-[260px] sm:h-[360px] lg:h-[460px] flex items-center justify-center bg-muted/20">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           }>
-            <GoogleMapView
-              lat={geoLat}
-              lon={geoLon}
-              cidade={cidade}
-              estado={estado}
-              onMapClick={handleMapClick}
-              onSnapshotsChange={onMapSnapshotsChange}
-            />
+            <div className="h-[260px] sm:h-[360px] lg:h-[460px] rounded-xl overflow-hidden border border-border/50">
+              <GoogleMapView
+                lat={geoLat}
+                lon={geoLon}
+                cidade={cidade}
+                estado={estado}
+                onMapClick={handleMapClick}
+                onSnapshotsChange={onMapSnapshotsChange}
+              />
+            </div>
           </Suspense>
         </div>
       </div>

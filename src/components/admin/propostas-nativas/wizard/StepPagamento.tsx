@@ -305,9 +305,9 @@ export function StepPagamento({
   // ─── Render ─────────────────────────────────────────────
 
   return (
-    <div className="space-y-0">
-      {/* Header Tabs + Metrics */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="space-y-0 w-full">
+      {/* Header Tabs + Metrics — responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
         <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)}>
           <TabsList className="bg-muted/50">
             <TabsTrigger value="pagamento" className="text-xs">Pagamento</TabsTrigger>
@@ -315,17 +315,17 @@ export function StepPagamento({
           </TabsList>
         </Tabs>
 
-        <div className="flex items-center gap-4 text-xs">
+        <div className="flex items-center gap-3 sm:gap-4 text-xs flex-wrap">
           <div className="flex items-center gap-1.5">
             <DollarSign className="h-3.5 w-3.5 text-success" />
-            <span className="text-muted-foreground">Economia mensal:</span>
+            <span className="text-muted-foreground">Economia:</span>
             <span className="font-bold text-success">{formatBRL(economiaMensal)}</span>
             <Badge variant="secondary" className="text-[9px] h-4 px-1">{economiaPercent.toFixed(2)}%</Badge>
             <button onClick={() => setShowGastosModal(true)} className="text-primary underline text-[10px] hover:opacity-80">Ver mais</button>
           </div>
           <div className="flex items-center gap-1.5">
             <Calendar className="h-3.5 w-3.5 text-primary" />
-            <span className="text-muted-foreground">Tempo de retorno:</span>
+            <span className="text-muted-foreground">Retorno:</span>
             <span className="font-bold">{paybackInfo.label}</span>
             <button onClick={() => setShowFluxoModal(true)} className="text-primary underline text-[10px] hover:opacity-80">Ver mais</button>
           </div>
@@ -334,9 +334,9 @@ export function StepPagamento({
 
       {/* ─── Tab: Pagamento ─────────────────────────────── */}
       {activeTab === "pagamento" && (
-        <div className="flex gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4">
           {/* Sidebar - Banks */}
-          <div className="w-56 flex-shrink-0 space-y-1">
+          <div className="space-y-1">
             {bancoGroups.map((g, idx) => (
               <button
                 key={g.banco.id}
@@ -361,7 +361,7 @@ export function StepPagamento({
           </div>
 
           {/* Main - Options for selected bank */}
-          <div className="flex-1 space-y-3">
+          <div className="space-y-3 min-w-0">
             {bancoGroups[selectedBancoIdx]?.opcoes.map((op, idx) => (
               <div key={op.id} className="p-4 rounded-xl border border-border/50 bg-card">
                 <div className="flex items-center justify-between mb-3">
