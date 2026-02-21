@@ -145,7 +145,7 @@ export function StepAdicionais({
         </div>
 
         {/* Layout */}
-        <div className="space-y-2 lg:w-[380px]">
+        <div className="space-y-2 lg:min-w-[320px] lg:max-w-[420px] lg:flex-1">
           <h3 className="text-sm font-bold text-foreground">Layout</h3>
           <div className="rounded-lg border border-border bg-card p-4 space-y-4">
             {layouts.length > 0 ? (

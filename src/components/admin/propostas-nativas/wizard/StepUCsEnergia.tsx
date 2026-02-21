@@ -155,7 +155,7 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
       </div>
 
       {activeTab === "ucs" && (
-        <div className="flex gap-4 flex-wrap">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
           {/* ── UC Cards ── */}
           {ucs.map((uc, i) => (
             <UCCard
@@ -177,7 +177,7 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
           {/* ── Add UC Area ── */}
           <button
             onClick={addUC}
-            className="min-w-[280px] min-h-[400px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+            className="min-h-[200px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
           >
             <Plus className="h-6 w-6" />
             <span className="text-sm font-medium">+ Nova Unidade</span>
@@ -245,7 +245,7 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
   const subgrupos = isGrupoA ? SUBGRUPO_MT : SUBGRUPO_BT;
 
   return (
-    <div className="border rounded-xl bg-card p-4 min-w-[480px] max-w-[520px] space-y-4 relative">
+    <div className="border rounded-xl bg-card p-4 min-w-[320px] w-full space-y-4 relative">
       {/* Header */}
       <div className="flex items-center justify-between">
         <h4 className="text-sm font-bold text-foreground">
