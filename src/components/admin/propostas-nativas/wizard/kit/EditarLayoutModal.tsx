@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Trash2, LayoutGrid, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -25,6 +25,21 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
       disposicao: "horizontal",
     }]
   );
+
+  // Sync internal state when modal opens or initial layouts change
+  useEffect(() => {
+    if (open) {
+      setArranjos(
+        initial.length > 0 ? initial : [{
+          id: crypto.randomUUID(),
+          arranjo_index: 1,
+          num_linhas: 1,
+          modulos_por_linha: totalModulos || 10,
+          disposicao: "horizontal",
+        }]
+      );
+    }
+  }, [open, initial, totalModulos]);
 
   const totalUsados = arranjos.reduce((s, a) => s + a.num_linhas * a.modulos_por_linha, 0);
   const diff = totalUsados - totalModulos;
