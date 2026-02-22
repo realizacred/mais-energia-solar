@@ -144,12 +144,12 @@ export function StageDealCard({
       )}
       style={borderStyle}
     >
-      <div className="p-3.5 space-y-2.5">
-        {/* Row 1: Header — Name + City + Value */}
+      <div className="p-3.5 space-y-2">
+        {/* Row 1: Header — Name + Value */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <p className={cn(
-              "text-sm font-semibold leading-tight line-clamp-1",
+              "text-[13px] font-semibold leading-tight line-clamp-1",
               isInactive ? "text-muted-foreground" : "text-foreground"
             )}>
               {deal.customer_name || deal.deal_title || "Sem nome"}
@@ -161,7 +161,7 @@ export function StageDealCard({
             )}
           </div>
           {deal.deal_value > 0 && (
-            <span className="text-sm font-bold text-success whitespace-nowrap tabular-nums">
+            <span className="text-[13px] font-bold text-success whitespace-nowrap tabular-nums">
               {formatBRL(deal.deal_value)}
             </span>
           )}
@@ -194,33 +194,44 @@ export function StageDealCard({
           )}
         </div>
 
-        {/* Row 3: Next action / expected close */}
-        {deal.expected_close_date && (
-          <div className={cn(
-            "flex items-center gap-1.5 text-[10px] rounded-lg px-2.5 py-1.5",
-            isOverdue ? "bg-destructive/10 text-destructive font-semibold border border-destructive/20" : "bg-muted/60 text-muted-foreground"
-          )}>
-            <Clock className={cn("h-3 w-3 shrink-0", isOverdue ? "text-destructive" : "icon-calendar")} />
-            <span>Fechamento: {new Date(deal.expected_close_date).toLocaleDateString("pt-BR")}</span>
-            {isOverdue && <span className="font-bold ml-auto text-[9px] uppercase tracking-wide">Atrasado</span>}
-          </div>
-        )}
-
-        {/* Row 4: Progress indicators */}
-        {(docTotal > 0 || deal.proposta_economia_mensal) && (
-          <div className="flex items-center gap-3 text-[10px]">
+        {/* Row 3: Doc progress bar + economia */}
+        {(docTotal > 0 || deal.proposta_economia_mensal || deal.expected_close_date) && (
+          <div className="space-y-1.5">
             {docTotal > 0 && (
-              <span className={cn("flex items-center gap-1", docDone === docTotal ? "text-success" : "text-muted-foreground")}>
-                <FileText className="h-3 w-3 icon-document" />
-                {docDone}/{docTotal} docs
-              </span>
+              <div className="flex items-center gap-2">
+                <FileText className={cn("h-3 w-3 shrink-0", docDone === docTotal ? "text-success" : "icon-document")} />
+                <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={cn(
+                      "h-full rounded-full transition-all duration-300",
+                      docDone === docTotal ? "bg-success" : docDone > 0 ? "bg-info" : "bg-muted-foreground/20"
+                    )}
+                    style={{ width: `${docTotal > 0 ? (docDone / docTotal) * 100 : 0}%` }}
+                  />
+                </div>
+                <span className={cn("text-[10px] tabular-nums font-medium shrink-0", docDone === docTotal ? "text-success" : "text-muted-foreground")}>
+                  {docDone}/{docTotal}
+                </span>
+              </div>
             )}
-            {deal.proposta_economia_mensal && (
-              <span className="flex items-center gap-1 text-success font-medium">
-                <TrendingDown className="h-3 w-3" />
-                {formatBRL(deal.proposta_economia_mensal)}/mês
-              </span>
-            )}
+            <div className="flex items-center gap-3 text-[10px]">
+              {deal.proposta_economia_mensal && (
+                <span className="flex items-center gap-1 text-success font-medium">
+                  <TrendingDown className="h-3 w-3" />
+                  {formatBRL(deal.proposta_economia_mensal)}/mês
+                </span>
+              )}
+              {deal.expected_close_date && (
+                <span className={cn(
+                  "flex items-center gap-1 ml-auto",
+                  isOverdue ? "text-destructive font-semibold" : "text-muted-foreground"
+                )}>
+                  <Clock className="h-3 w-3" />
+                  {new Date(deal.expected_close_date).toLocaleDateString("pt-BR")}
+                  {isOverdue && <span className="text-[8px] uppercase tracking-wide font-bold">Atrasado</span>}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
