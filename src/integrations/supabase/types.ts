@@ -15280,45 +15280,19 @@ export type Database = {
         Args: { _dataset_code: string; _metadata?: Json; _version_tag: string }
         Returns: string
       }
-      create_proposta_nativa_atomic:
-        | {
-            Args: {
-              p_deal_id?: string
-              p_lead_id?: string
-              p_origem?: string
-              p_potencia_kwp?: number
-              p_projeto_id?: string
-              p_snapshot?: Json
-              p_titulo: string
-              p_valor_total?: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_lead_id?: string
-              p_origem?: string
-              p_potencia_kwp?: number
-              p_projeto_id?: string
-              p_snapshot?: Json
-              p_titulo: string
-              p_valor_total?: number
-            }
-            Returns: Json
-          }
-        | {
-            Args: {
-              p_deal_id?: string
-              p_lead_id?: string
-              p_origem?: string
-              p_potencia_kwp?: number
-              p_projeto_id?: string
-              p_snapshot?: Json
-              p_titulo: string
-              p_valor_total?: number
-            }
-            Returns: Json
-          }
+      create_proposta_nativa_atomic: {
+        Args: {
+          p_deal_id?: string
+          p_lead_id?: string
+          p_origem?: string
+          p_potencia_kwp?: number
+          p_projeto_id?: string
+          p_snapshot?: Json
+          p_titulo: string
+          p_valor_total?: number
+        }
+        Returns: Json
+      }
       create_proposta_nativa_atomic_v2: {
         Args: {
           p_deal_id: string
