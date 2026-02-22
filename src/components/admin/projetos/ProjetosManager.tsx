@@ -1,6 +1,7 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { FolderKanban, Zap, DollarSign, LayoutGrid, Plus, BarChart3, Layers, Tag, Info } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
@@ -31,6 +32,7 @@ interface DynamicEtiqueta {
 }
 
 export function ProjetosManager() {
+  const { toast } = useToast();
   const {
     pipelines, stages, deals, consultores, loading,
     selectedPipelineId, setSelectedPipelineId,
@@ -192,31 +194,58 @@ export function ProjetosManager() {
 
           // ✅ 2) Se não selecionou, chama RPC (deduplica por telefone_normalized via RLS)
           if (!customerId && data.cliente?.nome?.trim()) {
+            // Bloquear se telefone vazio (clientes.telefone é NOT NULL)
+            if (!data.cliente.telefone?.trim()) {
+              toast({ title: "Telefone obrigatório", description: "Preencha o telefone do cliente para continuar.", variant: "destructive" });
+              return;
+            }
+
+            const rpcPayload = {
+              p_nome: data.cliente.nome,
+              p_telefone: data.cliente.telefone,
+              p_email: data.cliente.email || null,
+              p_cpf_cnpj: data.cliente.cpfCnpj || null,
+              p_empresa: data.cliente.empresa || null,
+              p_cep: data.cliente.cep || null,
+              p_estado: data.cliente.estado || null,
+              p_cidade: data.cliente.cidade || null,
+              p_rua: data.cliente.endereco || null,
+              p_numero: data.cliente.numero || null,
+              p_bairro: data.cliente.bairro || null,
+              p_complemento: data.cliente.complemento || null,
+            };
+
+            console.debug("[NovoProj] RPC payload:", { nome: rpcPayload.p_nome, telefone: rpcPayload.p_telefone });
+
             const { data: clienteId, error } = await supabase.rpc(
               "get_or_create_cliente" as any,
-              {
-                p_nome: data.cliente.nome,
-                p_telefone: data.cliente.telefone || "N/A",
-                p_email: data.cliente.email || null,
-                p_cpf_cnpj: data.cliente.cpfCnpj || null,
-                p_empresa: data.cliente.empresa || null,
-                p_cep: data.cliente.cep || null,
-                p_estado: data.cliente.estado || null,
-                p_cidade: data.cliente.cidade || null,
-                p_rua: data.cliente.endereco || null,
-                p_numero: data.cliente.numero || null,
-                p_bairro: data.cliente.bairro || null,
-                p_complemento: data.cliente.complemento || null,
-              }
+              rpcPayload
             );
 
-            if (error) throw error;
-            if (!clienteId) throw new Error("RPC get_or_create_cliente não retornou ID.");
+            if (error) {
+              console.error("[NovoProj] RPC error:", error);
+              toast({ title: "Erro ao criar/buscar cliente", description: error.message, variant: "destructive" });
+              return;
+            }
+            if (!clienteId) {
+              console.error("[NovoProj] RPC returned null");
+              toast({ title: "Erro", description: "Não foi possível obter o ID do cliente.", variant: "destructive" });
+              return;
+            }
             customerId = clienteId as string;
+            console.debug("[NovoProj] customerId resolvido:", customerId);
           }
 
+          console.debug("[NovoProj] createDeal payload:", {
+            title: data.nome || data.cliente.nome,
+            ownerId: data.consultorId,
+            pipelineId: data.pipelineId,
+            stageId: data.stageId,
+            customerId,
+          });
+
           // ✅ 3) Cria o projeto/deal vinculando o cliente certo
-          await createDeal({
+          const result = await createDeal({
             title: data.nome || data.cliente.nome,
             ownerId: data.consultorId || undefined,
             pipelineId: data.pipelineId,
@@ -225,6 +254,8 @@ export function ProjetosManager() {
             etiqueta: data.etiqueta || undefined,
             notas: data.notas || undefined,
           });
+
+          console.debug("[NovoProj] createDeal result:", result);
         }}
       />
 
