@@ -1232,7 +1232,7 @@ function GerenciamentoTab({
                                 ? "text-destructive font-medium"
                                 : "text-muted-foreground"
                             )}>
-                              {new Date(a.due_date).toLocaleDateString("pt-BR")}
+                              {new Date(a.due_date).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
                             </span>
                           )}
                         </div>
@@ -1375,9 +1375,9 @@ function GerenciamentoTab({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Data de vencimento</Label>
+              <Label className="text-xs font-medium">Data e hora de vencimento</Label>
               <Input
-                type="date"
+                type="datetime-local"
                 value={activityDueDate}
                 onChange={e => setActivityDueDate(e.target.value)}
               />
