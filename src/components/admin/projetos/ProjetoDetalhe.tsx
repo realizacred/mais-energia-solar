@@ -249,10 +249,9 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
           setAllStagesMap(map);
         }
 
-        if (d.customer_id) {
-          supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", d.customer_id)
-            .then(({ count }) => setPropostasCount(count || 0));
-        }
+        // Count proposals by projeto_id (dealId), not cliente_id
+        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("projeto_id", dealId)
+          .then(({ count }) => setPropostasCount(count || 0));
         supabase.from("profiles").select("tenant_id").limit(1).single().then(({ data: profile }) => {
           if (profile) {
             supabase.storage.from("projeto-documentos").list(`${(profile as any).tenant_id}/deals/${d.id}`, { limit: 100 })
@@ -1527,11 +1526,26 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Refetch when tab/window regains focus (user navigated back from wizard)
+  useEffect(() => {
+    const handleFocus = () => setRefreshKey(k => k + 1);
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") handleFocus();
+    });
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
+  }, []);
 
   // Load proposals
   useEffect(() => {
     async function load() {
       if (!dealId && !customerId) { setLoading(false); return; }
+      setLoading(true);
       try {
         let query = supabase
           .from("propostas_nativas")
@@ -1564,7 +1578,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
               .select("versao_id, geracao_mensal_estimada")
               .in("versao_id", versaoIds);
             if (ucs) {
-              // Sum geracao per versao
               for (const uc of ucs as any[]) {
                 const cur = geracaoMap.get(uc.versao_id) || 0;
                 geracaoMap.set(uc.versao_id, cur + (uc.geracao_mensal_estimada || 0));
@@ -1587,12 +1600,14 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
             })),
           }));
           setPropostas(mapped);
+        } else {
+          setPropostas([]);
         }
       } catch (err) { console.error("PropostasTab:", err); }
       finally { setLoading(false); }
     }
     load();
-  }, [customerId, dealId]);
+  }, [customerId, dealId, refreshKey]);
 
   // Lead discovery by customer phone
   useEffect(() => {
