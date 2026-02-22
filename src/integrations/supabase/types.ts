@@ -2769,8 +2769,8 @@ export type Database = {
       deals: {
         Row: {
           created_at: string
-          customer_id: string | null
-          deal_num: number | null
+          customer_id: string
+          deal_num: number
           doc_checklist: Json | null
           etiqueta: string | null
           expected_close_date: string | null
@@ -2790,8 +2790,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          customer_id?: string | null
-          deal_num?: number | null
+          customer_id: string
+          deal_num: number
           doc_checklist?: Json | null
           etiqueta?: string | null
           expected_close_date?: string | null
@@ -2811,8 +2811,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          customer_id?: string | null
-          deal_num?: number | null
+          customer_id?: string
+          deal_num?: number
           doc_checklist?: Json | null
           etiqueta?: string | null
           expected_close_date?: string | null
@@ -2843,6 +2843,13 @@ export type Database = {
             columns: ["motivo_perda_id"]
             isOneToOne: false
             referencedRelation: "motivos_perda"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deals_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
             referencedColumns: ["id"]
           },
           {
@@ -7732,13 +7739,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "projetos_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "projetos_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
@@ -9942,13 +9942,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "propostas_nativas_cliente_id_fkey"
-            columns: ["cliente_id"]
-            isOneToOne: false
-            referencedRelation: "clientes"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "propostas_nativas_consultor_id_fkey"
             columns: ["consultor_id"]
             isOneToOne: false
@@ -9967,13 +9960,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "propostas_nativas_projeto_id_fkey"
-            columns: ["projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
             referencedColumns: ["id"]
           },
           {
@@ -9996,13 +9982,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "propostas_nativas_tenant_projeto_fkey"
-            columns: ["tenant_id", "projeto_id"]
-            isOneToOne: false
-            referencedRelation: "projetos"
-            referencedColumns: ["tenant_id", "id"]
           },
         ]
       }
