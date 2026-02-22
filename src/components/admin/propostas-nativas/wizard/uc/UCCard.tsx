@@ -4,10 +4,12 @@ import { AlertCircle, MoreVertical, Pencil, Settings2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { type UCData, type RegraCompensacao, type GrupoTarifario, FASE_TENSAO_OPTIONS, SUBGRUPO_BT, SUBGRUPO_MT, SUBGRUPO_MT_LABELS } from "../types";
 import { resolveGrupoFromSubgrupo } from "@/lib/validateGrupoConsistency";
 import { useFetchTarifaSubgrupo, parseSubgrupoModalidade, fetchAvailableSubgrupos } from "@/hooks/useConcessionariaTarifaSubgrupo";
@@ -91,6 +93,7 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
   const resolvedGrupo = resolveGrupoFromSubgrupo(uc.subgrupo) || uc.grupo_tarifario;
   const { fetchTarifa } = useFetchTarifaSubgrupo();
   const [dynamicSubgruposMT, setDynamicSubgruposMT] = useState<Array<{ value: string; label: string }> | null>(null);
+  const [tarifaDialogOpen, setTarifaDialogOpen] = useState(false);
   const prevSubgrupoRef = useRef(uc.subgrupo);
   const prevDistRef = useRef(uc.distribuidora_id);
 
@@ -364,38 +367,31 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
 
             <div className="border-t border-border/40 my-1.5" />
 
-            {/* Tarifas Ponta / Fora Ponta */}
+            {/* Tarifas Ponta / Fora Ponta — click opens dialog */}
             <Section>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-semibold text-foreground">Tarifa Ponta</p>
-                  <div className="space-y-0.5 pl-1 border-l-2 border-secondary/30">
-                    <EditableValue label="TE" value={uc.tarifa_te_p} onChange={v => update("tarifa_te_p", v)} />
-                    <br />
-                    <EditableValue label="TUSD" value={uc.tarifa_tusd_p} onChange={v => update("tarifa_tusd_p", v)} />
-                    <br />
-                    <EditableValue
-                      label={isGD3 ? "Tarifação" : "FioB"}
-                      value={isGD3 ? (uc.tarifa_tarifacao_p || 0) : uc.tarifa_fio_b_p}
-                      onChange={v => isGD3 ? update("tarifa_tarifacao_p", v) : update("tarifa_fio_b_p", v)}
-                    />
+              <button
+                onClick={() => setTarifaDialogOpen(true)}
+                className="w-full text-left"
+              >
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold text-foreground flex items-center gap-1">Tarifa Ponta <Pencil className="h-2.5 w-2.5 text-secondary" /></p>
+                    <div className="space-y-0.5 pl-1 border-l-2 border-secondary/30 text-[10px] text-secondary">
+                      <span>TE: R${(uc.tarifa_te_p || 0).toFixed(5).replace(".", ",")}</span><br />
+                      <span>TUSD: R${(uc.tarifa_tusd_p || 0).toFixed(5).replace(".", ",")}</span><br />
+                      <span>{isGD3 ? "Tarifação" : "FioB"}: R${(isGD3 ? (uc.tarifa_tarifacao_p || 0) : (uc.tarifa_fio_b_p || 0)).toFixed(5).replace(".", ",")}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-[11px] font-semibold text-foreground flex items-center gap-1">Tarifa Fora Ponta <Pencil className="h-2.5 w-2.5 text-secondary" /></p>
+                    <div className="space-y-0.5 pl-1 border-l-2 border-primary/30 text-[10px] text-secondary">
+                      <span>TE: R${(uc.tarifa_te_fp || 0).toFixed(5).replace(".", ",")}</span><br />
+                      <span>TUSD: R${(uc.tarifa_tusd_fp || 0).toFixed(5).replace(".", ",")}</span><br />
+                      <span>{isGD3 ? "Tarifação" : "FioB"}: R${(isGD3 ? (uc.tarifa_tarifacao_fp || 0) : (uc.tarifa_fio_b_fp || 0)).toFixed(5).replace(".", ",")}</span>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <p className="text-[11px] font-semibold text-foreground">Tarifa Fora Ponta</p>
-                  <div className="space-y-0.5 pl-1 border-l-2 border-primary/30">
-                    <EditableValue label="TE" value={uc.tarifa_te_fp} onChange={v => update("tarifa_te_fp", v)} />
-                    <br />
-                    <EditableValue label="TUSD" value={uc.tarifa_tusd_fp} onChange={v => update("tarifa_tusd_fp", v)} />
-                    <br />
-                    <EditableValue
-                      label={isGD3 ? "Tarifação" : "FioB"}
-                      value={isGD3 ? (uc.tarifa_tarifacao_fp || 0) : uc.tarifa_fio_b_fp}
-                      onChange={v => isGD3 ? update("tarifa_tarifacao_fp", v) : update("tarifa_fio_b_fp", v)}
-                    />
-                  </div>
-                </div>
-              </div>
+              </button>
             </Section>
 
             <div className="border-t border-border/40 my-1.5" />
@@ -411,19 +407,36 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
             </Section>
           </>
         ) : (
-          /* Tarifas Grupo B */
+          /* Tarifas Grupo B — click opens dialog */
           <Section title="Tarifas">
             <div className="flex items-center gap-4 flex-wrap">
-              <EditableValue label="Tarifa" value={uc.tarifa_distribuidora} onChange={v => update("tarifa_distribuidora", v)} />
-              <EditableValue
-                label={isGD3 ? "Tarifação" : "FioB"}
-                value={isGD3 ? (uc.tarifa_tarifacao_fp || 0) : uc.tarifa_fio_b}
-                onChange={v => isGD3 ? update("tarifa_tarifacao_fp", v) : update("tarifa_fio_b", v)}
-              />
+              <button
+                onClick={() => setTarifaDialogOpen(true)}
+                className="text-[10px] text-secondary hover:underline inline-flex items-center gap-0.5"
+              >
+                Tarifa: R${uc.tarifa_distribuidora.toFixed(5).replace(".", ",")} <Pencil className="h-2.5 w-2.5" />
+              </button>
+              <button
+                onClick={() => setTarifaDialogOpen(true)}
+                className="text-[10px] text-secondary hover:underline inline-flex items-center gap-0.5"
+              >
+                {isGD3 ? "Tarifação" : "FioB"}: R${(isGD3 ? (uc.tarifa_tarifacao_fp || 0) : uc.tarifa_fio_b).toFixed(5).replace(".", ",")} <Pencil className="h-2.5 w-2.5" />
+              </button>
             </div>
           </Section>
         )}
       </div>
+
+      {/* ── Tarifa Edit Dialog ── */}
+      <TarifaEditDialog
+        open={tarifaDialogOpen}
+        onOpenChange={setTarifaDialogOpen}
+        uc={uc}
+        index={index}
+        isGD3={isGD3}
+        isGrupoA={isGrupoA}
+        onChange={onChange}
+      />
 
       {/* ── Footer ── */}
       <div className="border-t border-border/50 px-3 py-1.5 mt-auto">
@@ -432,5 +445,153 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
         </button>
       </div>
     </div>
+  );
+}
+
+/* ── Tarifa Edit Dialog ── */
+function TarifaEditDialog({ open, onOpenChange, uc, index, isGD3, isGrupoA, onChange }: {
+  open: boolean;
+  onOpenChange: (o: boolean) => void;
+  uc: UCData;
+  index: number;
+  isGD3: boolean;
+  isGrupoA: boolean;
+  onChange: (uc: UCData) => void;
+}) {
+  const [tarifa, setTarifa] = useState(0);
+  const [fioB, setFioB] = useState(0);
+  // Grupo A fields
+  const [teP, setTeP] = useState(0);
+  const [tusdP, setTusdP] = useState(0);
+  const [fioBP, setFioBP] = useState(0);
+  const [teFP, setTeFP] = useState(0);
+  const [tusdFP, setTusdFP] = useState(0);
+  const [fioBFP, setFioBFP] = useState(0);
+
+  useEffect(() => {
+    if (!open) return;
+    if (isGrupoA) {
+      setTeP(uc.tarifa_te_p || 0);
+      setTusdP(uc.tarifa_tusd_p || 0);
+      setFioBP(isGD3 ? (uc.tarifa_tarifacao_p || 0) : (uc.tarifa_fio_b_p || 0));
+      setTeFP(uc.tarifa_te_fp || 0);
+      setTusdFP(uc.tarifa_tusd_fp || 0);
+      setFioBFP(isGD3 ? (uc.tarifa_tarifacao_fp || 0) : (uc.tarifa_fio_b_fp || 0));
+    } else {
+      setTarifa(uc.tarifa_distribuidora || 0);
+      setFioB(isGD3 ? (uc.tarifa_tarifacao_fp || 0) : (uc.tarifa_fio_b || 0));
+    }
+  }, [open, uc, isGrupoA, isGD3]);
+
+  const handleSave = () => {
+    const updated = { ...uc };
+    if (isGrupoA) {
+      updated.tarifa_te_p = teP;
+      updated.tarifa_tusd_p = tusdP;
+      if (isGD3) updated.tarifa_tarifacao_p = fioBP;
+      else updated.tarifa_fio_b_p = fioBP;
+      updated.tarifa_te_fp = teFP;
+      updated.tarifa_tusd_fp = tusdFP;
+      if (isGD3) updated.tarifa_tarifacao_fp = fioBFP;
+      else updated.tarifa_fio_b_fp = fioBFP;
+    } else {
+      updated.tarifa_distribuidora = tarifa;
+      if (isGD3) updated.tarifa_tarifacao_fp = fioB;
+      else updated.tarifa_fio_b = fioB;
+    }
+    onChange(updated);
+    onOpenChange(false);
+  };
+
+  const ucLabel = index === 0 ? `${index + 1}. Unidade (Geradora)` : `${index + 1}. Unidade`;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-base">{ucLabel}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          {isGrupoA ? (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <p className="text-xs font-semibold">Ponta</p>
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">TE <span className="text-destructive">*</span></Label>
+                    <Input type="number" step="any" value={teP || ""} onChange={e => setTeP(Number(e.target.value))} className="h-9 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">TUSD <span className="text-destructive">*</span></Label>
+                    <Input type="number" step="any" value={tusdP || ""} onChange={e => setTusdP(Number(e.target.value))} className="h-9 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{isGD3 ? "Tarifação" : "FioB"} <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <Input type="number" step="any" value={fioBP || ""} onChange={e => setFioBP(Number(e.target.value))} className="h-9 text-sm pr-16" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$/kWh</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-3">
+                <p className="text-xs font-semibold">Fora Ponta</p>
+                <div className="space-y-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">TE <span className="text-destructive">*</span></Label>
+                    <Input type="number" step="any" value={teFP || ""} onChange={e => setTeFP(Number(e.target.value))} className="h-9 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">TUSD <span className="text-destructive">*</span></Label>
+                    <Input type="number" step="any" value={tusdFP || ""} onChange={e => setTusdFP(Number(e.target.value))} className="h-9 text-sm" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{isGD3 ? "Tarifação" : "FioB"} <span className="text-destructive">*</span></Label>
+                    <div className="relative">
+                      <Input type="number" step="any" value={fioBFP || ""} onChange={e => setFioBFP(Number(e.target.value))} className="h-9 text-sm pr-16" />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$/kWh</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-1">
+                <Label className="text-xs">Tarifa <span className="text-destructive">*</span></Label>
+                <Input
+                  type="number"
+                  step="any"
+                  value={tarifa || ""}
+                  onChange={e => setTarifa(Number(e.target.value))}
+                  className="h-10 text-sm"
+                  placeholder="R$ 0,00000"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">TUSD {isGD3 ? "Tarifação" : "Fio B"} <span className="text-destructive">*</span></Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    step="any"
+                    value={fioB || ""}
+                    onChange={e => setFioB(Number(e.target.value))}
+                    className="h-10 text-sm pr-16"
+                  />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$/kWh</span>
+                </div>
+                {!isGD3 && (
+                  <p className="text-[10px] text-secondary">100% TUSD Fio B</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        <div className="flex items-center justify-end gap-3 pt-2 border-t">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
+          <Button onClick={handleSave} className="bg-secondary hover:bg-secondary/90 text-secondary-foreground">Salvar</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
