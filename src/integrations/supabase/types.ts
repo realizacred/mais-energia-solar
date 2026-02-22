@@ -12060,19 +12060,28 @@ export type Database = {
       }
       tenant_counters: {
         Row: {
+          created_at: string
           entity: string
+          last_value: number | null
           next_value: number
           tenant_id: string
+          updated_at: string
         }
         Insert: {
+          created_at?: string
           entity: string
+          last_value?: number | null
           next_value?: number
           tenant_id: string
+          updated_at?: string
         }
         Update: {
+          created_at?: string
           entity?: string
+          last_value?: number | null
           next_value?: number
           tenant_id?: string
+          updated_at?: string
         }
         Relationships: []
       }
