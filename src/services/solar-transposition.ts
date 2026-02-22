@@ -122,12 +122,11 @@ function extraterrestrialDaily(latRad: number, dayOfYear: number): number {
  * This is the ratio of beam radiation on tilted surface to horizontal.
  */
 function monthlyRb(latRad: number, declRad: number, tiltRad: number, isSouthernHemisphere: boolean): number {
-  // For southern hemisphere, panels face north (azimuth=0°).
-  // latRad is already negative. Klein's formula uses (lat - tilt) where tilt
-  // is positive when tilting TOWARD the equator. In the southern hemisphere,
-  // subtracting a positive tilt from a negative latitude moves it toward zero (equator).
-  // So tiltEffective should be POSITIVE for south hemisphere (same sign as north).
-  const tiltEffective = tiltRad; // Always positive — lat sign handles hemisphere
+  // Klein's formula uses (lat - tiltEffective) as effective latitude.
+  // For southern hemisphere (lat < 0), panels face north. To move effective
+  // latitude TOWARD the equator: lat - (-tilt) = lat + tilt = -20° + 10° = -10° ✓
+  // For northern hemisphere (lat > 0), panels face south: lat - tilt = 20° - 10° = 10° ✓
+  const tiltEffective = isSouthernHemisphere ? -tiltRad : tiltRad;
   
   const ws = sunsetHourAngle(latRad, declRad);
   const wsT = sunsetHourAngle(latRad - tiltEffective, declRad);
