@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, ChevronDown, Check } from "lucide-react";
+import { Search, X, Filter, List, Layers, Tag, Users, Pencil, Plus, ArrowUpDown, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import type { ProjetoFunil, ProjetoEtiqueta } from "@/hooks/useProjetoPipeline";
 import { cn } from "@/lib/utils";
 
@@ -63,17 +58,8 @@ export function ProjetoFilters({
   allowAllFunis,
 }: Props) {
   const hasActive = filterConsultor !== "todos" || filterStatus !== "todos" || filterEtiquetas.length > 0 || searchTerm.length > 0;
-  const [funilPopoverOpen, setFunilPopoverOpen] = useState(false);
-  const [funilSearch, setFunilSearch] = useState("");
 
   const activeFunis = funis.filter(f => f.ativo);
-  const filteredFunis = useMemo(() => {
-    if (!funilSearch.trim()) return activeFunis;
-    const q = funilSearch.toLowerCase();
-    return activeFunis.filter(f => f.nome.toLowerCase().includes(q));
-  }, [activeFunis, funilSearch]);
-
-  const selectedFunilNome = filterFunil === "todos" ? "Todos os funis" : (funis.find(f => f.id === filterFunil)?.nome || "Selecione");
 
   const toggleEtiqueta = (id: string) => {
     if (filterEtiquetas.includes(id)) {
@@ -128,104 +114,60 @@ export function ProjetoFilters({
 
         {/* Right: Filters with labels above */}
         <div className="grid grid-cols-2 sm:flex sm:items-end gap-2 sm:gap-3 sm:ml-auto">
-          {/* Funil */}
+          {/* Funil - Tabs horizontais */}
           <div className="flex flex-col gap-1">
             <label className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
               <Filter className="h-3 w-3" />
               Funil
             </label>
-            <Popover open={funilPopoverOpen} onOpenChange={(v) => { setFunilPopoverOpen(v); if (!v) setFunilSearch(""); }}>
-              <PopoverTrigger asChild>
-                <button className="flex items-center justify-between w-full sm:w-[170px] h-9 px-3 text-xs rounded-md border border-border/60 bg-card hover:bg-accent/50 transition-colors">
-                  <span className="truncate font-medium">{selectedFunilNome}</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0 ml-1" />
+            <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-none rounded-lg border border-border/60 bg-muted/40 p-0.5">
+              {allowAllFunis && (
+                <button
+                  onClick={() => onFilterFunilChange("todos")}
+                  className={cn(
+                    "px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap shrink-0",
+                    filterFunil === "todos"
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                  )}
+                >
+                  Todos
                 </button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-[220px] p-0" sideOffset={4}>
-                {/* Search */}
-                <div className="p-2 border-b border-border/40">
-                  <div className="relative">
-                    <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Procurar..."
-                      value={funilSearch}
-                      onChange={e => setFunilSearch(e.target.value)}
-                      className="h-8 pl-7 text-xs"
-                      autoFocus
-                    />
-                  </div>
-                </div>
-                {/* List */}
-                <div className="max-h-[200px] overflow-y-auto py-1">
-                  {allowAllFunis && (
-                    <div
-                      className={cn(
-                        "flex items-center px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors",
-                        filterFunil === "todos" && "bg-accent/30"
-                      )}
-                    >
-                      <button
-                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                        onClick={() => { onFilterFunilChange("todos"); setFunilPopoverOpen(false); setFunilSearch(""); }}
-                      >
-                        {filterFunil === "todos" && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
-                        <span className={cn("text-xs truncate", filterFunil === "todos" ? "font-semibold text-foreground" : "text-foreground/80")}>Todos os funis</span>
-                      </button>
-                    </div>
-                  )}
-                  {filteredFunis.map(f => (
-                    <div
-                      key={f.id}
-                      className={cn(
-                        "flex items-center justify-between px-3 py-2 cursor-pointer hover:bg-accent/50 transition-colors group",
-                        filterFunil === f.id && "bg-accent/30"
-                      )}
-                    >
-                      <button
-                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                        onClick={() => { onFilterFunilChange(f.id); setFunilPopoverOpen(false); setFunilSearch(""); }}
-                      >
-                        {filterFunil === f.id && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
-                        <span className={cn("text-xs truncate", filterFunil === f.id ? "font-semibold text-foreground" : "text-foreground/80")}>{f.nome}</span>
-                      </button>
-                      {onEditEtapas && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setFunilPopoverOpen(false); onEditEtapas(f.id); }}
-                          className="p-1 rounded hover:bg-muted transition-colors opacity-60 hover:opacity-100"
-                          title={`Editar etapas de "${f.nome}"`}
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-primary" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  {filteredFunis.length === 0 && (
-                    <p className="text-xs text-muted-foreground text-center py-3">Nenhum funil encontrado</p>
-                  )}
-                </div>
-                {/* Actions */}
-                <div className="border-t border-border/40 p-1.5 space-y-0.5">
-                  {onCreateFunil && (
+              )}
+              {activeFunis.map(f => (
+                <div key={f.id} className="flex items-center shrink-0">
+                  <button
+                    onClick={() => onFilterFunilChange(f.id)}
+                    className={cn(
+                      "px-3 py-1.5 text-xs font-medium rounded-md transition-all whitespace-nowrap",
+                      filterFunil === f.id
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground hover:bg-background/50"
+                    )}
+                  >
+                    {f.nome}
+                  </button>
+                  {onEditEtapas && (
                     <button
-                      onClick={() => { setFunilPopoverOpen(false); onCreateFunil(); }}
-                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs text-primary hover:bg-primary/5 rounded-md transition-colors font-medium"
+                      onClick={(e) => { e.stopPropagation(); onEditEtapas(f.id); }}
+                      className="p-0.5 rounded hover:bg-muted transition-colors -ml-0.5"
+                      title={`Editar etapas de "${f.nome}"`}
                     >
-                      <Plus className="h-3.5 w-3.5" />
-                      Criar novo
-                    </button>
-                  )}
-                  {onReorderFunis && (
-                    <button
-                      onClick={() => { setFunilPopoverOpen(false); onReorderFunis(); }}
-                      className="flex items-center gap-2 w-full px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-accent/50 rounded-md transition-colors"
-                    >
-                      <ArrowUpDown className="h-3.5 w-3.5" />
-                      Reorganizar
+                      <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground transition-colors" />
                     </button>
                   )}
                 </div>
-              </PopoverContent>
-            </Popover>
+              ))}
+              {onCreateFunil && (
+                <button
+                  onClick={onCreateFunil}
+                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors shrink-0"
+                  title="Criar novo funil"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Consultor */}
