@@ -164,17 +164,19 @@ export function useWizardPersistence() {
         return null;
       }
 
-      // Update proposta
+      // Update proposta (TEXT column, CHECK: rascunho/gerada/enviada/...)
+      const propostaUpdate: any = {
+        titulo: params.titulo || "Proposta sem título",
+        updated_at: new Date().toISOString(),
+      };
+      if (setActive) propostaUpdate.status = "gerada";
+
       await supabase
         .from("propostas_nativas")
-        .update({
-          titulo: params.titulo || "Proposta sem título",
-          status: setActive ? "gerada" : undefined,
-          updated_at: new Date().toISOString(),
-        } as any)
+        .update(propostaUpdate)
         .eq("id", params.propostaId);
 
-      // Update versão
+      // Update versão (ENUM column: draft/generated/sent/...)
       const updateData: any = {
         potencia_kwp: params.potenciaKwp,
         valor_total: params.precoFinal,
@@ -182,7 +184,7 @@ export function useWizardPersistence() {
         updated_at: new Date().toISOString(),
       };
       if (setActive) {
-        updateData.status = "gerada";
+        updateData.status = "generated";
         updateData.gerado_em = new Date().toISOString();
       }
 
