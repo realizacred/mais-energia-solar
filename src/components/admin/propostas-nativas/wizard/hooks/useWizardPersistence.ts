@@ -86,22 +86,36 @@ export function useWizardPersistence() {
           titulo: params.titulo,
         });
 
+        const rpcPayload = {
+          p_titulo: params.titulo || "Proposta sem título",
+          p_lead_id: params.leadId || null,
+          p_projeto_id: params.projetoId || null,
+          p_deal_id: params.dealId || null,
+          p_origem: "native",
+          p_potencia_kwp: params.potenciaKwp,
+          p_valor_total: params.precoFinal,
+          p_snapshot: params.snapshot as any,
+        };
+
+        console.log("[saveDraft] RPC payload keys:", Object.keys(rpcPayload));
+        console.log("[saveDraft] RPC payload sizes:", {
+          titulo: (rpcPayload.p_titulo || "").length,
+          snapshotKeys: Object.keys(params.snapshot || {}).length,
+          potenciaKwp: params.potenciaKwp,
+          precoFinal: params.precoFinal,
+          leadId: params.leadId,
+          dealId: params.dealId,
+          projetoId: params.projetoId,
+        });
+
         const { data, error } = await supabase.rpc(
           "create_proposta_nativa_atomic" as any,
-          {
-            p_titulo: params.titulo || "Proposta sem título",
-            p_lead_id: params.leadId || null,
-            p_projeto_id: params.projetoId || null,
-            p_deal_id: params.dealId || null,
-            p_origem: "native",
-            p_potencia_kwp: params.potenciaKwp,
-            p_valor_total: params.precoFinal,
-            p_snapshot: params.snapshot as any,
-          }
+          rpcPayload
         );
 
         if (error) {
-          console.error("[saveDraft] RPC error:", error);
+          console.error("[saveDraft] RPC error:", JSON.stringify(error, null, 2));
+          console.error("[saveDraft] RPC error code:", error.code, "details:", error.details, "hint:", error.hint);
           toast({ title: "Erro ao criar proposta", description: error.message, variant: "destructive" });
           return null;
         }
