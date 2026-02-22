@@ -148,12 +148,19 @@ export function StageDealCard({
         {/* Row 1: Header — Name + Value */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <p className={cn(
-              "text-[13px] font-semibold leading-tight line-clamp-1",
-              isInactive ? "text-muted-foreground" : "text-foreground"
-            )}>
-              {deal.customer_name || deal.deal_title || "Sem nome"}
-            </p>
+            <div className="flex items-center gap-1.5">
+              <p className={cn(
+                "text-[13px] font-semibold leading-tight line-clamp-1",
+                isInactive ? "text-muted-foreground" : "text-foreground"
+              )}>
+                {deal.customer_name || deal.deal_title || "Sem nome"}
+              </p>
+              {deal.deal_num != null && (
+                <span className="text-[9px] font-mono font-semibold text-primary/60 shrink-0">
+                  #{deal.deal_num}
+                </span>
+              )}
+            </div>
             {(deal.customer_city || deal.customer_state) && (
               <p className="text-[10px] text-muted-foreground mt-0.5 truncate">
                 {[deal.customer_city, deal.customer_state].filter(Boolean).join(", ")}
