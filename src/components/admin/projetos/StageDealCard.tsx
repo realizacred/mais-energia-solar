@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { formatBRLCompact as formatBRL } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   ContextMenu,
@@ -237,64 +237,66 @@ export function StageDealCard({
 
         {/* Row 5: Quick action icons */}
         <div className="flex items-center gap-1 pt-1.5 border-t border-border/40">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="action-icon-btn action-icon-btn--whatsapp"
-                onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
-                disabled={!deal.customer_phone}
-              >
-                <MessageSquare className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">WhatsApp</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="action-icon-btn action-icon-btn--proposal"
-                onClick={(e) => { e.stopPropagation(); onClick(); }}
-              >
-                <FileText className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Propostas</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="action-icon-btn action-icon-btn--phone"
-                onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
-                disabled={!deal.customer_phone}
-              >
-                <Phone className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Ligar</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                className="action-icon-btn action-icon-btn--calendar"
-                onClick={(e) => { e.stopPropagation(); onSchedule?.(deal); }}
-              >
-                <Calendar className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent className="text-xs">Agendar</TooltipContent>
-          </Tooltip>
-          {deal.notas?.trim() && (
+          <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="action-icon-btn action-icon-btn--note">
-                  <StickyNote className="h-4 w-4" />
-                </span>
+                <button
+                  className="action-icon-btn action-icon-btn--whatsapp"
+                  onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) setWhatsappDialogOpen(true); }}
+                  disabled={!deal.customer_phone}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </button>
               </TooltipTrigger>
-              <TooltipContent className="text-xs max-w-[250px]">
-                <p className="whitespace-pre-wrap">{deal.notas}</p>
-              </TooltipContent>
+              <TooltipContent className="text-xs">WhatsApp</TooltipContent>
             </Tooltip>
-          )}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="action-icon-btn action-icon-btn--proposal"
+                  onClick={(e) => { e.stopPropagation(); onClick(); }}
+                >
+                  <FileText className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">Propostas</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="action-icon-btn action-icon-btn--phone"
+                  onClick={(e) => { e.stopPropagation(); if (deal.customer_phone) window.open(`tel:${deal.customer_phone}`); }}
+                  disabled={!deal.customer_phone}
+                >
+                  <Phone className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">Ligar</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  className="action-icon-btn action-icon-btn--calendar"
+                  onClick={(e) => { e.stopPropagation(); onSchedule?.(deal); }}
+                >
+                  <Calendar className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="text-xs">Agendar</TooltipContent>
+            </Tooltip>
+            {deal.notas?.trim() && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="action-icon-btn action-icon-btn--note">
+                    <StickyNote className="h-4 w-4" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent className="text-xs max-w-[250px]">
+                  <p className="whitespace-pre-wrap">{deal.notas}</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </TooltipProvider>
 
           {/* Spacer + Owner */}
           <div className="ml-auto flex items-center gap-1.5">
