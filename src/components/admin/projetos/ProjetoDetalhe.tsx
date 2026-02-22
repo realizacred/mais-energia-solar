@@ -1008,49 +1008,37 @@ function GerenciamentoTab({
             </CardContent>
           </Card>
 
-          {/* Card: Campos Importantes */}
-          <Card>
-            <CardHeader className="pb-2 p-4">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <AlertCircle className="h-3.5 w-3.5 text-primary" />
-                Campos Importantes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="space-y-2 text-xs">
-                <InfoRow label="Funil" value={currentPipeline?.name || "—"} />
-                <InfoRow label="Etapa" value={currentStage?.name || "—"} />
-                <InfoRow label="Valor" value={formatBRL(deal.value)} />
-                <InfoRow label="Responsável" value={ownerName || "—"} />
-                <InfoRow label="Criado em" value={formatDate(deal.created_at)} />
-                {deal.expected_close_date && (
-                  <InfoRow label="Previsão" value={new Date(deal.expected_close_date).toLocaleDateString("pt-BR")} />
-                )}
-                {/* Custom fields marked as important */}
-                {importantFields.length > 0 && (
-                  <>
-                    <div className="border-t border-border/40 my-2" />
-                    {importantFields.map(field => {
-                      const val = customFieldValues[field.id];
-                      let displayValue = "—";
-                      if (val) {
-                        if (field.field_type === "boolean") {
-                          displayValue = val.value_boolean ? "Sim" : "Não";
-                        } else if (field.field_type === "number" || field.field_type === "currency") {
-                          displayValue = val.value_number != null ? String(val.value_number) : "—";
-                        } else if (field.field_type === "date") {
-                          displayValue = val.value_date ? new Date(val.value_date).toLocaleDateString("pt-BR") : "—";
-                        } else {
-                          displayValue = val.value_text || "—";
-                        }
+          {/* Custom fields marked as important — only if any exist */}
+          {importantFields.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2 p-4">
+                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                  <AlertCircle className="h-3.5 w-3.5 text-primary" />
+                  Campos Importantes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <div className="space-y-2 text-xs">
+                  {importantFields.map(field => {
+                    const val = customFieldValues[field.id];
+                    let displayValue = "—";
+                    if (val) {
+                      if (field.field_type === "boolean") {
+                        displayValue = val.value_boolean ? "Sim" : "Não";
+                      } else if (field.field_type === "number" || field.field_type === "currency") {
+                        displayValue = val.value_number != null ? String(val.value_number) : "—";
+                      } else if (field.field_type === "date") {
+                        displayValue = val.value_date ? new Date(val.value_date).toLocaleDateString("pt-BR") : "—";
+                      } else {
+                        displayValue = val.value_text || "—";
                       }
-                      return <InfoRow key={field.id} label={field.title} value={displayValue} />;
-                    })}
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                    }
+                    return <InfoRow key={field.id} label={field.title} value={displayValue} />;
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Card: Documentos Pendentes */}
           <Card>
