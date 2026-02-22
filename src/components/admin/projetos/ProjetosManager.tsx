@@ -187,13 +187,11 @@ export function ProjetosManager() {
         pipelines={activePipelines.map(p => ({ id: p.id, name: p.name }))}
         stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position, is_closed: s.is_closed }))}
         onSubmit={async (data) => {
-          let customerId: string | undefined;
+          // ✅ 1) Se selecionou cliente existente, usa ele e NÃO cria outro
+          let customerId: string | undefined = data.clienteId || undefined;
 
-          // 1) If user selected an existing client, reuse its ID directly
-          if (data.clienteId) {
-            customerId = data.clienteId;
-          } else if (data.cliente.nome.trim()) {
-            // 2) Use RPC get_or_create_cliente — handles dedup by telefone_normalized
+          // ✅ 2) Se não selecionou, chama RPC (deduplica por telefone_normalized via RLS)
+          if (!customerId && data.cliente?.nome?.trim()) {
             const { data: clienteId, error } = await supabase.rpc(
               "get_or_create_cliente" as any,
               {
@@ -211,9 +209,13 @@ export function ProjetosManager() {
                 p_complemento: data.cliente.complemento || null,
               }
             );
-            if (!error && clienteId) customerId = clienteId as string;
+
+            if (error) throw error;
+            if (!clienteId) throw new Error("RPC get_or_create_cliente não retornou ID.");
+            customerId = clienteId as string;
           }
 
+          // ✅ 3) Cria o projeto/deal vinculando o cliente certo
           await createDeal({
             title: data.nome || data.cliente.nome,
             ownerId: data.consultorId || undefined,

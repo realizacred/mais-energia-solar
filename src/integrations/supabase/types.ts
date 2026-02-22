@@ -15579,23 +15579,42 @@ export type Database = {
         }[]
       }
       get_my_tenant_status: { Args: never; Returns: Json }
-      get_or_create_cliente: {
-        Args: {
-          p_bairro?: string
-          p_cep?: string
-          p_cidade?: string
-          p_complemento?: string
-          p_cpf_cnpj?: string
-          p_email?: string
-          p_empresa?: string
-          p_estado?: string
-          p_nome: string
-          p_numero?: string
-          p_rua?: string
-          p_telefone: string
-        }
-        Returns: string
-      }
+      get_or_create_cliente:
+        | {
+            Args: {
+              p_bairro?: string
+              p_cep?: string
+              p_cidade?: string
+              p_complemento?: string
+              p_cpf_cnpj?: string
+              p_email?: string
+              p_empresa?: string
+              p_estado?: string
+              p_nome: string
+              p_numero?: string
+              p_rua?: string
+              p_telefone: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_bairro?: string
+              p_cep?: string
+              p_cidade?: string
+              p_complemento?: string
+              p_cpf_cnpj?: string
+              p_email?: string
+              p_empresa?: string
+              p_estado?: string
+              p_nome: string
+              p_numero?: string
+              p_rua?: string
+              p_telefone: string
+              p_tenant_id?: string
+            }
+            Returns: string
+          }
       get_payback_config: {
         Args: never
         Returns: {
@@ -15813,6 +15832,7 @@ export type Database = {
         Returns: number
       }
       normalize_br_phone: { Args: { phone: string }; Returns: string }
+      normalize_phone: { Args: { p: string }; Returns: string }
       normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
