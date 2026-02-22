@@ -40,13 +40,16 @@ interface Props {
   pipelines: PipelineInfo[];
   allStagesMap: Map<string, StageInfo[]>;
   onMembershipChange?: () => void;
+  /** ID do pipeline a selecionar por default (ex: quando vem do kanban) */
+  initialPipelineId?: string;
 }
 
-export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange }: Props) {
+export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, allStagesMap, onMembershipChange, initialPipelineId }: Props) {
   const isLocked = dealStatus === "lost" || dealStatus === "won";
   const [memberships, setMemberships] = useState<DealPipelineMembership[]>([]);
   const [loading, setLoading] = useState(true);
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [activePipelineId, setActivePipelineId] = useState<string | null>(initialPipelineId || null);
   const [expandedPipeline, setExpandedPipeline] = useState<string | null>(null);
   const [saving, setSaving] = useState<string | null>(null);
 
@@ -76,6 +79,18 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
   };
 
   useEffect(() => { fetchMemberships(); }, [dealId, pipelines.length]);
+
+  // Auto-select first pipeline tab when memberships load
+  useEffect(() => {
+    if (memberships.length > 0 && !activePipelineId) {
+      const initial = initialPipelineId && memberships.some(m => m.pipeline_id === initialPipelineId)
+        ? initialPipelineId
+        : memberships[0].pipeline_id;
+      setActivePipelineId(initial);
+    }
+  }, [memberships, initialPipelineId]);
+
+  const activeMembership = memberships.find(m => m.pipeline_id === activePipelineId) || null;
 
   const availablePipelines = useMemo(() =>
     pipelines.filter(p => !memberships.some(m => m.pipeline_id === p.id)),
@@ -233,111 +248,129 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
         )}
       </div>
 
-      {/* Pipeline memberships - each with its own stepper */}
-      <div className="space-y-3">
-        {memberships.map(membership => {
-          const pStages = (allStagesMap.get(membership.pipeline_id) || []).sort((a, b) => a.position - b.position);
-          const currentIndex = pStages.findIndex(s => s.id === membership.stage_id);
-          const isComercial = membership.pipeline_name.toLowerCase() === "comercial";
+      {/* Tabs for pipeline memberships */}
+      {memberships.length > 0 && (
+        <div className="space-y-2">
+          {/* Tab bar */}
+          <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+            {memberships.map(membership => (
+              <button
+                key={membership.id}
+                onClick={() => setActivePipelineId(membership.pipeline_id)}
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
+                  activePipelineId === membership.pipeline_id
+                    ? "bg-secondary/10 text-secondary border border-secondary/30 shadow-sm"
+                    : "bg-muted/40 text-muted-foreground hover:bg-muted/80 border border-transparent"
+                )}
+              >
+                {membership.pipeline_name}
+                <Badge variant="outline" className="text-[9px] h-4 px-1 border-current/20">
+                  {membership.stage_name}
+                </Badge>
+              </button>
+            ))}
+          </div>
 
-          return (
-            <div key={membership.id} className="rounded-xl border border-border/60 bg-card p-3 space-y-2">
-              {/* Pipeline header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">{membership.pipeline_name}</span>
-                  <Badge variant="outline" className="text-[10px]">
-                    {membership.stage_name}
-                  </Badge>
+          {/* Active pipeline stepper */}
+          {activeMembership && (() => {
+            const pStages = (allStagesMap.get(activeMembership.pipeline_id) || []).sort((a, b) => a.position - b.position);
+            const currentIndex = pStages.findIndex(s => s.id === activeMembership.stage_id);
+            const isComercial = activeMembership.pipeline_name.toLowerCase() === "comercial";
+
+            return (
+              <div className="rounded-xl border border-border/60 bg-card p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">{activeMembership.pipeline_name}</span>
+                  {!isComercial && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeFromPipeline(activeMembership.id)}
+                          disabled={saving === activeMembership.id || isLocked}
+                        >
+                          {saving === activeMembership.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <X className="h-3 w-3" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left" className="text-xs">
+                        Remover deste funil
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
-                {!isComercial && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeFromPipeline(membership.id)}
-                        disabled={saving === membership.id || isLocked}
-                      >
-                        {saving === membership.id ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <X className="h-3 w-3" />
-                        )}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="left" className="text-xs">
-                      Remover deste funil
-                    </TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
 
-              {/* Mini stepper */}
-              <div className="relative pt-1">
-                <div className="absolute top-[14px] left-0 right-0 h-0.5 bg-border rounded-full" />
-                {pStages.length > 1 && (
-                  <motion.div
-                    className="absolute top-[14px] left-0 h-0.5 bg-success rounded-full"
-                    initial={{ width: "0%" }}
-                    animate={{ width: `${(currentIndex / (pStages.length - 1)) * 100}%` }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                  />
-                )}
-                <div className="relative flex justify-between">
-                  {pStages.map((stage, i) => {
-                    const isPast = i < currentIndex;
-                    const isCurrent = i === currentIndex;
-                    const isFuture = i > currentIndex;
+                {/* Mini stepper */}
+                <div className="relative pt-1">
+                  <div className="absolute top-[14px] left-0 right-0 h-0.5 bg-border rounded-full" />
+                  {pStages.length > 1 && (
+                    <motion.div
+                      className="absolute top-[14px] left-0 h-0.5 bg-success rounded-full"
+                      initial={{ width: "0%" }}
+                      animate={{ width: `${(currentIndex / (pStages.length - 1)) * 100}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    />
+                  )}
+                  <div className="relative flex justify-between">
+                    {pStages.map((stage, i) => {
+                      const isPast = i < currentIndex;
+                      const isCurrent = i === currentIndex;
+                      const isFuture = i > currentIndex;
 
-                    return (
-                      <Tooltip key={stage.id}>
-                        <TooltipTrigger asChild>
-                          <button
-                            onClick={() => {
-                              if (stage.id !== membership.stage_id) {
-                                changeStage(membership.id, stage.id);
-                              }
-                            }}
-                            className="flex flex-col items-center z-10 group cursor-pointer gap-1"
-                          >
-                            <motion.div
-                              className={cn(
-                                "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
-                                isPast && "bg-success border-success",
-                                isCurrent && "bg-secondary border-secondary ring-2 ring-secondary/30 ring-offset-1 ring-offset-card",
-                                isFuture && "bg-card border-border",
-                                !isCurrent && "group-hover:ring-1 group-hover:ring-primary/20"
-                              )}
-                              animate={{ scale: isCurrent ? 1.15 : 1 }}
-                              transition={{ duration: 0.3 }}
+                      return (
+                        <Tooltip key={stage.id}>
+                          <TooltipTrigger asChild>
+                            <button
+                              onClick={() => {
+                                if (stage.id !== activeMembership.stage_id) {
+                                  changeStage(activeMembership.id, stage.id);
+                                }
+                              }}
+                              className="flex flex-col items-center z-10 group cursor-pointer gap-1"
                             >
-                              {isPast && <Check className="h-2.5 w-2.5 text-success-foreground" />}
-                            </motion.div>
-                            <span className={cn(
-                              "text-[9px] font-medium max-w-[60px] text-center leading-tight",
-                              isPast && "text-success",
-                              isCurrent && "text-secondary font-bold",
-                              isFuture && "text-muted-foreground"
-                            )}>
-                              {stage.name}
-                            </span>
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipContent side="bottom" className="text-xs">
-                          {stage.name} • {stage.probability}%
-                          {isCurrent && " (atual)"}
-                        </TooltipContent>
-                      </Tooltip>
-                    );
-                  })}
+                              <motion.div
+                                className={cn(
+                                  "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
+                                  isPast && "bg-success border-success",
+                                  isCurrent && "bg-secondary border-secondary ring-2 ring-secondary/30 ring-offset-1 ring-offset-card",
+                                  isFuture && "bg-card border-border",
+                                  !isCurrent && "group-hover:ring-1 group-hover:ring-primary/20"
+                                )}
+                                animate={{ scale: isCurrent ? 1.15 : 1 }}
+                                transition={{ duration: 0.3 }}
+                              >
+                                {isPast && <Check className="h-2.5 w-2.5 text-success-foreground" />}
+                              </motion.div>
+                              <span className={cn(
+                                "text-[9px] font-medium max-w-[60px] text-center leading-tight",
+                                isPast && "text-success",
+                                isCurrent && "text-secondary font-bold",
+                                isFuture && "text-muted-foreground"
+                              )}>
+                                {stage.name}
+                              </span>
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent side="bottom" className="text-xs">
+                            {stage.name} • {stage.probability}%
+                            {isCurrent && " (atual)"}
+                          </TooltipContent>
+                        </Tooltip>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })()}
+        </div>
+      )}
     </div>
   );
 }
