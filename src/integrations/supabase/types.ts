@@ -2533,6 +2533,7 @@ export type Database = {
           customer_phone: string | null
           deal_id: string
           deal_kwp: number | null
+          deal_num: number | null
           deal_status: string
           deal_title: string
           deal_value: number
@@ -2554,6 +2555,7 @@ export type Database = {
           customer_phone?: string | null
           deal_id: string
           deal_kwp?: number | null
+          deal_num?: number | null
           deal_status?: string
           deal_title?: string
           deal_value?: number
@@ -2575,6 +2577,7 @@ export type Database = {
           customer_phone?: string | null
           deal_id?: string
           deal_kwp?: number | null
+          deal_num?: number | null
           deal_status?: string
           deal_title?: string
           deal_value?: number
@@ -2767,6 +2770,7 @@ export type Database = {
         Row: {
           created_at: string
           customer_id: string | null
+          deal_num: number | null
           doc_checklist: Json | null
           etiqueta: string | null
           expected_close_date: string | null
@@ -2787,6 +2791,7 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_id?: string | null
+          deal_num?: number | null
           doc_checklist?: Json | null
           etiqueta?: string | null
           expected_close_date?: string | null
@@ -2807,6 +2812,7 @@ export type Database = {
         Update: {
           created_at?: string
           customer_id?: string | null
+          deal_num?: number | null
           doc_checklist?: Json | null
           etiqueta?: string | null
           expected_close_date?: string | null
@@ -7542,6 +7548,24 @@ export type Database = {
           },
         ]
       }
+      projeto_proposta_counters: {
+        Row: {
+          next_value: number
+          projeto_id: string
+          tenant_id: string
+        }
+        Insert: {
+          next_value?: number
+          projeto_id: string
+          tenant_id: string
+        }
+        Update: {
+          next_value?: number
+          projeto_id?: string
+          tenant_id?: string
+        }
+        Relationships: []
+      }
       projetos: {
         Row: {
           area_util_m2: number | null
@@ -7580,6 +7604,7 @@ export type Database = {
           potencia_kwp: number | null
           prazo_estimado_dias: number | null
           prazo_vistoria_dias: number | null
+          projeto_num: number | null
           proposta_id: string | null
           rua_instalacao: string | null
           status: Database["public"]["Enums"]["projeto_status"]
@@ -7631,6 +7656,7 @@ export type Database = {
           potencia_kwp?: number | null
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
+          projeto_num?: number | null
           proposta_id?: string | null
           rua_instalacao?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
@@ -7682,6 +7708,7 @@ export type Database = {
           potencia_kwp?: number | null
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
+          projeto_num?: number | null
           proposta_id?: string | null
           rua_instalacao?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
@@ -9787,6 +9814,7 @@ export type Database = {
           precisao_calculo: string | null
           precisao_motivo: string | null
           projeto_id: string | null
+          proposta_num: number | null
           recusa_motivo: string | null
           recusada_at: string | null
           regra_gd: string | null
@@ -9826,6 +9854,7 @@ export type Database = {
           precisao_calculo?: string | null
           precisao_motivo?: string | null
           projeto_id?: string | null
+          proposta_num?: number | null
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
@@ -9837,7 +9866,7 @@ export type Database = {
           tariff_version_id?: string | null
           template_id?: string | null
           tenant_id: string
-          titulo: string
+          titulo?: string
           updated_at?: string
           validade_dias?: number | null
           versao_atual?: number
@@ -9865,6 +9894,7 @@ export type Database = {
           precisao_calculo?: string | null
           precisao_motivo?: string | null
           projeto_id?: string | null
+          proposta_num?: number | null
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
@@ -12025,6 +12055,24 @@ export type Database = {
           tenant_id?: string
           title?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      tenant_counters: {
+        Row: {
+          entity: string
+          next_value: number
+          tenant_id: string
+        }
+        Insert: {
+          entity: string
+          next_value?: number
+          tenant_id: string
+        }
+        Update: {
+          entity?: string
+          next_value?: number
+          tenant_id?: string
         }
         Relationships: []
       }
@@ -15262,6 +15310,7 @@ export type Database = {
             }
             Returns: Json
           }
+      current_tenant_id: { Args: never; Returns: string }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
       encrypt_secret: {
         Args: { plain: string; secret: string }
@@ -15725,8 +15774,16 @@ export type Database = {
         Args: { _deal_id: string; _to_stage_id: string }
         Returns: Json
       }
+      next_proposta_number: {
+        Args: { p_projeto_id: string; p_tenant_id: string }
+        Returns: number
+      }
       next_proposta_versao_numero: {
         Args: { _proposta_id: string }
+        Returns: number
+      }
+      next_tenant_number: {
+        Args: { p_entity: string; p_tenant_id: string }
         Returns: number
       }
       normalize_br_phone: { Args: { phone: string }; Returns: string }
@@ -15758,11 +15815,28 @@ export type Database = {
           tenant_id: string
         }[]
       }
+      resolve_deal_id_by_num: {
+        Args: { p_deal_num: number; p_tenant_id: string }
+        Returns: string
+      }
       resolve_default_consultor_id: {
         Args: { _tenant_id: string }
         Returns: string
       }
       resolve_phone_to_email: { Args: { _phone: string }; Returns: string }
+      resolve_projeto_id: { Args: { p_projeto_num: number }; Returns: string }
+      resolve_projeto_id_by_num: {
+        Args: { p_projeto_num: number; p_tenant_id: string }
+        Returns: string
+      }
+      resolve_proposta_id_by_num: {
+        Args: {
+          p_projeto_num: number
+          p_proposta_num: number
+          p_tenant_id: string
+        }
+        Returns: string
+      }
       resolve_public_tenant_id: {
         Args: { _consultor_code: string }
         Returns: string

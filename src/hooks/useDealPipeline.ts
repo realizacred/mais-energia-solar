@@ -47,6 +47,7 @@ export interface DealKanbanCard {
   etiqueta: string | null;
   notas: string | null;
   cliente_code: string | null;
+  deal_num: number | null;
   // Enriched proposal data
   proposta_status?: string | null;
   proposta_economia_mensal?: number | null;
@@ -126,7 +127,7 @@ export function useDealPipeline() {
   const fetchDeals = useCallback(async (f: DealFilters) => {
     let query = supabase
       .from("deal_kanban_projection")
-      .select("deal_id, tenant_id, pipeline_id, stage_id, stage_name, stage_position, owner_id, owner_name, customer_name, customer_phone, deal_title, deal_value, deal_kwp, deal_status, stage_probability, last_stage_change, etiqueta, cliente_code")
+      .select("deal_id, tenant_id, pipeline_id, stage_id, stage_name, stage_position, owner_id, owner_name, customer_name, customer_phone, deal_title, deal_value, deal_kwp, deal_status, stage_probability, last_stage_change, etiqueta, cliente_code, deal_num")
       .order("last_stage_change", { ascending: false })
       .limit(500);
 

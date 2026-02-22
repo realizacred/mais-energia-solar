@@ -49,6 +49,7 @@ interface DealDetail {
   expected_close_date: string | null;
   motivo_perda_id: string | null;
   motivo_perda_obs: string | null;
+  deal_num: number | null;
 }
 
 interface StageHistory {
@@ -74,6 +75,7 @@ interface PropostaNativa {
   id: string;
   titulo: string;
   codigo: string | null;
+  proposta_num: number | null;
   versao_atual: number;
   status: string;
   created_at: string;
@@ -217,7 +219,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
       setLoading(true);
       try {
         const [dealRes, historyRes] = await Promise.all([
-          supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs").eq("id", dealId).single(),
+          supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num").eq("id", dealId).single(),
           supabase.from("deal_stage_history").select("id, deal_id, from_stage_id, to_stage_id, moved_at, moved_by, metadata").eq("deal_id", dealId).order("moved_at", { ascending: false }),
         ]);
 
@@ -329,7 +331,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
 
   const silentRefresh = async () => {
     try {
-      const { data: d } = await supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs").eq("id", dealId).single();
+      const { data: d } = await supabase.from("deals").select("id, title, value, kwp, status, created_at, updated_at, owner_id, pipeline_id, stage_id, customer_id, expected_close_date, motivo_perda_id, motivo_perda_obs, deal_num").eq("id", dealId).single();
       if (d) {
         setDeal(d as DealDetail);
         const [stagesRes, historyRes, ownerRes] = await Promise.all([
@@ -368,7 +370,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
     return null;
   };
 
-  const projectCode = deal.title?.match(/#(\d+)/)?.[1] || deal.id.slice(0, 6);
+  const projectCode = deal.deal_num ? String(deal.deal_num) : deal.title?.match(/#(\d+)/)?.[1] || deal.id.slice(0, 6);
 
   return (
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
@@ -1568,7 +1570,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
       try {
         let query = supabase
           .from("propostas_nativas")
-          .select("id, titulo, codigo, versao_atual, status, created_at")
+          .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at")
           .order("created_at", { ascending: false })
           .limit(20);
 
@@ -1714,11 +1716,13 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
           {/* Title + date */}
           <div className="min-w-0 flex-shrink-0 w-[200px]">
             <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-foreground truncate">{p.titulo}</p>
+              <p className="text-sm font-semibold text-foreground truncate">
+                {p.proposta_num ? `Proposta #${p.proposta_num}` : p.titulo}
+              </p>
               <StatusBadge status={p.status} />
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              Criada em {new Date(p.created_at).toLocaleDateString("pt-BR")}
+              {p.codigo ? `${p.codigo} • ` : ""}Criada em {new Date(p.created_at).toLocaleDateString("pt-BR")}
             </p>
           </div>
 
