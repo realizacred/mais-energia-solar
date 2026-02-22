@@ -41,6 +41,9 @@ type ViewMode = "resumido" | "detalhado";
 // ── Component ──
 
 export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, potenciaKwp }: Props) {
+  const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
+  const comissaoServico = servicos.find(s => s.categoria === "comissao");
+
   const [loadedDefaults, setLoadedDefaults] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("detalhado");
   const [showEditModal, setShowEditModal] = useState(false);
@@ -48,7 +51,12 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [editValue, setEditValue] = useState("0");
   const [custosExtras, setCustosExtras] = useState<CustoRow[]>([]);
   const [appliedSmartDefaults, setAppliedSmartDefaults] = useState(false);
-
+  const [instalacaoEnabled, setInstalacaoEnabled] = useState(true);
+  const [comissaoEnabled, setComissaoEnabled] = useState(true);
+  const [instalacaoQtd, setInstalacaoQtd] = useState(1);
+  const [comissaoQtd, setComissaoQtd] = useState(1);
+  const [instalacaoCusto, setInstalacaoCusto] = useState(instalacaoServico?.valor || 0);
+  const [comissaoCusto, setComissaoCusto] = useState(comissaoServico?.valor || 0);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
 
   // Load pricing defaults from config
@@ -100,9 +108,6 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const custoKit = roundCurrency(itens.reduce((s, i) => s + roundCurrency(i.quantidade * i.preco_unitario), 0));
   const kitLabel = potenciaKwp > 0 ? `Kit fotovoltaico ${potenciaKwp.toFixed(2)} kWp` : "Kit fotovoltaico";
 
-  const instalacaoServico = servicos.find(s => s.categoria === "instalacao");
-  const comissaoServico = servicos.find(s => s.categoria === "comissao");
-
   // Build all cost rows
   const allRows = useMemo<CustoRow[]>(() => {
     const rows: CustoRow[] = [];
@@ -123,10 +128,10 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       id: "instalacao",
       categoria: "Instalação",
       item: "Instalação",
-      quantidade: 1,
-      custoUnitario: instalacaoServico?.valor || 0,
+      quantidade: instalacaoQtd,
+      custoUnitario: instalacaoCusto,
       fixo: true,
-      checked: true,
+      checked: instalacaoEnabled,
     });
 
     // Comissão
@@ -134,19 +139,19 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
       id: "comissao",
       categoria: "Comissão",
       item: "Comissão",
-      quantidade: 1,
-      custoUnitario: comissaoServico?.valor || 0,
+      quantidade: comissaoQtd,
+      custoUnitario: comissaoCusto,
       fixo: true,
-      checked: true,
+      checked: comissaoEnabled,
     });
 
     // User-added extras
     custosExtras.forEach(c => rows.push(c));
 
     return rows;
-  }, [custoKit, kitLabel, instalacaoServico, comissaoServico, custosExtras]);
+  }, [custoKit, kitLabel, instalacaoQtd, instalacaoCusto, instalacaoEnabled, comissaoQtd, comissaoCusto, comissaoEnabled, custosExtras]);
 
-  const custoTotal = roundCurrency(allRows.reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
+  const custoTotal = roundCurrency(allRows.filter(r => r.checked).reduce((s, r) => s + roundCurrency(r.quantidade * r.custoUnitario), 0));
   const margemPercent = venda.margem_percentual;
   const margemValor = roundCurrency(custoTotal * (margemPercent / 100));
   const precoVenda = roundCurrency(custoTotal + margemValor);
@@ -206,12 +211,13 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
 
   // Per-row margem distribution
   const getRowMargem = (row: CustoRow) => {
-    if (custoTotal === 0) return 0;
+    if (!row.checked || custoTotal === 0) return 0;
     const rowTotal = row.quantidade * row.custoUnitario;
     return (rowTotal / custoTotal) * margemValor;
   };
 
   const getRowVenda = (row: CustoRow) => {
+    if (!row.checked) return 0;
     return row.quantidade * row.custoUnitario + getRowMargem(row);
   };
 
@@ -320,7 +326,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
               <div
                 key={row.id}
                 className={cn(
-                  "grid items-center px-4 py-2.5 text-xs",
+                  "grid items-center px-4 py-2.5 text-xs transition-opacity",
+                  !row.checked && "opacity-40",
                   viewMode === "resumido"
                     ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
                     : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
@@ -329,7 +336,14 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                 {/* Checkbox */}
                 <div className="w-6">
                   {!isKit && row.fixo && (
-                    <Checkbox checked={row.checked} disabled className="h-4 w-4" />
+                    <Checkbox
+                      checked={row.checked}
+                      onCheckedChange={(checked) => {
+                        if (row.id === "instalacao") setInstalacaoEnabled(!!checked);
+                        if (row.id === "comissao") setComissaoEnabled(!!checked);
+                      }}
+                      className="h-4 w-4"
+                    />
                   )}
                 </div>
 
@@ -361,17 +375,25 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                   {isKit ? (
                     <span>{row.quantidade}</span>
                   ) : isExtra ? (
-                    <span className="text-primary">{row.quantidade}</span>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={row.quantidade}
+                      onChange={e => updateExtra(row.id, "quantidade", Number(e.target.value) || 1)}
+                      className="h-7 text-xs w-14 mx-auto text-center"
+                    />
                   ) : (
                     <Input
                       type="number"
                       min={1}
                       value={row.quantidade}
                       onChange={e => {
-                        // For fixed service rows, we can't update via extras
+                        const val = Number(e.target.value) || 1;
+                        if (row.id === "instalacao") setInstalacaoQtd(val);
+                        if (row.id === "comissao") setComissaoQtd(val);
                       }}
                       className="h-7 text-xs w-14 mx-auto text-center"
-                      readOnly={row.fixo}
+                      disabled={!row.checked}
                     />
                   )}
                 </div>
@@ -391,16 +413,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                   <>
                     {/* Custo Unitário */}
                     <div className="text-right">
-                      {isExtra ? (
-                        <Input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          value={row.custoUnitario || ""}
-                          onChange={e => updateExtra(row.id, "custoUnitario", Number(e.target.value))}
-                          className="h-7 text-xs w-24 ml-auto text-right"
-                        />
-                      ) : isKit ? (
+                      {isKit ? (
                         <Input
                           type="number"
                           min={0}
@@ -415,8 +428,18 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                           min={0}
                           step={0.01}
                           value={row.custoUnitario || ""}
+                          onChange={e => {
+                            const val = Number(e.target.value) || 0;
+                            if (isExtra) {
+                              updateExtra(row.id, "custoUnitario", val);
+                            } else if (row.id === "instalacao") {
+                              setInstalacaoCusto(val);
+                            } else if (row.id === "comissao") {
+                              setComissaoCusto(val);
+                            }
+                          }}
                           className="h-7 text-xs w-24 ml-auto text-right"
-                          readOnly
+                          disabled={!row.checked}
                         />
                       )}
                     </div>
