@@ -5879,6 +5879,149 @@ export type Database = {
           },
         ]
       }
+      os_instalacao: {
+        Row: {
+          assinatura_cliente_url: string | null
+          assinatura_instalador_url: string | null
+          bairro: string | null
+          cidade: string | null
+          cliente_id: string | null
+          created_at: string
+          created_by: string | null
+          data_agendada: string | null
+          data_conclusao: string | null
+          data_inicio: string | null
+          endereco: string | null
+          estado: string | null
+          fotos_urls: string[] | null
+          id: string
+          instalador_id: string | null
+          laudo_tecnico: string | null
+          numero_os: string | null
+          observacoes: string | null
+          pendencias: string | null
+          potencia_kwp: number | null
+          projeto_id: string | null
+          proposta_id: string
+          status: string
+          supervisor_id: string | null
+          tenant_id: string
+          updated_at: string
+          valor_total: number | null
+          versao_id: string
+        }
+        Insert: {
+          assinatura_cliente_url?: string | null
+          assinatura_instalador_url?: string | null
+          bairro?: string | null
+          cidade?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_agendada?: string | null
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          endereco?: string | null
+          estado?: string | null
+          fotos_urls?: string[] | null
+          id?: string
+          instalador_id?: string | null
+          laudo_tecnico?: string | null
+          numero_os?: string | null
+          observacoes?: string | null
+          pendencias?: string | null
+          potencia_kwp?: number | null
+          projeto_id?: string | null
+          proposta_id: string
+          status?: string
+          supervisor_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          valor_total?: number | null
+          versao_id: string
+        }
+        Update: {
+          assinatura_cliente_url?: string | null
+          assinatura_instalador_url?: string | null
+          bairro?: string | null
+          cidade?: string | null
+          cliente_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_agendada?: string | null
+          data_conclusao?: string | null
+          data_inicio?: string | null
+          endereco?: string | null
+          estado?: string | null
+          fotos_urls?: string[] | null
+          id?: string
+          instalador_id?: string | null
+          laudo_tecnico?: string | null
+          numero_os?: string | null
+          observacoes?: string | null
+          pendencias?: string | null
+          potencia_kwp?: number | null
+          projeto_id?: string | null
+          proposta_id?: string
+          status?: string
+          supervisor_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          valor_total?: number | null
+          versao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "os_instalacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_instalacao_instalador_id_fkey"
+            columns: ["instalador_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_instalacao_projeto_id_fkey"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_instalacao_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "propostas_nativas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_instalacao_supervisor_id_fkey"
+            columns: ["supervisor_id"]
+            isOneToOne: false
+            referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_instalacao_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "os_instalacao_versao_id_fkey"
+            columns: ["versao_id"]
+            isOneToOne: false
+            referencedRelation: "proposta_versoes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       otimizadores_catalogo: {
         Row: {
           ativo: boolean

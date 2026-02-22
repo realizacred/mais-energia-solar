@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, FileText, Loader2, RefreshCw, Send, CheckCircle2,
   XCircle, AlertTriangle, Clock, Download, Link2, MessageCircle,
-  Copy, Smartphone, Monitor, Mail,
+  Copy, Smartphone, Monitor, Mail, Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -56,6 +56,8 @@ export function ProposalDetail() {
   const [showSendDialog, setShowSendDialog] = useState(false);
   const [mobilePreview, setMobilePreview] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [generatingOs, setGeneratingOs] = useState(false);
+  const [existingOs, setExistingOs] = useState<any>(null);
 
   useEffect(() => {
     if (versaoId) loadData();
@@ -75,7 +77,7 @@ export function ProposalDetail() {
       if (v?.proposta_id) {
         const { data: p } = await supabase
           .from("propostas_nativas")
-          .select("id, titulo, codigo, status, origem")
+          .select("id, titulo, codigo, status, origem, lead_id, cliente_id, projeto_id")
           .eq("id", v.proposta_id)
           .single();
         setProposta(p);
@@ -89,6 +91,14 @@ export function ProposalDetail() {
         .maybeSingle();
 
       if (render?.html) setHtml(render.html);
+
+      // Check if OS already exists for this version
+      const { data: os } = await supabase
+        .from("os_instalacao" as any)
+        .select("id, numero_os, status")
+        .eq("versao_id", versaoId!)
+        .maybeSingle();
+      setExistingOs(os);
     } catch (e) {
       console.error("Erro ao carregar proposta:", e);
     } finally {
@@ -226,6 +236,53 @@ export function ProposalDetail() {
       toast({ title: "Erro ao enviar email", description: e.message, variant: "destructive" });
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleGerarOs = async () => {
+    if (!proposta?.id || !versaoId) return;
+    setGeneratingOs(true);
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("tenant_id, user_id")
+        .single();
+
+      if (!profile?.tenant_id) {
+        toast({ title: "Erro", description: "Perfil não encontrado.", variant: "destructive" });
+        return;
+      }
+
+      // Get snapshot data for address
+      const snapshot = versao?.snapshot as any;
+      const endereco = snapshot?.projectAddress;
+
+      const { data: os, error } = await supabase
+        .from("os_instalacao" as any)
+        .insert({
+          tenant_id: profile.tenant_id,
+          proposta_id: proposta.id,
+          versao_id: versaoId,
+          projeto_id: proposta.projeto_id || null,
+          cliente_id: proposta.cliente_id || null,
+          potencia_kwp: versao?.potencia_kwp,
+          valor_total: versao?.valor_total,
+          endereco: endereco?.formatted || endereco?.rua || null,
+          bairro: endereco?.bairro || null,
+          cidade: endereco?.cidade || snapshot?.locCidade || null,
+          estado: endereco?.estado || snapshot?.locEstado || null,
+          created_by: profile.user_id,
+        })
+        .select("id, numero_os, status")
+        .single();
+
+      if (error) throw error;
+      setExistingOs(os);
+      toast({ title: "✅ OS de Instalação gerada", description: `Número: ${(os as any)?.numero_os}` });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar OS", description: e.message, variant: "destructive" });
+    } finally {
+      setGeneratingOs(false);
     }
   };
 
@@ -410,6 +467,27 @@ export function ProposalDetail() {
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+              )}
+
+              {/* Gerar OS de Instalação — só aparece quando proposta aceita */}
+              {["aceita", "accepted"].includes(currentStatus) && (
+                existingOs ? (
+                  <Badge variant="outline" className="gap-1.5 text-xs py-1.5 px-3">
+                    <Wrench className="h-3.5 w-3.5" />
+                    OS {existingOs.numero_os} • {existingOs.status}
+                  </Badge>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 border-primary/30 text-primary hover:bg-primary/5"
+                    onClick={handleGerarOs}
+                    disabled={generatingOs}
+                  >
+                    {generatingOs ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
+                    Gerar OS Instalação
+                  </Button>
+                )
               )}
             </div>
           </div>
