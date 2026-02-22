@@ -1,4 +1,5 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
+import { formatProjetoLabel, formatPropostaLabel } from "@/lib/format-entity-labels";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -370,7 +371,8 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
     return null;
   };
 
-  const projectCode = deal.deal_num ? String(deal.deal_num) : deal.title?.match(/#(\d+)/)?.[1] || deal.id.slice(0, 6);
+  const _projetoLabel = formatProjetoLabel({ id: deal.id, deal_num: deal.deal_num });
+  const projectCode = _projetoLabel.primary;
 
   return (
     <div className="min-h-screen bg-muted/30 -m-4 sm:-m-6 p-3 sm:p-6 max-w-full overflow-x-hidden">
@@ -378,7 +380,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-3">
         <button onClick={onBack} className="hover:text-foreground transition-colors">Projetos</button>
         <ChevronRight className="h-3 w-3" />
-        <span className="text-foreground font-medium">Projeto #{projectCode}</span>
+        <span className="text-foreground font-medium">{projectCode}</span>
       </div>
 
       {/* ── Header Card ── */}
@@ -1717,12 +1719,12 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
           <div className="min-w-0 flex-shrink-0 w-[200px]">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground truncate">
-                {p.proposta_num ? `Proposta #${p.proposta_num}` : p.titulo}
+                {formatPropostaLabel(p).primary}
               </p>
               <StatusBadge status={p.status} />
             </div>
             <p className="text-[10px] text-muted-foreground mt-0.5">
-              {p.codigo ? `${p.codigo} • ` : ""}Criada em {new Date(p.created_at).toLocaleDateString("pt-BR")}
+              {formatPropostaLabel(p).secondary || `Criada em ${new Date(p.created_at).toLocaleDateString("pt-BR")}`}
             </p>
           </div>
 
