@@ -2150,7 +2150,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
             <FileText className="h-4 w-4 text-primary" />
             Documentos Gerados
           </h3>
-          <Button size="sm" onClick={() => setGenerateOpen(true)} className="gap-1.5" disabled={templates.length === 0}>
+          <Button size="sm" onClick={() => setGenerateOpen(true)} className="gap-1.5">
             <Plus className="h-3.5 w-3.5" />
             Gerar Documento
           </Button>
@@ -2250,40 +2250,50 @@ function DocumentosTab({ dealId }: { dealId: string }) {
             <DialogTitle>Gerar documento</DialogTitle>
             <DialogDescription>Selecione um modelo para gerar o documento com os dados do projeto.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>Modelo <span className="text-destructive">*</span></Label>
-              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um modelo de documento" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(
-                    templates.reduce<Record<string, typeof templates>>((acc, t) => {
-                      const cat = DOC_CATEGORY_LABELS[t.categoria] || t.categoria;
-                      if (!acc[cat]) acc[cat] = [];
-                      acc[cat].push(t);
-                      return acc;
-                    }, {})
-                  ).map(([cat, tpls]) => (
-                    <div key={cat}>
-                      <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</div>
-                      {tpls.map(t => (
-                        <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
-                      ))}
-                    </div>
-                  ))}
-                </SelectContent>
-              </Select>
+          {templates.length === 0 ? (
+            <div className="py-6 text-center space-y-2">
+              <FileText className="h-10 w-10 mx-auto opacity-30" />
+              <p className="text-sm font-medium">Nenhum modelo de documento cadastrado</p>
+              <p className="text-xs text-muted-foreground">Cadastre templates em Configurações → Templates de Documento para poder gerar documentos.</p>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
-            <Button onClick={handleGenerate} disabled={!selectedTemplateId || generating}>
-              {generating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Gerar
-            </Button>
-          </DialogFooter>
+          ) : (
+            <>
+              <div className="space-y-4 py-2">
+                <div className="space-y-2">
+                  <Label>Modelo <span className="text-destructive">*</span></Label>
+                  <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um modelo de documento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(
+                        templates.reduce<Record<string, typeof templates>>((acc, t) => {
+                          const cat = DOC_CATEGORY_LABELS[t.categoria] || t.categoria;
+                          if (!acc[cat]) acc[cat] = [];
+                          acc[cat].push(t);
+                          return acc;
+                        }, {})
+                      ).map(([cat, tpls]) => (
+                        <div key={cat}>
+                          <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</div>
+                          {tpls.map(t => (
+                            <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                          ))}
+                        </div>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
+                <Button onClick={handleGenerate} disabled={!selectedTemplateId || generating}>
+                  {generating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                  Gerar
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
