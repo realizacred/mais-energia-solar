@@ -299,19 +299,11 @@ Deno.serve(async (req) => {
     if (custoKitCheck <= 0) missingRequired.push("financeiro.preco_total");
 
     if (missingRequired.length > 0) {
-      // Log bypass attempt
-      await adminClient.from("audit_logs").insert({
-        tenant_id: tenantId,
-        tabela: "propostas_nativas",
-        acao: "pdf_bloqueado_backend",
-        user_id: userId,
-        registro_id: body.lead_id,
-        dados_novos: {
-          motivo: "missing_required_variables",
-          missing_required: missingRequired,
-          precisao: backendPrecisao,
-        },
-      }).then(() => {}).catch(() => {});
+      // Log bypass attempt (audit_logs blocks direct INSERTs — use structured log)
+      console.warn("[proposal-generate][BLOCKED] missing_required_variables", {
+        tenant_id: tenantId, user_id: userId, lead_id: body.lead_id,
+        missing: missingRequired, precisao: backendPrecisao,
+      });
 
       return new Response(JSON.stringify({
         success: false,
@@ -323,19 +315,10 @@ Deno.serve(async (req) => {
 
     // ── ENFORCEMENT: Check aceite_estimativa if precision is estimated ──
     if (backendPrecisao === "estimado" && body.aceite_estimativa !== true) {
-      // Log bypass attempt
-      await adminClient.from("audit_logs").insert({
-        tenant_id: tenantId,
-        tabela: "propostas_nativas",
-        acao: "pdf_bloqueado_backend",
-        user_id: userId,
-        registro_id: body.lead_id,
-        dados_novos: {
-          motivo: "estimativa_not_accepted",
-          precisao: backendPrecisao,
-          precisao_motivo: backendPrecisaoMotivo,
-        },
-      }).then(() => {}).catch(() => {});
+      console.warn("[proposal-generate][BLOCKED] estimativa_not_accepted", {
+        tenant_id: tenantId, user_id: userId, lead_id: body.lead_id,
+        precisao: backendPrecisao, motivo: backendPrecisaoMotivo,
+      });
 
       return new Response(JSON.stringify({
         success: false,
@@ -348,12 +331,10 @@ Deno.serve(async (req) => {
     const ucGrupos = body.ucs.map(uc => resolveGrupoFromSubgrupo(uc.subgrupo));
     const undefinedGrupos = ucGrupos.filter(g => g === null);
     if (undefinedGrupos.length > 0) {
-      await adminClient.from("audit_logs").insert({
-        tenant_id: tenantId, tabela: "propostas_nativas",
-        acao: "bloqueio_grupo_indefinido", user_id: userId,
-        registro_id: body.lead_id,
-        dados_novos: { motivo: "grupo_indefinido", ucs_sem_grupo: ucGrupos.map((g, i) => g === null ? i : -1).filter(i => i >= 0) },
-      }).then(() => {}).catch(() => {});
+      console.warn("[proposal-generate][BLOCKED] grupo_indefinido", {
+        tenant_id: tenantId, user_id: userId, lead_id: body.lead_id,
+        ucs_sem_grupo: ucGrupos.map((g, i) => g === null ? i : -1).filter(i => i >= 0),
+      });
       return new Response(JSON.stringify({
         success: false, error: "grupo_indefinido",
         message: "Uma ou mais UCs não possuem grupo tarifário definido.",
@@ -362,12 +343,10 @@ Deno.serve(async (req) => {
 
     const uniqueGrupos = new Set(ucGrupos);
     if (uniqueGrupos.size > 1) {
-      await adminClient.from("audit_logs").insert({
-        tenant_id: tenantId, tabela: "propostas_nativas",
-        acao: "bloqueio_grupo_misto", user_id: userId,
-        registro_id: body.lead_id,
-        dados_novos: { motivo: "mixed_grupos", grupos_detectados: ucGrupos },
-      }).then(() => {}).catch(() => {});
+      console.warn("[proposal-generate][BLOCKED] mixed_grupos", {
+        tenant_id: tenantId, user_id: userId, lead_id: body.lead_id,
+        grupos_detectados: ucGrupos,
+      });
       return new Response(JSON.stringify({
         success: false, error: "mixed_grupos",
         message: "Não é permitido misturar Grupo A e Grupo B na mesma proposta.",
