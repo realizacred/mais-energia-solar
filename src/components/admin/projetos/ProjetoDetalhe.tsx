@@ -10,7 +10,8 @@ import {
   Clock, User, ChevronRight, Zap, DollarSign, CalendarDays, Loader2,
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2,
-  AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity
+  AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
+  ChevronDown, SunMedium
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,7 @@ interface PropostaNativa {
   titulo: string;
   codigo: string | null;
   versao_atual: number;
+  status: string;
   created_at: string;
   versoes: {
     id: string;
@@ -83,6 +85,7 @@ interface PropostaNativa {
     status: string;
     economia_mensal: number | null;
     payback_meses: number | null;
+    geracao_mensal: number | null;
     created_at: string;
   }[];
 }
@@ -1372,7 +1375,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
   const [loading, setLoading] = useState(true);
   const [linkedOrcs, setLinkedOrcs] = useState<LinkedOrcamento[]>([]);
   const [loadingLeads, setLoadingLeads] = useState(false);
-  // ORC selection removed — clicking navigates directly to wizard
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   // Load proposals
   useEffect(() => {
@@ -1401,6 +1404,23 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
             .in("proposta_id", ids)
             .order("versao_numero", { ascending: false });
 
+          // Fetch UCs for geracao_mensal
+          const versaoIds = (versoes || []).map((v: any) => v.id);
+          let geracaoMap = new Map<string, number>();
+          if (versaoIds.length > 0) {
+            const { data: ucs } = await supabase
+              .from("proposta_versao_ucs")
+              .select("versao_id, geracao_mensal_estimada")
+              .in("versao_id", versaoIds);
+            if (ucs) {
+              // Sum geracao per versao
+              for (const uc of ucs as any[]) {
+                const cur = geracaoMap.get(uc.versao_id) || 0;
+                geracaoMap.set(uc.versao_id, cur + (uc.geracao_mensal_estimada || 0));
+              }
+            }
+          }
+
           const mapped: PropostaNativa[] = data.map(p => ({
             ...p,
             versoes: (versoes || []).filter(v => (v as any).proposta_id === p.id).map(v => ({
@@ -1412,6 +1432,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
               economia_mensal: (v as any).economia_mensal,
               payback_meses: (v as any).payback_meses,
               created_at: (v as any).created_at,
+              geracao_mensal: geracaoMap.get((v as any).id) || null,
             })),
           }));
           setPropostas(mapped);
@@ -1438,7 +1459,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
         const digits = (cliente.telefone_normalized || cliente.telefone).replace(/\D/g, "");
         const suffix = digits.slice(-9);
 
-        // Find leads by phone match
         const { data: leads } = await (supabase as any)
           .from("leads")
           .select("id, lead_code")
@@ -1450,7 +1470,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
           const leadCodeMap = new Map<string, string>();
           leads.forEach((l: any) => leadCodeMap.set(l.id, l.lead_code));
 
-          // Fetch orcamentos for these leads
           const { data: orcs } = await supabase
             .from("orcamentos")
             .select("id, orc_code, lead_id, media_consumo, consumo_previsto, tipo_telhado, rede_atendimento, estado, cidade, status_id, created_at")
@@ -1459,7 +1478,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
             .limit(20);
 
           if (orcs && orcs.length > 0) {
-            // Fetch status names
             const statusIds = [...new Set(orcs.map((o: any) => o.status_id).filter(Boolean))] as string[];
             let statusMap = new Map<string, string>();
             if (statusIds.length > 0) {
@@ -1476,8 +1494,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
               status_nome: o.status_id ? statusMap.get(o.status_id) || "—" : "—",
             })));
           }
-
-          // Lead auto-select removed — ORC click navigates directly
         }
       } catch (err) { console.error("Lead discovery:", err); }
       finally { setLoadingLeads(false); }
@@ -1486,8 +1502,165 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
 
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
+  // Principal = latest (first in array, already sorted desc)
+  const principal = propostas.length > 0 ? propostas[0] : null;
+  const outras = propostas.slice(1);
+
+  // Render a proposal row (matching the reference image layout)
+  const renderPropostaRow = (p: PropostaNativa, isPrincipal: boolean) => {
+    const latestVersao = p.versoes[0];
+    const isExpanded = expandedId === p.id;
+    const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
+      ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
+      : null;
+
+    return (
+      <div key={p.id} className={cn(
+        "rounded-xl border transition-all",
+        isPrincipal ? "bg-card border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-border/70"
+      )}>
+        {/* Main row */}
+        <div
+          className="flex items-center gap-4 py-3.5 px-4 cursor-pointer"
+          onClick={() => setExpandedId(isExpanded ? null : p.id)}
+        >
+          <FileText className={cn("h-5 w-5 shrink-0", isPrincipal ? "text-primary" : "text-muted-foreground")} />
+
+          {/* Title + date */}
+          <div className="min-w-0 flex-shrink-0 w-[200px]">
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-semibold text-foreground truncate">{p.titulo}</p>
+              <StatusBadge status={p.status} />
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Criada em {new Date(p.created_at).toLocaleDateString("pt-BR")}
+            </p>
+          </div>
+
+          {/* Metrics */}
+          <div className="hidden md:flex flex-1 items-center gap-6 ml-4">
+            {latestVersao?.potencia_kwp && (
+              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
+                <Zap className="h-3.5 w-3.5 text-warning shrink-0" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Potência Total</p>
+                  <p className="text-sm font-bold text-foreground">{latestVersao.potencia_kwp.toFixed(2)} kWp</p>
+                </div>
+              </div>
+            )}
+
+            {latestVersao?.geracao_mensal && (
+              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
+                <SunMedium className="h-3.5 w-3.5 text-info shrink-0" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Geração Mensal</p>
+                  <p className="text-sm font-bold text-foreground">{latestVersao.geracao_mensal.toFixed(0)} kWh</p>
+                </div>
+              </div>
+            )}
+
+            {latestVersao?.valor_total && (
+              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
+                <DollarSign className="h-3.5 w-3.5 text-success shrink-0" />
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Preço do Projeto</p>
+                  <p className="text-sm font-bold text-foreground">
+                    {formatBRL(latestVersao.valor_total)}
+                    {wpPrice && <span className="text-[10px] font-normal text-muted-foreground ml-1">R$ {wpPrice} / Wp</span>}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Expand + Menu */}
+          <div className="flex items-center gap-1 shrink-0 ml-auto">
+            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => e.stopPropagation()}>
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao?.id}`)}>
+                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Ver proposta
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {/* Mobile metrics */}
+        <div className="md:hidden px-4 pb-2 flex flex-wrap gap-3 text-xs">
+          {latestVersao?.potencia_kwp && (
+            <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-warning" />{latestVersao.potencia_kwp.toFixed(2)} kWp</span>
+          )}
+          {latestVersao?.geracao_mensal && (
+            <span className="flex items-center gap-1"><SunMedium className="h-3 w-3 text-info" />{latestVersao.geracao_mensal.toFixed(0)} kWh</span>
+          )}
+          {latestVersao?.valor_total && (
+            <span className="flex items-center gap-1 font-bold"><DollarSign className="h-3 w-3 text-success" />{formatBRL(latestVersao.valor_total)}</span>
+          )}
+        </div>
+
+        {/* Expanded: version list */}
+        {isExpanded && p.versoes.length > 0 && (
+          <div className="border-t border-border/30 px-4 py-2 bg-muted/20 rounded-b-xl space-y-1">
+            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+              {p.versoes.length} versão(ões)
+            </p>
+            {p.versoes.map(v => (
+              <div
+                key={v.id}
+                onClick={() => navigate(`/admin/propostas-nativas/${p.id}/versoes/${v.id}`)}
+                className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/60 cursor-pointer transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-xs font-bold text-muted-foreground w-8">v{v.versao_numero}</span>
+                  <StatusBadge status={v.status} />
+                </div>
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  {v.potencia_kwp && (
+                    <span className="flex items-center gap-0.5">
+                      <Zap className="h-3 w-3 text-warning" />{v.potencia_kwp} kWp
+                    </span>
+                  )}
+                  <span className="font-bold text-foreground">{formatBRL(v.valor_total)}</span>
+                  {v.payback_meses && <span>{v.payback_meses}m payback</span>}
+                  <ExternalLink className="h-3 w-3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground">
+          Propostas ({propostas.length})
+        </h3>
+        {isClosed ? (
+          <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
+            <AlertCircle className="h-3 w-3 mr-1" />
+            Projeto fechado
+          </Badge>
+        ) : (
+          <Button size="sm" onClick={() => {
+            const params = new URLSearchParams({ deal_id: dealId });
+            if (customerId) params.set("customer_id", customerId);
+            navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
+          }} className="gap-1.5">
+            <Plus className="h-3.5 w-3.5" />Nova proposta
+          </Button>
+        )}
+      </div>
+
       {/* Lead discovery cards */}
       {linkedOrcs.length > 0 && (
         <div className="space-y-2">
@@ -1561,24 +1734,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
         </div>
       )}
 
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">Propostas do Cliente</h3>
-        {isClosed ? (
-          <Badge variant="secondary" className="text-xs bg-destructive/10 text-destructive border-destructive/20">
-            <AlertCircle className="h-3 w-3 mr-1" />
-            Projeto fechado — não é possível criar propostas
-          </Badge>
-        ) : (
-          <Button size="sm" onClick={() => {
-            const params = new URLSearchParams({ deal_id: dealId });
-            if (customerId) params.set("customer_id", customerId);
-            navigate(`/admin/propostas-nativas/nova?${params.toString()}`);
-          }} className="gap-1.5">
-            <Plus className="h-3.5 w-3.5" />Nova Proposta
-          </Button>
-        )}
-      </div>
-
+      {/* Proposals */}
       {propostas.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
@@ -1590,49 +1746,24 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {propostas.map(p => (
-            <Card key={p.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="py-4 px-5">
-                <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="text-sm font-bold text-foreground">{p.titulo}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {p.codigo && <span className="font-mono mr-2">{p.codigo}</span>}
-                      v{p.versao_atual} • {new Date(p.created_at).toLocaleDateString("pt-BR")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {(p as any).status && <StatusBadge status={(p as any).status} />}
-                    <Badge variant="secondary" className="text-[10px]">{p.versoes.length} versões</Badge>
-                  </div>
-                </div>
+        <div className="space-y-6">
+          {/* Proposta principal */}
+          {principal && (
+            <div className="space-y-2">
+              <p className="text-sm font-bold text-foreground">Proposta principal</p>
+              {renderPropostaRow(principal, true)}
+            </div>
+          )}
 
-                {p.versoes.slice(0, 3).map(v => (
-                  <div
-                    key={v.id}
-                    onClick={() => navigate(`/admin/propostas-nativas/${p.id}/versoes/${v.id}`)}
-                    className="flex items-center justify-between py-2 px-3 -mx-1 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs font-bold text-muted-foreground w-8">v{v.versao_numero}</span>
-                      <StatusBadge status={v.status} />
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                      {v.potencia_kwp && (
-                        <span className="flex items-center gap-0.5">
-                          <Zap className="h-3 w-3 text-warning" />{v.potencia_kwp} kWp
-                        </span>
-                      )}
-                      <span className="font-bold text-foreground">{formatBRL(v.valor_total)}</span>
-                      {v.payback_meses && <span>{v.payback_meses}m payback</span>}
-                      <ExternalLink className="h-3 w-3" />
-                    </div>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          ))}
+          {/* Outras propostas */}
+          {outras.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-bold text-foreground">Outras propostas</p>
+              <div className="space-y-2">
+                {outras.map(p => renderPropostaRow(p, false))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
