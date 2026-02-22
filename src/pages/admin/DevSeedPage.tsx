@@ -279,7 +279,7 @@ export default function DevSeedPage() {
 
   if (isAdmin === null) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <Spinner size="md" />
       </div>
     );
@@ -287,7 +287,7 @@ export default function DevSeedPage() {
 
   if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center space-y-3">
             <AlertTriangle className="h-10 w-10 text-destructive mx-auto" />
@@ -302,17 +302,7 @@ export default function DevSeedPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <FlaskConical className="h-6 w-6 text-primary" />
-          Seed de Dados de Teste
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Cria um Cliente + Projeto (deal) + Proposta Nativa usando os mesmos fluxos do sistema.
-        </p>
-      </div>
-
+    <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Criar fluxo completo</CardTitle>
