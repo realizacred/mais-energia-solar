@@ -156,7 +156,7 @@ export function ProjetosManager() {
       <PageHeader
         icon={FolderKanban}
         title="Projetos"
-        description="Gestão operacional de engenharia — acompanhe cada projeto da documentação à vistoria"
+        description="Acompanhe cada projeto da documentação à vistoria"
         actions={
           <Button onClick={() => { setDefaultConsultorId(undefined); setDefaultStageId(undefined); setDefaultModalPipelineId(undefined); setNovoProjetoOpen(true); }} className="gap-1.5 border-2 border-primary bg-transparent text-primary hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-none font-semibold">
             <Plus className="h-4 w-4" />
