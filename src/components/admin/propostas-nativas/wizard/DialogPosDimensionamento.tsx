@@ -30,21 +30,22 @@ interface CustomField {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  /** Summary data */
   clienteNome: string;
   empresaNome: string;
   potenciaKwp: number;
   precoFinal: number;
-  /** Proposal metadata */
   nomeProposta: string;
   onNomePropostaChange: (v: string) => void;
   descricaoProposta: string;
   onDescricaoPropostaChange: (v: string) => void;
-  /** Custom field values for pos_dimensionamento */
   customFieldValues: Record<string, any>;
   onCustomFieldValuesChange: (v: Record<string, any>) => void;
-  /** Actions */
   onConfirm: () => void;
+  /** Save actions */
+  onSaveDraft?: () => void;
+  onSaveActive?: () => void;
+  saving?: boolean;
+  savedPropostaId?: string | null;
 }
 
 export function DialogPosDimensionamento({
@@ -54,6 +55,7 @@ export function DialogPosDimensionamento({
   descricaoProposta, onDescricaoPropostaChange,
   customFieldValues, onCustomFieldValuesChange,
   onConfirm,
+  onSaveDraft, onSaveActive, saving, savedPropostaId,
 }: Props) {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
@@ -152,10 +154,30 @@ export function DialogPosDimensionamento({
           </div>
         ) : null}
 
-        <DialogFooter className="gap-2 pt-2">
+        <DialogFooter className="gap-2 pt-2 flex-wrap">
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
+          {onSaveDraft && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => { onSaveDraft(); onOpenChange(false); }}
+              disabled={saving}
+            >
+              {saving ? "Salvando..." : savedPropostaId ? "Atualizar Rascunho" : "Salvar Rascunho"}
+            </Button>
+          )}
+          {onSaveActive && (
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => { onSaveActive(); onOpenChange(false); }}
+              disabled={saving}
+            >
+              Salvar como ativa
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={onConfirm}

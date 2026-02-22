@@ -73,10 +73,16 @@ export function useWizardPersistence() {
   const saveDraft = useCallback(async (params: PersistenceParams) => {
     setSaving(true);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
+        return null;
+      }
       const { data: profile } = await supabase
         .from("profiles")
         .select("tenant_id, user_id")
-        .single();
+        .eq("user_id", user.id)
+        .maybeSingle();
 
       if (!profile?.tenant_id) {
         toast({ title: "Erro", description: "Perfil não encontrado.", variant: "destructive" });
