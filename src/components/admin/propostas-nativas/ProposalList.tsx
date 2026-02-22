@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, Plus, Search, ChevronRight, Loader2, Send, Layers, Eye, CalendarDays, Users, X } from "lucide-react";
+import { formatPropostaLabel } from "@/lib/format-entity-labels";
 import { PageHeader } from "@/components/ui-kit";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { Button } from "@/components/ui/button";
@@ -286,12 +287,12 @@ export function ProposalList() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="font-semibold text-sm truncate">
-                          {p.proposta_num ? `Proposta #${p.proposta_num}` : p.titulo}
+                          {formatPropostaLabel(p).primary}
                         </p>
                         <Badge variant={statusInfo.variant} className="text-[10px]">{statusInfo.label}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {p.codigo || `#${p.proposta_num || '—'}`} • v{latestVersion?.versao_numero ?? 1}
+                        {formatPropostaLabel(p).secondary || `v${latestVersion?.versao_numero ?? 1}`}
                         {latestVersion?.potencia_kwp ? ` • ${latestVersion.potencia_kwp} kWp` : ""}
                         {latestVersion?.grupo ? ` • Grupo ${latestVersion.grupo}` : ""}
                       </p>

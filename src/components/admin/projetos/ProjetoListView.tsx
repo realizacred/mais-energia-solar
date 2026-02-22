@@ -1,4 +1,5 @@
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
+import { formatProjetoLabel } from "@/lib/format-entity-labels";
 import { Badge } from "@/components/ui/badge";
 import { User, Zap, ChevronRight, Phone } from "lucide-react";
 import type { ProjetoItem, ProjetoEtapa } from "@/hooks/useProjetoPipeline";
@@ -104,11 +105,11 @@ function ListRow({ projeto, etapa, onView }: ListRowProps) {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="font-semibold text-sm truncate text-foreground">
-            {projeto.cliente?.nome || projeto.codigo || "Sem nome"}
+            {projeto.cliente?.nome || formatProjetoLabel(projeto).primary}
           </p>
-          {projeto.codigo && (
-            <span className="text-[10px] font-mono font-semibold text-primary/70 shrink-0">{projeto.codigo}</span>
-          )}
+          <span className="text-[10px] font-mono font-semibold text-primary/70 shrink-0">
+            {formatProjetoLabel(projeto).primary}
+          </span>
         </div>
         <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
           {projeto.codigo && <span>{projeto.codigo}</span>}

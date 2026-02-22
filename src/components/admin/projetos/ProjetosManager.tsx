@@ -391,6 +391,7 @@ export function ProjetosManager() {
                 projetos={deals.map(d => ({
                   id: d.deal_id,
                   codigo: null,
+                  projeto_num: d.deal_num ?? null,
                   lead_id: null,
                   cliente_id: null,
                   consultor_id: d.owner_id,
