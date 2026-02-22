@@ -1,5 +1,5 @@
 // @deprecated: Tabela 'premissas_tecnicas' não é mais usada. Fonte atual: 'tenant_premises' via useSolarPremises.
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2, Package,
@@ -34,6 +34,7 @@ import { StepServicos } from "./wizard/StepServicos";
 import { StepFinancialCenter, calcPrecoFinal } from "./wizard/StepFinancialCenter";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { useWizardPersistence, type WizardSnapshot } from "./wizard/hooks/useWizardPersistence";
+import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
@@ -247,6 +248,64 @@ export function ProposalWizard() {
     pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
     step,
   ]);
+
+  // ─── Local draft: auto-save to localStorage on every state change
+  const { persist: persistLocal, load: loadLocal, clear: clearLocal } = useWizardLocalDraft();
+  const hasRestoredRef = useRef(false);
+
+  // Auto-save to localStorage (debounced)
+  useEffect(() => {
+    if (!hasRestoredRef.current) return; // skip first render before restore
+    const snapshot = collectSnapshot();
+    persistLocal(snapshot, savedPropostaId, savedVersaoId);
+  }, [collectSnapshot, persistLocal, savedPropostaId, savedVersaoId]);
+
+  // Restore from localStorage on mount (only once)
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
+    const draft = loadLocal();
+    if (!draft?.snapshot) return;
+    const s = draft.snapshot;
+
+    // Restore all state
+    if (s.locEstado) setLocEstado(s.locEstado);
+    if (s.locCidade) setLocCidade(s.locCidade);
+    if (s.locTipoTelhado) setLocTipoTelhado(s.locTipoTelhado);
+    if (s.locDistribuidoraId) setLocDistribuidoraId(s.locDistribuidoraId);
+    if (s.locDistribuidoraNome) setLocDistribuidoraNome(s.locDistribuidoraNome);
+    if (s.locIrradiacao) setLocIrradiacao(s.locIrradiacao);
+    if (s.locGhiSeries) setLocGhiSeries(s.locGhiSeries);
+    if (s.locLatitude != null) setLocLatitude(s.locLatitude);
+    if (s.distanciaKm) setDistanciaKm(s.distanciaKm);
+    if (s.projectAddress) setProjectAddress(s.projectAddress);
+    if (s.mapSnapshots?.length) setMapSnapshots(s.mapSnapshots);
+    if (s.selectedLead) setSelectedLead(s.selectedLead);
+    if (s.cliente) setCliente(s.cliente);
+    if (s.ucs?.length) setUcs(s.ucs);
+    if (s.grupo) setGrupo(s.grupo);
+    if (s.potenciaKwp) setPotenciaKwp(s.potenciaKwp);
+    if (s.customFieldValues) setCustomFieldValues(s.customFieldValues);
+    if (s.premissas) setPremissas(s.premissas);
+    if (s.preDimensionamento) setPreDimensionamento(s.preDimensionamento);
+    if (s.itens?.length) setItens(s.itens);
+    if (s.layouts?.length) setLayouts(s.layouts);
+    if (s.manualKits?.length) setManualKits(s.manualKits);
+    if (s.adicionais?.length) setAdicionais(s.adicionais);
+    if (s.servicos?.length) setServicos(s.servicos);
+    if (s.venda) setVenda(s.venda);
+    if (s.pagamentoOpcoes?.length) setPagamentoOpcoes(s.pagamentoOpcoes);
+    if (s.nomeProposta) setNomeProposta(s.nomeProposta);
+    if (s.descricaoProposta) setDescricaoProposta(s.descricaoProposta);
+    if (s.templateSelecionado) setTemplateSelecionado(s.templateSelecionado);
+    if (s.step > 0) setStep(s.step);
+
+    if (draft.savedPropostaId) setSavedPropostaId(draft.savedPropostaId);
+    if (draft.savedVersaoId) setSavedVersaoId(draft.savedVersaoId);
+
+    toast({ title: "📋 Rascunho restaurado", description: "O progresso anterior foi recuperado automaticamente." });
+  }, []);
 
   const handleSaveDraft = useCallback(async () => {
     const snapshot = collectSnapshot();
@@ -648,6 +707,7 @@ export function ProposalWizard() {
 
       const genResult = await generateProposal(payload);
       setResult(genResult);
+      clearLocal(); // Proposta gerada — limpar rascunho local
 
       // Audit is now persisted by the backend — no need for frontend persistAudit
 
