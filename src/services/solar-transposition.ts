@@ -69,19 +69,12 @@ const MID_MONTH_DOY = [17, 47, 75, 105, 135, 162, 198, 228, 258, 288, 318, 344];
 // ─── Core Functions ─────────────────────────────────────────────
 
 /**
- * Calculate solar declination for a given day of year (Spencer, 1971)
+ * Calculate solar declination for a given day of year.
+ * Uses Cooper equation (1969) — widely adopted in Brazilian solar engineering
+ * tools and provides better alignment with CRESESB/PVSyst references.
  */
 function solarDeclination(dayOfYear: number): number {
-  const B = (2 * Math.PI * (dayOfYear - 1)) / 365;
-  return (
-    0.006918 -
-    0.399912 * Math.cos(B) +
-    0.070257 * Math.sin(B) -
-    0.006758 * Math.cos(2 * B) +
-    0.000907 * Math.sin(2 * B) -
-    0.002697 * Math.cos(3 * B) +
-    0.00148 * Math.sin(3 * B)
-  );
+  return 23.45 * Math.sin((2 * Math.PI * (284 + dayOfYear)) / 365) * DEG_TO_RAD;
 }
 
 /**
