@@ -577,18 +577,17 @@ export function StepLocalizacao({
                       <span className="text-[10px] text-muted-foreground">Preencha endereço</span>
                     )}
                   </div>
+                  {/* DEBUG: skip POA transposition */}
+                  {irradiacao !== null && (
+                    <div className="flex items-center gap-1.5 mt-1">
+                      <Switch id="skip-poa-loc" checked={skipPoa} onCheckedChange={setSkipPoa} className="scale-75" />
+                      <Label htmlFor="skip-poa-loc" className="text-[9px] text-muted-foreground cursor-pointer">
+                        Só GHI (sem POA)
+                        {skipPoa && <Badge variant="outline" className="ml-1 text-[8px] border-warning text-warning px-1 py-0">DEBUG</Badge>}
+                      </Label>
+                    </div>
+                  )}
                 </div>
-
-                {/* DEBUG: skip POA transposition */}
-                {irradiacao !== null && (
-                  <div className="flex items-center gap-1.5">
-                    <Switch id="skip-poa-loc" checked={skipPoa} onCheckedChange={setSkipPoa} className="scale-75" />
-                    <Label htmlFor="skip-poa-loc" className="text-[10px] text-muted-foreground cursor-pointer">
-                      Só GHI (sem POA)
-                      {skipPoa && <Badge variant="outline" className="ml-1 text-[8px] border-warning text-warning px-1 py-0">DEBUG</Badge>}
-                    </Label>
-                  </div>
-                )}
                 {/* Distância empresa → cliente */}
                 <div className="space-y-0.5">
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
