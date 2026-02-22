@@ -539,13 +539,28 @@ export function useDealPipeline() {
       if (isOwnerBoard) targetStageId = null;
     }
 
+    // owner_id is NOT NULL — fallback to current user's consultor or profile id
+    let ownerId = params.ownerId;
+    if (!ownerId) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .single();
+      ownerId = profile?.id ?? undefined;
+    }
+
+    if (!ownerId) {
+      toast({ title: "Erro", description: "Não foi possível determinar o responsável do projeto.", variant: "destructive" });
+      return null;
+    }
+
     const { data, error } = await supabase
       .from("deals")
       .insert({
         title: params.title,
         pipeline_id: pipeId,
         stage_id: targetStageId,
-        owner_id: params.ownerId || null,
+        owner_id: ownerId,
         customer_id: params.customerId || null,
         value: params.value || 0,
         status: "open",
