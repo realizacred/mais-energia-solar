@@ -326,20 +326,47 @@ export function ProposalWizard() {
   }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, selectedLead, projectContext, dealIdFromUrl, nomeProposta, cliente.nome]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
+    const snapshot = collectSnapshot();
+    const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
+
     if (!savedPropostaId || !savedVersaoId) {
-      await handleSaveDraft();
+      // First save — create draft then optionally set active
+      const res = await saveDraft({
+        propostaId: null,
+        versaoId: null,
+        snapshot,
+        potenciaKwp,
+        precoFinal,
+        leadId: selectedLead?.id,
+        projetoId: projectContext?.dealId || dealIdFromUrl || undefined,
+        titulo,
+      });
+      if (res) {
+        setSavedPropostaId(res.propostaId);
+        setSavedVersaoId(res.versaoId);
+        if (setActive) {
+          await updateProposal({
+            propostaId: res.propostaId,
+            versaoId: res.versaoId,
+            snapshot,
+            potenciaKwp,
+            precoFinal,
+            titulo,
+          }, true);
+        }
+      }
       return;
     }
-    const snapshot = collectSnapshot();
+
     await updateProposal({
       propostaId: savedPropostaId,
       versaoId: savedVersaoId,
       snapshot,
       potenciaKwp,
       precoFinal,
-      titulo: nomeProposta || cliente.nome || selectedLead?.nome || "Proposta",
+      titulo,
     }, setActive);
-  }, [savedPropostaId, savedVersaoId, collectSnapshot, updateProposal, potenciaKwp, precoFinal, nomeProposta, cliente.nome, selectedLead, handleSaveDraft]);
+  }, [savedPropostaId, savedVersaoId, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, nomeProposta, cliente.nome, selectedLead, projectContext, dealIdFromUrl]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
@@ -1158,29 +1185,26 @@ export function ProposalWizard() {
             </span>
 
 
-            {/* Atualizar (only if already saved) */}
-            {savedPropostaId && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleUpdate(false)}
-                  disabled={saving}
-                  className="gap-1.5 h-9 text-xs font-medium"
-                >
-                  Atualizar
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleUpdate(true)}
-                  disabled={saving}
-                  className="gap-1.5 h-9 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-                >
-                  <CheckCircle2 className="h-3.5 w-3.5" />
-                  Atualizar como ativa
-                </Button>
-              </>
-            )}
+            {/* Salvar / Atualizar */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleUpdate(false)}
+              disabled={saving}
+              className="gap-1.5 h-9 text-xs font-medium"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {saving ? "Salvando..." : savedPropostaId ? "Atualizar" : "Salvar"}
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => handleUpdate(true)}
+              disabled={saving}
+              className="gap-1.5 h-9 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Salvar como ativa
+            </Button>
 
             <div className="h-6 w-px bg-border/50 hidden sm:block" />
 
