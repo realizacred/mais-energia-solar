@@ -127,9 +127,15 @@ export function useWizardPersistence() {
         titulo: params.titulo || "Proposta sem título",
         updated_at: new Date().toISOString(),
       };
-      // Always ensure projeto_id is set (fixes legacy proposals with null projeto_id)
+      // Always ensure projeto_id and deal_id are set (fixes legacy proposals with null values)
       if (params.projetoId) {
         propostaUpdateData.projeto_id = params.projetoId;
+      }
+      if (params.dealId) {
+        propostaUpdateData.deal_id = params.dealId;
+      }
+      if (params.leadId) {
+        propostaUpdateData.lead_id = params.leadId;
       }
 
       await supabase
@@ -180,6 +186,8 @@ export function useWizardPersistence() {
       };
       if (setActive) propostaUpdate.status = "gerada";
       if (params.projetoId) propostaUpdate.projeto_id = params.projetoId;
+      if (params.dealId) propostaUpdate.deal_id = params.dealId;
+      if (params.leadId) propostaUpdate.lead_id = params.leadId;
 
       await supabase
         .from("propostas_nativas")

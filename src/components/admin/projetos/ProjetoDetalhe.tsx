@@ -191,24 +191,13 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
     }
   };
   // ─── Refresh proposals count on focus (after wizard navigation)
-  // dealId is from `deals` table, but propostas_nativas.projeto_id references `projetos` table
-  // We need to resolve dealId → projetos.id via projetos.deal_id
+  // Query propostas_nativas.deal_id directly (no projetos indirection)
   useEffect(() => {
     const refreshCount = async () => {
-      // Find projetos linked to this deal
-      const { data: projetos } = await supabase
-        .from("projetos")
-        .select("id")
-        .eq("deal_id", dealId);
-      const projetoIds = (projetos || []).map((p: any) => p.id);
-      if (projetoIds.length === 0) {
-        setPropostasCount(0);
-        return;
-      }
       const { count } = await supabase
         .from("propostas_nativas")
         .select("id", { count: "exact", head: true })
-        .in("projeto_id", projetoIds);
+        .eq("deal_id", dealId);
       setPropostasCount(count || 0);
     };
     refreshCount(); // initial count
@@ -1571,36 +1560,20 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
     };
   }, []);
 
-  // Load proposals — resolve dealId → projetos.id via projetos.deal_id
+  // Load proposals — query propostas_nativas.deal_id directly
   useEffect(() => {
     async function load() {
       if (!dealId && !customerId) { setLoading(false); return; }
       setLoading(true);
       try {
-        let projetoIds: string[] = [];
-
-        if (dealId) {
-          // Resolve deal → projetos
-          const { data: projetos } = await supabase
-            .from("projetos")
-            .select("id")
-            .eq("deal_id", dealId);
-          projetoIds = (projetos || []).map((p: any) => p.id);
-        }
-
         let query = supabase
           .from("propostas_nativas")
           .select("id, titulo, codigo, versao_atual, status, created_at")
           .order("created_at", { ascending: false })
           .limit(20);
 
-        if (dealId && projetoIds.length > 0) {
-          query = query.in("projeto_id", projetoIds);
-        } else if (dealId && projetoIds.length === 0) {
-          // No projetos linked to this deal yet — no proposals to show
-          setPropostas([]);
-          setLoading(false);
-          return;
+        if (dealId) {
+          query = query.eq("deal_id", dealId);
         } else if (customerId) {
           query = query.eq("cliente_id", customerId);
         }
