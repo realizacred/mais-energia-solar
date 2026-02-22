@@ -940,13 +940,6 @@ function GerenciamentoTab({
     return <CalendarDays className="h-3 w-3 text-secondary" />;
   };
 
-  // Pending documents list
-  const pendingDocs = [
-    { label: "Identidade (RG/CNH)", filled: !!customerCpfCnpj },
-    { label: "Comprovante de endereço", filled: !!customerAddress },
-    { label: "Conta de energia", filled: false },
-    { label: "Procuração (se PJ)", filled: false },
-  ];
 
   const activityTypeLabels: Record<string, string> = {
     task: "Tarefa",
@@ -1044,37 +1037,7 @@ function GerenciamentoTab({
           )}
 
           {/* Card: Documentos Pendentes */}
-          <Card>
-            <CardHeader className="pb-2 p-4">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Paperclip className="h-4 w-4 text-primary" />
-                Documentos Pendentes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <div className="space-y-2">
-                {pendingDocs.map((doc, i) => (
-                  <div key={i} className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {doc.filled ? (
-                        <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />
-                      ) : (
-                        <AlertCircle className="h-3.5 w-3.5 text-warning shrink-0" />
-                      )}
-                      <span className={cn("text-xs truncate", doc.filled ? "text-muted-foreground line-through" : "text-foreground")}>
-                        {doc.label}
-                      </span>
-                    </div>
-                    {!doc.filled && (
-                      <Button variant="outline" size="sm" className="h-6 text-[10px] px-2 gap-1 shrink-0">
-                        <Paperclip className="h-3 w-3" /> Anexar
-                      </Button>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <ProjetoDocChecklist dealId={deal.id} />
         </div>
 
         {/* ── RIGHT WORK AREA (70%) ── */}
