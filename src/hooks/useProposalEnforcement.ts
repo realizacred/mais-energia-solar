@@ -102,22 +102,11 @@ export function useProposalEnforcement(
   );
 
   const logBlock = useCallback(
-    async (propostaId: string | null, reason: string, missing: string[]) => {
-      try {
-        await supabase.from("audit_logs").insert({
-          tabela: "propostas_nativas",
-          acao: "pdf_bloqueado",
-          registro_id: propostaId,
-          dados_novos: {
-            motivo: reason,
-            missing_required: missing,
-            precisao,
-          } as any,
-        });
-      } catch {
-        // Best-effort — não bloquear fluxo por falha de log
-        console.error("[useProposalEnforcement] Falha ao registrar log de bloqueio");
-      }
+    async (_propostaId: string | null, reason: string, missing: string[]) => {
+      // audit_logs blocks direct INSERTs — log to console instead
+      console.warn("[useProposalEnforcement] PDF bloqueado:", {
+        reason, missing, precisao,
+      });
     },
     [precisao]
   );
