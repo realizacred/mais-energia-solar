@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home, Navigation } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useTiposTelhado } from "@/hooks/useTiposTelhado";
@@ -15,6 +16,17 @@ import { cn } from "@/lib/utils";
 
 // Lazy-load Google Maps
 const GoogleMapView = lazy(() => import("./GoogleMapView"));
+
+/** Haversine distance in km between two lat/lon points */
+function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 interface Props {
   estado: string;
@@ -70,9 +82,68 @@ export function StepLocalizacao({
   const [geoLat, setGeoLat] = useState<number | null>(null);
   const [geoLon, setGeoLon] = useState<number | null>(null);
   const [distKm, setDistKm] = useState<number | null>(null);
+  const [distDialogOpen, setDistDialogOpen] = useState(false);
+  const [distManualInput, setDistManualInput] = useState<string>("");
 
   // Reverse geocoded address from map click
   const [reverseGeoResult, setReverseGeoResult] = useState<Partial<ProjectAddress> | null>(null);
+
+  // ── Company location for distance calculation ──
+  const companyCoords = useRef<{ lat: number; lon: number } | null>(null);
+  const companyGeocodedFor = useRef<string>("");
+
+  // Fetch and geocode tenant location on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("tenant_id")
+          .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+          .maybeSingle();
+        if (!profile?.tenant_id) return;
+
+        const { data: tenant } = await supabase
+          .from("tenants")
+          .select("cidade, estado")
+          .eq("id", profile.tenant_id)
+          .maybeSingle();
+        if (!tenant?.cidade || !tenant?.estado) return;
+
+        const tenantKey = `${tenant.cidade}-${tenant.estado}`;
+        if (companyGeocodedFor.current === tenantKey) return;
+        companyGeocodedFor.current = tenantKey;
+
+        // Geocode tenant city
+        const query = encodeURIComponent(`${tenant.cidade}, ${tenant.estado}, Brasil`);
+        const resp = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
+          { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
+        );
+        const results = await resp.json();
+        if (results?.[0]) {
+          companyCoords.current = {
+            lat: parseFloat(results[0].lat),
+            lon: parseFloat(results[0].lon),
+          };
+          // If we already have client coords, calc distance now
+          if (geoLat != null && geoLon != null) {
+            const d = haversineKm(companyCoords.current.lat, companyCoords.current.lon, geoLat, geoLon);
+            onDistanciaKmChange?.(Math.round(d * 10) / 10);
+          }
+        }
+      } catch (e) {
+        console.warn("[StepLocalizacao] Failed to geocode tenant location:", e);
+      }
+    })();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-calculate distance when client coords change
+  useEffect(() => {
+    if (geoLat == null || geoLon == null || !companyCoords.current) return;
+    const d = haversineKm(companyCoords.current.lat, companyCoords.current.lon, geoLat, geoLon);
+    onDistanciaKmChange?.(Math.round(d * 10) / 10);
+  }, [geoLat, geoLon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync address coords → geoLat/geoLon
   useEffect(() => {
@@ -505,18 +576,65 @@ export function StepLocalizacao({
                     <Navigation className="h-2.5 w-2.5" /> Distância até o cliente
                   </Label>
                   <div className="flex items-center gap-1.5">
-                    <Input
-                      type="number"
-                      min={0}
-                      step={0.1}
-                      value={distanciaKm ?? 0}
-                      onChange={e => onDistanciaKmChange?.(Number(e.target.value) || 0)}
-                      className="h-7 text-xs w-20 font-bold text-primary"
-                    />
-                    <span className="text-[10px] text-muted-foreground font-medium">km</span>
-                    <Edit3 className="h-2.5 w-2.5 text-muted-foreground/50" />
+                    <div
+                      className="flex items-center gap-1 h-7 px-2 border rounded-md bg-muted/10 text-xs cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors min-w-[72px]"
+                      onClick={() => {
+                        setDistManualInput(String(distanciaKm ?? 0));
+                        setDistDialogOpen(true);
+                      }}
+                      title="Clique para editar distância"
+                    >
+                      <span className="font-bold text-primary">{(distanciaKm ?? 0).toFixed(1)}</span>
+                      <span className="text-[9px] text-muted-foreground font-medium">km</span>
+                      <Edit3 className="h-2.5 w-2.5 text-muted-foreground/50 ml-auto" />
+                    </div>
                   </div>
                 </div>
+
+                {/* Dialog Distância Manual */}
+                <Dialog open={distDialogOpen} onOpenChange={setDistDialogOpen}>
+                  <DialogContent className="max-w-xs">
+                    <DialogHeader>
+                      <DialogTitle className="text-sm flex items-center gap-2">
+                        <Navigation className="h-4 w-4 text-primary" />
+                        Distância até o cliente
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-3">
+                      <p className="text-xs text-muted-foreground">
+                        Distância da empresa até o local de instalação (em km). Usada para cálculo de custos de deslocamento.
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={distManualInput}
+                          onChange={e => setDistManualInput(e.target.value)}
+                          className="h-9 text-sm font-bold"
+                          autoFocus
+                          onKeyDown={e => {
+                            if (e.key === "Enter") {
+                              onDistanciaKmChange?.(Number(distManualInput) || 0);
+                              setDistDialogOpen(false);
+                            }
+                          }}
+                        />
+                        <span className="text-sm text-muted-foreground font-medium">km</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          onDistanciaKmChange?.(Number(distManualInput) || 0);
+                          setDistDialogOpen(false);
+                        }}
+                      >
+                        Salvar
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
 
                 {/* Dialog Irradiação Mensal */}
                 <IrradiacaoMensalDialog
