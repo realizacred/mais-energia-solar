@@ -437,10 +437,17 @@ export function StepConsumptionIntelligence({
   return (
     <div className="space-y-4">
       {/* ─── Header metrics bar */}
-      <div className="flex items-center justify-end gap-6 text-xs">
+      <div className="flex items-center justify-end gap-4 text-xs flex-wrap">
+        <div className="flex items-center gap-1.5 text-muted-foreground">
+          <Zap className="h-3.5 w-3.5 text-primary" />
+          <span>Tecnologia</span>
+          <Badge variant="secondary" className="text-[10px] font-semibold px-1.5 py-0">
+            {TOPOLOGIA_LABELS[pd.topologias[0] || "tradicional"]}
+          </Badge>
+        </div>
         <div className="flex items-center gap-1.5 text-muted-foreground">
           <BarChart3 className="h-3.5 w-3.5" />
-          <span>Consumo Mensal Total</span>
+          <span>Consumo</span>
           <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
         </div>
         <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
