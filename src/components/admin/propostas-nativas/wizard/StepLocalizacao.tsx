@@ -96,10 +96,12 @@ export function StepLocalizacao({
   useEffect(() => {
     (async () => {
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
         const { data: profile } = await supabase
           .from("profiles")
           .select("tenant_id")
-          .eq("id", (await supabase.auth.getUser()).data.user?.id ?? "")
+          .eq("user_id", user.id)
           .maybeSingle();
         if (!profile?.tenant_id) return;
 
