@@ -101,7 +101,7 @@ export function useWizardPersistence() {
             titulo: params.titulo || "Proposta sem título",
             lead_id: params.leadId || null,
             projeto_id: params.projetoId || null,
-            status: "draft",
+            status: "rascunho",
             origem: "native",
             created_by: profile.user_id,
           } as any)
@@ -131,7 +131,7 @@ export function useWizardPersistence() {
             tenant_id: profile.tenant_id,
             proposta_id: propostaId,
             versao_numero: 1,
-            status: "draft",
+            status: "rascunho",
             potencia_kwp: params.potenciaKwp,
             valor_total: params.precoFinal,
             snapshot: params.snapshot as any,
@@ -184,7 +184,7 @@ export function useWizardPersistence() {
         .from("propostas_nativas")
         .update({
           titulo: params.titulo || "Proposta sem título",
-          status: setActive ? "active" : undefined,
+          status: setActive ? "gerada" : undefined,
           updated_at: new Date().toISOString(),
         } as any)
         .eq("id", params.propostaId);
@@ -197,7 +197,7 @@ export function useWizardPersistence() {
         updated_at: new Date().toISOString(),
       };
       if (setActive) {
-        updateData.status = "generated";
+        updateData.status = "gerada";
         updateData.gerado_em = new Date().toISOString();
       }
 
