@@ -797,6 +797,7 @@ export function ProposalWizard() {
               potenciaKwp={potenciaKwp} onPotenciaChange={setPotenciaKwp}
               preDimensionamento={preDimensionamento}
               onPreDimensionamentoChange={setPreDimensionamento}
+              irradiacao={locIrradiacao}
             />
           </>
         ));
