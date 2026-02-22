@@ -1157,17 +1157,6 @@ export function ProposalWizard() {
               Etapa {step + 1}/{activeSteps.length}
             </span>
 
-            {/* Salvar Rascunho */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSaveDraft}
-              disabled={saving}
-              className="gap-1.5 h-9 text-xs font-medium hidden sm:flex"
-            >
-              <Save className="h-3.5 w-3.5" />
-              {saving ? "Salvando..." : "Salvar Rascunho"}
-            </Button>
 
             {/* Atualizar (only if already saved) */}
             {savedPropostaId && (
