@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home } from "lucide-react";
+import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home, Navigation } from "lucide-react";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,6 +32,9 @@ interface Props {
   /** Project address sync */
   projectAddress?: ProjectAddress;
   onProjectAddressChange?: (addr: ProjectAddress) => void;
+  /** Distance from company to client (km) — editable */
+  distanciaKm?: number;
+  onDistanciaKmChange?: (km: number) => void;
 }
 
 interface ConcessionariaOption {
@@ -47,6 +51,7 @@ export function StepLocalizacao({
   onEstadoChange, onCidadeChange, onTipoTelhadoChange, onDistribuidoraChange,
   onIrradiacaoChange, onMapSnapshotsChange,
   clienteData, projectAddress, onProjectAddressChange,
+  distanciaKm, onDistanciaKmChange,
 }: Props) {
   const { tiposTelhado } = useTiposTelhado();
   const [concessionarias, setConcessionarias] = useState<ConcessionariaOption[]>([]);
@@ -485,6 +490,25 @@ export function StepLocalizacao({
                   </div>
                 </div>
 
+                {/* Distância empresa → cliente */}
+                <div className="space-y-0.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+                    <Navigation className="h-2.5 w-2.5" /> Distância até o cliente
+                  </Label>
+                  <div className="flex items-center gap-1.5">
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={distanciaKm ?? 0}
+                      onChange={e => onDistanciaKmChange?.(Number(e.target.value) || 0)}
+                      className="h-7 text-xs w-20 font-bold text-primary"
+                    />
+                    <span className="text-[10px] text-muted-foreground font-medium">km</span>
+                    <Edit3 className="h-2.5 w-2.5 text-muted-foreground/50" />
+                  </div>
+                </div>
+
                 {/* Dialog Irradiação Mensal */}
                 <IrradiacaoMensalDialog
                   open={irradDialogOpen}
@@ -509,7 +533,7 @@ export function StepLocalizacao({
                 Mapa
               </CardTitle>
               {geoLat && geoLon && (
-                <span className="text-[9px] font-mono text-muted-foreground">
+                <span className="text-[9px] font-mono text-primary font-semibold bg-primary/10 px-1.5 py-0.5 rounded">
                   {geoLat.toFixed(4)}, {geoLon.toFixed(4)}
                 </span>
               )}

@@ -152,6 +152,7 @@ export function ProposalWizard() {
   const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
   const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
   const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
+  const [distanciaKm, setDistanciaKm] = useState<number>(0);
   const [projectAddress, setProjectAddress] = useState<import("./wizard/ProjectAddressFields").ProjectAddress>({
     cep: "", rua: "", numero: "", complemento: "",
     bairro: "", cidade: "", uf: "", lat: null, lon: null,
@@ -745,6 +746,8 @@ export function ProposalWizard() {
               clienteData={cliente}
               projectAddress={projectAddress}
               onProjectAddressChange={setProjectAddress}
+              distanciaKm={distanciaKm}
+              onDistanciaKmChange={setDistanciaKm}
             />
             {/* Cliente section — only show full form when NOT from project */}
             {!projectContext && (
