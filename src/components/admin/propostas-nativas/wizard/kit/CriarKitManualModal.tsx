@@ -497,7 +497,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px]">Qtd. *</Label>
-                      <Input type="number" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                      <Input type="number" min="0" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px]">Fabricante</Label>
@@ -505,7 +505,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px]">Potência (W)</Label>
-                      <Input type="number" value={m.potenciaW || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, potenciaW: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                      <Input type="number" min="0" value={m.potenciaW || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
                     </div>
                   </div>
                 ) : (
@@ -518,7 +518,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                         ))}
                       </SelectContent>
                     </Select>
-                    <Input type="number" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-8 text-xs w-16" placeholder="0" />
+                    <Input type="number" min="0" value={m.quantidade || ""} onChange={e => setModuloEntries(p => p.map(x => x.id === m.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
 
@@ -552,7 +552,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px]">Qtd. *</Label>
-                        <Input type="number" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                        <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px]">Fabricante</Label>
@@ -560,7 +560,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px]">Potência (W)</Label>
-                        <Input type="number" value={inv.potenciaW || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, potenciaW: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                        <Input type="number" min="0" value={inv.potenciaW || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -577,7 +577,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                       </div>
                       <div className="space-y-1">
                         <Label className="text-[10px]">Tensão de linha (V)</Label>
-                        <Input type="number" value={inv.tensaoLinha || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, tensaoLinha: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                        <Input type="number" min="0" value={inv.tensaoLinha || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, tensaoLinha: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
                       </div>
                     </div>
                   </>
@@ -600,7 +600,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                         )}
                       </SelectContent>
                     </Select>
-                    <Input type="number" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-8 text-xs w-16" placeholder="0" />
+                    <Input type="number" min="0" value={inv.quantidade || ""} onChange={e => setInversorEntries(p => p.map(x => x.id === inv.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
 
@@ -640,7 +640,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px]">Qtd. *</Label>
-                      <Input type="number" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                      <Input type="number" min="0" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px]">Fabricante</Label>
@@ -648,7 +648,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     </div>
                     <div className="space-y-1">
                       <Label className="text-[10px]">Potência (W)</Label>
-                      <Input type="number" value={ot.potenciaW || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, potenciaW: Number(e.target.value) } : x))} className="h-7 text-xs" />
+                      <Input type="number" min="0" value={ot.potenciaW || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, potenciaW: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs" />
                     </div>
                   </div>
                 ) : (
@@ -669,7 +669,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                         )}
                       </SelectContent>
                     </Select>
-                    <Input type="number" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-8 text-xs w-16" placeholder="0" />
+                    <Input type="number" min="0" value={ot.quantidade || ""} onChange={e => setOtimizadorEntries(p => p.map(x => x.id === ot.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-8 text-xs w-16" placeholder="0" />
                   </div>
                 )}
 
@@ -700,7 +700,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                     </div>
                     <div className="flex items-center gap-2">
                       <Input value={c.nome} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, nome: e.target.value } : x))} className="h-7 text-xs flex-1" placeholder="Nome do componente" />
-                      <Input type="number" value={c.quantidade || ""} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, quantidade: Number(e.target.value) } : x))} className="h-7 text-xs w-16" placeholder="0" />
+                      <Input type="number" min="0" value={c.quantidade || ""} onChange={e => setComponenteEntries(p => p.map(x => x.id === c.id ? { ...x, quantidade: Math.max(0, Number(e.target.value) || 0) } : x))} className="h-7 text-xs w-16" placeholder="0" />
                       <button onClick={() => setComponenteEntries(p => [...p, { id: crypto.randomUUID(), nome: "", quantidade: 0 }])} className="text-[11px] text-primary font-medium hover:underline whitespace-nowrap">
                         + Adicionar mais
                       </button>
