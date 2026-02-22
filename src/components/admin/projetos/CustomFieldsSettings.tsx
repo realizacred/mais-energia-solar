@@ -602,33 +602,41 @@ export function CustomFieldsSettings() {
           </DialogHeader>
 
           {/* ── Step 1: Type Grid ── */}
-          {fieldWizardStep === "type" && (
-            <div className="grid grid-cols-3 gap-3 py-2">
-              {Object.entries(FIELD_TYPE_LABELS).map(([key, label]) => {
-                const Icon = FIELD_TYPE_ICONS[key] || Type;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => {
-                      setFieldForm(p => ({ ...p, field_type: key }));
-                      setFieldWizardStep("config");
-                    }}
-                    className={cn(
-                      "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
-                      "hover:border-secondary/60 hover:bg-secondary/5 cursor-pointer",
-                      "border-border bg-card text-foreground"
-                    )}
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
-                      <Icon className="h-5 w-5 text-foreground" />
-                    </div>
-                    <span className="text-xs font-medium text-center leading-tight">{label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          {fieldWizardStep === "type" && (() => {
+            // For pre/pos dimensionamento, only show relevant field types
+            const DIMENSIONAMENTO_TYPES = ["text", "number", "currency", "select", "boolean", "date"];
+            const isDimensionamento = fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento";
+            const availableTypes = Object.entries(FIELD_TYPE_LABELS).filter(
+              ([key]) => !isDimensionamento || DIMENSIONAMENTO_TYPES.includes(key)
+            );
+            return (
+              <div className="grid grid-cols-3 gap-3 py-2">
+                {availableTypes.map(([key, label]) => {
+                  const Icon = FIELD_TYPE_ICONS[key] || Type;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setFieldForm(p => ({ ...p, field_type: key }));
+                        setFieldWizardStep("config");
+                      }}
+                      className={cn(
+                        "flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all",
+                        "hover:border-secondary/60 hover:bg-secondary/5 cursor-pointer",
+                        "border-border bg-card text-foreground"
+                      )}
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center">
+                        <Icon className="h-5 w-5 text-foreground" />
+                      </div>
+                      <span className="text-xs font-medium text-center leading-tight">{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* ── Step 2: Config Form ── */}
           {fieldWizardStep === "config" && (
