@@ -996,10 +996,31 @@ function GerenciamentoTab({
             <CardContent className="p-4 pt-0">
               <div className="space-y-2.5">
                 <ClientRow icon={User} label={customerName || "—"} />
-                {customerCpfCnpj && <ClientRow icon={Hash} label={customerCpfCnpj} muted />}
-                {customerPhone && <ClientRow icon={Phone} label={customerPhone} muted />}
-                {customerEmail && <ClientRow icon={Mail} label={customerEmail} muted isLink />}
-                {customerAddress && <ClientRow icon={MapPin} label={customerAddress} muted />}
+                {customerCpfCnpj && <ClientRow icon={Hash} label={customerCpfCnpj} muted onCopy={() => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); }} />}
+                {customerPhone && (
+                  <ClientRow
+                    icon={Phone}
+                    label={customerPhone}
+                    muted
+                    onCopy={() => { navigator.clipboard.writeText(customerPhone); toast({ title: "Telefone copiado" }); }}
+                    onAction={() => window.open(`https://wa.me/${customerPhone.replace(/\D/g, "")}`, "_blank")}
+                    actionIcon={MessageSquare}
+                    actionTooltip="Abrir WhatsApp"
+                  />
+                )}
+                {customerEmail && (
+                  <ClientRow
+                    icon={Mail}
+                    label={customerEmail}
+                    muted
+                    isLink
+                    onCopy={() => { navigator.clipboard.writeText(customerEmail); toast({ title: "E-mail copiado" }); }}
+                    onAction={() => window.open(`mailto:${customerEmail}`, "_blank")}
+                    actionIcon={Send}
+                    actionTooltip="Enviar e-mail"
+                  />
+                )}
+                {customerAddress && <ClientRow icon={MapPin} label={customerAddress} muted onCopy={() => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); }} />}
               </div>
             </CardContent>
           </Card>
@@ -1275,7 +1296,16 @@ function GerenciamentoTab({
 // ═══════════════════════════════════════════════════
 // ─── Client Info Row ─────────────────────────────
 // ═══════════════════════════════════════════════════
-function ClientRow({ icon: Icon, label, muted, isLink }: { icon: typeof User; label: string; muted?: boolean; isLink?: boolean }) {
+function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionIcon: ActionIcon, actionTooltip }: {
+  icon: typeof User;
+  label: string;
+  muted?: boolean;
+  isLink?: boolean;
+  onCopy?: () => void;
+  onAction?: () => void;
+  actionIcon?: typeof User;
+  actionTooltip?: string;
+}) {
   const iconColorMap: Record<string, string> = {
     User: "text-secondary",
     Hash: "text-muted-foreground",
@@ -1285,15 +1315,35 @@ function ClientRow({ icon: Icon, label, muted, isLink }: { icon: typeof User; la
   };
   const iconColor = iconColorMap[Icon.displayName || ""] || "text-secondary";
   return (
-    <div className="flex items-start gap-2.5">
-      <Icon className={cn("h-3.5 w-3.5 shrink-0 mt-0.5", iconColor)} />
+    <div className="flex items-center gap-2.5 group">
+      <Icon className={cn("h-3.5 w-3.5 shrink-0", iconColor)} />
       <span className={cn(
-        "text-sm leading-snug",
+        "text-sm leading-snug flex-1 min-w-0 truncate",
         muted ? "text-muted-foreground" : "font-medium text-foreground",
         isLink && "text-primary"
       )}>
         {label}
       </span>
+      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        {onCopy && (
+          <button
+            onClick={onCopy}
+            className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors"
+            title="Copiar"
+          >
+            <Copy className="h-3 w-3 text-muted-foreground" />
+          </button>
+        )}
+        {onAction && ActionIcon && (
+          <button
+            onClick={onAction}
+            className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors"
+            title={actionTooltip}
+          >
+            <ActionIcon className="h-3 w-3 text-success" />
+          </button>
+        )}
+      </div>
     </div>
   );
 }
