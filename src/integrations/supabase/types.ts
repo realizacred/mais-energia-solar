@@ -15319,6 +15319,19 @@ export type Database = {
             }
             Returns: Json
           }
+      create_proposta_nativa_atomic_v2: {
+        Args: {
+          p_deal_id: string
+          p_lead_id: string
+          p_origem: string
+          p_potencia_kwp: number
+          p_projeto_id: string
+          p_snapshot: Json
+          p_titulo: string
+          p_valor_total: number
+        }
+        Returns: Json
+      }
       current_tenant_id: { Args: never; Returns: string }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
       encrypt_secret: {

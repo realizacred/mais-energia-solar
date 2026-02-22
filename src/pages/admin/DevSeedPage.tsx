@@ -225,7 +225,7 @@ export default function DevSeedPage() {
       });
 
       const { data: propostaData, error: propostaErr } = await supabase.rpc(
-        "create_proposta_nativa_atomic" as any,
+        "create_proposta_nativa_atomic_v2" as any,
         {
           p_titulo: "Proposta Seed Teste",
           p_lead_id: null,
