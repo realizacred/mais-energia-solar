@@ -219,7 +219,7 @@ export function StepAdicionais({
         <div className="flex items-start gap-2.5 py-8">
           <Info className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" />
           <p className="text-sm text-muted-foreground">
-            Utilize um distribuidor SolarMarket para ter opções adicionais de componentes.
+            Utilize um distribuidor parceiro para ter opções adicionais de componentes.
           </p>
         </div>
       </div>

@@ -107,7 +107,7 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
         <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-muted/30 border border-border/30">
           <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
           <p className="text-xs text-muted-foreground">
-            Utilize um distribuidor SolarMarket para ter opções adicionais de serviços.
+            Utilize um distribuidor parceiro para ter opções adicionais de serviços.
           </p>
         </div>
 
