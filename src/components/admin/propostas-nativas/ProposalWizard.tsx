@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { generateProposal, renderProposal, type GenerateProposalPayload } from "@/services/proposalApi";
@@ -221,7 +223,7 @@ export function ProposalWizard() {
   const [blockReason, setBlockReason] = useState<"missing_required" | "estimativa_not_accepted">("missing_required");
   const [blockMissing, setBlockMissing] = useState<string[]>([]);
   const [descricaoProposta, setDescricaoProposta] = useState("");
-
+  const [debugMode, setDebugMode] = useState(false);
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
@@ -309,6 +311,21 @@ export function ProposalWizard() {
 
   const handleSaveDraft = useCallback(async () => {
     const snapshot = collectSnapshot();
+    const projetoId = projectContext?.dealId || dealIdFromUrl || undefined;
+    const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
+
+    if (debugMode) {
+      console.group("🔍 [DEBUG] Proposal Creation");
+      console.log("tenant context: from RPC (auth.uid → profiles)");
+      console.log("projeto_id being sent:", projetoId ?? "(none — RPC will create)");
+      console.log("lead_id:", selectedLead?.id ?? "(none)");
+      console.log("savedPropostaId:", savedPropostaId);
+      console.log("savedVersaoId:", savedVersaoId);
+      console.log("titulo:", titulo);
+      console.log("potenciaKwp:", potenciaKwp, "| precoFinal:", precoFinal);
+      console.groupEnd();
+    }
+
     const res = await saveDraft({
       propostaId: savedPropostaId,
       versaoId: savedVersaoId,
@@ -316,14 +333,23 @@ export function ProposalWizard() {
       potenciaKwp,
       precoFinal,
       leadId: selectedLead?.id,
-      projetoId: projectContext?.dealId || dealIdFromUrl || undefined,
-      titulo: nomeProposta || cliente.nome || selectedLead?.nome || "Proposta",
+      projetoId,
+      titulo,
     });
+
+    if (debugMode && res) {
+      console.group("✅ [DEBUG] Proposal Created/Updated");
+      console.log("propostaId:", res.propostaId);
+      console.log("versaoId:", res.versaoId);
+      console.log("projetoId:", (res as any).projetoId ?? "(unchanged)");
+      console.groupEnd();
+    }
+
     if (res) {
       setSavedPropostaId(res.propostaId);
       setSavedVersaoId(res.versaoId);
     }
-  }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, selectedLead, projectContext, dealIdFromUrl, nomeProposta, cliente.nome]);
+  }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, selectedLead, projectContext, dealIdFromUrl, nomeProposta, cliente.nome, debugMode]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
     const snapshot = collectSnapshot();
@@ -1184,6 +1210,10 @@ export function ProposalWizard() {
               Etapa {step + 1}/{activeSteps.length}
             </span>
 
+            <div className="hidden sm:flex items-center gap-1.5 ml-2">
+              <Switch id="debug-toggle" checked={debugMode} onCheckedChange={setDebugMode} className="scale-75" />
+              <Label htmlFor="debug-toggle" className="text-[10px] text-muted-foreground cursor-pointer select-none">Debug</Label>
+            </div>
 
             <div className="h-6 w-px bg-border/50 hidden sm:block" />
 
