@@ -151,6 +151,8 @@ export function ProposalWizard() {
   const [locDistribuidoraId, setLocDistribuidoraId] = useState("");
   const [locDistribuidoraNome, setLocDistribuidoraNome] = useState("");
   const [locIrradiacao, setLocIrradiacao] = useState<number>(0);
+  const [locGhiSeries, setLocGhiSeries] = useState<Record<string, number> | null>(null);
+  const [locLatitude, setLocLatitude] = useState<number | null>(null);
   const [mapSnapshots, setMapSnapshots] = useState<string[]>([]);
   const [distanciaKm, setDistanciaKm] = useState<number>(0);
   const [projectAddress, setProjectAddress] = useState<import("./wizard/ProjectAddressFields").ProjectAddress>({
@@ -742,6 +744,8 @@ export function ProposalWizard() {
               }}
               onDistribuidoraChange={(id, nome) => { setLocDistribuidoraId(id); setLocDistribuidoraNome(nome); }}
               onIrradiacaoChange={setLocIrradiacao}
+              onGhiSeriesChange={setLocGhiSeries}
+              onLatitudeChange={setLocLatitude}
               onMapSnapshotsChange={setMapSnapshots}
               clienteData={cliente}
               projectAddress={projectAddress}
@@ -801,6 +805,8 @@ export function ProposalWizard() {
               preDimensionamento={preDimensionamento}
               onPreDimensionamentoChange={setPreDimensionamento}
               irradiacao={locIrradiacao}
+              ghiSeries={locGhiSeries}
+              latitude={locLatitude}
             />
           </>
         ));

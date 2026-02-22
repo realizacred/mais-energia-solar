@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { transposeToTiltedPlane } from "@/services/solar-transposition";
+import type { IrradianceSeries } from "@/services/irradiance-provider";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,6 +33,10 @@ interface Props {
   onPreDimensionamentoChange: (pd: PreDimensionamentoData) => void;
   /** Local irradiation (kWh/m²/day) from StepLocalizacao */
   irradiacao?: number;
+  /** Monthly GHI series for transposition */
+  ghiSeries?: Record<string, number> | null;
+  /** Site latitude for transposition */
+  latitude?: number | null;
 }
 
 type ActiveTab = "ucs" | "pre";
@@ -39,7 +45,7 @@ type PreSubTab = "premissas" | "equipamentos";
 export function StepConsumptionIntelligence({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
-  irradiacao,
+  irradiacao, ghiSeries, latitude,
 }: Props) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
   const [preSubTab, setPreSubTab] = useState<PreSubTab>("premissas");
@@ -74,22 +80,46 @@ export function StepConsumptionIntelligence({
     }
   }, [uc1TipoTelhado, roofFactors, setPd]);
 
-  // ─── Derive fator_geracao from local irradiation ──────────
-  // fator_geracao = irradiação_média × 30 × (desempenho / 100)
-  const prevIrradRef = useRef<number | undefined>(undefined);
+  // ─── Effective irradiance (POA when possible, GHI fallback) ──
+  const effectiveIrrad = useMemo(() => {
+    if (!irradiacao || irradiacao <= 0) return 0;
+    if (ghiSeries && latitude != null) {
+      try {
+        const ghiInput: IrradianceSeries = {
+          m01: ghiSeries.m01 ?? 0, m02: ghiSeries.m02 ?? 0, m03: ghiSeries.m03 ?? 0,
+          m04: ghiSeries.m04 ?? 0, m05: ghiSeries.m05 ?? 0, m06: ghiSeries.m06 ?? 0,
+          m07: ghiSeries.m07 ?? 0, m08: ghiSeries.m08 ?? 0, m09: ghiSeries.m09 ?? 0,
+          m10: ghiSeries.m10 ?? 0, m11: ghiSeries.m11 ?? 0, m12: ghiSeries.m12 ?? 0,
+        };
+        const result = transposeToTiltedPlane({
+          ghi: ghiInput,
+          latitude,
+          tilt_deg: pd.inclinacao || 0,
+          azimuth_deviation_deg: pd.desvio_azimutal || 0,
+        });
+        return result.poa_annual_avg;
+      } catch { /* fallback */ }
+    }
+    return irradiacao;
+  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal]);
+
+  // ─── Derive fator_geracao from POA irradiation ──────────
+  // fator_geracao = POA_avg × 30 × (desempenho / 100)
+  const prevEffIrradKey = useRef<string>("");
   useEffect(() => {
-    if (!irradiacao || irradiacao <= 0) return;
-    // Only recalculate when irradiacao actually changes
-    if (prevIrradRef.current === irradiacao) return;
-    prevIrradRef.current = irradiacao;
+    if (effectiveIrrad <= 0) return;
 
     const currentPd = pdRef.current;
+    const key = `${effectiveIrrad.toFixed(4)}`;
+    if (prevEffIrradKey.current === key) return;
+    prevEffIrradKey.current = key;
+
     const configs = { ...currentPd.topologia_configs };
     let changed = false;
 
     for (const topo of ["tradicional", "microinversor", "otimizador"]) {
       const cfg = configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo];
-      const newFator = Math.round(irradiacao * 30 * (cfg.desempenho / 100) * 100) / 100;
+      const newFator = Math.round(effectiveIrrad * 30 * (cfg.desempenho / 100) * 100) / 100;
       if (Math.abs(newFator - cfg.fator_geracao) > 0.01) {
         configs[topo] = { ...cfg, fator_geracao: newFator };
         changed = true;
@@ -100,11 +130,10 @@ export function StepConsumptionIntelligence({
       setPd({
         ...currentPd,
         topologia_configs: configs,
-        // Legacy compat
         fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
       });
     }
-  }, [irradiacao, setPd]);
+  }, [effectiveIrrad, setPd]);
 
   // ─── Derived metrics
   const consumoTotal = useMemo(() => {
@@ -260,9 +289,9 @@ export function StepConsumptionIntelligence({
       const lossPct = levelKey ? (sombConfig[levelKey] as any)?.[topo] ?? 0 : 0;
       const factor = 1 - lossPct / 100;
       const adjustedDesempenho = Math.round(baseD * factor * 100) / 100;
-      // Derive fator from irradiation when available
-      const adjustedFatorGeracao = irradiacao && irradiacao > 0
-        ? Math.round(irradiacao * 30 * (adjustedDesempenho / 100) * 100) / 100
+      // Derive fator from POA irradiation when available
+      const adjustedFatorGeracao = effectiveIrrad > 0
+        ? Math.round(effectiveIrrad * 30 * (adjustedDesempenho / 100) * 100) / 100
         : Math.round((baseFatorGeracao[topo] || getTopoConfig(topo).fator_geracao) * factor * 100) / 100;
       configs[topo] = {
         ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]),
@@ -279,7 +308,7 @@ export function StepConsumptionIntelligence({
       fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
     };
     setPd(updated);
-  }, [baseDesempenho, baseFatorGeracao, irradiacao, setPd]);
+  }, [baseDesempenho, baseFatorGeracao, effectiveIrrad, setPd]);
 
   // ─── Pre-dimensionamento helpers
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
@@ -293,10 +322,10 @@ export function StepConsumptionIntelligence({
   const updateTopoConfig = (topo: string, field: keyof TopologiaConfig, value: any) => {
     const configs = { ...pd.topologia_configs };
     configs[topo] = { ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]), [field]: value };
-    // When desempenho changes and we have irradiation, recalculate fator_geracao
-    if (field === "desempenho" && irradiacao && irradiacao > 0) {
+    // When desempenho changes and we have POA irradiation, recalculate fator_geracao
+    if (field === "desempenho" && effectiveIrrad > 0) {
       const newDesempenho = value as number;
-      configs[topo].fator_geracao = Math.round(irradiacao * 30 * (newDesempenho / 100) * 100) / 100;
+      configs[topo].fator_geracao = Math.round(effectiveIrrad * 30 * (newDesempenho / 100) * 100) / 100;
     }
     const updated: PreDimensionamentoData = { ...pd, topologia_configs: configs };
     // Sync legacy fields from tradicional
