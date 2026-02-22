@@ -646,7 +646,11 @@ function PremissasContent({
               {/* Topology header + badge */}
               <div className="flex items-center gap-2 flex-wrap">
                 <p className="text-sm font-bold">{TOPOLOGIA_LABELS[topo]}</p>
-                <Badge variant="outline" className="text-[10px] font-mono border-secondary text-secondary whitespace-nowrap">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono border-secondary text-secondary whitespace-nowrap"
+                  title={`Consumo total: ${consumoTotal} kWh ÷ Fator: ${cfg.fator_geracao} = ${potIdeal.toFixed(2)} kWp`}
+                >
                   Pot. ideal: {potIdeal.toFixed(2)} kWp
                 </Badge>
               </div>
