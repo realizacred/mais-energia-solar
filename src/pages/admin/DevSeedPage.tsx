@@ -59,6 +59,8 @@ export default function DevSeedPage() {
       { label: "Criar proposta nativa", status: "idle" },
     ]);
 
+    const runId = crypto.randomUUID().slice(0, 8);
+
     const seedResult: SeedResult = {
       clienteId: null, clienteCode: null,
       dealId: null, dealNum: null,
@@ -180,7 +182,7 @@ export default function DevSeedPage() {
       const { data: dealRow, error: dealErr } = await supabase
         .from("deals")
         .insert({
-          title: "Projeto Seed Teste",
+          title: `Projeto Seed Teste [run:${runId}]`,
           pipeline_id: pipelineId,
           stage_id: stageId,
           owner_id: ownerId,
@@ -227,7 +229,7 @@ export default function DevSeedPage() {
       const { data: propostaData, error: propostaErr } = await supabase.rpc(
         "create_proposta_nativa_atomic_v2" as any,
         {
-          p_titulo: "Proposta Seed Teste",
+          p_titulo: `Proposta Seed Teste [run:${runId}]`,
           p_lead_id: null,
           p_projeto_id: projetoIdForProposta,
           p_deal_id: seedResult.dealId,
@@ -265,7 +267,8 @@ export default function DevSeedPage() {
       updateStep(2, { status: "success", message: `ID: ${seedResult.propostaId} | #${seedResult.propostaNum} | Código: ${seedResult.propostaCodigo}` });
 
       setResult(seedResult);
-      toast({ title: "✅ Seed completo!", description: "Cliente + Projeto + Proposta criados." });
+      localStorage.setItem("lastSeedRunId", runId);
+      toast({ title: "✅ Seed completo!", description: `Cliente + Projeto + Proposta criados. Run: ${runId}` });
     } catch (err: any) {
       console.error("[Seed] Unexpected error:", err);
       toast({ title: "Erro inesperado no seed", description: err?.message || String(err), variant: "destructive" });

@@ -15334,6 +15334,7 @@ export type Database = {
       }
       current_tenant_id: { Args: never; Returns: string }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
+      delete_seed_data: { Args: never; Returns: Json }
       encrypt_secret: {
         Args: { plain: string; secret: string }
         Returns: string
@@ -15828,6 +15829,7 @@ export type Database = {
       normalize_br_phone: { Args: { phone: string }; Returns: string }
       normalize_phone: { Args: { p: string }; Returns: string }
       normalize_remote_jid: { Args: { raw_jid: string }; Returns: string }
+      preview_seed_data: { Args: never; Returns: Json }
       purge_irradiance_dataset: { Args: { _dataset_id: string }; Returns: Json }
       refresh_dashboard_views: { Args: never; Returns: undefined }
       refresh_dashboard_views_v2: { Args: never; Returns: undefined }
