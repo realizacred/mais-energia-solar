@@ -726,7 +726,38 @@ function GerenciamentoTab({
   const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
   const [activities, setActivities] = useState<Array<{ id: string; title: string; description?: string; activity_type: string; due_date?: string; status: string; created_at: string }>>([]);
 
-  // Load notes
+  // Custom fields marked as important
+  const [importantFields, setImportantFields] = useState<Array<{ id: string; title: string; field_key: string; field_type: string; options: any }>>([]);
+  const [customFieldValues, setCustomFieldValues] = useState<Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null }>>({});
+
+  // Load important custom fields + values
+  useEffect(() => {
+    async function loadImportantFields() {
+      try {
+        const { data: fields } = await supabase
+          .from("deal_custom_fields")
+          .select("id, title, field_key, field_type, options")
+          .eq("is_active", true)
+          .eq("important_on_funnel", true)
+          .order("ordem");
+        if (!fields || fields.length === 0) { setImportantFields([]); return; }
+        setImportantFields(fields as any);
+
+        const fieldIds = fields.map((f: any) => f.id);
+        const { data: values } = await supabase
+          .from("deal_custom_field_values")
+          .select("field_id, value_text, value_number, value_boolean, value_date")
+          .eq("deal_id", deal.id)
+          .in("field_id", fieldIds);
+        if (values) {
+          const map: Record<string, any> = {};
+          values.forEach((v: any) => { map[v.field_id] = v; });
+          setCustomFieldValues(map);
+        }
+      } catch { /* ignore */ }
+    }
+    loadImportantFields();
+  }, [deal.id]);
   useEffect(() => {
     async function loadNotes() {
       try {
@@ -994,6 +1025,28 @@ function GerenciamentoTab({
                 <InfoRow label="Criado em" value={formatDate(deal.created_at)} />
                 {deal.expected_close_date && (
                   <InfoRow label="Previsão" value={new Date(deal.expected_close_date).toLocaleDateString("pt-BR")} />
+                )}
+                {/* Custom fields marked as important */}
+                {importantFields.length > 0 && (
+                  <>
+                    <div className="border-t border-border/40 my-2" />
+                    {importantFields.map(field => {
+                      const val = customFieldValues[field.id];
+                      let displayValue = "—";
+                      if (val) {
+                        if (field.field_type === "boolean") {
+                          displayValue = val.value_boolean ? "Sim" : "Não";
+                        } else if (field.field_type === "number" || field.field_type === "currency") {
+                          displayValue = val.value_number != null ? String(val.value_number) : "—";
+                        } else if (field.field_type === "date") {
+                          displayValue = val.value_date ? new Date(val.value_date).toLocaleDateString("pt-BR") : "—";
+                        } else {
+                          displayValue = val.value_text || "—";
+                        }
+                      }
+                      return <InfoRow key={field.id} label={field.title} value={displayValue} />;
+                    })}
+                  </>
                 )}
               </div>
             </CardContent>
