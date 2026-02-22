@@ -18,7 +18,7 @@ import {
   Plus, Trash2, GripVertical, Pencil, Settings2, Layers, Zap, AlertTriangle,
   Save, Loader2, LayoutGrid, ListOrdered, Type, Hash, DollarSign, Calendar,
   CalendarClock, ListChecks, CheckSquare, FileText, ChevronLeft, HelpCircle,
-  Sliders, Copy
+  Sliders, Copy, Landmark
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -938,6 +938,7 @@ import { TabFinanceiras } from "@/components/admin/premissas/tabs/TabFinanceiras
 import { TabSistemaSolar } from "@/components/admin/premissas/tabs/TabSistemaSolar";
 import { TabAreaTelhado } from "@/components/admin/premissas/tabs/TabAreaTelhado";
 import { TabValoresPadroes } from "@/components/admin/premissas/tabs/TabValoresPadroes";
+import { TabTributacao } from "@/components/admin/premissas/tabs/TabTributacao";
 import { PremissasFooter } from "@/components/admin/premissas/PremissasFooter";
 
 function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises> }) {
@@ -948,6 +949,7 @@ function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises
     { value: "sistema-solar", label: "Sistema solar", icon: Calendar },
     { value: "area-telhado", label: "Área útil por tipo de telhado", icon: LayoutGrid },
     { value: "valores-padroes", label: "Valores padrões", icon: Sliders },
+    { value: "tributacao", label: "Tributação", icon: Landmark },
   ] as const;
 
   return (
@@ -983,8 +985,9 @@ function PremissasTabContent({ ctx }: { ctx: ReturnType<typeof useTenantPremises
         <TabAreaTelhado roofFactors={ctx.roofFactors} onSave={ctx.saveRoofFactors} saving={ctx.saving} />
       )}
       {subTab === "valores-padroes" && <TabValoresPadroes premises={ctx.premises} onChange={ctx.setPremises} />}
+      {subTab === "tributacao" && <TabTributacao />}
 
-      {subTab !== "area-telhado" && (
+      {subTab !== "area-telhado" && subTab !== "tributacao" && (
         <PremissasFooter isDirty={ctx.isDirty} saving={ctx.saving} onSave={ctx.save} onCancel={ctx.reset} />
       )}
     </div>
