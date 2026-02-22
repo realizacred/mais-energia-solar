@@ -54,6 +54,8 @@ export function ProjectAddressFields({
   const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(address.uf);
   const lastReverseRef = useRef<string>("");
   const didAutoApplyRef = useRef(false);
+  const addressRef = useRef(address);
+  addressRef.current = address;
 
   // ── Auto-apply client address on mount when project address is empty ──
   useEffect(() => {
@@ -106,20 +108,22 @@ export function ProjectAddressFields({
       const resp = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
       const data = await resp.json();
       if (!data.erro) {
+        // Use ref to get the latest address (avoids stale closure)
+        const current = addressRef.current;
         const updated: ProjectAddress = {
-          ...address,
+          ...current,
           cep: formatCEP(digits),
-          rua: data.logradouro || address.rua,
-          bairro: data.bairro || address.bairro,
-          cidade: data.localidade || address.cidade,
-          uf: data.uf || address.uf,
-          complemento: data.complemento || address.complemento,
-          numero: address.numero,
-          lat: address.lat,
-          lon: address.lon,
+          rua: data.logradouro || current.rua,
+          bairro: data.bairro || current.bairro,
+          cidade: data.localidade || current.cidade,
+          uf: data.uf || current.uf,
+          complemento: data.complemento || current.complemento,
+          numero: current.numero,
+          lat: null,
+          lon: null,
         };
         onAddressChange(updated);
-        // Use ref to always call the latest forwardGeocode
+        if (sameAsClient) setSameAsClient(false);
         forwardGeocodeRef.current?.(updated);
       }
     } catch {
@@ -127,7 +131,7 @@ export function ProjectAddressFields({
     } finally {
       setCepLoading(false);
     }
-  }, [address, onAddressChange]);
+  }, [onAddressChange, sameAsClient]);
 
   // ── Forward geocoding: address text → coordinates ──
   // Tries Google Maps API first, falls back to Nominatim
