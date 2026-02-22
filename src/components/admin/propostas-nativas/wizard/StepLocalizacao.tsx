@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -53,6 +54,8 @@ export function StepLocalizacao({
   const [irradiacao, setIrradiacao] = useState<number | null>(null);
   const [irradSource, setIrradSource] = useState<string | null>(null);
   const [loadingIrrad, setLoadingIrrad] = useState(false);
+  const [ghiSeries, setGhiSeries] = useState<Record<string, number> | null>(null);
+  const [irradDialogOpen, setIrradDialogOpen] = useState(false);
 
   // Geo state
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
@@ -210,9 +213,11 @@ export function StepLocalizacao({
           const avg = (data as any).ghi_annual_avg;
           const dsCode = (data as any).dataset_code || activeVersion.version_tag || "Atlas";
           const dist = (data as any).distance_km;
+          const ghi = (data as any).ghi;
           setIrradiacao(Number(avg));
           setIrradSource(dsCode);
           setDistKm(dist != null ? Number(dist) : null);
+          setGhiSeries(ghi && typeof ghi === "object" ? ghi : null);
           onIrradiacaoChange?.(Number(avg));
           return;
         }
@@ -448,7 +453,14 @@ export function StepLocalizacao({
                     <Sun className="h-2.5 w-2.5" /> Irradiação Solar
                     {loadingIrrad && <Loader2 className="h-2 w-2 animate-spin text-primary ml-0.5" />}
                   </Label>
-                  <div className="flex items-center gap-1 h-7 px-2 border rounded-md bg-muted/10 text-xs">
+                  <div
+                    className={cn(
+                      "flex items-center gap-1 h-7 px-2 border rounded-md bg-muted/10 text-xs",
+                      irradiacao !== null && ghiSeries && "cursor-pointer hover:border-primary/50 hover:bg-muted/20 transition-colors"
+                    )}
+                    onClick={() => { if (irradiacao !== null && ghiSeries) setIrradDialogOpen(true); }}
+                    title={irradiacao !== null && ghiSeries ? "Clique para ver detalhes mensais" : undefined}
+                  >
                     {irradiacao !== null ? (
                       <>
                         <Sun className="h-3 w-3 text-warning shrink-0" />
@@ -472,6 +484,15 @@ export function StepLocalizacao({
                     )}
                   </div>
                 </div>
+
+                {/* Dialog Irradiação Mensal */}
+                <IrradiacaoMensalDialog
+                  open={irradDialogOpen}
+                  onOpenChange={setIrradDialogOpen}
+                  ghiSeries={ghiSeries}
+                  mediaAnual={irradiacao}
+                  source={irradSource}
+                />
               </div>
             </div>
           </CardContent>
@@ -513,5 +534,94 @@ export function StepLocalizacao({
         </Card>
       </div>
     </div>
+  );
+}
+
+// ─── Irradiação Mensal Dialog ─────────────────────────────────
+
+const MONTH_LABELS_SHORT = ["JAN", "FEV", "MAR", "ABR", "MAI", "JUN", "JUL", "AGO", "SET", "OUT", "NOV", "DEZ"];
+const MONTH_KEYS = ["m01", "m02", "m03", "m04", "m05", "m06", "m07", "m08", "m09", "m10", "m11", "m12"];
+
+function IrradiacaoMensalDialog({
+  open, onOpenChange, ghiSeries, mediaAnual, source,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  ghiSeries: Record<string, number> | null;
+  mediaAnual: number | null;
+  source: string | null;
+}) {
+  if (!ghiSeries) return null;
+
+  const values = MONTH_KEYS.map(k => Number(ghiSeries[k] ?? 0));
+  const avg = mediaAnual ?? (values.reduce((a, b) => a + b, 0) / 12);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-sm font-bold">
+            Irradiação solar diária média mensal no plano horizontal (kWh/m².dia)
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs border-collapse">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="px-3 py-2 text-left font-semibold text-muted-foreground border-b uppercase tracking-wide text-[10px]">
+                  Inclinação
+                </th>
+                {MONTH_LABELS_SHORT.slice(0, 6).map(m => (
+                  <th key={m} className="px-3 py-2 text-center font-semibold text-muted-foreground border-b uppercase tracking-wide text-[10px]">
+                    {m}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="px-3 py-2.5 text-center text-muted-foreground border-b">0°</td>
+                {values.slice(0, 6).map((v, i) => (
+                  <td key={i} className="px-3 py-2.5 text-center font-mono border-b">{v.toFixed(2)}</td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+
+          <table className="w-full text-xs border-collapse mt-2">
+            <thead>
+              <tr className="bg-muted/50">
+                <th className="px-3 py-2 text-left font-semibold text-muted-foreground border-b uppercase tracking-wide text-[10px]">
+                  Média
+                </th>
+                {MONTH_LABELS_SHORT.slice(6).map(m => (
+                  <th key={m} className="px-3 py-2 text-center font-semibold text-muted-foreground border-b uppercase tracking-wide text-[10px]">
+                    {m}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="px-3 py-2.5 text-center font-mono font-bold border-b">{avg.toFixed(2)}</td>
+                {values.slice(6).map((v, i) => (
+                  <td key={i} className="px-3 py-2.5 text-center font-mono border-b">{v.toFixed(2)}</td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div className="flex justify-end pt-1">
+          <button
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => onOpenChange(false)}
+          >
+            Fechar
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
