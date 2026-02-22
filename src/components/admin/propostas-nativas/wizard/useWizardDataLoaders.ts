@@ -42,8 +42,8 @@ export function applyTenantTarifasToUC(
     demanda_geracao_rs: uc.demanda_geracao_rs || t.preco_demanda_geracao || 0,
     outros_encargos_atual: uc.outros_encargos_atual || t.outros_encargos_atual || 0,
     outros_encargos_novo: uc.outros_encargos_novo || t.outros_encargos_novo || 0,
-    imposto_energia: uc.imposto_energia || t.imposto_energia || 0,
-    fator_simultaneidade: uc.fator_simultaneidade || t.fator_simultaneidade || 30,
+    imposto_energia: uc.imposto_energia || ((getFioBCobranca() ?? 0.90) * 100),
+    fator_simultaneidade: uc.fator_simultaneidade || (uc.is_geradora ? 30 : 20),
   };
 }
 
