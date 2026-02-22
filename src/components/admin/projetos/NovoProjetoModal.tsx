@@ -260,7 +260,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
               <Field label="Consultor">
                 <Select value={consultorId} onValueChange={setConsultorId}>
                   <SelectTrigger className="h-9 text-sm bg-muted/40 border-border/60">
-                    <SelectValue placeholder="Selecione" />
+                    <SelectValue placeholder="Automático (você)" />
                   </SelectTrigger>
                   <SelectContent>
                     {consultores.map(c => (
@@ -268,6 +268,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                     ))}
                   </SelectContent>
                 </Select>
+                {!consultorId && <p className="text-[11px] text-muted-foreground mt-0.5">Se não selecionado, será atribuído a você automaticamente.</p>}
               </Field>
 
               {pipelines.length > 0 && (
