@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List } from "lucide-react";
+import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -11,6 +11,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
 import { roundCurrency } from "@/lib/formatters";
+import { usePricingDefaults } from "./hooks/usePricingDefaults";
+import { toast } from "@/hooks/use-toast";
 
 // ── Types ──
 
@@ -45,8 +47,11 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [editMode, setEditMode] = useState<"margem" | "preco">("margem");
   const [editValue, setEditValue] = useState("0");
   const [custosExtras, setCustosExtras] = useState<CustoRow[]>([]);
+  const [appliedSmartDefaults, setAppliedSmartDefaults] = useState(false);
 
-  // Load pricing defaults
+  const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
+
+  // Load pricing defaults from config
   useEffect(() => {
     if (loadedDefaults) return;
     supabase
@@ -64,6 +69,31 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
         setLoadedDefaults(true);
       });
   }, []);
+
+  // Auto-apply smart defaults from pricing history
+  useEffect(() => {
+    if (appliedSmartDefaults || !suggested || loadingHistory) return;
+    
+    const isUntouched = venda.custo_comissao === 0 && venda.custo_outros === 0;
+    if (!isUntouched) {
+      setAppliedSmartDefaults(true);
+      return;
+    }
+
+    const updates: Partial<VendaData> = {};
+    if (suggested.margem_percentual != null) updates.margem_percentual = Math.round(suggested.margem_percentual * 10) / 10;
+    if (suggested.custo_comissao != null) updates.custo_comissao = suggested.custo_comissao;
+    if (suggested.custo_outros != null) updates.custo_outros = suggested.custo_outros;
+
+    if (Object.keys(updates).length > 0) {
+      onVendaChange({ ...venda, ...updates });
+      toast({
+        title: "💡 Valores pré-preenchidos",
+        description: "Baseado na mediana das suas últimas propostas.",
+      });
+    }
+    setAppliedSmartDefaults(true);
+  }, [suggested, loadingHistory, appliedSmartDefaults]);
 
   // ── Calculations ──
 
