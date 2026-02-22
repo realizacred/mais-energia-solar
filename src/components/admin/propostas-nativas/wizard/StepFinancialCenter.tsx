@@ -384,7 +384,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         type="number"
                         min={1}
                         value={row.quantidade}
-                        onChange={e => updateExtra(row.id, "quantidade", Number(e.target.value) || 1)}
+                        onChange={e => updateExtra(row.id, "quantidade", Math.max(1, Number(e.target.value) || 1))}
                         className="h-7 text-xs w-14 mx-auto text-center"
                       />
                     ) : (
@@ -393,7 +393,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                         min={1}
                         value={row.quantidade}
                         onChange={e => {
-                          const val = Number(e.target.value) || 1;
+                          const val = Math.max(1, Number(e.target.value) || 1);
                           if (row.id === "instalacao") setInstalacaoQtd(val);
                           if (row.id === "comissao") setComissaoQtd(val);
                         }}
@@ -431,7 +431,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                             step={0.01}
                             value={row.custoUnitario || ""}
                             onChange={e => {
-                              const val = Number(e.target.value) || 0;
+                              const val = Math.max(0, Number(e.target.value) || 0);
                               if (isExtra) {
                                 updateExtra(row.id, "custoUnitario", val);
                               } else if (row.id === "instalacao") {
