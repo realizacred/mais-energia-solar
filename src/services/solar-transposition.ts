@@ -1,20 +1,25 @@
 /**
- * Solar Transposition Module — Liu-Jordan Isotropic Model
+ * Solar Transposition Module — Hay-Davies Anisotropic Model
  *
  * Converts GHI (Global Horizontal Irradiance) + DHI (Diffuse Horizontal Irradiance)
- * into POA (Plane of Array / Tilted Plane Irradiance) using the isotropic diffuse model.
+ * into POA (Plane of Array / Tilted Plane Irradiance) using the Hay-Davies model.
+ *
+ * The Hay-Davies model improves on isotropic Liu-Jordan by treating part of the
+ * diffuse radiation as circumsolar (forward-scattered), weighted by the anisotropy
+ * index Ai = Ib / I0 (beam fraction of extraterrestrial radiation).
  *
  * Formula:
- *   POA = DNI_on_tilt + DHI_sky + GHI_ground
+ *   POA = Ib * Rb + Id * [Ai * Rb + (1 - Ai) * (1 + cos(β)) / 2] + GHI * ρ * (1 - cos(β)) / 2
  *
  * Where:
- *   DNI = GHI - DHI (beam/direct normal component on horizontal)
- *   DNI_on_tilt = DNI * cos(AOI) / cos(zenith)  — simplified via monthly avg zenith
- *   DHI_sky = DHI * (1 + cos(tilt)) / 2
- *   GHI_ground = GHI * albedo * (1 - cos(tilt)) / 2
+ *   Ib = GHI - DHI (beam horizontal)
+ *   Ai = Ib / H0 (anisotropy index, clamped to [0, 1])
+ *   Rb = beam tilt factor (Klein, 1977)
+ *   β = tilt angle
+ *   ρ = ground albedo
  *
- * Reference: Liu & Jordan (1963), "The long-term average performance of flat-plate
- *            solar-energy collectors"
+ * Reference: Hay & Davies (1980), "Calculation of the solar radiation incident
+ *            on an inclined surface"
  *
  * This is deterministic, stateless, and safe for multi-tenant use.
  */
@@ -54,7 +59,7 @@ export interface TranspositionResult {
   /** Transposition gain factor (POA/GHI ratio) */
   gain_factor: number;
   /** Method used */
-  method: "liu_jordan_isotropic" | "liu_jordan_erbs";
+  method: "hay_davies" | "hay_davies_erbs";
   /** Whether DHI was from real data or estimated */
   dhi_source: "measured" | "estimated" | "none";
 }
@@ -170,7 +175,33 @@ function estimateDhi(ghi: number, h0: number): number {
 // ─── Main Transposition Function ────────────────────────────────
 
 /**
- * Transpose GHI+DHI to POA using Liu-Jordan isotropic model.
+ * Compute POA for a single month using Hay-Davies anisotropic model.
+ */
+function hayDaviesPOA(
+  ghiM: number, dhiM: number, h0: number,
+  latRad: number, tiltRad: number, doy: number,
+  isSouthern: boolean, azimuthFactor: number, albedo: number,
+): number {
+  if (ghiM <= 0) return 0;
+  
+  const beamH = Math.max(0, ghiM - dhiM);
+  const declRad = solarDeclination(doy);
+  const Rb = monthlyRb(latRad, declRad, tiltRad, isSouthern);
+  
+  // Anisotropy index: fraction of beam vs extraterrestrial
+  const Ai = h0 > 0 ? Math.min(1, Math.max(0, beamH / h0)) : 0;
+  
+  // Hay-Davies: circumsolar + isotropic diffuse
+  const beamTilt = beamH * Rb * azimuthFactor;
+  const diffuseCircumsolar = dhiM * Ai * Rb * azimuthFactor;
+  const diffuseIsotropic = dhiM * (1 - Ai) * (1 + Math.cos(tiltRad)) / 2;
+  const groundReflected = ghiM * albedo * (1 - Math.cos(tiltRad)) / 2;
+  
+  return Math.round(Math.max(0, beamTilt + diffuseCircumsolar + diffuseIsotropic + groundReflected) * 10000) / 10000;
+}
+
+/**
+ * Transpose GHI+DHI to POA using Hay-Davies anisotropic model.
  * If DHI is not available, it's estimated via Erbs correlation.
  */
 export function transposeToTiltedPlane(input: TranspositionInput): TranspositionResult {
@@ -189,44 +220,22 @@ export function transposeToTiltedPlane(input: TranspositionInput): Transposition
   const poaValues: number[] = [];
   
   if (hasMeasuredDhi && input.dhi) {
-    // Full Liu-Jordan isotropic model with measured DHI
     const dhiValues = [
       input.dhi.dhi_m01, input.dhi.dhi_m02, input.dhi.dhi_m03, input.dhi.dhi_m04,
       input.dhi.dhi_m05, input.dhi.dhi_m06, input.dhi.dhi_m07, input.dhi.dhi_m08,
       input.dhi.dhi_m09, input.dhi.dhi_m10, input.dhi.dhi_m11, input.dhi.dhi_m12,
     ];
     for (let m = 0; m < 12; m++) {
-      const ghiM = ghiValues[m];
-      const dhiM = dhiValues[m];
-      if (ghiM <= 0) { poaValues.push(0); continue; }
-      const beamH = Math.max(0, ghiM - dhiM);
-      const declRad = solarDeclination(MID_MONTH_DOY[m]);
-      const Rb = monthlyRb(latRad, declRad, tiltRad, isSouthern);
-      const beamTilt = beamH * Rb * azimuthFactor;
-      const diffuseSky = dhiM * (1 + Math.cos(tiltRad)) / 2;
-      const groundReflected = ghiM * albedo * (1 - Math.cos(tiltRad)) / 2;
-      poaValues.push(Math.round(Math.max(0, beamTilt + diffuseSky + groundReflected) * 10000) / 10000);
-    }
-  } else {
-    // Liu-Jordan with Erbs-estimated DHI (1982)
-    // More accurate than simplified Rb: separates beam and diffuse components
-    for (let m = 0; m < 12; m++) {
-      const ghiM = ghiValues[m];
-      if (ghiM <= 0) { poaValues.push(0); continue; }
-      
       const doy = MID_MONTH_DOY[m];
       const h0 = extraterrestrialDaily(latRad, doy);
-      const dhiEst = estimateDhi(ghiM, h0);
-      const beamH = Math.max(0, ghiM - dhiEst);
-      
-      const declRad = solarDeclination(doy);
-      const Rb = monthlyRb(latRad, declRad, tiltRad, isSouthern);
-      
-      const beamTilt = beamH * Rb * azimuthFactor;
-      const diffuseSky = dhiEst * (1 + Math.cos(tiltRad)) / 2;
-      const groundReflected = ghiM * albedo * (1 - Math.cos(tiltRad)) / 2;
-      
-      poaValues.push(Math.round(Math.max(0, beamTilt + diffuseSky + groundReflected) * 10000) / 10000);
+      poaValues.push(hayDaviesPOA(ghiValues[m], dhiValues[m], h0, latRad, tiltRad, doy, isSouthern, azimuthFactor, albedo));
+    }
+  } else {
+    for (let m = 0; m < 12; m++) {
+      const doy = MID_MONTH_DOY[m];
+      const h0 = extraterrestrialDaily(latRad, doy);
+      const dhiEst = estimateDhi(ghiValues[m], h0);
+      poaValues.push(hayDaviesPOA(ghiValues[m], dhiEst, h0, latRad, tiltRad, doy, isSouthern, azimuthFactor, albedo));
     }
   }
   
@@ -244,7 +253,7 @@ export function transposeToTiltedPlane(input: TranspositionInput): Transposition
     poa_annual_avg: Math.round(poaAvg * 10000) / 10000,
     ghi_annual_avg: Math.round(ghiAvg * 10000) / 10000,
     gain_factor: ghiAvg > 0 ? Math.round((poaAvg / ghiAvg) * 10000) / 10000 : 1,
-    method: hasMeasuredDhi ? "liu_jordan_isotropic" : "liu_jordan_erbs",
+    method: hasMeasuredDhi ? "hay_davies" : "hay_davies_erbs",
     dhi_source: hasMeasuredDhi ? "measured" : "estimated",
   };
 }
