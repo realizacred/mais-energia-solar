@@ -54,7 +54,7 @@ export interface TranspositionResult {
   /** Transposition gain factor (POA/GHI ratio) */
   gain_factor: number;
   /** Method used */
-  method: "liu_jordan_isotropic" | "ghi_only_estimated" | "simplified_rb";
+  method: "liu_jordan_isotropic" | "liu_jordan_erbs";
   /** Whether DHI was from real data or estimated */
   dhi_source: "measured" | "estimated" | "none";
 }
@@ -208,15 +208,25 @@ export function transposeToTiltedPlane(input: TranspositionInput): Transposition
       poaValues.push(Math.round(Math.max(0, beamTilt + diffuseSky + groundReflected) * 10000) / 10000);
     }
   } else {
-    // Simplified Rb method: apply Rb directly to GHI + ground reflection.
-    // Common in Brazilian solar tools when DHI is unavailable.
+    // Liu-Jordan with Erbs-estimated DHI (1982)
+    // More accurate than simplified Rb: separates beam and diffuse components
     for (let m = 0; m < 12; m++) {
       const ghiM = ghiValues[m];
       if (ghiM <= 0) { poaValues.push(0); continue; }
-      const declRad = solarDeclination(MID_MONTH_DOY[m]);
+      
+      const doy = MID_MONTH_DOY[m];
+      const h0 = extraterrestrialDaily(latRad, doy);
+      const dhiEst = estimateDhi(ghiM, h0);
+      const beamH = Math.max(0, ghiM - dhiEst);
+      
+      const declRad = solarDeclination(doy);
       const Rb = monthlyRb(latRad, declRad, tiltRad, isSouthern);
+      
+      const beamTilt = beamH * Rb * azimuthFactor;
+      const diffuseSky = dhiEst * (1 + Math.cos(tiltRad)) / 2;
       const groundReflected = ghiM * albedo * (1 - Math.cos(tiltRad)) / 2;
-      poaValues.push(Math.round(Math.max(0, ghiM * Rb * azimuthFactor + groundReflected) * 10000) / 10000);
+      
+      poaValues.push(Math.round(Math.max(0, beamTilt + diffuseSky + groundReflected) * 10000) / 10000);
     }
   }
   
@@ -234,8 +244,8 @@ export function transposeToTiltedPlane(input: TranspositionInput): Transposition
     poa_annual_avg: Math.round(poaAvg * 10000) / 10000,
     ghi_annual_avg: Math.round(ghiAvg * 10000) / 10000,
     gain_factor: ghiAvg > 0 ? Math.round((poaAvg / ghiAvg) * 10000) / 10000 : 1,
-    method: hasMeasuredDhi ? "liu_jordan_isotropic" : "simplified_rb",
-    dhi_source: hasMeasuredDhi ? "measured" : "none",
+    method: hasMeasuredDhi ? "liu_jordan_isotropic" : "liu_jordan_erbs",
+    dhi_source: hasMeasuredDhi ? "measured" : "estimated",
   };
 }
 
