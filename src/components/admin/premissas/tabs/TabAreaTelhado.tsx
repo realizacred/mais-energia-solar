@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Card, CardContent } from "@/components/ui/card";
 import { Save, Loader2, Plus, Trash2, LayoutGrid, ChevronDown, Pencil } from "lucide-react";
 import type { RoofAreaFactor } from "@/hooks/useTenantPremises";
 import { getRoofLabel, TOPOLOGIA_OPTIONS, TIPO_SISTEMA_OPTIONS } from "@/hooks/useTenantPremises";
@@ -85,9 +86,9 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="rounded-xl border border-border bg-card" style={{ boxShadow: "var(--shadow-sm)" }}>
-        <div className="px-5 py-4 border-b border-border/50 flex items-center justify-between">
+      {/* Header card */}
+      <Card>
+        <div className="px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-secondary/10">
               <LayoutGrid className="h-4 w-4 text-secondary" />
@@ -100,45 +101,47 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
             </div>
           </div>
         </div>
+      </Card>
 
-        {/* Compact rows */}
-        <div className="divide-y divide-border/40">
-          {local.map((f, idx) => (
-            <RoofRow
-              key={f.tipo_telhado}
-              factor={f}
-              idx={idx}
-              isExpanded={expandedIdx === idx}
-              isEditing={editingIdx === idx}
-              editLabel={editLabel}
-              onEditLabel={setEditLabel}
-              onStartEdit={() => startEditing(idx)}
-              onConfirmEdit={confirmEdit}
-              onCancelEdit={() => { setEditingIdx(null); setEditLabel(""); }}
-              onToggleExpand={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
-              onUpdate={updateFactor}
-              onToggleArray={toggleArrayItem}
-              onRemove={() => remove(idx)}
-            />
-          ))}
-        </div>
+      {/* Grid of roof type cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+        {local.map((f, idx) => (
+          <RoofCard
+            key={f.tipo_telhado}
+            factor={f}
+            idx={idx}
+            isExpanded={expandedIdx === idx}
+            isEditing={editingIdx === idx}
+            editLabel={editLabel}
+            onEditLabel={setEditLabel}
+            onStartEdit={() => startEditing(idx)}
+            onConfirmEdit={confirmEdit}
+            onCancelEdit={() => { setEditingIdx(null); setEditLabel(""); }}
+            onToggleExpand={() => setExpandedIdx(expandedIdx === idx ? null : idx)}
+            onUpdate={updateFactor}
+            onToggleArray={toggleArrayItem}
+            onRemove={() => remove(idx)}
+          />
+        ))}
 
-        {/* Add new — minimal */}
-        <div className="px-5 py-3 border-t border-dashed border-border/50 bg-muted/20 rounded-b-xl">
-          <div className="flex items-center gap-3">
-            <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
-            <Input
-              placeholder="Nome do novo tipo de telhado"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addNew()}
-              className="flex-1 h-8 text-xs border-border/50 bg-background"
-            />
-            <Button variant="outline" size="sm" onClick={addNew} disabled={!newName.trim()} className="h-8 text-xs">
+        {/* Add new card */}
+        <Card className="border-dashed border-border/60 bg-muted/10 hover:bg-muted/20 transition-colors">
+          <CardContent className="p-4 flex flex-col items-center justify-center gap-3 min-h-[120px]">
+            <div className="flex items-center gap-2 w-full">
+              <Plus className="h-4 w-4 text-muted-foreground shrink-0" />
+              <Input
+                placeholder="Nome do novo tipo"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addNew()}
+                className="flex-1 h-8 text-xs border-border/50 bg-background"
+              />
+            </div>
+            <Button variant="outline" size="sm" onClick={addNew} disabled={!newName.trim()} className="h-8 text-xs w-full">
               Adicionar
             </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex justify-end">
@@ -151,9 +154,9 @@ export function TabAreaTelhado({ roofFactors, onSave, saving }: Props) {
   );
 }
 
-/* ─── Compact expandable row ─── */
+/* ─── Roof Card Component ─── */
 
-interface RoofRowProps {
+interface RoofCardProps {
   factor: RoofAreaFactor;
   idx: number;
   isExpanded: boolean;
@@ -169,179 +172,187 @@ interface RoofRowProps {
   onRemove: () => void;
 }
 
-function RoofRow({
+function RoofCard({
   factor: f, idx, isExpanded, isEditing, editLabel,
   onEditLabel, onStartEdit, onConfirmEdit, onCancelEdit,
   onToggleExpand, onUpdate, onToggleArray, onRemove,
-}: RoofRowProps) {
+}: RoofCardProps) {
   const topCount = (f.topologias_permitidas || []).length;
   const sysCount = (f.tipos_sistema_permitidos || []).length;
 
   return (
-    <Collapsible open={isExpanded} onOpenChange={() => onToggleExpand()}>
-      {/* Collapsed header — one clean line */}
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className={cn(
-            "w-full flex items-center gap-3 px-5 py-3 text-left transition-colors",
-            "hover:bg-muted/30",
-            !f.enabled && "opacity-50",
-          )}
-        >
-          {/* Enable toggle — stop propagation to prevent expand */}
-          <div onClick={(e) => e.stopPropagation()}>
-            <Switch
-              checked={f.enabled}
-              onCheckedChange={(v) => onUpdate(idx, "enabled", v)}
-              className="scale-90"
-            />
-          </div>
-
-          {/* Name */}
-          <span className="text-sm font-medium text-foreground truncate min-w-0 flex-1">
-            {getRoofLabel(f)}
-          </span>
-
-          {/* Quick summary chips — neutral, no color noise */}
-          <div className="hidden sm:flex items-center gap-3 text-[10px] text-muted-foreground tabular-nums shrink-0">
-            <span>Área {f.fator_area}x</span>
-            <span>{f.inclinacao_padrao ?? 0}°</span>
-            <span>{topCount} topol.</span>
-            <span>{sysCount} sist.</span>
-          </div>
-
-          {/* Chevron */}
-          <ChevronDown className={cn(
-            "h-4 w-4 text-muted-foreground/60 transition-transform duration-200 shrink-0",
-            isExpanded && "rotate-180"
-          )} />
-        </button>
-      </CollapsibleTrigger>
-
-      {/* Expanded content */}
-      <CollapsibleContent>
-        <div className="px-5 pb-4 pt-1 space-y-4 bg-muted/10 border-t border-border/30">
-          {/* Name editing */}
-          <div className="flex items-center gap-2">
-            {isEditing ? (
-              <>
-                <Input
-                  value={editLabel}
-                  onChange={(e) => onEditLabel(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter") onConfirmEdit(); if (e.key === "Escape") onCancelEdit(); }}
-                  className="h-8 text-sm font-medium max-w-[240px]"
-                  autoFocus
-                />
-                <Button variant="default" size="sm" className="h-7 text-xs" onClick={onConfirmEdit}>OK</Button>
-                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancelEdit}>Cancelar</Button>
-              </>
-            ) : (
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-muted-foreground" onClick={onStartEdit}>
-                <Pencil className="h-3 w-3" />
-                Renomear
-              </Button>
-            )}
-          </div>
-
-          {/* Numeric fields — inline row */}
-          <div className="grid grid-cols-3 gap-3 max-w-md">
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Fator Área</Label>
-              <div className="relative mt-0.5">
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={f.fator_area}
-                  onChange={(e) => onUpdate(idx, "fator_area", Number(e.target.value))}
-                  className="h-8 text-xs pr-6"
-                />
-                <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground pointer-events-none">x</span>
-              </div>
-            </div>
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Inclinação</Label>
-              <select
-                value={f.inclinacao_padrao ?? 0}
-                onChange={(e) => onUpdate(idx, "inclinacao_padrao", Number(e.target.value))}
-                className="mt-0.5 flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                {INCLINACOES.map((v) => (
-                  <option key={v} value={v}>{v}°</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label className="text-[10px] text-muted-foreground">Desvio Azim.</Label>
-              <Input
-                type="number"
-                step="1"
-                value={f.desvio_azimutal_padrao ?? 0}
-                onChange={(e) => onUpdate(idx, "desvio_azimutal_padrao", Number(e.target.value))}
-                className="mt-0.5 h-8 text-xs"
+    <Card className={cn(
+      "transition-all",
+      !f.enabled && "opacity-50 border-dashed",
+    )}>
+      <Collapsible open={isExpanded} onOpenChange={() => onToggleExpand()}>
+        {/* Card header */}
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-muted/30 transition-colors rounded-t-lg"
+          >
+            <div onClick={(e) => e.stopPropagation()}>
+              <Switch
+                checked={f.enabled}
+                onCheckedChange={(v) => onUpdate(idx, "enabled", v)}
+                className="scale-85"
               />
             </div>
-          </div>
 
-          {/* Topologias — neutral toggles */}
-          <div>
-            <Label className="text-[10px] text-muted-foreground mb-1.5 block">Topologias Permitidas</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {TOPOLOGIA_OPTIONS.map((opt) => {
-                const active = (f.topologias_permitidas || []).includes(opt.value);
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => onToggleArray(idx, "topologias_permitidas", opt.value)}
-                    className={cn(
-                      "text-[11px] font-medium px-2.5 py-1 rounded-md border transition-colors select-none",
-                      active
-                        ? "border-foreground/20 bg-foreground/5 text-foreground"
-                        : "border-border/40 text-muted-foreground/40 hover:text-muted-foreground/60 hover:border-border/60"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+            <span className="text-sm font-medium text-foreground truncate flex-1">
+              {getRoofLabel(f)}
+            </span>
+
+            <ChevronDown className={cn(
+              "h-4 w-4 text-muted-foreground/60 transition-transform duration-200 shrink-0",
+              isExpanded && "rotate-180"
+            )} />
+          </button>
+        </CollapsibleTrigger>
+
+        {/* Summary chips when collapsed */}
+        {!isExpanded && (
+          <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              Área {f.fator_area}x
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              {f.inclinacao_padrao ?? 0}°
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              {topCount} topol.
+            </span>
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+              {sysCount} sist.
+            </span>
+          </div>
+        )}
+
+        {/* Expanded content */}
+        <CollapsibleContent>
+          <div className="px-4 pb-4 pt-1 space-y-4 border-t border-border/30">
+            {/* Name editing */}
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <>
+                  <Input
+                    value={editLabel}
+                    onChange={(e) => onEditLabel(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") onConfirmEdit(); if (e.key === "Escape") onCancelEdit(); }}
+                    className="h-8 text-sm font-medium max-w-[200px]"
+                    autoFocus
+                  />
+                  <Button variant="default" size="sm" className="h-7 text-xs" onClick={onConfirmEdit}>OK</Button>
+                  <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancelEdit}>Cancelar</Button>
+                </>
+              ) : (
+                <Button variant="ghost" size="sm" className="h-7 text-xs gap-1.5 text-muted-foreground" onClick={onStartEdit}>
+                  <Pencil className="h-3 w-3" />
+                  Renomear
+                </Button>
+              )}
+            </div>
+
+            {/* Numeric fields */}
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Fator Área</Label>
+                <div className="relative mt-0.5">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={f.fator_area}
+                    onChange={(e) => onUpdate(idx, "fator_area", Number(e.target.value))}
+                    className="h-8 text-xs pr-6"
+                  />
+                  <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground pointer-events-none">x</span>
+                </div>
+              </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Inclinação</Label>
+                <select
+                  value={f.inclinacao_padrao ?? 0}
+                  onChange={(e) => onUpdate(idx, "inclinacao_padrao", Number(e.target.value))}
+                  className="mt-0.5 flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {INCLINACOES.map((v) => (
+                    <option key={v} value={v}>{v}°</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Desvio Azim.</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={f.desvio_azimutal_padrao ?? 0}
+                  onChange={(e) => onUpdate(idx, "desvio_azimutal_padrao", Number(e.target.value))}
+                  className="mt-0.5 h-8 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Topologias */}
+            <div>
+              <Label className="text-[10px] text-muted-foreground mb-1.5 block">Topologias</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {TOPOLOGIA_OPTIONS.map((opt) => {
+                  const active = (f.topologias_permitidas || []).includes(opt.value);
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => onToggleArray(idx, "topologias_permitidas", opt.value)}
+                      className={cn(
+                        "text-[11px] font-medium px-2.5 py-1 rounded-md border transition-colors select-none",
+                        active
+                          ? "border-foreground/20 bg-foreground/5 text-foreground"
+                          : "border-border/40 text-muted-foreground/40 hover:text-muted-foreground/60 hover:border-border/60"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Tipos de Sistema */}
+            <div>
+              <Label className="text-[10px] text-muted-foreground mb-1.5 block">Tipos de Sistema</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {TIPO_SISTEMA_OPTIONS.map((opt) => {
+                  const active = (f.tipos_sistema_permitidos || []).includes(opt.value);
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => onToggleArray(idx, "tipos_sistema_permitidos", opt.value)}
+                      className={cn(
+                        "text-[11px] font-medium px-2.5 py-1 rounded-md border transition-colors select-none",
+                        active
+                          ? "border-foreground/20 bg-foreground/5 text-foreground"
+                          : "border-border/40 text-muted-foreground/40 hover:text-muted-foreground/60 hover:border-border/60"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Remove */}
+            <div className="flex justify-end pt-1">
+              <Button variant="ghost" size="sm" className="text-xs h-7 text-destructive hover:text-destructive gap-1" onClick={onRemove}>
+                <Trash2 className="h-3 w-3" />
+                Remover
+              </Button>
             </div>
           </div>
-
-          {/* Tipos de Sistema — neutral toggles */}
-          <div>
-            <Label className="text-[10px] text-muted-foreground mb-1.5 block">Tipos de Sistema</Label>
-            <div className="flex flex-wrap gap-1.5">
-              {TIPO_SISTEMA_OPTIONS.map((opt) => {
-                const active = (f.tipos_sistema_permitidos || []).includes(opt.value);
-                return (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => onToggleArray(idx, "tipos_sistema_permitidos", opt.value)}
-                    className={cn(
-                      "text-[11px] font-medium px-2.5 py-1 rounded-md border transition-colors select-none",
-                      active
-                        ? "border-foreground/20 bg-foreground/5 text-foreground"
-                        : "border-border/40 text-muted-foreground/40 hover:text-muted-foreground/60 hover:border-border/60"
-                    )}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Remove action */}
-          <div className="flex justify-end pt-1">
-            <Button variant="ghost" size="sm" className="text-xs h-7 text-destructive hover:text-destructive gap-1" onClick={onRemove}>
-              <Trash2 className="h-3 w-3" />
-              Remover
-            </Button>
-          </div>
-        </div>
-      </CollapsibleContent>
-    </Collapsible>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }
