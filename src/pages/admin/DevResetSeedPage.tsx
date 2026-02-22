@@ -89,12 +89,12 @@ export default function DevResetSeedPage() {
     : 0;
 
   if (isAdmin === null) {
-    return <div className="flex items-center justify-center min-h-[60vh]"><Spinner size="md" /></div>;
+    return <div className="flex items-center justify-center min-h-[40vh]"><Spinner size="md" /></div>;
   }
 
   if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center min-h-[40vh]">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center space-y-3">
             <AlertTriangle className="h-10 w-10 text-destructive mx-auto" />
@@ -107,16 +107,7 @@ export default function DevResetSeedPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <Trash2 className="h-6 w-6 text-destructive" />
-          Limpar Dados de Seed
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Remove apenas registros criados pelo seed de teste (por padrão de nome).
-        </p>
-      </div>
+    <div className="space-y-6">
 
       <Card>
         <CardHeader>

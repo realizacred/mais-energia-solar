@@ -107,8 +107,7 @@ const ContactsPage = lazy(() => import("@/pages/admin/ContactsPage"));
 const FiscalPage = lazy(() => import("@/components/admin/fiscal/FiscalPage"));
 const RolePermissionsManager = lazy(() => import("@/components/admin/RolePermissionsManager").then(m => ({ default: m.RolePermissionsManager })));
 const WaHealthDashboard = lazy(() => import("@/pages/admin/WaHealthDashboard"));
-const DevSeedPage = lazy(() => import("@/pages/admin/DevSeedPage"));
-const DevResetSeedPage = lazy(() => import("@/pages/admin/DevResetSeedPage"));
+const DevToolsPage = lazy(() => import("@/pages/admin/DevToolsPage"));
 const ProjetosManagerPage = lazy(() => import("@/components/admin/projetos").then(m => ({ default: m.ProjetosManager })));
 // SolarZap removed — functionality consolidated into WaInbox (Atendimento)
 const ProposalWizardPage = lazy(() =>
@@ -292,6 +291,7 @@ const TAB_TITLES: Record<string, string> = {
   "pricing-policy": "Política de precificação",
   "custom-fields": "Opções customizáveis",
   menus: "Personalizar menu",
+  dev: "Ferramentas dev",
   "dicionario-aneel": "Dicionário ANEEL",
   "tarifa-versoes": "Versões de tarifa",
   "saude-tarifaria": "Saúde tarifária",
@@ -578,8 +578,9 @@ export default function Admin() {
                 <Route path="changelog" element={<ChangelogViewer />} />
                 <Route path="notificacoes-config" element={<NotificationConfigAdmin />} />
                 <Route path="menus" element={<MenuConfigPage />} />
-                <Route path="dev/seed" element={<DevSeedPage />} />
-                <Route path="dev/reset-seed" element={<DevResetSeedPage />} />
+                <Route path="dev" element={<DevToolsPage />} />
+                <Route path="dev/seed" element={<DevToolsPage />} />
+                <Route path="dev/reset-seed" element={<DevToolsPage />} />
                 
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="leads" replace />} />
