@@ -1,4 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { transposeToTiltedPlane } from "@/services/solar-transposition";
+import type { IrradianceSeries } from "@/services/irradiance-provider";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -78,11 +80,47 @@ export function StepConsumptionIntelligence({
     }
   }, [uc1TipoTelhado, roofFactors, setPd]);
 
-  // ─── Effective irradiance — uses GHI directly (kWh/m²/dia) ──
+  // ─── Effective irradiance — apply POA transposition when GHI series available ──
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
+
+    // If we have monthly GHI series + latitude, apply Liu-Jordan POA transposition
+    if (ghiSeries && latitude != null) {
+      const tilt = pd.inclinacao ?? 10;
+      const azimuthDev = pd.desvio_azimutal ?? 0;
+
+      const ghi: IrradianceSeries = {
+        m01: ghiSeries.m01 ?? irradiacao,
+        m02: ghiSeries.m02 ?? irradiacao,
+        m03: ghiSeries.m03 ?? irradiacao,
+        m04: ghiSeries.m04 ?? irradiacao,
+        m05: ghiSeries.m05 ?? irradiacao,
+        m06: ghiSeries.m06 ?? irradiacao,
+        m07: ghiSeries.m07 ?? irradiacao,
+        m08: ghiSeries.m08 ?? irradiacao,
+        m09: ghiSeries.m09 ?? irradiacao,
+        m10: ghiSeries.m10 ?? irradiacao,
+        m11: ghiSeries.m11 ?? irradiacao,
+        m12: ghiSeries.m12 ?? irradiacao,
+      };
+
+      try {
+        const result = transposeToTiltedPlane({
+          ghi,
+          latitude,
+          tilt_deg: tilt,
+          azimuth_deviation_deg: azimuthDev,
+        });
+        // POA should be >= GHI for north-facing tilts in southern hemisphere
+        return result.poa_annual_avg;
+      } catch (e) {
+        console.warn("[StepConsumption] POA transposition failed, using GHI:", e);
+        return irradiacao;
+      }
+    }
+
     return irradiacao;
-  }, [irradiacao]);
+  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal]);
 
   // ─── Derive fator_geracao from POA irradiation ──────────
   // fator_geracao = POA_avg × 30 × (desempenho / 100)
