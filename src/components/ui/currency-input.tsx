@@ -1,6 +1,5 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Input } from "@/components/ui/input";
-import { formatNumberBR, parseBRNumber, roundCurrency } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
 
 interface CurrencyInputProps {
@@ -11,31 +10,39 @@ interface CurrencyInputProps {
   prefix?: string;
 }
 
+/**
+ * Formats a number as BRL currency string (e.g., 10000 → "10.000,00").
+ * Always shows 2 decimal places.
+ */
+function formatCents(cents: number): string {
+  const abs = Math.abs(cents);
+  const intPart = Math.floor(abs / 100);
+  const decPart = abs % 100;
+  const intStr = intPart.toLocaleString("pt-BR");
+  return `${intStr},${String(decPart).padStart(2, "0")}`;
+}
+
 export function CurrencyInput({ value, onChange, className, placeholder = "0,00", prefix = "R$" }: CurrencyInputProps) {
-  const [displayValue, setDisplayValue] = useState(() => value ? formatNumberBR(value) : "");
-  const [focused, setFocused] = useState(false);
+  // Internal state in cents (integer)
+  const [cents, setCents] = useState(() => Math.round(value * 100));
 
-  const handleFocus = useCallback(() => {
-    setFocused(true);
-    setDisplayValue(value ? formatNumberBR(value) : "");
-  }, [value]);
-
-  const handleBlur = useCallback(() => {
-    setFocused(false);
-    const parsed = roundCurrency(parseBRNumber(displayValue));
-    onChange(parsed);
-    setDisplayValue(parsed ? formatNumberBR(parsed) : "");
-  }, [displayValue, onChange]);
+  // Sync from external value prop changes
+  useEffect(() => {
+    const ext = Math.round(value * 100);
+    if (ext !== cents) {
+      setCents(ext);
+    }
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    // Allow digits, dots, commas
-    const cleaned = raw.replace(/[^0-9.,]/g, "");
-    setDisplayValue(cleaned);
-  }, []);
+    // Strip everything except digits
+    const digits = e.target.value.replace(/\D/g, "");
+    const newCents = parseInt(digits || "0", 10);
+    setCents(newCents);
+    onChange(newCents / 100);
+  }, [onChange]);
 
-  // When not focused, show formatted value from prop
-  const shown = focused ? displayValue : (value ? formatNumberBR(value) : "");
+  const displayed = cents > 0 ? formatCents(cents) : "";
 
   return (
     <div className="relative">
@@ -46,11 +53,9 @@ export function CurrencyInput({ value, onChange, className, placeholder = "0,00"
       )}
       <Input
         type="text"
-        inputMode="decimal"
-        value={shown}
+        inputMode="numeric"
+        value={displayed}
         onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
         placeholder={placeholder}
         className={cn(prefix ? "pl-9" : "", className)}
       />
