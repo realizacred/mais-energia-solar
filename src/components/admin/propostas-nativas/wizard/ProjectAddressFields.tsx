@@ -204,7 +204,7 @@ export function ProjectAddressFields({
   // ── Map client data to ProjectAddress ──
   function mapClientToAddress(c: ClienteData): ProjectAddress {
     return {
-      cep: c.cep || "",
+      cep: formatCEP(c.cep || ""),
       rua: c.endereco || "",
       numero: c.numero || "",
       complemento: c.complemento || "",
