@@ -683,18 +683,20 @@ function ConsultorOptions({ onResolveName }: { onResolveName?: (id: string, name
 // ─── TAB: Gerenciamento (Dense Dashboard Grid) ──
 // ═══════════════════════════════════════════════════
 
-type TimelineFilter = "todos" | "funil" | "notas" | "documentos";
+type TimelineFilter = "todos" | "atividades" | "notas" | "funil" | "projeto" | "proposta";
 
 const TIMELINE_FILTERS: { id: TimelineFilter; label: string; icon: typeof ChevronRight }[] = [
   { id: "todos", label: "Todas", icon: Filter },
-  { id: "funil", label: "Funil", icon: Zap },
+  { id: "atividades", label: "Atividades", icon: Activity },
   { id: "notas", label: "Notas", icon: StickyNote },
-  { id: "documentos", label: "Documentos", icon: FolderOpen },
+  { id: "funil", label: "Funil", icon: Zap },
+  { id: "projeto", label: "Projeto", icon: Settings },
+  { id: "proposta", label: "Proposta", icon: FileText },
 ];
 
 interface UnifiedTimelineItem {
   id: string;
-  type: "funil" | "nota" | "documento" | "criacao";
+  type: "funil" | "nota" | "documento" | "criacao" | "atividade" | "projeto" | "proposta";
   title: string;
   subtitle?: string;
   date: string;
@@ -719,6 +721,8 @@ function GerenciamentoTab({
   const navigate = useNavigate();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
   const [docEntries, setDocEntries] = useState<UnifiedTimelineItem[]>([]);
+  const [projectEventEntries, setProjectEventEntries] = useState<UnifiedTimelineItem[]>([]);
+  const [propostaEntries, setPropostaEntries] = useState<UnifiedTimelineItem[]>([]);
   const [noteDialogOpen, setNoteDialogOpen] = useState(false);
   const [activityDialogOpen, setActivityDialogOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
@@ -893,6 +897,65 @@ function GerenciamentoTab({
     loadDocEntries();
   }, [deal.id, formatDate]);
 
+  // Load project_events for timeline
+  useEffect(() => {
+    async function loadProjectEvents() {
+      try {
+        const { data } = await supabase
+          .from("project_events")
+          .select("id, event_type, from_value, to_value, actor_user_id, created_at, metadata")
+          .eq("deal_id", deal.id)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (data && data.length > 0) {
+          const EVENT_LABELS: Record<string, string> = {
+            stage_changed: "Etapa alterada",
+            status_changed: "Status alterado",
+            owner_changed: "Responsável alterado",
+            value_changed: "Valor alterado",
+            pipeline_added: "Adicionado ao funil",
+            pipeline_removed: "Removido do funil",
+            consultor_changed: "Consultor alterado",
+          };
+          setProjectEventEntries(data.map((e: any) => ({
+            id: `pe-${e.id}`,
+            type: "projeto" as const,
+            title: EVENT_LABELS[e.event_type] || e.event_type,
+            subtitle: e.from_value && e.to_value
+              ? `${e.from_value} → ${e.to_value}`
+              : e.to_value || e.from_value || undefined,
+            date: formatDate(e.created_at),
+          })));
+        }
+      } catch { /* ignore */ }
+    }
+    loadProjectEvents();
+  }, [deal.id, formatDate]);
+
+  // Load proposal events for timeline
+  useEffect(() => {
+    async function loadPropostaEvents() {
+      try {
+        const { data } = await supabase
+          .from("propostas_nativas")
+          .select("id, titulo, status, created_at, codigo")
+          .eq("projeto_id", deal.id)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (data && data.length > 0) {
+          setPropostaEntries(data.map((p: any) => ({
+            id: `prop-${p.id}`,
+            type: "proposta" as const,
+            title: `Proposta: ${p.titulo}`,
+            subtitle: `${p.codigo || "—"} • Status: ${p.status}`,
+            date: formatDate(p.created_at),
+          })));
+        }
+      } catch { /* ignore */ }
+    }
+    loadPropostaEvents();
+  }, [deal.id, formatDate]);
+
   // Build unified timeline
   const allEntries = useMemo(() => {
     const entries: UnifiedTimelineItem[] = [];
@@ -914,6 +977,15 @@ function GerenciamentoTab({
         date: formatDate(h.moved_at),
       });
     });
+    // Activities
+    activities.forEach(a => {
+      entries.push({
+        id: `act-${a.id}`, type: "atividade",
+        title: `${a.activity_type === "task" ? "Tarefa" : a.activity_type === "call" ? "Ligação" : a.activity_type === "meeting" ? "Reunião" : "Atividade"}: ${a.title}`,
+        subtitle: a.status === "done" ? "✓ Concluída" : a.due_date ? `Até ${formatDate(a.due_date)}` : undefined,
+        date: formatDate(a.created_at),
+      });
+    });
     // Notes from DB
     notes.forEach(n => {
       entries.push({
@@ -924,15 +996,19 @@ function GerenciamentoTab({
       });
     });
     entries.push(...docEntries);
+    entries.push(...projectEventEntries);
+    entries.push(...propostaEntries);
     entries.push({ id: "criacao", type: "criacao", title: "Projeto criado", date: formatDate(deal.created_at), isFirst: true });
     return entries;
-  }, [history, currentStage, deal, docEntries, notes, formatDate, getStageNameById, userNamesMap]);
+  }, [history, currentStage, deal, docEntries, projectEventEntries, propostaEntries, notes, activities, formatDate, getStageNameById, userNamesMap]);
 
   const filteredEntries = useMemo(() => {
     if (timelineFilter === "todos") return allEntries;
-    if (timelineFilter === "funil") return allEntries.filter(e => e.type === "funil" || e.type === "criacao");
+    if (timelineFilter === "atividades") return allEntries.filter(e => e.type === "atividade");
     if (timelineFilter === "notas") return allEntries.filter(e => e.type === "nota");
-    if (timelineFilter === "documentos") return allEntries.filter(e => e.type === "documento");
+    if (timelineFilter === "funil") return allEntries.filter(e => e.type === "funil" || e.type === "criacao");
+    if (timelineFilter === "projeto") return allEntries.filter(e => e.type === "projeto");
+    if (timelineFilter === "proposta") return allEntries.filter(e => e.type === "proposta");
     return allEntries;
   }, [allEntries, timelineFilter]);
 
@@ -940,6 +1016,9 @@ function GerenciamentoTab({
     if (entry.type === "funil") return <Zap className="h-3 w-3 text-primary" />;
     if (entry.type === "nota") return <StickyNote className="h-3 w-3 text-warning" />;
     if (entry.type === "documento") return <FolderOpen className="h-3 w-3 text-info" />;
+    if (entry.type === "atividade") return <Activity className="h-3 w-3 text-success" />;
+    if (entry.type === "projeto") return <Settings className="h-3 w-3 text-secondary" />;
+    if (entry.type === "proposta") return <FileText className="h-3 w-3 text-primary" />;
     return <CalendarDays className="h-3 w-3 text-secondary" />;
   };
 
@@ -1156,7 +1235,10 @@ function GerenciamentoTab({
                   const count = f.id === "todos" ? null :
                     f.id === "funil" ? allEntries.filter(e => e.type === "funil" || e.type === "criacao").length :
                     f.id === "notas" ? allEntries.filter(e => e.type === "nota").length :
-                    allEntries.filter(e => e.type === "documento").length;
+                    f.id === "atividades" ? allEntries.filter(e => e.type === "atividade").length :
+                    f.id === "projeto" ? allEntries.filter(e => e.type === "projeto").length :
+                    f.id === "proposta" ? allEntries.filter(e => e.type === "proposta").length :
+                    0;
                   return (
                     <button
                       key={f.id}
