@@ -559,6 +559,17 @@ export function useDealPipeline() {
       return null;
     }
 
+    // cliente_id obrigatório — projetos.cliente_id é NOT NULL
+    if (!params.customerId) {
+      toast({ title: "Erro", description: "Selecione ou cadastre um cliente antes de criar o projeto.", variant: "destructive" });
+      return null;
+    }
+
+    console.debug("[createDeal] Inserindo deal:", {
+      title: params.title, ownerId, customerId: params.customerId,
+      pipelineId: pipeId, stageId: targetStageId,
+    });
+
     const { data, error } = await supabase
       .from("deals")
       .insert({
@@ -566,7 +577,7 @@ export function useDealPipeline() {
         pipeline_id: pipeId,
         stage_id: targetStageId,
         owner_id: ownerId,
-        customer_id: params.customerId || null,
+        customer_id: params.customerId,
         value: params.value || 0,
         status: "open",
         etiqueta: params.etiqueta || null,

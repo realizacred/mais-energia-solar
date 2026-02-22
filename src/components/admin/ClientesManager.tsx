@@ -217,7 +217,8 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         if (error) throw error;
         toast({ title: "Cliente atualizado!" });
       } else {
-        const { error } = await supabase.from("clientes").insert(clienteData);
+        // cliente_code é gerado automaticamente pelo trigger generate_cliente_code()
+        const { error } = await supabase.from("clientes").insert(clienteData as any);
 
         if (error) throw error;
         toast({ title: "Cliente cadastrado!" });

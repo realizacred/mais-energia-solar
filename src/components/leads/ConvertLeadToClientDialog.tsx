@@ -589,7 +589,8 @@ export function ConvertLeadToClientDialog({
         // Create new client
         const { data: created, error: insertError } = await supabase
           .from("clientes")
-          .insert({ ...clientePayload, lead_id: lead.id })
+          // cliente_code é gerado automaticamente pelo trigger generate_cliente_code()
+          .insert({ ...clientePayload, lead_id: lead.id } as any)
           .select("id")
           .single();
 

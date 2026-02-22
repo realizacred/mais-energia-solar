@@ -1296,7 +1296,7 @@ export type Database = {
           bairro: string | null
           cep: string | null
           cidade: string | null
-          cliente_code: string | null
+          cliente_code: string
           complemento: string | null
           comprovante_beneficiaria_urls: string[] | null
           comprovante_endereco_url: string | null
@@ -1334,7 +1334,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
-          cliente_code?: string | null
+          cliente_code: string
           complemento?: string | null
           comprovante_beneficiaria_urls?: string[] | null
           comprovante_endereco_url?: string | null
@@ -1372,7 +1372,7 @@ export type Database = {
           bairro?: string | null
           cep?: string | null
           cidade?: string | null
-          cliente_code?: string | null
+          cliente_code?: string
           complemento?: string | null
           comprovante_beneficiaria_urls?: string[] | null
           comprovante_endereco_url?: string | null
@@ -7572,8 +7572,8 @@ export type Database = {
           bairro_instalacao: string | null
           cep_instalacao: string | null
           cidade_instalacao: string | null
-          cliente_id: string | null
-          codigo: string | null
+          cliente_id: string
+          codigo: string
           complemento_instalacao: string | null
           consultor_id: string | null
           created_at: string
@@ -7604,7 +7604,7 @@ export type Database = {
           potencia_kwp: number | null
           prazo_estimado_dias: number | null
           prazo_vistoria_dias: number | null
-          projeto_num: number | null
+          projeto_num: number
           proposta_id: string | null
           rua_instalacao: string | null
           status: Database["public"]["Enums"]["projeto_status"]
@@ -7624,8 +7624,8 @@ export type Database = {
           bairro_instalacao?: string | null
           cep_instalacao?: string | null
           cidade_instalacao?: string | null
-          cliente_id?: string | null
-          codigo?: string | null
+          cliente_id: string
+          codigo: string
           complemento_instalacao?: string | null
           consultor_id?: string | null
           created_at?: string
@@ -7656,7 +7656,7 @@ export type Database = {
           potencia_kwp?: number | null
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
-          projeto_num?: number | null
+          projeto_num?: number
           proposta_id?: string | null
           rua_instalacao?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
@@ -7676,8 +7676,8 @@ export type Database = {
           bairro_instalacao?: string | null
           cep_instalacao?: string | null
           cidade_instalacao?: string | null
-          cliente_id?: string | null
-          codigo?: string | null
+          cliente_id?: string
+          codigo?: string
           complemento_instalacao?: string | null
           consultor_id?: string | null
           created_at?: string
@@ -7708,7 +7708,7 @@ export type Database = {
           potencia_kwp?: number | null
           prazo_estimado_dias?: number | null
           prazo_vistoria_dias?: number | null
-          projeto_num?: number | null
+          projeto_num?: number
           proposta_id?: string | null
           rua_instalacao?: string | null
           status?: Database["public"]["Enums"]["projeto_status"]
@@ -7724,6 +7724,13 @@ export type Database = {
           valor_total?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_projetos_cliente"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projetos_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -9798,7 +9805,7 @@ export type Database = {
           aneel_run_id: string | null
           ano_gd: number | null
           cliente_id: string | null
-          codigo: string | null
+          codigo: string
           consultor_id: string | null
           created_at: string
           created_by: string | null
@@ -9813,8 +9820,8 @@ export type Database = {
           origem_tarifa: string | null
           precisao_calculo: string | null
           precisao_motivo: string | null
-          projeto_id: string | null
-          proposta_num: number | null
+          projeto_id: string
+          proposta_num: number
           recusa_motivo: string | null
           recusada_at: string | null
           regra_gd: string | null
@@ -9838,7 +9845,7 @@ export type Database = {
           aneel_run_id?: string | null
           ano_gd?: number | null
           cliente_id?: string | null
-          codigo?: string | null
+          codigo: string
           consultor_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -9853,8 +9860,8 @@ export type Database = {
           origem_tarifa?: string | null
           precisao_calculo?: string | null
           precisao_motivo?: string | null
-          projeto_id?: string | null
-          proposta_num?: number | null
+          projeto_id: string
+          proposta_num: number
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
@@ -9878,7 +9885,7 @@ export type Database = {
           aneel_run_id?: string | null
           ano_gd?: number | null
           cliente_id?: string | null
-          codigo?: string | null
+          codigo?: string
           consultor_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -9893,8 +9900,8 @@ export type Database = {
           origem_tarifa?: string | null
           precisao_calculo?: string | null
           precisao_motivo?: string | null
-          projeto_id?: string | null
-          proposta_num?: number | null
+          projeto_id?: string
+          proposta_num?: number
           recusa_motivo?: string | null
           recusada_at?: string | null
           regra_gd?: string | null
@@ -9913,6 +9920,20 @@ export type Database = {
           vigencia_tarifa?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_propostas_cliente"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_propostas_projeto"
+            columns: ["projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "propostas_nativas_aneel_run_id_fkey"
             columns: ["aneel_run_id"]

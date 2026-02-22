@@ -244,7 +244,13 @@ export function ProjetosManager() {
             customerId,
           });
 
-          // ✅ 3) Cria o projeto/deal vinculando o cliente certo
+          // ✅ 3) Validar que temos um cliente antes de criar o deal
+          if (!customerId) {
+            toast({ title: "Erro", description: "Selecione ou cadastre um cliente para criar o projeto.", variant: "destructive" });
+            return;
+          }
+
+          // ✅ 4) Cria o projeto/deal vinculando o cliente certo
           const result = await createDeal({
             title: data.nome || data.cliente.nome,
             ownerId: data.consultorId || undefined,
