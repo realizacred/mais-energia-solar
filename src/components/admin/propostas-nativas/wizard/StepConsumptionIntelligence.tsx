@@ -247,10 +247,10 @@ export function StepConsumptionIntelligence({
   // ─── Pre-dimensionamento helpers
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
     if (field === "sombreamento") {
-      applySombreamento(value as string, pd);
+      applySombreamento(value as string, pdRef.current);
       return;
     }
-    setPd({ ...pd, [field]: value });
+    setPd({ ...pdRef.current, [field]: value });
   };
 
   const updateTopoConfig = (topo: string, field: keyof TopologiaConfig, value: any) => {
