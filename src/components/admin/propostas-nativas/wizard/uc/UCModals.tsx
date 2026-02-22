@@ -37,12 +37,35 @@ export function UCConfigModal({ open, onOpenChange, uc, index, onSave }: UCConfi
           <DialogTitle>{index + 1}. {index === 0 ? "(Geradora)" : "Unidade"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
+          {/* Fator de Simultaneidade — only for geradora */}
+          {local.is_geradora && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Fator de Simultaneidade <span className="text-destructive">*</span></Label>
+              <div className="relative">
+                <Input type="number" step="0.01" min={0} max={100} value={local.fator_simultaneidade ?? 30} onChange={e => update("fator_simultaneidade", Number(e.target.value))} className="h-9 pr-8" />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Percentual da geração consumida instantaneamente na UC geradora. 
+                A energia consumida em simultaneidade <strong>não paga</strong> Fio B. 
+                Apenas a energia injetada na rede (compensação) é tributada.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-1.5">
-            <Label className="text-xs">Imposto Energia Compensada</Label>
+            <Label className="text-xs">Imposto Energia Compensada (Fio B vigente)</Label>
             <div className="relative">
-              <Input type="number" step="0.01" value={local.imposto_energia || ""} onChange={e => update("imposto_energia", Number(e.target.value))} className="h-9 pr-8" />
+              <Input type="number" step="0.01" value={local.imposto_energia ?? ""} onChange={e => update("imposto_energia", Number(e.target.value))} className="h-9 pr-8" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
             </div>
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Taxa do Fio B aplicada sobre a energia compensada (injetada na rede), conforme Lei 14.300.
+              {local.is_geradora 
+                ? " Na geradora, apenas a parcela não consumida em simultaneidade é tributada."
+                : " Nesta UC beneficiária, 100% dos créditos recebidos pagam este imposto."
+              }
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Custo de Disponibilidade <span className="text-destructive">*</span></Label>
@@ -61,6 +84,22 @@ export function UCConfigModal({ open, onOpenChange, uc, index, onSave }: UCConfi
               <Input type="number" step="0.01" value={local.outros_encargos_novo || ""} onChange={e => update("outros_encargos_novo", Number(e.target.value))} className="h-9" placeholder="R$ 0,00" />
             </div>
           </div>
+
+          {/* Explicação visual do cálculo */}
+          {local.is_geradora && (
+            <div className="rounded-md bg-muted/50 border p-3 space-y-1.5">
+              <p className="text-[10px] font-medium text-foreground flex items-center gap-1.5">
+                <Info className="h-3 w-3 text-muted-foreground" />
+                Como funciona o Fio B
+              </p>
+              <div className="text-[10px] text-muted-foreground leading-relaxed space-y-1">
+                <p>Ex: Geração <strong>1.000 kWh</strong>, Consumo <strong>700 kWh</strong>, Simultaneidade <strong>30%</strong></p>
+                <p>→ Consumo simultâneo: 700 × 30% = <strong>210 kWh</strong> (sem Fio B)</p>
+                <p>→ Compensado na geradora: 700 − 210 = <strong>490 kWh</strong> (paga Fio B)</p>
+                <p>→ Excedente p/ outras UCs: 1.000 − 700 = <strong>300 kWh</strong> (paga Fio B na UC beneficiária)</p>
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex items-center justify-end gap-3 pt-2 border-t">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>Fechar</Button>
