@@ -30,13 +30,6 @@ const STATUS_CONFIG: Record<string, { label: string; variant: "default" | "secon
   recusada: { label: "Recusada", variant: "destructive", icon: XCircle },
   expirada: { label: "Expirada", variant: "secondary", icon: AlertTriangle },
   cancelada: { label: "Cancelada", variant: "destructive", icon: XCircle },
-  // Legacy english
-  draft: { label: "Rascunho", variant: "secondary", icon: Clock },
-  generated: { label: "Gerada", variant: "default", icon: FileText },
-  sent: { label: "Enviada", variant: "outline", icon: Send },
-  accepted: { label: "Aceita", variant: "default", icon: CheckCircle2 },
-  rejected: { label: "Recusada", variant: "destructive", icon: XCircle },
-  expired: { label: "Expirada", variant: "secondary", icon: AlertTriangle },
 };
 
 // formatBRL imported at file top from @/lib/formatters
@@ -308,9 +301,9 @@ export function ProposalDetail() {
   const statusInfo = STATUS_CONFIG[currentStatus] || STATUS_CONFIG.rascunho;
   const StatusIcon = statusInfo.icon;
 
-  const canSend = ["rascunho", "gerada", "generated", "draft"].includes(currentStatus);
-  const canAccept = ["enviada", "sent", "gerada", "generated"].includes(currentStatus);
-  const canReject = ["enviada", "sent", "gerada", "generated"].includes(currentStatus);
+  const canSend = ["rascunho", "gerada"].includes(currentStatus);
+  const canAccept = ["enviada", "gerada"].includes(currentStatus);
+  const canReject = ["enviada", "gerada"].includes(currentStatus);
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">

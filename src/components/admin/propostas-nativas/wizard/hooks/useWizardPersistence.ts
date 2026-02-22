@@ -212,8 +212,8 @@ export function useWizardPersistence() {
       }
 
       toast({
-        title: setActive ? "✅ Proposta atualizada como ativa" : "✅ Proposta atualizada",
-        description: setActive ? "A proposta foi marcada como ativa." : "Os dados foram atualizados com sucesso.",
+        title: setActive ? "✅ Proposta gerada" : "✅ Proposta atualizada",
+        description: setActive ? "A proposta foi marcada como gerada." : "Os dados foram atualizados com sucesso.",
       });
       return { propostaId: params.propostaId, versaoId: params.versaoId };
     } catch (e: any) {

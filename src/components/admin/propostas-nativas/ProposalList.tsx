@@ -31,12 +31,6 @@ const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secon
   recusada: { label: "Recusada", variant: "destructive", color: "border-l-destructive" },
   expirada: { label: "Expirada", variant: "secondary", color: "border-l-muted-foreground" },
   cancelada: { label: "Cancelada", variant: "destructive", color: "border-l-destructive" },
-  draft: { label: "Rascunho", variant: "secondary", color: "border-l-muted-foreground" },
-  generated: { label: "Gerada", variant: "default", color: "border-l-primary" },
-  sent: { label: "Enviada", variant: "outline", color: "border-l-info" },
-  accepted: { label: "Aceita", variant: "default", color: "border-l-success" },
-  rejected: { label: "Recusada", variant: "destructive", color: "border-l-destructive" },
-  expired: { label: "Expirada", variant: "secondary", color: "border-l-muted-foreground" },
 };
 
 const PAGE_SIZE = 25;
