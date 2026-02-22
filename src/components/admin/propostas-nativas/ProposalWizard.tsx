@@ -1019,13 +1019,16 @@ export function ProposalWizard() {
       {/* ── Sticky Footer Navigation — responsive */}
       {!result && (
         <div className="fixed bottom-0 left-0 right-0 sm:sticky sm:bottom-auto flex items-center justify-between px-4 lg:px-6 py-3 border-t border-border/60 bg-card shrink-0 z-20 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] sm:shadow-none">
-          <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1.5 h-9 text-xs text-muted-foreground hover:text-foreground">
-            <ChevronLeft className="h-3.5 w-3.5" /> Voltar
+          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 h-9 text-xs text-muted-foreground hover:text-foreground">
+            Cancelar
           </Button>
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-mono text-muted-foreground hidden sm:inline">
-              {step + 1} de {activeSteps.length}
+              Etapa {step + 1}/{activeSteps.length}
             </span>
+            <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1.5 h-9 text-xs text-muted-foreground hover:text-foreground">
+              Voltar
+            </Button>
             {!isLastStep && (
               <Button
                 size="sm"
@@ -1033,7 +1036,7 @@ export function ProposalWizard() {
                 disabled={!canCurrentStep}
                 className="gap-1.5 h-9 px-5 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm shadow-primary/20 transition-all duration-200"
               >
-                Próximo <ChevronRight className="h-3.5 w-3.5" />
+                Prosseguir
               </Button>
             )}
           </div>
