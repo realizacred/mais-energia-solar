@@ -123,23 +123,62 @@ export function StepLocalizacao({
         if (companyGeocodedFor.current === tenantKey) return;
         companyGeocodedFor.current = tenantKey;
 
-        // Geocode tenant city
-        const query = encodeURIComponent(`${tenant.cidade}, ${tenant.estado}, Brasil`);
-        const resp = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
-          { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
-        );
-        const results = await resp.json();
-        if (results?.[0]) {
-          companyCoords.current = {
-            lat: parseFloat(results[0].lat),
-            lon: parseFloat(results[0].lon),
-          };
+        const addressQuery = `${tenant.cidade}, ${tenant.estado}, Brasil`;
+        let lat: number | null = null;
+        let lon: number | null = null;
+
+        // Try Google Maps Geocoding first (more reliable)
+        try {
+          const { data: mapsConfig } = await supabase
+            .from("integration_configs")
+            .select("api_key, is_active")
+            .eq("service_key", "google_maps")
+            .eq("is_active", true)
+            .maybeSingle();
+
+          if (mapsConfig?.api_key) {
+            const query = encodeURIComponent(addressQuery);
+            const resp = await fetch(
+              `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${mapsConfig.api_key}&region=br`
+            );
+            const json = await resp.json();
+            if (json.status === "OK" && json.results?.[0]) {
+              lat = json.results[0].geometry.location.lat;
+              lon = json.results[0].geometry.location.lng;
+            }
+          }
+        } catch (e) {
+          console.warn("[StepLocalizacao] Google geocode failed for tenant, trying Nominatim:", e);
+        }
+
+        // Fallback to Nominatim
+        if (lat === null) {
+          try {
+            const query = encodeURIComponent(addressQuery);
+            const resp = await fetch(
+              `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1&countrycodes=br`,
+              { headers: { "User-Agent": "MaisEnergiaSolar/1.0" } }
+            );
+            const results = await resp.json();
+            if (results?.[0]) {
+              lat = parseFloat(results[0].lat);
+              lon = parseFloat(results[0].lon);
+            }
+          } catch (e) {
+            console.warn("[StepLocalizacao] Nominatim geocode also failed:", e);
+          }
+        }
+
+        if (lat !== null && lon !== null) {
+          companyCoords.current = { lat, lon };
+          console.info("[StepLocalizacao] Tenant geocoded:", { lat, lon, cidade: tenant.cidade });
           // If we already have client coords, calc distance now
           if (geoLat != null && geoLon != null) {
-            const d = haversineKm(companyCoords.current.lat, companyCoords.current.lon, geoLat, geoLon);
+            const d = haversineKm(lat, lon, geoLat, geoLon);
             onDistanciaKmChange?.(Math.round(d * 10) / 10);
           }
+        } else {
+          console.warn("[StepLocalizacao] Could not geocode tenant location:", addressQuery);
         }
       } catch (e) {
         console.warn("[StepLocalizacao] Failed to geocode tenant location:", e);
