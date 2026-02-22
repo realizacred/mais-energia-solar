@@ -140,9 +140,24 @@ export function StepConsumptionIntelligence({
   const mesAMesValues = useMemo(() => {
     const uc = ucs[mesAMes.ucIndex];
     if (!uc) return {};
-    if (mesAMes.field === "hp") return uc.consumo_meses_p || {};
-    if (mesAMes.field === "hfp") return uc.consumo_meses_fp || {};
-    return uc.consumo_meses || {};
+    let meses: Record<string, number> = {};
+    let consumoMedio = 0;
+    if (mesAMes.field === "hp") {
+      meses = uc.consumo_meses_p || {};
+      consumoMedio = uc.consumo_mensal_p || 0;
+    } else if (mesAMes.field === "hfp") {
+      meses = uc.consumo_meses_fp || {};
+      consumoMedio = uc.consumo_mensal_fp || 0;
+    } else {
+      meses = uc.consumo_meses || {};
+      consumoMedio = uc.consumo_mensal || 0;
+    }
+    // Se não há valores mensais preenchidos mas há consumo médio, pré-preencher uniformemente
+    const hasValues = Object.values(meses).some(v => v > 0);
+    if (!hasValues && consumoMedio > 0) {
+      return Object.fromEntries(MESES.map(m => [m, consumoMedio]));
+    }
+    return meses;
   }, [ucs, mesAMes]);
 
   const handleMesAMesSave = (values: Record<string, number>) => {
