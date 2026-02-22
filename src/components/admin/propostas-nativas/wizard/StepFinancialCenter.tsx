@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
@@ -416,22 +417,16 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                     <>
                       <div className="text-right" onClick={e => e.stopPropagation()}>
                         {isKit ? (
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={row.custoUnitario || ""}
-                            className="h-7 text-xs w-24 ml-auto text-right"
-                            readOnly
+                          <CurrencyInput
+                            value={row.custoUnitario}
+                            onChange={() => {}}
+                            prefix=""
+                            className="h-7 text-xs w-24 ml-auto text-right pointer-events-none opacity-70"
                           />
                         ) : (
-                          <Input
-                            type="number"
-                            min={0}
-                            step={0.01}
-                            value={row.custoUnitario || ""}
-                            onChange={e => {
-                              const val = Math.max(0, Number(e.target.value) || 0);
+                          <CurrencyInput
+                            value={row.custoUnitario}
+                            onChange={(val) => {
                               if (isExtra) {
                                 updateExtra(row.id, "custoUnitario", val);
                               } else if (row.id === "instalacao") {
@@ -440,8 +435,8 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
                                 setComissaoCusto(val);
                               }
                             }}
+                            prefix=""
                             className="h-7 text-xs w-24 ml-auto text-right"
-                            disabled={!row.checked}
                           />
                         )}
                       </div>
