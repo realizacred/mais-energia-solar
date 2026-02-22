@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, lazy, Suspense, useRef } from "react";
+import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, Sun, Zap, Loader2, CheckCircle2, AlertTriangle, Edit3, Home, Navigation } from "lucide-react";
 import { Label } from "@/components/ui/label";
@@ -76,6 +77,12 @@ export function StepLocalizacao({
   const [loadingIrrad, setLoadingIrrad] = useState(false);
   const [ghiSeries, setGhiSeries] = useState<Record<string, number> | null>(null);
   const [irradDialogOpen, setIrradDialogOpen] = useState(false);
+  const [skipPoa, setSkipPoa] = useState(false);
+
+  // When skipPoa changes, propagate null or real series upstream
+  useEffect(() => {
+    onGhiSeriesChange?.(skipPoa ? null : ghiSeries);
+  }, [skipPoa]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Geo state
   const [geoStatus, setGeoStatus] = useState<GeoStatus>("idle");
@@ -303,7 +310,7 @@ export function StepLocalizacao({
           const ghiData = ghi && typeof ghi === "object" ? ghi : null;
           setGhiSeries(ghiData);
           onIrradiacaoChange?.(Number(avg));
-          onGhiSeriesChange?.(ghiData);
+          onGhiSeriesChange?.(skipPoa ? null : ghiData);
           return;
         }
       }
@@ -572,6 +579,16 @@ export function StepLocalizacao({
                   </div>
                 </div>
 
+                {/* DEBUG: skip POA transposition */}
+                {irradiacao !== null && (
+                  <div className="flex items-center gap-1.5">
+                    <Switch id="skip-poa-loc" checked={skipPoa} onCheckedChange={setSkipPoa} className="scale-75" />
+                    <Label htmlFor="skip-poa-loc" className="text-[10px] text-muted-foreground cursor-pointer">
+                      Só GHI (sem POA)
+                      {skipPoa && <Badge variant="outline" className="ml-1 text-[8px] border-warning text-warning px-1 py-0">DEBUG</Badge>}
+                    </Label>
+                  </div>
+                )}
                 {/* Distância empresa → cliente */}
                 <div className="space-y-0.5">
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
