@@ -95,9 +95,6 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
       {/* ── Left: Serviços ── */}
       <div className="space-y-5 min-w-0">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-primary" /> Serviços
-          </h3>
         </div>
 
         {servicos.length === 0 ? (
