@@ -453,12 +453,12 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                       }}
                     >
                       <SelectTrigger className="h-8 text-xs bg-card border-border/50">
-                        <SelectValue placeholder="Selecione o estado" />
+                        <SelectValue placeholder="UF" />
                       </SelectTrigger>
                       <SelectContent className="z-50 bg-popover border border-border shadow-lg max-h-[280px]">
                         {BRAZIL_STATES.map(s => (
                           <SelectItem key={s.value} value={s.value} className="text-xs">
-                            {s.value} — {s.label}
+                            {s.value}
                           </SelectItem>
                         ))}
                       </SelectContent>
