@@ -34,65 +34,69 @@ export function UCConfigModal({ open, onOpenChange, uc, index, onSave }: UCConfi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{index + 1}. {index === 0 ? "(Geradora)" : "Unidade"}</DialogTitle>
+          <DialogTitle className="text-base">{index + 1}. {local.is_geradora ? "Unidade (Geradora)" : `Unidade ${local.nome || ""}`}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          {/* Fator de Simultaneidade — only for geradora */}
-          {local.is_geradora && (
-            <div className="space-y-1.5">
-              <Label className="text-xs font-medium">Fator de Simultaneidade <span className="text-destructive">*</span></Label>
-              <div className="relative">
-                <Input type="number" step="0.01" min={0} max={100} value={local.fator_simultaneidade ?? 30} onChange={e => update("fator_simultaneidade", Number(e.target.value))} className="h-9 pr-8" />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
-              </div>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Percentual da geração consumida instantaneamente na UC geradora. 
-                A energia consumida em simultaneidade <strong>não paga</strong> Fio B. 
-                Apenas a energia injetada na rede (compensação) é tributada.
-              </p>
-            </div>
-          )}
-
+        <div className="space-y-5 py-2">
+          {/* Fator de Simultaneidade — all UCs */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Imposto Energia Compensada (Fio B vigente)</Label>
+            <Label className="text-xs font-medium">Fator de Simultaneidade <span className="text-destructive">*</span></Label>
             <div className="relative">
-              <Input type="number" step="0.01" value={local.imposto_energia ?? ""} onChange={e => update("imposto_energia", Number(e.target.value))} className="h-9 pr-8" />
+              <Input type="number" step="0.01" min={0} max={100} value={local.fator_simultaneidade ?? (local.is_geradora ? 30 : 20)} onChange={e => update("fator_simultaneidade", Number(e.target.value))} className="h-10 pr-8 text-sm" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
             </div>
-            <p className="text-[10px] text-muted-foreground leading-relaxed">
-              Taxa do Fio B aplicada sobre a energia compensada (injetada na rede), conforme Lei 14.300.
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              {local.is_geradora 
+                ? "Percentual da geração consumida instantaneamente. A energia em simultaneidade não paga Fio B."
+                : "Percentual do consumo desta UC atendido simultaneamente. Apenas os créditos recebidos (compensação) pagam Fio B."
+              }
+            </p>
+          </div>
+
+          {/* Imposto Energia Compensada */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Imposto Energia Compensada (Fio B vigente)</Label>
+            <div className="relative">
+              <Input type="number" step="0.01" value={local.imposto_energia ?? ""} onChange={e => update("imposto_energia", Number(e.target.value))} className="h-10 pr-8 text-sm" />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">%</span>
+            </div>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Percentual da Lei 14.300 aplicado sobre a energia compensada (injetada na rede).
               {local.is_geradora 
                 ? " Na geradora, apenas a parcela não consumida em simultaneidade é tributada."
                 : " Nesta UC beneficiária, 100% dos créditos recebidos pagam este imposto."
               }
             </p>
           </div>
+
+          {/* Custo de Disponibilidade */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Custo de Disponibilidade <span className="text-destructive">*</span></Label>
+            <Label className="text-xs font-medium">Custo de Disponibilidade <span className="text-destructive">*</span></Label>
             <div className="relative">
-              <Input type="number" min={0} value={local.custo_disponibilidade_kwh || ""} onChange={e => update("custo_disponibilidade_kwh", Number(e.target.value))} className="h-9 pr-10" />
+              <Input type="number" min={0} value={local.custo_disponibilidade_kwh || ""} onChange={e => update("custo_disponibilidade_kwh", Number(e.target.value))} className="h-10 pr-12 text-sm" />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">kWh</span>
             </div>
           </div>
+
+          {/* Encargos */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label className="text-xs">Encargos Atual</Label>
-              <Input type="number" step="0.01" value={local.outros_encargos_atual || ""} onChange={e => update("outros_encargos_atual", Number(e.target.value))} className="h-9" placeholder="R$ 0,00" />
+              <Input type="number" step="0.01" value={local.outros_encargos_atual || ""} onChange={e => update("outros_encargos_atual", Number(e.target.value))} className="h-10 text-sm" placeholder="R$ 0,00" />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs">Encargos Novo</Label>
-              <Input type="number" step="0.01" value={local.outros_encargos_novo || ""} onChange={e => update("outros_encargos_novo", Number(e.target.value))} className="h-9" placeholder="R$ 0,00" />
+              <Input type="number" step="0.01" value={local.outros_encargos_novo || ""} onChange={e => update("outros_encargos_novo", Number(e.target.value))} className="h-10 text-sm" placeholder="R$ 0,00" />
             </div>
           </div>
 
-          {/* Explicação visual do cálculo */}
+          {/* Explicação visual do cálculo — apenas geradora */}
           {local.is_geradora && (
-            <div className="rounded-md bg-muted/50 border p-3 space-y-1.5">
-              <p className="text-[10px] font-medium text-foreground flex items-center gap-1.5">
-                <Info className="h-3 w-3 text-muted-foreground" />
+            <div className="rounded-lg bg-muted/40 border border-border/60 p-3.5 space-y-2">
+              <p className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+                <Info className="h-3.5 w-3.5 text-muted-foreground" />
                 Como funciona o Fio B
               </p>
-              <div className="text-[10px] text-muted-foreground leading-relaxed space-y-1">
+              <div className="text-[11px] text-muted-foreground leading-relaxed space-y-1">
                 <p>Ex: Geração <strong>1.000 kWh</strong>, Consumo <strong>700 kWh</strong>, Simultaneidade <strong>30%</strong></p>
                 <p>→ Consumo simultâneo: 700 × 30% = <strong>210 kWh</strong> (sem Fio B)</p>
                 <p>→ Compensado na geradora: 700 − 210 = <strong>490 kWh</strong> (paga Fio B)</p>

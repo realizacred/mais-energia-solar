@@ -289,7 +289,7 @@ export function createEmptyUC(index: number): UCData {
     distancia: 0, tipo_telhado: "", inclinacao: 0, desvio_azimutal: 0,
     taxa_desempenho: 80,
     regra_compensacao: 0, rateio_sugerido_creditos: 100,
-    rateio_creditos: 100, imposto_energia: 0, fator_simultaneidade: 30,
+    rateio_creditos: 100, imposto_energia: 0, fator_simultaneidade: 0,
   };
 }
 
