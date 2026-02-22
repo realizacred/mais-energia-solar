@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { formatCpfCnpj, isValidCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { BRAZIL_STATES, CITIES_BY_STATE } from "@/data/brazil-states-cities";
 import {
@@ -205,6 +206,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
     const newErrors: Record<string, boolean> = {};
     if (!cliente.nome.trim()) newErrors["cliente.nome"] = true;
     if (!cliente.telefone.trim()) newErrors["cliente.telefone"] = true;
+    if (cliente.cpfCnpj && !isValidCpfCnpj(cliente.cpfCnpj)) newErrors["cliente.cpfCnpj"] = true;
     if (Object.keys(newErrors).length > 0) { setErrors(newErrors); return; }
 
     setSubmitting(true);
@@ -383,13 +385,23 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                     className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
                   />
                 </Field>
-                <Field label="CPF/CNPJ">
+                <Field label="CPF/CNPJ" error={errors["cliente.cpfCnpj"]}>
                   <Input
                     placeholder="000.000.000-00"
                     value={cliente.cpfCnpj}
-                    onChange={e => updateCliente("cpfCnpj", e.target.value)}
-                    className="h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors"
+                    maxLength={18}
+                    onChange={e => {
+                      const formatted = formatCpfCnpj(e.target.value);
+                      updateCliente("cpfCnpj", formatted);
+                      if (formatted && !isValidCpfCnpj(formatted)) {
+                        setErrors(prev => ({ ...prev, "cliente.cpfCnpj": true }));
+                      } else {
+                        setErrors(prev => { const n = { ...prev }; delete n["cliente.cpfCnpj"]; return n; });
+                      }
+                    }}
+                    className={`h-9 text-sm bg-muted/40 border-border/60 focus:border-primary/50 focus:bg-card transition-colors ${errors["cliente.cpfCnpj"] ? "border-destructive" : ""}`}
                   />
+                  {errors["cliente.cpfCnpj"] && <p className="text-xs text-destructive mt-1">CPF/CNPJ inválido</p>}
                 </Field>
               </div>
 
