@@ -15282,6 +15282,18 @@ export type Database = {
       }
       create_proposta_nativa_atomic: {
         Args: {
+          p_cliente_bairro?: string
+          p_cliente_cep?: string
+          p_cliente_cidade?: string
+          p_cliente_complemento?: string
+          p_cliente_cpf_cnpj?: string
+          p_cliente_email?: string
+          p_cliente_empresa?: string
+          p_cliente_estado?: string
+          p_cliente_nome?: string
+          p_cliente_numero?: string
+          p_cliente_rua?: string
+          p_cliente_telefone?: string
           p_deal_id?: string
           p_lead_id?: string
           p_origem?: string

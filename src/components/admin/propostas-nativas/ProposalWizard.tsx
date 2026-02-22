@@ -340,6 +340,7 @@ export function ProposalWizard() {
       leadId: selectedLead?.id,
       dealId: resolvedDealId,
       titulo,
+      cliente: cliente.nome && cliente.celular ? cliente : undefined,
     });
 
     if (res) {
@@ -365,6 +366,7 @@ export function ProposalWizard() {
           leadId: selectedLead?.id,
           dealId: resolvedDealId,
           titulo,
+          cliente: cliente.nome && cliente.celular ? cliente : undefined,
         });
         if (res) {
           setSavedPropostaId(res.propostaId);
