@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Package, Zap, LayoutGrid, List, Settings2, Loader2, Pencil, Trash2, Plus, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -489,8 +489,10 @@ function PremissasModal({ open, onOpenChange, pd, setPd, activeTab, onTabChange,
   onTabChange: (t: "fator" | "sistema") => void;
   consumoTotal: number;
 }) {
+  const pdRef = useRef(pd);
+  pdRef.current = pd;
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
-    setPd({ ...pd, [field]: value });
+    setPd({ ...pdRef.current, [field]: value });
   };
 
   const getTopoConfig = (topo: string): TopologiaConfig => {
