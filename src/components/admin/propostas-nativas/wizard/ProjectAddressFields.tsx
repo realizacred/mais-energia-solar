@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 import { UF_LIST, type ClienteData } from "./types";
+import { toast } from "sonner";
 
 export interface ProjectAddress {
   cep: string;
@@ -107,26 +108,26 @@ export function ProjectAddressFields({
     try {
       const resp = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
       const data = await resp.json();
-      if (!data.erro) {
-        // Use ref to get the latest address (avoids stale closure)
-        const current = addressRef.current;
-        const updated: ProjectAddress = {
-          cep: formatCEP(digits),
-          rua: data.logradouro || "",
-          bairro: data.bairro || "",
-          cidade: data.localidade || "",
-          uf: data.uf || "",
-          complemento: data.complemento || "",
-          numero: "",
-          lat: null,
-          lon: null,
-        };
-        onAddressChange(updated);
-        if (sameAsClient) setSameAsClient(false);
-        forwardGeocodeRef.current?.(updated);
+      if (data.erro) {
+        toast.error("CEP não encontrado", { description: `O CEP ${formatCEP(digits)} não existe ou não foi encontrado.` });
+        return;
       }
+      const updated: ProjectAddress = {
+        cep: formatCEP(digits),
+        rua: data.logradouro || "",
+        bairro: data.bairro || "",
+        cidade: data.localidade || "",
+        uf: data.uf || "",
+        complemento: data.complemento || "",
+        numero: "",
+        lat: null,
+        lon: null,
+      };
+      onAddressChange(updated);
+      if (sameAsClient) setSameAsClient(false);
+      forwardGeocodeRef.current?.(updated);
     } catch {
-      // Silent — user can fill manually
+      toast.error("Erro ao buscar CEP", { description: "Não foi possível consultar o ViaCEP. Preencha manualmente." });
     } finally {
       setCepLoading(false);
     }
