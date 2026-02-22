@@ -84,30 +84,28 @@ export function StepConsumptionIntelligence({
   // ─── Effective irradiance — apply POA transposition when GHI series available ──
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
-    
-    const debugInfo = { irradiacao, hasGhiSeries: !!ghiSeries, ghiSeriesKeys: ghiSeries ? Object.keys(ghiSeries).length : 0, latitude, tilt: pd.inclinacao, azDev: pd.desvio_azimutal };
-    console.log("[POA Debug] Input:", JSON.stringify(debugInfo));
 
-    // If we have monthly GHI series + latitude, apply Liu-Jordan POA transposition
-    if (ghiSeries && latitude != null) {
-      const tilt = pd.inclinacao ?? 10;
-      const azimuthDev = pd.desvio_azimutal ?? 0;
+    const tilt = pd.inclinacao ?? 10;
+    const azimuthDev = pd.desvio_azimutal ?? 0;
 
-      const ghi: IrradianceSeries = {
-        m01: ghiSeries.m01 ?? irradiacao,
-        m02: ghiSeries.m02 ?? irradiacao,
-        m03: ghiSeries.m03 ?? irradiacao,
-        m04: ghiSeries.m04 ?? irradiacao,
-        m05: ghiSeries.m05 ?? irradiacao,
-        m06: ghiSeries.m06 ?? irradiacao,
-        m07: ghiSeries.m07 ?? irradiacao,
-        m08: ghiSeries.m08 ?? irradiacao,
-        m09: ghiSeries.m09 ?? irradiacao,
-        m10: ghiSeries.m10 ?? irradiacao,
-        m11: ghiSeries.m11 ?? irradiacao,
-        m12: ghiSeries.m12 ?? irradiacao,
-      };
+    // Build GHI series: use monthly data if available, otherwise flat from average
+    const ghi: IrradianceSeries = ghiSeries
+      ? {
+          m01: ghiSeries.m01 ?? irradiacao, m02: ghiSeries.m02 ?? irradiacao,
+          m03: ghiSeries.m03 ?? irradiacao, m04: ghiSeries.m04 ?? irradiacao,
+          m05: ghiSeries.m05 ?? irradiacao, m06: ghiSeries.m06 ?? irradiacao,
+          m07: ghiSeries.m07 ?? irradiacao, m08: ghiSeries.m08 ?? irradiacao,
+          m09: ghiSeries.m09 ?? irradiacao, m10: ghiSeries.m10 ?? irradiacao,
+          m11: ghiSeries.m11 ?? irradiacao, m12: ghiSeries.m12 ?? irradiacao,
+        }
+      : {
+          m01: irradiacao, m02: irradiacao, m03: irradiacao, m04: irradiacao,
+          m05: irradiacao, m06: irradiacao, m07: irradiacao, m08: irradiacao,
+          m09: irradiacao, m10: irradiacao, m11: irradiacao, m12: irradiacao,
+        };
 
+    // Always apply POA transposition when we have latitude
+    if (latitude != null) {
       try {
         const result = transposeToTiltedPlane({
           ghi,
@@ -115,7 +113,6 @@ export function StepConsumptionIntelligence({
           tilt_deg: tilt,
           azimuth_deviation_deg: azimuthDev,
         });
-        console.log("[POA Debug] POA result:", { poa_avg: result.poa_annual_avg, ghi_avg: result.ghi_annual_avg, gain: result.gain_factor, method: result.method });
         return result.poa_annual_avg;
       } catch (e) {
         console.warn("[StepConsumption] POA transposition failed, using GHI:", e);
