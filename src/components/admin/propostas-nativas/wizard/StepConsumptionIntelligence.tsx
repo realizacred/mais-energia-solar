@@ -459,27 +459,24 @@ export function StepConsumptionIntelligence({
       {/* ─── Header metrics bar */}
       <div className="flex items-center justify-end gap-4 text-xs flex-wrap">
         <div className="flex items-center gap-1.5 text-muted-foreground">
-          <Zap className="h-3.5 w-3.5 text-primary" />
-          <span>Tecnologia</span>
-          <Badge variant="secondary" className="text-[10px] font-semibold px-1.5 py-0">
-            {TOPOLOGIA_LABELS[pd.topologias[0] || "tradicional"]}
-          </Badge>
-        </div>
-        <div className="flex items-center gap-1.5 text-muted-foreground">
           <BarChart3 className="h-3.5 w-3.5" />
-          <span>Consumo</span>
+          <span>Consumo Mensal Total</span>
           <span className="font-bold text-foreground">{consumoTotal.toLocaleString("pt-BR")} kWh</span>
         </div>
         <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
           <Pencil className="h-3.5 w-3.5" />
           <span>Potência Ideal</span>
-          <span className="font-bold text-foreground">{potenciaIdeal.toFixed(2)} kWp</span>
+          <span className="font-bold text-foreground">
+            T: {potenciaIdealByTopo.tradicional.toFixed(2)} | M: {potenciaIdealByTopo.microinversor.toFixed(2)} | O: {potenciaIdealByTopo.otimizador.toFixed(2)}
+          </span>
           <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
         <button onClick={() => setPreDimModal(true)} className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground group">
           <Zap className="h-3.5 w-3.5" />
           <span>Fator de Geração</span>
-          <span className="font-bold text-foreground">{primaryFatorGeracao.toFixed(2)} kWh/kWp</span>
+          <span className="font-bold text-foreground">
+            T: {getTopoConfig("tradicional").fator_geracao.toFixed(2)} | M: {getTopoConfig("microinversor").fator_geracao.toFixed(2)} | O: {getTopoConfig("otimizador").fator_geracao.toFixed(2)}
+          </span>
           <Pencil className="h-2.5 w-2.5 text-secondary opacity-0 group-hover:opacity-100 transition-opacity" />
         </button>
       </div>
@@ -519,7 +516,7 @@ export function StepConsumptionIntelligence({
 
       {/* ─── Tab content */}
       {activeTab === "ucs" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 pb-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 2xl:grid-cols-3 gap-3 pb-2">
           {ucs.map((uc, i) => (
             <UCCard
               key={uc.id}
