@@ -1,6 +1,4 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { transposeToTiltedPlane } from "@/services/solar-transposition";
-import type { IrradianceSeries } from "@/services/irradiance-provider";
 import { Zap, Settings2, Pencil, Plus, BarChart3, AlertCircle, Package, Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,28 +78,11 @@ export function StepConsumptionIntelligence({
     }
   }, [uc1TipoTelhado, roofFactors, setPd]);
 
-  // ─── Effective irradiance (POA when possible, GHI fallback) ──
+  // ─── Effective irradiance — uses GHI directly (kWh/m²/dia) ──
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
-    if (ghiSeries && latitude != null) {
-      try {
-        const ghiInput: IrradianceSeries = {
-          m01: ghiSeries.m01 ?? 0, m02: ghiSeries.m02 ?? 0, m03: ghiSeries.m03 ?? 0,
-          m04: ghiSeries.m04 ?? 0, m05: ghiSeries.m05 ?? 0, m06: ghiSeries.m06 ?? 0,
-          m07: ghiSeries.m07 ?? 0, m08: ghiSeries.m08 ?? 0, m09: ghiSeries.m09 ?? 0,
-          m10: ghiSeries.m10 ?? 0, m11: ghiSeries.m11 ?? 0, m12: ghiSeries.m12 ?? 0,
-        };
-        const result = transposeToTiltedPlane({
-          ghi: ghiInput,
-          latitude,
-          tilt_deg: pd.inclinacao || 0,
-          azimuth_deviation_deg: pd.desvio_azimutal || 0,
-        });
-        return result.poa_annual_avg;
-      } catch { /* fallback */ }
-    }
     return irradiacao;
-  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal]);
+  }, [irradiacao]);
 
   // ─── Derive fator_geracao from POA irradiation ──────────
   // fator_geracao = POA_avg × 30 × (desempenho / 100)
