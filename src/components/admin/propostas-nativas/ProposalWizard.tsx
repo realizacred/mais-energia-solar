@@ -1185,27 +1185,6 @@ export function ProposalWizard() {
             </span>
 
 
-            {/* Salvar / Atualizar */}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleUpdate(false)}
-              disabled={saving}
-              className="gap-1.5 h-9 text-xs font-medium"
-            >
-              <Save className="h-3.5 w-3.5" />
-              {saving ? "Salvando..." : savedPropostaId ? "Atualizar" : "Salvar"}
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => handleUpdate(true)}
-              disabled={saving}
-              className="gap-1.5 h-9 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
-            >
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              Salvar como ativa
-            </Button>
-
             <div className="h-6 w-px bg-border/50 hidden sm:block" />
 
             <Button variant="outline" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1.5 h-9 text-xs font-medium">
@@ -1240,6 +1219,10 @@ export function ProposalWizard() {
         customFieldValues={customFieldValues}
         onCustomFieldValuesChange={setCustomFieldValues}
         onConfirm={handlePosDialogConfirm}
+        onSaveDraft={() => handleUpdate(false)}
+        onSaveActive={() => handleUpdate(true)}
+        saving={saving}
+        savedPropostaId={savedPropostaId}
       />
 
       {/* Enforcement: block modal */}
