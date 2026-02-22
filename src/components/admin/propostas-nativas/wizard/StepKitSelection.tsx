@@ -176,19 +176,25 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => { setShowPremissas(true); setPremissasTab("fator"); }}>
             <Settings2 className="h-3 w-3" /> Editar premissas
           </Button>
-          {itens.length > 0 && itens.some(i => i.descricao) && (
+          {(itens.length > 0 && itens.some(i => i.descricao)) || manualKits.length > 0 ? (
             <>
-              <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => setShowEditKitFechado(true)}>
+              <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => {
+                if (manualKits.length > 0 && editingKitIndex === null) {
+                  setEditingKitIndex(0);
+                } else {
+                  setShowEditKitFechado(true);
+                }
+              }}>
                 <Pencil className="h-3 w-3" /> Editar kit
               </Button>
               <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => setShowEditLayout(true)}>
                 <LayoutGrid className="h-3 w-3" /> Editar layout
               </Button>
               <Badge variant="secondary" className="text-[10px] font-mono bg-success/10 text-success border-success/20">
-                Kit selecionado • {itens.length} itens
+                Kit selecionado • {itens.length > 0 ? itens.length : manualKits.reduce((s, k) => s + k.itens.length, 0)} itens
               </Badge>
             </>
-          )}
+          ) : null}
         </div>
       </div>
 
@@ -400,7 +406,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         open={showEditLayout}
         onOpenChange={setShowEditLayout}
         layouts={layouts}
-        totalModulos={itens.filter(i => i.categoria === "modulo").reduce((s, i) => s + i.quantidade, 0)}
+        totalModulos={
+          itens.filter(i => i.categoria === "modulo").reduce((s, i) => s + i.quantidade, 0) ||
+          manualKits.reduce((s, k) => s + k.itens.filter(i => i.categoria === "modulo").reduce((ss, i) => ss + i.quantidade, 0), 0)
+        }
         onSave={(newLayouts) => {
           onLayoutsChange?.(newLayouts);
           toast({ title: "Layout atualizado" });
