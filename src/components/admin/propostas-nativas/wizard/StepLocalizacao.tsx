@@ -26,6 +26,8 @@ interface Props {
   onTipoTelhadoChange: (v: string) => void;
   onDistribuidoraChange: (id: string, nome: string) => void;
   onIrradiacaoChange?: (avg: number) => void;
+  onGhiSeriesChange?: (series: Record<string, number> | null) => void;
+  onLatitudeChange?: (lat: number) => void;
   onMapSnapshotsChange?: (snapshots: string[]) => void;
   /** Client data for "same address" feature */
   clienteData?: ClienteData | null;
@@ -49,7 +51,8 @@ type GeoStatus = "idle" | "buscando" | "localizado" | "manual" | "erro";
 export function StepLocalizacao({
   estado, cidade, tipoTelhado, distribuidoraId,
   onEstadoChange, onCidadeChange, onTipoTelhadoChange, onDistribuidoraChange,
-  onIrradiacaoChange, onMapSnapshotsChange,
+  onIrradiacaoChange, onGhiSeriesChange, onLatitudeChange,
+  onMapSnapshotsChange,
   clienteData, projectAddress, onProjectAddressChange,
   distanciaKm, onDistanciaKmChange,
 }: Props) {
@@ -78,6 +81,7 @@ export function StepLocalizacao({
         setGeoLat(projectAddress.lat);
         setGeoLon(projectAddress.lon);
         setGeoStatus("localizado");
+        onLatitudeChange?.(projectAddress.lat);
         fetchIrradiacao(projectAddress.lat, projectAddress.lon);
       }
     }
@@ -157,6 +161,7 @@ export function StepLocalizacao({
           setGeoLat(lat);
           setGeoLon(lon);
           setGeoStatus("localizado");
+          onLatitudeChange?.(lat);
           fetchIrradiacao(lat, lon);
         } else {
           setGeoStatus("manual");
@@ -222,8 +227,10 @@ export function StepLocalizacao({
           setIrradiacao(Number(avg));
           setIrradSource(dsCode);
           setDistKm(dist != null ? Number(dist) : null);
-          setGhiSeries(ghi && typeof ghi === "object" ? ghi : null);
+          const ghiData = ghi && typeof ghi === "object" ? ghi : null;
+          setGhiSeries(ghiData);
           onIrradiacaoChange?.(Number(avg));
+          onGhiSeriesChange?.(ghiData);
           return;
         }
       }
@@ -243,6 +250,7 @@ export function StepLocalizacao({
     setGeoLat(lat);
     setGeoLon(lon);
     setGeoStatus("localizado");
+    onLatitudeChange?.(lat);
     fetchIrradiacao(lat, lon);
 
     try {
@@ -310,8 +318,9 @@ export function StepLocalizacao({
     setGeoLat(lat);
     setGeoLon(lon);
     setGeoStatus("localizado");
+    onLatitudeChange?.(lat);
     fetchIrradiacao(lat, lon);
-  }, [fetchIrradiacao]);
+  }, [fetchIrradiacao, onLatitudeChange]);
 
   const handleEstadoChange = (v: string) => {
     onEstadoChange(v);
