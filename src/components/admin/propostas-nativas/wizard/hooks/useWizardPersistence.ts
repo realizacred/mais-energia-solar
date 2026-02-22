@@ -73,78 +73,48 @@ export function useWizardPersistence() {
   const saveDraft = useCallback(async (params: PersistenceParams) => {
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({ title: "Erro", description: "Usuário não autenticado.", variant: "destructive" });
-        return null;
-      }
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("tenant_id, user_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!profile?.tenant_id) {
-        toast({ title: "Erro", description: "Perfil não encontrado.", variant: "destructive" });
-        return null;
-      }
-
       let propostaId = params.propostaId;
       let versaoId = params.versaoId;
 
-      // Create or update proposta_nativa
+      // === CREATE: use atomic RPC (ensures projeto exists) ===
       if (!propostaId) {
-        const { data: proposta, error: pErr } = await supabase
-          .from("propostas_nativas")
-          .insert({
-            tenant_id: profile.tenant_id,
-            titulo: params.titulo || "Proposta sem título",
-            lead_id: params.leadId || null,
-            projeto_id: params.projetoId || null,
-            status: "rascunho",
-            origem: "native",
-            created_by: profile.user_id,
-          } as any)
-          .select("id")
-          .single();
+        const { data, error } = await supabase.rpc(
+          "create_proposta_nativa_atomic" as any,
+          {
+            p_titulo: params.titulo || "Proposta sem título",
+            p_lead_id: params.leadId || null,
+            p_projeto_id: params.projetoId || null,
+            p_origem: "native",
+            p_potencia_kwp: params.potenciaKwp,
+            p_valor_total: params.precoFinal,
+            p_snapshot: params.snapshot as any,
+          }
+        );
 
-        if (pErr || !proposta) {
-          toast({ title: "Erro ao criar proposta", description: pErr?.message, variant: "destructive" });
+        if (error) {
+          console.error("[saveDraft] RPC error:", error);
+          toast({ title: "Erro ao criar proposta", description: error.message, variant: "destructive" });
           return null;
         }
-        propostaId = (proposta as any).id;
-      } else {
-        await supabase
-          .from("propostas_nativas")
-          .update({
-            titulo: params.titulo || "Proposta sem título",
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq("id", propostaId);
+
+        const result = data as any;
+        propostaId = result.proposta_id;
+        versaoId = result.versao_id;
+
+        toast({ title: "✅ Rascunho criado", description: "Proposta e projeto criados com sucesso." });
+        return { propostaId, versaoId, projetoId: result.projeto_id };
       }
 
-      // Create or update versão
-      if (!versaoId) {
-        const { data: versao, error: vErr } = await supabase
-          .from("proposta_versoes")
-          .insert({
-            tenant_id: profile.tenant_id,
-            proposta_id: propostaId,
-            versao_numero: 1,
-            status: "rascunho",
-            potencia_kwp: params.potenciaKwp,
-            valor_total: params.precoFinal,
-            snapshot: params.snapshot as any,
-          } as any)
-          .select("id, versao_numero")
-          .single();
+      // === UPDATE: proposta + versão already exist ===
+      await supabase
+        .from("propostas_nativas")
+        .update({
+          titulo: params.titulo || "Proposta sem título",
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("id", propostaId);
 
-        if (vErr || !versao) {
-          toast({ title: "Erro ao criar versão", description: vErr?.message, variant: "destructive" });
-          return null;
-        }
-        versaoId = (versao as any).id;
-      } else {
+      if (versaoId) {
         const { error: uErr } = await supabase
           .from("proposta_versoes")
           .update({
@@ -164,6 +134,7 @@ export function useWizardPersistence() {
       toast({ title: "✅ Rascunho salvo", description: "Você pode retomar a proposta a qualquer momento." });
       return { propostaId, versaoId };
     } catch (e: any) {
+      console.error("[saveDraft] Exception:", e);
       toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
       return null;
     } finally {
