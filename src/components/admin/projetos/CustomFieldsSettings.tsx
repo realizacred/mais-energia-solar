@@ -641,20 +641,20 @@ export function CustomFieldsSettings() {
           {/* ── Step 2: Config Form ── */}
           {fieldWizardStep === "config" && (
             <>
-              {/* Back + Selected Type Indicator */}
+              {/* Back button */}
               {!editingField && (
                 <button
                   type="button"
                   onClick={() => setFieldWizardStep("type")}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors -mt-1"
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4" />
                   Voltar
                 </button>
               )}
 
-              {/* Selected type card */}
-              <div className="flex justify-center mb-2">
+              {/* Selected type indicator */}
+              <div className="flex justify-center py-1">
                 {(() => {
                   const Icon = FIELD_TYPE_ICONS[fieldForm.field_type] || Type;
                   return (
@@ -666,13 +666,15 @@ export function CustomFieldsSettings() {
                 })()}
               </div>
 
-              <div className="space-y-4">
+              <Separator />
+
+              <div className="space-y-5">
                 <h4 className="text-sm font-semibold text-foreground">Dados do Campo</h4>
 
-                {/* Title + Key */}
+                {/* Title + Variable */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Título do Campo</Label>
+                    <Label className="text-xs font-medium">Título do Campo</Label>
                     <Input
                       value={fieldForm.title}
                       onChange={e => {
@@ -691,7 +693,7 @@ export function CustomFieldsSettings() {
                   </div>
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <Label className="text-xs">Variável</Label>
+                      <Label className="text-xs font-medium">Variável</Label>
                       <Tooltip>
                         <TooltipTrigger asChild><HelpCircle className="h-3 w-3 text-muted-foreground cursor-help" /></TooltipTrigger>
                         <TooltipContent className="text-xs max-w-[220px]">
@@ -700,14 +702,14 @@ export function CustomFieldsSettings() {
                       </Tooltip>
                     </div>
                     <div className="flex items-center gap-1">
-                      <code className="flex-1 text-xs font-mono bg-muted/50 border rounded px-2 py-1.5 text-foreground select-all truncate">
+                      <code className="flex-1 text-xs font-mono bg-muted/50 border rounded-md px-2.5 h-9 flex items-center text-foreground select-all truncate">
                         [{fieldForm.field_key || "..."}]
                       </code>
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 shrink-0"
+                        className="h-9 w-9 shrink-0"
                         disabled={!fieldForm.field_key}
                         onClick={() => {
                           navigator.clipboard.writeText(`[${fieldForm.field_key}]`);
@@ -722,31 +724,14 @@ export function CustomFieldsSettings() {
 
                 {/* Type (readonly) */}
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Tipo</Label>
+                  <Label className="text-xs font-medium">Tipo</Label>
                   <Input value={FIELD_TYPE_LABELS[fieldForm.field_type]} readOnly className="bg-muted/30" />
                 </div>
-
-                {/* Show on create — only for projeto context */}
-                {fieldForm.field_context === "projeto" && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground font-medium">Mostrar campo em novo projeto?</Label>
-                    <Select
-                      value={fieldForm.show_on_create ? "sim" : "nao"}
-                      onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
-                    >
-                      <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sim">Sim</SelectItem>
-                        <SelectItem value="nao">Não</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
 
                 {/* Options for select/multi_select */}
                 {OPTION_TYPES.includes(fieldForm.field_type) && (
                   <div className="space-y-1.5">
-                    <Label className="text-xs">Valores possíveis</Label>
+                    <Label className="text-xs font-medium">Valores possíveis</Label>
                     <Textarea
                       value={optionsText}
                       onChange={e => setOptionsText(e.target.value)}
@@ -755,17 +740,35 @@ export function CustomFieldsSettings() {
                     />
                     <p className="text-[11px] text-muted-foreground">
                       Insira um por linha, por exemplo:<br />
-                      <span className="text-foreground/70">Opção 1<br />Opção 2<br />Opção 3</span>
+                      <span className="text-foreground/70">Opção 1 · Opção 2 · Opção 3</span>
                     </p>
                   </div>
                 )}
 
-                {/* Funnel-related fields — only for projeto context */}
+                {/* ── Context-specific fields ── */}
+
+                {/* PROJETO context */}
                 {fieldForm.field_context === "projeto" && (
                   <>
-                    {/* Visibility */}
+                    <Separator />
+                    <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Mostrar campo em novo projeto?</Label>
+                      <Select
+                        value={fieldForm.show_on_create ? "sim" : "nao"}
+                        onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
+                      >
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sim">Sim</SelectItem>
+                          <SelectItem value="nao">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
                     <div className="space-y-2">
-                      <Label className="text-xs text-foreground font-medium">Visibilidade em funis?</Label>
+                      <Label className="text-xs font-medium">Visibilidade em funis?</Label>
                       <div className="flex gap-4">
                         <label className="flex items-center gap-1.5 cursor-pointer text-sm">
                           <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
@@ -782,15 +785,14 @@ export function CustomFieldsSettings() {
                       </div>
                     </div>
 
-                    {/* Important + Required in funnel */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-foreground font-medium">Campo importante em etapa do funil:</Label>
+                        <Label className="text-xs font-medium">Importante no funil:</Label>
                         <Select
                           value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
                           onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="nenhum">Nenhum</SelectItem>
                             <SelectItem value="sim">Sim</SelectItem>
@@ -798,12 +800,12 @@ export function CustomFieldsSettings() {
                         </Select>
                       </div>
                       <div className="space-y-1.5">
-                        <Label className="text-xs text-foreground font-medium">Campo obrigatório em etapa do funil:</Label>
+                        <Label className="text-xs font-medium">Obrigatório no funil:</Label>
                         <Select
                           value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
                           onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="nenhum">Nenhum</SelectItem>
                             <SelectItem value="sim">Sim</SelectItem>
@@ -814,21 +816,24 @@ export function CustomFieldsSettings() {
                   </>
                 )}
 
-                {/* Pre/Pos dimensionamento: campo obrigatório na proposta */}
+                {/* PRE/POS DIMENSIONAMENTO context */}
                 {(fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento") && (
-                  <div className="space-y-1.5">
-                    <Label className="text-xs text-foreground font-medium">Campo obrigatório?</Label>
-                    <Select
-                      value={fieldForm.required_on_proposal ? "sim" : "nao"}
-                      onValueChange={v => setFieldForm(p => ({ ...p, required_on_proposal: v === "sim" }))}
-                    >
-                      <SelectTrigger className="w-[200px]"><SelectValue placeholder="Selecione uma opção" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sim">Sim, obrigatório na proposta</SelectItem>
-                        <SelectItem value="nao">Não</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  <>
+                    <Separator />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Campo obrigatório?</Label>
+                      <Select
+                        value={fieldForm.required_on_proposal ? "sim" : "nao"}
+                        onValueChange={v => setFieldForm(p => ({ ...p, required_on_proposal: v === "sim" }))}
+                      >
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="sim">Sim, obrigatório na proposta</SelectItem>
+                          <SelectItem value="nao">Não</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </>
                 )}
               </div>
 
