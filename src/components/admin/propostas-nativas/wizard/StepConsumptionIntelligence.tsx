@@ -29,6 +29,8 @@ interface Props {
   onPotenciaChange: (p: number) => void;
   preDimensionamento: PreDimensionamentoData;
   onPreDimensionamentoChange: (pd: PreDimensionamentoData) => void;
+  /** Local irradiation (kWh/m²/day) from StepLocalizacao */
+  irradiacao?: number;
 }
 
 type ActiveTab = "ucs" | "pre";
@@ -37,6 +39,7 @@ type PreSubTab = "premissas" | "equipamentos";
 export function StepConsumptionIntelligence({
   ucs, onUcsChange, potenciaKwp, onPotenciaChange,
   preDimensionamento: pd, onPreDimensionamentoChange: setPd,
+  irradiacao,
 }: Props) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
   const [preSubTab, setPreSubTab] = useState<PreSubTab>("premissas");
@@ -70,6 +73,38 @@ export function StepConsumptionIntelligence({
       }
     }
   }, [uc1TipoTelhado, roofFactors, setPd]);
+
+  // ─── Derive fator_geracao from local irradiation ──────────
+  // fator_geracao = irradiação_média × 30 × (desempenho / 100)
+  const prevIrradRef = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    if (!irradiacao || irradiacao <= 0) return;
+    // Only recalculate when irradiacao actually changes
+    if (prevIrradRef.current === irradiacao) return;
+    prevIrradRef.current = irradiacao;
+
+    const currentPd = pdRef.current;
+    const configs = { ...currentPd.topologia_configs };
+    let changed = false;
+
+    for (const topo of ["tradicional", "microinversor", "otimizador"]) {
+      const cfg = configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo];
+      const newFator = Math.round(irradiacao * 30 * (cfg.desempenho / 100) * 100) / 100;
+      if (Math.abs(newFator - cfg.fator_geracao) > 0.01) {
+        configs[topo] = { ...cfg, fator_geracao: newFator };
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      setPd({
+        ...currentPd,
+        topologia_configs: configs,
+        // Legacy compat
+        fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
+      });
+    }
+  }, [irradiacao, setPd]);
 
   // ─── Derived metrics
   const consumoTotal = useMemo(() => {
@@ -222,11 +257,13 @@ export function StepConsumptionIntelligence({
     const configs = { ...currentPd.topologia_configs };
     for (const topo of ["tradicional", "microinversor", "otimizador"]) {
       const baseD = baseDesempenho[topo] || getTopoConfig(topo).desempenho;
-      const baseF = baseFatorGeracao[topo] || getTopoConfig(topo).fator_geracao;
       const lossPct = levelKey ? (sombConfig[levelKey] as any)?.[topo] ?? 0 : 0;
       const factor = 1 - lossPct / 100;
       const adjustedDesempenho = Math.round(baseD * factor * 100) / 100;
-      const adjustedFatorGeracao = Math.round(baseF * factor * 100) / 100;
+      // Derive fator from irradiation when available
+      const adjustedFatorGeracao = irradiacao && irradiacao > 0
+        ? Math.round(irradiacao * 30 * (adjustedDesempenho / 100) * 100) / 100
+        : Math.round((baseFatorGeracao[topo] || getTopoConfig(topo).fator_geracao) * factor * 100) / 100;
       configs[topo] = {
         ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]),
         desempenho: adjustedDesempenho,
@@ -242,7 +279,7 @@ export function StepConsumptionIntelligence({
       fator_geracao: configs.tradicional?.fator_geracao ?? currentPd.fator_geracao,
     };
     setPd(updated);
-  }, [baseDesempenho, baseFatorGeracao, setPd]);
+  }, [baseDesempenho, baseFatorGeracao, irradiacao, setPd]);
 
   // ─── Pre-dimensionamento helpers
   const pdUpdate = <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => {
@@ -256,6 +293,11 @@ export function StepConsumptionIntelligence({
   const updateTopoConfig = (topo: string, field: keyof TopologiaConfig, value: any) => {
     const configs = { ...pd.topologia_configs };
     configs[topo] = { ...(configs[topo] || DEFAULT_TOPOLOGIA_CONFIGS[topo]), [field]: value };
+    // When desempenho changes and we have irradiation, recalculate fator_geracao
+    if (field === "desempenho" && irradiacao && irradiacao > 0) {
+      const newDesempenho = value as number;
+      configs[topo].fator_geracao = Math.round(irradiacao * 30 * (newDesempenho / 100) * 100) / 100;
+    }
     const updated: PreDimensionamentoData = { ...pd, topologia_configs: configs };
     // Sync legacy fields from tradicional
     if (topo === "tradicional") {
