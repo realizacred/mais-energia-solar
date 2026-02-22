@@ -190,6 +190,20 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
       setDeleting(false);
     }
   };
+  // ─── Refresh proposals count on focus (after wizard navigation)
+  useEffect(() => {
+    const refreshCount = () => {
+      supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("projeto_id", dealId)
+        .then(({ count }) => setPropostasCount(count || 0));
+    };
+    const handleVisibility = () => { if (document.visibilityState === "visible") refreshCount(); };
+    window.addEventListener("focus", refreshCount);
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      window.removeEventListener("focus", refreshCount);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [dealId]);
 
   // ─── Load deal data (unchanged) ────────────────
   useEffect(() => {
