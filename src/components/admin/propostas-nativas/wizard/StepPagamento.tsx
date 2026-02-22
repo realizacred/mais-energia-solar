@@ -310,24 +310,24 @@ export function StepPagamento({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
         <Tabs value={activeTab} onValueChange={v => setActiveTab(v as any)}>
           <TabsList className="bg-muted/50">
-            <TabsTrigger value="pagamento" className="text-xs">Pagamento</TabsTrigger>
-            <TabsTrigger value="fluxo" className="text-xs">Fluxo de caixa</TabsTrigger>
+            <TabsTrigger value="pagamento" className="text-sm">Pagamento</TabsTrigger>
+            <TabsTrigger value="fluxo" className="text-sm">Fluxo de caixa</TabsTrigger>
           </TabsList>
         </Tabs>
 
-        <div className="flex items-center gap-3 sm:gap-4 text-xs flex-wrap">
+        <div className="flex items-center gap-3 sm:gap-4 text-sm flex-wrap">
           <div className="flex items-center gap-1.5">
-            <DollarSign className="h-3.5 w-3.5 text-success" />
+            <DollarSign className="h-4 w-4 text-success" />
             <span className="text-muted-foreground">Economia:</span>
             <span className="font-bold text-success">{formatBRL(economiaMensal)}</span>
-            <Badge variant="secondary" className="text-[9px] h-4 px-1">{economiaPercent.toFixed(2)}%</Badge>
-            <button onClick={() => setShowGastosModal(true)} className="text-primary underline text-[10px] hover:opacity-80">Ver mais</button>
+            <Badge variant="secondary" className="text-[10px] h-5 px-1.5">{economiaPercent.toFixed(2)}%</Badge>
+            <button onClick={() => setShowGastosModal(true)} className="text-primary underline text-xs hover:opacity-80">Ver mais</button>
           </div>
           <div className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5 text-primary" />
+            <Calendar className="h-4 w-4 text-primary" />
             <span className="text-muted-foreground">Retorno:</span>
             <span className="font-bold">{paybackInfo.label}</span>
-            <button onClick={() => setShowFluxoModal(true)} className="text-primary underline text-[10px] hover:opacity-80">Ver mais</button>
+            <button onClick={() => setShowFluxoModal(true)} className="text-primary underline text-xs hover:opacity-80">Ver mais</button>
           </div>
         </div>
       </div>
@@ -342,7 +342,7 @@ export function StepPagamento({
                 key={g.banco.id}
                 onClick={() => setSelectedBancoIdx(idx)}
                 className={cn(
-                  "w-full text-left px-3 py-2.5 rounded-lg text-xs flex items-center justify-between transition-colors",
+                  "w-full text-left px-3 py-2.5 rounded-lg text-sm flex items-center justify-between transition-colors",
                   selectedBancoIdx === idx
                     ? "bg-primary/10 text-primary border border-primary/30 font-semibold"
                     : "hover:bg-muted/50 text-muted-foreground border border-transparent"
@@ -352,11 +352,11 @@ export function StepPagamento({
                   <Building2 className="h-3.5 w-3.5" />
                   {g.banco.nome}
                 </span>
-                <Badge variant="outline" className="text-[9px] h-4 px-1.5">{g.opcoes.length}</Badge>
+                <Badge variant="outline" className="text-[10px] h-5 px-1.5">{g.opcoes.length}</Badge>
               </button>
             ))}
-            <Button variant="ghost" size="sm" className="w-full text-xs text-primary gap-1 mt-2 h-8" onClick={() => setShowNovoFinanciamento(true)}>
-              <Plus className="h-3 w-3" /> Novo financiamento
+            <Button variant="ghost" size="sm" className="w-full text-sm text-primary gap-1 mt-2 h-9" onClick={() => setShowNovoFinanciamento(true)}>
+              <Plus className="h-3.5 w-3.5" /> Novo financiamento
             </Button>
           </div>
 
@@ -365,42 +365,42 @@ export function StepPagamento({
             {bancoGroups[selectedBancoIdx]?.opcoes.map((op, idx) => (
               <div key={op.id} className="p-4 rounded-xl border border-border/50 bg-card">
                 <div className="flex items-center justify-between mb-3">
-                  <Badge variant="secondary" className="text-[10px]">Opção {idx + 1}</Badge>
-                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => removeOpcao(selectedBancoIdx, idx)}>
-                    <Trash2 className="h-3.5 w-3.5" />
+                  <Badge variant="secondary" className="text-xs">Opção {idx + 1}</Badge>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60" onClick={() => removeOpcao(selectedBancoIdx, idx)}>
+                    <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-xs">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 text-sm">
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Financiamento</Label>
+                    <Label className="text-xs text-muted-foreground">Financiamento</Label>
                     <p className="font-semibold mt-0.5">{formatBRL(op.valor_financiado)}</p>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Entrada</Label>
+                    <Label className="text-xs text-muted-foreground">Entrada</Label>
                     <p className="font-semibold mt-0.5">{formatBRL(op.entrada)}</p>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Parcelas</Label>
+                    <Label className="text-xs text-muted-foreground">Parcelas</Label>
                     <p className="font-semibold mt-0.5">{op.num_parcelas}x</p>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Taxa</Label>
+                    <Label className="text-xs text-muted-foreground">Taxa</Label>
                     <p className="font-semibold mt-0.5">{op.taxa_mensal.toFixed(2)}%</p>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Carência</Label>
+                    <Label className="text-xs text-muted-foreground">Carência</Label>
                     <p className="font-semibold mt-0.5">{op.carencia_meses} meses</p>
                   </div>
                   <div>
-                    <Label className="text-[10px] text-muted-foreground">Valor parcela</Label>
+                    <Label className="text-xs text-muted-foreground">Valor parcela</Label>
                     <p className="font-bold text-primary mt-0.5">{formatBRL(op.valor_parcela)}</p>
                   </div>
                 </div>
               </div>
             ))}
 
-            <Button variant="ghost" size="sm" className="text-xs text-primary gap-1 h-8" onClick={() => addOpcaoToBanco(selectedBancoIdx)}>
-              <Plus className="h-3 w-3" /> Adicionar opção
+            <Button variant="ghost" size="sm" className="text-sm text-primary gap-1 h-9" onClick={() => addOpcaoToBanco(selectedBancoIdx)}>
+              <Plus className="h-3.5 w-3.5" /> Adicionar opção
             </Button>
           </div>
         </div>
