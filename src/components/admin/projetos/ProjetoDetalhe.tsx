@@ -738,6 +738,7 @@ function GerenciamentoTab({
           .from("deal_custom_fields")
           .select("id, title, field_key, field_type, options")
           .eq("is_active", true)
+          .eq("field_context", "projeto")
           .eq("important_on_funnel", true)
           .order("ordem");
         if (!fields || fields.length === 0) { setImportantFields([]); return; }
