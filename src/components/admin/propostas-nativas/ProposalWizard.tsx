@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, MapPin, User, BarChart3, Settings2, Package,
   Wrench, DollarSign, CreditCard, FileText, Check, Cpu, Link2, ClipboardList, Box,
-  Zap, AlertTriangle, Phone,
+  Zap, AlertTriangle, Phone, Save, CheckCircle2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -33,6 +33,7 @@ import { StepAdicionais, type AdicionalItem } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
 import { StepFinancialCenter, calcPrecoFinal } from "./wizard/StepFinancialCenter";
 import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
+import { useWizardPersistence, type WizardSnapshot } from "./wizard/hooks/useWizardPersistence";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
@@ -223,6 +224,63 @@ export function ProposalWizard() {
   // ─── Derived
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
+
+  // ─── Persistence: save draft / update
+  const { saveDraft, updateProposal, saving } = useWizardPersistence();
+  const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
+  const [savedVersaoId, setSavedVersaoId] = useState<string | null>(null);
+
+  const collectSnapshot = useCallback((): WizardSnapshot => ({
+    locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
+    locIrradiacao, locGhiSeries, locLatitude, distanciaKm, projectAddress, mapSnapshots,
+    selectedLead, cliente, ucs, grupo, potenciaKwp,
+    customFieldValues, premissas, preDimensionamento,
+    itens, layouts, manualKits, adicionais, servicos, venda,
+    pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
+    step,
+  }), [
+    locEstado, locCidade, locTipoTelhado, locDistribuidoraId, locDistribuidoraNome,
+    locIrradiacao, locGhiSeries, locLatitude, distanciaKm, projectAddress, mapSnapshots,
+    selectedLead, cliente, ucs, grupo, potenciaKwp,
+    customFieldValues, premissas, preDimensionamento,
+    itens, layouts, manualKits, adicionais, servicos, venda,
+    pagamentoOpcoes, nomeProposta, descricaoProposta, templateSelecionado,
+    step,
+  ]);
+
+  const handleSaveDraft = useCallback(async () => {
+    const snapshot = collectSnapshot();
+    const res = await saveDraft({
+      propostaId: savedPropostaId,
+      versaoId: savedVersaoId,
+      snapshot,
+      potenciaKwp,
+      precoFinal,
+      leadId: selectedLead?.id,
+      projetoId: projectContext?.dealId || dealIdFromUrl || undefined,
+      titulo: nomeProposta || cliente.nome || selectedLead?.nome || "Proposta",
+    });
+    if (res) {
+      setSavedPropostaId(res.propostaId);
+      setSavedVersaoId(res.versaoId);
+    }
+  }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, selectedLead, projectContext, dealIdFromUrl, nomeProposta, cliente.nome]);
+
+  const handleUpdate = useCallback(async (setActive: boolean) => {
+    if (!savedPropostaId || !savedVersaoId) {
+      await handleSaveDraft();
+      return;
+    }
+    const snapshot = collectSnapshot();
+    await updateProposal({
+      propostaId: savedPropostaId,
+      versaoId: savedVersaoId,
+      snapshot,
+      potenciaKwp,
+      precoFinal,
+      titulo: nomeProposta || cliente.nome || selectedLead?.nome || "Proposta",
+    }, setActive);
+  }, [savedPropostaId, savedVersaoId, collectSnapshot, updateProposal, potenciaKwp, precoFinal, nomeProposta, cliente.nome, selectedLead, handleSaveDraft]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
@@ -1034,12 +1092,51 @@ export function ProposalWizard() {
           <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="gap-1.5 h-9 text-xs font-medium text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
             Cancelar
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <span className="text-[10px] font-mono text-muted-foreground hidden sm:inline">
               Etapa {step + 1}/{activeSteps.length}
             </span>
+
+            {/* Salvar Rascunho */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSaveDraft}
+              disabled={saving}
+              className="gap-1.5 h-9 text-xs font-medium hidden sm:flex"
+            >
+              <Save className="h-3.5 w-3.5" />
+              {saving ? "Salvando..." : "Salvar Rascunho"}
+            </Button>
+
+            {/* Atualizar (only if already saved) */}
+            {savedPropostaId && (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleUpdate(false)}
+                  disabled={saving}
+                  className="gap-1.5 h-9 text-xs font-medium"
+                >
+                  Atualizar
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={() => handleUpdate(true)}
+                  disabled={saving}
+                  className="gap-1.5 h-9 text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  Atualizar como ativa
+                </Button>
+              </>
+            )}
+
+            <div className="h-6 w-px bg-border/50 hidden sm:block" />
+
             <Button variant="outline" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1.5 h-9 text-xs font-medium">
-              <ChevronLeft className="h-3.5 w-3.5" /> Voltar
+              <ChevronLeft className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Voltar</span>
             </Button>
             {!isLastStep && (
               <Button
