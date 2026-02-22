@@ -15593,7 +15593,6 @@ export type Database = {
           p_numero?: string
           p_rua?: string
           p_telefone: string
-          p_tenant_id?: string
         }
         Returns: string
       }
