@@ -1664,30 +1664,90 @@ function StatusBadge({ status }: { status: string }) {
 // ═══════════════════════════════════════════════════
 // ─── TAB: Documentos ────────────────────────────
 // ═══════════════════════════════════════════════════
+
+const DOC_STATUS_MAP: Record<string, { label: string; color: string }> = {
+  draft: { label: "Rascunho", color: "bg-muted text-muted-foreground" },
+  generated: { label: "Gerado", color: "bg-info/10 text-info" },
+  sent_for_signature: { label: "Aguardando assinatura", color: "bg-warning/10 text-warning" },
+  signed: { label: "Assinado", color: "bg-success/10 text-success" },
+  cancelled: { label: "Cancelado", color: "bg-destructive/10 text-destructive" },
+};
+
+const DOC_CATEGORY_LABELS: Record<string, string> = {
+  contrato: "Contratos",
+  procuracao: "Procurações",
+  proposta: "Propostas",
+  termo: "Termos",
+};
+
+interface GeneratedDocRow {
+  id: string;
+  title: string;
+  status: string;
+  created_at: string;
+  template_id: string;
+  template_name?: string;
+  template_categoria?: string;
+}
+
 function DocumentosTab({ dealId }: { dealId: string }) {
   const [files, setFiles] = useState<StorageFile[]>([]);
+  const [generatedDocs, setGeneratedDocs] = useState<GeneratedDocRow[]>([]);
+  const [templates, setTemplates] = useState<{ id: string; nome: string; categoria: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [generateOpen, setGenerateOpen] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const folderPath = useMemo(() => `deals/${dealId}`, [dealId]);
 
-  const loadFiles = async () => {
+  const loadAll = async () => {
     setLoading(true);
     try {
       const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
       if (!profile) { setLoading(false); return; }
-      const path = `${(profile as any).tenant_id}/${folderPath}`;
-      const { data, error } = await supabase.storage
+      const tenantId = (profile as any).tenant_id;
+
+      // Load storage files
+      const path = `${tenantId}/${folderPath}`;
+      const { data: storageFiles } = await supabase.storage
         .from("projeto-documentos")
         .list(path, { limit: 100, sortBy: { column: "created_at", order: "desc" } });
-      if (error) throw error;
-      setFiles((data || []) as StorageFile[]);
+      setFiles((storageFiles || []) as StorageFile[]);
+
+      // Load generated documents
+      const { data: docs } = await supabase
+        .from("generated_documents")
+        .select("id, title, status, created_at, template_id")
+        .eq("deal_id", dealId)
+        .order("created_at", { ascending: false });
+
+      // Load templates for names
+      const { data: tpls } = await supabase
+        .from("document_templates")
+        .select("id, nome, categoria")
+        .eq("status", "active")
+        .order("categoria")
+        .order("nome");
+
+      const tplMap = new Map((tpls || []).map((t: any) => [t.id, t]));
+      setTemplates((tpls || []).map((t: any) => ({ id: t.id, nome: t.nome, categoria: t.categoria })));
+
+      setGeneratedDocs((docs || []).map((d: any) => {
+        const tpl = tplMap.get(d.template_id);
+        return {
+          ...d,
+          template_name: (tpl as any)?.nome || "—",
+          template_categoria: (tpl as any)?.categoria || "outro",
+        };
+      }));
     } catch (err) { console.error("DocumentosTab:", err); }
     finally { setLoading(false); }
   };
 
-  useEffect(() => { loadFiles(); }, [dealId]);
+  useEffect(() => { loadAll(); }, [dealId]);
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fileList = e.target.files;
@@ -1707,7 +1767,7 @@ function DocumentosTab({ dealId }: { dealId: string }) {
         if (error) throw error;
       }
       toast({ title: "Arquivo(s) enviado(s) com sucesso!" });
-      loadFiles();
+      loadAll();
     } catch (err: any) {
       toast({ title: "Erro ao enviar", description: err.message, variant: "destructive" });
     } finally {
@@ -1743,12 +1803,56 @@ function DocumentosTab({ dealId }: { dealId: string }) {
     }
   };
 
+  const handleGenerate = async () => {
+    if (!selectedTemplateId) return;
+    setGenerating(true);
+    try {
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").limit(1).single();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!profile || !user) throw new Error("Sessão inválida");
+      const tenantId = (profile as any).tenant_id;
+      const tpl = templates.find(t => t.id === selectedTemplateId);
+
+      const { error } = await supabase.from("generated_documents").insert({
+        tenant_id: tenantId,
+        deal_id: dealId,
+        template_id: selectedTemplateId,
+        template_version: 1,
+        title: tpl?.nome || "Documento",
+        status: "draft",
+        input_payload: {},
+        created_by: user.id,
+        updated_by: user.id,
+      });
+      if (error) throw error;
+      toast({ title: "Documento criado", description: "O documento foi gerado como rascunho." });
+      setGenerateOpen(false);
+      setSelectedTemplateId("");
+      loadAll();
+    } catch (err: any) {
+      toast({ title: "Erro ao gerar", description: err.message, variant: "destructive" });
+    } finally {
+      setGenerating(false);
+    }
+  };
+
   const formatSize = (bytes: number | undefined) => {
     if (!bytes) return "—";
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
+
+  // Group generated docs by category
+  const docsByCategory = useMemo(() => {
+    const groups: Record<string, GeneratedDocRow[]> = {};
+    for (const doc of generatedDocs) {
+      const cat = doc.template_categoria || "outro";
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(doc);
+    }
+    return groups;
+  }, [generatedDocs]);
 
   if (loading) return <div className="flex justify-center py-12"><SunLoader style="spin" /></div>;
 
@@ -1757,55 +1861,152 @@ function DocumentosTab({ dealId }: { dealId: string }) {
       {/* Document Checklist */}
       <ProjetoDocChecklist dealId={dealId} />
 
-      {/* File uploads */}
+      {/* Generated Documents */}
       <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-foreground">Arquivos do Projeto</h3>
-        <div>
-          <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
-          <Button size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
-            {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-            {uploading ? "Enviando..." : "Upload"}
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            Documentos Gerados
+          </h3>
+          <Button size="sm" onClick={() => setGenerateOpen(true)} className="gap-1.5" disabled={templates.length === 0}>
+            <Plus className="h-3.5 w-3.5" />
+            Gerar Documento
           </Button>
         </div>
+
+        {generatedDocs.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+              <FileText className="h-10 w-10 mb-3 opacity-30" />
+              <p className="font-medium">Nenhum documento gerado</p>
+              <p className="text-xs mt-1">Clique em "Gerar Documento" para criar a partir de um template</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {Object.entries(docsByCategory).map(([cat, docs]) => (
+              <div key={cat} className="space-y-1.5">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+                  {DOC_CATEGORY_LABELS[cat] || cat}
+                </h4>
+                {docs.map(doc => {
+                  const statusCfg = DOC_STATUS_MAP[doc.status] || DOC_STATUS_MAP.draft;
+                  return (
+                    <div key={doc.id} className="flex items-center gap-3 py-2.5 px-4 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+                      <FileText className="h-5 w-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{doc.title}</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {doc.template_name} • {new Date(doc.created_at).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <Badge className={cn("text-[10px] h-5 px-1.5 border-0 shrink-0", statusCfg.color)}>
+                        {statusCfg.label}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {files.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-            <FolderOpen className="h-10 w-10 mb-3 opacity-30" />
-            <p className="font-medium">Nenhum documento</p>
-            <p className="text-xs mt-1">Faça upload de documentos relacionados ao projeto</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-1.5">
-          {files.map(f => (
-            <div key={f.name} className="flex items-center gap-3 py-2.5 px-4 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
-              <FileText className="h-5 w-5 text-primary shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
-                <p className="text-[10px] text-muted-foreground">
-                  {formatSize(f.metadata?.size)} • {f.created_at ? new Date(f.created_at).toLocaleDateString("pt-BR") : ""}
-                </p>
-              </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(f.name)}>
-                  <Download className="h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(f.name)}>
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          ))}
+      {/* File uploads */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+            <FolderOpen className="h-4 w-4 text-warning" />
+            Arquivos do Projeto
+          </h3>
+          <div>
+            <input ref={fileInputRef} type="file" multiple className="hidden" onChange={handleUpload} />
+            <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1.5">
+              {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {uploading ? "Enviando..." : "Upload"}
+            </Button>
+          </div>
         </div>
-      )}
+
+        {files.length === 0 ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+              <FolderOpen className="h-10 w-10 mb-3 opacity-30" />
+              <p className="font-medium">Nenhum arquivo</p>
+              <p className="text-xs mt-1">Faça upload de documentos relacionados ao projeto</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-1.5">
+            {files.map(f => (
+              <div key={f.name} className="flex items-center gap-3 py-2.5 px-4 rounded-lg bg-card border border-border/40 hover:border-border/70 transition-all">
+                <FileText className="h-5 w-5 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">{f.name.replace(/^\d+_/, "")}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatSize(f.metadata?.size)} • {f.created_at ? new Date(f.created_at).toLocaleDateString("pt-BR") : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDownload(f.name)}>
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleDelete(f.name)}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
+
+      {/* Generate Document Dialog */}
+      <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Gerar documento</DialogTitle>
+            <DialogDescription>Selecione um modelo para gerar o documento com os dados do projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Modelo <span className="text-destructive">*</span></Label>
+              <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um modelo de documento" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(
+                    templates.reduce<Record<string, typeof templates>>((acc, t) => {
+                      const cat = DOC_CATEGORY_LABELS[t.categoria] || t.categoria;
+                      if (!acc[cat]) acc[cat] = [];
+                      acc[cat].push(t);
+                      return acc;
+                    }, {})
+                  ).map(([cat, tpls]) => (
+                    <div key={cat}>
+                      <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</div>
+                      {tpls.map(t => (
+                        <SelectItem key={t.id} value={t.id}>{t.nome}</SelectItem>
+                      ))}
+                    </div>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setGenerateOpen(false)}>Cancelar</Button>
+            <Button onClick={handleGenerate} disabled={!selectedTemplateId || generating}>
+              {generating ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Gerar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
 // ═══════════════════════════════════════════════════
 // ─── Shared Components ──────────────────────────
 // ═══════════════════════════════════════════════════
