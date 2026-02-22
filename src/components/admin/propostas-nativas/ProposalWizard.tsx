@@ -1019,15 +1019,15 @@ export function ProposalWizard() {
       {/* ── Sticky Footer Navigation — responsive */}
       {!result && (
         <div className="fixed bottom-0 left-0 right-0 sm:sticky sm:bottom-auto flex items-center justify-between px-4 lg:px-6 py-3 border-t border-border/60 bg-card shrink-0 z-20 shadow-[0_-2px_8px_rgba(0,0,0,0.06)] sm:shadow-none">
-          <Button variant="ghost" size="sm" onClick={() => navigate(-1)} className="gap-1.5 h-9 text-xs text-muted-foreground hover:text-foreground">
+          <Button variant="outline" size="sm" onClick={() => navigate(-1)} className="gap-1.5 h-9 text-xs font-medium text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive">
             Cancelar
           </Button>
           <div className="flex items-center gap-3">
             <span className="text-[10px] font-mono text-muted-foreground hidden sm:inline">
               Etapa {step + 1}/{activeSteps.length}
             </span>
-            <Button variant="ghost" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1.5 h-9 text-xs text-muted-foreground hover:text-foreground">
-              Voltar
+            <Button variant="outline" size="sm" onClick={goPrev} disabled={step === 0} className="gap-1.5 h-9 text-xs font-medium">
+              <ChevronLeft className="h-3.5 w-3.5" /> Voltar
             </Button>
             {!isLastStep && (
               <Button
