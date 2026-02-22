@@ -11,7 +11,7 @@ import {
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
-  ChevronDown, SunMedium
+  ChevronDown, SunMedium, Bell, Users
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -730,6 +730,10 @@ function GerenciamentoTab({
   const [activityDescription, setActivityDescription] = useState("");
   const [activityDueDate, setActivityDueDate] = useState("");
   const [activityType, setActivityType] = useState<string>("task");
+  const [activityAssignedTo, setActivityAssignedTo] = useState<string>("");
+  const [activityNotifySystem, setActivityNotifySystem] = useState(true);
+  const [activityNotifyWa, setActivityNotifyWa] = useState(false);
+  const [teamMembers, setTeamMembers] = useState<Array<{ user_id: string; nome: string }>>([]);
   const [savingNote, setSavingNote] = useState(false);
   const [savingActivity, setSavingActivity] = useState(false);
   const [notes, setNotes] = useState<Array<{ id: string; content: string; created_at: string; created_by_name?: string }>>([]);
@@ -831,6 +835,26 @@ function GerenciamentoTab({
     } finally { setSavingNote(false); }
   };
 
+  // Load team members for activity assignment
+  useEffect(() => {
+    if (!activityDialogOpen) return;
+    async function loadTeam() {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) return;
+      const { data: profile } = await supabase.from("profiles").select("tenant_id").eq("user_id", userId).limit(1).single();
+      if (!profile) return;
+      const { data: members } = await supabase
+        .from("profiles")
+        .select("user_id, nome")
+        .eq("tenant_id", (profile as any).tenant_id)
+        .eq("ativo", true)
+        .order("nome");
+      if (members) setTeamMembers(members as any);
+    }
+    loadTeam();
+  }, [activityDialogOpen]);
+
   // Save activity
   const handleSaveActivity = async () => {
     if (!activityTitle.trim()) return;
@@ -846,6 +870,7 @@ function GerenciamentoTab({
         description: activityDescription.trim() || null,
         activity_type: activityType as any,
         due_date: activityDueDate || null,
+        assigned_to: activityAssignedTo || null,
         tenant_id: (profile as any)?.tenant_id,
         created_by: userId,
       } as any).select("id, title, description, activity_type, due_date, status, created_at").single();
@@ -855,7 +880,10 @@ function GerenciamentoTab({
         setActivityTitle("");
         setActivityDescription("");
         setActivityDueDate("");
-        setActivityType("tarefa");
+        setActivityType("task");
+        setActivityAssignedTo("");
+        setActivityNotifySystem(true);
+        setActivityNotifyWa(false);
         setActivityDialogOpen(false);
         toast({ title: "Atividade criada", description: "A atividade foi salva com sucesso." });
       }
@@ -1355,6 +1383,21 @@ function GerenciamentoTab({
               />
             </div>
             <div className="space-y-1.5">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Atribuir a
+              </Label>
+              <Select value={activityAssignedTo} onValueChange={setActivityAssignedTo}>
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Selecione um membro..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {teamMembers.map(m => (
+                    <SelectItem key={m.user_id} value={m.user_id}>{m.nome}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
               <Label className="text-xs font-medium">Descrição</Label>
               <Textarea
                 placeholder="Detalhes adicionais..."
@@ -1363,6 +1406,32 @@ function GerenciamentoTab({
                 rows={3}
                 className="resize-none"
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs font-medium flex items-center gap-1.5">
+                <Bell className="h-3.5 w-3.5" /> Notificar via
+              </Label>
+              <div className="flex items-center gap-4">
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={activityNotifySystem}
+                    onChange={e => setActivityNotifySystem(e.target.checked)}
+                    className="rounded border-border h-4 w-4 accent-primary"
+                  />
+                  Sistema
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={activityNotifyWa}
+                    onChange={e => setActivityNotifyWa(e.target.checked)}
+                    className="rounded border-border h-4 w-4 accent-primary"
+                  />
+                  WhatsApp
+                </label>
+              </div>
+              <p className="text-[10px] text-muted-foreground">O criador da atividade sempre será notificado.</p>
             </div>
           </div>
           <DialogFooter>
