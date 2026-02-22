@@ -102,7 +102,7 @@ export function useWizardPersistence() {
             lead_id: params.leadId || null,
             projeto_id: params.projetoId || null,
             status: "draft",
-            origem: "wizard",
+            origem: "native",
             created_by: profile.user_id,
           } as any)
           .select("id")
