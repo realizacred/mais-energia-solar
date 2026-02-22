@@ -139,8 +139,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     [inversores, sistema, topologia]
   );
 
-  // Auto-add otimizador section when topologia = Otimizador
-  const showOtimizadores = topologia === "Otimizador";
+  // Show otimizadores section: always available (auto-added when topologia = Otimizador, optional otherwise)
+  const showOtimizadores = otimizadorEntries.length > 0;
 
   const potenciaTotal = moduloEntries.reduce((s, m) => {
     if (m.avulso) return s + (m.potenciaW * m.quantidade) / 1000;
@@ -612,9 +612,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
 
             {/* Add buttons */}
             <div className="flex gap-2">
-              {showOtimizadores && otimizadorEntries.length === 0 && (
+              {otimizadorEntries.length === 0 && (
                 <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => setOtimizadorEntries(p => [...p, createEmptyOtimizador()])}>
-                  + Otimizador
+                  <Zap className="h-3 w-3 mr-1" /> + Otimizador
                 </Button>
               )}
               {mode === "zero" && (
