@@ -7558,6 +7558,7 @@ export type Database = {
           data_instalacao: string | null
           data_previsao_instalacao: string | null
           data_venda: string | null
+          deal_id: string | null
           etapa_id: string | null
           forma_pagamento: string | null
           funil_id: string | null
@@ -7608,6 +7609,7 @@ export type Database = {
           data_instalacao?: string | null
           data_previsao_instalacao?: string | null
           data_venda?: string | null
+          deal_id?: string | null
           etapa_id?: string | null
           forma_pagamento?: string | null
           funil_id?: string | null
@@ -7658,6 +7660,7 @@ export type Database = {
           data_instalacao?: string | null
           data_previsao_instalacao?: string | null
           data_venda?: string | null
+          deal_id?: string | null
           etapa_id?: string | null
           forma_pagamento?: string | null
           funil_id?: string | null
@@ -7699,6 +7702,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projetos_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
             referencedColumns: ["id"]
           },
           {
@@ -15203,18 +15213,32 @@ export type Database = {
         Args: { _dataset_code: string; _metadata?: Json; _version_tag: string }
         Returns: string
       }
-      create_proposta_nativa_atomic: {
-        Args: {
-          p_lead_id?: string
-          p_origem?: string
-          p_potencia_kwp?: number
-          p_projeto_id?: string
-          p_snapshot?: Json
-          p_titulo: string
-          p_valor_total?: number
-        }
-        Returns: Json
-      }
+      create_proposta_nativa_atomic:
+        | {
+            Args: {
+              p_lead_id?: string
+              p_origem?: string
+              p_potencia_kwp?: number
+              p_projeto_id?: string
+              p_snapshot?: Json
+              p_titulo: string
+              p_valor_total?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_deal_id?: string
+              p_lead_id?: string
+              p_origem?: string
+              p_potencia_kwp?: number
+              p_projeto_id?: string
+              p_snapshot?: Json
+              p_titulo: string
+              p_valor_total?: number
+            }
+            Returns: Json
+          }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
       encrypt_secret: {
         Args: { plain: string; secret: string }

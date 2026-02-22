@@ -309,22 +309,22 @@ export function ProposalWizard() {
     toast({ title: "📋 Rascunho restaurado", description: "O progresso anterior foi recuperado automaticamente." });
   }, []);
 
-  // Resolve projetoId consistently across all save operations
-  const resolvedProjetoId = projectContext?.dealId || dealIdFromUrl || undefined;
+  // dealIdFromUrl is a deals.id UUID — passed as deal_id to RPC (which resolves/creates projetos)
+  const resolvedDealId = projectContext?.dealId || dealIdFromUrl || undefined;
 
   const handleSaveDraft = useCallback(async () => {
     const snapshot = collectSnapshot();
     const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
 
-    // Guard: if opened from project, projetoId is mandatory
-    if (dealIdFromUrl && !resolvedProjetoId) {
-      console.error("[saveDraft] BLOCKED: dealIdFromUrl exists but resolvedProjetoId is empty");
-      toast({ title: "Erro", description: "projeto_id obrigatório ao salvar proposta dentro de projeto.", variant: "destructive" });
+    // Guard: if opened from project, dealId is mandatory
+    if (dealIdFromUrl && !resolvedDealId) {
+      console.error("[saveDraft] BLOCKED: dealIdFromUrl exists but resolvedDealId is empty");
+      toast({ title: "Erro", description: "deal_id obrigatório ao salvar proposta dentro de projeto.", variant: "destructive" });
       return;
     }
 
     console.log("[saveDraft] Saving with:", {
-      projeto_id: resolvedProjetoId ?? "(none — RPC will create)",
+      deal_id: resolvedDealId ?? "(none — RPC will create)",
       lead_id: selectedLead?.id ?? "(none)",
       savedPropostaId,
       savedVersaoId,
@@ -338,7 +338,7 @@ export function ProposalWizard() {
       potenciaKwp,
       precoFinal,
       leadId: selectedLead?.id,
-      projetoId: resolvedProjetoId,
+      dealId: resolvedDealId,
       titulo,
     });
 
@@ -346,7 +346,7 @@ export function ProposalWizard() {
       setSavedPropostaId(res.propostaId);
       setSavedVersaoId(res.versaoId);
     }
-  }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, selectedLead, resolvedProjetoId, dealIdFromUrl, nomeProposta, cliente.nome]);
+  }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, selectedLead, resolvedDealId, dealIdFromUrl, nomeProposta, cliente.nome]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
     const snapshot = collectSnapshot();
@@ -361,7 +361,7 @@ export function ProposalWizard() {
         potenciaKwp,
         precoFinal,
         leadId: selectedLead?.id,
-        projetoId: resolvedProjetoId,
+        dealId: resolvedDealId,
         titulo,
       });
       if (res) {
@@ -375,7 +375,7 @@ export function ProposalWizard() {
             potenciaKwp,
             precoFinal,
             leadId: selectedLead?.id,
-            projetoId: resolvedProjetoId,
+            dealId: resolvedDealId,
             titulo,
           }, true);
         }
@@ -390,10 +390,10 @@ export function ProposalWizard() {
       potenciaKwp,
       precoFinal,
       leadId: selectedLead?.id,
-      projetoId: resolvedProjetoId,
+      dealId: resolvedDealId,
       titulo,
     }, setActive);
-  }, [savedPropostaId, savedVersaoId, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, nomeProposta, cliente.nome, selectedLead, resolvedProjetoId]);
+  }, [savedPropostaId, savedVersaoId, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);

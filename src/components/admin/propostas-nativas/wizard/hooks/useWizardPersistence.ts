@@ -64,6 +64,7 @@ interface PersistenceParams {
   precoFinal: number;
   leadId?: string;
   projetoId?: string;
+  dealId?: string;
   titulo: string;
 }
 
@@ -80,6 +81,7 @@ export function useWizardPersistence() {
       if (!propostaId) {
         console.log("[saveDraft] Creating proposal via atomic RPC", {
           projeto_id_enviado: params.projetoId || null,
+          deal_id_enviado: params.dealId || null,
           lead_id: params.leadId || null,
           titulo: params.titulo,
         });
@@ -90,6 +92,7 @@ export function useWizardPersistence() {
             p_titulo: params.titulo || "Proposta sem título",
             p_lead_id: params.leadId || null,
             p_projeto_id: params.projetoId || null,
+            p_deal_id: params.dealId || null,
             p_origem: "native",
             p_potencia_kwp: params.potenciaKwp,
             p_valor_total: params.precoFinal,
