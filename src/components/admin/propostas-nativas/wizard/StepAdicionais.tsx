@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sun, Cpu, Pencil, LayoutGrid, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
@@ -76,6 +76,38 @@ export function StepAdicionais({
   const inversorQtd = invItem?.quantidade || 0;
   const inversorDesc = invItem ? `${invItem.modelo || invItem.descricao}`.replace(/^\d+x\s*/, "").trim() : "—";
   const totalKw = invItem ? ((inversorQtd * (invItem.potencia_w || 0)) / 1000) : 0;
+
+  // Auto-generate layout based on inverter specs when layouts are empty
+  useEffect(() => {
+    if (layouts.length > 0 || totalModulos === 0) return;
+
+    // Try to find the inverter in the catalog to get MPPT info
+    const catalogInv = invItem
+      ? inversores.find((inv: any) =>
+          inv.modelo === invItem.modelo ||
+          invItem.descricao?.includes(inv.modelo) ||
+          invItem.modelo?.includes(inv.modelo)
+        )
+      : null;
+
+    const mpptCount = catalogInv?.mppt_count || 2;
+    const stringsPerMppt = catalogInv?.strings_por_mppt || 1;
+    const totalStrings = mpptCount * stringsPerMppt * inversorQtd;
+
+    // Distribute modules across strings (each string = one row)
+    const numLinhas = Math.min(totalStrings, totalModulos);
+    const modulosPorLinha = Math.ceil(totalModulos / numLinhas);
+
+    const autoLayout = [{
+      id: crypto.randomUUID(),
+      arranjo_index: 1,
+      num_linhas: numLinhas,
+      modulos_por_linha: modulosPorLinha,
+      disposicao: "horizontal" as const,
+    }];
+
+    onLayoutsChange(autoLayout);
+  }, [totalModulos, inversorQtd]); // Only run when kit data changes
 
   return (
     <div className="space-y-6">
