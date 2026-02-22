@@ -279,7 +279,7 @@ export function ProjetoMultiPipelineManager({ dealId, dealStatus, pipelines, all
             const isComercial = activeMembership.pipeline_name.toLowerCase() === "comercial";
 
             return (
-              <div className="rounded-xl border border-border/60 bg-card p-3 space-y-2">
+              <div className="rounded-xl border border-border/60 bg-card p-3 space-y-2 min-h-[100px]">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground">{activeMembership.pipeline_name}</span>
                   {!isComercial && (
