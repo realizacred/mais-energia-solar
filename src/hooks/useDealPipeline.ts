@@ -539,18 +539,23 @@ export function useDealPipeline() {
       if (isOwnerBoard) targetStageId = null;
     }
 
-    // owner_id is NOT NULL — fallback to current user's consultor or profile id
+    // owner_id is NOT NULL — fallback to current user's consultor
     let ownerId = params.ownerId;
     if (!ownerId) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id")
-        .single();
-      ownerId = profile?.id ?? undefined;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: consultor } = await supabase
+          .from("consultores")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("ativo", true)
+          .maybeSingle();
+        ownerId = consultor?.id ?? undefined;
+      }
     }
 
     if (!ownerId) {
-      toast({ title: "Erro", description: "Não foi possível determinar o responsável do projeto.", variant: "destructive" });
+      toast({ title: "Erro", description: "Selecione um consultor responsável pelo projeto.", variant: "destructive" });
       return null;
     }
 
