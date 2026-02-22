@@ -78,6 +78,12 @@ export function useWizardPersistence() {
 
       // === CREATE: use atomic RPC (ensures projeto exists) ===
       if (!propostaId) {
+        console.log("[saveDraft] Creating proposal via atomic RPC", {
+          projeto_id_enviado: params.projetoId || null,
+          lead_id: params.leadId || null,
+          titulo: params.titulo,
+        });
+
         const { data, error } = await supabase.rpc(
           "create_proposta_nativa_atomic" as any,
           {
@@ -100,6 +106,14 @@ export function useWizardPersistence() {
         const result = data as any;
         propostaId = result.proposta_id;
         versaoId = result.versao_id;
+
+        console.log("[saveDraft] Proposal created successfully", {
+          proposta_id: result.proposta_id,
+          versao_id: result.versao_id,
+          projeto_id: result.projeto_id,
+          projeto_id_original: params.projetoId || null,
+          projeto_criado_automaticamente: !params.projetoId || params.projetoId !== result.projeto_id,
+        });
 
         toast({ title: "✅ Rascunho criado", description: "Proposta e projeto criados com sucesso." });
         return { propostaId, versaoId, projetoId: result.projeto_id };
