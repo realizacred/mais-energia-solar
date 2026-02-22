@@ -188,26 +188,48 @@ export function ProjetosManager() {
         stages={stages.map(s => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id, position: s.position, is_closed: s.is_closed }))}
         onSubmit={async (data) => {
           let customerId: string | undefined;
-          if (data.cliente.nome.trim()) {
-            const { data: cli, error } = await supabase
-              .from("clientes")
-              .insert({
-                nome: data.cliente.nome,
-                telefone: data.cliente.telefone || "N/A",
-                email: data.cliente.email || null,
-                cpf_cnpj: data.cliente.cpfCnpj || null,
-                empresa: data.cliente.empresa || null,
-                cep: data.cliente.cep || null,
-                estado: data.cliente.estado || null,
-                cidade: data.cliente.cidade || null,
-                rua: data.cliente.endereco || null,
-                numero: data.cliente.numero || null,
-                bairro: data.cliente.bairro || null,
-                complemento: data.cliente.complemento || null,
-              } as any)
-              .select("id")
-              .single();
-            if (!error && cli) customerId = cli.id;
+
+          // 1) If user selected an existing client, reuse it
+          if (data.clienteId) {
+            customerId = data.clienteId;
+          } else if (data.cliente.nome.trim()) {
+            // 2) Check by telefone_normalized to avoid duplicates
+            const normalizedPhone = data.cliente.telefone.replace(/\D/g, "");
+            
+            if (normalizedPhone.length >= 10) {
+              const { data: existing } = await supabase
+                .from("clientes")
+                .select("id")
+                .eq("telefone_normalized", normalizedPhone)
+                .maybeSingle();
+              
+              if (existing) {
+                customerId = existing.id;
+              }
+            }
+
+            // 3) Only create new client if no match found
+            if (!customerId) {
+              const { data: cli, error } = await supabase
+                .from("clientes")
+                .insert({
+                  nome: data.cliente.nome,
+                  telefone: data.cliente.telefone || "N/A",
+                  email: data.cliente.email || null,
+                  cpf_cnpj: data.cliente.cpfCnpj || null,
+                  empresa: data.cliente.empresa || null,
+                  cep: data.cliente.cep || null,
+                  estado: data.cliente.estado || null,
+                  cidade: data.cliente.cidade || null,
+                  rua: data.cliente.endereco || null,
+                  numero: data.cliente.numero || null,
+                  bairro: data.cliente.bairro || null,
+                  complemento: data.cliente.complemento || null,
+                } as any)
+                .select("id")
+                .single();
+              if (!error && cli) customerId = cli.id;
+            }
           }
 
           await createDeal({

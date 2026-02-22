@@ -68,6 +68,7 @@ export interface NovoProjetoData {
   notas: string;
   pipelineId?: string;
   stageId?: string;
+  clienteId?: string; // ID of existing client (skip creation)
   cliente: {
     nome: string;
     email: string;
@@ -101,6 +102,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
   const [selectedPipelineId, setSelectedPipelineId] = useState(defaultPipelineId || "");
   const [selectedStageId, setSelectedStageId] = useState(defaultStageId || "");
   const [cliente, setCliente] = useState(emptyCliente);
+  const [selectedClienteId, setSelectedClienteId] = useState<string | undefined>();
   const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [similares, setSimilares] = useState<{ id: string; nome: string; telefone: string; email: string | null }[]>([]);
   const [buscando, setBuscando] = useState(false);
@@ -146,6 +148,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
 
   const updateCliente = useCallback((field: string, value: string) => {
     setCliente(prev => ({ ...prev, [field]: value }));
+    setSelectedClienteId(undefined); // User is typing manually, clear selection
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: false }));
   }, [errors]);
 
@@ -206,9 +209,9 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
 
     setSubmitting(true);
     try {
-      await onSubmit?.({ nome: nome.trim() || cliente.nome.trim(), descricao, consultorId, etiqueta, notas, pipelineId: selectedPipelineId || undefined, stageId: selectedStageId || undefined, cliente });
+      await onSubmit?.({ nome: nome.trim() || cliente.nome.trim(), descricao, consultorId, etiqueta, notas, pipelineId: selectedPipelineId || undefined, stageId: selectedStageId || undefined, clienteId: selectedClienteId, cliente });
       setNome(""); setDescricao(""); setConsultorId(""); setEtiqueta(""); setNotas(""); setSelectedPipelineId(""); setSelectedStageId("");
-      setCliente(emptyCliente); setErrors({}); setSimilares([]);
+      setCliente(emptyCliente); setSelectedClienteId(undefined); setErrors({}); setSimilares([]);
       onOpenChange(false);
     } finally { setSubmitting(false); }
   };
@@ -532,6 +535,7 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                       key={c.id}
                       type="button"
                       onClick={() => {
+                        setSelectedClienteId(c.id);
                         setCliente(prev => ({
                           ...prev,
                           nome: c.nome,
@@ -539,9 +543,17 @@ export function NovoProjetoModal({ open, onOpenChange, consultores, onSubmit, de
                           email: c.email || prev.email,
                         }));
                       }}
-                      className="w-full text-left rounded-lg border border-border/50 bg-muted/30 p-2.5 hover:border-primary/40 hover:bg-primary/5 transition-all space-y-0.5 group"
+                      className={cn(
+                        "w-full text-left rounded-lg border p-2.5 hover:border-primary/40 hover:bg-primary/5 transition-all space-y-0.5 group",
+                        selectedClienteId === c.id
+                          ? "border-primary bg-primary/10 ring-1 ring-primary/30"
+                          : "border-border/50 bg-muted/30"
+                      )}
                     >
-                      <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">{c.nome}</p>
+                      <p className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                        {c.nome}
+                        {selectedClienteId === c.id && <span className="ml-1.5 text-[10px] text-primary font-bold">✓ Selecionado</span>}
+                      </p>
                       <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                         {c.telefone && (
                           <span className="flex items-center gap-0.5">
