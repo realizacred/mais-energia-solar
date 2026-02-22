@@ -81,7 +81,7 @@ export function ProposalList() {
       let query = supabase
         .from("propostas_nativas")
         .select(`
-          id, titulo, codigo, versao_atual, status, origem, created_at, enviada_at, aceita_at, lead_id, cliente_id, consultor_id,
+          id, titulo, codigo, proposta_num, versao_atual, status, origem, created_at, enviada_at, aceita_at, lead_id, cliente_id, consultor_id,
           proposta_versoes (
             id, versao_numero, status, valor_total, economia_mensal, payback_meses, potencia_kwp, grupo, engine_version, created_at,
             proposta_cenarios (id, tipo, preco_final, is_default),
@@ -285,11 +285,13 @@ export function ProposalList() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-sm truncate">{p.titulo}</p>
+                        <p className="font-semibold text-sm truncate">
+                          {p.proposta_num ? `Proposta #${p.proposta_num}` : p.titulo}
+                        </p>
                         <Badge variant={statusInfo.variant} className="text-[10px]">{statusInfo.label}</Badge>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {p.codigo} • v{latestVersion?.versao_numero ?? 1}
+                        {p.codigo || `#${p.proposta_num || '—'}`} • v{latestVersion?.versao_numero ?? 1}
                         {latestVersion?.potencia_kwp ? ` • ${latestVersion.potencia_kwp} kWp` : ""}
                         {latestVersion?.grupo ? ` • Grupo ${latestVersion.grupo}` : ""}
                       </p>
