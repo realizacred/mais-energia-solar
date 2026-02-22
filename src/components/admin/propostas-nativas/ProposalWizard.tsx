@@ -349,50 +349,57 @@ export function ProposalWizard() {
   }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, selectedLead, resolvedDealId, dealIdFromUrl, nomeProposta, cliente.nome]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
-    const snapshot = collectSnapshot();
-    const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
+    try {
+      const snapshot = collectSnapshot();
+      const titulo = nomeProposta || cliente.nome || selectedLead?.nome || "Proposta";
 
-    if (!savedPropostaId || !savedVersaoId) {
-      // First save — create draft then optionally set active
-      const res = await saveDraft({
-        propostaId: null,
-        versaoId: null,
+      if (!savedPropostaId || !savedVersaoId) {
+        // First save — create draft then optionally set active
+        console.log("[handleUpdate] First save — creating draft", { setActive, dealId: resolvedDealId, leadId: selectedLead?.id });
+        const res = await saveDraft({
+          propostaId: null,
+          versaoId: null,
+          snapshot,
+          potenciaKwp,
+          precoFinal,
+          leadId: selectedLead?.id,
+          dealId: resolvedDealId,
+          titulo,
+        });
+        if (res) {
+          setSavedPropostaId(res.propostaId);
+          setSavedVersaoId(res.versaoId);
+          if (setActive) {
+            await updateProposal({
+              propostaId: res.propostaId,
+              versaoId: res.versaoId,
+              snapshot,
+              potenciaKwp,
+              precoFinal,
+              leadId: selectedLead?.id,
+              dealId: resolvedDealId,
+              titulo,
+            }, true);
+          }
+        }
+        return;
+      }
+
+      console.log("[handleUpdate] Updating existing", { savedPropostaId, savedVersaoId, setActive });
+      await updateProposal({
+        propostaId: savedPropostaId,
+        versaoId: savedVersaoId,
         snapshot,
         potenciaKwp,
         precoFinal,
         leadId: selectedLead?.id,
         dealId: resolvedDealId,
         titulo,
-      });
-      if (res) {
-        setSavedPropostaId(res.propostaId);
-        setSavedVersaoId(res.versaoId);
-        if (setActive) {
-          await updateProposal({
-            propostaId: res.propostaId,
-            versaoId: res.versaoId,
-            snapshot,
-            potenciaKwp,
-            precoFinal,
-            leadId: selectedLead?.id,
-            dealId: resolvedDealId,
-            titulo,
-          }, true);
-        }
-      }
-      return;
+      }, setActive);
+    } catch (err: any) {
+      console.error("[handleUpdate] Unexpected error:", err);
+      toast({ title: "Erro inesperado ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });
     }
-
-    await updateProposal({
-      propostaId: savedPropostaId,
-      versaoId: savedVersaoId,
-      snapshot,
-      potenciaKwp,
-      precoFinal,
-      leadId: selectedLead?.id,
-      dealId: resolvedDealId,
-      titulo,
-    }, setActive);
   }, [savedPropostaId, savedVersaoId, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
 
   // ─── Grupo consistency validation

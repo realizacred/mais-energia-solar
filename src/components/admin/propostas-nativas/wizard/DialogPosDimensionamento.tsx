@@ -155,14 +155,21 @@ export function DialogPosDimensionamento({
         ) : null}
 
         <DialogFooter className="gap-2 pt-2 flex-wrap">
-          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} disabled={saving}>
             Cancelar
           </Button>
           {onSaveDraft && (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => { onSaveDraft(); onOpenChange(false); }}
+              onClick={async () => {
+                try {
+                  await onSaveDraft();
+                  onOpenChange(false);
+                } catch (err) {
+                  console.error("[DialogPos] saveDraft error:", err);
+                }
+              }}
               disabled={saving}
             >
               {saving ? "Salvando..." : savedPropostaId ? "Atualizar Rascunho" : "Salvar Rascunho"}
@@ -172,16 +179,23 @@ export function DialogPosDimensionamento({
             <Button
               variant="secondary"
               size="sm"
-              onClick={() => { onSaveActive(); onOpenChange(false); }}
+              onClick={async () => {
+                try {
+                  await onSaveActive();
+                  onOpenChange(false);
+                } catch (err) {
+                  console.error("[DialogPos] saveActive error:", err);
+                }
+              }}
               disabled={saving}
             >
-              Salvar como ativa
+              {saving ? "Salvando..." : "Salvar como ativa"}
             </Button>
           )}
           <Button
             size="sm"
             onClick={onConfirm}
-            disabled={hasRequired}
+            disabled={hasRequired || saving}
           >
             Prosseguir para Proposta
           </Button>
