@@ -367,6 +367,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           mode={manualMode}
           sistema={pd?.sistema}
           topologias={pd?.topologias}
+          initialItens={editingKitIndex !== null ? manualKits[editingKitIndex]?.itens : undefined}
         />
       )}
 

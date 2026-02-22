@@ -67,6 +67,7 @@ interface Props {
   mode: "equipamentos" | "zero";
   sistema?: "on_grid" | "hibrido" | "off_grid";
   topologias?: string[];
+  initialItens?: KitItemRow[];
 }
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
@@ -113,7 +114,67 @@ function filterInversores(
   }
 }
 
-export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, otimizadores = [], onKitCreated, mode, sistema: sistemaProp, topologias: topologiasProp }: Props) {
+export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, otimizadores = [], onKitCreated, mode, sistema: sistemaProp, topologias: topologiasProp, initialItens }: Props) {
+  // Derive initial values from initialItens when editing
+  const initModulos = useMemo(() => {
+    if (!initialItens) return [createEmptyModulo()];
+    const mods = initialItens.filter(i => i.categoria === "modulo");
+    if (mods.length === 0) return [createEmptyModulo()];
+    return mods.map(m => {
+      const catalogMatch = modulos.find(c => c.modelo === m.modelo && c.fabricante === m.fabricante);
+      return {
+        id: crypto.randomUUID(),
+        selectedId: catalogMatch?.id || "",
+        quantidade: m.quantidade,
+        avulso: m.avulso || !catalogMatch,
+        nome: m.modelo || "",
+        fabricante: m.fabricante || "",
+        potenciaW: m.potencia_w || 0,
+      } as ModuloEntry;
+    });
+  }, [initialItens, modulos]);
+
+  const initInversores = useMemo(() => {
+    if (!initialItens) return [createEmptyInversor()];
+    const invs = initialItens.filter(i => i.categoria === "inversor");
+    if (invs.length === 0) return [createEmptyInversor()];
+    return invs.map(inv => {
+      const catalogMatch = inversores.find(c => c.modelo === inv.modelo && c.fabricante === inv.fabricante);
+      return {
+        id: crypto.randomUUID(),
+        selectedId: catalogMatch?.id || "",
+        quantidade: inv.quantidade,
+        avulso: inv.avulso || !catalogMatch,
+        nome: inv.modelo || "",
+        fabricante: inv.fabricante || "",
+        potenciaW: inv.potencia_w || 0,
+        fases: "", tensaoLinha: 0,
+      } as InversorEntry;
+    });
+  }, [initialItens, inversores]);
+
+  const initOtimizadores = useMemo(() => {
+    if (!initialItens) return [];
+    const opts = initialItens.filter(i => i.categoria === "outros" && !i.avulso);
+    return opts.map(ot => {
+      const catalogMatch = otimizadores.find(c => c.modelo === ot.modelo && c.fabricante === ot.fabricante);
+      return {
+        id: crypto.randomUUID(),
+        selectedId: catalogMatch?.id || "",
+        quantidade: ot.quantidade,
+        avulso: ot.avulso || !catalogMatch,
+        nome: ot.modelo || "",
+        fabricante: ot.fabricante || "",
+        potenciaW: ot.potencia_w || 0,
+      } as OtimizadorEntry;
+    });
+  }, [initialItens, otimizadores]);
+
+  const initCusto = useMemo(() => {
+    if (!initialItens) return 0;
+    return initialItens.reduce((s, i) => s + (i.preco_unitario || 0) * i.quantidade, 0);
+  }, [initialItens]);
+
   const [distribuidorNome, setDistribuidorNome] = useState("");
   const [custo, setCusto] = useState(0);
   const [nomeKit, setNomeKit] = useState("");
@@ -128,10 +189,21 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [distribuidorSelect, setDistribuidorSelect] = useState("");
   const [custosEmbutidos, setCustosEmbutidos] = useState({ estruturas: false, transformador: false });
 
-  const [moduloEntries, setModuloEntries] = useState<ModuloEntry[]>([createEmptyModulo()]);
-  const [inversorEntries, setInversorEntries] = useState<InversorEntry[]>([createEmptyInversor()]);
-  const [otimizadorEntries, setOtimizadorEntries] = useState<OtimizadorEntry[]>([]);
+  const [moduloEntries, setModuloEntries] = useState<ModuloEntry[]>(initModulos);
+  const [inversorEntries, setInversorEntries] = useState<InversorEntry[]>(initInversores);
+  const [otimizadorEntries, setOtimizadorEntries] = useState<OtimizadorEntry[]>(initOtimizadores);
   const [componenteEntries, setComponenteEntries] = useState<{ id: string; nome: string; quantidade: number }[]>([]);
+
+  // Reset form when initialItens changes (open for edit vs create)
+  const [lastInitKey, setLastInitKey] = useState<string | null>(null);
+  const initKey = initialItens ? initialItens.map(i => i.id).join(",") : "new";
+  if (initKey !== lastInitKey && open) {
+    setLastInitKey(initKey);
+    setModuloEntries(initModulos);
+    setInversorEntries(initInversores);
+    setOtimizadorEntries(initOtimizadores);
+    setCusto(initCusto);
+  }
 
   // Filtered inversores based on sistema + topologia
   const filteredInversores = useMemo(
@@ -149,6 +221,34 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   }, 0);
 
   const handleSave = () => {
+    // Validation
+    const errors: string[] = [];
+    if (!distribuidorNome.trim()) errors.push("Nome do distribuidor");
+    if (!nomeKit.trim()) errors.push("Nome do Kit");
+    if (!codigoKit.trim()) errors.push("Código do Kit");
+    if (!topologia) errors.push("Topologia");
+
+    const hasValidModulo = moduloEntries.some(m => m.avulso ? !!m.nome : !!m.selectedId);
+    if (!hasValidModulo) errors.push("Pelo menos 1 módulo");
+
+    const hasValidInversor = inversorEntries.some(inv => inv.avulso ? !!inv.nome : !!inv.selectedId);
+    if (!hasValidInversor) errors.push("Pelo menos 1 inversor");
+
+    // Check quantities > 0
+    moduloEntries.forEach((m, i) => {
+      if ((m.avulso ? !!m.nome : !!m.selectedId) && m.quantidade <= 0)
+        errors.push(`Módulo ${i + 1}: quantidade`);
+    });
+    inversorEntries.forEach((inv, i) => {
+      if ((inv.avulso ? !!inv.nome : !!inv.selectedId) && inv.quantidade <= 0)
+        errors.push(`Inversor ${i + 1}: quantidade`);
+    });
+
+    if (errors.length > 0) {
+      toast({ title: "Campos obrigatórios", description: errors.join(", "), variant: "destructive" });
+      return;
+    }
+
     const itens: KitItemRow[] = [];
 
     moduloEntries.forEach(m => {
