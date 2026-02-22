@@ -128,7 +128,7 @@ Deno.serve(async (req) => {
       }),
       // Atualizar status da proposta
       adminClient.from("propostas_nativas").update({
-        status: "enviada",
+        status: "sent",
         enviada_at: new Date().toISOString(),
         enviada_via: canalFinal,
         enviada_por: userId,

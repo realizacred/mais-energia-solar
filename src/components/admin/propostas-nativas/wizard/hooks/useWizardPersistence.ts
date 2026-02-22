@@ -169,7 +169,7 @@ export function useWizardPersistence() {
         .from("propostas_nativas")
         .update({
           titulo: params.titulo || "Proposta sem título",
-          status: setActive ? "gerada" : undefined,
+          status: setActive ? "generated" : undefined,
           updated_at: new Date().toISOString(),
         } as any)
         .eq("id", params.propostaId);
@@ -182,7 +182,7 @@ export function useWizardPersistence() {
         updated_at: new Date().toISOString(),
       };
       if (setActive) {
-        updateData.status = "gerada";
+        updateData.status = "generated";
         updateData.gerado_em = new Date().toISOString();
       }
 
@@ -198,7 +198,7 @@ export function useWizardPersistence() {
 
       toast({
         title: setActive ? "✅ Proposta gerada" : "✅ Proposta atualizada",
-        description: setActive ? "A proposta foi marcada como gerada." : "Os dados foram atualizados com sucesso.",
+        description: setActive ? "A proposta foi marcada como gerada." : "Os dados foram atualizados.",
       });
       return { propostaId: params.propostaId, versaoId: params.versaoId };
     } catch (e: any) {
