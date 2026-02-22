@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 // Lazy-load Google Maps
 const GoogleMapView = lazy(() => import("./GoogleMapView"));
 
-/** Haversine distance in km between two lat/lon points */
+/** Haversine distance in km between two lat/lon points (fallback) */
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -27,6 +27,30 @@ function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): nu
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/** Calculate road distance using Google Maps Distance Matrix API, fallback to Haversine */
+async function roadDistanceKm(
+  lat1: number, lon1: number, lat2: number, lon2: number,
+): Promise<number> {
+  try {
+    if (typeof google !== "undefined" && google.maps?.DistanceMatrixService) {
+      const service = new google.maps.DistanceMatrixService();
+      const result = await service.getDistanceMatrix({
+        origins: [new google.maps.LatLng(lat1, lon1)],
+        destinations: [new google.maps.LatLng(lat2, lon2)],
+        travelMode: google.maps.TravelMode.DRIVING,
+        unitSystem: google.maps.UnitSystem.METRIC,
+      });
+      const element = result?.rows?.[0]?.elements?.[0];
+      if (element?.status === "OK" && element.distance?.value) {
+        return element.distance.value / 1000; // meters → km
+      }
+    }
+  } catch (e) {
+    console.warn("[StepLocalizacao] Distance Matrix failed, using Haversine:", e);
+  }
+  return haversineKm(lat1, lon1, lat2, lon2);
 }
 
 interface Props {
@@ -174,8 +198,9 @@ export function StepLocalizacao({
           console.info("[StepLocalizacao] Tenant geocoded:", { lat, lon, cidade: tenant.cidade });
           // If we already have client coords, calc distance now
           if (geoLat != null && geoLon != null) {
-            const d = haversineKm(lat, lon, geoLat, geoLon);
-            onDistanciaKmChange?.(Math.round(d * 10) / 10);
+            roadDistanceKm(lat, lon, geoLat, geoLon).then(d => {
+              onDistanciaKmChange?.(Math.round(d * 10) / 10);
+            });
           }
         } else {
           console.warn("[StepLocalizacao] Could not geocode tenant location:", addressQuery);
@@ -189,8 +214,9 @@ export function StepLocalizacao({
   // Auto-calculate distance when client coords change
   useEffect(() => {
     if (geoLat == null || geoLon == null || !companyCoords.current) return;
-    const d = haversineKm(companyCoords.current.lat, companyCoords.current.lon, geoLat, geoLon);
-    onDistanciaKmChange?.(Math.round(d * 10) / 10);
+    roadDistanceKm(companyCoords.current.lat, companyCoords.current.lon, geoLat, geoLon).then(d => {
+      onDistanciaKmChange?.(Math.round(d * 10) / 10);
+    });
   }, [geoLat, geoLon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Sync address coords → geoLat/geoLon
