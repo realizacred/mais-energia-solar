@@ -48,6 +48,7 @@ export function StepConsumptionIntelligence({
   irradiacao, ghiSeries, latitude,
 }: Props) {
   const [activeTab, setActiveTab] = useState<ActiveTab>("ucs");
+  const [skipTransposition, setSkipTransposition] = useState(false);
   const [preSubTab, setPreSubTab] = useState<PreSubTab>("premissas");
   const [configModal, setConfigModal] = useState<{ open: boolean; index: number }>({ open: false, index: 0 });
   const [rateioOpen, setRateioOpen] = useState(false);
@@ -84,6 +85,9 @@ export function StepConsumptionIntelligence({
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
 
+    // Skip transposition if toggle is on — use raw GHI only
+    if (skipTransposition) return irradiacao;
+
     // If we have monthly GHI series + latitude, apply Liu-Jordan POA transposition
     if (ghiSeries && latitude != null) {
       const tilt = pd.inclinacao ?? 10;
@@ -111,7 +115,6 @@ export function StepConsumptionIntelligence({
           tilt_deg: tilt,
           azimuth_deviation_deg: azimuthDev,
         });
-        // POA should be >= GHI for north-facing tilts in southern hemisphere
         return result.poa_annual_avg;
       } catch (e) {
         console.warn("[StepConsumption] POA transposition failed, using GHI:", e);
@@ -120,7 +123,7 @@ export function StepConsumptionIntelligence({
     }
 
     return irradiacao;
-  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal]);
+  }, [irradiacao, ghiSeries, latitude, pd.inclinacao, pd.desvio_azimutal, skipTransposition]);
 
   // ─── Derive fator_geracao from POA irradiation ──────────
   // fator_geracao = POA_avg × 30 × (desempenho / 100)
@@ -446,6 +449,8 @@ export function StepConsumptionIntelligence({
           consumoTotal={consumoTotal}
           showDoD={showDoD}
           onOpenTopoMesAMes={(topo) => setTopoMesAMes({ open: true, topo })}
+          skipTransposition={skipTransposition}
+          onSkipTranspositionChange={setSkipTransposition}
         />
       ) : (
         <EquipamentosPreFilter pd={pd} consumoTotal={consumoTotal} potenciaIdealByTopo={potenciaIdealByTopo} />
@@ -618,6 +623,7 @@ export function StepConsumptionIntelligence({
 
 function PremissasContent({
   pd, pdUpdate, updateTopoConfig, getTopoConfig, potenciaIdealByTopo, consumoTotal, showDoD, onOpenTopoMesAMes,
+  skipTransposition, onSkipTranspositionChange,
 }: {
   pd: PreDimensionamentoData;
   pdUpdate: <K extends keyof PreDimensionamentoData>(field: K, value: PreDimensionamentoData[K]) => void;
@@ -627,6 +633,8 @@ function PremissasContent({
   consumoTotal: number;
   showDoD: boolean;
   onOpenTopoMesAMes: (topo: string) => void;
+  skipTransposition: boolean;
+  onSkipTranspositionChange: (v: boolean) => void;
 }) {
   const allTopos = ["tradicional", "microinversor", "otimizador"];
 
@@ -670,6 +678,15 @@ function PremissasContent({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Toggle: skip POA transposition for debugging */}
+      <div className="flex items-center gap-2 px-1">
+        <Switch id="skip-poa" checked={skipTransposition} onCheckedChange={onSkipTranspositionChange} />
+        <Label htmlFor="skip-poa" className="text-[11px] text-muted-foreground cursor-pointer">
+          Usar só GHI (sem transposição POA)
+          {skipTransposition && <Badge variant="outline" className="ml-2 text-[10px] border-warning text-warning">DEBUG</Badge>}
+        </Label>
       </div>
 
       {/* ─── 3-column topology grid ─── */}
