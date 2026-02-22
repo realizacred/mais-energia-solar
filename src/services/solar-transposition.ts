@@ -54,9 +54,9 @@ export interface TranspositionResult {
   /** Transposition gain factor (POA/GHI ratio) */
   gain_factor: number;
   /** Method used */
-  method: "liu_jordan_isotropic" | "ghi_only_estimated";
+  method: "liu_jordan_isotropic" | "ghi_only_estimated" | "simplified_rb";
   /** Whether DHI was from real data or estimated */
-  dhi_source: "measured" | "estimated";
+  dhi_source: "measured" | "estimated" | "none";
 }
 
 // ─── Constants ──────────────────────────────────────────────────
@@ -69,12 +69,20 @@ const MID_MONTH_DOY = [17, 47, 75, 105, 135, 162, 198, 228, 258, 288, 318, 344];
 // ─── Core Functions ─────────────────────────────────────────────
 
 /**
- * Calculate solar declination for a given day of year.
- * Uses Cooper equation (1969) — widely adopted in Brazilian solar engineering
- * tools and provides better alignment with CRESESB/PVSyst references.
+ * Calculate solar declination for a given day of year (Spencer, 1971).
+ * More accurate than Cooper equation (~0.04° max error vs ~0.5°).
  */
 function solarDeclination(dayOfYear: number): number {
-  return 23.45 * Math.sin((2 * Math.PI * (284 + dayOfYear)) / 365) * DEG_TO_RAD;
+  const B = (2 * Math.PI * (dayOfYear - 1)) / 365;
+  return (
+    0.006918 -
+    0.399912 * Math.cos(B) +
+    0.070257 * Math.sin(B) -
+    0.006758 * Math.cos(2 * B) +
+    0.000907 * Math.sin(2 * B) -
+    0.002697 * Math.cos(3 * B) +
+    0.00148 * Math.sin(3 * B)
+  );
 }
 
 /**
@@ -171,63 +179,45 @@ export function transposeToTiltedPlane(input: TranspositionInput): Transposition
   const latRad = latitude * DEG_TO_RAD;
   const tiltRad = tilt_deg * DEG_TO_RAD;
   const isSouthern = latitude < 0;
-  
-  // Azimuth correction factor (cosine loss for non-ideal orientation)
   const azimuthFactor = Math.cos(azimuth_deviation_deg * DEG_TO_RAD);
   
   const ghiValues = [ghi.m01, ghi.m02, ghi.m03, ghi.m04, ghi.m05, ghi.m06,
                      ghi.m07, ghi.m08, ghi.m09, ghi.m10, ghi.m11, ghi.m12];
   
-  // Resolve DHI: use measured if available, otherwise estimate
   const hasMeasuredDhi = input.dhi != null && Object.values(input.dhi).some(v => v > 0);
-  let dhiValues: number[];
+  
+  const poaValues: number[] = [];
   
   if (hasMeasuredDhi && input.dhi) {
-    dhiValues = [
+    // Full Liu-Jordan isotropic model with measured DHI
+    const dhiValues = [
       input.dhi.dhi_m01, input.dhi.dhi_m02, input.dhi.dhi_m03, input.dhi.dhi_m04,
       input.dhi.dhi_m05, input.dhi.dhi_m06, input.dhi.dhi_m07, input.dhi.dhi_m08,
       input.dhi.dhi_m09, input.dhi.dhi_m10, input.dhi.dhi_m11, input.dhi.dhi_m12,
     ];
-  } else {
-    // Estimate DHI using Erbs correlation
-    dhiValues = ghiValues.map((ghiM, i) => {
-      const h0 = extraterrestrialDaily(latRad, MID_MONTH_DOY[i]);
-      return estimateDhi(ghiM, h0);
-    });
-  }
-  
-  const poaValues: number[] = [];
-  
-  for (let m = 0; m < 12; m++) {
-    const ghiM = ghiValues[m];
-    const dhiM = dhiValues[m];
-    const doy = MID_MONTH_DOY[m];
-    
-    if (ghiM <= 0) {
-      poaValues.push(0);
-      continue;
+    for (let m = 0; m < 12; m++) {
+      const ghiM = ghiValues[m];
+      const dhiM = dhiValues[m];
+      if (ghiM <= 0) { poaValues.push(0); continue; }
+      const beamH = Math.max(0, ghiM - dhiM);
+      const declRad = solarDeclination(MID_MONTH_DOY[m]);
+      const Rb = monthlyRb(latRad, declRad, tiltRad, isSouthern);
+      const beamTilt = beamH * Rb * azimuthFactor;
+      const diffuseSky = dhiM * (1 + Math.cos(tiltRad)) / 2;
+      const groundReflected = ghiM * albedo * (1 - Math.cos(tiltRad)) / 2;
+      poaValues.push(Math.round(Math.max(0, beamTilt + diffuseSky + groundReflected) * 10000) / 10000);
     }
-    
-    // Beam (direct) component on horizontal = GHI - DHI
-    const beamH = Math.max(0, ghiM - dhiM);
-    
-    // Rb: beam tilt factor for this month
-    const declRad = solarDeclination(doy);
-    const Rb = monthlyRb(latRad, declRad, tiltRad, isSouthern);
-    
-    // Liu-Jordan isotropic model components:
-    // 1. Beam on tilted plane
-    const beamTilt = beamH * Rb * azimuthFactor;
-    
-    // 2. Diffuse sky component (isotropic assumption)
-    const diffuseSky = dhiM * (1 + Math.cos(tiltRad)) / 2;
-    
-    // 3. Ground-reflected component
-    const groundReflected = ghiM * albedo * (1 - Math.cos(tiltRad)) / 2;
-    
-    // Total POA
-    const poa = beamTilt + diffuseSky + groundReflected;
-    poaValues.push(Math.round(Math.max(0, poa) * 10000) / 10000);
+  } else {
+    // Simplified Rb method: apply Rb directly to GHI + ground reflection.
+    // Common in Brazilian solar tools when DHI is unavailable.
+    for (let m = 0; m < 12; m++) {
+      const ghiM = ghiValues[m];
+      if (ghiM <= 0) { poaValues.push(0); continue; }
+      const declRad = solarDeclination(MID_MONTH_DOY[m]);
+      const Rb = monthlyRb(latRad, declRad, tiltRad, isSouthern);
+      const groundReflected = ghiM * albedo * (1 - Math.cos(tiltRad)) / 2;
+      poaValues.push(Math.round(Math.max(0, ghiM * Rb * azimuthFactor + groundReflected) * 10000) / 10000);
+    }
   }
   
   const poaSeries: IrradianceSeries = {
@@ -244,8 +234,8 @@ export function transposeToTiltedPlane(input: TranspositionInput): Transposition
     poa_annual_avg: Math.round(poaAvg * 10000) / 10000,
     ghi_annual_avg: Math.round(ghiAvg * 10000) / 10000,
     gain_factor: ghiAvg > 0 ? Math.round((poaAvg / ghiAvg) * 10000) / 10000 : 1,
-    method: hasMeasuredDhi ? "liu_jordan_isotropic" : "ghi_only_estimated",
-    dhi_source: hasMeasuredDhi ? "measured" : "estimated",
+    method: hasMeasuredDhi ? "liu_jordan_isotropic" : "simplified_rb",
+    dhi_source: hasMeasuredDhi ? "measured" : "none",
   };
 }
 
