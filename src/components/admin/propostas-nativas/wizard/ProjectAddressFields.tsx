@@ -50,6 +50,7 @@ export function ProjectAddressFields({
   const [cepLoading, setCepLoading] = useState(false);
   const [geocoding, setGeocoding] = useState(false);
   const geocodeTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const forwardGeocodeRef = useRef<(addr: ProjectAddress) => Promise<void>>();
   const { cidades, isLoading: cidadesLoading } = useCidadesPorEstado(address.uf);
   const lastReverseRef = useRef<string>("");
   const didAutoApplyRef = useRef(false);
@@ -118,14 +119,15 @@ export function ProjectAddressFields({
           lon: address.lon,
         };
         onAddressChange(updated);
-        forwardGeocode(updated);
+        // Use ref to always call the latest forwardGeocode
+        forwardGeocodeRef.current?.(updated);
       }
     } catch {
       // Silent — user can fill manually
     } finally {
       setCepLoading(false);
     }
-  }, [address, onAddressChange]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [address, onAddressChange]);
 
   // ── Forward geocoding: address text → coordinates ──
   // Tries Google Maps API first, falls back to Nominatim
@@ -186,11 +188,14 @@ export function ProjectAddressFields({
     }
   }, [onAddressChange, onCoordsChange]);
 
+  // Keep ref always up to date
+  forwardGeocodeRef.current = forwardGeocode;
+
   // ── Debounced forward geocode ──
   const triggerForwardGeocode = useCallback((addr: ProjectAddress) => {
     if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
-    geocodeTimerRef.current = setTimeout(() => forwardGeocode(addr), 800);
-  }, [forwardGeocode]);
+    geocodeTimerRef.current = setTimeout(() => forwardGeocodeRef.current?.(addr), 800);
+  }, []);
 
   // ── Map client data to ProjectAddress ──
   function mapClientToAddress(c: ClienteData): ProjectAddress {
