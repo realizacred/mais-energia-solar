@@ -84,6 +84,9 @@ export function StepConsumptionIntelligence({
   // ─── Effective irradiance — apply POA transposition when GHI series available ──
   const effectiveIrrad = useMemo(() => {
     if (!irradiacao || irradiacao <= 0) return 0;
+    
+    const debugInfo = { irradiacao, hasGhiSeries: !!ghiSeries, ghiSeriesKeys: ghiSeries ? Object.keys(ghiSeries).length : 0, latitude, tilt: pd.inclinacao, azDev: pd.desvio_azimutal };
+    console.log("[POA Debug] Input:", JSON.stringify(debugInfo));
 
     // If we have monthly GHI series + latitude, apply Liu-Jordan POA transposition
     if (ghiSeries && latitude != null) {
@@ -112,6 +115,7 @@ export function StepConsumptionIntelligence({
           tilt_deg: tilt,
           azimuth_deviation_deg: azimuthDev,
         });
+        console.log("[POA Debug] POA result:", { poa_avg: result.poa_annual_avg, ghi_avg: result.ghi_annual_avg, gain: result.gain_factor, method: result.method });
         return result.poa_annual_avg;
       } catch (e) {
         console.warn("[StepConsumption] POA transposition failed, using GHI:", e);
