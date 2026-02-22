@@ -56,6 +56,21 @@ export interface WizardSnapshot {
   step: number;
 }
 
+interface ClienteParams {
+  nome: string;
+  celular: string;
+  email?: string;
+  cnpj_cpf?: string;
+  empresa?: string;
+  cep?: string;
+  estado?: string;
+  cidade?: string;
+  endereco?: string;
+  numero?: string;
+  bairro?: string;
+  complemento?: string;
+}
+
 interface PersistenceParams {
   propostaId?: string | null;
   versaoId?: string | null;
@@ -66,6 +81,7 @@ interface PersistenceParams {
   projetoId?: string;
   dealId?: string;
   titulo: string;
+  cliente?: ClienteParams;
 }
 
 export function useWizardPersistence() {
@@ -86,7 +102,8 @@ export function useWizardPersistence() {
           titulo: params.titulo,
         });
 
-        const rpcPayload = {
+        const cli = params.cliente;
+        const rpcPayload: Record<string, any> = {
           p_titulo: params.titulo || "Proposta sem título",
           p_lead_id: params.leadId || null,
           p_projeto_id: params.projetoId || null,
@@ -96,6 +113,22 @@ export function useWizardPersistence() {
           p_valor_total: params.precoFinal,
           p_snapshot: params.snapshot as any,
         };
+
+        // Pass client data so the RPC creates/finds the client record
+        if (cli?.nome && cli?.celular) {
+          rpcPayload.p_cliente_nome = cli.nome;
+          rpcPayload.p_cliente_telefone = cli.celular;
+          if (cli.email) rpcPayload.p_cliente_email = cli.email;
+          if (cli.cnpj_cpf) rpcPayload.p_cliente_cpf_cnpj = cli.cnpj_cpf;
+          if (cli.empresa) rpcPayload.p_cliente_empresa = cli.empresa;
+          if (cli.cep) rpcPayload.p_cliente_cep = cli.cep;
+          if (cli.estado) rpcPayload.p_cliente_estado = cli.estado;
+          if (cli.cidade) rpcPayload.p_cliente_cidade = cli.cidade;
+          if (cli.endereco) rpcPayload.p_cliente_rua = cli.endereco;
+          if (cli.numero) rpcPayload.p_cliente_numero = cli.numero;
+          if (cli.bairro) rpcPayload.p_cliente_bairro = cli.bairro;
+          if (cli.complemento) rpcPayload.p_cliente_complemento = cli.complemento;
+        }
 
         console.log("[saveDraft] RPC payload keys:", Object.keys(rpcPayload));
         console.log("[saveDraft] RPC payload sizes:", {
