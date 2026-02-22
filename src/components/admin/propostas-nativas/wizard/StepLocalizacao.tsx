@@ -101,7 +101,7 @@ export function StepLocalizacao({
   const [loadingIrrad, setLoadingIrrad] = useState(false);
   const [ghiSeries, setGhiSeries] = useState<Record<string, number> | null>(null);
   const [irradDialogOpen, setIrradDialogOpen] = useState(false);
-  const [skipPoa, setSkipPoa] = useState(false);
+  const [skipPoa, setSkipPoa] = useState(true);
 
   // When skipPoa changes, propagate null or real series upstream
   useEffect(() => {
