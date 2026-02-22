@@ -68,6 +68,12 @@ interface Props {
   sistema?: "on_grid" | "hibrido" | "off_grid";
   topologias?: string[];
   initialItens?: KitItemRow[];
+  initialCardData?: {
+    distribuidorNome?: string;
+    nomeKit?: string;
+    codigoKit?: string;
+    topologia?: string;
+  };
 }
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
@@ -114,7 +120,7 @@ function filterInversores(
   }
 }
 
-export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, otimizadores = [], onKitCreated, mode, sistema: sistemaProp, topologias: topologiasProp, initialItens }: Props) {
+export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, otimizadores = [], onKitCreated, mode, sistema: sistemaProp, topologias: topologiasProp, initialItens, initialCardData }: Props) {
   // Derive initial values from initialItens when editing
   const initModulos = useMemo(() => {
     if (!initialItens) return [createEmptyModulo()];
@@ -175,16 +181,17 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     return initialItens.reduce((s, i) => s + (i.preco_unitario || 0) * i.quantidade, 0);
   }, [initialItens]);
 
-  const [distribuidorNome, setDistribuidorNome] = useState("");
+  const [distribuidorNome, setDistribuidorNome] = useState(initialCardData?.distribuidorNome || "");
   const [custo, setCusto] = useState(0);
-  const [nomeKit, setNomeKit] = useState("");
-  const [codigoKit, setCodigoKit] = useState("");
+  const [nomeKit, setNomeKit] = useState(initialCardData?.nomeKit || "");
+  const [codigoKit, setCodigoKit] = useState(initialCardData?.codigoKit || "");
   const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(sistemaProp || "on_grid");
   const [tipoKit, setTipoKit] = useState<"customizado" | "fechado">("customizado");
   const [topologia, setTopologia] = useState(
-    topologiasProp?.length === 1
+    initialCardData?.topologia ||
+    (topologiasProp?.length === 1
       ? (topologiasProp[0] === "tradicional" ? "Tradicional" : topologiasProp[0] === "microinversor" ? "Microinversor" : "Otimizador")
-      : ""
+      : "")
   );
   const [distribuidorSelect, setDistribuidorSelect] = useState("");
   const [custosEmbutidos, setCustosEmbutidos] = useState({ estruturas: false, transformador: false });
@@ -203,6 +210,13 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     setInversorEntries(initInversores);
     setOtimizadorEntries(initOtimizadores);
     setCusto(initCusto);
+    // Restore header fields from card data
+    if (initialCardData) {
+      setDistribuidorNome(initialCardData.distribuidorNome || "");
+      setNomeKit(initialCardData.nomeKit || "");
+      setCodigoKit(initialCardData.codigoKit || "");
+      if (initialCardData.topologia) setTopologia(initialCardData.topologia);
+    }
   }
 
   // Filtered inversores based on sistema + topologia
