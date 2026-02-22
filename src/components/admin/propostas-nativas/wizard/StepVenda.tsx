@@ -1,24 +1,31 @@
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { type VendaData, type KitItemRow, type ServicoItem, formatBRL } from "./types";
 import { roundCurrency } from "@/lib/formatters";
+import { usePricingDefaults } from "./hooks/usePricingDefaults";
+import { toast } from "@/hooks/use-toast";
 
 interface StepVendaProps {
   venda: VendaData;
   onVendaChange: (venda: VendaData) => void;
   itens: KitItemRow[];
   servicos: ServicoItem[];
+  potenciaKwp?: number;
 }
 
-export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaProps) {
+export function StepVenda({ venda, onVendaChange, itens, servicos, potenciaKwp = 0 }: StepVendaProps) {
   const [loadedDefaults, setLoadedDefaults] = useState(false);
   const [descontoMax, setDescontoMax] = useState(100);
+  const [appliedSmartDefaults, setAppliedSmartDefaults] = useState(false);
+
+  const { suggested, loading: loadingHistory, hasHistory } = usePricingDefaults(potenciaKwp);
 
   // Load pricing_config defaults once
   useEffect(() => {
@@ -31,7 +38,6 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
       .then(({ data }) => {
         if (data) {
           const d = data as any;
-          // Only apply defaults if user hasn't touched them
           if (venda.margem_percentual === 20 && d.margem_minima_percent) {
             onVendaChange({
               ...venda,
@@ -43,6 +49,31 @@ export function StepVenda({ venda, onVendaChange, itens, servicos }: StepVendaPr
         setLoadedDefaults(true);
       });
   }, []);
+
+  // Auto-apply smart defaults from history when available (only once)
+  useEffect(() => {
+    if (appliedSmartDefaults || !suggested || loadingHistory) return;
+    
+    const isUntouched = venda.custo_comissao === 0 && venda.custo_outros === 0;
+    if (!isUntouched) {
+      setAppliedSmartDefaults(true);
+      return;
+    }
+
+    const updates: Partial<VendaData> = {};
+    if (suggested.margem_percentual != null) updates.margem_percentual = Math.round(suggested.margem_percentual * 10) / 10;
+    if (suggested.custo_comissao != null) updates.custo_comissao = suggested.custo_comissao;
+    if (suggested.custo_outros != null) updates.custo_outros = suggested.custo_outros;
+
+    if (Object.keys(updates).length > 0) {
+      onVendaChange({ ...venda, ...updates });
+      toast({
+        title: "💡 Valores pré-preenchidos",
+        description: "Baseado na mediana das suas últimas propostas.",
+      });
+    }
+    setAppliedSmartDefaults(true);
+  }, [suggested, loadingHistory, appliedSmartDefaults]);
 
   const update = (field: keyof VendaData, value: any) => {
     onVendaChange({ ...venda, [field]: value });

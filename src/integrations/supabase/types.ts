@@ -6936,6 +6936,53 @@ export type Database = {
           },
         ]
       }
+      pricing_defaults_history: {
+        Row: {
+          categoria: string
+          created_at: string
+          created_by: string | null
+          id: string
+          percentual: number | null
+          potencia_kwp: number
+          proposta_id: string | null
+          tenant_id: string
+          valor_por_kwp: number
+          valor_total: number
+        }
+        Insert: {
+          categoria: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          percentual?: number | null
+          potencia_kwp?: number
+          proposta_id?: string | null
+          tenant_id: string
+          valor_por_kwp?: number
+          valor_total?: number
+        }
+        Update: {
+          categoria?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          percentual?: number | null
+          potencia_kwp?: number
+          proposta_id?: string | null
+          tenant_id?: string
+          valor_por_kwp?: number
+          valor_total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pricing_defaults_history_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_methods: {
         Row: {
           created_at: string

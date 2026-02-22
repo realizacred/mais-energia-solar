@@ -32,6 +32,7 @@ import { StepKitSelection } from "./wizard/StepKitSelection";
 import { StepAdicionais, type AdicionalItem } from "./wizard/StepAdicionais";
 import { StepServicos } from "./wizard/StepServicos";
 import { StepFinancialCenter, calcPrecoFinal } from "./wizard/StepFinancialCenter";
+import { savePricingHistory } from "./wizard/hooks/usePricingDefaults";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
@@ -601,6 +602,17 @@ export function ProposalWizard() {
       } finally { setRendering(false); }
 
       toast({ title: "Proposta gerada!", description: `Versão ${genResult.versao_numero} criada.` });
+
+      // Save pricing history for smart defaults in future proposals
+      const instalacaoVal = servicos.find(s => s.categoria === "instalacao")?.valor || 0;
+      savePricingHistory({
+        potenciaKwp,
+        margemPercentual: venda.margem_percentual,
+        custoComissao: venda.custo_comissao,
+        custoOutros: venda.custo_outros,
+        custoInstalacao: instalacaoVal,
+        propostaId: genResult.proposta_id,
+      }).catch(e => console.error("Error saving pricing history:", e));
     } catch (e: any) {
       // ── Handle structured 422 errors from backend enforcement ──
       const errorCode = (e as any).errorCode;
