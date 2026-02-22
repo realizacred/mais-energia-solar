@@ -495,14 +495,36 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                     <Input
                       id="cep"
                       value={formData.cep}
-                      onChange={(e) => setFormData({ ...formData, cep: e.target.value })}
+                      onChange={(e) => {
+                        const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
+                        setFormData({ ...formData, cep: raw });
+                        // Auto-fill via ViaCEP
+                        if (raw.length === 8) {
+                          fetch(`https://viacep.com.br/ws/${raw}/json/`)
+                            .then(r => r.json())
+                            .then(data => {
+                              if (!data.erro) {
+                                setFormData(prev => ({
+                                  ...prev,
+                                  rua: data.logradouro || prev.rua,
+                                  bairro: data.bairro || prev.bairro,
+                                  cidade: data.localidade || prev.cidade,
+                                  estado: data.uf || prev.estado,
+                                  complemento: data.complemento || prev.complemento,
+                                }));
+                              }
+                            })
+                            .catch(() => { /* ViaCEP offline */ });
+                        }
+                      }}
+                      placeholder="00000000"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="estado">Estado</Label>
                     <Select
                       value={formData.estado}
-                      onValueChange={(value) => setFormData({ ...formData, estado: value })}
+                      onValueChange={(value) => setFormData({ ...formData, estado: value, cidade: "" })}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
@@ -510,7 +532,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
                       <SelectContent>
                         {ESTADOS_BRASIL.map((est) => (
                           <SelectItem key={est.sigla} value={est.sigla}>
-                            {est.nome}
+                            {est.sigla}
                           </SelectItem>
                         ))}
                       </SelectContent>
