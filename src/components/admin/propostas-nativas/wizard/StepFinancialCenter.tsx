@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles } from "lucide-react";
+import { DollarSign, Pencil, Plus, Trash2, SlidersHorizontal, List, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -57,6 +57,7 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
   const [comissaoQtd, setComissaoQtd] = useState(1);
   const [instalacaoCusto, setInstalacaoCusto] = useState(instalacaoServico?.valor || 0);
   const [comissaoCusto, setComissaoCusto] = useState(comissaoServico?.valor || 0);
+  const [kitExpanded, setKitExpanded] = useState(false);
   const { suggested, loading: loadingHistory } = usePricingDefaults(potenciaKwp);
 
   // Load pricing defaults from config
@@ -323,151 +324,194 @@ export function StepFinancialCenter({ venda, onVendaChange, itens, servicos, pot
             const isExtra = !row.fixo;
 
             return (
-              <div
-                key={row.id}
-                className={cn(
-                  "grid items-center px-4 py-2.5 text-xs transition-opacity",
-                  !row.checked && "opacity-40",
-                  viewMode === "resumido"
-                    ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
-                    : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
-                )}
-              >
-                {/* Checkbox */}
-                <div className="w-6">
-                  {!isKit && row.fixo && (
-                    <Checkbox
-                      checked={row.checked}
-                      onCheckedChange={(checked) => {
-                        if (row.id === "instalacao") setInstalacaoEnabled(!!checked);
-                        if (row.id === "comissao") setComissaoEnabled(!!checked);
-                      }}
-                      className="h-4 w-4"
-                    />
+              <div key={row.id}>
+                <div
+                  className={cn(
+                    "grid items-center px-4 py-2.5 text-xs transition-opacity",
+                    !row.checked && "opacity-40",
+                    isKit && "cursor-pointer hover:bg-muted/20",
+                    viewMode === "resumido"
+                      ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
+                      : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
                   )}
-                </div>
+                  onClick={isKit && itens.length > 0 ? () => setKitExpanded(prev => !prev) : undefined}
+                >
+                  {/* Checkbox */}
+                  <div className="w-6">
+                    {!isKit && row.fixo && (
+                      <Checkbox
+                        checked={row.checked}
+                        onCheckedChange={(checked) => {
+                          if (row.id === "instalacao") setInstalacaoEnabled(!!checked);
+                          if (row.id === "comissao") setComissaoEnabled(!!checked);
+                        }}
+                        onClick={e => e.stopPropagation()}
+                        className="h-4 w-4"
+                      />
+                    )}
+                  </div>
 
-                {/* Categoria */}
-                <span className="text-muted-foreground font-medium">{row.categoria}</span>
+                  {/* Categoria */}
+                  <span className="text-muted-foreground font-medium">{row.categoria}</span>
 
-                {/* Item */}
-                <div>
-                  {isExtra ? (
-                    <Input
-                      value={row.item}
-                      onChange={e => updateExtra(row.id, "item", e.target.value)}
-                      className="h-7 text-xs w-36"
-                    />
+                  {/* Item */}
+                  <div>
+                    {isExtra ? (
+                      <Input
+                        value={row.item}
+                        onChange={e => updateExtra(row.id, "item", e.target.value)}
+                        className="h-7 text-xs w-36"
+                        onClick={e => e.stopPropagation()}
+                      />
+                    ) : (
+                      <span className="flex items-center gap-1">
+                        {row.item}
+                        {isKit && itens.length > 0 && (
+                          kitExpanded
+                            ? <ChevronUp className="h-3 w-3 text-muted-foreground" />
+                            : <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                        )}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Qtd */}
+                  <div className="text-center" onClick={e => e.stopPropagation()}>
+                    {isKit ? (
+                      <span>{row.quantidade}</span>
+                    ) : isExtra ? (
+                      <Input
+                        type="number"
+                        min={1}
+                        value={row.quantidade}
+                        onChange={e => updateExtra(row.id, "quantidade", Number(e.target.value) || 1)}
+                        className="h-7 text-xs w-14 mx-auto text-center"
+                      />
+                    ) : (
+                      <Input
+                        type="number"
+                        min={1}
+                        value={row.quantidade}
+                        onChange={e => {
+                          const val = Number(e.target.value) || 1;
+                          if (row.id === "instalacao") setInstalacaoQtd(val);
+                          if (row.id === "comissao") setComissaoQtd(val);
+                        }}
+                        className="h-7 text-xs w-14 mx-auto text-center"
+                        disabled={!row.checked}
+                      />
+                    )}
+                  </div>
+
+                  {viewMode === "resumido" ? (
+                    <>
+                      <span className="text-right font-medium">
+                        {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-right text-muted-foreground">
+                        {rowPercent.toFixed(2)}%
+                      </span>
+                    </>
                   ) : (
-                    <span className="flex items-center gap-1">
-                      {row.item}
-                      {isKit && (
-                        <svg className="h-3 w-3 text-muted-foreground" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M3 5l3 3 3-3" />
-                        </svg>
-                      )}
-                    </span>
+                    <>
+                      <div className="text-right" onClick={e => e.stopPropagation()}>
+                        {isKit ? (
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={row.custoUnitario || ""}
+                            className="h-7 text-xs w-24 ml-auto text-right"
+                            readOnly
+                          />
+                        ) : (
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={row.custoUnitario || ""}
+                            onChange={e => {
+                              const val = Number(e.target.value) || 0;
+                              if (isExtra) {
+                                updateExtra(row.id, "custoUnitario", val);
+                              } else if (row.id === "instalacao") {
+                                setInstalacaoCusto(val);
+                              } else if (row.id === "comissao") {
+                                setComissaoCusto(val);
+                              }
+                            }}
+                            className="h-7 text-xs w-24 ml-auto text-right"
+                            disabled={!row.checked}
+                          />
+                        )}
+                      </div>
+                      <span className="text-right font-medium">
+                        {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-right text-muted-foreground">
+                        {rowMargem.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-right font-medium">
+                        {rowVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </>
+                  )}
+
+                  {/* Delete button for extras */}
+                  {isExtra && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 text-destructive/40 hover:text-destructive ml-1"
+                      onClick={(e) => { e.stopPropagation(); removeExtra(row.id); }}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   )}
                 </div>
 
-                {/* Qtd */}
-                <div className="text-center">
-                  {isKit ? (
-                    <span>{row.quantidade}</span>
-                  ) : isExtra ? (
-                    <Input
-                      type="number"
-                      min={1}
-                      value={row.quantidade}
-                      onChange={e => updateExtra(row.id, "quantidade", Number(e.target.value) || 1)}
-                      className="h-7 text-xs w-14 mx-auto text-center"
-                    />
-                  ) : (
-                    <Input
-                      type="number"
-                      min={1}
-                      value={row.quantidade}
-                      onChange={e => {
-                        const val = Number(e.target.value) || 1;
-                        if (row.id === "instalacao") setInstalacaoQtd(val);
-                        if (row.id === "comissao") setComissaoQtd(val);
-                      }}
-                      className="h-7 text-xs w-14 mx-auto text-center"
-                      disabled={!row.checked}
-                    />
-                  )}
-                </div>
+                {/* Kit sub-items (expanded) */}
+                {isKit && kitExpanded && itens.length > 0 && (
+                  <div className="bg-muted/10 border-t border-border/10">
+                    {itens.map((item) => {
+                      // Group by categoria for label
+                      const catLabel = item.categoria === "modulo" ? "Módulo"
+                        : item.categoria === "inversor" ? "Inversor"
+                        : item.categoria === "otimizador" ? "Otimizador"
+                        : item.categoria === "bateria" ? "Bateria"
+                        : item.categoria;
 
-                {viewMode === "resumido" ? (
-                  <>
-                    {/* Valores */}
-                    <span className="text-right font-medium">
-                      {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                    {/* % do total */}
-                    <span className="text-right text-muted-foreground">
-                      {rowPercent.toFixed(2)}%
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    {/* Custo Unitário */}
-                    <div className="text-right">
-                      {isKit ? (
-                        <Input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          value={row.custoUnitario || ""}
-                          className="h-7 text-xs w-24 ml-auto text-right"
-                          readOnly
-                        />
-                      ) : (
-                        <Input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          value={row.custoUnitario || ""}
-                          onChange={e => {
-                            const val = Number(e.target.value) || 0;
-                            if (isExtra) {
-                              updateExtra(row.id, "custoUnitario", val);
-                            } else if (row.id === "instalacao") {
-                              setInstalacaoCusto(val);
-                            } else if (row.id === "comissao") {
-                              setComissaoCusto(val);
-                            }
-                          }}
-                          className="h-7 text-xs w-24 ml-auto text-right"
-                          disabled={!row.checked}
-                        />
-                      )}
-                    </div>
-                    {/* Custo Total */}
-                    <span className="text-right font-medium">
-                      {rowTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                    {/* Margem */}
-                    <span className="text-right text-muted-foreground">
-                      {rowMargem.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                    {/* Venda */}
-                    <span className="text-right font-medium">
-                      {rowVenda.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
-                    </span>
-                  </>
-                )}
-
-                {/* Delete button for extras */}
-                {isExtra && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 text-destructive/40 hover:text-destructive ml-1"
-                    onClick={() => removeExtra(row.id)}
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
+                      return (
+                        <div
+                          key={item.id}
+                          className={cn(
+                            "grid items-center px-4 pl-10 py-2 text-xs text-muted-foreground",
+                            viewMode === "resumido"
+                              ? "grid-cols-[auto_120px_1fr_80px_120px_100px]"
+                              : "grid-cols-[auto_120px_1fr_80px_120px_120px_120px_120px]"
+                          )}
+                        >
+                          <span className="w-6" />
+                          <span className="text-muted-foreground/70 text-[10px] font-medium">{catLabel}</span>
+                          <span>{item.fabricante} {item.modelo} {item.potencia_w > 0 ? `${item.potencia_w}W` : ""}</span>
+                          <span className="text-center">{item.quantidade}</span>
+                          {viewMode === "resumido" ? (
+                            <>
+                              <span />
+                              <span />
+                            </>
+                          ) : (
+                            <>
+                              <span />
+                              <span />
+                              <span />
+                              <span />
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             );
