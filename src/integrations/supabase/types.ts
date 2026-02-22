@@ -9776,6 +9776,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           data_aceite_estimativa: string | null
+          deal_id: string | null
           enviada_at: string | null
           fio_b_percent_aplicado: number | null
           id: string
@@ -9814,6 +9815,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_aceite_estimativa?: string | null
+          deal_id?: string | null
           enviada_at?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
@@ -9852,6 +9854,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           data_aceite_estimativa?: string | null
+          deal_id?: string | null
           enviada_at?: string | null
           fio_b_percent_aplicado?: number | null
           id?: string
@@ -9899,6 +9902,13 @@ export type Database = {
             columns: ["consultor_id"]
             isOneToOne: false
             referencedRelation: "consultores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "propostas_nativas_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
             referencedColumns: ["id"]
           },
           {
@@ -15214,6 +15224,19 @@ export type Database = {
         Returns: string
       }
       create_proposta_nativa_atomic:
+        | {
+            Args: {
+              p_deal_id?: string
+              p_lead_id?: string
+              p_origem?: string
+              p_potencia_kwp?: number
+              p_projeto_id?: string
+              p_snapshot?: Json
+              p_titulo: string
+              p_valor_total?: number
+            }
+            Returns: Json
+          }
         | {
             Args: {
               p_lead_id?: string
