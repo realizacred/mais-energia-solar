@@ -731,8 +731,8 @@ export function ProposalWizard() {
             <StepLocalizacao
               estado={locEstado} cidade={locCidade} tipoTelhado={locTipoTelhado}
               distribuidoraId={locDistribuidoraId}
-              onEstadoChange={(v) => { setLocEstado(v); setCliente(c => ({ ...c, estado: v })); }}
-              onCidadeChange={(v) => { setLocCidade(v); setCliente(c => ({ ...c, cidade: v })); }}
+              onEstadoChange={setLocEstado}
+              onCidadeChange={setLocCidade}
               onTipoTelhadoChange={(v) => {
                 setLocTipoTelhado(v);
                 // Propagar tipo de telhado para a UC geradora (ucs[0])
