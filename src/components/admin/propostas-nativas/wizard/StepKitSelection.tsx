@@ -374,6 +374,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           sistema={pd?.sistema}
           topologias={pd?.topologias}
           initialItens={editingKitIndex !== null ? manualKits[editingKitIndex]?.itens : undefined}
+          initialCardData={editingKitIndex !== null && manualKits[editingKitIndex] ? {
+            distribuidorNome: manualKits[editingKitIndex].card.distribuidorNome,
+            topologia: manualKits[editingKitIndex].card.topologia,
+          } : undefined}
         />
       )}
 
