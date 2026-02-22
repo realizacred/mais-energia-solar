@@ -43,7 +43,16 @@ export function ProjetosManager() {
     createDeal,
   } = useDealPipeline();
 
-  const [viewMode, setViewMode] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-consultor");
+  const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-consultor");
+
+  // When switching to "Consultores" view, auto-select all funnels
+  const setViewMode = (mode: "kanban-etapa" | "kanban-consultor" | "lista") => {
+    setViewModeRaw(mode);
+    if (mode === "kanban-consultor") {
+      setSelectedPipelineId(null);
+      applyFilters({ pipelineId: null });
+    }
+  };
   const [editingEtapasFunilId, setEditingEtapasFunilId] = useState<string | null>(null);
   const [novoProjetoOpen, setNovoProjetoOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
