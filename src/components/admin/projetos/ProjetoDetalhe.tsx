@@ -358,7 +358,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
       </div>
 
       {/* ── Header Card ── */}
-      <Card className="mb-4">
+      <Card className="mb-4 overflow-hidden">
         <CardContent className="p-4 sm:p-5">
           {/* Row 1: Title + Actions */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
@@ -408,7 +408,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
           </div>
 
           {/* Row 2: Tabs */}
-          <div className="flex items-center border-b border-border/60 -mx-4 sm:-mx-5 px-2 sm:px-5 overflow-x-auto scrollbar-hide">
+          <div className="flex items-center border-b border-border/60 -mx-4 sm:-mx-5 px-2 sm:px-5 overflow-x-auto scrollbar-hide overflow-y-hidden">
             {TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
