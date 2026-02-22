@@ -188,26 +188,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── 5. Audit log ──
-    try {
-      await supabase.from("audit_logs").insert({
-        tenant_id: tenantId,
-        tabela: "proposta_aceite_tokens",
-        acao: `proposta_${decisao}`,
-        registro_id: tokenData.proposta_id,
-        dados_novos: {
-          decisao,
-          token_id,
-          cliente_nome: clienteNome,
-          proposta_titulo: propostaTitulo,
-          notificados: targets.length,
-          push_sent: pushSent,
-          whatsapp_sent: whatsappSent,
-        },
-      });
-    } catch (e) {
-      console.warn("[proposal-decision-notify] Audit log failed:", e);
-    }
+    // ── 5. Audit log (structured log — audit_logs blocks direct INSERTs) ──
+    console.info("[proposal-decision-notify] Audit:", {
+      tenant_id: tenantId, decisao, token_id,
+      proposta_id: tokenData.proposta_id,
+      cliente_nome: clienteNome, proposta_titulo: propostaTitulo,
+      notificados: targets.length, push_sent: pushSent, whatsapp_sent: whatsappSent,
+    });
 
     console.log(`[proposal-decision-notify] Done: push=${pushSent}, wa=${whatsappSent}, targets=${targets.length}`);
 
