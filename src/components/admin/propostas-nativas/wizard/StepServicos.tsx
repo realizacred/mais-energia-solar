@@ -98,22 +98,11 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
           <h3 className="text-base font-bold flex items-center gap-2">
             <Wrench className="h-4 w-4 text-primary" /> Serviços
           </h3>
-          <Button variant="outline" size="sm" className="h-8 text-xs gap-1" onClick={addServico}>
-            <Plus className="h-3 w-3" /> Adicionar Serviço
-          </Button>
-        </div>
-
-        {/* SolarMarket info */}
-        <div className="flex items-start gap-3 px-4 py-3 rounded-lg bg-muted/30 border border-border/30">
-          <Info className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-          <p className="text-xs text-muted-foreground">
-            Utilize um distribuidor parceiro para ter opções adicionais de serviços.
-          </p>
         </div>
 
         {servicos.length === 0 ? (
           <div className="text-center py-12 text-sm text-muted-foreground">
-            Nenhum serviço adicionado. Clique em "Adicionar Serviço" para incluir itens como instalação, frete, etc.
+            Nenhum serviço configurado para esta proposta.
           </div>
         ) : (
           <div className="space-y-2">
