@@ -16032,6 +16032,7 @@ export type Database = {
       pricing_policy_status: "draft" | "active" | "archived"
       projeto_etapa_categoria: "aberto" | "ganho" | "perdido" | "excluido"
       projeto_status:
+        | "criado"
         | "aguardando_documentacao"
         | "em_analise"
         | "aprovado"
@@ -16290,6 +16291,7 @@ export const Constants = {
       pricing_policy_status: ["draft", "active", "archived"],
       projeto_etapa_categoria: ["aberto", "ganho", "perdido", "excluido"],
       projeto_status: [
+        "criado",
         "aguardando_documentacao",
         "em_analise",
         "aprovado",
