@@ -327,14 +327,31 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
     if (custo > 0) {
       const totalWeight = itens.reduce((s, i) => s + i.quantidade * Math.max(i.potencia_w, 1), 0);
       if (totalWeight > 0) {
-        itens.forEach(i => {
-          const weight = i.quantidade * Math.max(i.potencia_w, 1);
-          i.preco_unitario = Math.round(((weight / totalWeight) * custo / i.quantidade) * 100) / 100;
+        let distributed = 0;
+        itens.forEach((item, idx) => {
+          const weight = item.quantidade * Math.max(item.potencia_w, 1);
+          if (idx < itens.length - 1) {
+            item.preco_unitario = Math.round(((weight / totalWeight) * custo / item.quantidade) * 100) / 100;
+            distributed += item.preco_unitario * item.quantidade;
+          } else {
+            // Last item gets the remainder to avoid rounding drift
+            const remainder = custo - distributed;
+            item.preco_unitario = Math.round((remainder / item.quantidade) * 100) / 100;
+          }
         });
       } else {
-        // Equal distribution
-        const perItem = custo / itens.reduce((s, i) => s + i.quantidade, 0);
-        itens.forEach(i => { i.preco_unitario = Math.round(perItem * 100) / 100; });
+        // Equal distribution with remainder correction
+        const totalQty = itens.reduce((s, i) => s + i.quantidade, 0);
+        const perItem = Math.floor((custo / totalQty) * 100) / 100;
+        let distributed = 0;
+        itens.forEach((item, idx) => {
+          if (idx < itens.length - 1) {
+            item.preco_unitario = perItem;
+            distributed += perItem * item.quantidade;
+          } else {
+            item.preco_unitario = Math.round(((custo - distributed) / item.quantidade) * 100) / 100;
+          }
+        });
       }
     }
 
