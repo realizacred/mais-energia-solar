@@ -111,14 +111,13 @@ export function ProjectAddressFields({
         // Use ref to get the latest address (avoids stale closure)
         const current = addressRef.current;
         const updated: ProjectAddress = {
-          ...current,
           cep: formatCEP(digits),
-          rua: data.logradouro || current.rua,
-          bairro: data.bairro || current.bairro,
-          cidade: data.localidade || current.cidade,
-          uf: data.uf || current.uf,
-          complemento: data.complemento || current.complemento,
-          numero: current.numero,
+          rua: data.logradouro || "",
+          bairro: data.bairro || "",
+          cidade: data.localidade || "",
+          uf: data.uf || "",
+          complemento: data.complemento || "",
+          numero: "",
           lat: null,
           lon: null,
         };
