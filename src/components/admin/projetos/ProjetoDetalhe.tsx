@@ -1879,11 +1879,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
         </div>
       )}
 
-      {loadingLeads && (
-        <div className="flex items-center gap-2 text-xs text-muted-foreground py-2">
-          <Loader2 className="h-3.5 w-3.5 animate-spin" /> Buscando orçamentos vinculados...
-        </div>
-      )}
 
       {/* Proposals */}
       {propostas.length === 0 ? (
