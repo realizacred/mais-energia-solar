@@ -366,6 +366,17 @@ export function CustomFieldsSettings() {
           </div>
 
           <Card>
+            <CardHeader className="pb-2 px-4 pt-4">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <LayoutGrid className="h-4 w-4 text-primary" />
+                Campos de {CONTEXT_LABELS[contextFilter]}
+              </CardTitle>
+              <p className="text-xs text-muted-foreground">
+                {contextFilter === "projeto" && "Campos exibidos no cadastro e funil de projetos"}
+                {contextFilter === "pre_dimensionamento" && "Campos exibidos na etapa de pré-dimensionamento da proposta"}
+                {contextFilter === "pos_dimensionamento" && "Campos exibidos na etapa de pós-dimensionamento da proposta"}
+              </p>
+            </CardHeader>
             <CardContent className="p-0">
               {filteredFields.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
