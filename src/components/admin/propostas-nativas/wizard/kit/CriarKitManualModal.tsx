@@ -625,11 +625,9 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
                   <Label className="text-xs font-bold text-amber-600 flex items-center gap-1.5">
                     <Zap className="h-3 w-3" /> Otimizador *
                   </Label>
-                  {otimizadorEntries.length > 1 && (
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setOtimizadorEntries(p => p.filter(x => x.id !== ot.id))}>
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
+                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive/60" onClick={() => setOtimizadorEntries(p => p.filter(x => x.id !== ot.id))}>
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
 
                 {ot.avulso ? (
