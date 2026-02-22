@@ -147,6 +147,7 @@ export function ProjetosManager() {
       <ProjetoDetalhe
         dealId={selectedDealId}
         onBack={() => setSelectedDealId(null)}
+        initialPipelineId={selectedPipelineId || undefined}
       />
     );
   }

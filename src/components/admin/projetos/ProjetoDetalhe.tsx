@@ -102,6 +102,7 @@ interface PipelineInfo {
 interface Props {
   dealId: string;
   onBack: () => void;
+  initialPipelineId?: string;
 }
 
 const TABS = [
@@ -114,7 +115,7 @@ const TABS = [
 
 type TabId = typeof TABS[number]["id"];
 
-export function ProjetoDetalhe({ dealId, onBack }: Props) {
+export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   const navigate = useNavigate();
   const [deal, setDeal] = useState<DealDetail | null>(null);
   const [history, setHistory] = useState<StageHistory[]>([]);
@@ -446,6 +447,7 @@ export function ProjetoDetalhe({ dealId, onBack }: Props) {
               pipelines={pipelines}
               allStagesMap={allStagesMap}
               onMembershipChange={silentRefresh}
+              initialPipelineId={initialPipelineId}
             />
           </CardContent>
         </Card>
