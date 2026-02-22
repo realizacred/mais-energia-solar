@@ -40,6 +40,7 @@ import { useWizardLocalDraft } from "./wizard/hooks/useWizardLocalDraft";
 import { StepPagamento } from "./wizard/StepPagamento";
 import { StepDocumento } from "./wizard/StepDocumento";
 import { DialogPosDimensionamento } from "./wizard/DialogPosDimensionamento";
+import { ProposalAuditPanel } from "./wizard/ProposalAuditPanel";
 import { WizardSidebar, type WizardStep } from "./wizard/WizardSidebar";
 import { WizardStepCard } from "./wizard/WizardStepCard";
 import { useSavedFeedback, SavedFeedbackInline } from "./wizard/SavedFeedback";
@@ -1221,6 +1222,21 @@ export function ProposalWizard() {
           <AnimatePresence mode="wait">
             {renderStepContent()}
           </AnimatePresence>
+
+          {/* Audit Panel — visible in debug mode */}
+          {debugMode && (
+            <div className="mt-4">
+              <ProposalAuditPanel
+                snapshot={collectSnapshot()}
+                propostaId={savedPropostaId}
+                versaoId={savedVersaoId}
+                projetoId={projectContext?.dealId || null}
+                dealId={resolvedDealId || dealIdFromUrl || null}
+                clienteId={customerIdFromUrl || null}
+                leadId={selectedLead?.id || leadIdFromUrl || null}
+              />
+            </div>
+          )}
         </div>
       </div>
 
