@@ -120,12 +120,18 @@ export function useWizardPersistence() {
       }
 
       // === UPDATE: proposta + versão already exist ===
+      const propostaUpdateData: any = {
+        titulo: params.titulo || "Proposta sem título",
+        updated_at: new Date().toISOString(),
+      };
+      // Always ensure projeto_id is set (fixes legacy proposals with null projeto_id)
+      if (params.projetoId) {
+        propostaUpdateData.projeto_id = params.projetoId;
+      }
+
       await supabase
         .from("propostas_nativas")
-        .update({
-          titulo: params.titulo || "Proposta sem título",
-          updated_at: new Date().toISOString(),
-        } as any)
+        .update(propostaUpdateData)
         .eq("id", propostaId);
 
       if (versaoId) {
@@ -170,6 +176,7 @@ export function useWizardPersistence() {
         updated_at: new Date().toISOString(),
       };
       if (setActive) propostaUpdate.status = "gerada";
+      if (params.projetoId) propostaUpdate.projeto_id = params.projetoId;
 
       await supabase
         .from("propostas_nativas")
