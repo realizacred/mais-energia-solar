@@ -666,9 +666,8 @@ export function CustomFieldsSettings() {
                 })()}
               </div>
 
-              <Separator />
-
-              <div className="space-y-5">
+              {/* ── Card: Dados do Campo ── */}
+              <div className="rounded-lg border bg-card p-4 space-y-4">
                 <h4 className="text-sm font-semibold text-foreground">Dados do Campo</h4>
 
                 {/* Title + Variable */}
@@ -744,98 +743,95 @@ export function CustomFieldsSettings() {
                     </p>
                   </div>
                 )}
-
-                {/* ── Context-specific fields ── */}
-
-                {/* PROJETO context */}
-                {fieldForm.field_context === "projeto" && (
-                  <>
-                    <Separator />
-                    <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
-
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Mostrar campo em novo projeto?</Label>
-                      <Select
-                        value={fieldForm.show_on_create ? "sim" : "nao"}
-                        onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
-                      >
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sim">Sim</SelectItem>
-                          <SelectItem value="nao">Não</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-xs font-medium">Visibilidade em funis?</Label>
-                      <div className="flex gap-4">
-                        <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                          <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
-                            onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: true }))}
-                            className="accent-primary" />
-                          Todos
-                        </label>
-                        <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                          <input type="radio" name="fieldVis" checked={!fieldForm.visible_on_funnel}
-                            onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: false }))}
-                            className="accent-primary" />
-                          Nenhum
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">Importante no funil:</Label>
-                        <Select
-                          value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
-                          onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
-                        >
-                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="nenhum">Nenhum</SelectItem>
-                            <SelectItem value="sim">Sim</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-medium">Obrigatório no funil:</Label>
-                        <Select
-                          value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
-                          onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
-                        >
-                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="nenhum">Nenhum</SelectItem>
-                            <SelectItem value="sim">Sim</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* PRE/POS DIMENSIONAMENTO context */}
-                {(fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento") && (
-                  <>
-                    <Separator />
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Campo obrigatório?</Label>
-                      <Select
-                        value={fieldForm.required_on_proposal ? "sim" : "nao"}
-                        onValueChange={v => setFieldForm(p => ({ ...p, required_on_proposal: v === "sim" }))}
-                      >
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sim">Sim, obrigatório na proposta</SelectItem>
-                          <SelectItem value="nao">Não</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
               </div>
+
+              {/* ── Card: Comportamento (PROJETO context) ── */}
+              {fieldForm.field_context === "projeto" && (
+                <div className="rounded-lg border bg-card p-4 space-y-4">
+                  <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Mostrar campo em novo projeto?</Label>
+                    <Select
+                      value={fieldForm.show_on_create ? "sim" : "nao"}
+                      onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
+                    >
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sim">Sim</SelectItem>
+                        <SelectItem value="nao">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">Visibilidade em funis?</Label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                        <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
+                          onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: true }))}
+                          className="accent-primary" />
+                        Todos
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                        <input type="radio" name="fieldVis" checked={!fieldForm.visible_on_funnel}
+                          onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: false }))}
+                          className="accent-primary" />
+                        Nenhum
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Importante no funil:</Label>
+                      <Select
+                        value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
+                        onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
+                      >
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nenhum">Nenhum</SelectItem>
+                          <SelectItem value="sim">Sim</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-medium">Obrigatório no funil:</Label>
+                      <Select
+                        value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
+                        onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
+                      >
+                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="nenhum">Nenhum</SelectItem>
+                          <SelectItem value="sim">Sim</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Card: Comportamento (PRE/POS DIMENSIONAMENTO context) ── */}
+              {(fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento") && (
+                <div className="rounded-lg border bg-card p-4 space-y-4">
+                  <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-medium">Campo obrigatório?</Label>
+                    <Select
+                      value={fieldForm.required_on_proposal ? "sim" : "nao"}
+                      onValueChange={v => setFieldForm(p => ({ ...p, required_on_proposal: v === "sim" }))}
+                    >
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sim">Sim, obrigatório na proposta</SelectItem>
+                        <SelectItem value="nao">Não</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
