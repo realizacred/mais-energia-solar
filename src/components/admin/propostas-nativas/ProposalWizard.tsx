@@ -495,6 +495,18 @@ export function ProposalWizard() {
           cidade: cli.cidade || "", estado: cli.estado || "",
         });
 
+        // Populate project address fields from customer data
+        setProjectAddress(prev => ({
+          ...prev,
+          cep: cli.cep || prev.cep,
+          rua: cli.rua || prev.rua,
+          numero: cli.numero || prev.numero,
+          complemento: cli.complemento || prev.complemento,
+          bairro: cli.bairro || prev.bairro,
+          cidade: cli.cidade || prev.cidade,
+          uf: cli.estado || prev.uf,
+        }));
+
         if (cli.estado) setLocEstado(cli.estado);
         if (cli.cidade) setLocCidade(cli.cidade);
 
