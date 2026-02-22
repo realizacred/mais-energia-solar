@@ -116,7 +116,8 @@ export function useOfflineConversionSync() {
         // Create new client
         const { data: created, error: insertError } = await supabase
           .from("clientes")
-          .insert({ ...clientePayload, lead_id: conversion.leadId })
+          // cliente_code é gerado automaticamente pelo trigger generate_cliente_code()
+          .insert({ ...clientePayload, lead_id: conversion.leadId } as any)
           .select("id")
           .single();
 
