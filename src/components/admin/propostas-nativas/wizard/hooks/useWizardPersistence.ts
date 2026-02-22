@@ -169,7 +169,7 @@ export function useWizardPersistence() {
         .from("propostas_nativas")
         .update({
           titulo: params.titulo || "Proposta sem título",
-          status: setActive ? "generated" : undefined,
+          status: setActive ? "gerada" : undefined,
           updated_at: new Date().toISOString(),
         } as any)
         .eq("id", params.propostaId);
@@ -182,7 +182,7 @@ export function useWizardPersistence() {
         updated_at: new Date().toISOString(),
       };
       if (setActive) {
-        updateData.status = "generated";
+        updateData.status = "gerada";
         updateData.gerado_em = new Date().toISOString();
       }
 
