@@ -9926,6 +9926,13 @@ export type Database = {
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "propostas_nativas_tenant_projeto_fkey"
+            columns: ["tenant_id", "projeto_id"]
+            isOneToOne: false
+            referencedRelation: "projetos"
+            referencedColumns: ["tenant_id", "id"]
+          },
         ]
       }
       propostas_sm_legado: {
@@ -15196,26 +15203,18 @@ export type Database = {
         Args: { _dataset_code: string; _metadata?: Json; _version_tag: string }
         Returns: string
       }
-      create_proposta_nativa_atomic:
-        | {
-            Args: { p_payload: Json; p_projeto_id: string }
-            Returns: {
-              projeto_id: string
-              proposta_id: string
-            }[]
-          }
-        | {
-            Args: {
-              p_lead_id?: string
-              p_origem?: string
-              p_potencia_kwp?: number
-              p_projeto_id?: string
-              p_snapshot?: Json
-              p_titulo: string
-              p_valor_total?: number
-            }
-            Returns: Json
-          }
+      create_proposta_nativa_atomic: {
+        Args: {
+          p_lead_id?: string
+          p_origem?: string
+          p_potencia_kwp?: number
+          p_projeto_id?: string
+          p_snapshot?: Json
+          p_titulo: string
+          p_valor_total?: number
+        }
+        Returns: Json
+      }
       decrypt_secret: { Args: { enc: string; secret: string }; Returns: string }
       encrypt_secret: {
         Args: { plain: string; secret: string }
