@@ -43,6 +43,7 @@ interface PropostaData {
   versao_atual: number | null;
   status: string;
   created_at: string;
+  cliente_nome: string | null;
   versoes: VersaoData[];
 }
 
@@ -349,7 +350,7 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
           <div className="min-w-0 flex-shrink-0 w-[200px]">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground truncate">
-                {p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
+                {p.cliente_nome || p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
               </p>
               <StatusBadge status={p.status} />
             </div>
