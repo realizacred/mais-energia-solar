@@ -137,11 +137,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [publicUrl, setPublicUrl] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [auditLogs, setAuditLogs] = useState<Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>>([]);
 
   // Load expanded data when expanded
   useEffect(() => {
     if (!isExpanded || !latestVersao?.id) return;
     setLoadingDetail(true);
+
+    const versaoIds = p.versoes.map(v => v.id);
 
     Promise.all([
       supabase
@@ -154,11 +157,19 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         .select("id, nome, consumo_mensal_kwh, geracao_mensal_estimada, tarifa_energia, percentual_atendimento")
         .eq("versao_id", latestVersao.id)
         .order("ordem"),
-    ]).then(([snapRes, ucsRes]) => {
+      // Audit logs for proposta + all versoes
+      supabase
+        .from("audit_logs")
+        .select("id, acao, tabela, user_email, created_at")
+        .or(`and(tabela.eq.propostas_nativas,registro_id.eq.${p.id}),and(tabela.eq.proposta_versoes,registro_id.in.(${versaoIds.join(",")}))`)
+        .order("created_at", { ascending: false })
+        .limit(50),
+    ]).then(([snapRes, ucsRes, auditRes]) => {
       if (snapRes.data?.snapshot) {
         setSnapshot(snapRes.data.snapshot as any);
       }
       setUcsDetail((ucsRes.data as UCDetailData[]) || []);
+      setAuditLogs((auditRes.data as any[]) || []);
       setLoadingDetail(false);
     });
   }, [isExpanded, latestVersao?.id]);
@@ -804,34 +815,43 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
 
                   {/* ─ Histórico Tab ──────────── */}
                   <TabsContent value="historico" className="px-4 pb-4 mt-0">
-                    <div className="mt-3 space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                        {p.versoes.length} versão(ões)
-                      </p>
-                      {p.versoes.map(v => (
-                        <div
-                          key={v.id}
-                          onClick={() => navigate(`/admin/propostas-nativas/${p.id}/versoes/${v.id}`)}
-                          className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-muted/60 cursor-pointer transition-colors border border-border/30"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className="text-xs font-bold text-muted-foreground w-8">v{v.versao_numero}</span>
-                            <StatusBadge status={v.status} />
-                            <span className="text-[10px] text-muted-foreground">
-                              {new Date(v.created_at).toLocaleDateString("pt-BR")}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                            {v.potencia_kwp && v.potencia_kwp > 0 && (
-                              <span className="flex items-center gap-0.5">
-                                <Zap className="h-3 w-3 text-warning" />{v.potencia_kwp} kWp
-                              </span>
-                            )}
-                            <span className="font-bold text-foreground">{formatBRL(v.valor_total)}</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </div>
+                    <div className="mt-3">
+                      {auditLogs.length === 0 ? (
+                        <p className="text-xs text-muted-foreground text-center py-8">Nenhum registro de histórico encontrado</p>
+                      ) : (
+                        <div className="relative pl-6">
+                          {/* Timeline line */}
+                          <div className="absolute left-[11px] top-2 bottom-2 w-0.5 bg-primary/20" />
+
+                          {auditLogs.map((log, idx) => {
+                            const actionLabel = getAuditLabel(log.acao, log.tabela);
+                            const userName = log.user_email?.split("@")[0]?.toUpperCase() || "SISTEMA";
+                            const dateStr = new Date(log.created_at).toLocaleDateString("pt-BR");
+                            const timeStr = new Date(log.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+                            return (
+                              <div key={log.id} className="relative flex gap-3 pb-5 last:pb-0">
+                                {/* Timeline dot */}
+                                <div className="absolute -left-6 mt-1">
+                                  <div className="h-5 w-5 rounded-full bg-muted border-2 border-primary/30 flex items-center justify-center">
+                                    <div className="h-2 w-2 rounded-full bg-primary/60" />
+                                  </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="min-w-0">
+                                  <p className="text-xs font-bold text-foreground">{userName}</p>
+                                  <p className="text-[10px] text-muted-foreground">{dateStr} às {timeStr}</p>
+                                  <p className="text-xs text-primary mt-0.5 flex items-center gap-1.5">
+                                    <span className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">P</span>
+                                    {actionLabel}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
-                      ))}
+                      )}
                     </div>
                   </TabsContent>
                 </>
@@ -861,6 +881,20 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       </AlertDialog>
     </>
   );
+}
+
+function getAuditLabel(acao: string, tabela: string): string {
+  if (tabela === "propostas_nativas") {
+    if (acao === "INSERT") return "Criou a proposta";
+    if (acao === "UPDATE") return "Editou a proposta";
+    if (acao === "DELETE") return "Excluiu a proposta";
+  }
+  if (tabela === "proposta_versoes") {
+    if (acao === "INSERT") return "Gerou modelo da proposta";
+    if (acao === "UPDATE") return "Atualizou versão da proposta";
+    if (acao === "DELETE") return "Removeu versão da proposta";
+  }
+  return `${acao} em ${tabela}`;
 }
 
 function DataItem({ label, value }: { label: string; value: string }) {
