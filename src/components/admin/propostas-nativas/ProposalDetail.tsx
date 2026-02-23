@@ -220,6 +220,14 @@ export function ProposalDetail() {
         }
       }
 
+      // ── Cancelar comissão pendente se proposta recusada/cancelada ──
+      if ((newStatus === "recusada" || newStatus === "cancelada") && proposta.projeto_id) {
+        await supabase.from("comissoes")
+          .update({ status: "cancelada", observacoes: `Proposta ${newStatus}` })
+          .eq("projeto_id", proposta.projeto_id)
+          .eq("status", "pendente");
+      }
+
       setProposta((prev: any) => ({ ...prev, status: newStatus }));
       toast({ title: `Proposta marcada como "${STATUS_CONFIG[newStatus]?.label || newStatus}"` });
     } catch (e: any) {
