@@ -21,6 +21,7 @@ interface PendingDocumentationWidgetProps {
   onLeadClick?: (lead: Lead) => void;
   onConvertClick?: (lead: Lead) => void;
   maxItems?: number;
+  refreshKey?: number;
 }
 
 // Helper to parse missing docs from observacoes
@@ -34,14 +35,15 @@ function parseMissingDocs(observacoes: string | null): string[] {
 export function PendingDocumentationWidget({ 
   onLeadClick,
   onConvertClick,
-  maxItems = 10 
+  maxItems = 10,
+  refreshKey = 0,
 }: PendingDocumentationWidgetProps) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadPendingLeads();
-  }, []);
+  }, [refreshKey]);
 
   const loadPendingLeads = async () => {
     try {
