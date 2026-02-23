@@ -19,7 +19,7 @@ import { toast } from "@/hooks/use-toast";
 
 import { KitFilters, DEFAULT_FILTERS, type KitFiltersState } from "./kit/KitFilters";
 import { KitCard, type KitCardData } from "./kit/KitCard";
-import { CriarKitManualModal } from "./kit/CriarKitManualModal";
+import { CriarKitManualModal, type KitMeta } from "./kit/CriarKitManualModal";
 import { EditarKitFechadoModal, type SelectedKit } from "./kit/EditarKitFechadoModal";
 import { EditarLayoutModal } from "./kit/EditarLayoutModal";
 
@@ -51,8 +51,8 @@ interface Props {
   preDimensionamento?: PreDimensionamentoData;
   onPreDimensionamentoChange?: (pd: PreDimensionamentoData) => void;
   consumoTotal?: number;
-  manualKits?: { card: KitCardData; itens: KitItemRow[] }[];
-  onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[] }[]) => void;
+  manualKits?: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[];
+  onManualKitsChange?: (kits: { card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]) => void;
 }
 
 type TabType = "customizado" | "fechado" | "manual";
@@ -95,7 +95,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   const [showChoiceModal, setShowChoiceModal] = useState(false);
   const [manualMode, setManualMode] = useState<"equipamentos" | "zero" | null>(null);
   // Use lifted state if provided, fallback to local
-  const [localManualKits, setLocalManualKits] = useState<{ card: KitCardData; itens: KitItemRow[] }[]>([]);
+  const [localManualKits, setLocalManualKits] = useState<{ card: KitCardData; itens: KitItemRow[]; meta?: KitMeta }[]>([]);
   const manualKits = onManualKitsChange ? manualKitsProp : localManualKits;
   const setManualKits = onManualKitsChange || setLocalManualKits;
   const [editingKitIndex, setEditingKitIndex] = useState<number | null>(null);
@@ -130,15 +130,18 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
     toast({ title: "Kit selecionado", description: `${entry.card.moduloPotenciaKwp.toFixed(2)} kWp` });
   };
 
-  const handleManualKitCreated = (newItens: KitItemRow[]) => {
-    const topoLabel = pd?.topologias?.[0] || "Tradicional";
+  const handleManualKitCreated = (newItens: KitItemRow[], meta?: KitMeta) => {
+    const topoLabel = meta?.topologia || pd?.topologias?.[0] || "Tradicional";
     const card = kitItemsToCardData(newItens, topoLabel);
     if (card) {
+      if (meta?.distribuidorNome) card.distribuidorNome = meta.distribuidorNome;
+      if (meta?.custo) card.precoTotal = meta.custo;
+
       if (editingKitIndex !== null) {
-        setManualKits(manualKits.map((k, i) => i === editingKitIndex ? { card, itens: newItens } : k));
+        setManualKits(manualKits.map((k, i) => i === editingKitIndex ? { card, itens: newItens, meta } : k));
         setEditingKitIndex(null);
       } else {
-        setManualKits([...manualKits, { card, itens: newItens }]);
+        setManualKits([...manualKits, { card, itens: newItens, meta }]);
       }
     }
     setManualMode(null);
@@ -374,7 +377,7 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
           sistema={pd?.sistema}
           topologias={pd?.topologias}
           initialItens={editingKitIndex !== null ? manualKits[editingKitIndex]?.itens : undefined}
-          initialCardData={editingKitIndex !== null && manualKits[editingKitIndex] ? {
+          initialCardData={editingKitIndex !== null && manualKits[editingKitIndex] ? manualKits[editingKitIndex].meta || {
             distribuidorNome: manualKits[editingKitIndex].card.distribuidorNome,
             topologia: manualKits[editingKitIndex].card.topologia,
           } : undefined}
