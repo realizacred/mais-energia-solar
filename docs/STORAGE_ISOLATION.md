@@ -11,18 +11,25 @@ O path obrigatório para uploads agora é: `{tenant_id}/...rest`
 
 ---
 
-## BUCKETS AFETADOS (8/8)
+## BUCKETS AUDITADOS (11/15)
 
-| Bucket | Público | Policies Criadas |
-|--------|---------|-----------------|
-| `brand-assets` | ✅ | SELECT public, INSERT/UPDATE/DELETE admin+tenant |
-| `obras-portfolio` | ✅ | SELECT public, INSERT/UPDATE/DELETE admin+tenant |
-| `wa-attachments` | ✅ | SELECT public, INSERT auth+tenant, DELETE admin+tenant |
-| `contas-luz` | ❌ | ALL admin+tenant, SELECT/INSERT vendedor+tenant, INSERT anon (UUID check) |
-| `lead-arquivos` | ❌ | ALL admin+tenant, SELECT vendedor+tenant, INSERT anon (UUID check) |
-| `documentos-clientes` | ❌ | ALL admin+tenant, SELECT/INSERT vendedor+tenant |
-| `checklist-assets` | ❌ | ALL admin+tenant, SELECT/INSERT instalador+tenant+user |
-| `comprovantes` | ❌ | ALL admin+tenant, SELECT/INSERT financeiro+tenant |
+| Bucket | Público | Policies Tenant-Scoped | Status |
+|--------|---------|----------------------|--------|
+| `brand-assets` | ✅ | SELECT public, INSERT/UPDATE/DELETE admin+tenant | ✅ |
+| `obras-portfolio` | ✅ | SELECT public, INSERT/UPDATE/DELETE admin+tenant | ✅ |
+| `wa-attachments` | ✅ | SELECT public, INSERT auth+tenant, DELETE admin+tenant | ✅ |
+| `contas-luz` | ❌ | ALL admin+tenant, SELECT/INSERT vendedor+tenant, INSERT anon (UUID check) | ✅ |
+| `lead-arquivos` | ❌ | ALL admin+tenant, SELECT vendedor+tenant, INSERT anon (UUID check) | ✅ |
+| `documentos-clientes` | ❌ | ALL admin+tenant, SELECT/INSERT vendedor+tenant | ✅ |
+| `checklist-assets` | ❌ | ALL admin+tenant, SELECT/INSERT instalador+tenant+user | ✅ |
+| `comprovantes` | ❌ | ALL admin+tenant, SELECT/INSERT financeiro+tenant | ✅ |
+| `module-datasheets` | ✅ | SELECT public, INSERT/UPDATE auth+tenant, DELETE admin+tenant | ✅ (Phase 10) |
+| `projeto-documentos` | ❌ | INSERT/SELECT/DELETE tenant-scoped via get_user_tenant_id() | ✅ |
+| `proposal-signatures` | ❌ | SELECT auth, INSERT auth (⚠️ sem tenant path) | ⚠️ TODO |
+| `proposta-templates` | ❌ | ALL auth (⚠️ sem tenant path) | ⚠️ TODO |
+| `irradiance-source` | ❌ | SELECT/INSERT/UPDATE auth (⚠️ sem tenant path) | ⚠️ TODO |
+| `irradiance-artifacts` | ❌ | SELECT auth (⚠️ sem tenant path) | ⚠️ TODO |
+| `document-files` | ❌ | Sem policies verificadas | ⚠️ TODO |
 
 ---
 

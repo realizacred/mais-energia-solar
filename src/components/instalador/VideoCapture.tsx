@@ -65,11 +65,10 @@
       try {
         const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
         const tid = await getCurrentTenantId();
+        if (!tid) throw new Error("Tenant não encontrado. Faça login novamente.");
         const { data: { user } } = await supabase.auth.getUser();
         const userId = user?.id || 'unknown';
-        const fileName = tid
-          ? tenantPath(tid, userId, servicoId, `video_${Date.now()}.webm`)
-          : `${userId}/${servicoId}/video_${Date.now()}.webm`;
+        const fileName = tenantPath(tid, userId, servicoId, `video_${Date.now()}.webm`);
        
        const { error } = await supabase.storage
          .from('checklist-assets')

@@ -40,8 +40,11 @@ export function DatasheetSection({
 
     setUploading(true);
     try {
-      // Upload to storage
-      const path = `datasheets/${Date.now()}_${file.name}`;
+      // Upload to storage with tenant prefix
+      const { getCurrentTenantId, tenantPath } = await import("@/lib/storagePaths");
+      const tid = await getCurrentTenantId();
+      if (!tid) throw new Error("Tenant não encontrado. Faça login novamente.");
+      const path = tenantPath(tid, "datasheets", `${Date.now()}_${file.name}`);
       const { error: uploadErr } = await supabase.storage
         .from("module-datasheets")
         .upload(path, file, { contentType: "application/pdf" });
