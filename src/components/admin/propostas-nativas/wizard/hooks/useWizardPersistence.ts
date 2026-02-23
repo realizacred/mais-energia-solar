@@ -77,6 +77,8 @@ interface PersistenceParams {
   snapshot: WizardSnapshot;
   potenciaKwp: number;
   precoFinal: number;
+  economiaMensal?: number;
+  geracaoMensal?: number;
   leadId?: string;
   projetoId?: string;
   dealId?: string;
@@ -228,6 +230,7 @@ export function useWizardPersistence() {
           .update({
             potencia_kwp: params.potenciaKwp,
             valor_total: params.precoFinal,
+            economia_mensal: params.economiaMensal || null,
             snapshot: params.snapshot as any,
             updated_at: new Date().toISOString(),
           } as any)
@@ -286,10 +289,11 @@ export function useWizardPersistence() {
         // Version is immutable — create a new version
         const { data: newVersao, error: createErr } = await supabase
           .from("proposta_versoes")
-          .insert({
+           .insert({
             proposta_id: params.propostaId,
             potencia_kwp: params.potenciaKwp,
             valor_total: params.precoFinal,
+            economia_mensal: params.economiaMensal || null,
             snapshot: params.snapshot as any,
             status: setActive ? "generated" : "draft",
             snapshot_locked: setActive,
@@ -308,6 +312,7 @@ export function useWizardPersistence() {
         const updateData: any = {
           potencia_kwp: params.potenciaKwp,
           valor_total: params.precoFinal,
+          economia_mensal: params.economiaMensal || null,
           snapshot: params.snapshot,
           updated_at: new Date().toISOString(),
         };
