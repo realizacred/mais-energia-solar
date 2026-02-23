@@ -583,10 +583,22 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 sm:gap-2">
             <Button variant="outline" onClick={onClose}>
               Fechar
             </Button>
+            {(nameChanged || emailChanged) && (
+              <Button
+                onClick={async () => {
+                  if (nameChanged) await handleSaveName();
+                  if (emailChanged) await handleUpdateEmail();
+                }}
+                disabled={isSaving || isUpdatingEmail}
+              >
+                {(isSaving || isUpdatingEmail) ? <Spinner size="sm" className="mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+                Salvar
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
