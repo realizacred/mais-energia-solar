@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ShoppingCart, FileText, MapPin, Navigation, Save, WifiOff, AlertCircle, Receipt, User, Wrench } from "lucide-react";
+import { formatCEP } from "@/lib/validations";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -147,6 +148,23 @@ export function ConvertLeadToClientDialog({
 
   // Explicit subscription so programmatic setValue always reflects in the UI
   const localizacaoValue = useWatch({ control: form.control, name: "localizacao" });
+
+  // CEP lookup via ViaCEP
+  const handleCEPBlur = useCallback(async (cepValue: string) => {
+    const digits = cepValue.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) return;
+      if (data.uf) form.setValue("estado", data.uf, { shouldValidate: true });
+      if (data.localidade) form.setValue("cidade", data.localidade, { shouldValidate: true });
+      if (data.bairro) form.setValue("bairro", data.bairro);
+      if (data.logradouro) form.setValue("rua", data.logradouro);
+    } catch {
+      // silently ignore fetch errors
+    }
+  }, [form]);
 
   // Track online status
   useEffect(() => {
@@ -802,7 +820,16 @@ export function ConvertLeadToClientDialog({
                     <FormItem>
                       <FormLabel>CEP</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input
+                          {...field}
+                          maxLength={9}
+                          onChange={(e) => field.onChange(formatCEP(e.target.value))}
+                          onBlur={(e) => {
+                            field.onBlur();
+                            handleCEPBlur(e.target.value);
+                          }}
+                          placeholder="00000-000"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
