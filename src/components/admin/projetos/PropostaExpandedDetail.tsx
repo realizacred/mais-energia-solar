@@ -700,15 +700,105 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   </TabsContent>
 
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
-                      <DataItem label="Potência" value={latestVersao?.potencia_kwp ? `${latestVersao.potencia_kwp.toFixed(2)} kWp` : "—"} />
-                      <DataItem label="Geração Mensal" value={latestVersao?.geracao_mensal ? `${latestVersao.geracao_mensal.toFixed(0)} kWh` : "—"} />
-                      <DataItem label="Economia Mensal" value={latestVersao?.economia_mensal ? formatBRL(latestVersao.economia_mensal) : "—"} />
-                      <DataItem label="Payback" value={latestVersao?.payback_meses ? `${latestVersao.payback_meses} meses` : "—"} />
-                      <DataItem label="Valor Total" value={formatBRL(latestVersao?.valor_total || 0)} />
-                      <DataItem label="R$/Wp" value={wpPrice ? `R$ ${wpPrice}` : "—"} />
-                      <DataItem label="Status" value={STATUS_MAP[p.status]?.label || p.status} />
-                      <DataItem label="Versão" value={`v${latestVersao?.versao_numero || 1}`} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mt-3">
+                      {/* Pré dimensionamento */}
+                      <div className="border rounded-lg p-4 space-y-4">
+                        <h4 className="text-sm font-bold text-foreground">Pré dimensionamento</h4>
+                        {(() => {
+                          const pre = (snapshot as any)?.preDimensionamento || {};
+                          const loc = snapshot as any;
+                          return (
+                            <div className="space-y-3">
+                              <DadosField icon="check" label="Telhado" value={loc?.locTipoTelhado || "—"} />
+                              <DadosField icon="text" label="Topologia" value={pre.topologias?.join(", ") || "—"} />
+                              <DadosField icon="text" label="Sistema" value={pre.sistema || "—"} />
+                              <DadosField icon="text" label="Inclinação" value={pre.inclinacao != null ? `${pre.inclinacao}°` : "—"} />
+                              <DadosField icon="text" label="Desvio Azimutal" value={pre.desvio_azimutal != null ? `${pre.desvio_azimutal}°` : "—"} />
+                              <DadosField icon="text" label="Sombreamento" value={pre.sombreamento || "—"} />
+                              <DadosField icon="text" label="Fator de Geração" value={pre.fator_geracao ? `${pre.fator_geracao}` : "—"} />
+                              <DadosField icon="text" label="Desempenho" value={pre.desempenho ? `${pre.desempenho}%` : "—"} />
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Pós dimensionamento */}
+                      <div className="border rounded-lg p-4 space-y-4">
+                        <h4 className="text-sm font-bold text-foreground">Pós dimensionamento</h4>
+                        {(() => {
+                          const venda = (snapshot as any)?.venda || {};
+                          const adicionais = (snapshot as any)?.adicionais || [];
+                          const customFields = (snapshot as any)?.customFieldValues || {};
+                          return (
+                            <div className="space-y-3">
+                              <DadosField icon="dollar" label="Margem" value={venda.margem_percentual ? `${venda.margem_percentual}%` : "—"} />
+                              <DadosField icon="dollar" label="Desconto" value={venda.desconto_percentual ? `${venda.desconto_percentual}%` : "—"} />
+                              <DadosField icon="text" label="Observações" value={venda.observacoes || "—"} />
+                              {Object.entries(customFields).map(([key, val]) => (
+                                <DadosField key={key} icon="text" label={key} value={String(val) || "—"} />
+                              ))}
+                              {adicionais.map((add: any, i: number) => (
+                                <DadosField key={i} icon="check" label={add.descricao || add.nome || `Adicional ${i + 1}`} value={add.valor ? formatBRL(add.valor) : add.incluso ? "Grátis" : "—"} />
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Serviços */}
+                      <div className="border rounded-lg p-4 space-y-4">
+                        <h4 className="text-sm font-bold text-foreground">Serviços</h4>
+                        {(() => {
+                          const servicos = (snapshot as any)?.servicos || (snapshot as any)?.preDimensionamento?.servicos || [];
+                          if (!servicos || servicos.length === 0) {
+                            return (
+                              <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                                <AlertCircle className="h-8 w-8 text-warning/50 mb-2" />
+                                <p className="text-xs">Nenhum serviço selecionado</p>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="space-y-3">
+                              {servicos.map((s: any, i: number) => (
+                                <DadosField key={i} icon="check" label={s.descricao || s.nome} value={s.valor ? formatBRL(s.valor) : s.incluso ? "Incluso" : "—"} />
+                              ))}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Formas de pagamento */}
+                      <div className="border rounded-lg p-4 space-y-4">
+                        <h4 className="text-sm font-bold text-foreground">Formas de pagamento</h4>
+                        <div className="pb-3 border-b border-border/30">
+                          <p className="text-xs font-bold text-primary">À vista</p>
+                          <p className="text-sm font-bold text-foreground">{formatBRL(latestVersao?.valor_total || 0)}</p>
+                        </div>
+                        {(() => {
+                          const opcoes = (snapshot as any)?.pagamentoOpcoes || [];
+                          if (opcoes.length === 0) {
+                            return <p className="text-xs text-muted-foreground">Sem opções de financiamento</p>;
+                          }
+                          return opcoes.map((op: any, i: number) => (
+                            <div key={i} className="pb-3 border-b border-border/30 last:border-0 space-y-0.5">
+                              <p className="text-xs font-bold text-primary">{op.banco || op.nome || `Opção ${i + 1}`}</p>
+                              {op.valor_parcela && (
+                                <p className="text-[11px] text-muted-foreground">Valor da parcela: <span className="text-foreground font-medium">{formatBRL(op.valor_parcela)}</span></p>
+                              )}
+                              {op.parcelas && (
+                                <p className="text-[11px] text-muted-foreground">Parcelas: <span className="text-foreground font-medium">{op.parcelas}x</span></p>
+                              )}
+                              {op.carencia_meses && (
+                                <p className="text-[11px] text-muted-foreground">Carência: <span className="text-foreground font-medium">{op.carencia_meses} meses</span></p>
+                              )}
+                              {op.taxa_mensal && (
+                                <p className="text-[11px] text-muted-foreground">Taxa: <span className="text-foreground font-medium">{op.taxa_mensal}% a.m.</span></p>
+                              )}
+                            </div>
+                          ));
+                        })()}
+                      </div>
                     </div>
                   </TabsContent>
 
@@ -778,6 +868,26 @@ function DataItem({ label, value }: { label: string; value: string }) {
     <div className="border rounded-lg p-3">
       <p className="text-[10px] text-muted-foreground">{label}</p>
       <p className="text-sm font-bold text-foreground mt-0.5">{value}</p>
+    </div>
+  );
+}
+
+const ICON_MAP = {
+  check: <CheckCircle className="h-3.5 w-3.5 text-success shrink-0" />,
+  text: <span className="text-[10px] font-bold text-muted-foreground shrink-0 w-3.5 text-center">T</span>,
+  dollar: <DollarSign className="h-3.5 w-3.5 text-warning shrink-0" />,
+};
+
+function DadosField({ icon, label, value }: { icon: "check" | "text" | "dollar"; label: string; value: string }) {
+  return (
+    <div className="border-b border-border/20 pb-2.5 last:border-0 last:pb-0">
+      <div className="flex items-start gap-2">
+        <div className="mt-0.5">{ICON_MAP[icon]}</div>
+        <div className="min-w-0">
+          <p className="text-[11px] text-muted-foreground">{label}</p>
+          <p className="text-xs font-medium text-foreground mt-0.5">{value}</p>
+        </div>
+      </div>
     </div>
   );
 }
