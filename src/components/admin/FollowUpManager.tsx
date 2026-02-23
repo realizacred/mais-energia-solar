@@ -64,7 +64,7 @@ export default function FollowUpManager({ diasAlerta = 3 }: FollowUpManagerProps
     setLoading(true);
     try {
       const [leadsRes, orcamentosRes, vendedoresRes] = await Promise.all([
-        supabase.from("leads").select("id, lead_code, nome, telefone, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at"),
+        supabase.from("leads").select("id, lead_code, nome, telefone, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at").is("deleted_at", null),
         supabase.from("orcamentos").select("id, orc_code, cidade, estado, consultor, ultimo_contato, proxima_acao, data_proxima_acao, created_at, lead:leads!inner(nome, telefone)"),
         supabase.from("consultores").select("nome, telefone").eq("ativo", true)
       ]);

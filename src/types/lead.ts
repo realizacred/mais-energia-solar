@@ -43,6 +43,9 @@ export interface Lead {
   /** WhatsApp welcome message delivery status */
   wa_welcome_status?: string;
   wa_welcome_error?: string | null;
+  /** Soft delete */
+  deleted_at?: string | null;
+  deleted_by?: string | null;
 }
 
 export interface LeadStatus {

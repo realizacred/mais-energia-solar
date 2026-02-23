@@ -34,6 +34,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
         supabase
           .from("leads")
           .select("*, consultores:consultor_id(id, nome), clientes!clientes_lead_id_fkey(id, potencia_kwp, valor_projeto)", { count: "exact" })
+          .is("deleted_at", null)
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .range(from, to),
@@ -109,9 +110,10 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
 
   const deleteLead = useCallback(async (leadId: string) => {
     try {
+      // Soft delete: marca deleted_at em vez de remover do banco
       const { error } = await supabase
         .from("leads")
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq("id", leadId);
 
       if (error) throw error;
@@ -119,8 +121,8 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       setLeads((prev) => prev.filter((l) => l.id !== leadId));
       setTotalCount((prev) => prev - 1);
       toast({
-        title: "Lead excluído",
-        description: "O lead foi excluído com sucesso.",
+        title: "Lead movido para lixeira",
+        description: "O lead foi movido para a lixeira e pode ser restaurado.",
       });
       return true;
     } catch (error) {
@@ -133,6 +135,32 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       return false;
     }
   }, [toast]);
+
+  const restoreLead = useCallback(async (leadId: string) => {
+    try {
+      const { error } = await supabase
+        .from("leads")
+        .update({ deleted_at: null, deleted_by: null })
+        .eq("id", leadId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Lead restaurado",
+        description: "O lead foi restaurado com sucesso.",
+      });
+      fetchLeads();
+      return true;
+    } catch (error) {
+      const appError = handleSupabaseError(error, "restore_lead", { entityId: leadId });
+      toast({
+        title: "Erro",
+        description: appError.userMessage,
+        variant: "destructive",
+      });
+      return false;
+    }
+  }, [toast, fetchLeads]);
 
   useEffect(() => {
     if (autoFetch) {
@@ -224,6 +252,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
     fetchLeads,
     toggleVisto,
     deleteLead,
+    restoreLead,
     // Pagination
     page,
     setPage,

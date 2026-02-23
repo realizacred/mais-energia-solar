@@ -50,6 +50,7 @@
           .from("leads")
           .select("id, created_at")
           .eq("consultor", vendedorNome)
+          .is("deleted_at", null)
           .gte("created_at", startOfMonth)
           .lte("created_at", endOfMonth);
 

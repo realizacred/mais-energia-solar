@@ -220,7 +220,8 @@
             const { data: vendorLeads } = await supabase
               .from("leads")
               .select("id")
-              .eq("consultor", v.nome);
+              .eq("consultor", v.nome)
+              .is("deleted_at", null);
             
             const vendorLeadIds = vendorLeads?.map(l => l.id) || [];
             
