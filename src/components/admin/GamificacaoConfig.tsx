@@ -86,7 +86,7 @@ import { Spinner } from "@/components/ui-kit/Spinner";
        // Fetch config
        const { data: configData, error: configError } = await supabase
          .from("gamification_config")
-         .select("*")
+         .select("id, meta_orcamentos_mensal, meta_conversoes_mensal, meta_valor_mensal, comissao_base_percent, comissao_bonus_meta_percent, achievement_points")
          .single();
  
        if (configError && configError.code !== "PGRST116") throw configError;

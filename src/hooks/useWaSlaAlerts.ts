@@ -29,7 +29,7 @@ export function useWaSlaAlerts() {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("wa_sla_config")
-        .select("*")
+        .select("id, ativo, prazo_resposta_minutos, escalonar_apos_minutos, alerta_visual, alerta_sonoro, gerar_resumo_ia, ignorar_fora_horario, horario_comercial_inicio, horario_comercial_fim")
         .maybeSingle();
       if (error) throw error;
       return data as any;
@@ -62,7 +62,7 @@ export function useWaSlaAlerts() {
     queryFn: async () => {
       let query = (supabase as any)
         .from("wa_sla_alerts")
-        .select("*")
+        .select("id, conversation_id, tipo, tempo_sem_resposta_minutos, assigned_to, escalated, escalated_at, acknowledged, acknowledged_at, acknowledged_by, ai_summary, resolved, resolved_at, created_at")
         .eq("resolved", false)
         .order("created_at", { ascending: false })
         .limit(50);

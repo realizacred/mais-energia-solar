@@ -80,7 +80,7 @@ export function FornecedoresManager() {
     setLoading(true);
     const { data } = await supabase
       .from("fornecedores")
-      .select("*")
+      .select("id, nome, tipo, cnpj, inscricao_estadual, telefone, email, contato_nome, contato_telefone, endereco, cidade, estado, cep, site, categorias, observacoes, ativo, created_at, updated_at")
       .order("nome");
     setFornecedores((data as any[]) || []);
     setLoading(false);

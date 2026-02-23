@@ -77,7 +77,7 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_quick_replies")
-        .select("*")
+        .select("id, titulo, conteudo, categoria, emoji, media_url, media_type, media_filename, ordem, ativo")
         .eq("ativo", true)
         .order("categoria")
         .order("ordem");

@@ -203,7 +203,7 @@ export function UsuariosManager() {
       // Parallel fetch: profiles, roles, and emails
       const [profilesRes, rolesRes, emailsRes] = await Promise.all([
         supabase.from("profiles").select("user_id, nome, ativo, created_at").order("nome"),
-        supabase.from("user_roles").select("*"),
+        supabase.from("user_roles").select("id, user_id, role, created_at, created_by"),
         (async () => {
           try {
             const { data: { session } } = await supabase.auth.getSession();

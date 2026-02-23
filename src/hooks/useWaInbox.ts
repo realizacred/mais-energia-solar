@@ -399,7 +399,7 @@ export function useWaMessages(conversationId?: string) {
       if (!conversationId) return [];
       const { data, error } = await supabase
         .from("wa_messages")
-        .select("*")
+        .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, error_message, metadata, created_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -431,7 +431,7 @@ export function useWaMessages(conversationId?: string) {
       const oldest = allMessages[0];
       const { data, error } = await supabase
         .from("wa_messages")
-        .select("*")
+        .select("id, conversation_id, content, direction, message_type, status, source, media_url, media_mime_type, quoted_message_id, sent_by_user_id, is_internal_note, participant_jid, participant_name, evolution_message_id, error_message, metadata, created_at")
         .eq("conversation_id", conversationId)
         .or(`created_at.lt.${oldest.created_at},and(created_at.eq.${oldest.created_at},id.lt.${oldest.id})`)
         .order("created_at", { ascending: false })
@@ -639,7 +639,7 @@ export function useWaReadTracking(conversationId?: string, userId?: string) {
       if (!conversationId || !userId) return null;
       const { data } = await supabase
         .from("wa_reads")
-        .select("*")
+        .select("id, conversation_id, user_id, last_read_message_id, last_read_at")
         .eq("conversation_id", conversationId)
         .eq("user_id", userId)
         .maybeSingle();
@@ -684,7 +684,7 @@ export function useWaTags() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_tags")
-        .select("*")
+        .select("id, name, color")
         .order("name");
       if (error) throw error;
       return (data || []) as WaTag[];
@@ -752,7 +752,7 @@ export function useWaTransfers(conversationId?: string) {
       if (!conversationId) return [];
       const { data, error } = await supabase
         .from("wa_transfers")
-        .select("*")
+        .select("id, conversation_id, from_user_id, to_user_id, reason, created_by, created_at")
         .eq("conversation_id", conversationId)
         .order("created_at", { ascending: false });
       if (error) throw error;

@@ -309,7 +309,7 @@ export function ConcessionariasManager() {
       const [concResult, subgrupoResult] = await Promise.all([
         supabase
           .from("concessionarias")
-          .select("*")
+          .select("id, nome, sigla, estado, nome_aneel_oficial, ativo, tarifa_energia, tarifa_fio_b, tarifa_fio_b_gd, aliquota_icms, pis_percentual, cofins_percentual, possui_isencao_scee, percentual_isencao, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, ultima_sync_tarifas, created_at, updated_at")
           .order("estado", { ascending: true })
           .order("nome", { ascending: true }),
         supabase

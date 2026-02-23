@@ -82,7 +82,7 @@ export function useTasks(filters?: {
     queryFn: async () => {
       let query = supabase
         .from("tasks")
-        .select("*")
+        .select("id, title, description, status, priority, assigned_to, created_by, due_at, completed_at, related_type, related_id, sla_rule_id, source, created_at, updated_at")
         .order("due_at", { ascending: true, nullsFirst: false })
         .order("priority", { ascending: true })
         .order("created_at", { ascending: false });
@@ -287,7 +287,7 @@ export function useSlaRules() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("sla_rules")
-        .select("*")
+        .select("id, rule_name, applies_to, max_minutes_to_first_contact, max_minutes_to_next_followup, auto_create_task, task_priority, escalation_enabled, ativo, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as SlaRule[];
@@ -347,7 +347,7 @@ export function useTaskEvents(taskId?: string) {
       if (!taskId) return [];
       const { data, error } = await supabase
         .from("task_events")
-        .select("*")
+        .select("id, task_id, action, payload, user_id, created_at")
         .eq("task_id", taskId)
         .order("created_at", { ascending: false })
         .limit(50);

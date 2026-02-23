@@ -107,7 +107,7 @@ function useQRCategories() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_quick_reply_categories")
-        .select("*")
+        .select("id, nome, slug, cor, emoji, ordem, ativo")
         .order("ordem", { ascending: true })
         .order("nome", { ascending: true });
       if (error) throw error;
@@ -193,7 +193,7 @@ export function WaQuickRepliesManager() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_quick_replies")
-        .select("*")
+        .select("id, titulo, conteudo, categoria, emoji, media_url, media_type, media_filename, ordem, ativo, created_at")
         .order("ordem", { ascending: true })
         .order("titulo", { ascending: true });
       if (error) throw error;

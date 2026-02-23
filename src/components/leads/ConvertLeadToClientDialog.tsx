@@ -186,8 +186,8 @@ export function ConvertLeadToClientDialog({
       if (!navigator.onLine) return;
       
       const [disjuntoresRes, transformadoresRes] = await Promise.all([
-        supabase.from("disjuntores").select("*").eq("ativo", true).order("amperagem"),
-        supabase.from("transformadores").select("*").eq("ativo", true).order("potencia_kva"),
+        supabase.from("disjuntores").select("id, amperagem, descricao, ativo").eq("ativo", true).order("amperagem"),
+        supabase.from("transformadores").select("id, potencia_kva, descricao, ativo").eq("ativo", true).order("potencia_kva"),
       ]);
 
       if (disjuntoresRes.data) setDisjuntores(disjuntoresRes.data);

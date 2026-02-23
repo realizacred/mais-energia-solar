@@ -114,7 +114,7 @@ export function ObrasManager() {
     try {
       const { data, error } = await supabase
         .from("obras")
-        .select("*")
+        .select("id, titulo, descricao, cidade, estado, potencia_kwp, tipo_projeto, imagens_urls, tags, destaque, ativo, ordem, numero_modulos, marca_paineis, modelo_inversor, economia_mensal, payback_meses, tempo_instalacao_dias, data_conclusao, depoimento_cliente, video_url, cliente_nome, cliente_id, projeto_id, created_at, updated_at")
         .order("ordem", { ascending: true })
         .order("created_at", { ascending: false });
 

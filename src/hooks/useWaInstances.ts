@@ -43,7 +43,7 @@ export function useWaInstances() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_instances")
-        .select("*")
+        .select("id, nome, status, phone_number, profile_name, profile_picture_url, evolution_api_url, evolution_instance_key, api_key, webhook_secret, consultor_id, owner_user_id, last_seen_at, last_sync_at, last_sync_conversations, last_sync_messages, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as WaInstance[];

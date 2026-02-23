@@ -91,7 +91,7 @@ export function WhatsAppAutomationTemplates() {
     setLoading(true);
     try {
       const [templatesRes, statusesRes, configRes] = await Promise.all([
-        supabase.from("whatsapp_automation_templates").select("*").order("ordem"),
+        supabase.from("whatsapp_automation_templates").select("id, nome, tipo, mensagem, gatilho_config, ativo, ordem, created_at, updated_at").order("ordem"),
         supabase.from("lead_status").select("id, nome").order("ordem"),
         supabase.from("whatsapp_automation_config").select("automacoes_ativas").maybeSingle(),
       ]);
