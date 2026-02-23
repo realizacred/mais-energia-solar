@@ -138,6 +138,24 @@ export function ObrasManager() {
 
   useEffect(() => { fetchObras(); fetchOptions(); }, [fetchObras, fetchOptions]);
 
+  // ⚠️ HARDENING: Realtime for cross-user sync on obras
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('obras-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'obras' }, () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchObras(), 600);
+      })
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchObras]);
+
   const openNew = () => {
     setEditingObra(null);
     setForm(emptyForm);

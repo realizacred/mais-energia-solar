@@ -90,6 +90,24 @@ export function ServicosManager() {
     fetchData();
   }, []);
 
+  // ⚠️ HARDENING: Realtime for cross-user sync on serviços
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('servicos-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'servicos' }, () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchData(), 600);
+      })
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchData = async () => {
     setLoading(true);
     try {

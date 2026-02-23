@@ -166,6 +166,26 @@ export function usePendingValidations() {
     fetchPending();
   }, [fetchPending]);
 
+  // ⚠️ HARDENING: Realtime — auto-refresh when leads or clientes change
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchPending(), 600);
+    };
+
+    const channel = supabase
+      .channel('pending-validations-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, refresh)
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchPending]);
+
   return {
     pendingCount,
     pendingItems,
