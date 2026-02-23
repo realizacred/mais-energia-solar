@@ -65,134 +65,104 @@ Deno.serve(async (req) => {
 
     let totalSent = 0;
     let totalFailed = 0;
-    let totalSkipped = 0;
 
-    // ── Step 2: Process each instance with scoped lock ──
+    // ── Step 2: Process each instance (no advisory lock — atomic claim per item) ──
     for (const inst of shuffled) {
-      let lockAcquired = false;
-      try {
-        // Acquire per-instance advisory lock
-        const { data: lockResult } = await supabase.rpc("try_outbox_lock", {
-          p_tenant_id: inst.tenant_id,
-          p_instance_id: inst.id,
-        });
-        lockAcquired = lockResult === true;
+      // Fetch pending items for THIS instance only
+      const { data: items, error: fetchError } = await supabase
+        .from("wa_outbox")
+        .select("*")
+        .eq("instance_id", inst.id)
+        .eq("status", "pending")
+        .lte("scheduled_at", new Date().toISOString())
+        .lt("retry_count", 3)
+        .order("created_at", { ascending: true })
+        .limit(ITEMS_PER_INSTANCE);
 
-        if (!lockAcquired) {
-          console.log(`[process-wa-outbox] Lock busy for instance=${inst.evolution_instance_key}, skipping`);
-          logOps(inst.tenant_id, inst.id, "lock_busy", { instance_key: inst.evolution_instance_key });
-          totalSkipped++;
-          continue;
-        }
+      if (fetchError) {
+        console.error(`[process-wa-outbox] Fetch error for instance=${inst.id}:`, fetchError);
+        continue;
+      }
 
-        // Fetch pending items for THIS instance only
-        const { data: items, error: fetchError } = await supabase
-          .from("wa_outbox")
-          .select("*")
-          .eq("instance_id", inst.id)
-          .eq("status", "pending")
-          .lte("scheduled_at", new Date().toISOString())
-          .lt("retry_count", 3)
-          .order("created_at", { ascending: true })
-          .limit(ITEMS_PER_INSTANCE);
+      if (!items || items.length === 0) continue;
 
-        if (fetchError) {
-          console.error(`[process-wa-outbox] Fetch error for instance=${inst.id}:`, fetchError);
-          continue;
-        }
+      console.log(`[process-wa-outbox] Processing ${items.length} items for instance=${inst.evolution_instance_key}`);
 
-        if (!items || items.length === 0) continue;
+      for (const item of items) {
+        try {
+          // Atomic claim — only one invocation can claim each item
+          const { data: claimed, error: claimErr } = await supabase
+            .from("wa_outbox")
+            .update({ status: "sending" })
+            .eq("id", item.id)
+            .eq("status", "pending")
+            .select("id")
+            .maybeSingle();
 
-        console.log(`[process-wa-outbox] Processing ${items.length} items for instance=${inst.evolution_instance_key}`);
-
-        for (const item of items) {
-          try {
-            // Atomic claim
-            const { data: claimed, error: claimErr } = await supabase
-              .from("wa_outbox")
-              .update({ status: "sending" })
-              .eq("id", item.id)
-              .eq("status", "pending")
-              .select("id")
-              .maybeSingle();
-
-            if (!claimed || claimErr) {
-              console.log(`[process-wa-outbox] Item ${item.id} already claimed, skipping`);
-              continue;
-            }
-
-            // Use remote_jid_canonical for sending, fallback to remote_jid
-            const canonicalJid = item.remote_jid_canonical || item.remote_jid;
-
-            const effectiveApiKey = inst.api_key || EVOLUTION_API_KEY;
-            const sendResult = await sendEvolutionMessage(
-              inst.evolution_api_url,
-              inst.evolution_instance_key,
-              effectiveApiKey,
-              { ...item, remote_jid: canonicalJid }
-            );
-
-            const evolutionMessageId = sendResult?.key?.id || sendResult?.id || null;
-
-            await supabase
-              .from("wa_outbox")
-              .update({ status: "sent", sent_at: new Date().toISOString() })
-              .eq("id", item.id);
-
-            if (item.message_id) {
-              const msgUpdate: Record<string, unknown> = { status: "sent" };
-              if (evolutionMessageId) {
-                msgUpdate.evolution_message_id = evolutionMessageId;
-              }
-              await supabase
-                .from("wa_messages")
-                .update(msgUpdate)
-                .eq("id", item.message_id);
-            }
-
-            logOps(inst.tenant_id, inst.id, "outbox_sent_ack", { outbox_id: item.id, evolution_msg_id: evolutionMessageId });
-            totalSent++;
-          } catch (err) {
-            console.error(`[process-wa-outbox] Failed item ${item.id}:`, err);
-            const retryCount = (item.retry_count || 0) + 1;
-            const newStatus = retryCount >= item.max_retries ? "failed" : "pending";
-
-            await supabase
-              .from("wa_outbox")
-              .update({
-                status: newStatus,
-                retry_count: retryCount,
-                error_message: String(err),
-              })
-              .eq("id", item.id);
-
-            if (newStatus === "failed" && item.message_id) {
-              await supabase
-                .from("wa_messages")
-                .update({ status: "failed", error_message: String(err) })
-                .eq("id", item.message_id);
-            }
-
-            logOps(inst.tenant_id, inst.id, "outbox_failed", { outbox_id: item.id, error: String(err), retry_count: retryCount, final: newStatus === "failed" });
-            totalFailed++;
+          if (!claimed || claimErr) {
+            console.log(`[process-wa-outbox] Item ${item.id} already claimed, skipping`);
+            continue;
           }
-        }
-      } finally {
-        // Always release per-instance lock
-        if (lockAcquired) {
-          try {
-            await supabase.rpc("release_outbox_lock", {
-              p_tenant_id: inst.tenant_id,
-              p_instance_id: inst.id,
-            });
-          } catch (e) {
-            console.warn(`[process-wa-outbox] Failed to release lock for instance=${inst.id}:`, e);
+
+          // Use remote_jid_canonical for sending, fallback to remote_jid
+          const canonicalJid = item.remote_jid_canonical || item.remote_jid;
+
+          const effectiveApiKey = inst.api_key || EVOLUTION_API_KEY;
+          const sendResult = await sendEvolutionMessage(
+            inst.evolution_api_url,
+            inst.evolution_instance_key,
+            effectiveApiKey,
+            { ...item, remote_jid: canonicalJid }
+          );
+
+          const evolutionMessageId = sendResult?.key?.id || sendResult?.id || null;
+
+          await supabase
+            .from("wa_outbox")
+            .update({ status: "sent", sent_at: new Date().toISOString() })
+            .eq("id", item.id);
+
+          if (item.message_id) {
+            const msgUpdate: Record<string, unknown> = { status: "sent" };
+            if (evolutionMessageId) {
+              msgUpdate.evolution_message_id = evolutionMessageId;
+            }
+            await supabase
+              .from("wa_messages")
+              .update(msgUpdate)
+              .eq("id", item.message_id);
           }
+
+          logOps(inst.tenant_id, inst.id, "outbox_sent_ack", { outbox_id: item.id, evolution_msg_id: evolutionMessageId });
+          totalSent++;
+        } catch (err) {
+          console.error(`[process-wa-outbox] Failed item ${item.id}:`, err);
+          const retryCount = (item.retry_count || 0) + 1;
+          const newStatus = retryCount >= item.max_retries ? "failed" : "pending";
+
+          await supabase
+            .from("wa_outbox")
+            .update({
+              status: newStatus,
+              retry_count: retryCount,
+              error_message: String(err),
+            })
+            .eq("id", item.id);
+
+          if (newStatus === "failed" && item.message_id) {
+            await supabase
+              .from("wa_messages")
+              .update({ status: "failed", error_message: String(err) })
+              .eq("id", item.message_id);
+          }
+
+          logOps(inst.tenant_id, inst.id, "outbox_failed", { outbox_id: item.id, error: String(err), retry_count: retryCount, final: newStatus === "failed" });
+          totalFailed++;
         }
       }
     }
 
-    console.log(`[process-wa-outbox] Done: ${totalSent} sent, ${totalFailed} failed, ${totalSkipped} instances skipped (locked)`);
+    console.log(`[process-wa-outbox] Done: ${totalSent} sent, ${totalFailed} failed`);
 
     // ── Best-effort flush ops buffer ──
     if (opsBuffer.length > 0) {
@@ -209,7 +179,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ sent: totalSent, failed: totalFailed, skipped: totalSkipped, instances: shuffled.length }),
+      JSON.stringify({ sent: totalSent, failed: totalFailed, instances: shuffled.length }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
