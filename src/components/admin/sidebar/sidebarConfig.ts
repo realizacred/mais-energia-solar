@@ -48,6 +48,7 @@ import {
   FolderKanban,
   MapPin,
   Zap,
+  Truck,
 } from "lucide-react";
 
 export interface MenuItem {
@@ -322,6 +323,7 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
       { id: "modulos", title: "Módulos Fotovoltaicos", icon: SunMedium, description: "Painéis solares disponíveis", keywords: ["painel", "módulo", "solar", "fotovoltaico", "placa"] },
       { id: "inversores-cadastro", title: "Inversores", icon: Cpu, description: "Inversores solares cadastrados", keywords: ["inversor", "potência", "micro-inversor", "string"] },
       { id: "baterias", title: "Baterias", icon: Battery, description: "Sistemas de armazenamento", keywords: ["bateria", "armazenamento", "lítio", "energia"] },
+      { id: "fornecedores", title: "Fornecedores", icon: Truck, description: "Distribuidores e fabricantes", keywords: ["fornecedor", "distribuidor", "fabricante", "integrador", "equipamento"] },
       { id: "concessionarias", title: "Concessionárias", icon: Lightbulb, description: "Tarifas por distribuidora", keywords: ["tarifa", "distribuidora", "concessionária", "ANEEL"] },
       { id: "dicionario-aneel", title: "Dicionário ANEEL", icon: FileSearch, description: "Mapeamento ANEEL ↔ Concessionárias", keywords: ["aneel", "dicionário", "match", "alias", "mapeamento"] },
       { id: "tarifa-versoes", title: "Versões de Tarifa", icon: HistoryIcon, description: "Versionamento, diff e rollback de tarifas", keywords: ["versão", "tarifa", "rollback", "diff", "histórico", "ativar"] },

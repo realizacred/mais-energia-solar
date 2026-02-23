@@ -3132,6 +3132,83 @@ export type Database = {
         }
         Relationships: []
       }
+      fornecedores: {
+        Row: {
+          ativo: boolean
+          categorias: string[] | null
+          cep: string | null
+          cidade: string | null
+          cnpj: string | null
+          contato_nome: string | null
+          contato_telefone: string | null
+          created_at: string
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          id: string
+          inscricao_estadual: string | null
+          nome: string
+          observacoes: string | null
+          site: string | null
+          telefone: string | null
+          tenant_id: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categorias?: string[] | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          nome: string
+          observacoes?: string | null
+          site?: string | null
+          telefone?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categorias?: string[] | null
+          cep?: string | null
+          cidade?: string | null
+          cnpj?: string | null
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          created_at?: string
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          id?: string
+          inscricao_estadual?: string | null
+          nome?: string
+          observacoes?: string | null
+          site?: string | null
+          telefone?: string | null
+          tenant_id?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fornecedores_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gamification_config: {
         Row: {
           achievement_points: Json

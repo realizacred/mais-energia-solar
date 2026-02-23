@@ -1,0 +1,1 @@
+ALTER TABLE public.fornecedores ALTER COLUMN tenant_id SET DEFAULT get_user_tenant_id();
