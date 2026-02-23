@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ClipboardList, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -63,44 +63,23 @@ export function StepCamposCustomizados({ values, onValuesChange }: Props) {
 
   if (fields.length === 0) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold flex items-center gap-2">
-            <ClipboardList className="h-4 w-4 text-primary" /> Campos Customizados
-          </h3>
-          <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
-            Etapa 3/9
-          </Badge>
-        </div>
-        <div className="border rounded-xl p-8 text-center text-sm text-muted-foreground">
-          Nenhum campo customizado configurado. Configure em Configurações → Opções Customizáveis.
-        </div>
+      <div className="border rounded-xl p-8 text-center text-sm text-muted-foreground">
+        Nenhum campo customizado configurado. Configure em Configurações → Opções Customizáveis.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-bold flex items-center gap-2">
-          <ClipboardList className="h-4 w-4 text-primary" /> Campos Customizados
-        </h3>
-        <Badge variant="outline" className="text-[10px] font-mono text-muted-foreground">
-          Etapa 3/9
-        </Badge>
-      </div>
-
-      <div className="border rounded-xl p-5 space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {fields.map((field) => (
-            <CustomFieldInput
-              key={field.id}
-              field={field}
-              value={values[field.field_key]}
-              onChange={(val) => updateValue(field.field_key, val)}
-            />
-          ))}
-        </div>
+    <div className="border rounded-xl p-5 space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {fields.map((field) => (
+          <CustomFieldInput
+            key={field.id}
+            field={field}
+            value={values[field.field_key]}
+            onChange={(val) => updateValue(field.field_key, val)}
+          />
+        ))}
       </div>
     </div>
   );
