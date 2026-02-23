@@ -126,8 +126,8 @@ export function LeadsView() {
     setIsConvertOpen(true);
   };
 
-  const handleLeadFromWidget = (lead: Lead) => {
-    setLeadToConvert(lead);
+  const handleLeadFromWidget = (lead: any) => {
+    setLeadToConvert(lead as Lead);
     setIsConvertOpen(true);
   };
 

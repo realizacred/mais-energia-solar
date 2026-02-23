@@ -206,11 +206,20 @@ const ADMIN_PROFILE: VendedorProfile = {
      setFilterStatus("todos");
    }, []);
  
-   // Convert orcamentos to leads
-   const leadsForAlerts = useMemo(
-     () => orcamentosData.orcamentos.map(orcamentoToLead),
-     [orcamentosData.orcamentos]
-   );
+    // Convert orcamentos to leads — exclude terminal statuses for alert-facing widgets
+    const leadsForAlerts = useMemo(() => {
+      // Find terminal status IDs from statuses list
+      const terminalNames = new Set(["Convertido", "Perdido"]);
+      const terminalIds = new Set(
+        orcamentosData.statuses
+          .filter(s => terminalNames.has(s.nome))
+          .map(s => s.id)
+      );
+      
+      return orcamentosData.orcamentos
+        .filter(orc => !terminalIds.has(orc.status_id || ""))
+        .map(orcamentoToLead);
+    }, [orcamentosData.orcamentos, orcamentosData.statuses]);
  
     // Calculate goals when data changes — use real conversion/value data from advancedMetrics
     useEffect(() => {
