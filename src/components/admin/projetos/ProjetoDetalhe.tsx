@@ -644,6 +644,12 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
                     .update({ status: "perdida" })
                     .eq("projeto_id", deal.id);
 
+                  // CASCADE: Cancel pending commissions linked to this project
+                  await supabase.from("comissoes")
+                    .update({ status: "cancelada", observacoes: "Projeto marcado como perdido" })
+                    .eq("projeto_id", deal.id)
+                    .eq("status", "pendente");
+
                   // CASCADE: Mark linked lead as "Perdido"
                   if (deal.customer_id) {
                     const { data: cli } = await supabase
