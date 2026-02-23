@@ -177,19 +177,10 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         </h3>
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" className="text-xs gap-1 h-7" onClick={() => { setShowPremissas(true); setPremissasTab("fator"); }}>
-            <Settings2 className="h-3 w-3" /> Editar premissas
+            <Settings2 className="h-3 w-3" /> Editar Premissas
           </Button>
           {(itens.length > 0 && itens.some(i => i.descricao)) || manualKits.length > 0 ? (
             <>
-              <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => {
-                if (manualKits.length > 0 && editingKitIndex === null) {
-                  setEditingKitIndex(0);
-                } else {
-                  setShowEditKitFechado(true);
-                }
-              }}>
-                <Pencil className="h-3 w-3" /> Editar kit
-              </Button>
               <Button variant="outline" size="sm" className="text-xs gap-1 h-7" onClick={() => setShowEditLayout(true)}>
                 <LayoutGrid className="h-3 w-3" /> Editar layout
               </Button>
@@ -201,40 +192,50 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center border-b border-border/50">
-        {([
-          { key: "customizado" as const, label: "Customizado" },
-          { key: "fechado" as const, label: "Fechado" },
-          { key: "manual" as const, label: "Manual" },
-        ]).map(t => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "px-4 py-2.5 text-xs font-medium border-b-2 transition-colors",
-              tab === t.key
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content: Filters + Grid */}
-      <div className="flex gap-4">
-        {/* Sidebar Filters */}
-        <div className="w-48 shrink-0 hidden lg:block">
+      {/* Main Layout: Sidebar + Content */}
+      <div className="flex gap-5 min-h-[500px]">
+        {/* ── Sidebar Filters ── */}
+        <aside className="w-[200px] shrink-0 hidden lg:block overflow-y-auto max-h-[calc(100vh-240px)] pr-1">
           <KitFilters filters={filters} onFiltersChange={setFilters} consumoMensal={consumoTotal} />
-        </div>
+        </aside>
 
-        {/* Main Area */}
-        <div className="flex-1 space-y-3">
+        {/* ── Main Content Area ── */}
+        <div className="flex-1 min-w-0 space-y-4">
+          {/* Tabs: Customizado | Fechado | + Criar manualmente */}
+          <div className="flex items-center border-b border-border/50">
+            {([
+              { key: "customizado" as const, label: "Customizado" },
+              { key: "fechado" as const, label: "Fechado" },
+            ]).map(t => (
+              <button
+                key={t.key}
+                onClick={() => setTab(t.key)}
+                className={cn(
+                  "px-5 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                  tab === t.key
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+            <button
+              onClick={() => { setTab("manual"); setShowChoiceModal(true); }}
+              className={cn(
+                "px-5 py-2.5 text-sm font-medium border-b-2 transition-colors",
+                tab === "manual"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground",
+              )}
+            >
+              + Criar manualmente
+            </button>
+          </div>
+
           {/* Toolbar */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span>Tipo de Preço:</span>
                 <Select defaultValue="equipamentos">
@@ -273,19 +274,27 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
             </div>
           </div>
 
-          {/* Manual Tab Content */}
+          {/* Tab Content */}
           {tab === "manual" ? (
             <div className="space-y-3">
-              {/* Manual Kit Cards */}
-              {manualKits.map((entry, index) => (
-                <ManualKitRow
-                  key={entry.card.id}
-                  entry={entry}
-                  onSelect={() => handleSelectManualKit(entry)}
-                  onEdit={() => handleEditManualKit(index)}
-                  onDelete={() => handleDeleteManualKit(index)}
-                />
-              ))}
+              {/* Manual Kit Cards in grid like reference */}
+              {manualKits.length > 0 && (
+                <div className={viewMode === "grid"
+                  ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3"
+                  : "space-y-2"
+                }>
+                  {manualKits.map((entry, index) => (
+                    <ManualKitCard
+                      key={entry.card.id}
+                      entry={entry}
+                      viewMode={viewMode}
+                      onSelect={() => handleSelectManualKit(entry)}
+                      onEdit={() => handleEditManualKit(index)}
+                      onDelete={() => handleDeleteManualKit(index)}
+                    />
+                  ))}
+                </div>
+              )}
 
               {manualKits.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
@@ -439,57 +448,101 @@ export function StepKitSelection({ itens, onItensChange, modulos, inversores, ot
   );
 }
 
-/* ── Manual Kit Row (list-style card matching reference screenshot) ── */
+/* ── Manual Kit Card (grid/list matching reference) ── */
 
-function ManualKitRow({ entry, onSelect, onEdit, onDelete }: {
+function ManualKitCard({ entry, viewMode, onSelect, onEdit, onDelete }: {
   entry: { card: KitCardData; itens: KitItemRow[] };
+  viewMode: "grid" | "list";
   onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const { card } = entry;
 
+  if (viewMode === "list") {
+    return (
+      <div className="flex items-center gap-4 p-4 rounded-xl border border-border hover:border-primary/30 transition-all bg-card">
+        <div className="w-20 h-16 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+          <span className="text-[10px] font-bold text-muted-foreground uppercase text-center leading-tight px-1">
+            {card.distribuidorNome || "—"}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0 space-y-1.5">
+          <p className="text-xs font-bold truncate">
+            {card.moduloQtd}x {card.moduloDescricao}
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Total {card.moduloPotenciaKwp.toFixed(2)} kWp • {card.inversorQtd}x {card.inversorDescricao} • {card.topologia}
+          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-foreground">{formatBRL(card.precoWp)} / Wp</span>
+            <span className="text-xs text-muted-foreground">Total: <strong className="text-foreground">{formatBRL(card.precoTotal)}</strong></span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={onEdit}>
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive" onClick={onDelete}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button size="sm" className="gap-1 h-8 text-xs" onClick={onSelect}>
+            <Plus className="h-3 w-3" /> Selecionar
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Grid card (similar to reference screenshot)
   return (
-    <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-border/40 hover:border-primary/30 transition-all bg-card">
-      {/* Distributor placeholder */}
-      <div className="w-20 h-16 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-        <span className="text-[10px] font-bold text-muted-foreground uppercase text-center leading-tight px-1">
-          {card.distribuidorNome || "—"}
-        </span>
+    <div className="rounded-xl border border-border bg-card p-4 hover:border-primary/30 transition-all flex flex-col justify-between min-h-[220px]">
+      {/* Distributor header */}
+      <div>
+        <div className="mb-3">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+            {card.distribuidorNome || "Manual"}
+          </span>
+        </div>
+
+        {/* Module info */}
+        <div className="flex items-start gap-2 mb-1.5">
+          <Package className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-medium">{card.moduloQtd}x {card.moduloDescricao}</p>
+            <p className="text-[10px] text-muted-foreground">Total {card.moduloPotenciaKwp.toFixed(2)} kWp</p>
+          </div>
+        </div>
+
+        {/* Inverter info */}
+        <div className="flex items-start gap-2 mb-3">
+          <Zap className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+          <div>
+            <p className="text-xs font-medium">{card.inversorQtd}x {card.inversorDescricao}</p>
+            <p className="text-[10px] text-muted-foreground">Total {card.inversorPotenciaKw.toFixed(2)} kW</p>
+          </div>
+        </div>
+
+        <div className="text-[10px] text-muted-foreground mb-1">
+          <span className="font-medium text-foreground">Topologia</span><br />
+          {card.topologia}
+        </div>
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0 space-y-1.5">
-        <p className="text-xs font-bold">
-          {card.moduloQtd} {card.moduloDescricao} + {card.inversorQtd} {card.inversorDescricao}
-        </p>
-        <div className="flex items-center gap-4 text-[10px] text-muted-foreground">
-          <span>{card.moduloQtd} {card.moduloDescricao}</span>
-          <span>Total {card.moduloPotenciaKwp.toFixed(2)} kWp</span>
-          <span>{card.inversorQtd} {card.inversorDescricao}</span>
-          <span>Total {card.inversorPotenciaKw.toFixed(2)} kW</span>
-          <span>Topologia</span>
-          <span>{card.topologia}</span>
+      {/* Footer: price + actions */}
+      <div className="border-t border-border/40 pt-3 mt-2">
+        <p className="text-sm font-bold text-primary mb-1">{formatBRL(card.precoWp)} / Wp</p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-muted-foreground">Total: <strong className="text-foreground">{formatBRL(card.precoTotal)}</strong></p>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" onClick={onEdit}>
+              <Pencil className="h-3 w-3" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive/60 hover:text-destructive" onClick={onDelete}>
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-bold">{formatBRL(card.precoTotal)}</span>
-          <Badge variant="outline" className="text-[10px] h-5 bg-primary/5 border-primary/20 text-primary">
-            {formatBRL(card.precoWp)} / Wp
-          </Badge>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="flex items-center gap-2 shrink-0">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={onEdit}>
-          <Pencil className="h-3.5 w-3.5" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive/60 hover:text-destructive" onClick={onDelete}>
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button size="sm" className="gap-1 h-8 text-xs" onClick={onSelect}>
-          <Plus className="h-3 w-3" /> Selecionar
-        </Button>
       </div>
     </div>
   );
