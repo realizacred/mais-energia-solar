@@ -33,6 +33,7 @@ import { VariableMapperPanel } from "./VariableMapperPanel";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { ProjetoChatTab } from "./ProjetoChatTab";
+import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
 
 // ─── Types ──────────────────────────────────────────
 interface DealDetail {
@@ -1695,137 +1696,19 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
   const principal = propostas.length > 0 ? propostas[0] : null;
   const outras = propostas.slice(1);
 
-  // Render a proposal row (matching the reference image layout)
-  const renderPropostaRow = (p: PropostaNativa, isPrincipal: boolean) => {
-    const latestVersao = p.versoes[0];
-    const isExpanded = expandedId === p.id;
-    const wpPrice = latestVersao?.valor_total && latestVersao?.potencia_kwp
-      ? (latestVersao.valor_total / (latestVersao.potencia_kwp * 1000)).toFixed(2)
-      : null;
-
+  // Render a proposal card using the new expanded detail component
+  const renderPropostaCard = (p: PropostaNativa, isPrincipal: boolean) => {
     return (
-      <div key={p.id} className={cn(
-        "rounded-xl border transition-all",
-        isPrincipal ? "bg-card border-primary/20 shadow-sm" : "bg-card border-border/40 hover:border-border/70"
-      )}>
-        {/* Main row */}
-        <div
-          className="flex items-center gap-4 py-3.5 px-4 cursor-pointer"
-          onClick={() => setExpandedId(isExpanded ? null : p.id)}
-        >
-          <FileText className={cn("h-5 w-5 shrink-0", isPrincipal ? "text-primary" : "text-muted-foreground")} />
-
-          {/* Title + date */}
-          <div className="min-w-0 flex-shrink-0 w-[200px]">
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-semibold text-foreground truncate">
-                {formatPropostaLabel(p).primary}
-              </p>
-              <StatusBadge status={p.status} />
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              {formatPropostaLabel(p).secondary || `Criada em ${new Date(p.created_at).toLocaleDateString("pt-BR")}`}
-            </p>
-          </div>
-
-          {/* Metrics */}
-          <div className="hidden md:flex flex-1 items-center gap-6 ml-4">
-            {latestVersao?.potencia_kwp && (
-              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
-                <Zap className="h-3.5 w-3.5 text-warning shrink-0" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Potência Total</p>
-                  <p className="text-sm font-bold text-foreground">{latestVersao.potencia_kwp.toFixed(2)} kWp</p>
-                </div>
-              </div>
-            )}
-
-            {latestVersao?.geracao_mensal && (
-              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
-                <SunMedium className="h-3.5 w-3.5 text-info shrink-0" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Geração Mensal</p>
-                  <p className="text-sm font-bold text-foreground">{latestVersao.geracao_mensal.toFixed(0)} kWh</p>
-                </div>
-              </div>
-            )}
-
-            {latestVersao?.valor_total && (
-              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
-                <DollarSign className="h-3.5 w-3.5 text-success shrink-0" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Preço do Projeto</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatBRL(latestVersao.valor_total)}
-                    {wpPrice && <span className="text-[10px] font-normal text-muted-foreground ml-1">R$ {wpPrice} / Wp</span>}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Expand + Menu */}
-          <div className="flex items-center gap-1 shrink-0 ml-auto">
-            <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={e => e.stopPropagation()}>
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => navigate(`/admin/propostas-nativas/${p.id}/versoes/${latestVersao?.id}`)}>
-                  <ExternalLink className="h-3.5 w-3.5 mr-2" /> Ver proposta
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {/* Mobile metrics */}
-        <div className="md:hidden px-4 pb-2 flex flex-wrap gap-3 text-xs">
-          {latestVersao?.potencia_kwp && (
-            <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-warning" />{latestVersao.potencia_kwp.toFixed(2)} kWp</span>
-          )}
-          {latestVersao?.geracao_mensal && (
-            <span className="flex items-center gap-1"><SunMedium className="h-3 w-3 text-info" />{latestVersao.geracao_mensal.toFixed(0)} kWh</span>
-          )}
-          {latestVersao?.valor_total && (
-            <span className="flex items-center gap-1 font-bold"><DollarSign className="h-3 w-3 text-success" />{formatBRL(latestVersao.valor_total)}</span>
-          )}
-        </div>
-
-        {/* Expanded: version list */}
-        {isExpanded && p.versoes.length > 0 && (
-          <div className="border-t border-border/30 px-4 py-2 bg-muted/20 rounded-b-xl space-y-1">
-            <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-              {p.versoes.length} versão(ões)
-            </p>
-            {p.versoes.map(v => (
-              <div
-                key={v.id}
-                onClick={() => navigate(`/admin/propostas-nativas/${p.id}/versoes/${v.id}`)}
-                className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/60 cursor-pointer transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <span className="text-xs font-bold text-muted-foreground w-8">v{v.versao_numero}</span>
-                  <StatusBadge status={v.status} />
-                </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  {v.potencia_kwp && (
-                    <span className="flex items-center gap-0.5">
-                      <Zap className="h-3 w-3 text-warning" />{v.potencia_kwp} kWp
-                    </span>
-                  )}
-                  <span className="font-bold text-foreground">{formatBRL(v.valor_total)}</span>
-                  {v.payback_meses && <span>{v.payback_meses}m payback</span>}
-                  <ExternalLink className="h-3 w-3" />
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      <PropostaExpandedDetail
+        key={p.id}
+        proposta={p}
+        isPrincipal={isPrincipal}
+        isExpanded={expandedId === p.id}
+        onToggle={() => setExpandedId(expandedId === p.id ? null : p.id)}
+        dealId={dealId}
+        customerId={customerId}
+        onRefresh={() => setRefreshKey(k => k + 1)}
+      />
     );
   };
 
@@ -1919,7 +1802,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
         </div>
       )}
 
-
       {/* Proposals */}
       {propostas.length === 0 ? (
         <Card>
@@ -1937,7 +1819,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
           {principal && (
             <div className="space-y-2">
               <p className="text-sm font-bold text-foreground">Proposta principal</p>
-              {renderPropostaRow(principal, true)}
+              {renderPropostaCard(principal, true)}
             </div>
           )}
 
@@ -1946,7 +1828,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
             <div className="space-y-2">
               <p className="text-sm font-bold text-foreground">Outras propostas</p>
               <div className="space-y-2">
-                {outras.map(p => renderPropostaRow(p, false))}
+                {outras.map(p => renderPropostaCard(p, false))}
               </div>
             </div>
           )}
@@ -1954,25 +1836,6 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
       )}
     </div>
   );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { label: string; cls: string }> = {
-    rascunho: { label: "Rascunho", cls: "bg-muted text-muted-foreground" },
-    gerada: { label: "Gerada", cls: "bg-primary/10 text-primary" },
-    generated: { label: "Gerada", cls: "bg-primary/10 text-primary" },
-    enviada: { label: "Enviada", cls: "bg-info/10 text-info" },
-    sent: { label: "Enviada", cls: "bg-info/10 text-info" },
-    aceita: { label: "Aceita", cls: "bg-success/10 text-success" },
-    ganha: { label: "Ganha", cls: "bg-success/10 text-success" },
-    rejeitada: { label: "Rejeitada", cls: "bg-destructive/10 text-destructive" },
-    recusada: { label: "Recusada", cls: "bg-destructive/10 text-destructive" },
-    perdida: { label: "Perdida", cls: "bg-destructive/10 text-destructive" },
-    arquivada: { label: "Arquivada", cls: "bg-muted text-muted-foreground" },
-    expirada: { label: "Expirada", cls: "bg-warning/10 text-warning" },
-  };
-  const s = map[status] || { label: status, cls: "bg-muted text-muted-foreground" };
-  return <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", s.cls)}>{s.label}</span>;
 }
 
 // ═══════════════════════════════════════════════════
