@@ -291,7 +291,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
                 <p className="text-xs text-muted-foreground">Total de linhas</p>
               </div>
               <div className="rounded-lg border p-3 text-center">
-                <p className="text-2xl font-bold text-green-600">{validRows.length}</p>
+                <p className="text-2xl font-bold text-success">{validRows.length}</p>
                 <p className="text-xs text-muted-foreground">Válidos para importar</p>
               </div>
               <div className="rounded-lg border p-3 text-center">
@@ -301,8 +301,8 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
             </div>
 
             {dupeRows.length > 0 && (
-              <div className="rounded-lg border border-yellow-500/30 bg-yellow-50 dark:bg-yellow-900/10 p-3">
-                <p className="text-sm font-medium text-yellow-800 dark:text-yellow-400">
+              <div className="rounded-lg border border-warning/30 bg-warning/5 p-3">
+                <p className="text-sm font-medium text-warning">
                   {dupeRows.length} duplicados detectados (serão ignorados)
                 </p>
               </div>
@@ -332,7 +332,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
                         {r.errors.length > 0 ? (
                           <Badge variant="destructive" className="text-xs">Erro</Badge>
                         ) : r.isDuplicate ? (
-                          <Badge variant="outline" className="text-xs text-yellow-600">Duplicado</Badge>
+                          <Badge variant="outline" className="text-xs text-warning">Duplicado</Badge>
                         ) : (
                           <Badge variant="outline" className="text-xs">
                             <CheckCircle2 className="w-3 h-3 mr-1" />{r.status}

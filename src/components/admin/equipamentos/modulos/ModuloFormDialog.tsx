@@ -204,10 +204,10 @@ export function ModuloFormDialog({ modulo, open, onOpenChange, onSave, isPending
           type={type} step={step} placeholder={placeholder}
           value={form[field] as string}
           onChange={e => set(field, e.target.value)}
-          className={err?.type === "error" ? "border-destructive" : err?.type === "warning" ? "border-yellow-500" : ""}
+           className={err?.type === "error" ? "border-destructive" : err?.type === "warning" ? "border-warning" : ""}
         />
         {err && (
-          <p className={`text-xs flex items-center gap-1 ${err.type === "error" ? "text-destructive" : "text-yellow-600"}`}>
+          <p className={`text-xs flex items-center gap-1 ${err.type === "error" ? "text-destructive" : "text-warning"}`}>
             <AlertTriangle className="w-3 h-3" /> {err.message}
           </p>
         )}

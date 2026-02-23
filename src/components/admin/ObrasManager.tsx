@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PageHeader, EmptyState } from "@/components/ui-kit";
 import { ESTADOS_BRASIL } from "@/lib/validations";
 import { useCidadesPorEstado } from "@/hooks/useCidadesPorEstado";
 
@@ -337,29 +338,27 @@ export function ObrasManager() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h3 className="text-lg font-semibold">Portfólio de Obras</h3>
-          <p className="text-sm text-muted-foreground">
-            Gerencie as obras exibidas na seção "Obras Realizadas" do site.
-          </p>
-        </div>
-        <Button onClick={openNew} className="gap-2">
-          <Plus className="w-4 h-4" /> Nova Obra
-        </Button>
-      </div>
+      <PageHeader
+        icon={ImageIcon}
+        title="Portfólio de Obras"
+        description="Gerencie as obras exibidas na seção 'Obras Realizadas' do site."
+        actions={
+          <Button onClick={openNew} className="gap-2">
+            <Plus className="w-4 h-4" /> Nova Obra
+          </Button>
+        }
+      />
 
       {/* List */}
       {loading ? (
         <InlineLoader context="data_load" />
       ) : obras.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon"><ImageIcon className="w-8 h-8 text-muted-foreground" /></div>
-          <p className="empty-state-title">Nenhuma obra cadastrada</p>
-          <p className="empty-state-description">Adicione obras ao portfólio para exibi-las no site.</p>
-          <Button onClick={openNew} className="mt-4 gap-2"><Plus className="w-4 h-4" /> Adicionar Obra</Button>
-        </div>
+        <EmptyState
+          icon={ImageIcon}
+          title="Nenhuma obra cadastrada"
+          description="Adicione obras ao portfólio para exibi-las no site."
+          action={{ label: "Adicionar Obra", onClick: openNew, icon: Plus }}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {obras.map((obra) => (

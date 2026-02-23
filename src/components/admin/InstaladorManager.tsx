@@ -34,6 +34,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PageHeader } from "@/components/ui-kit";
 
 interface Instalador {
   id: string;
@@ -272,6 +273,7 @@ export function InstaladorManager() {
 
   return (
     <div className="space-y-6">
+      <PageHeader icon={Wrench} title="Instaladores" description="Ranking, metas e gestão dos instaladores" />
       <Tabs defaultValue="ranking" className="w-full">
         <TabsList className="grid w-full max-w-xl grid-cols-3">
           <TabsTrigger value="ranking" className="gap-2">

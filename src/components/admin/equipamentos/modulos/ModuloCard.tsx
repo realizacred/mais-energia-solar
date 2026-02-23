@@ -85,7 +85,7 @@ export function ModuloCard({ modulo: m, isGlobal, onView, onEdit, onToggle }: Pr
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Completude</span>
-            <span className={`text-xs font-medium ${completude === 100 ? "text-green-600" : completude >= 70 ? "text-yellow-600" : "text-destructive"}`}>
+            <span className={`text-xs font-medium ${completude === 100 ? "text-success" : completude >= 70 ? "text-warning" : "text-destructive"}`}>
               {completude}%
             </span>
           </div>

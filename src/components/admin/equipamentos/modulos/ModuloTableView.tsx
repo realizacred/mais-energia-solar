@@ -136,7 +136,7 @@ export function ModuloTableView({ modulos, onView, onEdit, onDelete, onToggle }:
                     <div className="flex items-center gap-2">
                       <Switch checked={m.ativo}
                         onCheckedChange={(v) => onToggle(m.id, v)} />
-                      <span className={`text-xs font-medium ${m.ativo ? "text-green-600" : "text-muted-foreground"}`}>
+                      <span className={`text-xs font-medium ${m.ativo ? "text-success" : "text-muted-foreground"}`}>
                         {m.ativo ? "Ativo" : "Inativo"}
                       </span>
                     </div>
