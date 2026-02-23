@@ -63,17 +63,22 @@ interface Props {
   modulos: CatalogoModulo[];
   inversores: CatalogoInversor[];
   otimizadores?: CatalogoOtimizador[];
-  onKitCreated: (itens: KitItemRow[]) => void;
+  onKitCreated: (itens: KitItemRow[], meta?: KitMeta) => void;
   mode: "equipamentos" | "zero";
   sistema?: "on_grid" | "hibrido" | "off_grid";
   topologias?: string[];
   initialItens?: KitItemRow[];
-  initialCardData?: {
-    distribuidorNome?: string;
-    nomeKit?: string;
-    codigoKit?: string;
-    topologia?: string;
-  };
+  initialCardData?: KitMeta;
+}
+
+export interface KitMeta {
+  distribuidorNome?: string;
+  nomeKit?: string;
+  codigoKit?: string;
+  topologia?: string;
+  custo?: number;
+  sistema?: "on_grid" | "hibrido" | "off_grid";
+  custosEmbutidos?: { estruturas: boolean; transformador: boolean };
 }
 
 const TOPOLOGIAS = ["Tradicional", "Microinversor", "Otimizador"];
@@ -185,7 +190,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
   const [custo, setCusto] = useState(0);
   const [nomeKit, setNomeKit] = useState(initialCardData?.nomeKit || "");
   const [codigoKit, setCodigoKit] = useState(initialCardData?.codigoKit || "");
-  const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(sistemaProp || "on_grid");
+  const [sistema, setSistema] = useState<"on_grid" | "hibrido" | "off_grid">(initialCardData?.sistema || sistemaProp || "on_grid");
   const [tipoKit, setTipoKit] = useState<"customizado" | "fechado">("customizado");
   const [topologia, setTopologia] = useState(
     initialCardData?.topologia ||
@@ -194,7 +199,7 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       : "")
   );
   const [distribuidorSelect, setDistribuidorSelect] = useState("");
-  const [custosEmbutidos, setCustosEmbutidos] = useState({ estruturas: false, transformador: false });
+  const [custosEmbutidos, setCustosEmbutidos] = useState(initialCardData?.custosEmbutidos || { estruturas: false, transformador: false });
 
   const [moduloEntries, setModuloEntries] = useState<ModuloEntry[]>(initModulos);
   const [inversorEntries, setInversorEntries] = useState<InversorEntry[]>(initInversores);
@@ -216,6 +221,8 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       setNomeKit(initialCardData.nomeKit || "");
       setCodigoKit(initialCardData.codigoKit || "");
       if (initialCardData.topologia) setTopologia(initialCardData.topologia);
+      if (initialCardData.sistema) setSistema(initialCardData.sistema);
+      if (initialCardData.custosEmbutidos) setCustosEmbutidos(initialCardData.custosEmbutidos);
     }
   }
 
@@ -369,7 +376,10 @@ export function CriarKitManualModal({ open, onOpenChange, modulos, inversores, o
       }
     }
 
-    onKitCreated(itens);
+    const meta: KitMeta = {
+      distribuidorNome, nomeKit, codigoKit, topologia, custo, sistema, custosEmbutidos,
+    };
+    onKitCreated(itens, meta);
     onOpenChange(false);
     toast({ title: "Kit criado manualmente", description: `${itens.length} itens adicionados` });
   };
