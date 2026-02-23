@@ -108,12 +108,27 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
     }
   }, [toast]);
 
-  const deleteLead = useCallback(async (leadId: string) => {
+  const archiveLead = useCallback(async (leadId: string) => {
     try {
-      // Soft delete: marca deleted_at em vez de remover do banco
+      // Busca o status "Arquivado" do tenant
+      const { data: arquivadoStatus, error: statusError } = await supabase
+        .from("lead_status")
+        .select("id")
+        .eq("nome", "Arquivado")
+        .single();
+
+      if (statusError || !arquivadoStatus) {
+        toast({
+          title: "Erro",
+          description: "Status 'Arquivado' não encontrado. Contate o administrador.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       const { error } = await supabase
         .from("leads")
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ status_id: arquivadoStatus.id })
         .eq("id", leadId);
 
       if (error) throw error;
@@ -121,12 +136,12 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
       setLeads((prev) => prev.filter((l) => l.id !== leadId));
       setTotalCount((prev) => prev - 1);
       toast({
-        title: "Lead movido para lixeira",
-        description: "O lead foi movido para a lixeira e pode ser restaurado.",
+        title: "Lead arquivado",
+        description: "O lead foi movido para o status 'Arquivado'.",
       });
       return true;
     } catch (error) {
-      const appError = handleSupabaseError(error, "delete_lead", { entityId: leadId });
+      const appError = handleSupabaseError(error, "archive_lead", { entityId: leadId });
       toast({
         title: "Erro",
         description: appError.userMessage,
@@ -257,7 +272,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
     loading,
     fetchLeads,
     toggleVisto,
-    deleteLead,
+    deleteLead: archiveLead,
     restoreLead,
     // Pagination
     page,
