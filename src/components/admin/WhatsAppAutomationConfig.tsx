@@ -82,7 +82,7 @@ export function WhatsAppAutomationConfig() {
       // Fetch config
       const { data: configData } = await supabase
         .from("whatsapp_automation_config")
-        .select("*")
+        .select("id, ativo, automacoes_ativas, mensagem_boas_vindas, mensagem_followup, lembrete_ativo, lembrete_dias, modo_envio, api_token, webhook_url, evolution_api_url, evolution_api_key, evolution_instance, auto_reply_enabled, auto_reply_message, auto_reply_cooldown_minutes, created_at, updated_at")
         .maybeSingle();
 
       if (configData) {
@@ -92,7 +92,7 @@ export function WhatsAppAutomationConfig() {
       // Fetch recent messages
       const { data: messagesData } = await supabase
         .from("whatsapp_automation_logs")
-        .select("*")
+        .select("id, telefone, mensagem_enviada, status, erro_detalhes, lead_id, cliente_id, template_id, instance_id, servico_id, created_at")
         .order("created_at", { ascending: false })
         .limit(50);
 

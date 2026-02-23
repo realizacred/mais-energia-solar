@@ -82,7 +82,7 @@
    try {
      const { data, error } = await supabase
        .from("checklists_instalacao")
-       .select("*")
+       .select("id, nome_cliente, lead_code, endereco, bairro, data_instalacao, instalador_id, placas_local_aprovado, inversor_local_aprovado, configuracao_wifi, adesivo_inversor, plaquinha_relogio, foto_servico, observacoes, fotos_urls, avaliacao_atendimento, assinatura_cliente_url, assinatura_instalador_url, synced, created_at, updated_at")
        .order("created_at", { ascending: false });
  
      if (error) throw error;

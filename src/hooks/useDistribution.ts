@@ -66,7 +66,7 @@ export function useDistributionRules() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lead_distribution_rules")
-        .select("*")
+        .select("id, nome, tipo, config, ativo, created_at, updated_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data || []) as DistributionRule[];
@@ -221,7 +221,7 @@ export function useMotivosPerda() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("motivos_perda")
-        .select("*")
+        .select("id, nome, ativo, ordem")
         .order("ordem", { ascending: true });
       if (error) throw error;
       return (data || []) as MotivoPerda[];

@@ -80,8 +80,8 @@ export function EquipamentosManager() {
     setLoading(true);
     try {
       const [disjuntoresRes, transformadoresRes] = await Promise.all([
-        supabase.from("disjuntores").select("*").order("amperagem", { ascending: true }),
-        supabase.from("transformadores").select("*").order("potencia_kva", { ascending: true }),
+        supabase.from("disjuntores").select("id, amperagem, descricao, ativo, created_at, updated_at").order("amperagem", { ascending: true }),
+        supabase.from("transformadores").select("id, potencia_kva, descricao, ativo, created_at, updated_at").order("potencia_kva", { ascending: true }),
       ]);
 
       if (disjuntoresRes.error) throw disjuntoresRes.error;

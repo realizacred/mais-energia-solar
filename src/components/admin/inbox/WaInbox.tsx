@@ -647,7 +647,7 @@ export function WaInbox({ vendorMode = false, vendorUserId, showCompactStats = f
           } else {
             supabase
               .from("wa_conversations")
-              .select("*")
+              .select("id, remote_jid, cliente_telefone, cliente_nome, cliente_id, lead_id, assigned_to, instance_id, canal, status, is_group, profile_picture_url, telefone_normalized, last_message_at, last_message_preview, last_message_direction, last_message_id, unread_count, version, created_at, updated_at")
               .eq("id", convId)
               .maybeSingle()
               .then(({ data }) => {

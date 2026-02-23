@@ -40,7 +40,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
       const fetchData = async () => {
         const [leadsRes, statusesRes] = await Promise.all([
           supabase.from("leads").select("id, nome, estado, cidade, media_consumo, consultor, created_at, status_id").is("deleted_at", null).order("created_at", { ascending: false }),
-          supabase.from("lead_status").select("*").order("ordem"),
+          supabase.from("lead_status").select("id, nome, cor, ordem, probabilidade_peso, motivo_perda_obrigatorio").order("ordem"),
         ]);
         if (leadsRes.data) setFetchedLeads(leadsRes.data);
         if (statusesRes.data) setFetchedStatuses(statusesRes.data);

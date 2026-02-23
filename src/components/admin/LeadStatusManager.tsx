@@ -56,7 +56,7 @@ export function LeadStatusManager() {
     try {
       const { data, error } = await supabase
         .from("lead_status")
-        .select("*")
+        .select("id, nome, cor, ordem, probabilidade_peso, motivo_perda_obrigatorio")
         .order("ordem");
 
       if (error) throw error;

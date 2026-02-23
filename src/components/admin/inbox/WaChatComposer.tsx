@@ -153,7 +153,7 @@ export function WaChatComposer({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_quick_replies")
-        .select("*")
+        .select("id, titulo, conteudo, categoria, emoji, media_url, media_type, media_filename, ordem, ativo")
         .eq("ativo", true)
         .order("ordem", { ascending: true })
         .order("titulo", { ascending: true });
@@ -169,7 +169,7 @@ export function WaChatComposer({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_quick_reply_categories")
-        .select("*")
+        .select("id, nome, slug, cor, emoji, ordem, ativo")
         .eq("ativo", true)
         .order("ordem", { ascending: true });
       if (error) throw error;

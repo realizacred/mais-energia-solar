@@ -106,7 +106,7 @@
    const fetchConfig = useCallback(async () => {
      const { data } = await supabase
        .from("gamification_config")
-       .select("*")
+       .select("id, meta_orcamentos_mensal, meta_conversoes_mensal, meta_valor_mensal, comissao_base_percent, comissao_bonus_meta_percent, achievement_points")
        .limit(1)
        .single();
  
@@ -127,7 +127,7 @@
  
       const { data } = await (supabase as any)
         .from("consultor_metas")
-        .select("*")
+        .select("meta_orcamentos, meta_conversoes, meta_valor, comissao_percent, usa_meta_individual")
         .eq("consultor_id", vendedorId)
         .eq("ano", currentYear)
         .eq("mes", currentMonth)
@@ -149,7 +149,7 @@
  
       const { data: unlockedAchievements } = await (supabase as any)
         .from("consultor_achievements")
-        .select("*")
+        .select("achievement_type, unlocked_at")
         .eq("consultor_id", vendedorId);
  
      const unlockedMap = new Map<string, string>(

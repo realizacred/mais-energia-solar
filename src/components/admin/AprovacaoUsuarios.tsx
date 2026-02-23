@@ -46,7 +46,7 @@ export function AprovacaoUsuarios() {
     try {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select("id, user_id, nome, ativo, status, cargo_solicitado, telefone, avatar_url, created_at")
         .eq("status", "pendente")
         .order("created_at", { ascending: true });
 

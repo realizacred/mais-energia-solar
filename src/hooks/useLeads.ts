@@ -40,7 +40,7 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
           .range(from, to),
         supabase
           .from("lead_status")
-          .select("*")
+          .select("id, nome, cor, ordem, probabilidade_peso, motivo_perda_obrigatorio")
           .order("ordem"),
       ]);
 

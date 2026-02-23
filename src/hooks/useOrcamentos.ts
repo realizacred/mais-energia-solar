@@ -39,7 +39,7 @@ export function useOrcamentos({ autoFetch = true, leadId }: UseOrcamentosOptions
 
       const [orcamentosRes, statusesRes] = await Promise.all([
         query,
-        supabase.from("lead_status").select("*").order("ordem"),
+        supabase.from("lead_status").select("id, nome, cor, ordem, probabilidade_peso, motivo_perda_obrigatorio").order("ordem"),
       ]);
 
       if (orcamentosRes.error) throw orcamentosRes.error;
