@@ -27,10 +27,10 @@ export function LeadDeleteDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Mover para Lixeira</AlertDialogTitle>
+          <AlertDialogTitle>Arquivar Lead</AlertDialogTitle>
           <AlertDialogDescription>
-            Tem certeza que deseja mover o lead de {lead?.nome} para a lixeira? 
-            O lead poderá ser restaurado posteriormente.
+            Tem certeza que deseja arquivar o lead de {lead?.nome}? 
+            O status será alterado para "Arquivado" e ele poderá ser reativado depois.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -39,7 +39,7 @@ export function LeadDeleteDialog({
             onClick={onConfirm}
             className="bg-warning text-warning-foreground hover:bg-warning/90"
           >
-            Mover para Lixeira
+            Arquivar
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
