@@ -68,25 +68,34 @@ export function FollowUpNotifications({
       // Get terminal + special statuses to exclude from follow-up
       const { data: excludeStatuses } = await supabase
         .from("lead_status")
-        .select("id, nome")
+        .select("id")
         .in("nome", ["Convertido", "Perdido", "Arquivado", "Aguardando Documentação", "Aguardando Validação"]);
 
-      const excludeIds = new Set((excludeStatuses || []).map(s => s.id));
+      const excludeIds = (excludeStatuses || []).map(s => s.id);
 
-      // Use explicit columns instead of select("*"), exclude soft-deleted
-      const { data: leadsData, error } = await supabase
+      // Build query with server-side status exclusion
+      let query = supabase
         .from("leads")
         .select("id, nome, telefone, cidade, estado, consultor, status_id, ultimo_contato, created_at, updated_at")
-        .is("deleted_at", null)
+        .is("deleted_at", null);
+
+      // Exclude terminal statuses server-side
+      if (excludeIds.length > 0) {
+        // Filter out leads whose status_id is in the exclude list
+        for (const id of excludeIds) {
+          query = query.neq("status_id", id);
+        }
+      }
+
+      const { data: leadsData, error } = await query
         .order("ultimo_contato", { ascending: true, nullsFirst: true })
         .limit(100);
 
       if (error) throw error;
 
-      // Filter out terminal/special statuses and calculate days without contact
+      // Calculate days without contact
       const now = new Date();
       const leadsNeedingFollowUp: LeadWithDays[] = (leadsData || [])
-        .filter(lead => !excludeIds.has(lead.status_id || ""))
         .map(lead => {
           const lastContact = lead.ultimo_contato 
             ? new Date(lead.ultimo_contato) 
