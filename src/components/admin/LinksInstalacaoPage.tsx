@@ -33,7 +33,7 @@ export function LinksInstalacaoPage({ vendedor, isAdminView = false }: LinksInst
       return data || [];
     },
     enabled: !vendedor && isAdminView,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000, // 30s — reflects new consultores faster
   });
 
   const appUrl = getPublicUrl();
