@@ -190,6 +190,12 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
         (payload) => {
           if (payload.new) {
             const updated = payload.new as any;
+            // Soft-deleted leads must be removed from active list
+            if (updated.deleted_at) {
+              setLeads(prev => prev.filter(l => l.id !== updated.id));
+              setTotalCount(prev => Math.max(0, prev - 1));
+              return;
+            }
             setLeads(prev => prev.map(l =>
               l.id === updated.id
                 ? {
