@@ -136,6 +136,7 @@ Deno.serve(async (req) => {
           await supabase
             .from("pagamentos")
             .insert({
+              tenant_id: charge.tenant_id,
               recebimento_id: charge.recebimento_id,
               valor_pago: payment.value,
               forma_pagamento: payment.billingType === "PIX" ? "pix" : "boleto",

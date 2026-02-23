@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
     const { data: profile } = await userClient
       .from("profiles")
       .select("tenant_id")
-      .eq("id", userData.user.id)
+      .eq("user_id", userData.user.id)
       .single();
 
     if (!profile?.tenant_id) {
