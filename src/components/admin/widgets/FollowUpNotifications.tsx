@@ -21,6 +21,7 @@ interface FollowUpNotificationsProps {
   onLeadClick?: (lead: Lead) => void;
   diasAlerta?: number;
   maxItems?: number;
+  refreshKey?: number;
 }
 
 interface LeadWithDays extends Lead {
@@ -30,14 +31,15 @@ interface LeadWithDays extends Lead {
 export function FollowUpNotifications({ 
   onLeadClick, 
   diasAlerta = 3,
-  maxItems = 10 
+  maxItems = 10,
+  refreshKey = 0,
 }: FollowUpNotificationsProps) {
   const [leads, setLeads] = useState<LeadWithDays[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadLeadsNeedingFollowUp();
-  }, [diasAlerta]);
+  }, [diasAlerta, refreshKey]);
 
   const loadLeadsNeedingFollowUp = async () => {
     try {

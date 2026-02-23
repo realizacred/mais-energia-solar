@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export function LeadsView() {
   const [orcamentoToDelete, setOrcamentoToDelete] = useState<OrcamentoDisplayItem | null>(null);
   const [isConvertOpen, setIsConvertOpen] = useState(false);
   const [leadToConvert, setLeadToConvert] = useState<Lead | null>(null);
+  const [widgetRefreshKey, setWidgetRefreshKey] = useState(0);
 
   useEffect(() => {
     let filtered = orcamentos.filter(
@@ -80,6 +81,7 @@ export function LeadsView() {
       await deleteOrcamento(orcamentoToDelete.id);
       setIsDeleteOpen(false);
       setOrcamentoToDelete(null);
+      setWidgetRefreshKey(k => k + 1);
     }
   };
 
@@ -139,8 +141,8 @@ export function LeadsView() {
 
       {/* Notification Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <PendingDocumentationWidget onLeadClick={handleLeadFromWidget} />
-        <FollowUpNotifications onLeadClick={handleLeadFromWidget} diasAlerta={3} />
+        <PendingDocumentationWidget onLeadClick={handleLeadFromWidget} refreshKey={widgetRefreshKey} />
+        <FollowUpNotifications onLeadClick={handleLeadFromWidget} diasAlerta={3} refreshKey={widgetRefreshKey} />
         <WaAutoMessageToggle />
       </div>
 

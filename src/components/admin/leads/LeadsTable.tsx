@@ -46,7 +46,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
             <TableHead>Consultor</TableHead>
             <TableHead>Localização</TableHead>
             <TableHead>Consumo</TableHead>
-            <TableHead>Consumo Previsto</TableHead>
+            <TableHead>Geração Prevista</TableHead>
             <TableHead>WhatsApp</TableHead>
             <TableHead>Contratado</TableHead>
             <TableHead>Data</TableHead>
@@ -112,8 +112,8 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
               <TableCell>
                 {lead.consumo_previsto ? (
                   <span className="flex items-center gap-1">
-                    <TrendingUp className="w-3 h-3 text-muted-foreground" />
-                    {lead.consumo_previsto} kWh
+                    <TrendingUp className="w-3 h-3 text-success" />
+                    <span className="font-medium text-success">{lead.consumo_previsto} kWh</span>
                   </span>
                 ) : (
                   <span className="text-muted-foreground text-sm">-</span>
