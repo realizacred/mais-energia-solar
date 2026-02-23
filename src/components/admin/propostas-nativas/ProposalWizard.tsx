@@ -389,7 +389,7 @@ export function ProposalWizard() {
       }
 
       console.log("[handleUpdate] Updating existing", { savedPropostaId, savedVersaoId, setActive });
-      await updateProposal({
+      const res = await updateProposal({
         propostaId: savedPropostaId,
         versaoId: savedVersaoId,
         snapshot,
@@ -399,6 +399,10 @@ export function ProposalWizard() {
         dealId: resolvedDealId,
         titulo,
       }, setActive);
+      // If a new version was created (locked version), update the versaoId
+      if (res && res.versaoId !== savedVersaoId) {
+        setSavedVersaoId(res.versaoId);
+      }
     } catch (err: any) {
       console.error("[handleUpdate] Unexpected error:", err);
       toast({ title: "Erro inesperado ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });

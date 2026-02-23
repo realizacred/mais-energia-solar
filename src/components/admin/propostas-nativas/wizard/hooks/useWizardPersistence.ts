@@ -191,6 +191,38 @@ export function useWizardPersistence() {
         .eq("id", propostaId);
 
       if (versaoId) {
+        // Check if current version is locked (already generated) — if so, create a new version
+        const { data: currentVersao } = await supabase
+          .from("proposta_versoes")
+          .select("snapshot_locked, status")
+          .eq("id", versaoId)
+          .single();
+
+        if (currentVersao?.snapshot_locked) {
+          // Version is immutable — create a new draft version under the same proposta
+          const { data: newVersao, error: createErr } = await supabase
+            .from("proposta_versoes")
+            .insert({
+              proposta_id: propostaId,
+              potencia_kwp: params.potenciaKwp,
+              valor_total: params.precoFinal,
+              snapshot: params.snapshot as any,
+              status: "draft",
+              snapshot_locked: false,
+            } as any)
+            .select("id")
+            .single();
+
+          if (createErr) {
+            toast({ title: "Erro ao criar nova versão", description: createErr.message, variant: "destructive" });
+            return null;
+          }
+
+          versaoId = newVersao.id;
+          toast({ title: "✅ Nova versão criada", description: "A versão anterior era imutável, uma nova versão foi criada." });
+          return { propostaId, versaoId };
+        }
+
         const { error: uErr } = await supabase
           .from("proposta_versoes")
           .update({
@@ -241,33 +273,65 @@ export function useWizardPersistence() {
         .update(propostaUpdate)
         .eq("id", params.propostaId);
 
-      // Update versão (ENUM column: draft/generated/sent/...)
-      const updateData: any = {
-        potencia_kwp: params.potenciaKwp,
-        valor_total: params.precoFinal,
-        snapshot: params.snapshot,
-        updated_at: new Date().toISOString(),
-      };
-      if (setActive) {
-        updateData.status = "generated";
-        updateData.gerado_em = new Date().toISOString();
-      }
-
-      const { error: vErr } = await supabase
+      // Check if version is locked
+      const { data: currentVersao } = await supabase
         .from("proposta_versoes")
-        .update(updateData as any)
-        .eq("id", params.versaoId);
+        .select("snapshot_locked, status")
+        .eq("id", params.versaoId)
+        .single();
 
-      if (vErr) {
-        toast({ title: "Erro ao atualizar", description: vErr.message, variant: "destructive" });
-        return null;
+      let versaoId = params.versaoId;
+
+      if (currentVersao?.snapshot_locked) {
+        // Version is immutable — create a new version
+        const { data: newVersao, error: createErr } = await supabase
+          .from("proposta_versoes")
+          .insert({
+            proposta_id: params.propostaId,
+            potencia_kwp: params.potenciaKwp,
+            valor_total: params.precoFinal,
+            snapshot: params.snapshot as any,
+            status: setActive ? "generated" : "draft",
+            snapshot_locked: setActive,
+            gerado_em: setActive ? new Date().toISOString() : null,
+          } as any)
+          .select("id")
+          .single();
+
+        if (createErr) {
+          toast({ title: "Erro ao criar nova versão", description: createErr.message, variant: "destructive" });
+          return null;
+        }
+        versaoId = newVersao.id;
+      } else {
+        // Update existing draft version
+        const updateData: any = {
+          potencia_kwp: params.potenciaKwp,
+          valor_total: params.precoFinal,
+          snapshot: params.snapshot,
+          updated_at: new Date().toISOString(),
+        };
+        if (setActive) {
+          updateData.status = "generated";
+          updateData.gerado_em = new Date().toISOString();
+        }
+
+        const { error: vErr } = await supabase
+          .from("proposta_versoes")
+          .update(updateData as any)
+          .eq("id", versaoId);
+
+        if (vErr) {
+          toast({ title: "Erro ao atualizar", description: vErr.message, variant: "destructive" });
+          return null;
+        }
       }
 
       toast({
         title: setActive ? "✅ Proposta gerada" : "✅ Proposta atualizada",
         description: setActive ? "A proposta foi marcada como gerada." : "Os dados foram atualizados.",
       });
-      return { propostaId: params.propostaId, versaoId: params.versaoId };
+      return { propostaId: params.propostaId, versaoId };
     } catch (e: any) {
       toast({ title: "Erro ao atualizar", description: e.message, variant: "destructive" });
       return null;
