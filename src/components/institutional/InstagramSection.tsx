@@ -40,7 +40,7 @@ export function InstagramSection() {
     try {
       const { data: postsData, error: postsError } = await supabase
         .from("instagram_posts")
-        .select("*")
+        .select("id, instagram_id, media_type, media_url, thumbnail_url, caption, permalink, timestamp")
         .order("timestamp", { ascending: false })
         .limit(6);
 

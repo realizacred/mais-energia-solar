@@ -72,7 +72,7 @@ export function InversoresManager() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("inversores_catalogo")
-        .select("*")
+        .select("id, tenant_id, fabricante, modelo, potencia_nominal_kw, tipo, fases, mppt_count, strings_por_mppt, tensao_entrada_max_v, tensao_saida_v, corrente_entrada_max_a, eficiencia_max_percent, peso_kg, dimensoes_mm, garantia_anos, ip_protection, wifi_integrado, ativo, created_at, updated_at")
         .order("fabricante")
         .order("potencia_nominal_kw");
       if (error) throw error;

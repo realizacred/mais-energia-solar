@@ -210,8 +210,8 @@ export function useTenantPremises() {
     setLoading(true);
     try {
       const [premRes, roofRes] = await Promise.all([
-        supabase.from("tenant_premises").select("*").limit(1).maybeSingle(),
-        supabase.from("tenant_roof_area_factors").select("*").order("tipo_telhado"),
+        supabase.from("tenant_premises").select("id, tenant_id, concessionaria_id, inflacao_energetica, vpl_taxa_desconto, considerar_custo_disponibilidade, base_irradiancia, sobredimensionamento_padrao, perda_eficiencia_tradicional, perda_eficiencia_microinversor, perda_eficiencia_otimizador, troca_inversor_anos_tradicional, troca_inversor_anos_microinversor, troca_inversor_anos_otimizador, custo_troca_inversor_tradicional, custo_troca_inversor_microinversor, custo_troca_inversor_otimizador, margem_potencia_ideal, considerar_custo_disponibilidade_solar, grupo_tarifario, tarifa, tarifa_te_ponta, tarifa_tusd_ponta, tarifa_te_fora_ponta, tarifa_tusd_fora_ponta, tusd_fio_b_bt, tusd_fio_b_fora_ponta, tusd_fio_b_ponta, tarifacao_compensada_bt, tarifacao_compensada_fora_ponta, tarifacao_compensada_ponta, preco_demanda_geracao, preco_demanda, fase_tensao_rede, fator_simultaneidade, imposto_energia, outros_encargos_atual, outros_encargos_novo, tipo_telhado_padrao, desvio_azimutal, inclinacao_modulos, topologias, tipo_sistema, taxa_desempenho_tradicional, taxa_desempenho_microinversor, taxa_desempenho_otimizador, tipo_kits, considerar_kits_transformador, tipo_preco, dod, fornecedor_filtro, sombreamento_config, percentual_economia, vida_util_sistema, geracao_mensal_por_kwp, custo_por_kwp, kg_co2_por_kwh").limit(1).maybeSingle(),
+        supabase.from("tenant_roof_area_factors").select("id, tenant_id, tipo_telhado, label, fator_area, inclinacao_padrao, desvio_azimutal_padrao, topologias_permitidas, tipos_sistema_permitidos, enabled").order("tipo_telhado"),
       ]);
 
       if (premRes.data) {

@@ -64,7 +64,7 @@ export function useAppointments(filters?: {
     queryFn: async () => {
       let query = supabase
         .from("appointments" as any)
-        .select("*")
+        .select("id, tenant_id, title, description, starts_at, ends_at, all_day, appointment_type, status, assigned_to, lead_id, cliente_id, conversation_id, reminder_minutes, reminder_sent, created_by, created_at, updated_at")
         .order("starts_at", { ascending: true });
 
       if (filters?.conversation_id) {

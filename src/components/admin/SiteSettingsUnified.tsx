@@ -106,7 +106,7 @@ export function SiteSettingsUnified() {
     (async () => {
       const { data, error } = await supabase
         .from("site_settings")
-        .select("*")
+        .select("id, tenant_id, nome_empresa, slogan, texto_sobre, texto_sobre_resumido, meta_title, meta_description, telefone, whatsapp, whatsapp_mensagem_padrao, email, cidade, estado, horario_atendimento, endereco_completo, instagram_url, facebook_url, linkedin_url, youtube_url, tiktok_url, hero_titulo, hero_subtitulo, hero_badge_texto, hero_cta_texto, hero_cta_whatsapp_texto, cta_titulo, cta_subtitulo, stat_projetos_realizados, stat_economia_percentual, stat_anos_experiencia, site_url, dominio_customizado, instrucoes_dns, google_maps_url, rua, bairro, cep, coordenadas_lat, coordenadas_lng, created_at, updated_at")
         .limit(1)
         .single();
       if (!error && data) setSiteSettings(data);

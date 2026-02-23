@@ -32,7 +32,7 @@ export function SmtpConfigCard() {
     setLoading(true);
     const { data } = await (supabase as any)
       .from("tenant_smtp_config")
-      .select("*")
+      .select("id, host, port, username, password_encrypted, from_email, from_name, use_tls, ativo")
       .maybeSingle();
 
     if (data) {

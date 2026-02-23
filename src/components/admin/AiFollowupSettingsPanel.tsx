@@ -84,7 +84,7 @@ export function AiFollowupSettingsPanel() {
     setLoading(true);
     const { data, error } = await supabase
       .from("wa_ai_settings")
-      .select("*")
+      .select("id, tenant_id, modo, modelo_preferido, max_sugestoes_dia, temperature, max_tokens, templates, followup_confidence_threshold, followup_cooldown_hours, created_at, updated_at")
       .maybeSingle();
 
     if (data) {

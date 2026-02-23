@@ -87,7 +87,7 @@ export function NotificationConfigAdmin() {
     try {
       const { data, error } = await supabase
         .from("notification_config")
-        .select("*")
+        .select("id, tenant_id, notify_new_lead, notify_new_orcamento, notify_wa_message, notify_lead_idle, notify_conversation_idle, created_at, updated_at")
         .maybeSingle();
 
       if (error) throw error;

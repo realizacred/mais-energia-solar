@@ -198,7 +198,7 @@ export function AneelIntegrationPage() {
       const [runsRes, versionsRes, concRes] = await Promise.all([
         supabase
           .from("aneel_sync_runs" as any)
-          .select("*")
+          .select("id, trigger_type, status, started_at, finished_at, total_fetched, total_matched, total_updated, total_errors, snapshot_hash, logs, error_message")
           .order("started_at", { ascending: false })
           .limit(20),
         supabase
