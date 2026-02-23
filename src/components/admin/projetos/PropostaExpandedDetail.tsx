@@ -342,12 +342,14 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       )}>
         {/* ── Header row ──────────────────────── */}
         <div
-          className="flex items-center gap-4 py-3.5 px-4 cursor-pointer"
+          className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[auto_minmax(180px,1.2fr)_1fr_1fr_1.3fr_auto] items-center gap-0 py-3 px-4 cursor-pointer"
           onClick={onToggle}
         >
-          <FileText className={cn("h-5 w-5 shrink-0", isPrincipal ? "text-primary" : "text-muted-foreground")} />
+          {/* Icon */}
+          <FileText className={cn("h-5 w-5 shrink-0 mr-3", isPrincipal ? "text-primary" : "text-muted-foreground")} />
 
-          <div className="min-w-0 flex-shrink-0 w-[200px]">
+          {/* Col 1: Name + Status */}
+          <div className="min-w-0 pr-3">
             <div className="flex items-center gap-2">
               <p className="text-sm font-semibold text-foreground truncate">
                 {p.cliente_nome || p.titulo || p.codigo || `Proposta #${p.proposta_num}`}
@@ -359,40 +361,38 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
             </p>
           </div>
 
-          {/* Metrics */}
-          <div className="hidden md:flex flex-1 items-center gap-6 ml-4">
-            {latestVersao?.potencia_kwp != null && latestVersao.potencia_kwp > 0 && (
-              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
-                <Zap className="h-3.5 w-3.5 text-warning shrink-0" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Potência Total</p>
-                  <p className="text-sm font-bold text-foreground">{latestVersao.potencia_kwp.toFixed(2)} kWp</p>
-                </div>
-              </div>
-            )}
+          {/* Col 2: Potência - hidden on mobile */}
+          <div className="hidden md:flex items-center gap-2 border-l border-border/40 pl-4 pr-3">
+            <Zap className="h-4 w-4 text-warning shrink-0" />
+            <div>
+              <p className="text-[10px] text-muted-foreground leading-tight">Potência Total</p>
+              <p className="text-sm font-bold text-foreground">
+                {latestVersao?.potencia_kwp ? `${latestVersao.potencia_kwp.toFixed(2).replace('.', ',')} kWp` : "—"}
+              </p>
+            </div>
+          </div>
 
-            {latestVersao?.geracao_mensal != null && latestVersao.geracao_mensal > 0 && (
-              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
-                <SunMedium className="h-3.5 w-3.5 text-info shrink-0" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Geração Mensal</p>
-                  <p className="text-sm font-bold text-foreground">{latestVersao.geracao_mensal.toFixed(0)} kWh</p>
-                </div>
-              </div>
-            )}
+          {/* Col 3: Geração Mensal - hidden on mobile */}
+          <div className="hidden md:flex items-center gap-2 border-l border-border/40 pl-4 pr-3">
+            <SunMedium className="h-4 w-4 text-muted-foreground shrink-0" />
+            <div>
+              <p className="text-[10px] text-muted-foreground leading-tight">Geração Mensal</p>
+              <p className="text-sm font-bold text-foreground">
+                {latestVersao?.geracao_mensal ? `${latestVersao.geracao_mensal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} kWh` : "—"}
+              </p>
+            </div>
+          </div>
 
-            {latestVersao?.valor_total != null && latestVersao.valor_total > 0 && (
-              <div className="flex items-center gap-2 border-l border-dashed border-border pl-4">
-                <DollarSign className="h-3.5 w-3.5 text-success shrink-0" />
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Preço do Projeto</p>
-                  <p className="text-sm font-bold text-foreground">
-                    {formatBRL(latestVersao.valor_total)}
-                    {wpPrice && <span className="text-[10px] font-normal text-muted-foreground ml-1">R$ {wpPrice} / Wp</span>}
-                  </p>
-                </div>
-              </div>
-            )}
+          {/* Col 4: Preço do Projeto - hidden on mobile */}
+          <div className="hidden md:flex items-center gap-2 border-l border-border/40 pl-4 pr-3">
+            <DollarSign className="h-4 w-4 text-warning shrink-0" />
+            <div>
+              <p className="text-[10px] text-muted-foreground leading-tight">Preço do Projeto</p>
+              <p className="text-sm font-bold text-foreground">
+                {latestVersao?.valor_total ? formatBRL(latestVersao.valor_total) : "—"}
+                {wpPrice && <span className="text-[10px] font-normal text-muted-foreground ml-1.5">R$ {wpPrice} / Wp</span>}
+              </p>
+            </div>
           </div>
 
           {/* Expand + Menu */}
@@ -441,16 +441,28 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
         </div>
 
         {/* Mobile metrics */}
-        <div className="md:hidden px-4 pb-2 flex flex-wrap gap-3 text-xs">
-          {latestVersao?.potencia_kwp != null && latestVersao.potencia_kwp > 0 && (
-            <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-warning" />{latestVersao.potencia_kwp.toFixed(2)} kWp</span>
-          )}
-          {latestVersao?.geracao_mensal != null && latestVersao.geracao_mensal > 0 && (
-            <span className="flex items-center gap-1"><SunMedium className="h-3 w-3 text-info" />{latestVersao.geracao_mensal.toFixed(0)} kWh</span>
-          )}
-          {latestVersao?.valor_total != null && (
-            <span className="flex items-center gap-1 font-bold"><DollarSign className="h-3 w-3 text-success" />{formatBRL(latestVersao.valor_total)}</span>
-          )}
+        <div className="md:hidden px-4 pb-3 grid grid-cols-3 gap-2 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Zap className="h-3 w-3 text-warning" />
+            <div>
+              <p className="text-[9px] text-muted-foreground">Potência</p>
+              <p className="font-bold">{latestVersao?.potencia_kwp ? `${latestVersao.potencia_kwp.toFixed(2)} kWp` : "—"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <SunMedium className="h-3 w-3 text-muted-foreground" />
+            <div>
+              <p className="text-[9px] text-muted-foreground">Geração</p>
+              <p className="font-bold">{latestVersao?.geracao_mensal ? `${latestVersao.geracao_mensal.toFixed(0)} kWh` : "—"}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <DollarSign className="h-3 w-3 text-warning" />
+            <div>
+              <p className="text-[9px] text-muted-foreground">Preço</p>
+              <p className="font-bold">{latestVersao?.valor_total ? formatBRL(latestVersao.valor_total) : "—"}</p>
+            </div>
+          </div>
         </div>
 
         {/* ── Expanded detail ────────────────── */}
