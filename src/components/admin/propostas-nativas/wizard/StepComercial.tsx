@@ -1,4 +1,5 @@
 import { Briefcase } from "lucide-react";
+import { formatCpfCnpj, CPF_CNPJ_MAX_LENGTH } from "@/lib/cpfCnpjUtils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -75,7 +76,7 @@ export function StepComercial({ comercial, onComercialChange }: Props) {
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">CNPJ/CPF</Label>
-            <Input value={comercial.empresa_cnpj_cpf} onChange={e => update("empresa_cnpj_cpf", e.target.value)} className="h-9" />
+            <Input value={comercial.empresa_cnpj_cpf} onChange={e => update("empresa_cnpj_cpf", formatCpfCnpj(e.target.value))} className="h-9" maxLength={CPF_CNPJ_MAX_LENGTH} />
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Estado</Label>

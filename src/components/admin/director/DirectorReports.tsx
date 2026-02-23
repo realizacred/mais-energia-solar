@@ -1,3 +1,4 @@
+import { formatBRL } from "@/lib/formatters";
 import { format } from "date-fns";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { ptBR } from "date-fns/locale";
@@ -58,7 +59,7 @@ export function DirectorReports({ insights }: Props) {
     if (payload.ranking_vendedores) {
       text += `RANKING VENDEDORES\n${"-".repeat(30)}\n`;
       payload.ranking_vendedores.forEach((v: any, i: number) => {
-        text += `${i + 1}. ${v.nome} — Leads: ${v.leads}, Conversões: ${v.conversoes}, Valor: R$ ${v.valor?.toLocaleString("pt-BR")}\n`;
+        text += `${i + 1}. ${v.nome} — Leads: ${v.leads}, Conversões: ${v.conversoes}, Valor: ${formatBRL(v.valor)}\n`;
       });
       text += "\n";
     }
@@ -220,7 +221,7 @@ export function DirectorReports({ insights }: Props) {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold">{v.nome}</p>
                         <p className="text-xs text-muted-foreground">
-                          {v.leads} leads · {v.conversoes} conversões · R$ {v.valor?.toLocaleString("pt-BR")}
+                          {v.leads} leads · {v.conversoes} conversões · {formatBRL(v.valor)}
                         </p>
                       </div>
                       {v.destaque && (
