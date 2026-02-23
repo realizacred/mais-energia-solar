@@ -227,21 +227,11 @@ export function ValidacaoVendasManager() {
   const handleApprove = async () => {
     if (!selectedCliente) return;
 
-    // Validate required fields
-    if (!selectedVendedorId) {
-      toast({
-        title: "Consultor obrigatório",
-        description: "Selecione o consultor para gerar a comissão.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const valorBase = parseFloat(valorVenda) || 0;
     if (valorBase <= 0) {
       toast({
         title: "Valor obrigatório",
-        description: "Informe o valor da venda para gerar a comissão.",
+        description: "Informe o valor da venda para validar.",
         variant: "destructive",
       });
       return;
@@ -263,32 +253,12 @@ export function ValidacaoVendasManager() {
         await supabase.from("clientes").update({ valor_projeto: valorBase }).eq("id", selectedCliente.id);
       }
 
-      // Create commission using the selected vendedor ID directly
-      const now = new Date();
-      const percentual = parseFloat(percentualComissao);
-      const selectedVendedor = vendedores.find((v) => v.id === selectedVendedorId);
-      const vendedorNome = selectedVendedor?.nome || "Consultor";
-
-      const { error: comissaoError } = await supabase.from("comissoes").insert({
-        consultor_id: selectedVendedorId,
-        cliente_id: selectedCliente.id,
-        descricao: `Venda - ${selectedCliente.nome} (${selectedCliente.simulacoes?.potencia_recomendada_kwp || selectedCliente.potencia_kwp || 0}kWp)`,
-        valor_base: valorBase,
-        percentual_comissao: percentual,
-        valor_comissao: (valorBase * percentual) / 100,
-        mes_referencia: now.getMonth() + 1,
-        ano_referencia: now.getFullYear(),
-        status: "pendente",
-      });
-
-      if (comissaoError) {
-        console.error("Erro ao criar comissão:", comissaoError);
-        throw new Error(`Venda aprovada, mas erro ao criar comissão: ${comissaoError.message}`);
-      }
+      // Comissão agora é gerada ao aceitar proposta (ProposalDetail)
+      // Aqui apenas validamos a venda e atualizamos o status
 
       toast({
         title: "Venda validada!",
-        description: `Venda de ${selectedCliente.nome} aprovada. Comissão de ${vendedorNome} gerada com sucesso na Gestão de Comissões.`,
+        description: `Venda de ${selectedCliente.nome} aprovada com sucesso.`,
       });
       setApprovalDialogOpen(false);
       setSelectedCliente(null);
@@ -313,7 +283,36 @@ export function ValidacaoVendasManager() {
         }).eq("id", selectedCliente.lead_id);
         await supabase.from("orcamentos").update({ status_id: negociacaoStatus.id }).eq("lead_id", selectedCliente.lead_id);
       }
-      await supabase.from("clientes").delete().eq("id", selectedCliente.id);
+
+      // Check for blocking dependencies before deleting client
+      const depChecks = await Promise.all([
+        supabase.from("propostas_nativas").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
+        supabase.from("projetos").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
+        supabase.from("deals").select("id", { count: "exact", head: true }).eq("customer_id", selectedCliente.id),
+        supabase.from("appointments").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
+        supabase.from("obras").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
+        supabase.from("wa_conversations").select("id", { count: "exact", head: true }).eq("cliente_id", selectedCliente.id),
+      ]);
+      const depNames = ["Propostas", "Projetos", "Negociações", "Agendamentos", "Obras", "Conversas WhatsApp"];
+      const blocking: string[] = [];
+      depChecks.forEach((res, i) => {
+        if ((res.count ?? 0) > 0) blocking.push(`${depNames[i]} (${res.count})`);
+      });
+
+      if (blocking.length > 0) {
+        // Cannot delete — just inactivate the client instead
+        await supabase.from("clientes").update({ ativo: false }).eq("id", selectedCliente.id);
+        toast({
+          title: "Venda rejeitada",
+          description: `Cliente desativado (possui ${blocking.join(", ")} vinculados).`,
+        });
+      } else {
+        await supabase.from("clientes").delete().eq("id", selectedCliente.id);
+        toast({
+          title: "Venda rejeitada",
+          description: `A venda de ${selectedCliente.nome} foi rejeitada. Motivo registrado.`,
+        });
+      }
 
       toast({
         title: "Venda rejeitada",
@@ -346,7 +345,7 @@ export function ValidacaoVendasManager() {
   };
 
   // Check if approval form is valid
-  const isApprovalValid = selectedVendedorId && parseFloat(valorVenda) > 0;
+  const isApprovalValid = parseFloat(valorVenda) > 0;
 
   if (loading) {
     return (
