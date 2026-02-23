@@ -21,6 +21,7 @@ import { AgendaSheet } from "@/components/admin/AgendaSheet";
 import { ProfileDropdown } from "@/components/admin/ProfileDropdown";
 import { HelpDropdown } from "@/components/admin/HelpDropdown";
 import { ShieldAlert } from "lucide-react";
+import { useNewLeadAlert } from "@/hooks/useNewLeadAlert";
 
 // Lazy load admin sub-pages for better code splitting
 const LeadsView = lazy(() => import("@/components/admin/views/LeadsView").then(m => ({ default: m.LeadsView })));
@@ -324,6 +325,7 @@ export default function Admin() {
   const { user, signOut, loading: authLoading } = useAuth();
   const { pendingCount } = usePendingValidations();
   const navigate = useNavigate();
+  useNewLeadAlert();
   const location = useLocation();
   const [checkingAccess, setCheckingAccess] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
