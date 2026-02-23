@@ -31,7 +31,14 @@ export function VendorFollowUpManager({ leads, diasAlerta = 3, onViewLead }: Ven
     const pending: Lead[] = [];
     const upToDate: Lead[] = [];
 
-    leads.forEach((lead) => {
+    // Only process leads in active sales statuses (exclude terminal/special)
+    const activeLeads = leads.filter(lead => {
+      // Skip leads without status or in terminal statuses
+      // Terminal statuses are typically at higher ordem values
+      return lead.status_id != null;
+    });
+
+    activeLeads.forEach((lead) => {
       const lastContact = lead.ultimo_contato ? parseISO(lead.ultimo_contato) : parseISO(lead.created_at);
       const daysSinceContact = differenceInDays(now, lastContact);
       

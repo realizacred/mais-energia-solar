@@ -15,11 +15,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Lead } from "@/types/lead";
 
+interface PendingLead {
+  id: string;
+  nome: string;
+  telefone: string;
+  cidade: string;
+  estado: string;
+  observacoes: string | null;
+  updated_at: string;
+  created_at: string;
+  status_id: string | null;
+  consultor: string | null;
+  arquivos_urls: string[] | null;
+}
 interface PendingDocumentationWidgetProps {
-  onLeadClick?: (lead: Lead) => void;
-  onConvertClick?: (lead: Lead) => void;
+  onLeadClick?: (lead: PendingLead) => void;
+  onConvertClick?: (lead: PendingLead) => void;
   maxItems?: number;
   refreshKey?: number;
 }
@@ -38,7 +50,7 @@ export function PendingDocumentationWidget({
   maxItems = 10,
   refreshKey = 0,
 }: PendingDocumentationWidgetProps) {
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<PendingLead[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,10 +71,10 @@ export function PendingDocumentationWidget({
         return;
       }
 
-      // Get leads with this status
+      // Get leads with this status - use explicit columns
       const { data: leadsData, error } = await supabase
         .from("leads")
-        .select("*")
+        .select("id, nome, telefone, cidade, estado, observacoes, updated_at, created_at, status_id, consultor, arquivos_urls")
         .eq("status_id", statusData.id)
         .order("updated_at", { ascending: true })
         .limit(maxItems);
@@ -90,7 +102,7 @@ export function PendingDocumentationWidget({
     return <Badge variant="secondary" className="text-xs">{days}d</Badge>;
   };
 
-  const handleClick = (lead: Lead) => {
+  const handleClick = (lead: PendingLead) => {
     if (onConvertClick) {
       onConvertClick(lead);
     } else if (onLeadClick) {

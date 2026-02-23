@@ -43,33 +43,33 @@ export function FollowUpNotifications({
 
   const loadLeadsNeedingFollowUp = async () => {
     try {
-      // Get leads that haven't been contacted recently
-      // Exclude "Convertido" and "Cancelado" statuses
+      // Get terminal + special statuses to exclude from follow-up
       const { data: excludeStatuses } = await supabase
         .from("lead_status")
-        .select("id")
-        .in("nome", ["Convertido", "Cancelado", "Perdido"]);
+        .select("id, nome")
+        .in("nome", ["Convertido", "Perdido", "Aguardando Documentação", "Aguardando Validação"]);
 
-      const excludeIds = excludeStatuses?.map(s => s.id) || [];
+      const excludeIds = new Set((excludeStatuses || []).map(s => s.id));
 
+      // Use explicit columns instead of select("*")
       const { data: leadsData, error } = await supabase
         .from("leads")
-        .select("*")
+        .select("id, nome, telefone, cidade, estado, consultor, status_id, ultimo_contato, created_at, updated_at")
         .order("ultimo_contato", { ascending: true, nullsFirst: true })
         .limit(100);
 
       if (error) throw error;
 
-      // Filter and calculate days without contact
+      // Filter out terminal/special statuses and calculate days without contact
       const now = new Date();
       const leadsNeedingFollowUp: LeadWithDays[] = (leadsData || [])
-        .filter(lead => !excludeIds.includes(lead.status_id || ""))
+        .filter(lead => !excludeIds.has(lead.status_id || ""))
         .map(lead => {
           const lastContact = lead.ultimo_contato 
             ? new Date(lead.ultimo_contato) 
             : new Date(lead.created_at);
           const daysWithoutContact = differenceInDays(now, lastContact);
-          return { ...lead, daysWithoutContact };
+          return { ...lead, daysWithoutContact } as LeadWithDays;
         })
         .filter(lead => lead.daysWithoutContact >= diasAlerta)
         .sort((a, b) => b.daysWithoutContact - a.daysWithoutContact)
