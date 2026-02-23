@@ -118,7 +118,9 @@ export function formatCEP(value: string): string {
 }
 
 export function formatName(name: string): string {
-  return name
+  // Preserve trailing space so the user can type multi-word names
+  const hasTrailingSpace = name.endsWith(" ");
+  const formatted = name
     .toLowerCase()
     .split(/\s+/)
     .filter(Boolean)
@@ -127,6 +129,7 @@ export function formatName(name: string): string {
       return word.charAt(0).toUpperCase() + word.slice(1);
     })
     .join(" ");
+  return hasTrailingSpace ? formatted + " " : formatted;
 }
 
 export const ESTADOS_BRASIL = [
