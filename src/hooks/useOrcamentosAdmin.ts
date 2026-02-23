@@ -223,6 +223,15 @@ export function useOrcamentosAdmin({ autoFetch = true, pageSize = PAGE_SIZE }: U
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        () => {
+          // Lead name/phone/status changed — debounced refetch
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchOrcamentos(), 800);
+        }
+      )
       .subscribe();
 
     return () => {

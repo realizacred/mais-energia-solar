@@ -146,6 +146,46 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
     fetchLeads();
   }, []);
 
+  // ⚠️ HARDENING: Realtime subscription for cross-user sync on clientes
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('clientes-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'clientes' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchClientes(), 500);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'clientes' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchClientes(), 500);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'clientes' },
+        (payload) => {
+          if (payload.old) {
+            const deletedId = (payload.old as any).id;
+            setClientes(prev => prev.filter(c => c.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchClientes = async () => {
     try {
       const { data, error } = await supabase
