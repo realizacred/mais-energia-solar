@@ -141,9 +141,9 @@ describe("loginSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("should reject invalid email", () => {
+  it("should reject empty email/phone", () => {
     const result = loginSchema.safeParse({
-      email: "not-an-email",
+      email: "",
       password: "Senha123",
     });
     expect(result.success).toBe(false);
