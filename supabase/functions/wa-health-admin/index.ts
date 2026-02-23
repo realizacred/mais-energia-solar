@@ -56,6 +56,18 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers });
   }
 
+  // ── Resolve tenant ──
+  const { data: profile } = await userClient
+    .from("profiles")
+    .select("tenant_id")
+    .eq("user_id", userId)
+    .single();
+
+  if (!profile?.tenant_id) {
+    return new Response(JSON.stringify({ error: "No tenant" }), { status: 403, headers });
+  }
+  const tenantId = profile.tenant_id;
+
   // ── Service role client for admin queries ──
   const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
@@ -64,22 +76,26 @@ Deno.serve(async (req) => {
   const now24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   try {
-    // Parallel fetches
+    // Parallel fetches — scoped to tenant
     const [instancesRes, backlogRes, opsRes, failuresRes] = await Promise.all([
       adminClient
         .from("wa_instances")
-        .select("id, evolution_instance_key, status, tenant_id"),
+        .select("id, evolution_instance_key, status, tenant_id")
+        .eq("tenant_id", tenantId),
       adminClient
         .from("wa_outbox")
         .select("instance_id, status")
+        .eq("tenant_id", tenantId)
         .in("status", ["pending", "sending"]),
       adminClient
         .from("wa_ops_events")
         .select("event_type")
+        .eq("tenant_id", tenantId)
         .gte("created_at", now24h),
       adminClient
         .from("wa_outbox")
         .select("id, error_message, instance_id, created_at, retry_count")
+        .eq("tenant_id", tenantId)
         .eq("status", "failed")
         .gte("created_at", now24h)
         .order("created_at", { ascending: false })
