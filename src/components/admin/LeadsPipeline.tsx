@@ -36,13 +36,10 @@ const LEADS_PAGE_SIZE = 25;
 
 const LEADS_SELECT = "id, lead_code, nome, telefone, cidade, estado, media_consumo, consultor, status_id, created_at, ultimo_contato, visto";
 
-const LOSS_REASONS = [
-  "Preço (Concorrência)",
-  "Falta de financiamento",
-  "Desistência do cliente",
-  "Lead desqualificado",
-  "Prazo de instalação",
-];
+interface MotivoPerda {
+  id: string;
+  nome: string;
+}
 
 interface LeadStatus {
   id: string;
@@ -91,8 +88,9 @@ export default function LeadsPipeline() {
   // Loss dialog
   const [lossDialogOpen, setLossDialogOpen] = useState(false);
   const [lossLead, setLossLead] = useState<Lead | null>(null);
-  const [lossReason, setLossReason] = useState("");
+  const [lossReasonId, setLossReasonId] = useState("");
   const [lossNotes, setLossNotes] = useState("");
+  const [motivosPerda, setMotivosPerda] = useState<MotivoPerda[]>([]);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
@@ -126,9 +124,10 @@ export default function LeadsPipeline() {
         setLeads(prev => [...prev, ...newLeads]);
         setHasMore(leads.length + newLeads.length < totalCount);
       } else {
-        const [leadsRes, statusRes] = await Promise.all([
+        const [leadsRes, statusRes, motivosRes] = await Promise.all([
           leadsPromise,
-          supabase.from("lead_status").select("id, nome, ordem, cor").order("ordem"),
+          supabase.from("lead_status").select("id, nome, ordem, cor, motivo_perda_obrigatorio").order("ordem"),
+          supabase.from("motivos_perda").select("id, nome").eq("ativo", true).order("ordem"),
         ]);
         if (leadsRes.error) throw leadsRes.error;
         if (statusRes.error) throw statusRes.error;
@@ -136,6 +135,7 @@ export default function LeadsPipeline() {
         const totalCount = leadsRes.count || 0;
         setLeads(newLeads);
         setStatuses(statusRes.data || []);
+        setMotivosPerda(motivosRes.data || []);
         setHasMore(newLeads.length < totalCount);
       }
     } catch (error) {
@@ -296,17 +296,27 @@ export default function LeadsPipeline() {
   // ── Lose: open dialog ──
   const handleLose = (lead: Lead) => {
     setLossLead(lead);
-    setLossReason("");
+    setLossReasonId("");
     setLossNotes("");
     setLossDialogOpen(true);
   };
 
   const confirmLoss = async () => {
-    if (!lossLead || !lossReason) return;
-    // Record the loss (update observacoes with reason)
-    const obs = `Motivo: ${lossReason}${lossNotes ? ` | Obs: ${lossNotes}` : ""}`;
-    await supabase.from("leads").update({ observacoes: obs } as any).eq("id", lossLead.id);
-    toast({ title: "Lead descartado", description: `${lossLead.nome}: ${lossReason}` });
+    if (!lossLead || !lossReasonId) return;
+    // Find the "Perdido" status
+    const perdidoStatus = statuses.find(s => s.nome.toLowerCase().includes("perdido"));
+    const updateData: any = {
+      motivo_perda_id: lossReasonId,
+      motivo_perda_obs: lossNotes || null,
+    };
+    if (perdidoStatus) {
+      updateData.status_id = perdidoStatus.id;
+    }
+    await supabase.from("leads").update(updateData).eq("id", lossLead.id);
+    // Update local state
+    setLeads(prev => prev.map(l => l.id === lossLead.id ? { ...l, ...updateData } : l));
+    const motivoNome = motivosPerda.find(m => m.id === lossReasonId)?.nome;
+    toast({ title: "Lead marcado como perdido", description: `${lossLead.nome}: ${motivoNome}` });
     setLossDialogOpen(false);
     setLossLead(null);
   };
@@ -510,13 +520,13 @@ export default function LeadsPipeline() {
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Motivo</label>
-              <Select value={lossReason} onValueChange={setLossReason}>
+           <Select value={lossReasonId} onValueChange={setLossReasonId}>
                 <SelectTrigger className="h-10">
                   <SelectValue placeholder="Selecione o motivo" />
                 </SelectTrigger>
                 <SelectContent>
-                  {LOSS_REASONS.map(r => (
-                    <SelectItem key={r} value={r}>{r}</SelectItem>
+                  {motivosPerda.map(m => (
+                    <SelectItem key={m.id} value={m.id}>{m.nome}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -533,7 +543,7 @@ export default function LeadsPipeline() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setLossDialogOpen(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={confirmLoss} disabled={!lossReason}>Confirmar descarte</Button>
+            <Button variant="destructive" onClick={confirmLoss} disabled={!lossReasonId}>Confirmar descarte</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

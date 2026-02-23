@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SalesFunnel, VendorPerformance, ConversionMetrics } from "@/components/admin/analytics";
+import { RevenueForecastWidget } from "@/components/admin/widgets/RevenueForecastWidget";
 import DashboardCharts from "@/components/admin/DashboardCharts";
 import { BarChart3, Users, TrendingUp, Target } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -150,6 +151,7 @@ export default function AnalyticsDashboard({ leads: propLeads, statuses: propSta
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4">
+          <RevenueForecastWidget />
           <DashboardCharts leads={leads} />
         </TabsContent>
 

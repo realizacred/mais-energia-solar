@@ -84,6 +84,7 @@ const InstalarApp = lazy(() => import("@/pages/Instalar"));
 const LinksInstalacaoPage = lazy(() => import("@/components/admin/LinksInstalacaoPage").then(m => ({ default: m.LinksInstalacaoPage })));
 // CanaisCaptacaoPage removed — consolidated into LinksInstalacaoPage
 const DataResetManager = lazy(() => import("@/components/admin/DataResetManager").then(m => ({ default: m.DataResetManager })));
+const LeadsTrashPage = lazy(() => import("@/components/admin/leads/LeadsTrashPage"));
 const IntegrationsPage = lazy(() => import("@/components/admin/integrations/IntegrationsPage"));
 const IntegrationHealthPage = lazy(() => import("@/components/admin/integrations/IntegrationHealthPage"));
 const AneelIntegrationPage = lazy(() => import("@/components/admin/integrations/AneelIntegrationPage").then(m => ({ default: m.AneelIntegrationPage })));
@@ -467,6 +468,7 @@ export default function Admin() {
                 <Route path="leads" element={<LeadsView />} />
                 <Route path="pipeline" element={<LeadsPipeline />} />
                 <Route path="followup" element={<FollowUpManager diasAlerta={3} />} />
+                <Route path="lixeira" element={<LeadsTrashPage />} />
                 <Route path="propostas" element={<PropostasManager />} />
                 <Route path="projetos" element={<ProjetosManagerPage />} />
                 <Route path="propostas-nativas" element={<ProposalListPage />} />
