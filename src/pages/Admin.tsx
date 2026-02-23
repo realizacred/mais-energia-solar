@@ -37,6 +37,7 @@ const RecebimentosManager = lazy(() => import("@/components/admin/RecebimentosMa
 const InstagramConfig = lazy(() => import("@/components/admin/InstagramConfig").then(m => ({ default: m.InstagramConfig })));
 const UsuariosManager = lazy(() => import("@/components/admin/UsuariosManager").then(m => ({ default: m.UsuariosManager })));
 const EquipamentosManager = lazy(() => import("@/components/admin/EquipamentosManager").then(m => ({ default: m.EquipamentosManager })));
+const FornecedoresManager = lazy(() => import("@/components/admin/FornecedoresManager").then(m => ({ default: m.FornecedoresManager })));
 const ModulosManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.ModulosManager })));
 const InversoresManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.InversoresManager })));
 const BateriasManager = lazy(() => import("@/components/admin/equipamentos").then(m => ({ default: m.BateriasManager })));
@@ -520,6 +521,7 @@ export default function Admin() {
                 <Route path="modulos" element={<ModulosManager />} />
                 <Route path="inversores-cadastro" element={<InversoresManager />} />
                 <Route path="baterias" element={<BateriasManager />} />
+                <Route path="fornecedores" element={<FornecedoresManager />} />
                 <Route path="concessionarias" element={<ConcessionariasManager />} />
                 <Route path="dicionario-aneel" element={<DicionarioAneelPage />} />
                 <Route path="tarifa-versoes" element={<TarifaVersoesPage />} />
