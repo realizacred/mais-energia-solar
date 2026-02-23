@@ -94,6 +94,8 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
   const { fetchTarifa } = useFetchTarifaSubgrupo();
   const [dynamicSubgruposMT, setDynamicSubgruposMT] = useState<Array<{ value: string; label: string }> | null>(null);
   const [tarifaDialogOpen, setTarifaDialogOpen] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [tempName, setTempName] = useState(uc.nome);
   const prevSubgrupoRef = useRef(uc.subgrupo);
   const prevDistRef = useRef(uc.distribuidora_id);
 
@@ -169,9 +171,29 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
       {/* ── Header ── */}
       <div className="flex items-center justify-between px-3 pt-2 pb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
-          <p className="text-xs font-bold text-foreground whitespace-nowrap">
-            {index + 1}. {isFirst ? "(Geradora)" : "Unidade"}
-          </p>
+          {editingName ? (
+            <Input
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              onBlur={() => {
+                if (tempName.trim()) onChange({ ...uc, nome: tempName.trim() });
+                setEditingName(false);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  if (tempName.trim()) onChange({ ...uc, nome: tempName.trim() });
+                  setEditingName(false);
+                }
+                if (e.key === "Escape") { setTempName(uc.nome); setEditingName(false); }
+              }}
+              className="h-5 text-xs font-bold w-[140px] px-1"
+              autoFocus
+            />
+          ) : (
+            <p className="text-xs font-bold text-foreground whitespace-nowrap">
+              {index + 1}. {uc.nome || (isFirst ? "(Geradora)" : "Unidade")}
+            </p>
+          )}
           <Badge
             variant="outline"
             className={`text-[8px] px-1 py-0 font-bold ${
@@ -199,16 +221,19 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
               <TooltipContent><p className="text-xs">Informações da UC</p></TooltipContent>
             </Tooltip>
           </TooltipProvider>
-          {totalUcs > 1 && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="text-muted-foreground hover:text-foreground p-0.5"><MoreVertical className="h-3.5 w-3.5" /></button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="text-muted-foreground hover:text-foreground p-0.5"><MoreVertical className="h-3.5 w-3.5" /></button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={() => { setTempName(uc.nome); setEditingName(true); }}>
+                <Pencil className="h-3.5 w-3.5 mr-2" /> Editar nome
+              </DropdownMenuItem>
+              {totalUcs > 1 && (
                 <DropdownMenuItem onClick={onRemove} className="text-destructive">Remover UC</DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
