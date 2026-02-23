@@ -58,7 +58,7 @@ export function LeadTimeline({ leadId, leadName }: LeadTimelineProps) {
               title = "Status alterado";
               description = dados?.status_id ? `Novo status definido` : "Status removido";
             } else if (dados?.deleted_at) {
-              title = "Lead excluído (lixeira)";
+              title = "Lead arquivado";
             } else {
               title = "Lead atualizado";
             }

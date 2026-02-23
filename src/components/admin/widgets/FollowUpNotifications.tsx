@@ -69,7 +69,7 @@ export function FollowUpNotifications({
       const { data: excludeStatuses } = await supabase
         .from("lead_status")
         .select("id, nome")
-        .in("nome", ["Convertido", "Perdido", "Aguardando Documentação", "Aguardando Validação"]);
+        .in("nome", ["Convertido", "Perdido", "Arquivado", "Aguardando Documentação", "Aguardando Validação"]);
 
       const excludeIds = new Set((excludeStatuses || []).map(s => s.id));
 
