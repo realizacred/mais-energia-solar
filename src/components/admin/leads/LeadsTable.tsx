@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatBRL } from "@/lib/formatters";
 import { Phone, Eye, Trash2, ShoppingCart, UserCheck, Zap, TrendingUp, MessageSquare, AlertTriangle, CheckCircle2, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -176,7 +177,7 @@ export function LeadsTable({ leads, statuses = [], onToggleVisto, onView, onDele
                     )}
                     {lead.cliente_valor_projeto != null && (
                       <Badge variant="outline" className="bg-success/10 text-success border-success/20 text-xs">
-                        R$ {lead.cliente_valor_projeto.toLocaleString("pt-BR")}
+                        {formatBRL(lead.cliente_valor_projeto)}
                       </Badge>
                     )}
                     {!lead.cliente_potencia_kwp && !lead.cliente_valor_projeto && (

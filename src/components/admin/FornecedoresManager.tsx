@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { formatPhone } from "@/lib/validations";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import { Plus, Trash2, Pencil, Search, Truck, Building2, Globe, Phone, Mail, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -313,7 +315,7 @@ export function FornecedoresManager() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>CNPJ</Label>
-                    <Input value={form.cnpj} onChange={e => setForm(p => ({ ...p, cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
+                    <Input value={form.cnpj} onChange={e => setForm(p => ({ ...p, cnpj: formatCpfCnpj(e.target.value) }))} placeholder="00.000.000/0000-00" maxLength={18} />
                   </div>
                   <div className="space-y-1.5">
                     <Label>Inscrição Estadual</Label>
@@ -334,7 +336,7 @@ export function FornecedoresManager() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Telefone</Label>
-                    <Input value={form.telefone} onChange={e => setForm(p => ({ ...p, telefone: e.target.value }))} placeholder="(00) 00000-0000" />
+                    <Input value={form.telefone} onChange={e => setForm(p => ({ ...p, telefone: formatPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -344,7 +346,7 @@ export function FornecedoresManager() {
                   </div>
                   <div className="space-y-1.5">
                     <Label>Tel. Contato</Label>
-                    <Input value={form.contato_telefone} onChange={e => setForm(p => ({ ...p, contato_telefone: e.target.value }))} placeholder="(00) 00000-0000" />
+                    <Input value={form.contato_telefone} onChange={e => setForm(p => ({ ...p, contato_telefone: formatPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} />
                   </div>
                 </div>
                 <div className="space-y-1.5">

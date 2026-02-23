@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { formatPhone } from "@/lib/validations";
+import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
 import type React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -383,7 +385,7 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
           {hasCpf && (
             <div className="space-y-1.5">
               <Label className="text-xs">CPF</Label>
-              <Input value={cpf} onChange={(e) => setCpf(e.target.value)} className="h-9 text-sm" placeholder="000.000.000-00" />
+              <Input value={cpf} onChange={(e) => setCpf(formatCpfCnpj(e.target.value))} className="h-9 text-sm" placeholder="000.000.000-00" maxLength={14} />
             </div>
           )}
           <div className="space-y-1.5">
@@ -392,7 +394,7 @@ function SignerModal({ open, onOpenChange, signer, onSaved }: SignerModalProps) 
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">Celular</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-9 text-sm" placeholder="(00) 00000-0000" />
+            <Input value={phone} onChange={(e) => setPhone(formatPhone(e.target.value))} className="h-9 text-sm" placeholder="(00) 00000-0000" maxLength={15} />
           </div>
           <div className="space-y-2">
             <Label className="text-xs font-semibold">Autenticações opcionais</Label>
