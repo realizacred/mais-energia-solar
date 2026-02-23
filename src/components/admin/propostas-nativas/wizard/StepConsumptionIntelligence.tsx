@@ -516,27 +516,39 @@ export function StepConsumptionIntelligence({
 
       {/* ─── Tab content */}
       {activeTab === "ucs" ? (
-        <div className="flex flex-wrap gap-3 pb-2">
-          {ucs.map((uc, i) => (
-            <UCCard
-              key={uc.id}
-              uc={uc}
-              index={i}
-              onChange={u => updateUC(i, u)}
-              onRemove={() => removeUC(i)}
-              onOpenConfig={() => setConfigModal({ open: true, index: i })}
-              onOpenMesAMes={field => setMesAMes({ open: true, ucIndex: i, field })}
-              isFirst={i === 0}
-              totalUcs={ucs.length}
-            />
-          ))}
+        <div className="space-y-3">
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+            {ucs.map((uc, i) => (
+              <div key={uc.id} className="shrink-0">
+                <UCCard
+                  uc={uc}
+                  index={i}
+                  onChange={u => updateUC(i, u)}
+                  onRemove={() => removeUC(i)}
+                  onOpenConfig={() => setConfigModal({ open: true, index: i })}
+                  onOpenMesAMes={field => setMesAMes({ open: true, ucIndex: i, field })}
+                  isFirst={i === 0}
+                  totalUcs={ucs.length}
+                />
+              </div>
+            ))}
 
+            <button
+              onClick={addUC}
+              className="shrink-0 w-[220px] min-h-[400px] rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 flex flex-col items-center justify-center gap-2 hover:border-primary/50 hover:bg-primary/10 transition-colors cursor-pointer"
+            >
+              <Plus className="h-5 w-5 text-primary" />
+              <span className="text-xs text-primary font-medium">+ Nova Unidade</span>
+            </button>
+          </div>
+
+          {/* Configurações adicionais */}
           <button
-            onClick={addUC}
-            className="rounded-lg border-2 border-dashed border-primary/30 bg-primary/5 w-[320px] min-w-[280px] min-h-[120px] flex flex-col items-center justify-center gap-1.5 hover:border-primary/50 hover:bg-primary/10 transition-colors"
+            onClick={() => setConfigModal({ open: true, index: 0 })}
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
           >
-            <Plus className="h-4 w-4 text-primary" />
-            <span className="text-xs text-primary font-medium">+ Nova Unidade</span>
+            <Settings2 className="h-3.5 w-3.5" />
+            Configurações adicionais
           </button>
         </div>
       ) : (
