@@ -87,6 +87,7 @@ interface NewUserForm {
   email: string;
   password: string;
   role: string;
+  telefone: string;
 }
 
 const ROLE_LABELS: Record<string, { label: string; color: string; icon: React.ElementType }> = {
@@ -111,6 +112,7 @@ export function UsuariosManager() {
   const [newUserForm, setNewUserForm] = useState<NewUserForm>({
     nome: "",
     email: "",
+    telefone: "",
     password: "",
     role: "consultor",
   });
@@ -382,6 +384,7 @@ export function UsuariosManager() {
           email: newUserForm.email,
           password: newUserForm.password,
           role: newUserForm.role,
+          telefone: newUserForm.telefone || undefined,
         },
       });
 
@@ -408,7 +411,7 @@ export function UsuariosManager() {
       });
       
       setIsCreateDialogOpen(false);
-      setNewUserForm({ nome: "", email: "", password: "", role: "consultor" });
+      setNewUserForm({ nome: "", email: "", password: "", role: "consultor", telefone: "" });
       fetchUsers();
     } catch (error: any) {
       console.error("Error creating user:", error);
@@ -673,8 +676,17 @@ export function UsuariosManager() {
                 onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
                 placeholder="Mínimo 6 caracteres"
               />
-            </div>
-            <div className="space-y-2">
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="telefone">Telefone</Label>
+                <Input
+                  id="telefone"
+                  value={newUserForm.telefone}
+                  onChange={(e) => setNewUserForm({ ...newUserForm, telefone: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div className="space-y-2">
               <Label htmlFor="role">Perfil inicial</Label>
               <Select 
                 value={newUserForm.role} 
@@ -698,7 +710,7 @@ export function UsuariosManager() {
               variant="outline" 
               onClick={() => {
                 setIsCreateDialogOpen(false);
-                setNewUserForm({ nome: "", email: "", password: "", role: "consultor" });
+                setNewUserForm({ nome: "", email: "", password: "", role: "consultor", telefone: "" });
               }}
             >
               Cancelar

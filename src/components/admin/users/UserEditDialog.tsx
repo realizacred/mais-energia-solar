@@ -36,7 +36,6 @@ import {
 } from "@/components/ui/select";
 import {
   Pencil,
-  
   KeyRound,
   Mail,
   UserX,
@@ -49,6 +48,7 @@ import {
   Save,
   Link2,
   Settings2,
+  Phone,
 } from "lucide-react";
 
 interface UserWithRoles {
@@ -102,6 +102,7 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
   const [localAtivo, setLocalAtivo] = useState(true);
   const [localRoles, setLocalRoles] = useState<string[]>([]);
   const [linkedVendedor, setLinkedVendedor] = useState<{ id: string; nome: string; telefone: string; email: string; codigo: string } | null>(null);
+  const [editTelefone, setEditTelefone] = useState("");
 
   const [featurePerms, setFeaturePerms] = useState<Record<string, boolean>>({});
   const [savingPerm, setSavingPerm] = useState<string | null>(null);
@@ -120,7 +121,10 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
         .select("id, nome, telefone, email, codigo")
         .eq("user_id", user.user_id)
         .maybeSingle()
-        .then(({ data }) => setLinkedVendedor(data));
+        .then(({ data }) => {
+          setLinkedVendedor(data);
+          setEditTelefone(data?.telefone || "");
+        });
       // Fetch feature permissions
       supabase
         .from("user_feature_permissions")
@@ -533,14 +537,53 @@ export function UserEditDialog({ user, onClose, onRefresh, currentUserId, onNavi
 
             {/* Linked Vendedor */}
             {linkedVendedor && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <Label className="flex items-center gap-1.5">
                   <Link2 className="w-4 h-4 text-primary" />
                   Consultor vinculado
                 </Label>
-                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
+                <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-3">
                   <p><span className="text-muted-foreground">Código:</span> <span className="font-medium">{linkedVendedor.codigo}</span></p>
-                  <p><span className="text-muted-foreground">Telefone:</span> {linkedVendedor.telefone || "—"}</p>
+                  <div className="space-y-1">
+                    <Label htmlFor="edit-telefone" className="text-xs text-muted-foreground flex items-center gap-1">
+                      <Phone className="w-3 h-3" /> Telefone
+                    </Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="edit-telefone"
+                        value={editTelefone}
+                        onChange={(e) => setEditTelefone(e.target.value)}
+                        placeholder="(00) 00000-0000"
+                        className="h-8 text-sm"
+                      />
+                      {editTelefone.trim() !== (linkedVendedor.telefone || "") && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-8"
+                          disabled={isSaving}
+                          onClick={async () => {
+                            setIsSaving(true);
+                            try {
+                              const { error } = await (supabase as any)
+                                .from("consultores")
+                                .update({ telefone: editTelefone.trim() })
+                                .eq("id", linkedVendedor.id);
+                              if (error) throw error;
+                              setLinkedVendedor({ ...linkedVendedor, telefone: editTelefone.trim() });
+                              toast({ title: "Telefone atualizado!" });
+                            } catch (err: any) {
+                              toast({ title: "Erro", description: err.message, variant: "destructive" });
+                            } finally {
+                              setIsSaving(false);
+                            }
+                          }}
+                        >
+                          {isSaving ? <Spinner size="sm" /> : <Save className="w-3.5 h-3.5" />}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                   <p><span className="text-muted-foreground">Email:</span> {linkedVendedor.email || "—"}</p>
                 </div>
               </div>

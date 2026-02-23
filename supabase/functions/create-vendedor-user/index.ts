@@ -11,6 +11,7 @@ interface CreateUserRequest {
   password: string;
   nome: string;
   role?: "admin" | "gerente" | "consultor" | "instalador" | "financeiro";
+  telefone?: string;
 }
 
 Deno.serve(async (req) => {
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
     console.log("Resolved tenant_id:", tenantId);
 
     // Parse request body
-    const { email, password, nome, role = "consultor" }: CreateUserRequest = await req.json();
+    const { email, password, nome, role = "consultor", telefone }: CreateUserRequest = await req.json();
 
     if (!email || !password || !nome) {
       return new Response(
@@ -181,6 +182,7 @@ Deno.serve(async (req) => {
         .insert({
           nome,
           email,
+          telefone: telefone || "A definir",
           user_id: newUser.user.id,
           tenant_id: tenantId,
           ativo: true,
