@@ -43,7 +43,7 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
   const { data: messages, isLoading: loadingMessages } = useQuery({
     queryKey: ["wa-internal-messages", activeThread?.id],
     enabled: !!activeThread?.id,
-    refetchInterval: 5000,
+    staleTime: 30_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_internal_messages")
@@ -63,6 +63,27 @@ export function WaInternalThread({ conversationId, tenantId }: WaInternalThreadP
       return data.map((m) => ({ ...m, sender_name: nameMap[m.sender_id] || "Usuário" }));
     },
   });
+
+  // Realtime subscription for new messages
+  useEffect(() => {
+    if (!activeThread?.id) return;
+    const channel = supabase
+      .channel(`wa-internal-msgs-${activeThread.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "wa_internal_messages",
+          filter: `thread_id=eq.${activeThread.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["wa-internal-messages", activeThread.id] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeThread?.id, queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });

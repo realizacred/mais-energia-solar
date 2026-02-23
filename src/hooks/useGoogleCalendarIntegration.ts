@@ -73,7 +73,8 @@ export function useGoogleCalendarIntegration() {
   const initQuery = useQuery<{ status: IntegrationStatus; config: OAuthConfig; events: AuditEvent[] }>({
     queryKey: ["integration", "google_calendar", "init"],
     queryFn: () => callIntegration("init", "POST"),
-    refetchInterval: 30_000,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
   });
 
   const invalidate = useCallback(() => {
