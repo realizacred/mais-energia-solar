@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -8,6 +9,32 @@ import { supabase } from "@/integrations/supabase/client";
  */
 
 export function useDashboardStats() {
+  const queryClient = useQueryClient();
+
+  // ⚠️ HARDENING: Realtime — invalidate dashboard when core data changes
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const invalidate = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      }, 2000); // 2s debounce — dashboard is aggregate, no rush
+    };
+
+    const channel = supabase
+      .channel('dashboard-stats-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'deals' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, invalidate)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orcamentos' }, invalidate)
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   const leadsMensal = useQuery({
     queryKey: ["dashboard", "leads-mensal"],
     queryFn: async () => {

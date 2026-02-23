@@ -175,6 +175,29 @@ export function UsuariosManager() {
     };
   }, [user]);
 
+  // ⚠️ HARDENING: Realtime for cross-user sync on profiles/roles
+  useEffect(() => {
+    if (!canManageUsers) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchUsers(), 700);
+    };
+
+    const channel = supabase
+      .channel('usuarios-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_roles' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'consultores' }, refresh)
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [canManageUsers]);
+
   const fetchUsers = async () => {
     try {
       // Parallel fetch: profiles, roles, and emails

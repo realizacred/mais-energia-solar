@@ -135,6 +135,26 @@ export function RecebimentosManager() {
     fetchClientes();
   }, []);
 
+  // ⚠️ HARDENING: Realtime for cross-user sync on recebimentos/pagamentos
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => fetchRecebimentos(), 600);
+    };
+
+    const channel = supabase
+      .channel('recebimentos-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'recebimentos' }, refresh)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pagamentos' }, refresh)
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const fetchRecebimentos = async () => {
     try {
       const { data, error } = await supabase

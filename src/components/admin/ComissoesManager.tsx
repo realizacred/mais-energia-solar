@@ -136,6 +136,24 @@ export function ComissoesManager() {
     fetchData();
   }, [filterMes, filterAno, filterVendedor, filterStatus, filterCliente]);
 
+  // ⚠️ HARDENING: Realtime for cross-user sync on comissões (financial data)
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('comissoes-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'comissoes' }, () => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => fetchData(), 700);
+      })
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [filterMes, filterAno, filterVendedor, filterStatus, filterCliente]);
+
   const fetchData = async () => {
     setLoading(true);
     try {

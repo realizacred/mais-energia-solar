@@ -160,6 +160,38 @@ export function useOrcamentos({ autoFetch = true, leadId }: UseOrcamentosOptions
     }
   }, [autoFetch, fetchOrcamentos]);
 
+  // ⚠️ HARDENING: Realtime subscription for cross-user sync
+  useEffect(() => {
+    if (!autoFetch) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('orcamentos-base-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orcamentos' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchOrcamentos(), 600);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchOrcamentos(), 800);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [autoFetch, fetchOrcamentos]);
+
   // Computed values
   const totalKwh = orcamentos.reduce((acc, o) => acc + o.media_consumo, 0);
   const uniqueEstados = new Set(orcamentos.map((o) => o.estado)).size;
