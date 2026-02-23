@@ -81,6 +81,7 @@ interface PropostaNativa {
   versao_atual: number;
   status: string;
   created_at: string;
+  cliente_nome: string | null;
   versoes: {
     id: string;
     versao_numero: number;
@@ -1573,7 +1574,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
       try {
         let query = supabase
           .from("propostas_nativas")
-          .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at")
+          .select("id, titulo, codigo, proposta_num, versao_atual, status, created_at, cliente_id, clientes(nome)")
           .order("created_at", { ascending: false })
           .limit(20);
 
@@ -1609,8 +1610,15 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
             }
           }
 
-          const mapped: PropostaNativa[] = data.map(p => ({
-            ...p,
+          const mapped: PropostaNativa[] = data.map((p: any) => ({
+            id: p.id,
+            titulo: p.titulo,
+            codigo: p.codigo,
+            proposta_num: p.proposta_num,
+            versao_atual: p.versao_atual,
+            status: p.status,
+            created_at: p.created_at,
+            cliente_nome: p.clientes?.nome || null,
             versoes: (versoes || []).filter(v => (v as any).proposta_id === p.id).map(v => ({
               id: (v as any).id,
               versao_numero: (v as any).versao_numero,
