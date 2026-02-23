@@ -126,10 +126,20 @@ export function LeadsView() {
     setIsConvertOpen(true);
   };
 
-  const handleLeadFromWidget = (lead: any) => {
-    setLeadToConvert(lead as Lead);
-    setIsConvertOpen(true);
-  };
+  const handleLeadFromWidget = useCallback((lead: any) => {
+    // Try to find the matching orcamento in the already-loaded list
+    const match = orcamentos.find(
+      (orc) => orc.lead_id === lead.id || orc.id === lead.id
+    );
+    if (match) {
+      setSelectedOrcamento(match);
+      setIsViewOpen(true);
+    } else {
+      // Fallback: open convert dialog with partial data
+      setLeadToConvert(lead as Lead);
+      setIsConvertOpen(true);
+    }
+  }, [orcamentos]);
 
   return (
     <div className="space-y-6">
@@ -141,7 +151,7 @@ export function LeadsView() {
 
       {/* Notification Widgets */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <PendingDocumentationWidget onLeadClick={handleLeadFromWidget} refreshKey={widgetRefreshKey} />
+        <PendingDocumentationWidget onLeadClick={handleLeadFromWidget} onConvertClick={handleLeadFromWidget} refreshKey={widgetRefreshKey} />
         <FollowUpNotifications onLeadClick={handleLeadFromWidget} diasAlerta={3} refreshKey={widgetRefreshKey} />
         <WaAutoMessageToggle />
       </div>
