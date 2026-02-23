@@ -27,19 +27,19 @@ export function LeadDeleteDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Excluir Lead</AlertDialogTitle>
+          <AlertDialogTitle>Mover para Lixeira</AlertDialogTitle>
           <AlertDialogDescription>
-            Tem certeza que deseja excluir o lead de {lead?.nome}? Esta ação não
-            pode ser desfeita.
+            Tem certeza que deseja mover o lead de {lead?.nome} para a lixeira? 
+            O lead poderá ser restaurado posteriormente.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-warning text-warning-foreground hover:bg-warning/90"
           >
-            Excluir
+            Mover para Lixeira
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

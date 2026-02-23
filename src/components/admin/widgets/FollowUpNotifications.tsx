@@ -73,10 +73,11 @@ export function FollowUpNotifications({
 
       const excludeIds = new Set((excludeStatuses || []).map(s => s.id));
 
-      // Use explicit columns instead of select("*")
+      // Use explicit columns instead of select("*"), exclude soft-deleted
       const { data: leadsData, error } = await supabase
         .from("leads")
         .select("id, nome, telefone, cidade, estado, consultor, status_id, ultimo_contato, created_at, updated_at")
+        .is("deleted_at", null)
         .order("ultimo_contato", { ascending: true, nullsFirst: true })
         .limit(100);
 

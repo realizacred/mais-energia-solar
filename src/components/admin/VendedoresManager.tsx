@@ -152,7 +152,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   // Fetch leads if not provided via props
   useEffect(() => {
     if (!propLeads) {
-      supabase.from("leads").select("consultor").then(({ data }) => {
+      supabase.from("leads").select("consultor").is("deleted_at", null).then(({ data }) => {
         if (data) setFetchedLeads(data);
       });
     }

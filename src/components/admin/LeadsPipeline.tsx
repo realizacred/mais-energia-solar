@@ -114,6 +114,7 @@ export default function LeadsPipeline() {
 
       const leadsPromise = supabase.from("leads")
         .select(LEADS_SELECT, { count: "exact" })
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .range(from, to);
 

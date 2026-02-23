@@ -93,11 +93,12 @@ export function PendingDocumentationWidget({
         return;
       }
 
-      // Get leads with this status - use explicit columns
+      // Get leads with this status - use explicit columns, exclude soft-deleted
       const { data: leadsData, error } = await supabase
         .from("leads")
         .select("id, nome, telefone, cidade, estado, observacoes, updated_at, created_at, status_id, consultor, arquivos_urls")
         .eq("status_id", statusData.id)
+        .is("deleted_at", null)
         .order("updated_at", { ascending: true })
         .limit(maxItems);
 

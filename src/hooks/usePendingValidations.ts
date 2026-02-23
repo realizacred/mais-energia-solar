@@ -65,11 +65,12 @@ export function usePendingValidations() {
         return;
       }
 
-      // Get leads with this status
+      // Get leads with this status (exclude soft-deleted)
       const { data: leads } = await supabase
         .from("leads")
         .select("id")
-        .eq("status_id", statusData.id);
+        .eq("status_id", statusData.id)
+        .is("deleted_at", null);
 
       if (!leads || leads.length === 0) {
         setPendingItems([]);
@@ -126,7 +127,8 @@ export function usePendingValidations() {
       const { data: leads } = await supabase
         .from("leads")
         .select("id")
-        .eq("status_id", convertidoStatus.id);
+        .eq("status_id", convertidoStatus.id)
+        .is("deleted_at", null);
 
       if (!leads || leads.length === 0) {
         setHistoryItems([]);

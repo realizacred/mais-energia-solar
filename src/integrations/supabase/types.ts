@@ -5110,6 +5110,8 @@ export type Database = {
           consumo_previsto: number
           created_at: string
           data_proxima_acao: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           distribuido_em: string | null
           estado: string
           id: string
@@ -5150,6 +5152,8 @@ export type Database = {
           consumo_previsto: number
           created_at?: string
           data_proxima_acao?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           distribuido_em?: string | null
           estado: string
           id?: string
@@ -5190,6 +5194,8 @@ export type Database = {
           consumo_previsto?: number
           created_at?: string
           data_proxima_acao?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           distribuido_em?: string | null
           estado?: string
           id?: string

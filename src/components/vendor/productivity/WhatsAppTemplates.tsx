@@ -97,6 +97,7 @@ export function WhatsAppTemplates({ vendedorNome = "Consultor", onSendToLead }: 
       const { data: leads } = await supabase
         .from("leads")
         .select("id, nome, cidade, media_consumo")
+        .is("deleted_at", null)
         .or(`telefone.ilike.%${cleaned}%,telefone_normalized.eq.${cleaned}`)
         .order("created_at", { ascending: false })
         .limit(1);

@@ -140,7 +140,7 @@ export default function PerformanceDashboard() {
   useEffect(() => {
     const fetchAll = async () => {
       const [leadsRes, statusRes, motivosRes, consultoresRes, dealsRes] = await Promise.all([
-        supabase.from("leads").select("id, nome, estado, cidade, media_consumo, consultor, consultor_id, created_at, status_id, motivo_perda_id, valor_estimado").order("created_at", { ascending: false }).limit(2000),
+        supabase.from("leads").select("id, nome, estado, cidade, media_consumo, consultor, consultor_id, created_at, status_id, motivo_perda_id, valor_estimado").is("deleted_at", null).order("created_at", { ascending: false }).limit(2000),
         supabase.from("lead_status").select("id, nome, cor, ordem").order("ordem"),
         supabase.from("motivos_perda").select("id, nome").eq("ativo", true),
         supabase.from("consultores").select("id, nome").eq("ativo", true).order("nome"),
