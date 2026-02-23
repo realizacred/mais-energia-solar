@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Zap, SunMedium, DollarSign, FileText, Eye, Pencil, Copy, Trash2, Download,
-  ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2
+  ChevronDown, MoreVertical, ExternalLink, AlertCircle, CheckCircle, Loader2,
+  Link2, MessageCircle, Mail, CalendarCheck, RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +19,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBRLInteger as formatBRL } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
+import { renderProposal, sendProposal } from "@/services/proposalApi";
 
 // ─── Types ──────────────────────────────────────────
 
@@ -130,6 +132,11 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [activeTab, setActiveTab] = useState("resumo");
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [html, setHtml] = useState<string | null>(null);
+  const [rendering, setRendering] = useState(false);
+  const [publicUrl, setPublicUrl] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   // Load expanded data when expanded
   useEffect(() => {
@@ -171,6 +178,93 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
       setDeleteOpen(false);
     }
   };
+
+  // Render proposal HTML
+  const handleRender = async () => {
+    if (!latestVersao?.id) return;
+    setRendering(true);
+    try {
+      const result = await renderProposal(latestVersao.id);
+      if (result.html) setHtml(result.html);
+      else toast({ title: "Proposta renderizada, mas sem HTML retornado." });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar arquivo", description: e.message, variant: "destructive" });
+    } finally {
+      setRendering(false);
+    }
+  };
+
+  // Download PDF
+  const handleDownloadPdf = async () => {
+    if (!html) { toast({ title: "Gere o arquivo primeiro", variant: "destructive" }); return; }
+    setDownloadingPdf(true);
+    try {
+      const { default: jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      container.style.width = "800px";
+      container.style.position = "absolute";
+      container.style.left = "-9999px";
+      document.body.appendChild(container);
+      await doc.html(container, {
+        callback: (pdf) => {
+          pdf.save(`${p.codigo || p.titulo || "proposta"}_v${latestVersao?.versao_numero || 1}.pdf`);
+          document.body.removeChild(container);
+        },
+        x: 10, y: 10, width: 190, windowWidth: 800,
+      });
+      toast({ title: "PDF gerado!" });
+    } catch (e: any) {
+      toast({ title: "Erro ao gerar PDF", description: e.message, variant: "destructive" });
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Send proposal
+  const handleSend = async (canal: "link" | "whatsapp") => {
+    if (!p.id || !latestVersao?.id) return;
+    setSending(true);
+    try {
+      const result = await sendProposal({
+        proposta_id: p.id,
+        versao_id: latestVersao.id,
+        canal,
+        lead_id: undefined,
+      });
+      setPublicUrl(result.public_url);
+      if (canal === "whatsapp" && result.whatsapp_sent) {
+        toast({ title: "Proposta enviada via WhatsApp! ✅" });
+      } else {
+        toast({ title: "Link gerado com sucesso!" });
+      }
+    } catch (e: any) {
+      toast({ title: "Erro ao enviar", description: e.message, variant: "destructive" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const copyLink = (withTracking: boolean) => {
+    if (!publicUrl) {
+      toast({ title: "Gere e envie a proposta primeiro", variant: "destructive" });
+      return;
+    }
+    const url = withTracking ? publicUrl : publicUrl.replace(/\?.*$/, "");
+    navigator.clipboard.writeText(url);
+    toast({ title: `Link ${withTracking ? "com" : "sem"} rastreio copiado!` });
+  };
+
+  const validadeDate = latestVersao ? (() => {
+    const snap = snapshot as any;
+    if (snap?.validade_dias) {
+      const d = new Date(latestVersao.created_at);
+      d.setDate(d.getDate() + snap.validade_dias);
+      return d.toLocaleDateString("pt-BR");
+    }
+    return null;
+  })() : null;
 
   // Build summary table from snapshot
   const buildSummaryRows = () => {
@@ -357,6 +451,9 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                   <TabsTrigger value="resumo" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                     Resumo
                   </TabsTrigger>
+                  <TabsTrigger value="arquivo" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+                    Arquivo
+                  </TabsTrigger>
                   <TabsTrigger value="dados" className="text-xs h-7 px-0 pb-1 rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none">
                     Dados
                   </TabsTrigger>
@@ -485,7 +582,123 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                     </div>
                   </TabsContent>
 
-                  {/* ─ Dados Tab ─────────────── */}
+                  {/* ─ Arquivo Tab ─────────────── */}
+                  <TabsContent value="arquivo" className="px-4 pb-4 mt-0">
+                    {/* Warning banner if snapshot changed */}
+                    {snapshot && html && (
+                      <div className="flex items-center gap-2 mt-3 mb-3 py-2 px-3 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        <span>Atenção! Houve atualização na proposta e seu arquivo pode não estar atualizado. Gere um novo arquivo, se necessário.</span>
+                      </div>
+                    )}
+
+                    <div className="flex gap-5 mt-3">
+                      {/* Left: Options panel */}
+                      <div className="w-[220px] shrink-0 space-y-3">
+                        <p className="text-sm font-bold text-foreground">Opções</p>
+
+                        <Button
+                          size="sm"
+                          className="w-full justify-start gap-2 h-8 text-xs"
+                          onClick={handleRender}
+                          disabled={rendering}
+                        >
+                          {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                          Gerar outro arquivo
+                        </Button>
+
+                        <div className="space-y-1">
+                          <button
+                            onClick={handleDownloadPdf}
+                            disabled={!html || downloadingPdf}
+                            className="flex items-center gap-2 text-xs text-primary hover:underline disabled:text-muted-foreground disabled:no-underline py-1"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            {downloadingPdf ? "Gerando..." : "Baixar PDF"}
+                          </button>
+
+                          <button
+                            onClick={() => toast({ title: "Exportação DOCX", description: "Funcionalidade em desenvolvimento." })}
+                            className="flex items-center gap-2 text-xs text-primary hover:underline py-1"
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            Baixar DOCX
+                          </button>
+
+                          <button
+                            onClick={() => copyLink(true)}
+                            className="flex items-center gap-2 text-xs text-primary hover:underline py-1"
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            Copiar link com rastreio
+                          </button>
+
+                          <button
+                            onClick={() => copyLink(false)}
+                            className="flex items-center gap-2 text-xs text-primary hover:underline py-1"
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            Copiar link sem rastreio
+                          </button>
+
+                          {validadeDate && (
+                            <div className="flex items-center gap-2 text-xs text-primary py-1">
+                              <CalendarCheck className="h-3.5 w-3.5" />
+                              Validade da proposta: {validadeDate}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-2 pt-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full justify-start gap-2 h-8 text-xs border-success text-success hover:bg-success/10"
+                            onClick={() => handleSend("whatsapp")}
+                            disabled={sending || !html}
+                          >
+                            <MessageCircle className="h-3.5 w-3.5" />
+                            Enviar por whatsapp
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full justify-start gap-2 h-8 text-xs border-primary text-primary hover:bg-primary/10"
+                            onClick={() => {
+                              toast({ title: "Envio por e-mail", description: "Funcionalidade em desenvolvimento." });
+                            }}
+                            disabled={!html}
+                          >
+                            <Mail className="h-3.5 w-3.5" />
+                            Enviar por e-mail
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Right: Preview */}
+                      <div className="flex-1 min-w-0 border rounded-lg overflow-hidden bg-muted/20">
+                        {html ? (
+                          <iframe
+                            srcDoc={html}
+                            className="w-full h-[500px] border-0"
+                            title="Preview da proposta"
+                            sandbox="allow-same-origin"
+                          />
+                        ) : (
+                          <div className="flex flex-col items-center justify-center h-[500px] text-muted-foreground">
+                            <FileText className="h-10 w-10 opacity-20 mb-3" />
+                            <p className="text-sm font-medium">Nenhum arquivo gerado</p>
+                            <p className="text-xs mt-1">Clique em "Gerar outro arquivo" para visualizar</p>
+                            <Button size="sm" variant="outline" className="mt-3 gap-1.5 text-xs" onClick={handleRender} disabled={rendering}>
+                              {rendering ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+                              Gerar arquivo
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
                   <TabsContent value="dados" className="px-4 pb-4 mt-0">
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3">
                       <DataItem label="Potência" value={latestVersao?.potencia_kwp ? `${latestVersao.potencia_kwp.toFixed(2)} kWp` : "—"} />
