@@ -1590,7 +1590,7 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
           const ids = data.map(p => p.id);
           const { data: versoes } = await supabase
             .from("proposta_versoes")
-            .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, payback_meses, created_at")
+            .select("id, proposta_id, versao_numero, valor_total, potencia_kwp, status, economia_mensal, payback_meses, created_at, snapshot")
             .in("proposta_id", ids)
             .order("versao_numero", { ascending: false });
 
@@ -1619,17 +1619,34 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
             status: p.status,
             created_at: p.created_at,
             cliente_nome: p.clientes?.nome || null,
-            versoes: (versoes || []).filter(v => (v as any).proposta_id === p.id).map(v => ({
-              id: (v as any).id,
-              versao_numero: (v as any).versao_numero,
-              valor_total: (v as any).valor_total,
-              potencia_kwp: (v as any).potencia_kwp,
-              status: (v as any).status,
-              economia_mensal: (v as any).economia_mensal,
-              payback_meses: (v as any).payback_meses,
-              created_at: (v as any).created_at,
-              geracao_mensal: geracaoMap.get((v as any).id) || null,
-            })),
+            versoes: (versoes || []).filter(v => (v as any).proposta_id === p.id).map(v => {
+              const snap = (v as any).snapshot as any;
+              // Fallback: calculate potencia from snapshot items
+              let potencia = (v as any).potencia_kwp;
+              if ((!potencia || potencia === 0) && snap?.itens) {
+                const modulos = (snap.itens as any[]).filter((i: any) => i.categoria === "modulo" || i.categoria === "modulos");
+                if (modulos.length > 0) {
+                  potencia = modulos.reduce((s: number, m: any) => s + ((m.potencia_w || 0) * (m.quantidade || 1)) / 1000, 0);
+                }
+              }
+              // Fallback: calculate geracao from snapshot UCs
+              let geracao = geracaoMap.get((v as any).id) || null;
+              if ((!geracao || geracao === 0) && snap?.ucs) {
+                const totalGeracao = (snap.ucs as any[]).reduce((s: number, uc: any) => s + (uc.geracao_mensal_estimada || 0), 0);
+                if (totalGeracao > 0) geracao = totalGeracao;
+              }
+              return {
+                id: (v as any).id,
+                versao_numero: (v as any).versao_numero,
+                valor_total: (v as any).valor_total,
+                potencia_kwp: potencia,
+                status: (v as any).status,
+                economia_mensal: (v as any).economia_mensal,
+                payback_meses: (v as any).payback_meses,
+                created_at: (v as any).created_at,
+                geracao_mensal: geracao,
+              };
+            }),
           }));
           setPropostas(mapped);
         } else {
