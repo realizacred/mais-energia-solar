@@ -155,32 +155,44 @@ export function StepUCsEnergia({ ucs, onUcsChange, grupo, onGrupoChange, potenci
       </div>
 
       {activeTab === "ucs" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {/* ── UC Cards ── */}
-          {ucs.map((uc, i) => (
-            <UCCard
-              key={uc.id}
-              uc={uc}
-              index={i}
-              concessionarias={concessionarias}
-              loadingConc={loadingConc}
-              onUpdate={(field, value) => updateUC(i, field, value)}
-              onRemove={() => removeUC(i)}
-              onOpenConfig={() => setConfigModalUC(i)}
-              onOpenMesAMes={(tipo) => setMesAMesUC({ ucIndex: i, tipo })}
-              canRemove={ucs.length > 1}
-              totalUCs={ucs.length}
-              onOpenRateio={() => setRateioModalOpen(true)}
-            />
-          ))}
+        <div className="space-y-3">
+          <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+            {/* ── UC Cards ── */}
+            {ucs.map((uc, i) => (
+              <div key={uc.id} className="shrink-0">
+                <UCCard
+                  uc={uc}
+                  index={i}
+                  concessionarias={concessionarias}
+                  loadingConc={loadingConc}
+                  onUpdate={(field, value) => updateUC(i, field, value)}
+                  onRemove={() => removeUC(i)}
+                  onOpenConfig={() => setConfigModalUC(i)}
+                  onOpenMesAMes={(tipo) => setMesAMesUC({ ucIndex: i, tipo })}
+                  canRemove={ucs.length > 1}
+                  totalUCs={ucs.length}
+                  onOpenRateio={() => setRateioModalOpen(true)}
+                />
+              </div>
+            ))}
 
-          {/* ── Add UC Area ── */}
+            {/* ── Add UC Area ── */}
+            <button
+              onClick={addUC}
+              className="shrink-0 w-[220px] min-h-[400px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+            >
+              <Plus className="h-6 w-6" />
+              <span className="text-sm font-medium">+ Nova Unidade</span>
+            </button>
+          </div>
+
+          {/* ── Configurações adicionais ── */}
           <button
-            onClick={addUC}
-            className="min-h-[200px] flex flex-col items-center justify-center gap-2 border-2 border-dashed border-primary/30 rounded-xl text-primary/60 hover:text-primary hover:border-primary/50 hover:bg-primary/5 transition-all cursor-pointer"
+            onClick={() => setConfigModalUC(0)}
+            className="flex items-center gap-1.5 text-xs text-primary hover:underline"
           >
-            <Plus className="h-6 w-6" />
-            <span className="text-sm font-medium">+ Nova Unidade</span>
+            <Settings className="h-3.5 w-3.5" />
+            Configurações adicionais
           </button>
         </div>
       )}
