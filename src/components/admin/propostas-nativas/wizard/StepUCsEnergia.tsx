@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Settings, Zap, Edit2, MoreVertical, Info, Trash2 } from "lucide-react";
+import { Plus, Settings, Zap, Edit2, MoreVertical, Info, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -243,14 +243,35 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
   const isGrupoA = uc.grupo_tarifario === "A";
   const isGD3 = uc.regra === "GD3";
   const subgrupos = isGrupoA ? SUBGRUPO_MT : SUBGRUPO_BT;
-
+  const [editingName, setEditingName] = useState(false);
+  const [tempName, setTempName] = useState(uc.nome);
   return (
     <div className="border rounded-xl bg-card p-4 min-w-[320px] w-full space-y-4 relative">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-bold text-foreground">
-          {index + 1}. {uc.nome}
-        </h4>
+        {editingName ? (
+          <Input
+            value={tempName}
+            onChange={(e) => setTempName(e.target.value)}
+            onBlur={() => {
+              if (tempName.trim()) onUpdate("nome", tempName.trim());
+              setEditingName(false);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                if (tempName.trim()) onUpdate("nome", tempName.trim());
+                setEditingName(false);
+              }
+              if (e.key === "Escape") { setTempName(uc.nome); setEditingName(false); }
+            }}
+            className="h-7 text-sm font-bold w-[200px] px-2"
+            autoFocus
+          />
+        ) : (
+          <h4 className="text-sm font-bold text-foreground">
+            {index + 1}. {uc.nome}
+          </h4>
+        )}
         <div className="flex items-center gap-1">
           <TooltipProvider>
             <Tooltip>
@@ -269,6 +290,9 @@ function UCCard({ uc, index, concessionarias, loadingConc, onUpdate, onRemove, o
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => { setTempName(uc.nome); setEditingName(true); }}>
+                <Pencil className="h-3.5 w-3.5 mr-2" /> Editar nome
+              </DropdownMenuItem>
               {canRemove && (
                 <DropdownMenuItem onClick={onRemove} className="text-destructive">
                   <Trash2 className="h-3.5 w-3.5 mr-2" /> Remover UC
