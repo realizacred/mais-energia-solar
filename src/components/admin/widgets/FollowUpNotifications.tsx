@@ -41,6 +41,28 @@ export function FollowUpNotifications({
     loadLeadsNeedingFollowUp();
   }, [diasAlerta, refreshKey]);
 
+  // ⚠️ HARDENING: Realtime subscription — auto-refresh when leads change
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('followup-widget')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => loadLeadsNeedingFollowUp(), 600);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [diasAlerta]);
+
   const loadLeadsNeedingFollowUp = async () => {
     try {
       // Get terminal + special statuses to exclude from follow-up
