@@ -70,11 +70,11 @@ function getStrategyStyle(strategy: string) {
     case "cost_per_kwp":
     case "cost_per_kva":
     case "cost_per_km":
-      return "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800";
+      return "bg-info/10 text-info border-info/20";
     case "fixed_amount":
-      return "bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800";
+      return "bg-secondary/10 text-secondary border-secondary/20";
     case "percentage_of_cost":
-      return "bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800";
+      return "bg-primary/10 text-primary border-primary/20";
     default:
       return "bg-muted text-muted-foreground border-border";
   }

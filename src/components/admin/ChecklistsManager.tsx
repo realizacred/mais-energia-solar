@@ -22,7 +22,7 @@
  import { toast } from "@/hooks/use-toast";
  import { format } from "date-fns";
  import { ptBR } from "date-fns/locale";
- import { LoadingState } from "@/components/ui-kit";
+ import { LoadingState, PageHeader, StatCard } from "@/components/ui-kit";
  import {
  ClipboardCheck,
  Search,
@@ -130,60 +130,13 @@
  
  return (
    <div className="space-y-6">
+     <PageHeader icon={ClipboardCheck} title="Checklists de Instalação" description="Acompanhe os checklists preenchidos pelos instaladores" />
      {/* Stats Cards */}
      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-       <Card>
-         <CardContent className="pt-4">
-           <div className="flex items-center gap-3">
-             <div className="p-2 bg-primary/10 rounded-lg">
-               <ClipboardCheck className="h-5 w-5 text-primary" />
-             </div>
-             <div>
-               <p className="text-2xl font-bold">{stats.total}</p>
-               <p className="text-xs text-muted-foreground">Total</p>
-             </div>
-           </div>
-         </CardContent>
-       </Card>
-       <Card>
-         <CardContent className="pt-4">
-           <div className="flex items-center gap-3">
-             <div className="p-2 bg-success/10 rounded-lg">
-               <Star className="h-5 w-5 text-success" />
-             </div>
-             <div>
-               <p className="text-2xl font-bold">{stats.otimo}</p>
-               <p className="text-xs text-muted-foreground">Ótimo</p>
-             </div>
-           </div>
-         </CardContent>
-       </Card>
-       <Card>
-         <CardContent className="pt-4">
-           <div className="flex items-center gap-3">
-             <div className="p-2 bg-info/10 rounded-lg">
-               <Star className="h-5 w-5 text-info" />
-             </div>
-             <div>
-               <p className="text-2xl font-bold">{stats.bom}</p>
-               <p className="text-xs text-muted-foreground">Bom</p>
-             </div>
-           </div>
-         </CardContent>
-       </Card>
-       <Card>
-         <CardContent className="pt-4">
-           <div className="flex items-center gap-3">
-             <div className="p-2 bg-warning/10 rounded-lg">
-               <RefreshCw className="h-5 w-5 text-warning" />
-             </div>
-             <div>
-               <p className="text-2xl font-bold">{stats.pendentesSync}</p>
-               <p className="text-xs text-muted-foreground">Pendente Sync</p>
-             </div>
-           </div>
-         </CardContent>
-       </Card>
+       <StatCard icon={ClipboardCheck} label="Total" value={stats.total} color="primary" />
+       <StatCard icon={Star} label="Ótimo" value={stats.otimo} color="success" />
+       <StatCard icon={Star} label="Bom" value={stats.bom} color="info" />
+       <StatCard icon={RefreshCw} label="Pendente Sync" value={stats.pendentesSync} color="warning" />
      </div>
  
      {/* Search and Table */}

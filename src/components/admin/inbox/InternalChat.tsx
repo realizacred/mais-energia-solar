@@ -545,7 +545,7 @@ function ChatView({
                         })}
                       </span>
                       {isMe && (
-                        <CheckCheck className="h-3.5 w-3.5 text-blue-400" />
+                        <CheckCheck className="h-3.5 w-3.5 text-info" />
                       )}
                     </div>
                   </div>

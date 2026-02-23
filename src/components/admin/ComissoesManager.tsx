@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
+import { PageHeader } from "@/components/ui-kit";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PagamentosComissaoDialog } from "./PagamentosComissaoDialog";
@@ -389,6 +390,7 @@ export function ComissoesManager() {
 
   return (
     <div className="space-y-6">
+      <PageHeader icon={DollarSign} title="Comissões" description="Gerencie comissões dos consultores" />
       {/* Stats Cards */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="lg:col-span-3">
