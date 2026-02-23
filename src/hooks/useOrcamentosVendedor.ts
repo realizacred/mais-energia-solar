@@ -312,6 +312,15 @@ export function useOrcamentosVendedor({ vendedorNome, isAdminMode = false, filte
           }
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        () => {
+          // Lead name/phone/status changed — debounced refetch
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchOrcamentos(), 800);
+        }
+      )
       .subscribe();
 
     return () => {

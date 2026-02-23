@@ -140,6 +140,64 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
     }
   }, [autoFetch, fetchLeads]);
 
+  // ⚠️ HARDENING: Realtime subscription for cross-user sync
+  useEffect(() => {
+    if (!autoFetch) return;
+
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('leads-realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'leads' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchLeads(), 500);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'leads' },
+        (payload) => {
+          if (payload.new) {
+            const updated = payload.new as any;
+            setLeads(prev => prev.map(l =>
+              l.id === updated.id
+                ? {
+                    ...l,
+                    visto_admin: updated.visto_admin,
+                    status_id: updated.status_id,
+                    ultimo_contato: updated.ultimo_contato,
+                    proxima_acao: updated.proxima_acao,
+                    data_proxima_acao: updated.data_proxima_acao,
+                    nome: updated.nome ?? l.nome,
+                    telefone: updated.telefone ?? l.telefone,
+                  }
+                : l
+            ));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'leads' },
+        (payload) => {
+          if (payload.old) {
+            const deletedId = (payload.old as any).id;
+            setLeads(prev => prev.filter(l => l.id !== deletedId));
+            setTotalCount(prev => Math.max(0, prev - 1));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [autoFetch, fetchLeads]);
+
   // Computed values — use vendedor_id as source of truth for filters
   const totalKwh = leads.reduce((acc, l) => acc + l.media_consumo, 0);
   const uniqueEstados = new Set(leads.map((l) => l.estado)).size;
