@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -139,6 +139,87 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
   const [sending, setSending] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [auditLogs, setAuditLogs] = useState<Array<{ id: string; acao: string; tabela: string; user_email: string | null; created_at: string }>>([]);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [recusaMotivo, setRecusaMotivo] = useState("");
+  const [recusaDialogOpen, setRecusaDialogOpen] = useState(false);
+
+  // ─── Accept / Reject handler ───
+  const updatePropostaStatus = async (newStatus: string, extra?: Record<string, any>) => {
+    setUpdatingStatus(true);
+    try {
+      const updateData: Record<string, any> = { status: newStatus };
+      if (newStatus === "aceita") updateData.aceita_at = new Date().toISOString();
+      if (newStatus === "recusada") {
+        updateData.recusada_at = new Date().toISOString();
+        updateData.recusa_motivo = extra?.motivo || null;
+      }
+      const { error } = await supabase
+        .from("propostas_nativas")
+        .update(updateData)
+        .eq("id", p.id);
+      if (error) throw error;
+
+      // ── Gerar comissão ao aceitar ──
+      if (newStatus === "aceita" && latestVersao && customerId) {
+        try {
+          let consultorId: string | null = null;
+          const { data: propData } = await supabase
+            .from("propostas_nativas")
+            .select("lead_id")
+            .eq("id", p.id)
+            .maybeSingle();
+          if (propData?.lead_id) {
+            const { data: lead } = await supabase
+              .from("leads")
+              .select("consultor_id")
+              .eq("id", propData.lead_id)
+              .maybeSingle();
+            consultorId = lead?.consultor_id || null;
+          }
+          if (consultorId && latestVersao.valor_total > 0) {
+            const { data: plan } = await supabase
+              .from("commission_plans")
+              .select("parameters")
+              .eq("is_active", true)
+              .limit(1)
+              .maybeSingle();
+            const percentual = (plan?.parameters as any)?.percentual ?? 5;
+            const now = new Date();
+            await supabase.from("comissoes").insert({
+              consultor_id: consultorId,
+              cliente_id: customerId,
+              projeto_id: dealId || null,
+              descricao: `Proposta aceita - ${p.cliente_nome || "Cliente"} (${latestVersao.potencia_kwp || 0}kWp)`,
+              valor_base: latestVersao.valor_total,
+              percentual_comissao: percentual,
+              valor_comissao: (latestVersao.valor_total * percentual) / 100,
+              mes_referencia: now.getMonth() + 1,
+              ano_referencia: now.getFullYear(),
+              status: "pendente",
+            });
+          }
+        } catch (comErr: any) {
+          console.error("Erro ao gerar comissão:", comErr);
+          toast({ title: "Proposta aceita, mas erro na comissão", description: comErr.message, variant: "destructive" });
+        }
+      }
+
+      // ── Cancelar comissão se recusada ──
+      if (newStatus === "recusada" && dealId) {
+        await supabase.from("comissoes")
+          .update({ status: "cancelada", observacoes: `Proposta ${newStatus}` })
+          .eq("projeto_id", dealId)
+          .eq("status", "pendente");
+      }
+
+      toast({ title: `Proposta marcada como "${STATUS_MAP[newStatus]?.label || newStatus}"` });
+      onRefresh();
+    } catch (e: any) {
+      toast({ title: "Erro ao atualizar status", description: e.message, variant: "destructive" });
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
 
   // Load expanded data when expanded
   useEffect(() => {
@@ -487,14 +568,31 @@ export function PropostaExpandedDetail({ proposta: p, isPrincipal, isExpanded, o
                 </TabsList>
 
                 {/* Accept / Reject buttons */}
-                {(p.status === "gerada" || p.status === "generated" || p.status === "enviada" || p.status === "sent") && (
+                {(p.status === "gerada" || p.status === "generated" || p.status === "enviada" || p.status === "sent" || p.status === "vista") && (
                   <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10">
+                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-success text-success hover:bg-success/10" onClick={() => updatePropostaStatus("aceita")} disabled={updatingStatus}>
                       <CheckCircle className="h-3 w-3" /> Aceitar
                     </Button>
-                    <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10">
-                      <AlertCircle className="h-3 w-3" /> Rejeitar
-                    </Button>
+                    <AlertDialog open={recusaDialogOpen} onOpenChange={setRecusaDialogOpen}>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-7 text-xs gap-1 border-destructive text-destructive hover:bg-destructive/10" disabled={updatingStatus}>
+                          <AlertCircle className="h-3 w-3" /> Rejeitar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Recusar proposta?</AlertDialogTitle>
+                          <AlertDialogDescription>Informe o motivo da recusa (opcional).</AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <textarea placeholder="Motivo da recusa..." value={recusaMotivo} onChange={(e) => setRecusaMotivo(e.target.value)} className="min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { updatePropostaStatus("recusada", { motivo: recusaMotivo }); setRecusaMotivo(""); setRecusaDialogOpen(false); }}>
+                            Confirmar Recusa
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 )}
               </div>
