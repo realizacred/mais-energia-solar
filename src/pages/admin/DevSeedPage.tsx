@@ -9,6 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 interface SeedResult {
+  leadId: string | null;
+  leadCode: string | null;
+  simulacaoId: string | null;
   clienteId: string | null;
   clienteCode: string | null;
   dealId: string | null;
@@ -31,6 +34,8 @@ export default function DevSeedPage() {
   const [running, setRunning] = useState(false);
   const [result, setResult] = useState<SeedResult | null>(null);
   const [steps, setSteps] = useState<StepStatus[]>([
+    { label: "Criar lead", status: "idle" },
+    { label: "Criar simulação", status: "idle" },
     { label: "Criar/obter cliente", status: "idle" },
     { label: "Criar projeto (deal)", status: "idle" },
     { label: "Criar proposta nativa", status: "idle" },
@@ -54,6 +59,8 @@ export default function DevSeedPage() {
     setRunning(true);
     setResult(null);
     setSteps([
+      { label: "Criar lead", status: "idle" },
+      { label: "Criar simulação", status: "idle" },
       { label: "Criar/obter cliente", status: "idle" },
       { label: "Criar projeto (deal)", status: "idle" },
       { label: "Criar proposta nativa", status: "idle" },
@@ -62,14 +69,115 @@ export default function DevSeedPage() {
     const runId = crypto.randomUUID().slice(0, 8);
 
     const seedResult: SeedResult = {
+      leadId: null, leadCode: null, simulacaoId: null,
       clienteId: null, clienteCode: null,
       dealId: null, dealNum: null,
       propostaId: null, propostaNum: null, propostaCodigo: null, projetoId: null,
     };
 
     try {
-      // ─── Step A: get_or_create_cliente ───
+      // ─── Step A: Criar lead ───
       updateStep(0, { status: "running" });
+
+      const { data: { user } } = await supabase.auth.getUser();
+      let consultorId: string | null = null;
+      if (user) {
+        const { data: consultor } = await supabase
+          .from("consultores")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("ativo", true)
+          .maybeSingle();
+        consultorId = consultor?.id || null;
+      }
+      if (!consultorId) {
+        const { data: fallback } = await supabase
+          .from("consultores")
+          .select("id")
+          .eq("ativo", true)
+          .limit(1)
+          .maybeSingle();
+        consultorId = fallback?.id || null;
+      }
+      if (!consultorId) {
+        updateStep(0, { status: "error", message: "Nenhum consultor ativo" });
+        setRunning(false);
+        return;
+      }
+
+      // Get first lead status
+      const { data: firstStatus } = await supabase
+        .from("lead_status")
+        .select("id")
+        .order("ordem", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const { data: leadRow, error: leadErr } = await supabase
+        .from("leads")
+        .insert({
+          nome: `Lead Seed Teste [run:${runId}]`,
+          telefone: `119999${Math.floor(10000 + Math.random() * 90000)}`,
+          estado: "MG",
+          cidade: "Uberlândia",
+          area: "50m²",
+          tipo_telhado: "Cerâmico",
+          rede_atendimento: "Trifásico",
+          media_consumo: 500,
+          consumo_previsto: 500,
+          consultor_id: consultorId,
+          status_id: firstStatus?.id || null,
+          origem: "seed",
+        } as any)
+        .select("id, lead_code")
+        .single();
+
+      if (leadErr || !leadRow) {
+        updateStep(0, { status: "error", message: leadErr?.message || "Erro" });
+        setRunning(false);
+        return;
+      }
+      seedResult.leadId = leadRow.id;
+      seedResult.leadCode = (leadRow as any).lead_code;
+      updateStep(0, { status: "success", message: `ID: ${seedResult.leadId} | Code: ${seedResult.leadCode}` });
+
+      // ─── Step B: Criar simulação ───
+      updateStep(1, { status: "running" });
+
+      const { data: simRow, error: simErr } = await supabase
+        .from("simulacoes")
+        .insert({
+          lead_id: seedResult.leadId,
+          tipo_conta: "residencial",
+          valor_conta: 450,
+          consumo_kwh: 500,
+          cidade: "Uberlândia",
+          estado: "MG",
+          concessionaria: "CEMIG",
+          tipo_telhado: "Cerâmico",
+          potencia_recomendada_kwp: 5.5,
+          geracao_mensal_estimada: 700,
+          economia_mensal: 380,
+          economia_anual: 4560,
+          investimento_estimado: 25000,
+          payback_meses: 48,
+          co2_evitado_kg: 1800,
+          tarifa_kwh_usada: 0.89,
+          irradiacao_usada: 5.2,
+        } as any)
+        .select("id")
+        .single();
+
+      if (simErr || !simRow) {
+        updateStep(1, { status: "error", message: simErr?.message || "Erro" });
+        setRunning(false);
+        return;
+      }
+      seedResult.simulacaoId = simRow.id;
+      updateStep(1, { status: "success", message: `ID: ${seedResult.simulacaoId}` });
+
+      // ─── Step C: get_or_create_cliente ───
+      updateStep(2, { status: "running" });
 
       const { data: clienteId, error: clienteErr } = await supabase.rpc(
         "get_or_create_cliente" as any,
@@ -109,41 +217,12 @@ export default function DevSeedPage() {
         .maybeSingle();
       seedResult.clienteCode = clienteRow?.cliente_code || null;
 
-      updateStep(0, { status: "success", message: `ID: ${seedResult.clienteId} | Code: ${seedResult.clienteCode}` });
+      updateStep(2, { status: "success", message: `ID: ${seedResult.clienteId} | Code: ${seedResult.clienteCode}` });
 
-      // ─── Step B: Criar deal ───
-      updateStep(1, { status: "running" });
+      // ─── Step D: Criar deal ───
+      updateStep(3, { status: "running" });
 
-      // Get owner_id (current user's consultor)
-      const { data: { user } } = await supabase.auth.getUser();
-      let ownerId: string | null = null;
-      if (user) {
-        const { data: consultor } = await supabase
-          .from("consultores")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("ativo", true)
-          .maybeSingle();
-        ownerId = consultor?.id || null;
-      }
-
-      if (!ownerId) {
-        // Fallback: pick first active consultor in tenant
-        const { data: fallback } = await supabase
-          .from("consultores")
-          .select("id")
-          .eq("ativo", true)
-          .limit(1)
-          .maybeSingle();
-        ownerId = fallback?.id || null;
-      }
-
-      if (!ownerId) {
-        updateStep(1, { status: "error", message: "Nenhum consultor ativo encontrado no tenant" });
-        toast({ title: "Erro no seed", description: "Sem consultor ativo para owner_id", variant: "destructive" });
-        setRunning(false);
-        return;
-      }
+      // Reuse consultorId from Step A as ownerId
 
       // Get default pipeline + first stage
       const { data: pipeline } = await (supabase as any)
@@ -177,7 +256,7 @@ export default function DevSeedPage() {
         stageId = firstStage?.id || null;
       }
 
-      console.debug("[Seed] deal payload:", { ownerId, customerId: seedResult.clienteId, pipelineId, stageId });
+      console.debug("[Seed] deal payload:", { consultorId, customerId: seedResult.clienteId, pipelineId, stageId });
 
       const { data: dealRow, error: dealErr } = await supabase
         .from("deals")
@@ -185,7 +264,7 @@ export default function DevSeedPage() {
           title: `Projeto Seed Teste [run:${runId}]`,
           pipeline_id: pipelineId,
           stage_id: stageId,
-          owner_id: ownerId,
+          owner_id: consultorId,
           customer_id: seedResult.clienteId,
           value: 25000,
           status: "open",
@@ -196,7 +275,7 @@ export default function DevSeedPage() {
       if (dealErr || !dealRow) {
         const msg = dealErr?.message || "Insert retornou null";
         console.error("[Seed] Deal error:", dealErr);
-        updateStep(1, { status: "error", message: msg });
+        updateStep(3, { status: "error", message: msg });
         toast({ title: "Erro no seed", description: `Projeto: ${msg}`, variant: "destructive" });
         setRunning(false);
         return;
@@ -206,10 +285,10 @@ export default function DevSeedPage() {
       seedResult.dealNum = (dealRow as any).deal_num;
       console.debug("[Seed] dealId:", seedResult.dealId, "deal_num:", seedResult.dealNum);
 
-      updateStep(1, { status: "success", message: `ID: ${seedResult.dealId} | #${seedResult.dealNum}` });
+      updateStep(3, { status: "success", message: `ID: ${seedResult.dealId} | #${seedResult.dealNum}` });
 
-      // ─── Step C: Criar proposta nativa ───
-      updateStep(2, { status: "running" });
+      // ─── Step E: Criar proposta nativa ───
+      updateStep(4, { status: "running" });
 
       // We need the projeto_id that corresponds to this deal
       // The projetos table may auto-create via trigger, or we need to find it
@@ -230,7 +309,7 @@ export default function DevSeedPage() {
         "create_proposta_nativa_atomic_v2" as any,
         {
           p_titulo: `Proposta Seed Teste [run:${runId}]`,
-          p_lead_id: null,
+          p_lead_id: seedResult.leadId,
           p_projeto_id: projetoIdForProposta,
           p_deal_id: seedResult.dealId,
           p_origem: "native",
@@ -243,7 +322,7 @@ export default function DevSeedPage() {
       if (propostaErr || !propostaData) {
         const msg = propostaErr?.message || "RPC retornou null";
         console.error("[Seed] Proposta error:", propostaErr);
-        updateStep(2, { status: "error", message: msg });
+        updateStep(4, { status: "error", message: msg });
         toast({ title: "Erro no seed", description: `Proposta: ${msg}`, variant: "destructive" });
         setRunning(false);
         return;
@@ -264,11 +343,11 @@ export default function DevSeedPage() {
 
       console.debug("[Seed] propostaId:", seedResult.propostaId, "proposta_num:", seedResult.propostaNum);
 
-      updateStep(2, { status: "success", message: `ID: ${seedResult.propostaId} | #${seedResult.propostaNum} | Código: ${seedResult.propostaCodigo}` });
+      updateStep(4, { status: "success", message: `ID: ${seedResult.propostaId} | #${seedResult.propostaNum} | Código: ${seedResult.propostaCodigo}` });
 
       setResult(seedResult);
       localStorage.setItem("lastSeedRunId", runId);
-      toast({ title: "✅ Seed completo!", description: `Cliente + Projeto + Proposta criados. Run: ${runId}` });
+      toast({ title: "✅ Seed completo!", description: `Lead + Simulação + Cliente + Projeto + Proposta criados. Run: ${runId}` });
     } catch (err: any) {
       console.error("[Seed] Unexpected error:", err);
       toast({ title: "Erro inesperado no seed", description: err?.message || String(err), variant: "destructive" });
@@ -307,7 +386,7 @@ export default function DevSeedPage() {
         <CardHeader>
           <CardTitle className="text-base">Criar fluxo completo</CardTitle>
           <CardDescription>
-            Cliente Teste (11999990000) → Projeto Seed → Proposta Seed
+            Lead Seed → Simulação → Cliente → Projeto → Proposta
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -337,7 +416,7 @@ export default function DevSeedPage() {
                 Criando dados...
               </>
             ) : (
-              "🌱 Criar Cliente + Projeto + Proposta (teste)"
+              "🌱 Criar Lead + Simulação + Cliente + Projeto + Proposta"
             )}
           </Button>
         </CardContent>
