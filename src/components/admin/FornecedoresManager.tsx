@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Plus, Trash2, Pencil, Search, Truck, Building2, Globe, Phone, Mail, MapPin } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
@@ -289,107 +290,119 @@ export function FornecedoresManager() {
             </DialogTitle>
           </DialogHeader>
 
-          <div className="grid gap-4">
-            {/* Row 1 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Nome *</Label>
-                <Input value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} placeholder="Nome do fornecedor" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tipo</Label>
-                <Select value={form.tipo} onValueChange={v => setForm(p => ({ ...p, tipo: v }))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TIPOS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+          <div className="space-y-5">
+            {/* Identificação */}
+            <Card>
+              <CardContent className="pt-4 space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Nome *</Label>
+                    <Input value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} placeholder="Nome do fornecedor" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tipo</Label>
+                    <Select value={form.tipo} onValueChange={v => setForm(p => ({ ...p, tipo: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {TIPOS.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>CNPJ</Label>
+                    <Input value={form.cnpj} onChange={e => setForm(p => ({ ...p, cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Inscrição Estadual</Label>
+                    <Input value={form.inscricao_estadual} onChange={e => setForm(p => ({ ...p, inscricao_estadual: e.target.value }))} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            {/* Row 2 */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>CNPJ</Label>
-                <Input value={form.cnpj} onChange={e => setForm(p => ({ ...p, cnpj: e.target.value }))} placeholder="00.000.000/0000-00" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Inscrição Estadual</Label>
-                <Input value={form.inscricao_estadual} onChange={e => setForm(p => ({ ...p, inscricao_estadual: e.target.value }))} />
-              </div>
-            </div>
-
-            {/* Row 3 - Contato */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>E-mail</Label>
-                <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="contato@fornecedor.com" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Telefone</Label>
-                <Input value={form.telefone} onChange={e => setForm(p => ({ ...p, telefone: e.target.value }))} placeholder="(00) 00000-0000" />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Pessoa de Contato</Label>
-                <Input value={form.contato_nome} onChange={e => setForm(p => ({ ...p, contato_nome: e.target.value }))} placeholder="Nome do contato" />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Tel. Contato</Label>
-                <Input value={form.contato_telefone} onChange={e => setForm(p => ({ ...p, contato_telefone: e.target.value }))} placeholder="(00) 00000-0000" />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <Label>Site</Label>
-              <Input value={form.site} onChange={e => setForm(p => ({ ...p, site: e.target.value }))} placeholder="https://fornecedor.com.br" />
-            </div>
+            {/* Contato */}
+            <Card>
+              <CardContent className="pt-4 space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contato</p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>E-mail</Label>
+                    <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="contato@fornecedor.com" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Telefone</Label>
+                    <Input value={form.telefone} onChange={e => setForm(p => ({ ...p, telefone: e.target.value }))} placeholder="(00) 00000-0000" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Pessoa de Contato</Label>
+                    <Input value={form.contato_nome} onChange={e => setForm(p => ({ ...p, contato_nome: e.target.value }))} placeholder="Nome do contato" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Tel. Contato</Label>
+                    <Input value={form.contato_telefone} onChange={e => setForm(p => ({ ...p, contato_telefone: e.target.value }))} placeholder="(00) 00000-0000" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Site</Label>
+                  <Input value={form.site} onChange={e => setForm(p => ({ ...p, site: e.target.value }))} placeholder="https://fornecedor.com.br" />
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Endereço */}
-            <div className="grid grid-cols-4 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <Label>Endereço</Label>
-                <Input value={form.endereco} onChange={e => setForm(p => ({ ...p, endereco: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Cidade</Label>
-                <Input value={form.cidade} onChange={e => setForm(p => ({ ...p, cidade: e.target.value }))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>UF</Label>
-                <Input value={form.estado} onChange={e => setForm(p => ({ ...p, estado: e.target.value }))} maxLength={2} />
-              </div>
-            </div>
+            <Card>
+              <CardContent className="pt-4 space-y-4">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Endereço</p>
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Endereço</Label>
+                    <Input value={form.endereco} onChange={e => setForm(p => ({ ...p, endereco: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Cidade</Label>
+                    <Input value={form.cidade} onChange={e => setForm(p => ({ ...p, cidade: e.target.value }))} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>UF</Label>
+                    <Input value={form.estado} onChange={e => setForm(p => ({ ...p, estado: e.target.value }))} maxLength={2} />
+                  </div>
+                </div>
+                <div className="w-32 space-y-1.5">
+                  <Label>CEP</Label>
+                  <Input value={form.cep} onChange={e => setForm(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" />
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="w-32 space-y-1.5">
-              <Label>CEP</Label>
-              <Input value={form.cep} onChange={e => setForm(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" />
-            </div>
-
-            {/* Categorias */}
-            <div className="space-y-2">
-              <Label>Categorias de Produtos</Label>
-              <div className="flex flex-wrap gap-2">
-                {CATEGORIAS_OPCOES.map(cat => (
-                  <Badge
-                    key={cat}
-                    variant={form.categorias.includes(cat) ? "default" : "outline"}
-                    className="cursor-pointer select-none"
-                    onClick={() => toggleCategoria(cat)}
-                  >
-                    {cat}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Observações */}
-            <div className="space-y-1.5">
-              <Label>Observações</Label>
-              <Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
-            </div>
+            {/* Categorias & Obs */}
+            <Card>
+              <CardContent className="pt-4 space-y-4">
+                <div className="space-y-2">
+                  <Label>Categorias de Produtos</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {CATEGORIAS_OPCOES.map(cat => (
+                      <Badge
+                        key={cat}
+                        variant={form.categorias.includes(cat) ? "default" : "outline"}
+                        className="cursor-pointer select-none"
+                        onClick={() => toggleCategoria(cat)}
+                      >
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Observações</Label>
+                  <Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
+                </div>
+              </CardContent>
+            </Card>
           </div>
 
           <DialogFooter>
