@@ -172,6 +172,54 @@ export function ProposalDetail() {
         .update(updateData)
         .eq("id", proposta.id);
       if (error) throw error;
+
+      // ── Gerar comissão ao aceitar proposta ──
+      if (newStatus === "aceita" && versao && proposta.cliente_id) {
+        try {
+          // Buscar consultor via lead → consultor_id
+          let consultorId: string | null = null;
+          if (proposta.lead_id) {
+            const { data: lead } = await supabase
+              .from("leads")
+              .select("consultor_id")
+              .eq("id", proposta.lead_id)
+              .single();
+            consultorId = lead?.consultor_id || null;
+          }
+
+          if (consultorId && versao.valor_total > 0) {
+            // Buscar plano de comissão ativo do consultor ou usar default
+            const { data: plan } = await supabase
+              .from("commission_plans")
+              .select("parameters")
+              .eq("is_active", true)
+              .limit(1)
+              .maybeSingle();
+
+            const percentual = (plan?.parameters as any)?.percentual ?? 5;
+            const now = new Date();
+
+            await supabase.from("comissoes").insert({
+              consultor_id: consultorId,
+              cliente_id: proposta.cliente_id,
+              projeto_id: proposta.projeto_id || null,
+              descricao: `Proposta aceita - ${clienteNome || "Cliente"} (${versao.potencia_kwp || 0}kWp)`,
+              valor_base: versao.valor_total,
+              percentual_comissao: percentual,
+              valor_comissao: (versao.valor_total * percentual) / 100,
+              mes_referencia: now.getMonth() + 1,
+              ano_referencia: now.getFullYear(),
+              status: "pendente",
+            });
+
+            toast({ title: "Comissão gerada automaticamente!", description: `${percentual}% sobre ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(versao.valor_total)}` });
+          }
+        } catch (comErr: any) {
+          console.error("Erro ao gerar comissão:", comErr);
+          toast({ title: "Proposta aceita, mas erro na comissão", description: comErr.message, variant: "destructive" });
+        }
+      }
+
       setProposta((prev: any) => ({ ...prev, status: newStatus }));
       toast({ title: `Proposta marcada como "${STATUS_CONFIG[newStatus]?.label || newStatus}"` });
     } catch (e: any) {

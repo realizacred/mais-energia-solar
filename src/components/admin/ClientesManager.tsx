@@ -326,12 +326,17 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
         supabase.from("checklists_instalador").select("id", { count: "exact", head: true }).eq("cliente_id", id),
         supabase.from("layouts_solares").select("id", { count: "exact", head: true }).eq("cliente_id", id),
         supabase.from("servicos_agendados").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("appointments").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("obras").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("wa_conversations").select("id", { count: "exact", head: true }).eq("cliente_id", id),
+        supabase.from("wa_cadence_enrollments").select("id", { count: "exact", head: true }).eq("cliente_id", id),
       ]);
 
       const depNames = [
         "Propostas", "Projetos", "Negociações em andamento", "Comissões",
         "Recebimentos", "Checklists do Cliente", "Checklists do Instalador",
         "Layouts Solares", "Serviços Agendados",
+        "Agendamentos", "Obras", "Conversas WhatsApp", "Cadências WhatsApp",
       ];
 
       const blocking: string[] = [];
