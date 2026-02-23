@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -87,6 +88,24 @@ export function useAppointments(filters?: {
       return (data || []) as unknown as Appointment[];
     },
   });
+
+  // ⚠️ HARDENING: Realtime subscription for cross-user sync on appointments
+  useEffect(() => {
+    const channel = supabase
+      .channel('appointments-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'appointments' },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const createMutation = useMutation({
     mutationFn: async (input: CreateAppointmentInput) => {

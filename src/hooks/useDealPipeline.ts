@@ -283,6 +283,59 @@ export function useDealPipeline() {
 
   useEffect(() => { fetchAll(); }, []);
 
+  // ⚠️ HARDENING: Realtime subscription for cross-user sync on deals/stages
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('deals-pipeline-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'deals' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            try {
+              const enriched = await fetchDeals(filters);
+              setDeals(enriched);
+            } catch (e) { console.error("Realtime deals refresh:", e); }
+          }, 700);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'deal_stage_history' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            try {
+              const enriched = await fetchDeals(filters);
+              setDeals(enriched);
+            } catch (e) { console.error("Realtime stage history refresh:", e); }
+          }, 700);
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'propostas_nativas' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(async () => {
+            try {
+              const enriched = await fetchDeals(filters);
+              setDeals(enriched);
+            } catch (e) { console.error("Realtime propostas refresh:", e); }
+          }, 800);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [filters, fetchDeals]);
+
   // ─── Apply filters ──────────────────────────────────
   const applyFilters = useCallback(async (newFilters: Partial<DealFilters>) => {
     const merged = { ...filters, ...newFilters };

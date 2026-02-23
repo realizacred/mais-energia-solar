@@ -83,6 +83,28 @@ export function usePropostas() {
     fetchPropostas();
   }, [fetchPropostas]);
 
+  // ⚠️ HARDENING: Realtime subscription for cross-user sync on propostas
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('propostas-legado-realtime')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'propostas_sm_legado' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => fetchPropostas(), 600);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchPropostas]);
+
   const createProposta = useCallback(
     async (data: PropostaFormData) => {
       setCreating(true);
