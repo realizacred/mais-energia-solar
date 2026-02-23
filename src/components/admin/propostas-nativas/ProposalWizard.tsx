@@ -229,6 +229,14 @@ export function ProposalWizard() {
   const precoFinal = useMemo(() => calcPrecoFinal(itens, servicos, venda), [itens, servicos, venda]);
   const consumoTotal = ucs.reduce((s, u) => s + (u.consumo_mensal || u.consumo_mensal_p + u.consumo_mensal_fp), 0);
 
+  // Estimated generation (kWh/month) = potência * irradiação * 30 * PR(0.80)
+  const geracaoMensalEstimada = useMemo(() => {
+    if (potenciaKwp > 0 && locIrradiacao > 0) {
+      return Math.round(potenciaKwp * locIrradiacao * 30 * 0.80);
+    }
+    return 0;
+  }, [potenciaKwp, locIrradiacao]);
+
   // ─── Persistence: save draft / update
   const { saveDraft, updateProposal, saving } = useWizardPersistence();
   const [savedPropostaId, setSavedPropostaId] = useState<string | null>(null);
@@ -338,6 +346,8 @@ export function ProposalWizard() {
       snapshot,
       potenciaKwp,
       precoFinal,
+      economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
+      geracaoMensal: geracaoMensalEstimada || undefined,
       leadId: selectedLead?.id,
       dealId: resolvedDealId,
       titulo,
@@ -348,7 +358,7 @@ export function ProposalWizard() {
       setSavedPropostaId(res.propostaId);
       setSavedVersaoId(res.versaoId);
     }
-  }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, selectedLead, resolvedDealId, dealIdFromUrl, nomeProposta, cliente.nome]);
+  }, [collectSnapshot, saveDraft, savedPropostaId, savedVersaoId, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, selectedLead, resolvedDealId, dealIdFromUrl, nomeProposta, cliente.nome]);
 
   const handleUpdate = useCallback(async (setActive: boolean) => {
     try {
@@ -364,6 +374,8 @@ export function ProposalWizard() {
           snapshot,
           potenciaKwp,
           precoFinal,
+          economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
+          geracaoMensal: geracaoMensalEstimada || undefined,
           leadId: selectedLead?.id,
           dealId: resolvedDealId,
           titulo,
@@ -379,6 +391,8 @@ export function ProposalWizard() {
               snapshot,
               potenciaKwp,
               precoFinal,
+              economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
+              geracaoMensal: geracaoMensalEstimada || undefined,
               leadId: selectedLead?.id,
               dealId: resolvedDealId,
               titulo,
@@ -395,6 +409,8 @@ export function ProposalWizard() {
         snapshot,
         potenciaKwp,
         precoFinal,
+        economiaMensal: geracaoMensalEstimada > 0 ? Math.round(geracaoMensalEstimada * (ucs.find(u => u.is_geradora)?.tarifa_distribuidora || 0.80)) : undefined,
+        geracaoMensal: geracaoMensalEstimada || undefined,
         leadId: selectedLead?.id,
         dealId: resolvedDealId,
         titulo,
@@ -407,7 +423,7 @@ export function ProposalWizard() {
       console.error("[handleUpdate] Unexpected error:", err);
       toast({ title: "Erro inesperado ao salvar", description: err?.message || "Tente novamente.", variant: "destructive" });
     }
-  }, [savedPropostaId, savedVersaoId, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
+  }, [savedPropostaId, savedVersaoId, collectSnapshot, saveDraft, updateProposal, potenciaKwp, precoFinal, geracaoMensalEstimada, ucs, nomeProposta, cliente.nome, selectedLead, resolvedDealId]);
 
   // ─── Grupo consistency validation
   const grupoValidation = useMemo(() => validateGrupoConsistency(ucs), [ucs]);
@@ -441,19 +457,25 @@ export function ProposalWizard() {
 
   const enforcement = useProposalEnforcement(resolverContext);
 
-  // Estimated generation (kWh/month) = potência * irradiação * 30 * PR(0.80)
-  const geracaoMensalEstimada = useMemo(() => {
-    if (potenciaKwp > 0 && locIrradiacao > 0) {
-      return Math.round(potenciaKwp * locIrradiacao * 30 * 0.80);
-    }
-    return 0;
-  }, [potenciaKwp, locIrradiacao]);
+  // (geracaoMensalEstimada moved before save callbacks)
 
   // Estimated area (m²) from module items — ~2m² per module panel
   const areaUtilEstimada = useMemo(() => {
     const modulosNoKit = itens.filter(i => i.categoria === "modulo");
     const totalPaineis = modulosNoKit.reduce((sum, m) => sum + (m.quantidade || 0), 0);
     return totalPaineis > 0 ? Math.round(totalPaineis * 2) : 0;
+  }, [itens]);
+
+  // Auto-sync potenciaKwp from kit items (modules) when items change
+  useEffect(() => {
+    const modulosNoKit = itens.filter(i => i.categoria === "modulo" || i.categoria === "modulos");
+    if (modulosNoKit.length === 0) return;
+    const potenciaFromKit = modulosNoKit.reduce(
+      (s, m) => s + ((m.potencia_w || 0) * (m.quantidade || 1)) / 1000, 0
+    );
+    if (potenciaFromKit > 0 && Math.abs(potenciaFromKit - potenciaKwp) > 0.01) {
+      setPotenciaKwp(potenciaFromKit);
+    }
   }, [itens]);
 
   // ─── Data fetching (extracted hooks)

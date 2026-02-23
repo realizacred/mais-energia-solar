@@ -1629,11 +1629,15 @@ function PropostasTab({ customerId, dealId, dealTitle, navigate, isClosed }: { c
                   potencia = modulos.reduce((s: number, m: any) => s + ((m.potencia_w || 0) * (m.quantidade || 1)) / 1000, 0);
                 }
               }
-              // Fallback: calculate geracao from snapshot UCs
+              // Fallback: calculate geracao from snapshot UCs or from potência × irradiação
               let geracao = geracaoMap.get((v as any).id) || null;
               if ((!geracao || geracao === 0) && snap?.ucs) {
                 const totalGeracao = (snap.ucs as any[]).reduce((s: number, uc: any) => s + (uc.geracao_mensal_estimada || 0), 0);
                 if (totalGeracao > 0) geracao = totalGeracao;
+              }
+              // Ultimate fallback: potência × irradiação × 30 × PR(0.80)
+              if ((!geracao || geracao === 0) && potencia > 0 && snap?.locIrradiacao > 0) {
+                geracao = Math.round(potencia * snap.locIrradiacao * 30 * 0.80);
               }
               return {
                 id: (v as any).id,
