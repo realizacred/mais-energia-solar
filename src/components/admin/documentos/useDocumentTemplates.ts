@@ -23,7 +23,7 @@ export function useDocumentTemplates(categoria?: DocumentCategory) {
     queryFn: async () => {
       let q = supabase
         .from("document_templates")
-        .select("*")
+        .select("id, tenant_id, nome, categoria, tipo, conteudo_html, variaveis, ativo, created_at, updated_at")
         .order("categoria")
         .order("nome");
       if (categoria) q = q.eq("categoria", categoria);

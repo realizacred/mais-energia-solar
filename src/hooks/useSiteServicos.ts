@@ -21,7 +21,7 @@ export function useSiteServicos() {
     setLoading(true);
     const { data, error } = await supabase
       .from("site_servicos")
-      .select("*")
+      .select("id, tenant_id, titulo, descricao, imagem_url, ordem, ativo, created_at, updated_at")
       .order("ordem", { ascending: true });
 
     if (!error && data) {

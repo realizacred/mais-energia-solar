@@ -31,7 +31,7 @@ export default function GoogleMapsConfigPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("integration_configs")
-        .select("*")
+        .select("id, service_key, api_key, is_active, last_validated_at, updated_at")
         .eq("service_key", "google_maps")
         .maybeSingle();
       if (error) throw error;

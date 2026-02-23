@@ -103,8 +103,8 @@ export function usePaybackEngine() {
     try {
       // Load all configs in parallel
       const [paybackRes, fioBRes] = await Promise.all([
-        supabase.from("payback_config").select("*").limit(1).single(),
-        supabase.from("fio_b_escalonamento").select("*").order("ano", { ascending: true }),
+        supabase.from("payback_config").select("id, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, taxas_fixas_mensais, degradacao_anual_painel, reajuste_anual_tarifa, tarifa_fio_b_padrao").limit(1).single(),
+        supabase.from("fio_b_escalonamento").select("id, ano, percentual_nao_compensado").order("ano", { ascending: true }),
       ]);
 
       if (paybackRes.data) {

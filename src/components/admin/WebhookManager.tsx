@@ -39,7 +39,7 @@ export default function WebhookManager() {
     try {
       const { data, error } = await supabase
         .from("webhook_config")
-        .select("*")
+        .select("id, tenant_id, nome, url, eventos, ativo, created_at, updated_at")
         .order("created_at", { ascending: false });
 
       if (error) throw error;

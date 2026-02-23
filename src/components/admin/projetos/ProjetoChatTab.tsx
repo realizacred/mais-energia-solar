@@ -234,7 +234,7 @@ function ExpandedChatHistory({ conversationId }: { conversationId: string }) {
       try {
         const { data } = await supabase
           .from("wa_conversation_summaries" as any)
-          .select("*")
+          .select("id, conversation_id, summary, key_points, sentiment, topics, generated_at, model_used")
           .eq("conversation_id", conversationId)
           .maybeSingle();
         if (data) setCachedSummary(data as any);

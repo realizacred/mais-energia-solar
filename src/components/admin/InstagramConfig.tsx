@@ -42,7 +42,7 @@ export function InstagramConfig() {
     try {
       const { data, error } = await supabase
         .from("instagram_config")
-        .select("*")
+        .select("id, access_token, user_id, username, ativo, ultima_sincronizacao")
         .limit(1)
         .maybeSingle();
 

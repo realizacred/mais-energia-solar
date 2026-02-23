@@ -115,7 +115,7 @@ export function InstaladorManager() {
       // Buscar config global
       const { data: configData } = await supabase
         .from("instalador_config")
-        .select("*")
+        .select("id, meta_servicos_mensal, meta_avaliacoes_positivas, meta_tempo_medio_minutos, pontos_por_servico, pontos_por_avaliacao_positiva, bonus_meta_atingida")
         .single();
 
       if (configData) {
@@ -125,7 +125,7 @@ export function InstaladorManager() {
       // Buscar metas individuais
       const { data: metasData } = await supabase
         .from("instalador_metas")
-        .select("*");
+        .select("id, instalador_id, meta_servicos_mensal, meta_avaliacoes_positivas, meta_tempo_medio_minutos, usar_metas_individuais");
 
       setMetas(metasData || []);
 

@@ -63,7 +63,7 @@ function SignatureConfig() {
   const { data: settings, isLoading } = useQuery({
     queryKey: ["signature_settings"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("signature_settings").select("*").maybeSingle();
+      const { data, error } = await supabase.from("signature_settings").select("tenant_id, enabled, provider, sandbox_mode, api_token_encrypted, webhook_secret_encrypted, updated_by").maybeSingle();
       if (error) throw error;
       return data as unknown as SignatureSettings | null;
     },
@@ -188,7 +188,7 @@ function SignersList() {
   const { data: signers, isLoading } = useQuery({
     queryKey: ["signers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("signers").select("*").order("full_name");
+      const { data, error } = await supabase.from("signers").select("id, tenant_id, full_name, email, auth_method, cpf, birth_date, phone, options").order("full_name");
       if (error) throw error;
       return (data ?? []) as unknown as Signer[];
     },

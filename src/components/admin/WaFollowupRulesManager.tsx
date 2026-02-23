@@ -167,7 +167,7 @@ export function WaFollowupRulesManager() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("wa_followup_rules")
-        .select("*")
+        .select("id, tenant_id, nome, descricao, cenario, prazo_minutos, prioridade, mensagem_template, envio_automatico, max_tentativas, status_conversa, ativo, ordem, created_at, updated_at")
         .order("ordem", { ascending: true })
         .order("created_at", { ascending: true });
       if (error) throw error;

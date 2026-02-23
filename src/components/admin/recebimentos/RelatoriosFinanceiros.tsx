@@ -73,7 +73,7 @@ import { InlineLoader } from "@/components/loading/InlineLoader";
        // Buscar pagamentos
        const { data: pagamentos, error: pagError } = await supabase
          .from("pagamentos")
-         .select("*")
+         .select("id, valor_pago, forma_pagamento, data_pagamento")
          .gte("data_pagamento", dataInicio)
          .order("data_pagamento");
  

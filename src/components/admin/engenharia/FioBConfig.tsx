@@ -40,7 +40,7 @@ export function FioBConfig() {
     try {
       const { data, error } = await supabase
         .from("fio_b_escalonamento")
-        .select("*")
+        .select("id, ano, percentual_nao_compensado")
         .order("ano", { ascending: true });
       if (error) throw error;
       setItems(

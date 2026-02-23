@@ -75,7 +75,7 @@ export function useLoadingConfig() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("loading_config")
-        .select("*")
+        .select("id, tenant_id, sun_loader_enabled, sun_loader_style, loader_theme, custom_loader_url, show_messages, messages_catalog, overlay_delay_ms, overlay_min_duration_ms, ai_messages_enabled, ai_max_calls_per_flow, ai_min_duration_seconds, ai_timeout_ms, created_at, updated_at")
         .maybeSingle();
 
       if (error) {

@@ -239,7 +239,7 @@ export function useLeadScoring() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lead_scoring_config")
-        .select("*")
+        .select("id, peso_consumo, peso_recencia, peso_engajamento, peso_perfil_tecnico, peso_localizacao, peso_tempo_resposta, consumo_alto_min, consumo_medio_min, recencia_quente_max, recencia_morna_max, threshold_hot, threshold_warm, probabilidade_hot, probabilidade_warm, probabilidade_cold, ticket_medio")
         .limit(1)
         .single();
       if (error) throw error;
@@ -254,7 +254,7 @@ export function useLeadScoring() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("lead_scores")
-        .select("*")
+        .select("id, lead_id, score, nivel, probabilidade_fechamento, fatores, recomendacao, score_consumo, score_recencia, score_engajamento, score_perfil_tecnico, score_localizacao, score_tempo_resposta, valor_estimado, calculado_em")
         .order("score", { ascending: false });
       if (error) throw error;
       return (data || []) as LeadScore[];

@@ -42,7 +42,7 @@ export function ICMSConfig() {
     try {
       const { data, error } = await supabase
         .from("config_tributaria_estado")
-        .select("*")
+        .select("id, estado, aliquota_icms, possui_isencao_scee, percentual_isencao, observacoes")
         .order("estado", { ascending: true });
       if (error) throw error;
       setItems(

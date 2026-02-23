@@ -28,7 +28,7 @@ export function useAiInsights() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("ai_insights")
-        .select("*")
+        .select("id, tenant_id, created_at, insight_type, payload, generated_by_user_id, period_start, period_end, filters")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;

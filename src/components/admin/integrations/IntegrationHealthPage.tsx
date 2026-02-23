@@ -72,7 +72,7 @@ export default function IntegrationHealthPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("integration_health_cache")
-        .select("*")
+        .select("id, tenant_id, integration_name, status, last_check_at, latency_ms, error_message, details, created_at, updated_at")
         .order("integration_name");
       if (error) throw error;
       return (data || []) as HealthRow[];

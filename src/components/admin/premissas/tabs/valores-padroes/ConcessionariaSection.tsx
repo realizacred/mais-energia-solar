@@ -115,7 +115,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
     if (!selectedConc) { setSubgrupoData({ bt: null, mt: null }); return; }
     supabase
       .from("concessionaria_tarifas_subgrupo")
-      .select("*")
+      .select("id, concessionaria_id, subgrupo, modalidade_tarifaria, tarifa_energia, tarifa_fio_b, tarifacao_bt, tarifacao_ponta, tarifacao_fora_ponta, te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta, fio_b_ponta, fio_b_fora_ponta, demanda_consumo_rs, demanda_geracao_rs, is_active, vigencia_inicio, origem, versao_id")
       .eq("concessionaria_id", selectedConc.id)
       .eq("is_active", true)
       .then(({ data }) => {
@@ -132,7 +132,7 @@ export function ConcessionariaSection({ premises, onChange, onSyncedFields, onAu
 
     const { data: subgrupos } = await supabase
       .from("concessionaria_tarifas_subgrupo")
-      .select("*")
+      .select("id, concessionaria_id, subgrupo, modalidade_tarifaria, tarifa_energia, tarifa_fio_b, tarifacao_bt, tarifacao_ponta, tarifacao_fora_ponta, te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta, fio_b_ponta, fio_b_fora_ponta, demanda_consumo_rs, demanda_geracao_rs, is_active, vigencia_inicio, origem, versao_id")
       .eq("concessionaria_id", concId)
       .eq("is_active", true)
       .order("subgrupo");

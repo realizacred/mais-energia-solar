@@ -155,7 +155,7 @@
  
       const { data } = await supabase
         .from("meta_notifications")
-        .select("*")
+        .select("id, consultor_id, tipo_meta, percentual_atingido, mes, ano, lida, created_at")
         .eq("consultor_id", vendedorId)
         .eq("mes", currentMonth)
         .eq("ano", currentYear)

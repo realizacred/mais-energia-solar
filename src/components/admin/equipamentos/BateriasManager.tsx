@@ -62,7 +62,7 @@ export function BateriasManager() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("baterias")
-        .select("*")
+        .select("id, tenant_id, fabricante, modelo, tipo_bateria, energia_kwh, tensao_nominal_v, tensao_carga_v, tensao_operacao_v, corrente_max_carga_a, corrente_max_descarga_a, correntes_recomendadas_a, potencia_max_saida_kw, dimensoes_mm, ativo, created_at, updated_at")
         .order("fabricante")
         .order("modelo");
       if (error) throw error;

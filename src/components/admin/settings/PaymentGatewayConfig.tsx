@@ -38,7 +38,7 @@ export function PaymentGatewayConfig() {
     try {
       const { data } = await supabase
         .from("payment_gateway_config")
-        .select("*")
+        .select("id, provider, api_key, environment, is_active")
         .eq("provider", "asaas")
         .maybeSingle();
 

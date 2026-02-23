@@ -121,7 +121,7 @@ export function TarifaVersoesPage() {
     setLoading(true);
     const { data, error } = await supabase
       .from("tarifa_versoes")
-      .select("*")
+      .select("id, tenant_id, origem, status, notas, arquivo_nome, total_registros, total_concessionarias, sync_run_id, activated_at, activated_by, created_at, created_by")
       .order("created_at", { ascending: false });
     if (!error && data) setVersoes(data as TarifaVersao[]);
     setLoading(false);

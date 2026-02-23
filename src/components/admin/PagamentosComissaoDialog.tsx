@@ -96,7 +96,7 @@
      try {
        const { data, error } = await supabase
          .from("pagamentos_comissao")
-         .select("*")
+         .select("id, valor_pago, data_pagamento, forma_pagamento, observacoes")
          .eq("comissao_id", comissao.id)
          .order("data_pagamento", { ascending: false });
  
