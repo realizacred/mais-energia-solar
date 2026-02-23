@@ -60,7 +60,7 @@ export default function FinanciamentoConfig() {
     try {
       const { data, error } = await supabase
         .from("financiamento_bancos")
-        .select("*")
+        .select("id, nome, taxa_mensal, max_parcelas, ativo, ordem, fonte_sync, ultima_sync, codigo_bcb, api_customizada_url")
         .order("ordem");
 
       if (error) throw error;

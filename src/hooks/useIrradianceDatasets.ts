@@ -72,8 +72,8 @@ export function useIrradianceDatasets() {
     setLoading(true);
     try {
       const [dsRes, verRes] = await Promise.all([
-        supabase.from("irradiance_datasets").select("*").order("name"),
-        supabase.from("irradiance_dataset_versions").select("*").order("ingested_at", { ascending: false }),
+        supabase.from("irradiance_datasets").select("id, code, name, provider, resolution_km, default_unit, description, coverage, created_at").order("name"),
+        supabase.from("irradiance_dataset_versions").select("id, dataset_id, version_tag, source_note, ingested_at, checksum_sha256, row_count, status, metadata, created_at, updated_at").order("ingested_at", { ascending: false }),
       ]);
 
       if (dsRes.data) setDatasets(dsRes.data as any[]);

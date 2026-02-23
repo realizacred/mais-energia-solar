@@ -103,7 +103,7 @@ export function ConcessionariaSubgruposPanel({ concessionariaId, concessionariaN
     setLoading(true);
     const { data, error } = await supabase
       .from("concessionaria_tarifas_subgrupo")
-      .select("*")
+      .select("id, concessionaria_id, subgrupo, modalidade_tarifaria, tarifa_energia, tarifa_fio_b, tarifacao_bt, tarifacao_ponta, tarifacao_fora_ponta, te_ponta, te_fora_ponta, tusd_ponta, tusd_fora_ponta, demanda_consumo_rs, demanda_geracao_rs, fio_b_ponta, fio_b_fora_ponta, vigencia_inicio, origem, versao_id, is_active, created_at, updated_at")
       .eq("concessionaria_id", concessionariaId)
       .order("subgrupo");
     if (!error && data) setTarifas(data as TarifaSubgrupo[]);
