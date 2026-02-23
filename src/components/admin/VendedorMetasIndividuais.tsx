@@ -101,7 +101,7 @@
        // Fetch metas for current month
        const { data: metasData } = await supabase
          .from("consultor_metas")
-         .select("*")
+         .select("id, consultor_id, mes, ano, meta_orcamentos, meta_conversoes, meta_valor, comissao_percent, usa_meta_individual")
          .eq("mes", currentMonth)
          .eq("ano", currentYear);
  

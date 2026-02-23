@@ -47,7 +47,7 @@ export default function ApiKeyConfigPage({
     queryFn: async () => {
       const { data, error } = await supabase
         .from("integration_configs")
-        .select("*")
+        .select("id, service_key, api_key, is_active, last_validated_at, created_at, updated_at, updated_by")
         .eq("service_key", serviceKey)
         .maybeSingle();
       if (error) throw error;

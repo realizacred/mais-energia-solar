@@ -115,7 +115,7 @@ export function ParcelasManager({ open, onOpenChange, recebimento, onUpdate }: P
     try {
       const { data, error } = await supabase
         .from("parcelas")
-        .select("*")
+        .select("id, numero_parcela, valor, data_vencimento, status, pagamento_id, recebimento_id")
         .eq("recebimento_id", recebimento.id)
         .order("numero_parcela");
 

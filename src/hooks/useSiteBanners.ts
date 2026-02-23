@@ -12,7 +12,7 @@ export function useSiteBanners() {
     try {
       const { data, error } = await supabase
         .from("site_banners")
-        .select("*")
+        .select("id, tenant_id, titulo, subtitulo, imagem_url, botao_texto, botao_link, ativo, ordem, created_at, updated_at")
         .eq("ativo", true)
         .order("ordem", { ascending: true });
 
@@ -44,7 +44,7 @@ export function useSiteBannersAdmin() {
     try {
       const { data, error } = await supabase
         .from("site_banners")
-        .select("*")
+        .select("id, tenant_id, titulo, subtitulo, imagem_url, botao_texto, botao_link, ativo, ordem, created_at, updated_at")
         .order("ordem", { ascending: true });
 
       if (error) {

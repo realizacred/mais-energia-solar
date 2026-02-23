@@ -41,7 +41,7 @@ export function PaybackGeneralConfig() {
     try {
       const { data, error } = await supabase
         .from("payback_config")
-        .select("*")
+        .select("id, custo_disponibilidade_monofasico, custo_disponibilidade_bifasico, custo_disponibilidade_trifasico, taxas_fixas_mensais, degradacao_anual_painel, reajuste_anual_tarifa, tarifa_fio_b_padrao")
         .limit(1)
         .single();
       if (error) throw error;

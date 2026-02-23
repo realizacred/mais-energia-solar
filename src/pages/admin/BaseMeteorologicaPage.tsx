@@ -115,7 +115,7 @@ export function BaseMeteorologicaPage() {
     setLoading(true);
     const [dsRes, verRes] = await Promise.all([
       supabase.from("irradiance_datasets").select("id, code, name").order("code"),
-      supabase.from("irradiance_dataset_versions").select("*").order("created_at", { ascending: false }),
+      supabase.from("irradiance_dataset_versions").select("id, dataset_id, version_tag, source_note, ingested_at, checksum_sha256, row_count, status, metadata, created_at, updated_at").order("created_at", { ascending: false }),
     ]);
     if (dsRes.data) setDatasets(dsRes.data);
     if (verRes.data) setVersions(verRes.data as VersionRow[]);

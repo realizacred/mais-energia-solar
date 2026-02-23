@@ -209,7 +209,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
     try {
       const { data, error } = await supabase
         .from("consultores")
-        .select("*")
+        .select("id, nome, telefone, email, codigo, slug, ativo, user_id, created_at, percentual_comissao")
         .order("nome");
 
       if (error) throw error;

@@ -257,7 +257,7 @@ function AutomationTab() {
     queryFn: async () => {
       const { data } = await supabase
         .from("wa_auto_reply_config")
-        .select("*")
+        .select("id, ativo, mensagem_fora_horario, mensagem_feriado, cooldown_minutos, silenciar_alertas, silenciar_sla")
         .maybeSingle();
       return data;
     },
