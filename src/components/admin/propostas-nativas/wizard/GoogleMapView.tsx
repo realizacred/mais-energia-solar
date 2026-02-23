@@ -286,69 +286,83 @@ export default function GoogleMapView({
     }
   }, []);
 
-  // ─── Capture snapshot using html2canvas (includes drawings!) ────
+  // ─── Capture snapshot ────
   const handleSnapshot = useCallback(async () => {
     const container = mapRef.current;
     if (!container) return;
 
     setSnapshotting(true);
-    try {
-      // Temporarily hide controls for cleaner screenshot
-      const canvas = await html2canvas(container, {
-        useCORS: true,
-        allowTaint: true,
-        scale: 2,
-        logging: false,
-        backgroundColor: null,
-        // Ignore Google Maps controls to get a cleaner image
-        ignoreElements: (el) => {
-          if (el.classList?.contains("gm-control-active")) return true;
-          if (el.classList?.contains("gmnoprint") && !el.querySelector("canvas")) return true;
-          return false;
-        },
-      });
+    const hasDrawings = overlaysRef.current.length > 0;
 
-      const dataUrl = canvas.toDataURL("image/png", 0.92);
-      setSnapshots(prev => [...prev, dataUrl]);
-      toast({
-        title: "📸 Snapshot capturado",
-        description: "Inclui todos os desenhos visíveis no mapa.",
-      });
-    } catch (err) {
-      console.error("[GoogleMapView] html2canvas snapshot error:", err);
-      // Fallback to Static Maps API (without drawings)
+    // If there are drawings, try html2canvas first to capture them
+    if (hasDrawings) {
       try {
-        const map = mapInstanceRef.current;
-        const key = apiKeyRef.current;
-        if (map && key) {
-          const center = map.getCenter();
-          const zoom = map.getZoom();
-          if (center) {
-            const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${center.lat()},${center.lng()}&zoom=${zoom}&size=800x600&maptype=${mapType}&key=${key}&scale=2`;
-            const resp = await fetch(staticUrl);
-            if (resp.ok) {
-              const blob = await resp.blob();
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setSnapshots(prev => [...prev, reader.result as string]);
-                toast({
-                  title: "📸 Snapshot capturado (sem desenhos)",
-                  description: "Captura via Static Maps (fallback).",
-                });
-              };
-              reader.readAsDataURL(blob);
-            }
-          }
-        }
-      } catch {
-        toast({
-          title: "Erro ao capturar mapa",
-          variant: "destructive",
+        const canvas = await html2canvas(container, {
+          useCORS: true,
+          allowTaint: true,
+          scale: 2,
+          logging: false,
+          backgroundColor: null,
+          ignoreElements: (el) => {
+            if (el.classList?.contains("gm-control-active")) return true;
+            if (el.classList?.contains("gmnoprint") && !el.querySelector("canvas")) return true;
+            return false;
+          },
         });
+
+        const dataUrl = canvas.toDataURL("image/png", 0.92);
+        // Validate the image isn't blank/broken
+        if (dataUrl && dataUrl.length > 1000) {
+          setSnapshots(prev => [...prev, dataUrl]);
+          toast({ title: "📸 Snapshot capturado", description: "Inclui desenhos visíveis no mapa." });
+          setSnapshotting(false);
+          return;
+        }
+      } catch (err) {
+        console.warn("[GoogleMapView] html2canvas failed, falling back to Static Maps:", err);
       }
-    } finally {
-      setSnapshotting(false);
     }
+
+    // Primary method: Static Maps API (always works, no CORS issues)
+    try {
+      const map = mapInstanceRef.current;
+      const key = apiKeyRef.current;
+      if (!map || !key) throw new Error("Map or key not available");
+
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      if (!center) throw new Error("No center");
+
+      const staticUrl = `https://maps.googleapis.com/maps/api/staticmap?center=${center.lat()},${center.lng()}&zoom=${zoom}&size=800x600&maptype=${mapType === "hybrid" ? "hybrid" : mapType === "satellite" ? "satellite" : "roadmap"}&key=${key}&scale=2&markers=color:red%7C${center.lat()},${center.lng()}`;
+      
+      const resp = await fetch(staticUrl);
+      if (!resp.ok) throw new Error(`Static Maps API returned ${resp.status}`);
+      
+      const blob = await resp.blob();
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        if (result && result.length > 500) {
+          setSnapshots(prev => [...prev, result]);
+          toast({
+            title: "📸 Snapshot capturado",
+            description: hasDrawings ? "Captura sem desenhos (Static Maps)." : "Imagem do mapa salva.",
+          });
+        }
+        setSnapshotting(false);
+      };
+      reader.onerror = () => {
+        toast({ title: "Erro ao capturar mapa", variant: "destructive" });
+        setSnapshotting(false);
+      };
+      reader.readAsDataURL(blob);
+      return;
+    } catch (err) {
+      console.error("[GoogleMapView] Static Maps snapshot error:", err);
+      toast({ title: "Erro ao capturar mapa", variant: "destructive" });
+    }
+
+    setSnapshotting(false);
   }, [mapType]);
 
   // ─── Delete snapshot ─────────────────────────────
