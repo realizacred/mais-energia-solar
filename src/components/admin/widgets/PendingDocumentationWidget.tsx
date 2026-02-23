@@ -57,6 +57,28 @@ export function PendingDocumentationWidget({
     loadPendingLeads();
   }, [refreshKey]);
 
+  // ⚠️ HARDENING: Realtime subscription — auto-refresh when leads change
+  useEffect(() => {
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const channel = supabase
+      .channel('pending-docs-widget')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leads' },
+        () => {
+          if (debounceTimer) clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => loadPendingLeads(), 600);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const loadPendingLeads = async () => {
     try {
       // Get "Aguardando Documentação" status
