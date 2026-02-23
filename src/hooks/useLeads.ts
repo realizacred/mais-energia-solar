@@ -153,9 +153,27 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
 
   const restoreLead = useCallback(async (leadId: string) => {
     try {
+      // Busca o primeiro status ativo (menor ordem, excluindo Arquivado)
+      const { data: defaultStatus, error: statusError } = await supabase
+        .from("lead_status")
+        .select("id")
+        .neq("nome", "Arquivado")
+        .order("ordem", { ascending: true })
+        .limit(1)
+        .single();
+
+      if (statusError || !defaultStatus) {
+        toast({
+          title: "Erro",
+          description: "Não foi possível determinar o status padrão para restauração.",
+          variant: "destructive",
+        });
+        return false;
+      }
+
       const { error } = await supabase
         .from("leads")
-        .update({ deleted_at: null, deleted_by: null })
+        .update({ status_id: defaultStatus.id })
         .eq("id", leadId);
 
       if (error) throw error;
@@ -205,12 +223,8 @@ export function useLeads({ autoFetch = true, pageSize = PAGE_SIZE }: UseLeadsOpt
         (payload) => {
           if (payload.new) {
             const updated = payload.new as any;
-            // Soft-deleted leads must be removed from active list
-            if (updated.deleted_at) {
-              setLeads(prev => prev.filter(l => l.id !== updated.id));
-              setTotalCount(prev => Math.max(0, prev - 1));
-              return;
-            }
+            // Archived leads must be removed from active list
+            // (status_id check happens downstream via filter)
             setLeads(prev => prev.map(l =>
               l.id === updated.id
                 ? {

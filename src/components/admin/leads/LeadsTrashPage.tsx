@@ -1,60 +1,90 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Trash2, RotateCcw, Search } from "lucide-react";
+import { Archive, RotateCcw, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PageHeader, LoadingState } from "@/components/ui-kit";
 
-interface DeletedLead {
+interface ArchivedLead {
   id: string;
   nome: string;
   telefone: string;
   cidade: string;
   estado: string;
   lead_code: string | null;
-  deleted_at: string;
+  updated_at: string;
   created_at: string;
   consultor: string | null;
 }
 
 export default function LeadsTrashPage() {
-  const [leads, setLeads] = useState<DeletedLead[]>([]);
+  const [leads, setLeads] = useState<ArchivedLead[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [restoreId, setRestoreId] = useState<string | null>(null);
+  const [defaultStatusId, setDefaultStatusId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchDeleted = useCallback(async () => {
+  const fetchArchived = useCallback(async () => {
     setLoading(true);
+
+    // Busca o status "Arquivado" e o primeiro status padrão para restauração
+    const [arquivadoRes, defaultRes] = await Promise.all([
+      supabase
+        .from("lead_status")
+        .select("id")
+        .eq("nome", "Arquivado")
+        .single(),
+      supabase
+        .from("lead_status")
+        .select("id")
+        .neq("nome", "Arquivado")
+        .order("ordem", { ascending: true })
+        .limit(1)
+        .single(),
+    ]);
+
+    if (arquivadoRes.error || !arquivadoRes.data) {
+      toast({ title: "Status 'Arquivado' não encontrado", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    if (defaultRes.data) {
+      setDefaultStatusId(defaultRes.data.id);
+    }
+
     const { data, error } = await supabase
       .from("leads")
-      .select("id, nome, telefone, cidade, estado, lead_code, deleted_at, created_at, consultor")
-      .not("deleted_at", "is", null)
-      .order("deleted_at", { ascending: false })
+      .select("id, nome, telefone, cidade, estado, lead_code, updated_at, created_at, consultor")
+      .eq("status_id", arquivadoRes.data.id)
+      .is("deleted_at", null)
+      .order("updated_at", { ascending: false })
       .limit(200);
 
     if (error) {
-      toast({ title: "Erro ao carregar lixeira", variant: "destructive" });
+      toast({ title: "Erro ao carregar arquivados", variant: "destructive" });
     } else {
       setLeads(data || []);
     }
     setLoading(false);
   }, [toast]);
 
-  useEffect(() => { fetchDeleted(); }, [fetchDeleted]);
+  useEffect(() => { fetchArchived(); }, [fetchArchived]);
 
   const handleRestore = async () => {
-    if (!restoreId) return;
+    if (!restoreId || !defaultStatusId) return;
+
     const { error } = await supabase
       .from("leads")
-      .update({ deleted_at: null, deleted_by: null })
+      .update({ status_id: defaultStatusId })
       .eq("id", restoreId);
 
     if (error) {
@@ -72,14 +102,14 @@ export default function LeadsTrashPage() {
     return l.nome.toLowerCase().includes(s) || l.telefone.includes(s) || (l.lead_code?.toLowerCase().includes(s));
   });
 
-  if (loading) return <LoadingState message="Carregando lixeira..." />;
+  if (loading) return <LoadingState message="Carregando arquivados..." />;
 
   return (
     <div className="space-y-4">
       <PageHeader
-        icon={Trash2}
-        title="Lixeira de Leads"
-        description={`${leads.length} leads na lixeira. Restaure ou aguarde a limpeza automática.`}
+        icon={Archive}
+        title="Leads Arquivados"
+        description={`${leads.length} leads arquivados. Restaure para reativá-los no funil.`}
       />
 
       <Card>
@@ -100,8 +130,8 @@ export default function LeadsTrashPage() {
         <CardContent>
           {filtered.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Trash2 className="h-12 w-12 mx-auto mb-3 opacity-30" />
-              <p className="text-sm">Nenhum lead na lixeira</p>
+              <Archive className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <p className="text-sm">Nenhum lead arquivado</p>
             </div>
           ) : (
             <Table>
@@ -111,7 +141,7 @@ export default function LeadsTrashPage() {
                   <TableHead>Telefone</TableHead>
                   <TableHead>Cidade/UF</TableHead>
                   <TableHead>Consultor</TableHead>
-                  <TableHead>Excluído em</TableHead>
+                  <TableHead>Arquivado em</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -128,7 +158,7 @@ export default function LeadsTrashPage() {
                     <TableCell className="text-sm">{lead.cidade}/{lead.estado}</TableCell>
                     <TableCell className="text-sm">{lead.consultor || "—"}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {lead.deleted_at && format(new Date(lead.deleted_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                      {format(new Date(lead.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
@@ -154,7 +184,7 @@ export default function LeadsTrashPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Restaurar Lead</AlertDialogTitle>
             <AlertDialogDescription>
-              O lead será restaurado e voltará a aparecer na listagem e em todos os widgets.
+              O lead será restaurado e voltará a aparecer na listagem ativa do funil.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
