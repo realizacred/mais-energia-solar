@@ -9,9 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
-} from "@/components/ui/dialog";
+import { FormModalTemplate, FormGrid } from "@/components/ui-kit/FormModalTemplate";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -318,12 +316,16 @@ export function InversoresManager() {
         </div>
 
         {/* Dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editing ? "Editar Inversor" : "Novo Inversor"}</DialogTitle>
-            </DialogHeader>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormModalTemplate
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          title={editing ? "Editar Inversor" : "Novo Inversor"}
+          onSubmit={handleSave}
+          submitLabel={editing ? "Salvar" : "Cadastrar"}
+          saving={saveMutation.isPending}
+          className="max-w-2xl"
+        >
+          <FormGrid>
               <div className="space-y-1 sm:col-span-2">
                 <Label>Fabricante *</Label>
                 <Input value={form.fabricante} onChange={(e) => set("fabricante", e.target.value)} placeholder="Ex: Growatt" />
@@ -393,15 +395,8 @@ export function InversoresManager() {
                 <Label>Proteção IP</Label>
                 <Input value={form.ip_protection as string} onChange={(e) => set("ip_protection", e.target.value)} placeholder="IP65" />
               </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-              <Button onClick={handleSave} disabled={saveMutation.isPending}>
-                {saveMutation.isPending ? "Salvando..." : "Salvar"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          </FormGrid>
+        </FormModalTemplate>
 
         <AlertDialog open={!!deleting} onOpenChange={(v) => !v && setDeleting(null)}>
           <AlertDialogContent>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -78,19 +78,20 @@ export function WaStartConversationDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.stopPropagation()} onInteractOutside={(e) => e.stopPropagation()}>
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <MessageCirclePlus className="h-5 w-5 text-success" />
-            Nova conversa
-          </DialogTitle>
-          <DialogDescription>
+    <FormModalTemplate
+      open={open}
+      onOpenChange={handleOpenChange}
+      title="Nova conversa"
+      onSubmit={handleSubmit}
+      submitLabel="Iniciar"
+      saving={loading}
+      disabled={!isValid}
+      className="sm:max-w-md"
+    >
+          <p className="text-sm text-muted-foreground -mt-2">
             Envie uma mensagem para um número novo ou reabra uma conversa existente.
-          </DialogDescription>
-        </DialogHeader>
+          </p>
 
-        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="sc-phone">Telefone *</Label>
             <Input
@@ -146,18 +147,6 @@ export function WaStartConversationDialog({
               name="sc-message-field"
             />
           </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={loading}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSubmit} disabled={loading || !isValid}>
-            {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-            Iniciar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </FormModalTemplate>
   );
 }

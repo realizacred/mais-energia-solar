@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FormModalTemplate } from "@/components/ui-kit/FormModalTemplate";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -443,28 +444,30 @@ export function ObrasManager() {
       )}
 
       {/* Create/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{editingObra ? "Editar Obra" : "Nova Obra"}</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
+      <FormModalTemplate
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        title={editingObra ? "Editar Obra" : "Nova Obra"}
+        onSubmit={handleSave}
+        submitLabel={editingObra ? "Salvar" : "Adicionar"}
+        saving={saving}
+        className="max-w-2xl"
+      >
             {/* Title */}
-            <div>
+            <div className="space-y-2">
               <Label>Título *</Label>
               <Input value={form.titulo} onChange={(e) => setForm({ ...form, titulo: e.target.value })} placeholder="Ex: Projeto Fotovoltaico de 5.5 kWp" />
             </div>
 
             {/* Description */}
-            <div>
+            <div className="space-y-2">
               <Label>Descrição</Label>
               <Textarea value={form.descricao} onChange={(e) => setForm({ ...form, descricao: e.target.value })} placeholder="Descrição detalhada da obra..." className="min-h-[80px]" />
             </div>
 
             {/* Location - Estado + Cidade */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Estado *</Label>
                 <Select value={form.estado} onValueChange={(v) => setForm({ ...form, estado: v, cidade: "" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -475,7 +478,7 @@ export function ObrasManager() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Cidade *</Label>
                 {cidades.length > 0 ? (
                   <Select value={form.cidade} onValueChange={(v) => setForm({ ...form, cidade: v })}>
@@ -495,8 +498,8 @@ export function ObrasManager() {
             </div>
 
             {/* Type and Client Name */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Tipo de Projeto</Label>
                 <Select value={form.tipo_projeto} onValueChange={(v) => setForm({ ...form, tipo_projeto: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -507,15 +510,15 @@ export function ObrasManager() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Nome do Cliente (manual)</Label>
                 <Input value={form.cliente_nome} onChange={(e) => setForm({ ...form, cliente_nome: e.target.value })} placeholder="Opcional" />
               </div>
             </div>
 
             {/* Link to Project / Client */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label className="flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" /> Vincular Projeto</Label>
                 <Select value={form.projeto_id} onValueChange={(v) => setForm({ ...form, projeto_id: v === "_none" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
@@ -527,7 +530,7 @@ export function ObrasManager() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label className="flex items-center gap-1.5"><Link2 className="w-3.5 h-3.5" /> Vincular Cliente</Label>
                 <Select value={form.cliente_id} onValueChange={(v) => setForm({ ...form, cliente_id: v === "_none" ? "" : v })}>
                   <SelectTrigger><SelectValue placeholder="Nenhum" /></SelectTrigger>
@@ -543,54 +546,60 @@ export function ObrasManager() {
 
             {/* Technical Details Row 1 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
+              <div className="space-y-2">
                 <Label>Potência (kWp)</Label>
                 <Input type="number" step="0.01" value={form.potencia_kwp} onChange={(e) => setForm({ ...form, potencia_kwp: e.target.value })} placeholder="5.50" />
               </div>
-              <div>
+              <div className="space-y-2">
+                <Label>Valor (R$)</Label>
+                <Input type="number" value={(form as any).valor_projeto ?? ""} onChange={(e) => setForm({ ...form, valor_projeto: e.target.value } as any)} placeholder="35000" />
+              </div>
+              <div className="space-y-2">
                 <Label>Economia (R$/mês)</Label>
                 <Input type="number" value={form.economia_mensal} onChange={(e) => setForm({ ...form, economia_mensal: e.target.value })} placeholder="680" />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Nº Módulos</Label>
                 <Input type="number" value={form.numero_modulos} onChange={(e) => setForm({ ...form, numero_modulos: e.target.value })} placeholder="10" />
               </div>
-              <div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
                 <Label>Modelo Inversor</Label>
                 <Input value={form.modelo_inversor} onChange={(e) => setForm({ ...form, modelo_inversor: e.target.value })} placeholder="Growatt" />
               </div>
             </div>
 
-            {/* Technical Details Row 2 - NEW */}
+            {/* Technical Details Row 2 */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
+              <div className="space-y-2">
                 <Label className="flex items-center gap-1"><Tag className="w-3 h-3" /> Marca Painéis</Label>
                 <Input value={form.marca_paineis} onChange={(e) => setForm({ ...form, marca_paineis: e.target.value })} placeholder="Canadian Solar" />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label className="flex items-center gap-1"><Clock className="w-3 h-3" /> Instalação (dias)</Label>
                 <Input type="number" value={form.tempo_instalacao_dias} onChange={(e) => setForm({ ...form, tempo_instalacao_dias: e.target.value })} placeholder="2" />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> Payback (meses)</Label>
                 <Input type="number" value={form.payback_meses} onChange={(e) => setForm({ ...form, payback_meses: e.target.value })} placeholder="48" />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label>Data Conclusão</Label>
                 <Input type="date" value={form.data_conclusao} onChange={(e) => setForm({ ...form, data_conclusao: e.target.value })} />
               </div>
             </div>
 
             {/* Depoimento */}
-            <div>
+            <div className="space-y-2">
               <Label className="flex items-center gap-1.5"><MessageSquareQuote className="w-4 h-4" /> Depoimento do Cliente</Label>
               <Textarea value={form.depoimento_cliente} onChange={(e) => setForm({ ...form, depoimento_cliente: e.target.value })} placeholder="&quot;Excelente trabalho, recomendo!&quot; — Nome do cliente" className="min-h-[60px]" />
             </div>
 
             {/* Tags */}
-            <div>
-              <Label className="flex items-center gap-1.5 mb-2"><Tag className="w-4 h-4" /> Tags</Label>
-              {/* Current tags */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5"><Tag className="w-4 h-4" /> Tags</Label>
               {form.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {form.tags.map((tag) => (
@@ -603,7 +612,6 @@ export function ObrasManager() {
                   ))}
                 </div>
               )}
-              {/* Tag input */}
               <div className="flex gap-2">
                 <Input
                   value={tagInput}
@@ -616,7 +624,6 @@ export function ObrasManager() {
                   Adicionar
                 </Button>
               </div>
-              {/* Suggested tags */}
               {availableSuggestedTags.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-2">
                   {availableSuggestedTags.map((tag) => (
@@ -640,14 +647,14 @@ export function ObrasManager() {
             </div>
 
             {/* Video */}
-            <div>
+            <div className="space-y-2">
               <Label className="flex items-center gap-1.5"><Video className="w-4 h-4" /> URL do Vídeo</Label>
               <Input value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} placeholder="https://www.youtube.com/watch?v=..." />
             </div>
 
             {/* Images */}
-            <div>
-              <Label className="flex items-center gap-1.5 mb-2"><ImageIcon className="w-4 h-4" /> Imagens</Label>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5"><ImageIcon className="w-4 h-4" /> Imagens</Label>
               <label className="flex items-center justify-center gap-2 px-4 py-6 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors">
                 <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" disabled={uploadingImages} />
                 {uploadingImages ? (
@@ -690,17 +697,7 @@ export function ObrasManager() {
                 <Label className="text-sm">Visível no site</Label>
               </div>
             </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={saving} className="gap-2">
-              {saving && <Spinner size="sm" />}
-              {editingObra ? "Salvar" : "Adicionar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </FormModalTemplate>
 
       {/* Delete Confirm */}
       <Dialog open={!!deleteConfirm} onOpenChange={() => setDeleteConfirm(null)}>

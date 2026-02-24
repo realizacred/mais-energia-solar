@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { FormModalTemplate, FormSection } from "@/components/ui-kit/FormModalTemplate";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Trash2, Edit2, Building2, Percent, CreditCard, RefreshCw, GripVertical, Check, Clock, AlertCircle, Globe } from "lucide-react";
@@ -596,14 +596,15 @@ export default function FinanciamentoConfig() {
       </Card>
 
       {/* Edit/Create Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingBanco ? "Editar Banco" : "Novo Banco"}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
+      <FormModalTemplate
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        title={editingBanco ? "Editar Banco" : "Novo Banco"}
+        onSubmit={handleSaveBanco}
+        submitLabel={editingBanco ? "Salvar" : "Cadastrar"}
+        saving={saving}
+        className="max-w-md"
+      >
             <div className="space-y-2">
               <Label htmlFor="nome">Nome do Banco *</Label>
               <Input
@@ -613,7 +614,7 @@ export default function FinanciamentoConfig() {
                 placeholder="Ex: Santander Solar"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="taxa">Taxa Mensal (%) *</Label>
                 <Input
@@ -633,10 +634,8 @@ export default function FinanciamentoConfig() {
                 />
               </div>
             </div>
-            
-            <div className="border-t pt-4 mt-4">
-              <p className="text-sm font-medium mb-3">Sincronização Automática (Opcional)</p>
-              
+
+            <FormSection title="Sincronização Automática (Opcional)">
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="codigo_bcb" className="flex items-center gap-2">
@@ -660,7 +659,7 @@ export default function FinanciamentoConfig() {
                     maxLength={5}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="api_url" className="flex items-center gap-2">
                     URL da API Customizada
@@ -683,19 +682,8 @@ export default function FinanciamentoConfig() {
                   />
                 </div>
               </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSaveBanco} disabled={saving}>
-              {saving && <Spinner size="sm" className="mr-2" />}
-              {editingBanco ? "Salvar" : "Cadastrar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </FormSection>
+      </FormModalTemplate>
 
       {/* Delete Confirmation */}
       <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
