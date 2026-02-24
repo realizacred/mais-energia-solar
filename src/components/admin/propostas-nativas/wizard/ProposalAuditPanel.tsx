@@ -108,11 +108,11 @@ function getValueBadge(value: any) {
 
 export function ProposalAuditPanel({ snapshot, propostaId, versaoId, projetoId, dealId, clienteId, leadId }: Props) {
   const [search, setSearch] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [expandedFields, setExpandedFields] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => {
+    setCollapsedSections(prev => {
       const next = new Set(prev);
       next.has(section) ? next.delete(section) : next.add(section);
       return next;
@@ -193,7 +193,7 @@ export function ProposalAuditPanel({ snapshot, propostaId, versaoId, projetoId, 
         </div>
       </div>
 
-      <ScrollArea className="max-h-[60vh]">
+      <ScrollArea className="max-h-[80vh]">
         <div className="p-2 space-y-1">
           {/* DB IDs Section */}
           {dbIds.length > 0 && (
@@ -202,12 +202,12 @@ export function ProposalAuditPanel({ snapshot, propostaId, versaoId, projetoId, 
                 className="w-full flex items-center gap-2 px-2 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
                 onClick={() => toggleSection("__db_ids")}
               >
-                {expandedSections.has("__db_ids") ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                {!collapsedSections.has("__db_ids") ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 <Database className="h-3 w-3 text-primary" />
                 <span className="text-xs font-semibold">IDs do Banco de Dados</span>
                 <Badge variant="outline" className="text-[9px] ml-auto">{dbIds.length}</Badge>
               </button>
-              {expandedSections.has("__db_ids") && (
+              {!collapsedSections.has("__db_ids") && (
                 <div className="divide-y">
                   {dbIds.map(entry => (
                     <div key={entry.key} className="flex items-center gap-2 px-3 py-1.5 text-xs hover:bg-muted/20">
@@ -230,12 +230,12 @@ export function ProposalAuditPanel({ snapshot, propostaId, versaoId, projetoId, 
                 className="w-full flex items-center gap-2 px-2 py-1.5 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
                 onClick={() => toggleSection(category)}
               >
-                {expandedSections.has(category) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                {!collapsedSections.has(category) ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
                 <FileJson className="h-3 w-3 text-primary" />
                 <span className="text-xs font-semibold">{category}</span>
                 <Badge variant="outline" className="text-[9px] ml-auto">{fields.length}</Badge>
               </button>
-              {expandedSections.has(category) && (
+              {!collapsedSections.has(category) && (
                 <div className="divide-y">
                   {fields.map(field => {
                     const isComplex = typeof field.value === "object" && field.value !== null;
