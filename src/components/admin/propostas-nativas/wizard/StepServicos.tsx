@@ -166,7 +166,7 @@ export function StepServicos({ servicos, onServicosChange, kitItens = [], potenc
           </div>
 
           {/* Items */}
-          <div className="divide-y divide-border/20">
+          <div className="divide-y divide-border/60">
             {resumoItens.map((item, idx) => (
               <div key={idx} className="grid grid-cols-[1fr_auto_auto] gap-2 px-4 py-2.5 text-xs items-center">
                 <span className="text-foreground truncate flex items-center gap-1">
