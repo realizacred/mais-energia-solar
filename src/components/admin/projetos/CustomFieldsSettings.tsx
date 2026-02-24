@@ -614,12 +614,7 @@ export function CustomFieldsSettings() {
 
           {/* ── Step 1: Type Grid ── */}
           {fieldWizardStep === "type" && (() => {
-            // For pre/pos dimensionamento, only show relevant field types
-            const DIMENSIONAMENTO_TYPES = ["text", "number", "currency", "select", "boolean", "date"];
-            const isDimensionamento = fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento";
-            const availableTypes = Object.entries(FIELD_TYPE_LABELS).filter(
-              ([key]) => !isDimensionamento || DIMENSIONAMENTO_TYPES.includes(key)
-            );
+            const availableTypes = Object.entries(FIELD_TYPE_LABELS);
             return (
               <div className="grid grid-cols-3 gap-3 py-2">
                 {availableTypes.map(([key, label]) => {
