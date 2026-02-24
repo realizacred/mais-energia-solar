@@ -134,7 +134,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
   // ── Desktop ──
   return (
     <ScrollArea className="w-full max-w-full">
-      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content" }}>
         {ownerColumns.map(col => {
           const isOver = dragOverCol === col.id;
           const totalKwp = col.deals.reduce((s, d) => s + (d.deal_kwp || 0), 0);
@@ -144,7 +144,7 @@ export function ProjetoKanbanConsultor({ ownerColumns, allDeals, onViewProjeto, 
             <div
               key={col.id}
               className={cn(
-                "w-[260px] sm:w-[280px] xl:w-[300px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
+                "w-[260px] sm:w-[270px] xl:w-[290px] flex-shrink-0 rounded-xl border border-border/50 transition-all flex flex-col",
                 "bg-card/60",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}

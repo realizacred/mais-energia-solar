@@ -64,7 +64,7 @@ const formatKwp = (v: number) => {
 };
 
 // ─── Resizable column hook ─────────────────────
-function useResizableColumn(initialWidth: number, minWidth = 260, maxWidth = 500) {
+function useResizableColumn(initialWidth: number, minWidth = 240, maxWidth = 500) {
   const [width, setWidth] = useState(initialWidth);
   const isResizing = useRef(false);
   const startX = useRef(0);
@@ -343,7 +343,7 @@ export function ProjetoKanbanStage({ stages, deals, onMoveToStage, onViewProjeto
   return (
     <>
       <ScrollArea className="w-full">
-        <div className="flex gap-4 pb-4 px-1" style={{ minWidth: "max-content" }}>
+        <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "min-content" }}>
           {sortedStages.map(stage => (
             <ResizableKanbanColumn
               key={stage.id}
@@ -411,7 +411,7 @@ function ResizableKanbanColumn({
   onViewProjeto, onNewProject, onAutomationConfig,
   getStageNameById, dynamicEtiquetas,
 }: ResizableKanbanColumnProps) {
-  const { width, onMouseDown } = useResizableColumn(310);
+  const { width, onMouseDown } = useResizableColumn(280);
   const hasActiveAutomation = stageAutomations.length > 0;
   const hasRestriction = permission && permission !== "todos";
 
@@ -426,7 +426,7 @@ function ResizableKanbanColumn({
         "bg-surface-2",
         isOver && "ring-2 ring-primary/30 bg-primary/5"
       )}
-      style={{ width }}
+      style={{ width, minWidth: 240 }}
       onDragOver={e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; onDragOver(stage.id); }}
       onDragLeave={() => onDragLeave()}
       onDrop={e => onDrop(e, stage.id)}

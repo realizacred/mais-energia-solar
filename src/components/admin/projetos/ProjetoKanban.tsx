@@ -62,7 +62,7 @@ export function ProjetoKanban({ etapas, projetosByEtapa, onMoveProjeto, onViewPr
 
   return (
     <ScrollArea className="w-full">
-      <div className="flex gap-3 pb-4" style={{ minWidth: "max-content" }}>
+      <div className="flex gap-3 pb-4" style={{ minWidth: "min-content" }}>
         {etapas.map(etapa => {
           const items = projetosByEtapa.get(etapa.id) || [];
           const isOver = dragOverEtapa === etapa.id;
@@ -71,7 +71,7 @@ export function ProjetoKanban({ etapas, projetosByEtapa, onMoveProjeto, onViewPr
             <div
               key={etapa.id}
               className={cn(
-                "w-[260px] sm:w-[280px] xl:w-[300px] flex-shrink-0 rounded-xl border border-border/60 bg-card transition-colors",
+                "w-[240px] sm:w-[260px] xl:w-[280px] flex-shrink-0 rounded-xl border border-border/60 bg-card transition-colors",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
               onDragOver={e => handleDragOver(e, etapa.id)}
