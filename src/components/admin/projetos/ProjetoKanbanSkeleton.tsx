@@ -13,7 +13,7 @@ export function ProjetoKanbanSkeleton() {
       {/* Columns skeleton */}
       <div className="flex gap-3 overflow-hidden">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="w-[290px] flex-shrink-0 rounded-xl border border-border/60 bg-muted/20 p-3 space-y-3">
+          <div key={i} className="w-[260px] sm:w-[280px] xl:w-[300px] flex-shrink-0 rounded-xl border border-border/60 bg-muted/20 p-3 space-y-3">
             {/* Header */}
             <div className="space-y-2">
               <Skeleton className="h-4 w-24" />

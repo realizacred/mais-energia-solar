@@ -60,8 +60,8 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
   }
 
   return (
-    <ScrollArea className="w-full">
-      <div className="flex gap-4 pb-4 px-1" style={{ minWidth: "max-content" }}>
+    <ScrollArea className="w-full max-w-full">
+      <div className="flex gap-3 pb-4 px-1" style={{ minWidth: "max-content" }}>
         {columns.map(col => {
           const isOver = dragOverCol === col.id;
 
@@ -69,7 +69,7 @@ export function ProjetoKanbanOwner({ columns, onMoveProjeto, onViewProjeto, onCr
             <div
               key={col.id}
               className={cn(
-                "w-[320px] flex-shrink-0 rounded-2xl border border-border/60 transition-all flex flex-col",
+                "w-[260px] sm:w-[280px] xl:w-[300px] flex-shrink-0 rounded-2xl border border-border/60 transition-all flex flex-col",
                 "bg-card",
                 isOver && "ring-2 ring-primary/30 bg-primary/5"
               )}
