@@ -138,7 +138,7 @@ export function SiteConfigManager() {
       </div>
 
       <Tabs defaultValue="empresa" className="space-y-4">
-        <TabsList className="grid grid-cols-5 w-full max-w-2xl">
+        <TabsList className="grid grid-cols-3 sm:grid-cols-5 w-full max-w-2xl">
           <TabsTrigger value="empresa" className="gap-1.5 text-xs">
             <Building2 className="w-3.5 h-3.5 text-secondary" /> Empresa
           </TabsTrigger>

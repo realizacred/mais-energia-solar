@@ -323,7 +323,7 @@ export function ModuloImportDialog({ open, onOpenChange, existingModulos }: Prop
                 </thead>
                 <tbody>
                   {parsed.slice(0, 50).map((r, i) => (
-                    <tr key={i} className={r.errors.length > 0 ? "bg-destructive/5" : r.isDuplicate ? "bg-yellow-50 dark:bg-yellow-900/5" : ""}>
+                    <tr key={i} className={r.errors.length > 0 ? "bg-destructive/5" : r.isDuplicate ? "bg-warning/5" : ""}>
                       <td className="px-2 py-1">{i + 1}</td>
                       <td className="px-2 py-1">{r.fabricante}</td>
                       <td className="px-2 py-1 max-w-[200px] truncate">{r.modelo}</td>

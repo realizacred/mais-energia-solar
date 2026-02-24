@@ -129,7 +129,7 @@
        </CardHeader>
        <CardContent className="space-y-4">
          {/* Summary Stats */}
-         <div className="grid grid-cols-4 gap-3">
+         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
            <div className="text-center p-2 rounded-lg bg-muted/50">
              <div className="flex items-center justify-center gap-1 text-primary mb-1">
                <Users className="w-4 h-4" />

@@ -227,7 +227,7 @@ export function WhatsAppAutomationConfig() {
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="config" className="w-full">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5">
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4 text-secondary" />
               <span className="hidden sm:inline">Geral</span>

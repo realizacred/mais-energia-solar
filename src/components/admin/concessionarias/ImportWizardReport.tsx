@@ -137,7 +137,7 @@ function ReportResumo({ data }: { data: ImportReports["resumo"] }) {
   return (
     <div className="space-y-3">
       {/* Main KPIs */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <KpiCard label="Linhas Lidas" value={data.totalLinhasLidas} />
         <KpiCard label="Válidas" value={data.totalLinhasValidas} color="text-success" />
         <KpiCard label="Rejeitadas" value={data.totalLinhasRejeitadas} color="text-destructive" />
