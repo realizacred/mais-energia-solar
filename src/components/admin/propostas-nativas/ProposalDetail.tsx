@@ -1,5 +1,5 @@
 import { formatBRL } from "@/lib/formatters";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft, FileText, Loader2, RefreshCw, Send, CheckCircle2,
@@ -22,6 +22,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { renderProposal, sendProposal } from "@/services/proposalApi";
@@ -86,6 +90,28 @@ export function ProposalDetail() {
   const [lastEditor, setLastEditor] = useState<string | null>(null);
   const [lastGeneratedAt, setLastGeneratedAt] = useState<string | null>(null);
   const [generateDialogOpen, setGenerateDialogOpen] = useState(false);
+  const [validadeDialogOpen, setValidadeDialogOpen] = useState(false);
+  const [validadeDate, setValidadeDate] = useState("");
+  const [savingValidade, setSavingValidade] = useState(false);
+
+  const handleSaveValidade = useCallback(async () => {
+    if (!validadeDate || !versaoId) return;
+    setSavingValidade(true);
+    try {
+      const { error } = await supabase
+        .from("proposta_versoes")
+        .update({ valido_ate: validadeDate })
+        .eq("id", versaoId);
+      if (error) throw error;
+      toast({ title: "Validade atualizada!" });
+      setValidadeDialogOpen(false);
+      loadData();
+    } catch (err: any) {
+      toast({ title: "Erro ao atualizar", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingValidade(false);
+    }
+  }, [validadeDate, versaoId]);
 
   useEffect(() => {
     if (versaoId) loadData();
@@ -581,10 +607,16 @@ export function ProposalDetail() {
             </div>
 
             {versao.valido_ate && (
-              <p className="text-[10px] text-muted-foreground pt-1 flex items-center gap-1">
+              <button
+                onClick={() => {
+                  setValidadeDate(versao.valido_ate ? new Date(versao.valido_ate).toISOString().split("T")[0] : "");
+                  setValidadeDialogOpen(true);
+                }}
+                className="text-[10px] text-muted-foreground pt-1 flex items-center gap-1 hover:text-primary transition-colors cursor-pointer"
+              >
                 <CalendarDays className="h-3 w-3" />
                 Validade da proposta: {new Date(versao.valido_ate).toLocaleDateString("pt-BR")}
-              </p>
+              </button>
             )}
 
             {lastGeneratedAt && (
@@ -843,6 +875,32 @@ export function ProposalDetail() {
           }}
         />
       )}
+
+      {/* ══════════ VALIDADE DIALOG ══════════ */}
+      <Dialog open={validadeDialogOpen} onOpenChange={setValidadeDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">Alterar validade da proposta</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <Input
+              type="date"
+              value={validadeDate}
+              onChange={(e) => setValidadeDate(e.target.value)}
+              className="text-sm"
+            />
+            <div className="flex justify-end gap-2 pt-2 border-t">
+              <Button variant="ghost" onClick={() => setValidadeDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveValidade} disabled={!validadeDate || savingValidade}>
+                {savingValidade ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                Alterar
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
