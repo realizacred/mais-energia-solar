@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PageHeader, LoadingState, SearchInput } from "@/components/ui-kit";
 import {
   Table,
   TableBody,
@@ -468,52 +468,54 @@ export function ConcessionariasManager() {
   };
 
   if (loading) {
-    return <div className="flex justify-center p-8">Carregando...</div>;
+    return <LoadingState />;
   }
 
   return (
-    <SectionCard
-      icon={Building}
-      title="Concessionárias de Energia"
-      description="Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos."
-      variant="blue"
-      actions={
-        <div className="flex items-center gap-2 shrink-0">
-          <Button
-            variant="outline"
-            onClick={() => handleSyncTarifas()}
-            disabled={syncing}
-            className="gap-2"
-            title="Buscar tarifas atualizadas da ANEEL (Dados Abertos)"
-          >
-            <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
-            {syncing ? "Sincronizando..." : "Sincronizar ANEEL"}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setCsvImportOpen(true)}
-            className="gap-2"
-            title="Importar tarifas de um arquivo CSV baixado do site da ANEEL"
-          >
-            <Upload className="w-4 h-4" />
-            Importar CSV
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setContaImportOpen(true)}
-            className="gap-2"
-            title="Importar dados de uma conta de energia (PDF ou texto)"
-          >
-            <FileUp className="w-4 h-4" />
-            Importar Conta
-          </Button>
-          <Button onClick={() => openDialog()} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Nova Concessionária
-          </Button>
-        </div>
-      }
-    >
+    <div className="space-y-6">
+      <PageHeader
+        icon={Building}
+        title="Concessionárias"
+        description="Cadastre concessionárias com tarifas, custos de disponibilidade e tributação (ICMS) específicos."
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => handleSyncTarifas()}
+              disabled={syncing}
+              className="gap-2"
+              title="Buscar tarifas atualizadas da ANEEL (Dados Abertos)"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">{syncing ? "Sincronizando..." : "Sincronizar ANEEL"}</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setCsvImportOpen(true)}
+              className="gap-2"
+              title="Importar tarifas de um arquivo CSV baixado do site da ANEEL"
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Importar CSV</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setContaImportOpen(true)}
+              className="gap-2"
+              title="Importar dados de uma conta de energia (PDF ou texto)"
+            >
+              <FileUp className="w-4 h-4" />
+              <span className="hidden sm:inline">Importar Conta</span>
+            </Button>
+            <Button onClick={() => openDialog()} className="gap-2">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Nova Concessionária</span>
+            </Button>
+          </div>
+        }
+      />
+
+      <SectionCard icon={Building} title="Lista de Concessionárias" variant="blue">
         {/* Sync progress bar */}
         {syncProgress && (
           <div className="mb-4 p-3 rounded-lg border border-border/60 bg-muted/30 space-y-2">
@@ -567,15 +569,12 @@ export function ConcessionariasManager() {
         </div>
 
         <div className="flex flex-col gap-4 mb-4">
-          <div className="relative w-full md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou sigla..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Buscar por nome ou sigla..."
+            className="w-full sm:max-w-sm"
+          />
 
           <div className="flex flex-wrap items-center gap-3 pt-2 border-t">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -916,5 +915,6 @@ export function ConcessionariasManager() {
         }}
       />
     </SectionCard>
+    </div>
   );
 }
