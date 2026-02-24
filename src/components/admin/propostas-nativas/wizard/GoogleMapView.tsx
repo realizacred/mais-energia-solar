@@ -67,13 +67,15 @@ export default function GoogleMapView({
 
   useEffect(() => {
     onSnapshotsChange?.(snapshots);
-    // After snapshots change, trigger map resize so tiles realign properly
+    // After snapshots change, trigger map resize preserving exact center + zoom
     const map = mapInstanceRef.current;
     if (map) {
+      const savedCenter = map.getCenter();
+      const savedZoom = map.getZoom();
       requestAnimationFrame(() => {
         google.maps.event.trigger(map, "resize");
-        const center = map.getCenter();
-        if (center) map.setCenter(center);
+        if (savedCenter) map.setCenter(savedCenter);
+        if (savedZoom != null) map.setZoom(savedZoom);
       });
     }
   }, [snapshots, onSnapshotsChange]);
