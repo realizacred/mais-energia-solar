@@ -1,7 +1,8 @@
 import { AlertTriangle, Shield, CheckCircle2, Clock } from "lucide-react";
 import { InlineLoader } from "@/components/loading/InlineLoader";
 import { Spinner } from "@/components/ui-kit/Spinner";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { StatCard, EmptyState } from "@/components/ui-kit";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useSlaBreaches } from "@/hooks/useDistribution";
@@ -38,7 +39,7 @@ export function SlaBreachDashboard() {
 
   if (isLoading) {
     return (
-      <Card><CardContent><InlineLoader context="data_load" /></CardContent></Card>
+      <SectionCard title="Violações de SLA" variant="red"><InlineLoader context="data_load" /></SectionCard>
     );
   }
 
@@ -65,54 +66,24 @@ export function SlaBreachDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className={`rounded-xl border-2 ${breaches.length > 0 ? "border-destructive/40 bg-destructive/5" : "border-border/60"}`}>
-          <CardContent className="p-4 text-center">
-            <p className={`text-2xl font-bold ${breaches.length > 0 ? "text-destructive" : "text-foreground"}`}>
-              {breaches.length}
-            </p>
-            <p className="text-xs text-muted-foreground">Total ativas</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-2 border-warning/40 bg-warning/5">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-warning">
-              {breaches.filter((b) => b.tipo === "primeiro_contato").length}
-            </p>
-            <p className="text-xs text-muted-foreground">Primeiro contato</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-2 border-info/40 bg-info/5">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-info">
-              {breaches.filter((b) => b.tipo === "followup").length}
-            </p>
-            <p className="text-xs text-muted-foreground">Follow-up</p>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-2 border-border/60">
-          <CardContent className="p-4 text-center">
-            <p className="text-2xl font-bold text-foreground">
-              {breaches.filter((b) => b.escalado).length}
-            </p>
-            <p className="text-xs text-muted-foreground">Escaladas</p>
-          </CardContent>
-        </Card>
+        <StatCard icon={AlertTriangle} label="Total ativas" value={breaches.length} color={breaches.length > 0 ? "destructive" : "muted"} />
+        <StatCard icon={Clock} label="Primeiro contato" value={breaches.filter((b) => b.tipo === "primeiro_contato").length} color="warning" />
+        <StatCard icon={Shield} label="Follow-up" value={breaches.filter((b) => b.tipo === "followup").length} color="info" />
+        <StatCard icon={AlertTriangle} label="Escaladas" value={breaches.filter((b) => b.escalado).length} color="muted" />
       </div>
 
       {/* Breach List */}
       {breaches.length === 0 ? (
-        <Card className="border-dashed border-2">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Shield className="h-8 w-8 text-success mb-3" />
-            <p className="text-base font-semibold">Nenhuma violação de SLA ativa 🎉</p>
-            <p className="text-sm text-muted-foreground">Todos os prazos estão sendo cumpridos.</p>
-          </CardContent>
-        </Card>
+        <EmptyState
+          icon={Shield}
+          title="Nenhuma violação de SLA ativa 🎉"
+          description="Todos os prazos estão sendo cumpridos."
+        />
       ) : (
         <div className="space-y-2">
           {breaches.map((breach) => (
-            <Card key={breach.id} className="border-destructive/20 bg-destructive/5">
-              <CardContent className="p-4">
+            <SectionCard key={breach.id} variant="red" noPadding>
+              <div className="p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -155,8 +126,8 @@ export function SlaBreachDashboard() {
                     Resolver
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </SectionCard>
           ))}
         </div>
       )}

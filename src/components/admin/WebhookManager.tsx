@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
+import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,65 +122,61 @@ export default function WebhookManager() {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-8">
+      <SectionCard icon={Webhook} title="Webhooks & Integrações" variant="neutral">
+        <div className="flex items-center justify-center py-8">
           <Spinner size="md" />
-        </CardContent>
-      </Card>
+        </div>
+      </SectionCard>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Webhook className="w-5 h-5 text-primary" />
-            <CardTitle className="text-foreground">Webhooks & Integrações</CardTitle>
-          </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-2">
-                <Plus className="w-4 h-4" />
-                Novo Webhook
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Adicionar Webhook</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="nome">Nome</Label>
-                  <Input
-                    id="nome"
-                    value={formData.nome}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, nome: e.target.value }))}
-                    placeholder="Ex: n8n, Zapier, Make"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="url">URL do Webhook</Label>
-                  <Input
-                    id="url"
-                    value={formData.url}
-                    onChange={(e) => setFormData((prev) => ({ ...prev, url: e.target.value }))}
-                    placeholder="https://..."
-                  />
-                </div>
-                <Button onClick={handleCreate} disabled={saving} className="w-full">
-                  {saving ? <Spinner size="sm" /> : null}
-                  Salvar Webhook
-                </Button>
+    <SectionCard
+      icon={Webhook}
+      title="Webhooks & Integrações"
+      description="Configure webhooks para integrar com n8n, Zapier, Make ou outros serviços de automação."
+      variant="neutral"
+      actions={
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogTrigger asChild>
+            <Button size="sm" className="gap-2">
+              <Plus className="w-4 h-4" />
+              Novo Webhook
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Adicionar Webhook</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div className="space-y-2">
+                <Label htmlFor="nome">Nome</Label>
+                <Input
+                  id="nome"
+                  value={formData.nome}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, nome: e.target.value }))}
+                  placeholder="Ex: n8n, Zapier, Make"
+                />
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-        <CardDescription>
-          Configure webhooks para integrar com n8n, Zapier, Make ou outros serviços de automação.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="url">URL do Webhook</Label>
+                <Input
+                  id="url"
+                  value={formData.url}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, url: e.target.value }))}
+                  placeholder="https://..."
+                />
+              </div>
+              <Button onClick={handleCreate} disabled={saving} className="w-full">
+                {saving ? <Spinner size="sm" /> : null}
+                Salvar Webhook
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      }
+    >
+      <div className="space-y-6">
         {/* Endpoint Info */}
         <div className="p-4 bg-muted/50 rounded-lg border">
           <p className="text-sm font-medium mb-2">Endpoint para receber eventos:</p>
@@ -202,11 +199,12 @@ export default function WebhookManager() {
 
         {/* Webhooks Table */}
         {webhooks.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            <Webhook className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>Nenhum webhook configurado</p>
-            <p className="text-sm">Adicione um webhook para integrar com serviços externos.</p>
-          </div>
+          <EmptyState
+            icon={Webhook}
+            title="Nenhum webhook configurado"
+            description="Adicione um webhook para integrar com serviços externos."
+            action={{ label: "Novo Webhook", onClick: () => setIsDialogOpen(true), icon: Plus }}
+          />
         ) : (
           <Table>
             <TableHeader>
@@ -267,7 +265,7 @@ export default function WebhookManager() {
             </TableBody>
           </Table>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </SectionCard>
   );
 }

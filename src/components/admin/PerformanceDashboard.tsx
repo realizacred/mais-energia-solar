@@ -116,9 +116,9 @@ const pieChartConfig: ChartConfig = {
 };
 
 const RANKING_BADGES: Record<number, { label: string; className: string }> = {
-  0: { label: "🥇", className: "bg-amber-100 text-amber-800 border-amber-300" },
-  1: { label: "🥈", className: "bg-slate-100 text-slate-700 border-slate-300" },
-  2: { label: "🥉", className: "bg-orange-100 text-orange-700 border-orange-300" },
+  0: { label: "🥇", className: "bg-warning/10 text-warning border-warning/30" },
+  1: { label: "🥈", className: "bg-muted text-muted-foreground border-border" },
+  2: { label: "🥉", className: "bg-primary/10 text-primary border-primary/30" },
 };
 
 const MONTHS_PT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];

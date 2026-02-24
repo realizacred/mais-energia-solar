@@ -2,7 +2,8 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
+import { PageHeader } from "@/components/ui-kit/PageHeader";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -419,20 +420,11 @@ export function RolePermissionsManager() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Shield className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-foreground">Permissões por Papel</h1>
-            <p className="text-sm text-muted-foreground">
-              Configure o acesso de cada papel aos módulos do sistema
-            </p>
-          </div>
-        </div>
-        {hasChanges && (
+      <PageHeader
+        icon={Shield}
+        title="Permissões por Papel"
+        description="Configure o acesso de cada papel aos módulos do sistema"
+        actions={hasChanges ? (
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleReset}>
               <RotateCcw className="h-4 w-4 mr-1" /> Desfazer
@@ -442,17 +434,10 @@ export function RolePermissionsManager() {
               {saveMutation.isPending ? "Salvando..." : "Salvar"}
             </Button>
           </div>
-        )}
-      </div>
+        ) : undefined}
+      />
 
-      {/* Admin notice */}
-      <Card className="border-destructive/20 bg-destructive/5">
-        <CardContent className="py-3 px-4">
-          <p className="text-sm text-muted-foreground">
-            <strong className="text-foreground">Admin</strong> sempre possui acesso total a todos os módulos e não pode ser restringido.
-          </p>
-        </CardContent>
-      </Card>
+      <SectionCard variant="red" description="Admin sempre possui acesso total a todos os módulos e não pode ser restringido." />
 
       {/* Role tabs */}
       <div className="flex gap-2 flex-wrap">
@@ -474,14 +459,7 @@ export function RolePermissionsManager() {
       {/* Permission matrix */}
       <div className="space-y-4">
         {MODULE_CATEGORIES.map((cat) => (
-          <Card key={cat.label}>
-            <CardHeader className="py-3 px-4">
-              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
-                {cat.icon}
-                {cat.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
+          <SectionCard key={cat.label} title={cat.label} variant="neutral" noPadding>
               <div className="divide-y divide-border/30">
                 {cat.modules.map((mod) => {
                   const perms = rolePerms[mod.key] || { view: false, edit: false };
@@ -516,8 +494,7 @@ export function RolePermissionsManager() {
                   );
                 })}
               </div>
-            </CardContent>
-          </Card>
+          </SectionCard>
         ))}
       </div>
     </div>

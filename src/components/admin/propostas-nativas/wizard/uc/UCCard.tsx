@@ -198,9 +198,9 @@ export function UCCard({ uc, index, onChange, onRemove, onOpenConfig, onOpenMesA
             variant="outline"
             className={`text-[8px] px-1 py-0 font-bold ${
               resolvedGrupo === "A"
-                ? "border-blue-400/50 bg-blue-50 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400"
+                ? "border-info/50 bg-info/10 text-info"
                 : resolvedGrupo === "B"
-                ? "border-green-400/50 bg-green-50 text-green-700 dark:bg-green-950/30 dark:text-green-400"
+                ? "border-success/50 bg-success/10 text-success"
                 : "border-destructive/50 bg-destructive/5 text-destructive"
             }`}
           >
