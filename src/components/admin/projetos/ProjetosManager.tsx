@@ -42,7 +42,7 @@ export function ProjetosManager() {
     createPipeline, renamePipeline, togglePipelineActive, reorderPipelines,
     createStage, renameStage, updateStageProbability, reorderStages, deleteStage,
     moveDealToOwner, moveDealToStage,
-    createDeal,
+    createDeal, fetchAll,
   } = useDealPipeline();
 
   const [viewMode, setViewModeRaw] = useState<"kanban-etapa" | "kanban-consultor" | "lista">("kanban-consultor");
@@ -153,11 +153,11 @@ export function ProjetosManager() {
   }, [deals]);
 
   // ── Detail View ──
-  if (selectedDealId) {
+   if (selectedDealId) {
     return (
       <ProjetoDetalhe
         dealId={selectedDealId}
-        onBack={() => setSelectedDealId(null)}
+        onBack={() => { setSelectedDealId(null); fetchAll(); }}
         initialPipelineId={selectedPipelineId || undefined}
       />
     );

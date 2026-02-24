@@ -93,14 +93,30 @@ export function StageDealCard({
   onTag,
   onSchedule,
 }: StageDealCardProps) {
-  const etiquetaCfg = useMemo(() => {
-    if (!deal.etiqueta) return null;
-    const found = dynamicEtiquetas.find(e =>
-      e.nome.toLowerCase() === deal.etiqueta?.toLowerCase() || e.id === deal.etiqueta
-    );
-    if (found) return { label: found.nome, short: found.short || found.nome.substring(0, 3).toUpperCase(), cor: found.cor, icon: found.icon };
-    return null;
-  }, [deal.etiqueta, dynamicEtiquetas]);
+  // Support both legacy single etiqueta and relational etiqueta_ids
+  const allEtiquetaCfgs = useMemo(() => {
+    const cfgs: { label: string; short: string; cor: string; icon: string | null }[] = [];
+    
+    // From relational etiqueta_ids
+    if (deal.etiqueta_ids && deal.etiqueta_ids.length > 0) {
+      deal.etiqueta_ids.forEach(eid => {
+        const found = dynamicEtiquetas.find(e => e.id === eid);
+        if (found) cfgs.push({ label: found.nome, short: found.short || found.nome.substring(0, 3).toUpperCase(), cor: found.cor, icon: found.icon });
+      });
+    }
+    
+    // Fallback: legacy single etiqueta field (only if no relational ones found)
+    if (cfgs.length === 0 && deal.etiqueta) {
+      const found = dynamicEtiquetas.find(e =>
+        e.nome.toLowerCase() === deal.etiqueta?.toLowerCase() || e.id === deal.etiqueta
+      );
+      if (found) cfgs.push({ label: found.nome, short: found.short || found.nome.substring(0, 3).toUpperCase(), cor: found.cor, icon: found.icon });
+    }
+    
+    return cfgs;
+  }, [deal.etiqueta, deal.etiqueta_ids, dynamicEtiquetas]);
+
+  const etiquetaCfg = allEtiquetaCfgs[0] || null;
 
   const isInactive = deal.deal_status === "perdido" || deal.deal_status === "cancelado";
   const propostaInfo = deal.proposta_status ? PROPOSTA_STATUS_MAP[deal.proposta_status] : null;
@@ -145,18 +161,31 @@ export function StageDealCard({
       style={borderStyle}
     >
       {/* ── Etiqueta accent bar at the top ── */}
-      {etiquetaCfg && (
+      {allEtiquetaCfgs.length > 0 && (
         <div className="relative">
-          <div
-            className="h-[5px] rounded-t-[inherit]"
-            style={{ background: etiquetaCfg.cor }}
-          />
-          <div
-            className="absolute top-0 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-b-md text-[9px] font-bold text-white shadow-md"
-            style={{ backgroundColor: etiquetaCfg.cor }}
-          >
-            {etiquetaCfg.icon && <span className="text-[10px]">{etiquetaCfg.icon}</span>}
-            {etiquetaCfg.short || etiquetaCfg.label}
+          {allEtiquetaCfgs.length === 1 ? (
+            <div
+              className="h-[5px] rounded-t-[inherit]"
+              style={{ background: allEtiquetaCfgs[0].cor }}
+            />
+          ) : (
+            <div className="h-[5px] rounded-t-[inherit] flex overflow-hidden">
+              {allEtiquetaCfgs.map((et, i) => (
+                <div key={i} className="flex-1 h-full" style={{ background: et.cor }} />
+              ))}
+            </div>
+          )}
+          <div className="absolute top-0 right-2 flex items-center gap-1">
+            {allEtiquetaCfgs.map((et, i) => (
+              <div
+                key={i}
+                className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-b-md text-[9px] font-bold text-white shadow-md"
+                style={{ backgroundColor: et.cor }}
+              >
+                {et.icon && <span className="text-[10px]">{et.icon}</span>}
+                {et.short || et.label}
+              </div>
+            ))}
           </div>
         </div>
       )}
