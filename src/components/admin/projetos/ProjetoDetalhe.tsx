@@ -12,7 +12,7 @@ import {
   Upload, Trash2, Download, Eye, Plus, ExternalLink, Phone, StickyNote, Filter,
   MoreVertical, Trophy, XCircle, UserCircle, Mail, MapPin, Hash, Check, Link2,
   AlertCircle, CheckCircle, Building, Paperclip, Copy, Pencil, Send, Activity,
-  ChevronDown, SunMedium, Bell, Users
+  ChevronDown, SunMedium, Bell, Users, Tag, ShoppingCart
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
@@ -117,6 +118,7 @@ const TABS = [
   { id: "gerenciamento", label: "Gerenciamento", icon: Settings, color: "text-secondary" },
   { id: "chat", label: "Chat Whatsapp", icon: MessageSquare, color: "text-success" },
   { id: "propostas", label: "Propostas", icon: FileText, color: "text-primary" },
+  { id: "loja", label: "Loja Solarmarket", icon: ShoppingCart, color: "text-info" },
   { id: "vinculo", label: "Vínculo de Contrato", icon: Link2, color: "text-info" },
   { id: "documentos", label: "Documentos", icon: FolderOpen, color: "text-warning" },
 ] as const;
@@ -152,6 +154,9 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   const [lossObs, setLossObs] = useState("");
   const [lossSaving, setLossSaving] = useState(false);
   const { motivos, loading: loadingMotivos } = useMotivosPerda();
+  const [dealEtiquetas, setDealEtiquetas] = useState<{id: string; nome: string; cor: string; short: string | null; icon: string | null}[]>([]);
+  const [allEtiquetas, setAllEtiquetas] = useState<{id: string; nome: string; cor: string; short: string | null; icon: string | null}[]>([]);
+  const [etiquetaPopoverOpen, setEtiquetaPopoverOpen] = useState(false);
 
   const isClosed = deal?.status === "won" || deal?.status === "lost";
 
@@ -291,6 +296,30 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
     load();
   }, [dealId]);
 
+  // ─── Load etiquetas ────────────────────────────
+  const loadEtiquetas = async () => {
+    const [relRes, allRes] = await Promise.all([
+      supabase.from("projeto_etiqueta_rel").select("etiqueta_id").eq("projeto_id", dealId),
+      supabase.from("projeto_etiquetas").select("id, nome, cor, short, icon").eq("ativo", true).order("ordem"),
+    ]);
+    const allEts = (allRes.data || []) as any[];
+    setAllEtiquetas(allEts);
+    const relIds = new Set((relRes.data || []).map((r: any) => r.etiqueta_id));
+    setDealEtiquetas(allEts.filter(e => relIds.has(e.id)));
+  };
+
+  useEffect(() => { loadEtiquetas(); }, [dealId]);
+
+  const toggleEtiqueta = async (etId: string) => {
+    const has = dealEtiquetas.some(e => e.id === etId);
+    if (has) {
+      await supabase.from("projeto_etiqueta_rel").delete().eq("projeto_id", dealId).eq("etiqueta_id", etId);
+    } else {
+      await supabase.from("projeto_etiqueta_rel").insert({ projeto_id: dealId, etiqueta_id: etId } as any);
+    }
+    loadEtiquetas();
+  };
+
   // ─── Realtime subscription for auto-refresh ────
   useEffect(() => {
     const channel = supabase
@@ -368,8 +397,9 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   }
 
   const tabBadge = (tabId: string) => {
-    if (tabId === "propostas" && propostasCount > 0) return propostasCount;
-    if (tabId === "documentos" && docsCount > 0) return docsCount;
+    if (tabId === "propostas") return propostasCount;
+    if (tabId === "documentos") return docsCount;
+    if (tabId === "loja") return 0;
     return null;
   };
 
@@ -388,12 +418,77 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
       {/* ── Header Card ── */}
       <Card className="mb-4 overflow-hidden">
         <CardContent className="p-4 sm:p-5">
-          {/* Row 1: Title + Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
+          {/* Row 1: Title + Etiquetas + Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-wrap">
               <h1 className="text-lg sm:text-2xl font-bold text-foreground truncate max-w-full">
-                Projeto: {customerName || deal.title}
+                {customerName || deal.title}
               </h1>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
+                    disabled={deleting}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    {deleting ? "Excluindo..." : "Excluir Projeto"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Etiquetas vinculadas */}
+              {dealEtiquetas.map(et => (
+                <Badge key={et.id} variant="outline" className="text-xs shrink-0 gap-1" style={{ borderColor: et.cor, color: et.cor }}>
+                  {et.icon && <span>{et.icon}</span>}
+                  {et.short || et.nome}
+                </Badge>
+              ))}
+
+              {/* + Etiqueta */}
+              <Popover open={etiquetaPopoverOpen} onOpenChange={setEtiquetaPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+                    <Plus className="h-3.5 w-3.5" />
+                    Etiqueta
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-56 p-2" align="start">
+                  <p className="text-xs font-semibold text-muted-foreground mb-2 px-1">Etiquetas</p>
+                  {allEtiquetas.length === 0 ? (
+                    <p className="text-xs text-muted-foreground px-1 py-2">Nenhuma etiqueta cadastrada</p>
+                  ) : (
+                    <div className="space-y-0.5 max-h-48 overflow-y-auto">
+                      {allEtiquetas.map(et => {
+                        const isSelected = dealEtiquetas.some(e => e.id === et.id);
+                        return (
+                          <button
+                            key={et.id}
+                            className={cn(
+                              "flex items-center gap-2 w-full text-left px-2 py-1.5 rounded text-xs transition-colors",
+                              isSelected ? "bg-primary/10 text-foreground" : "hover:bg-muted text-muted-foreground"
+                            )}
+                            onClick={() => toggleEtiqueta(et.id)}
+                          >
+                            <span className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: et.cor }} />
+                            <span className="flex-1 truncate">{et.nome}</span>
+                            {isSelected && <Check className="h-3.5 w-3.5 text-primary shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            {/* Right side: status badges + consultor */}
+            <div className="flex items-center gap-2 flex-wrap shrink-0">
               <Badge
                 variant="secondary"
                 className={cn(
@@ -410,28 +505,10 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
                   {formatBRL(deal.value)}
                 </Badge>
               )}
-              {/* Consultor responsável - sempre visível */}
               <Badge variant="outline" className="text-xs shrink-0 gap-1.5 bg-primary/5 border-primary/20 text-primary font-semibold">
                 <UserCircle className="h-3.5 w-3.5" />
                 {ownerName || "Sem consultor"}
               </Badge>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start">
-                  <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
-                    onClick={() => { setDeleteBlocking([]); handleDeleteProject(); }}
-                    disabled={deleting}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    {deleting ? "Excluindo..." : "Excluir Projeto"}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </div>
 
@@ -515,6 +592,15 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
                 toast({ title: "Geração de contrato", description: "Funcionalidade será conectada ao motor de documentos." });
               }}
             />
+          )}
+          {activeTab === "loja" && (
+            <Card>
+              <CardContent className="py-16 text-center">
+                <ShoppingCart className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+                <p className="text-sm font-semibold text-foreground mb-1">Loja Solarmarket</p>
+                <p className="text-xs text-muted-foreground">Em breve — integração com a loja de equipamentos.</p>
+              </CardContent>
+            </Card>
           )}
           {activeTab === "documentos" && (
             <DocumentosTab dealId={deal.id} />
