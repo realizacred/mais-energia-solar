@@ -166,7 +166,8 @@ export function StageDealCard({
           {allEtiquetaCfgs.map((et, i) => (
             <span
               key={i}
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white shadow-sm"
+              title={et.label}
+              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[9px] font-bold text-white shadow-sm cursor-default"
               style={{ backgroundColor: et.cor }}
             >
               {et.icon && <span className="text-[10px]">{et.icon}</span>}
