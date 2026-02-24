@@ -393,7 +393,7 @@ export function CustomFieldsSettings() {
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Título</th>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Chave</th>
                         <th className="text-left px-4 py-2.5 text-xs font-semibold text-muted-foreground">Tipo</th>
-                        {contextFilter === "projeto" && (
+                        {(contextFilter === "projeto" || contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
                           <>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Novo projeto</th>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrig. criar</th>
@@ -401,9 +401,6 @@ export function CustomFieldsSettings() {
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Importante</th>
                             <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrig. funil</th>
                           </>
-                        )}
-                        {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
-                          <th className="text-center px-2 py-2.5 text-xs font-semibold text-muted-foreground">Obrig. proposta</th>
                         )}
                         <th className="text-right px-4 py-2.5 text-xs font-semibold text-muted-foreground">Ações</th>
                       </tr>
@@ -434,7 +431,7 @@ export function CustomFieldsSettings() {
                           <td className="px-4 py-2.5">
                             <Badge variant="outline" className="text-[10px]">{FIELD_TYPE_LABELS[f.field_type] || f.field_type}</Badge>
                           </td>
-                          {contextFilter === "projeto" && (
+                          {(contextFilter === "projeto" || contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
                             <>
                               <td className="text-center px-2"><SwitchCell value={f.show_on_create} fieldId={f.id} column="show_on_create" onUpdate={loadAll} /></td>
                               <td className="text-center px-2"><SwitchCell value={f.required_on_create} fieldId={f.id} column="required_on_create" onUpdate={loadAll} /></td>
@@ -442,9 +439,6 @@ export function CustomFieldsSettings() {
                               <td className="text-center px-2"><SwitchCell value={f.important_on_funnel} fieldId={f.id} column="important_on_funnel" onUpdate={loadAll} /></td>
                               <td className="text-center px-2"><SwitchCell value={f.required_on_funnel} fieldId={f.id} column="required_on_funnel" onUpdate={loadAll} /></td>
                             </>
-                          )}
-                          {(contextFilter === "pre_dimensionamento" || contextFilter === "pos_dimensionamento") && (
-                            <td className="text-center px-2"><SwitchCell value={f.required_on_proposal} fieldId={f.id} column="required_on_proposal" onUpdate={loadAll} /></td>
                           )}
                           <td className="px-4 py-2.5 text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -751,93 +745,71 @@ export function CustomFieldsSettings() {
                 )}
               </div>
 
-              {/* ── Card: Comportamento (PROJETO context) ── */}
-              {fieldForm.field_context === "projeto" && (
-                <div className="rounded-lg border bg-card p-4 space-y-4">
-                  <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
+              {/* ── Card: Comportamento ── */}
+              <div className="rounded-lg border bg-card p-4 space-y-4">
+                <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
 
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-medium">Mostrar campo em novo projeto?</Label>
+                  <Select
+                    value={fieldForm.show_on_create ? "sim" : "nao"}
+                    onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
+                  >
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sim">Sim</SelectItem>
+                      <SelectItem value="nao">Não</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium">Visibilidade em funis?</Label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                      <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
+                        onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: true }))}
+                        className="accent-primary" />
+                      Todos
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-sm">
+                      <input type="radio" name="fieldVis" checked={!fieldForm.visible_on_funnel}
+                        onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: false }))}
+                        className="accent-primary" />
+                      Nenhum
+                    </label>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Mostrar campo em novo projeto?</Label>
+                    <Label className="text-xs font-medium">Importante no funil:</Label>
                     <Select
-                      value={fieldForm.show_on_create ? "sim" : "nao"}
-                      onValueChange={v => setFieldForm(p => ({ ...p, show_on_create: v === "sim" }))}
+                      value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
+                      onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
                     >
                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
                         <SelectItem value="sim">Sim</SelectItem>
-                        <SelectItem value="nao">Não</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium">Visibilidade em funis?</Label>
-                    <div className="flex gap-4">
-                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                        <input type="radio" name="fieldVis" checked={fieldForm.visible_on_funnel}
-                          onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: true }))}
-                          className="accent-primary" />
-                        Todos
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer text-sm">
-                        <input type="radio" name="fieldVis" checked={!fieldForm.visible_on_funnel}
-                          onChange={() => setFieldForm(p => ({ ...p, visible_on_funnel: false }))}
-                          className="accent-primary" />
-                        Nenhum
-                      </label>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Importante no funil:</Label>
-                      <Select
-                        value={fieldForm.important_on_funnel ? "sim" : "nenhum"}
-                        onValueChange={v => setFieldForm(p => ({ ...p, important_on_funnel: v === "sim" }))}
-                      >
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="nenhum">Nenhum</SelectItem>
-                          <SelectItem value="sim">Sim</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-medium">Obrigatório no funil:</Label>
-                      <Select
-                        value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
-                        onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
-                      >
-                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="nenhum">Nenhum</SelectItem>
-                          <SelectItem value="sim">Sim</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* ── Card: Comportamento (PRE/POS DIMENSIONAMENTO context) ── */}
-              {(fieldForm.field_context === "pre_dimensionamento" || fieldForm.field_context === "pos_dimensionamento") && (
-                <div className="rounded-lg border bg-card p-4 space-y-4">
-                  <h4 className="text-sm font-semibold text-foreground">Comportamento</h4>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-medium">Campo obrigatório?</Label>
+                    <Label className="text-xs font-medium">Obrigatório no funil:</Label>
                     <Select
-                      value={fieldForm.required_on_proposal ? "sim" : "nao"}
-                      onValueChange={v => setFieldForm(p => ({ ...p, required_on_proposal: v === "sim" }))}
+                      value={fieldForm.required_on_funnel ? "sim" : "nenhum"}
+                      onValueChange={v => setFieldForm(p => ({ ...p, required_on_funnel: v === "sim" }))}
                     >
                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sim">Sim, obrigatório na proposta</SelectItem>
-                        <SelectItem value="nao">Não</SelectItem>
+                        <SelectItem value="nenhum">Nenhum</SelectItem>
+                        <SelectItem value="sim">Sim</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-              )}
+              </div>
 
               <DialogFooter>
                 <Button variant="outline" onClick={() => setFieldDialogOpen(false)}>Fechar</Button>
