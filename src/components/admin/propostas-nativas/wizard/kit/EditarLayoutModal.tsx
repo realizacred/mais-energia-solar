@@ -154,12 +154,12 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
                       {/* Preview: horizontal modules */}
                       <div className="flex gap-0.5">
                         {Array.from({ length: Math.min(arranjo.modulos_por_linha, 6) }).map((_, i) => (
-                          <div key={i} className="w-4 h-6 rounded-[2px] border border-blue-400/60 bg-gradient-to-br from-blue-900/70 via-blue-800/60 to-blue-600/50 relative overflow-hidden">
+                          <div key={i} className="w-4 h-6 rounded-[2px] border border-info/60 bg-gradient-to-br from-secondary/70 via-secondary/60 to-secondary/50 relative overflow-hidden">
                             <div className="absolute inset-[1px] grid grid-cols-2 gap-[0.5px]">
-                              <div className="bg-blue-300/15 rounded-[0.5px]" />
-                              <div className="bg-blue-300/15 rounded-[0.5px]" />
-                              <div className="bg-blue-300/15 rounded-[0.5px]" />
-                              <div className="bg-blue-300/15 rounded-[0.5px]" />
+                              <div className="bg-info/15 rounded-[0.5px]" />
+                              <div className="bg-info/15 rounded-[0.5px]" />
+                              <div className="bg-info/15 rounded-[0.5px]" />
+                              <div className="bg-info/15 rounded-[0.5px]" />
                             </div>
                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5" />
                           </div>
@@ -183,11 +183,11 @@ export function EditarLayoutModal({ open, onOpenChange, layouts: initial, totalM
                       {/* Preview: vertical modules */}
                       <div className="flex gap-0.5">
                         {Array.from({ length: Math.min(arranjo.modulos_por_linha, 6) }).map((_, i) => (
-                          <div key={i} className="w-6 h-4 rounded-[2px] border border-blue-400/60 bg-gradient-to-br from-blue-900/70 via-blue-800/60 to-blue-600/50 relative overflow-hidden">
+                          <div key={i} className="w-6 h-4 rounded-[2px] border border-info/60 bg-gradient-to-br from-secondary/70 via-secondary/60 to-secondary/50 relative overflow-hidden">
                             <div className="absolute inset-[1px] grid grid-cols-3 gap-[0.5px]">
-                              <div className="bg-blue-300/15 rounded-[0.5px]" />
-                              <div className="bg-blue-300/15 rounded-[0.5px]" />
-                              <div className="bg-blue-300/15 rounded-[0.5px]" />
+                              <div className="bg-info/15 rounded-[0.5px]" />
+                              <div className="bg-info/15 rounded-[0.5px]" />
+                              <div className="bg-info/15 rounded-[0.5px]" />
                             </div>
                             <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/5" />
                           </div>

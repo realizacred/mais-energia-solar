@@ -30,7 +30,7 @@ interface SectionCardProps {
   title?: string;
   description?: string;
   actions?: React.ReactNode;
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   contentClassName?: string;
   noPadding?: boolean;
@@ -67,9 +67,11 @@ export function SectionCard({
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </CardHeader>
       )}
-      <CardContent className={cn(noPadding && "p-0", contentClassName)}>
-        {children}
-      </CardContent>
+      {children && (
+        <CardContent className={cn(noPadding && "p-0", contentClassName)}>
+          {children}
+        </CardContent>
+      )}
     </Card>
   );
 }

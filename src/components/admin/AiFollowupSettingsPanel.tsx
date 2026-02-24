@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Spinner } from "@/components/ui-kit/Spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
@@ -177,17 +177,13 @@ export function AiFollowupSettingsPanel() {
       )}
 
       {/* Modo de operação */}
-      <Card className={!hasAiFollowup ? "opacity-50 pointer-events-none" : ""}>
-        <CardHeader className="pb-3">
-          <div className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-primary" />
-            <CardTitle className="text-base">Modo de Operação da IA</CardTitle>
-          </div>
-          <CardDescription>
-            Define como a IA de follow-up interage com os consultores
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard
+        icon={Brain}
+        title="Modo de Operação da IA"
+        description="Define como a IA de follow-up interage com os consultores"
+        variant="purple"
+        className={!hasAiFollowup ? "opacity-50 pointer-events-none" : ""}
+      >
           <div className="grid gap-3">
             <button
               type="button"
@@ -249,15 +245,10 @@ export function AiFollowupSettingsPanel() {
               </div>
             </button>
           </div>
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {/* Modelo e limites */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Configurações do Modelo</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard title="Configurações do Modelo" variant="neutral">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Modelo preferido</Label>
@@ -322,18 +313,14 @@ export function AiFollowupSettingsPanel() {
               <p className="text-xs text-muted-foreground">Tamanho máximo da resposta da IA</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {/* Follow-up Gate */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Gate de Follow-up Inteligente</CardTitle>
-          <CardDescription>
-            Controles de segurança para follow-ups automáticos
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <SectionCard
+        title="Gate de Follow-up Inteligente"
+        description="Controles de segurança para follow-ups automáticos"
+        variant="neutral"
+      >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Cooldown (horas)</Label>
@@ -365,17 +352,14 @@ export function AiFollowupSettingsPanel() {
               </p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {/* Writing Assistant Model */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <CardTitle className="text-base">Assistente de Escrita</CardTitle>
-            </div>
+      <SectionCard
+        icon={Sparkles}
+        title="Assistente de Escrita"
+        variant="purple"
+        actions={
             <div className="flex items-center gap-2">
               <Label htmlFor="writing-assistant-toggle" className="text-xs text-muted-foreground">
                 {settings.templates?.writing_assistant?.enabled !== false ? "Ativado" : "Desativado"}
@@ -397,12 +381,9 @@ export function AiFollowupSettingsPanel() {
                 }
               />
             </div>
-          </div>
-          <CardDescription>
-            Ative ou desative o assistente de escrita (✨) no composer do WhatsApp. As configurações ficam salvas mesmo quando desativado.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+        }
+        description="Ative ou desative o assistente de escrita (✨) no composer do WhatsApp. As configurações ficam salvas mesmo quando desativado."
+      >
           <div className="space-y-2">
             <Label>Modelo do Assistente de Escrita</Label>
             <Select
@@ -441,8 +422,7 @@ export function AiFollowupSettingsPanel() {
               Se a chave do provedor não estiver configurada, o assistente ficará indisponível.
             </p>
           </div>
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {/* Save */}
       <Button onClick={handleSave} disabled={saving || !hasAiFollowup} className="gap-2">

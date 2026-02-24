@@ -2,7 +2,8 @@ import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { StatCard, EmptyState } from "@/components/ui-kit";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -359,50 +360,10 @@ export function ValidacaoVendasManager() {
     <div className="space-y-6">
       {/* Summary Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="rounded-xl border-2 border-warning/40 bg-warning/5">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center shrink-0">
-              <Clock className="h-5 w-5 text-warning" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.count}</p>
-              <p className="text-xs text-muted-foreground">Pendentes</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-2 border-primary/40 bg-primary/5">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <DollarSign className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{formatCurrency(stats.totalValue)}</p>
-              <p className="text-xs text-muted-foreground">Valor total</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border border-border bg-card">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center shrink-0">
-              <TrendingUp className="h-5 w-5 text-success" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{formatCurrency(stats.totalComissao)}</p>
-              <p className="text-xs text-muted-foreground">Comissão estimada</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-2 border-info/40 bg-info/5">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="w-10 h-10 rounded-lg bg-info/10 flex items-center justify-center shrink-0">
-              <Zap className="h-5 w-5 text-info" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold">{stats.totalPotencia.toFixed(1)} kWp</p>
-              <p className="text-xs text-muted-foreground">Potência total</p>
-            </div>
-          </CardContent>
-        </Card>
+        <StatCard icon={Clock} label="Pendentes" value={stats.count} color="warning" />
+        <StatCard icon={DollarSign} label="Valor total" value={formatCurrency(stats.totalValue)} color="primary" />
+        <StatCard icon={TrendingUp} label="Comissão estimada" value={formatCurrency(stats.totalComissao)} color="success" />
+        <StatCard icon={Zap} label="Potência total" value={`${stats.totalPotencia.toFixed(1)} kWp`} color="info" />
       </div>
 
       {/* Tabs */}
@@ -458,16 +419,13 @@ export function ValidacaoVendasManager() {
           </div>
 
           {/* Table */}
-          <Card>
-            <CardContent className="p-0">
+          <SectionCard icon={Clock} title="Vendas Pendentes" variant="warning" noPadding>
               {filteredItems.length === 0 ? (
-                <div className="empty-state py-16">
-                  <div className="empty-state-icon">
-                    <CheckCircle className="h-7 w-7 text-muted-foreground" />
-                  </div>
-                  <p className="empty-state-title">Nenhuma venda pendente</p>
-                  <p className="empty-state-description">Todas as vendas foram validadas.</p>
-                </div>
+                <EmptyState
+                  icon={CheckCircle}
+                  title="Nenhuma venda pendente"
+                  description="Todas as vendas foram validadas."
+                />
               ) : (
                 <div className="overflow-x-auto">
                   <Table className="premium-table">
@@ -557,31 +515,21 @@ export function ValidacaoVendasManager() {
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </SectionCard>
         </TabsContent>
 
         <TabsContent value="historico" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <History className="h-4 w-4" />
-                Vendas Validadas Recentemente
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+          <SectionCard icon={History} title="Vendas Validadas Recentemente" variant="green">
               {historyLoading ? (
                 <div className="flex items-center justify-center py-12">
                   <Spinner size="md" />
                 </div>
               ) : historyItems.length === 0 ? (
-                <div className="empty-state py-12">
-                  <div className="empty-state-icon">
-                    <History className="h-7 w-7 text-muted-foreground" />
-                  </div>
-                  <p className="empty-state-title">Sem histórico</p>
-                  <p className="empty-state-description">Nenhuma venda validada encontrada.</p>
-                </div>
+                <EmptyState
+                  icon={History}
+                  title="Sem histórico"
+                  description="Nenhuma venda validada encontrada."
+                />
               ) : (
                 <div className="overflow-x-auto">
                   <Table className="premium-table">
@@ -630,8 +578,7 @@ export function ValidacaoVendasManager() {
                   </Table>
                 </div>
               )}
-            </CardContent>
-          </Card>
+          </SectionCard>
         </TabsContent>
       </Tabs>
 

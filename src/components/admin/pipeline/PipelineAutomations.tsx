@@ -1,7 +1,8 @@
  import { useState, useEffect } from "react";
  import { supabase } from "@/integrations/supabase/client";
  import { useToast } from "@/hooks/use-toast";
- import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+ import { SectionCard } from "@/components/ui-kit/SectionCard";
+ import { EmptyState } from "@/components/ui-kit/EmptyState";
  import { Button } from "@/components/ui/button";
  import { Switch } from "@/components/ui/switch";
  import { Input } from "@/components/ui/input";
@@ -199,149 +200,146 @@
      }
    };
  
-   return (
-     <Card>
-       <CardHeader className="pb-3">
-         <div className="flex items-center justify-between">
-           <div className="flex items-center gap-2">
-             <Zap className="h-5 w-5 text-primary" />
-             <CardTitle className="text-base">Automações do Pipeline</CardTitle>
-           </div>
-           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-             <DialogTrigger asChild>
-               <Button size="sm" className="gap-1" onClick={resetForm}>
-                 <Plus className="h-4 w-4" />
-                 Nova Regra
-               </Button>
-             </DialogTrigger>
-             <DialogContent>
-               <DialogHeader>
-                 <DialogTitle>
-                   {editingRule ? "Editar Automação" : "Nova Automação"}
-                 </DialogTitle>
-                 <DialogDescription>
-                   Configure uma regra automática para o pipeline de vendas.
-                 </DialogDescription>
-               </DialogHeader>
+    return (
+      <SectionCard
+        icon={Zap}
+        title="Automações do Pipeline"
+        description="Regras automáticas para gerenciar leads no pipeline"
+        variant="orange"
+        actions={
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gap-1" onClick={resetForm}>
+                <Plus className="h-4 w-4" />
+                Nova Regra
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingRule ? "Editar Automação" : "Nova Automação"}
+                </DialogTitle>
+                <DialogDescription>
+                  Configure uma regra automática para o pipeline de vendas.
+                </DialogDescription>
+              </DialogHeader>
  
-               <div className="space-y-4 py-4">
-                 <div className="space-y-2">
-                   <Label>Nome da regra</Label>
-                   <Input
-                     value={formName}
-                     onChange={(e) => setFormName(e.target.value)}
-                     placeholder="Ex: Alerta de inatividade"
-                   />
-                 </div>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Nome da regra</Label>
+                  <Input
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="Ex: Alerta de inatividade"
+                  />
+                </div>
  
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <Label>Gatilho</Label>
-                     <Select value={formTrigger} onValueChange={(v) => setFormTrigger(v as AutomationRule["trigger"])}>
-                       <SelectTrigger>
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="days_inactive">Dias sem contato</SelectItem>
-                         <SelectItem value="high_consumption">Alto consumo</SelectItem>
-                         <SelectItem value="status_change">Mudança de status</SelectItem>
-                       </SelectContent>
-                     </Select>
-                   </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Gatilho</Label>
+                    <Select value={formTrigger} onValueChange={(v) => setFormTrigger(v as AutomationRule["trigger"])}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="days_inactive">Dias sem contato</SelectItem>
+                        <SelectItem value="high_consumption">Alto consumo</SelectItem>
+                        <SelectItem value="status_change">Mudança de status</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
  
-                   <div className="space-y-2">
-                     <Label>
-                       {formTrigger === "days_inactive" && "Dias"}
-                       {formTrigger === "high_consumption" && "kWh mínimo"}
-                       {formTrigger === "status_change" && "Status"}
-                     </Label>
-                     {formTrigger === "status_change" ? (
-                       <Select value={formTriggerValue} onValueChange={setFormTriggerValue}>
-                         <SelectTrigger>
-                           <SelectValue placeholder="Selecione" />
-                         </SelectTrigger>
-                         <SelectContent>
-                           {statuses.map((s) => (
-                             <SelectItem key={s.id} value={s.id}>
-                               {s.nome}
-                             </SelectItem>
-                           ))}
-                         </SelectContent>
-                       </Select>
-                     ) : (
-                       <Input
-                         type="number"
-                         value={formTriggerValue}
-                         onChange={(e) => setFormTriggerValue(e.target.value)}
-                       />
-                     )}
-                   </div>
-                 </div>
+                  <div className="space-y-2">
+                    <Label>
+                      {formTrigger === "days_inactive" && "Dias"}
+                      {formTrigger === "high_consumption" && "kWh mínimo"}
+                      {formTrigger === "status_change" && "Status"}
+                    </Label>
+                    {formTrigger === "status_change" ? (
+                      <Select value={formTriggerValue} onValueChange={setFormTriggerValue}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statuses.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        type="number"
+                        value={formTriggerValue}
+                        onChange={(e) => setFormTriggerValue(e.target.value)}
+                      />
+                    )}
+                  </div>
+                </div>
  
-                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <Label>Ação</Label>
-                     <Select value={formAction} onValueChange={(v) => setFormAction(v as AutomationRule["action"])}>
-                       <SelectTrigger>
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="send_notification">Enviar notificação</SelectItem>
-                         <SelectItem value="move_status">Mover para status</SelectItem>
-                       </SelectContent>
-                     </Select>
-                   </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Ação</Label>
+                    <Select value={formAction} onValueChange={(v) => setFormAction(v as AutomationRule["action"])}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="send_notification">Enviar notificação</SelectItem>
+                        <SelectItem value="move_status">Mover para status</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
  
-                   <div className="space-y-2">
-                     <Label>
-                       {formAction === "send_notification" && "Mensagem"}
-                       {formAction === "move_status" && "Status destino"}
-                     </Label>
-                     {formAction === "move_status" ? (
-                       <Select value={formActionValue} onValueChange={setFormActionValue}>
-                         <SelectTrigger>
-                           <SelectValue placeholder="Selecione" />
-                         </SelectTrigger>
-                         <SelectContent>
-                           {statuses.map((s) => (
-                             <SelectItem key={s.id} value={s.id}>
-                               {s.nome}
-                             </SelectItem>
-                           ))}
-                         </SelectContent>
-                       </Select>
-                     ) : (
-                       <Input
-                         value={formActionValue}
-                         onChange={(e) => setFormActionValue(e.target.value)}
-                         placeholder="Mensagem da notificação"
-                       />
-                     )}
-                   </div>
-                 </div>
-               </div>
+                  <div className="space-y-2">
+                    <Label>
+                      {formAction === "send_notification" && "Mensagem"}
+                      {formAction === "move_status" && "Status destino"}
+                    </Label>
+                    {formAction === "move_status" ? (
+                      <Select value={formActionValue} onValueChange={setFormActionValue}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {statuses.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              {s.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={formActionValue}
+                        onChange={(e) => setFormActionValue(e.target.value)}
+                        placeholder="Mensagem da notificação"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
  
-               <DialogFooter>
-                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-                   Cancelar
-                 </Button>
-                 <Button onClick={handleSaveRule} disabled={!formName || !formActionValue}>
-                   Salvar
-                 </Button>
-               </DialogFooter>
-             </DialogContent>
-           </Dialog>
-         </div>
-         <CardDescription>
-           Regras automáticas para gerenciar leads no pipeline
-         </CardDescription>
-       </CardHeader>
-       <CardContent className="space-y-3">
-         {rules.length === 0 ? (
-           <div className="text-center py-6 text-muted-foreground">
-             <Settings2 className="h-8 w-8 mx-auto mb-2 opacity-50" />
-             <p className="text-sm">Nenhuma automação configurada</p>
-           </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSaveRule} disabled={!formName || !formActionValue}>
+                  Salvar
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      >
+          {rules.length === 0 ? (
+            <EmptyState
+              icon={Settings2}
+              title="Nenhuma automação configurada"
+              description="Adicione uma regra para automatizar ações no pipeline."
+              action={{ label: "Nova Regra", onClick: () => { resetForm(); setIsDialogOpen(true); }, icon: Plus }}
+            />
          ) : (
            rules.map((rule) => (
              <div
@@ -379,7 +377,6 @@
              </div>
            ))
          )}
-       </CardContent>
-     </Card>
+      </SectionCard>
    );
  }

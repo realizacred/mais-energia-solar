@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
+import { EmptyState } from "@/components/ui-kit/EmptyState";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -577,11 +578,7 @@ export function ComissoesManager() {
         </div>
 
         <TabsContent value="lista" className="mt-0">
-          <Card className="rounded-xl border-2 border-border/60">
-            <CardHeader className="pb-4">
-              <CardTitle>Comissões</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <SectionCard icon={DollarSign} title="Comissões" variant="neutral">
               {/* Filters */}
               <ComissoesFilters
                 filterMes={filterMes}
@@ -604,11 +601,13 @@ export function ComissoesManager() {
 
               {/* Table */}
               <div className="mt-6">
-                {filteredComissoes.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <DollarSign className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>Nenhuma comissão encontrada para o período selecionado</p>
-                  </div>
+              {filteredComissoes.length === 0 ? (
+                  <EmptyState
+                    icon={DollarSign}
+                    title="Nenhuma comissão encontrada"
+                    description="Não há comissões para o período selecionado."
+                    action={{ label: "Nova Comissão", onClick: () => setDialogOpen(true), icon: Plus }}
+                  />
                 ) : (
                   <Table>
                     <TableHeader>
@@ -681,8 +680,7 @@ export function ComissoesManager() {
                   </Table>
                 )}
               </div>
-            </CardContent>
-          </Card>
+          </SectionCard>
         </TabsContent>
 
         <TabsContent value="relatorios" className="mt-0">
