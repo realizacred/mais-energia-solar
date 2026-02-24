@@ -299,6 +299,21 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
     load();
   }, [dealId]);
 
+  const refreshCustomer = async () => {
+    if (!deal?.customer_id) return;
+    const { data: c } = await supabase.from("clientes").select("nome, telefone, email, cpf_cnpj, empresa, rua, numero, bairro, cidade, estado, cep").eq("id", deal.customer_id).single();
+    if (c) {
+      const cl = c as any;
+      setCustomerName(cl.nome);
+      setCustomerPhone(cl.telefone || "");
+      setCustomerEmail(cl.email || "");
+      setCustomerCpfCnpj(cl.cpf_cnpj || "");
+      setCustomerEmpresa(cl.empresa || "");
+      const parts = [cl.rua, cl.numero ? `n° ${cl.numero}` : null, cl.bairro, cl.cidade ? `${cl.cidade} (${cl.estado || ""})` : null, cl.cep ? `CEP: ${cl.cep}` : null].filter(Boolean);
+      setCustomerAddress(parts.join(", "));
+    }
+  };
+
   // ─── Load etiquetas ────────────────────────────
   const loadEtiquetas = async () => {
     const [relRes, allRes] = await Promise.all([
@@ -587,6 +602,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
               currentStage={currentStage} currentPipeline={currentPipeline}
               formatDate={formatDate} formatBRL={formatBRL} getStageNameById={getStageNameById}
               userNamesMap={userNamesMap}
+              onRefreshCustomer={refreshCustomer}
             />
           )}
           {activeTab === "chat" && (
@@ -827,6 +843,7 @@ function GerenciamentoTab({
   customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
   ownerName, currentStage, currentPipeline,
   formatDate, formatBRL, getStageNameById, userNamesMap,
+  onRefreshCustomer,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
   customerName: string; customerPhone: string; customerEmail: string;
@@ -835,6 +852,7 @@ function GerenciamentoTab({
   formatDate: (d: string) => string; formatBRL: (v: number) => string;
   getStageNameById: (id: string | null) => string;
   userNamesMap: Map<string, string>;
+  onRefreshCustomer?: () => void;
 }) {
   const navigate = useNavigate();
   const [timelineFilter, setTimelineFilter] = useState<TimelineFilter>("todos");
@@ -860,6 +878,39 @@ function GerenciamentoTab({
   // Custom fields marked as important
   const [importantFields, setImportantFields] = useState<Array<{ id: string; title: string; field_key: string; field_type: string; options: any }>>([]);
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null }>>({});
+
+  // ── Inline edit popup for client fields ──
+  const [inlineEditOpen, setInlineEditOpen] = useState(false);
+  const [inlineEditField, setInlineEditField] = useState<string>("");
+  const [inlineEditLabel, setInlineEditLabel] = useState<string>("");
+  const [inlineEditValue, setInlineEditValue] = useState<string>("");
+  const [savingInlineEdit, setSavingInlineEdit] = useState(false);
+
+  const openInlineEdit = (field: string, label: string, currentValue: string) => {
+    setInlineEditField(field);
+    setInlineEditLabel(label);
+    setInlineEditValue(currentValue || "");
+    setInlineEditOpen(true);
+  };
+
+  const saveInlineEdit = async () => {
+    if (!deal.customer_id || !inlineEditField) return;
+    setSavingInlineEdit(true);
+    try {
+      const { error } = await supabase
+        .from("clientes")
+        .update({ [inlineEditField]: inlineEditValue.trim() || null })
+        .eq("id", deal.customer_id);
+      if (error) throw error;
+      toast({ title: "Dados atualizados!" });
+      setInlineEditOpen(false);
+      onRefreshCustomer?.();
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" });
+    } finally {
+      setSavingInlineEdit(false);
+    }
+  };
 
   // Load important custom fields + values
   const loadImportantFields = async () => {
@@ -1220,10 +1271,10 @@ function GerenciamentoTab({
               </DropdownMenu>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <div className="space-y-2.5">
+              <div className="space-y-1.5">
                 <ClientRow icon={User} label={customerName || "—"} />
-                <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} />
-                <ClientRow icon={Hash} label={customerCpfCnpj || "Adicionar CNPJ/CPF"} muted={!customerCpfCnpj} isLink={!customerCpfCnpj} onCopy={customerCpfCnpj ? () => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); } : undefined} />
+                <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} onEdit={!customerEmpresa ? () => openInlineEdit("empresa", "Nome da Empresa", customerEmpresa) : undefined} />
+                <ClientRow icon={Hash} label={customerCpfCnpj || "Adicionar CNPJ/CPF"} muted={!customerCpfCnpj} isLink={!customerCpfCnpj} onCopy={customerCpfCnpj ? () => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); } : undefined} onEdit={!customerCpfCnpj ? () => openInlineEdit("cpf_cnpj", "CPF / CNPJ", customerCpfCnpj) : undefined} />
                 <ClientRow
                   icon={Phone}
                   label={customerPhone || "Adicionar Telefone"}
@@ -1233,6 +1284,7 @@ function GerenciamentoTab({
                   onAction={customerPhone ? () => window.open(`https://wa.me/${customerPhone.replace(/\D/g, "")}`, "_blank") : undefined}
                   actionIcon={customerPhone ? MessageSquare : undefined}
                   actionTooltip="Abrir WhatsApp"
+                  onEdit={!customerPhone ? () => openInlineEdit("telefone", "Telefone", customerPhone) : undefined}
                 />
                 <ClientRow
                   icon={Mail}
@@ -1243,11 +1295,38 @@ function GerenciamentoTab({
                   onAction={customerEmail ? () => window.open(`mailto:${customerEmail}`, "_blank") : undefined}
                   actionIcon={customerEmail ? Send : undefined}
                   actionTooltip="Enviar e-mail"
+                  onEdit={!customerEmail ? () => openInlineEdit("email", "E-mail", customerEmail) : undefined}
                 />
-                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Endereço"} muted isLink={!customerAddress} onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} />
+                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Cidade"} muted isLink={!customerAddress} onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} onEdit={!customerAddress ? () => openInlineEdit("cidade", "Cidade", "") : undefined} />
               </div>
             </CardContent>
           </Card>
+
+          {/* ── Inline Edit Dialog ── */}
+          <Dialog open={inlineEditOpen} onOpenChange={setInlineEditOpen}>
+            <DialogContent className="sm:max-w-[400px]">
+              <DialogHeader>
+                <DialogTitle>{inlineEditLabel ? `Adicionar ${inlineEditLabel}` : "Editar"}</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-3 py-2">
+                <Label className="text-sm text-primary">{inlineEditLabel}</Label>
+                <Input
+                  value={inlineEditValue}
+                  onChange={(e) => setInlineEditValue(e.target.value)}
+                  placeholder={`Digite ${inlineEditLabel?.toLowerCase()}...`}
+                  autoFocus
+                  onKeyDown={(e) => { if (e.key === "Enter") saveInlineEdit(); }}
+                />
+              </div>
+              <Separator />
+              <div className="flex justify-end">
+                <Button onClick={saveInlineEdit} disabled={savingInlineEdit} size="sm">
+                  {savingInlineEdit ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : null}
+                  Aplicar
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Custom fields marked as important — only if any exist */}
           {importantFields.length > 0 && (
@@ -1557,7 +1636,7 @@ function GerenciamentoTab({
 // ═══════════════════════════════════════════════════
 // ─── Client Info Row ─────────────────────────────
 // ═══════════════════════════════════════════════════
-function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionIcon: ActionIcon, actionTooltip }: {
+function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionIcon: ActionIcon, actionTooltip, onEdit }: {
   icon: typeof User;
   label: string;
   muted?: boolean;
@@ -1566,6 +1645,7 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
   onAction?: () => void;
   actionIcon?: typeof User;
   actionTooltip?: string;
+  onEdit?: () => void;
 }) {
   const iconColorMap: Record<string, string> = {
     User: "text-secondary",
@@ -1577,7 +1657,10 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
   };
   const iconColor = iconColorMap[Icon.displayName || ""] || "text-secondary";
   return (
-    <div className="flex items-center gap-2.5 group">
+    <div
+      className={cn("flex items-center gap-2.5 group", onEdit && "cursor-pointer hover:bg-muted/40 -mx-2 px-2 py-0.5 rounded-md transition-colors")}
+      onClick={onEdit}
+    >
       <Icon className={cn("h-3.5 w-3.5 shrink-0", iconColor)} />
       <span className={cn(
         "text-sm leading-snug flex-1 min-w-0 truncate",
@@ -1589,7 +1672,7 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
         {onCopy && (
           <button
-            onClick={onCopy}
+            onClick={(e) => { e.stopPropagation(); onCopy(); }}
             className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors"
             title="Copiar"
           >
@@ -1598,7 +1681,7 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
         )}
         {onAction && ActionIcon && (
           <button
-            onClick={onAction}
+            onClick={(e) => { e.stopPropagation(); onAction(); }}
             className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-muted transition-colors"
             title={actionTooltip}
           >
