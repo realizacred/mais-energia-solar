@@ -144,6 +144,23 @@ export function StageDealCard({
       )}
       style={borderStyle}
     >
+      {/* ── Etiqueta accent bar at the top ── */}
+      {etiquetaCfg && (
+        <div className="relative">
+          <div
+            className="h-[5px] rounded-t-[inherit]"
+            style={{ background: etiquetaCfg.cor }}
+          />
+          <div
+            className="absolute top-0 right-2 flex items-center gap-1 px-1.5 py-0.5 rounded-b-md text-[9px] font-bold text-white shadow-md"
+            style={{ backgroundColor: etiquetaCfg.cor }}
+          >
+            {etiquetaCfg.icon && <span className="text-[10px]">{etiquetaCfg.icon}</span>}
+            {etiquetaCfg.short || etiquetaCfg.label}
+          </div>
+        </div>
+      )}
+
       <div className="p-3.5 space-y-2">
         {/* Row 1: Header — Name + Value */}
         <div className="flex items-start justify-between gap-2">
@@ -184,14 +201,6 @@ export function StageDealCard({
             <Badge variant="outline" className="text-[9px] h-[18px] px-1.5 font-medium border-warning/40 text-warning bg-warning/8">
               Sem proposta
             </Badge>
-          )}
-          {etiquetaCfg && (
-            <span
-              className="text-[9px] font-semibold rounded-full px-2 py-0.5 text-white shadow-sm"
-              style={{ backgroundColor: etiquetaCfg.cor }}
-            >
-              {etiquetaCfg.icon ? `${etiquetaCfg.icon} ` : ""}{etiquetaCfg.short || etiquetaCfg.label}
-            </span>
           )}
           {deal.deal_kwp > 0 && (
             <Badge variant="outline" className="text-[9px] h-[18px] px-1.5 font-mono font-semibold border-info/30 text-info bg-info/5">
