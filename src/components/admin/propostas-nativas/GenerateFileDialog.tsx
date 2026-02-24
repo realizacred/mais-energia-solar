@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { FileText, Loader2, Upload, Zap, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -43,6 +43,7 @@ export function GenerateFileDialog({
   const [generating, setGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState("template");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!open) {
@@ -183,46 +184,50 @@ export function GenerateFileDialog({
                 </SelectContent>
               </Select>
             </div>
-
-            <Button
-              onClick={handleGenerate}
-              disabled={!selectedTemplate || generating}
-              className="w-full gap-2"
-            >
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
-              Gerar
-            </Button>
           </TabsContent>
 
           <TabsContent value="upload" className="space-y-4 pt-4">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Arquivo DOCX</Label>
-              <div className="flex gap-2">
-                <Input
-                  type="file"
-                  accept=".docx,.doc"
-                  onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
-                  className="text-sm"
-                />
-              </div>
-              {uploadFile && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <FileText className="h-3 w-3" />
-                  {uploadFile.name}
-                </p>
-              )}
+              <p className="text-sm text-muted-foreground">
+                {uploadFile ? uploadFile.name : "Nenhum arquivo selecionado"}
+              </p>
+              <input
+                ref={uploadRef}
+                type="file"
+                accept=".docx,.doc"
+                className="hidden"
+                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+              />
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => uploadRef.current?.click()}
+                className="gap-1.5"
+              >
+                <Upload className="h-3.5 w-3.5" />
+                Importar
+              </Button>
             </div>
-
-            <Button
-              onClick={handleUploadGenerate}
-              disabled={!uploadFile || generating}
-              className="w-full gap-2"
-            >
-              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              Gerar com arquivo
-            </Button>
           </TabsContent>
         </Tabs>
+
+        <div className="flex justify-end gap-2 pt-2 border-t">
+          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+            Fechar
+          </Button>
+          <Button
+            onClick={activeTab === "upload" ? handleUploadGenerate : handleGenerate}
+            disabled={
+              activeTab === "upload"
+                ? !uploadFile || generating
+                : !selectedTemplate || generating
+            }
+            className="gap-1.5"
+          >
+            {generating && <Loader2 className="h-4 w-4 animate-spin" />}
+            Gerar
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
