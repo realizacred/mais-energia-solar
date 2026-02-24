@@ -44,6 +44,7 @@ const DEFAULT_CONFIG: Omit<LoadingConfig, "id" | "tenant_id"> = {
 };
 
 const CACHE_KEY_PREFIX = "loading-config-cache";
+const CACHE_KEY_GLOBAL = "loading-config-cache-latest";
 
 function cacheKey(tenantId?: string): string {
   return tenantId ? `${CACHE_KEY_PREFIX}-${tenantId}` : CACHE_KEY_PREFIX;
@@ -59,9 +60,21 @@ function getCachedConfig(tenantId?: string): LoadingConfig | null {
   }
 }
 
+function getGlobalCachedConfig(): LoadingConfig | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_GLOBAL);
+    if (!raw) return null;
+    return JSON.parse(raw) as LoadingConfig;
+  } catch {
+    return null;
+  }
+}
+
 function setCachedConfig(config: LoadingConfig) {
   try {
     localStorage.setItem(cacheKey(config.tenant_id), JSON.stringify(config));
+    // Also store a global "latest" copy so pre-auth screens can use it
+    localStorage.setItem(CACHE_KEY_GLOBAL, JSON.stringify(config));
   } catch {
     // localStorage full or unavailable — ignore
   }
@@ -95,9 +108,9 @@ export function useLoadingConfig() {
   });
 
   // Use cached config instantly while DB fetch is in-flight
-  // Try tenant-specific cache first, then fallback to legacy key
+  // Try tenant-specific cache first, then global "latest" cache, then legacy key
   const tenantId = config?.tenant_id ?? user?.user_metadata?.tenant_id;
-  const effectiveConfig = config ?? getCachedConfig(tenantId) ?? getCachedConfig();
+  const effectiveConfig = config ?? getCachedConfig(tenantId) ?? getGlobalCachedConfig() ?? getCachedConfig();
 
   const mergedConfig: Omit<LoadingConfig, "id" | "tenant_id"> = effectiveConfig
     ? { ...DEFAULT_CONFIG, ...effectiveConfig, messages_catalog: { ...DEFAULT_CONFIG.messages_catalog, ...(effectiveConfig.messages_catalog || {}) } }
