@@ -3,8 +3,7 @@ import {
   FileText, Plus, Search, Zap, DollarSign,
   SunMedium,
 } from "lucide-react";
-import { LoadingState } from "@/components/ui-kit";
-import { Card, CardContent } from "@/components/ui/card";
+import { LoadingState, PageHeader, EmptyState, SearchInput, StatCard } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -151,81 +150,36 @@ export function PropostasManager() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">Propostas Comerciais</h2>
-            <p className="text-sm text-muted-foreground">
-              Gerencie propostas enviadas aos clientes
-            </p>
-          </div>
-          <Button className="gap-2" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Nova Proposta
-          </Button>
-        </div>
+        <PageHeader
+          icon={FileText}
+          title="Propostas Comerciais"
+          description="Gerencie propostas enviadas aos clientes"
+          actions={
+            <Button className="gap-2" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-4 w-4" />
+              Nova Proposta
+            </Button>
+          }
+        />
 
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-l-4 border-l-primary">
-            <CardContent className="flex items-center gap-3 pt-5 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                <FileText className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.total}</p>
-                <p className="text-xs text-muted-foreground">Total</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-info">
-            <CardContent className="flex items-center gap-3 pt-5 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-info/10 flex items-center justify-center shrink-0">
-                <SunMedium className="h-5 w-5 text-info" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.enviadas}</p>
-                <p className="text-xs text-muted-foreground">Enviadas</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-success">
-            <CardContent className="flex items-center gap-3 pt-5 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center shrink-0">
-                <Zap className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{stats.aceitas}</p>
-                <p className="text-xs text-muted-foreground">Aceitas</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-warning">
-            <CardContent className="flex items-center gap-3 pt-5 pb-4">
-              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center shrink-0">
-                <DollarSign className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{formatCurrency(stats.valorTotal)}</p>
-                <p className="text-xs text-muted-foreground">Valor Aceitas</p>
-              </div>
-            </CardContent>
-          </Card>
+          <StatCard icon={FileText} label="Total" value={stats.total} color="primary" />
+          <StatCard icon={SunMedium} label="Enviadas" value={stats.enviadas} color="info" />
+          <StatCard icon={Zap} label="Aceitas" value={stats.aceitas} color="success" />
+          <StatCard icon={DollarSign} label="Valor Aceitas" value={formatCurrency(stats.valorTotal)} color="warning" />
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por nome ou cliente..."
-              className="pl-9 h-9"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Buscar por nome ou cliente..."
+            className="flex-1 max-w-sm"
+          />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px] h-9">
+            <SelectTrigger className="w-full sm:w-[160px] h-9">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -241,25 +195,12 @@ export function PropostasManager() {
 
         {/* Cards Grid */}
         {filtered.length === 0 ? (
-          <Card>
-            <CardContent className="p-0">
-              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <div className="w-14 h-14 rounded-2xl bg-muted/50 flex items-center justify-center mb-4">
-                  <FileText className="h-7 w-7 opacity-30" />
-                </div>
-                <p className="font-medium">
-                  {propostas.length === 0
-                    ? "Nenhuma proposta cadastrada"
-                    : "Nenhuma proposta encontrada"}
-                </p>
-                <p className="text-sm mt-1">
-                  {propostas.length === 0
-                    ? 'Clique em "Nova Proposta" para criar a primeira.'
-                    : "Tente alterar os filtros de busca."}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyState
+            icon={FileText}
+            title={propostas.length === 0 ? "Nenhuma proposta cadastrada" : "Nenhuma proposta encontrada"}
+            description={propostas.length === 0 ? 'Clique em "Nova Proposta" para criar a primeira.' : "Tente alterar os filtros de busca."}
+            action={propostas.length === 0 ? { label: "Nova Proposta", onClick: () => setCreateOpen(true), icon: Plus } : undefined}
+          />
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((p) => (

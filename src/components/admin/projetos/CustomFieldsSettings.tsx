@@ -4,6 +4,7 @@ import { useMotivosPerda } from "@/hooks/useDistribution";
 import { useTenantPremises } from "@/hooks/useTenantPremises";
 import { toast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageHeader } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -313,17 +314,11 @@ export function CustomFieldsSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Settings2 className="h-5 w-5 text-primary" />
-            Opções Customizáveis
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            Personalize campos, premissas, tipos de atividade e motivos de perda do seu CRM
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={Settings2}
+        title="Opções Customizáveis"
+        description="Personalize campos, premissas, tipos de atividade e motivos de perda do seu CRM"
+      />
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="flex-wrap">

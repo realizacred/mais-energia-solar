@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { formatPhone } from "@/lib/validations";
 import { formatCpfCnpj } from "@/lib/cpfCnpjUtils";
-import { Plus, Trash2, Pencil, Search, Truck, Building2, Globe, Phone, Mail, MapPin } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Plus, Trash2, Pencil, Truck, Building2, Globe, Phone, Mail, MapPin } from "lucide-react";
+import { SectionCard } from "@/components/ui-kit/SectionCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { PageHeader, LoadingState } from "@/components/ui-kit";
+import { PageHeader, LoadingState, SearchInput } from "@/components/ui-kit";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -197,16 +197,13 @@ export function FornecedoresManager() {
         description="Cadastro de distribuidores, fabricantes e integradores de equipamentos"
       />
 
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome, CNPJ ou cidade..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+        <SearchInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por nome, CNPJ ou cidade..."
+          className="flex-1 max-w-sm"
+        />
         <Button onClick={openCreate} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Novo Fornecedor
         </Button>
@@ -294,10 +291,8 @@ export function FornecedoresManager() {
 
           <div className="space-y-5">
             {/* Identificação */}
-            <Card>
-              <CardContent className="pt-4 space-y-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Identificação</p>
-                <div className="grid grid-cols-2 gap-4">
+            <SectionCard icon={Building2} title="Identificação" variant="blue">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>Nome *</Label>
                     <Input value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))} placeholder="Nome do fornecedor" />
@@ -312,7 +307,7 @@ export function FornecedoresManager() {
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                   <div className="space-y-1.5">
                     <Label>CNPJ</Label>
                     <Input value={form.cnpj} onChange={e => setForm(p => ({ ...p, cnpj: formatCpfCnpj(e.target.value) }))} placeholder="00.000.000/0000-00" maxLength={18} />
@@ -322,14 +317,11 @@ export function FornecedoresManager() {
                     <Input value={form.inscricao_estadual} onChange={e => setForm(p => ({ ...p, inscricao_estadual: e.target.value }))} />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+            </SectionCard>
 
             {/* Contato */}
-            <Card>
-              <CardContent className="pt-4 space-y-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Contato</p>
-                <div className="grid grid-cols-2 gap-4">
+            <SectionCard icon={Phone} title="Contato" variant="green">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label>E-mail</Label>
                     <Input type="email" value={form.email} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} placeholder="contato@fornecedor.com" />
@@ -339,7 +331,7 @@ export function FornecedoresManager() {
                     <Input value={form.telefone} onChange={e => setForm(p => ({ ...p, telefone: formatPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                   <div className="space-y-1.5">
                     <Label>Pessoa de Contato</Label>
                     <Input value={form.contato_nome} onChange={e => setForm(p => ({ ...p, contato_nome: e.target.value }))} placeholder="Nome do contato" />
@@ -349,19 +341,16 @@ export function FornecedoresManager() {
                     <Input value={form.contato_telefone} onChange={e => setForm(p => ({ ...p, contato_telefone: formatPhone(e.target.value) }))} placeholder="(00) 00000-0000" maxLength={15} />
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 mt-4">
                   <Label>Site</Label>
                   <Input value={form.site} onChange={e => setForm(p => ({ ...p, site: e.target.value }))} placeholder="https://fornecedor.com.br" />
                 </div>
-              </CardContent>
-            </Card>
+            </SectionCard>
 
             {/* Endereço */}
-            <Card>
-              <CardContent className="pt-4 space-y-4">
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Endereço</p>
+            <SectionCard icon={MapPin} title="Endereço" variant="neutral">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="col-span-2 space-y-1.5">
+                  <div className="col-span-1 sm:col-span-2 space-y-1.5">
                     <Label>Endereço</Label>
                     <Input value={form.endereco} onChange={e => setForm(p => ({ ...p, endereco: e.target.value }))} />
                   </div>
@@ -374,16 +363,14 @@ export function FornecedoresManager() {
                     <Input value={form.estado} onChange={e => setForm(p => ({ ...p, estado: e.target.value }))} maxLength={2} />
                   </div>
                 </div>
-                <div className="w-32 space-y-1.5">
+                <div className="w-full sm:w-32 space-y-1.5 mt-4">
                   <Label>CEP</Label>
                   <Input value={form.cep} onChange={e => setForm(p => ({ ...p, cep: e.target.value }))} placeholder="00000-000" />
                 </div>
-              </CardContent>
-            </Card>
+            </SectionCard>
 
             {/* Categorias & Obs */}
-            <Card>
-              <CardContent className="pt-4 space-y-4">
+            <SectionCard icon={Truck} title="Categorias & Observações" variant="neutral">
                 <div className="space-y-2">
                   <Label>Categorias de Produtos</Label>
                   <div className="flex flex-wrap gap-2">
@@ -399,12 +386,11 @@ export function FornecedoresManager() {
                     ))}
                   </div>
                 </div>
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 mt-4">
                   <Label>Observações</Label>
                   <Textarea value={form.observacoes} onChange={e => setForm(p => ({ ...p, observacoes: e.target.value }))} rows={3} />
                 </div>
-              </CardContent>
-            </Card>
+            </SectionCard>
           </div>
 
           <DialogFooter>

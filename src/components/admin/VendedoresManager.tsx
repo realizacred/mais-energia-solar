@@ -540,13 +540,7 @@ export default function VendedoresManager({ leads: propLeads }: VendedoresManage
   };
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent>
-          <LoadingState className="py-12" />
-        </CardContent>
-      </Card>
-    );
+    return <LoadingState className="py-12" />;
   }
 
   return (
