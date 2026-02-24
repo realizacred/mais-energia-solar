@@ -136,6 +136,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerCpfCnpj, setCustomerCpfCnpj] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
+  const [customerEmpresa, setCustomerEmpresa] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>("gerenciamento");
@@ -252,7 +253,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
 
         const [stagesRes, customerRes, ownerRes, pipelinesRes, allStagesRes] = await Promise.all([
           supabase.from("pipeline_stages").select("id, name, position, is_closed, is_won, probability").eq("pipeline_id", d.pipeline_id).order("position"),
-          d.customer_id ? supabase.from("clientes").select("nome, telefone, email, cpf_cnpj, rua, numero, bairro, cidade, estado, cep").eq("id", d.customer_id).single() : Promise.resolve({ data: null }),
+          d.customer_id ? supabase.from("clientes").select("nome, telefone, email, cpf_cnpj, empresa, rua, numero, bairro, cidade, estado, cep").eq("id", d.customer_id).single() : Promise.resolve({ data: null }),
           supabase.from("consultores").select("nome").eq("id", d.owner_id).single(),
           supabase.from("pipelines").select("id, name").eq("is_active", true).order("name"),
           supabase.from("pipeline_stages").select("id, name, position, pipeline_id, is_closed, is_won, probability").order("position"),
@@ -265,6 +266,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
           setCustomerPhone(c.telefone || "");
           setCustomerEmail(c.email || "");
           setCustomerCpfCnpj(c.cpf_cnpj || "");
+          setCustomerEmpresa(c.empresa || "");
           const parts = [c.rua, c.numero ? `n° ${c.numero}` : null, c.bairro, c.cidade ? `${c.cidade} (${c.estado || ""})` : null, c.cep ? `CEP: ${c.cep}` : null].filter(Boolean);
           setCustomerAddress(parts.join(", "));
         }
@@ -579,6 +581,7 @@ export function ProjetoDetalhe({ dealId, onBack, initialPipelineId }: Props) {
               deal={deal} history={history} stages={stages}
               customerName={customerName} customerPhone={customerPhone}
               customerEmail={customerEmail} customerCpfCnpj={customerCpfCnpj}
+              customerEmpresa={customerEmpresa}
               customerAddress={customerAddress}
               ownerName={ownerName}
               currentStage={currentStage} currentPipeline={currentPipeline}
@@ -821,13 +824,13 @@ interface UnifiedTimelineItem {
 
 function GerenciamentoTab({
   deal, history, stages,
-  customerName, customerPhone, customerEmail, customerCpfCnpj, customerAddress,
+  customerName, customerPhone, customerEmail, customerCpfCnpj, customerEmpresa, customerAddress,
   ownerName, currentStage, currentPipeline,
   formatDate, formatBRL, getStageNameById, userNamesMap,
 }: {
   deal: DealDetail; history: StageHistory[]; stages: StageInfo[];
   customerName: string; customerPhone: string; customerEmail: string;
-  customerCpfCnpj: string; customerAddress: string;
+  customerCpfCnpj: string; customerEmpresa: string; customerAddress: string;
   ownerName: string; currentStage?: StageInfo; currentPipeline?: PipelineInfo;
   formatDate: (d: string) => string; formatBRL: (v: number) => string;
   getStageNameById: (id: string | null) => string;
@@ -1219,31 +1222,29 @@ function GerenciamentoTab({
             <CardContent className="p-4 pt-0">
               <div className="space-y-2.5">
                 <ClientRow icon={User} label={customerName || "—"} />
-                {customerCpfCnpj && <ClientRow icon={Hash} label={customerCpfCnpj} muted onCopy={() => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); }} />}
-                {customerPhone && (
-                  <ClientRow
-                    icon={Phone}
-                    label={customerPhone}
-                    muted
-                    onCopy={() => { navigator.clipboard.writeText(customerPhone); toast({ title: "Telefone copiado" }); }}
-                    onAction={() => window.open(`https://wa.me/${customerPhone.replace(/\D/g, "")}`, "_blank")}
-                    actionIcon={MessageSquare}
-                    actionTooltip="Abrir WhatsApp"
-                  />
-                )}
-                {customerEmail && (
-                  <ClientRow
-                    icon={Mail}
-                    label={customerEmail}
-                    muted
-                    isLink
-                    onCopy={() => { navigator.clipboard.writeText(customerEmail); toast({ title: "E-mail copiado" }); }}
-                    onAction={() => window.open(`mailto:${customerEmail}`, "_blank")}
-                    actionIcon={Send}
-                    actionTooltip="Enviar e-mail"
-                  />
-                )}
-                {customerAddress && <ClientRow icon={MapPin} label={customerAddress} muted onCopy={() => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); }} />}
+                <ClientRow icon={Building} label={customerEmpresa || "Adicionar Empresa"} muted={!customerEmpresa} isLink={!customerEmpresa} />
+                <ClientRow icon={Hash} label={customerCpfCnpj || "Adicionar CNPJ/CPF"} muted={!customerCpfCnpj} isLink={!customerCpfCnpj} onCopy={customerCpfCnpj ? () => { navigator.clipboard.writeText(customerCpfCnpj); toast({ title: "CPF/CNPJ copiado" }); } : undefined} />
+                <ClientRow
+                  icon={Phone}
+                  label={customerPhone || "Adicionar Telefone"}
+                  muted
+                  isLink={!customerPhone}
+                  onCopy={customerPhone ? () => { navigator.clipboard.writeText(customerPhone); toast({ title: "Telefone copiado" }); } : undefined}
+                  onAction={customerPhone ? () => window.open(`https://wa.me/${customerPhone.replace(/\D/g, "")}`, "_blank") : undefined}
+                  actionIcon={customerPhone ? MessageSquare : undefined}
+                  actionTooltip="Abrir WhatsApp"
+                />
+                <ClientRow
+                  icon={Mail}
+                  label={customerEmail || "Adicionar Email"}
+                  muted
+                  isLink={!customerEmail}
+                  onCopy={customerEmail ? () => { navigator.clipboard.writeText(customerEmail); toast({ title: "E-mail copiado" }); } : undefined}
+                  onAction={customerEmail ? () => window.open(`mailto:${customerEmail}`, "_blank") : undefined}
+                  actionIcon={customerEmail ? Send : undefined}
+                  actionTooltip="Enviar e-mail"
+                />
+                <ClientRow icon={MapPin} label={customerAddress || "Adicionar Endereço"} muted isLink={!customerAddress} onCopy={customerAddress ? () => { navigator.clipboard.writeText(customerAddress); toast({ title: "Endereço copiado" }); } : undefined} />
               </div>
             </CardContent>
           </Card>
@@ -1568,6 +1569,7 @@ function ClientRow({ icon: Icon, label, muted, isLink, onCopy, onAction, actionI
 }) {
   const iconColorMap: Record<string, string> = {
     User: "text-secondary",
+    Building: "text-accent",
     Hash: "text-muted-foreground",
     Phone: "text-info",
     Mail: "text-primary",
