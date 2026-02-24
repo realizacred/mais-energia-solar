@@ -32,6 +32,7 @@ import { SunLoader } from "@/components/loading/SunLoader";
 import { toast } from "@/hooks/use-toast";
 import { VariableMapperPanel } from "./VariableMapperPanel";
 import { ProjetoDocChecklist } from "./ProjetoDocChecklist";
+import { ImportantFieldRow } from "./ImportantFieldRow";
 import { ProjetoMultiPipelineManager } from "./ProjetoMultiPipelineManager";
 import { ProjetoChatTab } from "./ProjetoChatTab";
 import { PropostaExpandedDetail } from "./PropostaExpandedDetail";
@@ -858,34 +859,32 @@ function GerenciamentoTab({
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, { value_text?: string | null; value_number?: number | null; value_boolean?: boolean | null; value_date?: string | null }>>({});
 
   // Load important custom fields + values
-  useEffect(() => {
-    async function loadImportantFields() {
-      try {
-        const { data: fields } = await supabase
-          .from("deal_custom_fields")
-          .select("id, title, field_key, field_type, options")
-          .eq("is_active", true)
-          .eq("field_context", "projeto")
-          .eq("important_on_funnel", true)
-          .order("ordem");
-        if (!fields || fields.length === 0) { setImportantFields([]); return; }
-        setImportantFields(fields as any);
+  const loadImportantFields = async () => {
+    try {
+      const { data: fields } = await supabase
+        .from("deal_custom_fields")
+        .select("id, title, field_key, field_type, options")
+        .eq("is_active", true)
+        .eq("field_context", "projeto")
+        .eq("important_on_funnel", true)
+        .order("ordem");
+      if (!fields || fields.length === 0) { setImportantFields([]); return; }
+      setImportantFields(fields as any);
 
-        const fieldIds = fields.map((f: any) => f.id);
-        const { data: values } = await supabase
-          .from("deal_custom_field_values")
-          .select("field_id, value_text, value_number, value_boolean, value_date")
-          .eq("deal_id", deal.id)
-          .in("field_id", fieldIds);
-        if (values) {
-          const map: Record<string, any> = {};
-          values.forEach((v: any) => { map[v.field_id] = v; });
-          setCustomFieldValues(map);
-        }
-      } catch { /* ignore */ }
-    }
-    loadImportantFields();
-  }, [deal.id]);
+      const fieldIds = fields.map((f: any) => f.id);
+      const { data: values } = await supabase
+        .from("deal_custom_field_values")
+        .select("field_id, value_text, value_number, value_boolean, value_date")
+        .eq("deal_id", deal.id)
+        .in("field_id", fieldIds);
+      if (values) {
+        const map: Record<string, any> = {};
+        values.forEach((v: any) => { map[v.field_id] = v; });
+        setCustomFieldValues(map);
+      }
+    } catch { /* ignore */ }
+  };
+  useEffect(() => { loadImportantFields(); }, [deal.id]);
   useEffect(() => {
     async function loadNotes() {
       try {
@@ -1259,23 +1258,16 @@ function GerenciamentoTab({
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 pt-0">
-                <div className="space-y-2 text-xs">
-                  {importantFields.map(field => {
-                    const val = customFieldValues[field.id];
-                    let displayValue = "—";
-                    if (val) {
-                      if (field.field_type === "boolean") {
-                        displayValue = val.value_boolean ? "Sim" : "Não";
-                      } else if (field.field_type === "number" || field.field_type === "currency") {
-                        displayValue = val.value_number != null ? String(val.value_number) : "—";
-                      } else if (field.field_type === "date") {
-                        displayValue = val.value_date ? new Date(val.value_date).toLocaleDateString("pt-BR") : "—";
-                      } else {
-                        displayValue = val.value_text || "—";
-                      }
-                    }
-                    return <InfoRow key={field.id} label={field.title} value={displayValue} />;
-                  })}
+                <div className="space-y-1 text-xs">
+                  {importantFields.map(field => (
+                    <ImportantFieldRow
+                      key={field.id}
+                      field={field}
+                      value={customFieldValues[field.id]}
+                      dealId={deal.id}
+                      onSaved={() => loadImportantFields()}
+                    />
+                  ))}
                 </div>
               </CardContent>
             </Card>
