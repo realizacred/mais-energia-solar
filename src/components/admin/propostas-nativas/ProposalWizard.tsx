@@ -757,7 +757,10 @@ export function ProposalWizard() {
 
   // ─── Generate (with enforcement gate)
   const handleGenerate = async () => {
-    if (!selectedLead) return;
+    if (!selectedLead) {
+      toast({ title: "Nenhum lead selecionado", description: "Selecione um lead antes de gerar a proposta.", variant: "destructive" });
+      return;
+    }
 
     // ── Grupo consistency gate
     if (!grupoValidation.valid) {

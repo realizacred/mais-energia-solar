@@ -113,8 +113,13 @@ export function StepDocumento({
       .eq("ativo", true)
       .order("ordem", { ascending: true })
       .then(({ data }) => {
-        setTemplates((data || []) as PropostaTemplate[]);
+        const tpls = (data || []) as PropostaTemplate[];
+        setTemplates(tpls);
         setLoadingTemplates(false);
+        // Auto-select first template if none selected
+        if (!templateSelecionado && tpls.length > 0) {
+          onTemplateSelecionado(tpls[0].id);
+        }
       });
   }, []);
 
@@ -337,7 +342,7 @@ export function StepDocumento({
             </div>
 
             <Button onClick={onGenerate} disabled={!templateSelecionado || generating} className="w-full gap-2">
-              <Zap className="h-4 w-4" />
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
               Gerar Proposta
             </Button>
           </div>
