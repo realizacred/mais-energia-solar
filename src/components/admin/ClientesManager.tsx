@@ -451,7 +451,7 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               </DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 py-2">
               {/* Vincular Lead */}
               <div className="space-y-2">
                 <Label>Vincular a um Lead</Label>
@@ -484,143 +484,138 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
               </div>
 
               {/* Dados Pessoais */}
-              <SectionCard icon={Users} title="Dados pessoais" variant="blue">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="nome">Nome *</Label>
-                    <Input
-                      id="nome"
-                      value={formData.nome}
-                      onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone">Telefone *</Label>
-                    <Input
-                      id="telefone"
-                      value={formData.telefone}
-                      onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
-                    <Input
-                      id="cpf_cnpj"
-                      value={formData.cpf_cnpj}
-                      onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="data_nascimento">Data de Nascimento</Label>
-                    <Input
-                      id="data_nascimento"
-                      type="date"
-                      value={formData.data_nascimento}
-                      onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
-                    />
-                  </div>
+              <p className="text-sm font-semibold text-foreground pt-2">Dados pessoais</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="nome">Nome *</Label>
+                  <Input
+                    id="nome"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    required
+                  />
                 </div>
-              </SectionCard>
+                <div className="space-y-2">
+                  <Label htmlFor="telefone">Telefone *</Label>
+                  <Input
+                    id="telefone"
+                    value={formData.telefone}
+                    onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">E-mail</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="cpf_cnpj">CPF/CNPJ</Label>
+                  <Input
+                    id="cpf_cnpj"
+                    value={formData.cpf_cnpj}
+                    onChange={(e) => setFormData({ ...formData, cpf_cnpj: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="data_nascimento">Data de Nascimento</Label>
+                  <Input
+                    id="data_nascimento"
+                    type="date"
+                    value={formData.data_nascimento}
+                    onChange={(e) => setFormData({ ...formData, data_nascimento: e.target.value })}
+                  />
+                </div>
+              </div>
 
               {/* Endereço */}
-              <SectionCard icon={Users} title="Endereço" variant="green">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cep">CEP</Label>
-                    <Input
-                      id="cep"
-                      value={formData.cep}
-                      onChange={(e) => {
-                        const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
-                        setFormData({ ...formData, cep: raw });
-                        // Auto-fill via ViaCEP
-                        if (raw.length === 8) {
-                          fetch(`https://viacep.com.br/ws/${raw}/json/`)
-                            .then(r => r.json())
-                            .then(data => {
-                              if (!data.erro) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  rua: data.logradouro || prev.rua,
-                                  bairro: data.bairro || prev.bairro,
-                                  cidade: data.localidade || prev.cidade,
-                                  estado: data.uf || prev.estado,
-                                  complemento: data.complemento || prev.complemento,
-                                }));
-                              }
-                            })
-                            .catch(() => { /* ViaCEP offline */ });
-                        }
-                      }}
-                      placeholder="00000000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="estado">Estado</Label>
-                    <Select
-                      value={formData.estado}
-                      onValueChange={(value) => setFormData({ ...formData, estado: value, cidade: "" })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {ESTADOS_BRASIL.map((est) => (
-                          <SelectItem key={est.sigla} value={est.sigla}>
-                            {est.sigla}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <CidadeSelect estado={formData.estado} cidade={formData.cidade} onCidadeChange={(v) => setFormData({ ...formData, cidade: v })} />
-                  <div className="space-y-2">
-                    <Label htmlFor="bairro">Bairro</Label>
-                    <Input
-                      id="bairro"
-                      value={formData.bairro}
-                      onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="rua">Rua</Label>
-                    <Input
-                      id="rua"
-                      value={formData.rua}
-                      onChange={(e) => setFormData({ ...formData, rua: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="numero">Número</Label>
-                    <Input
-                      id="numero"
-                      value={formData.numero}
-                      onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="complemento">Complemento</Label>
-                    <Input
-                      id="complemento"
-                      value={formData.complemento}
-                      onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
-                    />
-                  </div>
+              <p className="text-sm font-semibold text-foreground pt-2">Endereço</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cep">CEP</Label>
+                  <Input
+                    id="cep"
+                    value={formData.cep}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/\D/g, "").slice(0, 8);
+                      setFormData({ ...formData, cep: raw });
+                      if (raw.length === 8) {
+                        fetch(`https://viacep.com.br/ws/${raw}/json/`)
+                          .then(r => r.json())
+                          .then(data => {
+                            if (!data.erro) {
+                              setFormData(prev => ({
+                                ...prev,
+                                rua: data.logradouro || prev.rua,
+                                bairro: data.bairro || prev.bairro,
+                                cidade: data.localidade || prev.cidade,
+                                estado: data.uf || prev.estado,
+                                complemento: data.complemento || prev.complemento,
+                              }));
+                            }
+                          })
+                          .catch(() => {});
+                      }
+                    }}
+                    placeholder="00000000"
+                  />
                 </div>
-              </SectionCard>
-
-              {/* Seção "Dados do projeto solar" removida — esses dados pertencem ao domínio Projetos */}
+                <div className="space-y-2">
+                  <Label htmlFor="estado">Estado</Label>
+                  <Select
+                    value={formData.estado}
+                    onValueChange={(value) => setFormData({ ...formData, estado: value, cidade: "" })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ESTADOS_BRASIL.map((est) => (
+                        <SelectItem key={est.sigla} value={est.sigla}>
+                          {est.sigla}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <CidadeSelect estado={formData.estado} cidade={formData.cidade} onCidadeChange={(v) => setFormData({ ...formData, cidade: v })} />
+                <div className="space-y-2">
+                  <Label htmlFor="bairro">Bairro</Label>
+                  <Input
+                    id="bairro"
+                    value={formData.bairro}
+                    onChange={(e) => setFormData({ ...formData, bairro: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="rua">Rua</Label>
+                  <Input
+                    id="rua"
+                    value={formData.rua}
+                    onChange={(e) => setFormData({ ...formData, rua: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="numero">Número</Label>
+                  <Input
+                    id="numero"
+                    value={formData.numero}
+                    onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="complemento">Complemento</Label>
+                  <Input
+                    id="complemento"
+                    value={formData.complemento}
+                    onChange={(e) => setFormData({ ...formData, complemento: e.target.value })}
+                  />
+                </div>
+              </div>
 
               {/* Observações */}
               <div className="space-y-2">
@@ -635,19 +630,20 @@ export function ClientesManager({ onSelectCliente }: ClientesManagerProps) {
 
               {/* Documentos (somente no modo edição) */}
               {editingCliente && (
-                <SectionCard icon={FileText} title="Documentos" variant="blue">
-                    <ClienteDocumentUpload
-                      clienteId={editingCliente.id}
-                      documents={editDocuments}
-                      onDocumentsChange={(updated) => {
-                        setEditDocuments(updated);
-                        fetchClientes();
-                      }}
-                    />
-                </SectionCard>
+                <>
+                  <p className="text-sm font-semibold text-foreground pt-2">Documentos</p>
+                  <ClienteDocumentUpload
+                    clienteId={editingCliente.id}
+                    documents={editDocuments}
+                    onDocumentsChange={(updated) => {
+                      setEditDocuments(updated);
+                      fetchClientes();
+                    }}
+                  />
+                </>
               )}
 
-              <div className="flex justify-end gap-3">
+              <div className="flex justify-end gap-3 pt-2">
                 <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                   Cancelar
                 </Button>
