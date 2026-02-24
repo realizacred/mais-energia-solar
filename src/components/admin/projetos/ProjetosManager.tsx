@@ -164,7 +164,7 @@ export function ProjetosManager() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 max-w-full overflow-x-hidden">
       <PageHeader
         icon={FolderKanban}
         title="Projetos"
@@ -284,7 +284,7 @@ export function ProjetosManager() {
 
         <TabsContent value="kanban" className="space-y-4 mt-0">
           <div className="flex-1 min-w-0 space-y-4">
-            <div className="rounded-2xl border border-border/60 bg-card" style={{ boxShadow: "var(--shadow-sm)" }}>
+            <div className="rounded-2xl border border-border/60 bg-card overflow-hidden" style={{ boxShadow: "var(--shadow-sm)" }}>
               {/* Filters row */}
               <div className="px-4 py-3">
                 <ProjetoFilters
